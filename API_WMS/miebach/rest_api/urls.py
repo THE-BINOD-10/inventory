@@ -375,7 +375,6 @@ urlpatterns = [
 
 
 
-
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),
     url(r'^get_updated_pos/$', get_updated_pos),

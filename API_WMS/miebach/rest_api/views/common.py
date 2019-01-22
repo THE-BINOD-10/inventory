@@ -2269,7 +2269,6 @@ def search_batches(request, user=''):
                    pallet_detail__pallet_code=request.GET['pallet_code'])
         if not stock_detail:
             return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Location and Pallet code Combination'}))
-
     stock_data = StockDetail.objects.exclude(
         Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
         filter(**search_params)
@@ -2281,11 +2280,14 @@ def search_batches(request, user=''):
                 manufactured_date = datetime.datetime.strftime(stock.batch_detail.manufactured_date, "%d/%m/%Y")
             except:
                 manufactured_date = ''
+            try:
+                batchno =  stock.batch_detail.batch_no
+            except:
+                batchno  = ''
 
-            total_data.append({'batchno': stock.batch_detail.batch_no, 'manufactured_date':manufactured_date })
+            total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
 
     return HttpResponse(json.dumps(total_data))
-
 
 
 @csrf_exempt
@@ -2773,7 +2775,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     """ Build Invoice Json Data"""
     # Initializing Default Values
     data, imei_data, customer_details = [], [], []
-    order_date, order_id, marketplace, consignee, order_no, purchase_type, seller_address, customer_address = '', '', '', '', '', '', '', ''
+    order_date, order_id, marketplace, consignee, order_no, purchase_type, seller_address, customer_address, email = '', '', '', '', '', '', '', '', ''
     tax_type, seller_company, order_reference, order_reference_date = '', '', '', ''
     invoice_header = ''
     total_quantity, total_amt, total_taxable_amt, total_invoice, total_tax, total_mrp, _total_tax = 0, 0, 0, 0, 0, 0, 0
@@ -2823,17 +2825,16 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 seller_address = seller.name + '\n' + seller.address + "\nCall: " \
                                  + seller.phone_number + "\nEmail: " + seller.email_id \
                                  + "\nGSTIN No: " + seller.tin_number
-
         if order_data and order_data[0].customer_id:
             dat = order_data[0]
             gen_ord_customer_id = order_data[0].genericorderdetailmapping_set.values_list('customer_id', flat=True)
             if gen_ord_customer_id and user.userprofile.warehouse_type == 'DIST':
                 customer_details = list(CustomerMaster.objects.filter(id=gen_ord_customer_id[0]).
-                                        values('id', 'customer_id', 'name', 'email_id', 'tin_number', 'address',
+                                        values('id', 'customer_id', 'name', 'email_id', 'tin_number', 'address', 'shipping_address',
                                                'credit_period', 'phone_number'))
             else:
                 customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=dat.customer_id).
-                                        values('id', 'customer_id', 'name', 'email_id', 'tin_number', 'address',
+                                        values('id', 'customer_id', 'name', 'email_id', 'tin_number', 'address', 'shipping_address',
                                                'credit_period', 'phone_number'))
             if customer_details:
                 customer_id = customer_details[0]['id']
@@ -3081,7 +3082,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     total_amt = "%.2f" % (float(total_invoice) - float(_total_tax))
     dispatch_through = "By Road"
     _total_invoice = round(total_invoice_amount)
-    # _invoice_no =  'TI/%s/%s' %(datetime.datetime.now().strftime('%m%y'), order_no)
     admin_user = get_admin(user)
     if admin_user.get_username() .lower()== '72Networks'.lower() :
         side_image = get_company_logo(admin_user, COMPANY_LOGO_PATHS)
@@ -6477,7 +6477,6 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
     if switch_vals['marketplace_model'] == 'true':
         all_zone_mappings = ZoneMarketplaceMapping.objects.filter(zone__user=user.id, status=1)
         is_marketplace_model = True
-
     fefo_enabled = False
     add_mrp_filter = False
     if user.userprofile.industry_type == 'FMCG':
@@ -8608,6 +8607,69 @@ def get_sub_users(user):
     return sub_users
 
 
+def update_order_dicts_rista(orders, rista_resp, user='', company_name=''):
+    from outbound import check_stocks
+    trans_mapping = {}
+    collect_order_detail_list = []
+    order_sku = {}
+    status = {'status': 0, 'messages': ['Something went wrong']}
+    for order_key, order in orders.iteritems():
+        customer_name = order['order_details']['customer_name']
+	if order_key == "extra":
+	    if float(order.get('shipping_charges', 0)):
+                OrderCharges.objects.create(**{'order_id': order.get('original_order_id', ''), 'user':user, 'charge_name':'Shipping Charges', 'charge_amount': float(order.get('shipping_charges', 0)) })
+	    if float(order.get('discount', 0)):
+                OrderCharges.objects.create(**{'order_id': order.get('original_order_id', ''), 'user':user, 'charge_name':'Discount', 'charge_amount': float(order.get('discount',0)) })
+	    continue
+        if not order.get('order_details', {}):
+            continue
+        order_det_dict = order['order_details']
+	original_order_id = order_det_dict['original_order_id']
+        if not order.get('order_detail_obj', None):
+            order_obj = OrderDetail.objects.filter(original_order_id=order_det_dict['original_order_id'],
+                                                   order_id=order_det_dict['order_id'],
+                                                   order_code=order_det_dict['order_code'],
+                                                   sku_id=order_det_dict['sku_id'],
+                                                   user=order_det_dict['user'])
+        else:
+            order_obj = [order.get('order_detail_obj', None)]
+        if order_obj:
+            order_obj = order_obj[0]
+            order_obj.quantity = float(order_obj.quantity) + float(order_det_dict.get('quantity', 0))
+            order_obj.invoice_amount = float(order_obj.invoice_amount) + float(order_det_dict.get('invoice_amount', 0))
+            order_obj.sku_code = str(order_det_dict.get('line_item_id', ''))
+            order_obj.save()
+            order_detail = order_obj
+	    collect_order_detail_list.append(order_detail)
+        else:
+            del(order['order_details']['customer_code'])
+            order['order_details']['customer_name'] = customer_name
+            order_detail = OrderDetail.objects.create(**order['order_details'])
+            collect_order_detail_list.append(order_detail)
+        if order.get('order_summary_dict', {}) and not order_obj:
+            order['order_summary_dict']['order_id'] = order_detail.id
+            customer_order_summary = CustomerOrderSummary.objects.create(**order['order_summary_dict'])
+        if order.get('seller_order_dict', {}):
+            trans_mapping = check_create_seller_order(order['seller_order_dict'], order_detail, user,
+                                                      order.get('swx_mappings', []), trans_mapping=trans_mapping)
+        sku_obj = SKUMaster.objects.filter(id=order_det_dict['sku_id'])
+        if 'measurement_type' in order_det_dict.keys():
+            sku_obj.update(measurement_type=order_det_dict['measurement_type'])
+        if sku_obj:
+            sku_obj = sku_obj[0]
+        else:
+            continue
+	order_sku.update({sku_obj: order_det_dict['quantity']})
+        for order_fields in order.get('order_fields_list', ''):
+            OrderFields.objects.create(**order_fields)
+    for resp_obj in rista_resp:
+	rista_orders_obj = TempJson.objects.filter(**{'model_id': user.id, 'model_name': 'rista<<>>indent_out<<>>' + resp_obj['indentNumber']})
+	if not rista_orders_obj:
+            TempJson.objects.create(**{'model_id': user.id, 'model_name': 'rista<<>>indent_out<<>>' + resp_obj['indentNumber'], 'model_json': str(resp_obj)})
+    status = {'status': 1, 'messages': ['Success']}
+    return status
+
+
 def mysql_query_to_file(load_file, table_name, columns, values1, date_string='', update_string=''):
     values = copy.deepcopy(values1)
     columns_string = ','.join(columns)
@@ -8651,7 +8713,8 @@ def load_by_file(load_file_name, table_name, columns, id_dependency=False):
         log.info("Loading Started for: %s" % load_file_name)
         log.info(cmd % tuple(cmd_tuple))
         cmd = cmd % tuple(cmd_tuple)
-        subprocess.check_output(cmd, stderr=subprocess.STDOUT,shell=True)
+        subprocess.check_output(cmd+'&', stderr=subprocess.STDOUT,shell=True)
         log.info('loading completed')
     except:
         pass
+

@@ -1075,7 +1075,7 @@ PICKLIST_EXCEL_FMCG = OrderedDict((
                               ('Order ID', 'original_order_id'), ('Combo SKU', 'parent_sku_code'),
                               ('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'),
                               ('Zone', 'zone'), ('Location', 'location'), ('Batch No', 'batchno'), ('MRP', 'mrp'),
-                              ('Reserved Quantity', 'reserved_quantity'),
+                              ('Reserved Quantity', 'reserved_quantity'),('Mfg Date','manufactured_date'),
                               ('Stock Left', 'stock_left'),('Last Picked Location', 'last_picked_locs')
                             ))
 

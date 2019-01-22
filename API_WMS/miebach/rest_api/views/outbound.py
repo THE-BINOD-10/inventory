@@ -798,13 +798,14 @@ def get_picklist_data(data_id, user_id):
     courier_name = ''
     sku_total_quantities = {}
     is_combo_picklist = False
+    manufactured_date =''
     picklist_orders = Picklist.objects.filter(Q(order__sku__user=user_id) | Q(stock__sku__user=user_id),
                                               picklist_number=data_id)
     pick_stocks = StockDetail.objects.filter(sku__user=user_id)
-    stocks = pick_stocks.filter(quantity__gt=0).values('sku__wms_code', 'location__location').distinct().annotate(
+    stocks = pick_stocks.filter(quantity__gt=0).values('sku__wms_code', 'location__location','batch_detail__batch_no').distinct().annotate(
         quantity=Sum('quantity'))
     reserved_instances = PicklistLocation.objects.filter(status=1, picklist__order__user=user_id).values(
-        'stock__sku__wms_code', 'stock__location__location'). \
+        'stock__sku__wms_code', 'stock__location__location','stock__batch_detail__batch_no'). \
         distinct().annotate(reserved=Sum('reserved'))
     stock_skus = map(lambda d: d['sku__wms_code'], stocks)
     reserved_skus = map(lambda d: d['stock__sku__wms_code'], reserved_instances)
@@ -843,6 +844,7 @@ def get_picklist_data(data_id, user_id):
             order_code = ''
             mrp = ''
             batch_no = ''
+            manufactured_date =''
             courier_name = ''
             if order.stock:
                 stock_id = pick_stocks.get(id=order.stock_id)
@@ -904,8 +906,12 @@ def get_picklist_data(data_id, user_id):
                 if stock_id.batch_detail:
                     mrp = stock_id.batch_detail.mrp
                     batch_no = stock_id.batch_detail.batch_no
+                    try:
+                        manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
+                    except:
+                        manufactured_date =''
 
-            match_condition = (location, pallet_detail, wms_code, sku_code, title)
+            match_condition = (location, batch_no, manufactured_date,pallet_detail, wms_code, sku_code, title)
             if match_condition not in batch_data:
                 if order.reserved_quantity == 0:
                     continue
@@ -931,6 +937,7 @@ def get_picklist_data(data_id, user_id):
                                                'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
                                                'customer_name': customer_name, 'customer_address': customer_address,
                                                'marketplace': marketplace,
+                                               'manufactured_date':manufactured_date,
                                                'order_no': order_id, 'remarks': remarks,
                                                'load_unit_handle': load_unit_handle, 'category': category,
                                                'original_order_id': original_order_id, 'mrp':mrp,
@@ -1028,6 +1035,10 @@ def get_picklist_data(data_id, user_id):
                 if stock_id.batch_detail:
                     mrp = stock_id.batch_detail.mrp
                     batch_no = stock_id.batch_detail.batch_no
+                    try:
+                        manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
+                    except:
+                        manufactured_date = ''
             stock_left = get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_skus, stocks,
                                                 reserved_instances)
             last_picked_locs = ''
@@ -1047,7 +1058,9 @@ def get_picklist_data(data_id, user_id):
                  'status': order.status, 'order_no': order_id, 'pallet_code': pallet_code, 'sku_code': sku_code,
                  'title': title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
                  'customer_name': customer_name, 'marketplace': marketplace, 'remarks': remarks,
-                 'load_unit_handle': load_unit_handle, 'category': category, 'customer_address': customer_address,
+                 'load_unit_handle': load_unit_handle,
+                  'manufactured_date':manufactured_date,
+                  'category': category, 'customer_address': customer_address,
                  'original_order_id': original_order_id, 'mrp':mrp, 'batchno':batch_no,
                  'is_combo_picklist': is_combo_picklist, 'parent_sku_code': parent_sku_code,
                  'sku_imeis_map': sku_imeis_map})
@@ -1098,6 +1111,10 @@ def get_picklist_data(data_id, user_id):
                 if stock_id.batch_detail:
                     mrp = stock_id.batch_detail.mrp
                     batch_no = stock_id.batch_detail.batch_no
+                    try:
+                        manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
+                    except:
+                        manufactured_date =''
 
             customer_name = ''
             if order.order:
@@ -1132,6 +1149,7 @@ def get_picklist_data(data_id, user_id):
                  'title': order.order.title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
                  'customer_name': customer_name, 'remarks': remarks, 'load_unit_handle': load_unit_handle,
                  'category': category,
+                 'manufactured_date':manufactured_date,
                  'marketplace': marketplace, 'original_order_id' : original_order_id,
                  'mrp':mrp, 'batchno':batch_no, 'is_combo_picklist': is_combo_picklist,
                  'parent_sku_code':parent_sku_code})
@@ -1202,16 +1220,21 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
                       'quantity__gt': 0}
     if 'pallet' in val and val['pallet']:
         pic_check_data['pallet_detail__pallet_code'] = val['pallet']
-    if picklist.stock and picklist.stock.batch_detail_id:
-        pic_check_data['batch_detail__mrp'] = picklist.stock.batch_detail.mrp
-        pic_check_data['batch_detail__batch_no'] = picklist.stock.batch_detail.batch_no
+
     if picklist.sellerorderdetail_set.filter(seller_order__isnull=False).exists():
         pic_check_data['sellerstock__seller_id'] = picklist.sellerorderdetail_set.\
                                                     filter(seller_order__isnull=False)[0].seller_order.seller_id
-
+    if val['location'] != val['orig_loc'] :
+        pic_check_data['batch_detail__batch_no'] = val['batchno']
+    else:
+        if picklist.stock and picklist.stock.batch_detail_id:
+            pic_check_data['batch_detail__mrp'] = picklist.stock.batch_detail.mrp
+            pic_check_data['batch_detail__batch_no'] = picklist.stock.batch_detail.batch_no
+    if val['batchno'] :
+        pic_check_data['batch_detail__batch_no'] = val['batchno']
     pic_check = StockDetail.objects.filter(**pic_check_data)
     if not pic_check:
-        status.append("Insufficient Stock in given location")
+        status.append("Insufficient Stock in given location with batch number")
     location = all_locations.filter(location=val['location'], zone__user=user.id)
     if not location:
         if error_string:
@@ -1468,8 +1491,6 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail,
             if order_ids_list:
                 order_ids = [str(int(i)) for i in order_ids_list]
                 order_ids = ','.join(order_ids)
-
-
             nv_data = get_invoice_data(order_ids, user, picklists_send_mail[order_id], from_pos=from_pos)
             nv_data = modify_invoice_data(nv_data, user)
             ord_ids = order_ids.split(",")
@@ -1486,6 +1507,7 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail,
             file_name = str(user.id) + '_' + 'dispatch_invoice.html'
             pdf_file = '%s_%s.pdf' % (str(user.id), "dispatch_invoice")
             file_ = open(file_name, "w+b")
+            rendered = rendered.encode('ascii', 'ignore')
             file_.write(rendered)
             file_.close()
             os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
@@ -2066,7 +2088,10 @@ def picklist_confirmation(request, user=''):
 
     if mod_locations:
         update_filled_capacity(list(set(mod_locations)), user.id)
-    return HttpResponse('Picklist Confirmed')
+    if status:
+        return HttpResponse(status)
+    else:
+        return HttpResponse('Picklist Confirmed')
 
 
 def serial_order_mapping(picklist, user):
@@ -14125,14 +14150,15 @@ def do_delegate_orders(request, user=''):
                         'sku_code': interm_obj.sku.sku_code, 'original_order_id': original_order_id,
                         'user': wh_id})
                     if get_existing_order:
-                        get_existing_order = get_existing_order[0]
-                        get_existing_order.quantity = get_existing_order.quantity + 1
-                        get_existing_order.save()
+                        #get_existing_order = get_existing_order[0]
+                        #get_existing_order.quantity = get_existing_order.quantity + 1
+                        #get_existing_order.save()
                         order_fields.update(original_order_id=original_order_id)
                         interm_obj_filter.update(status=1)
                         if central_order_reassigning :
                             interm_obj_filter.update(order_id = get_existing_order.id)
                             interm_obj.order_id = get_existing_order.id
+                            interm_obj.status = 1
                             interm_obj.save()
 
                     else:
@@ -14143,6 +14169,7 @@ def do_delegate_orders(request, user=''):
                             interm_obj_filter.update(status=1)
                             if central_order_reassigning :
                                 interm_obj.order_id = ord_obj.id
+                                interm_obj.status = 1
                                 interm_obj.save()
 
 

@@ -2243,6 +2243,53 @@ def search_wms_codes(request, user=''):
 
     return HttpResponse(json.dumps(wms_codes))
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def search_batches(request, user=''):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    data_id = request.GET.get('q', '')
+    row_data = json.loads(request.GET.get('type'))
+    search_params = {'sku__user': user.id}
+    if row_data['wms_code']:
+        search_params['sku__sku_code'] =  row_data['wms_code']
+
+    if row_data['location']:
+        location_master = LocationMaster.objects.filter(zone__user=user.id, location=row_data['location'])
+        if not location_master:
+            return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Location'}))
+        search_params['location__location'] = row_data['location']
+
+    if row_data['pallet_code']:
+        search_params['pallet_detail__pallet_code'] = row_data['pallet_code']
+        stock_detail = StockDetail.objects.exclude(
+            Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
+            filter(location__location=request.GET.get('location', ''), sku__user=user.id,
+                   sku__sku_code=search_params['sku__sku_code'],
+                   pallet_detail__pallet_code=request.GET['pallet_code'])
+        if not stock_detail:
+            return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Location and Pallet code Combination'}))
+    stock_data = StockDetail.objects.exclude(
+        Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
+        filter(**search_params)
+    batchno =[]
+    total_data =[]
+    if stock_data:
+        for stock in stock_data:
+            try:
+                manufactured_date = datetime.datetime.strftime(stock.batch_detail.manufactured_date, "%d/%m/%Y")
+            except:
+                manufactured_date = ''
+            try:
+                batchno =  stock.batch_detail.batch_no
+            except:
+                batchno  = ''
+
+            total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
+
+    return HttpResponse(json.dumps(total_data))
+
+
 
 @csrf_exempt
 @login_required
@@ -8549,3 +8596,53 @@ def delete_temp_json(request, user=''):
 def get_sub_users(user):
     sub_users = AdminGroups.objects.get(user_id=user.id).group.user_set.filter()
     return sub_users
+
+
+def mysql_query_to_file(load_file, table_name, columns, values1, date_string='', update_string=''):
+    values = copy.deepcopy(values1)
+    columns_string = ','.join(columns)
+    query = 'insert into %s %s' % (table_name, '('+columns_string+')')
+    string_vals = str(tuple(map(str, values)))
+    if date_string:
+        string_vals = string_vals[:-1] + ',' + date_string + ')'
+    query += ' %s' % ('values' + string_vals)
+    if update_string:
+        query += ' on duplicate key update %s' % update_string
+    #file_str = query + ';'
+    file_str = "#<>#".join(values)
+    load_file.write('%s\n' % file_str)
+    load_file.flush()
+
+
+def load_by_file(load_file_name, table_name, columns, id_dependency=False):
+    db_name = settings.DATABASES['default']['NAME']
+    mysql_user = settings.DATABASES['default']['USER']
+    mysql_password = settings.DATABASES['default']['PASSWORD']
+    mysql_host = settings.DATABASES['default']['HOST']
+    base_cmd = 'mysql -u %s -p%s '
+    cmd_tuple = [mysql_user, mysql_password]
+    if mysql_host:
+        base_cmd = 'mysql -u %s -h %s -p%s '
+        cmd_tuple = [mysql_user, mysql_host, mysql_password]
+    if id_dependency:
+        cmd = base_cmd + db_name + ' < %s'
+        cmd_tuple.append(load_file_name)
+    else:
+        cmd = base_cmd + db_name + ' --local-infile=1 -e "%s"'
+        columns_string = '(' + ','.join(columns) +')'
+        query = "LOAD DATA LOCAL INFILE '%s' REPLACE INTO TABLE %s CHARACTER SET utf8 FIELDS TERMINATED BY '#<>#' lines terminated by '\n' %s" %\
+                (load_file_name, table_name, columns_string)
+        if table_name in ['SKU_ATTRIBUTES']:
+            query += " SET creation_date=NOW(), updation_date=NOW();"
+        else:
+            query += ";"
+        cmd_tuple.append(query)
+    try:
+        log.info("Loading Started for: %s" % load_file_name)
+        log.info(cmd % tuple(cmd_tuple))
+        cmd = cmd % tuple(cmd_tuple)
+        subprocess.check_output(cmd+'&', stderr=subprocess.STDOUT,shell=True)
+        log.info('loading completed')
+    except:
+        pass
+

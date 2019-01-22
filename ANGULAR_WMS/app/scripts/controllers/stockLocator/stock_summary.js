@@ -39,6 +39,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       //vm.dtColumns = vm.service.build_colums(vm.g_data.selected_value);
       var columns = vm.g_data.tb_headers[vm.g_data.view].concat(vm.extra_c);
       vm.dtColumns = vm.service.build_colums(columns);
+      vm.dtColumns.push(DTColumnBuilder.newColumn('sku_packs').withTitle('Available SKU Packs'))
+
       vm.dt_display = true;
     }
 

@@ -5569,6 +5569,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
     from common import get_admin
     from rest_api.views.common import get_sku_master, get_order_detail_objs
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
     search_parameters = {}
     lis = ['order_shipment__shipment_number', 'order__original_order_id', 'order__sku__sku_code', 'order__title',
            'order__customer_name',
@@ -5686,7 +5687,9 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
             shipment_status = 'Delivered'
         else:
             shipment_status = shipment_status
-
+        order_return_obj = OrderReturns.objects.filter(order__original_order_id = order_id,sku__wms_code = data['order__sku__sku_code'],sku__user=user.id)
+        if order_return_obj and central_order_reassigning == 'true' :
+            shipment_status = 'Returned'
         serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data['order__sku__sku_code'],order_id=data['order__id'],po_imei__sku__user=user.id)
         if serial_number :
             serial_number = serial_number[0].po_imei.imei_number

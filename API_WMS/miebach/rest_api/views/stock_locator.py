@@ -433,7 +433,7 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
         # ASN Stock Related to SM
         today_filter = datetime.datetime.today()
         hundred_day_filter = today_filter + datetime.timedelta(days=100)
-        ints_filters = {'quantity__gt': 0, 'sku__user': user}
+        ints_filters = {'quantity__gt': 0, 'sku__user': user, 'status': 'open'}
         asn_qs = ASNStockDetail.objects.filter(**ints_filters)
         intr_obj_100days_qs = asn_qs.filter(arriving_date__lte=hundred_day_filter)
         intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
@@ -447,7 +447,7 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
 
         asn_avail_stock = dict(
             intr_obj_100days_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
-        non_kitted_stock = dict(asn_qs.filter(asn_po_num='NON_KITTED_STOCK').values_list('sku__sku_code').
+        non_kitted_stock = dict(asn_qs.filter(asn_po_num='NON_KITTED_STOCK', status='open').values_list('sku__sku_code').
                                 distinct().annotate(non_kitted_qty=Sum('quantity')))
         purchases = map(lambda d: d['open_po__sku__sku_code'], purch_dict)
         total_order_dict = dict(zip(purchases, map(lambda d: d['total_order'], purch_dict)))
@@ -748,7 +748,7 @@ def get_aggregate_data(user_groups, sku_list):
 
         today_filter = datetime.datetime.today()
         hundred_day_filter = today_filter + datetime.timedelta(days=100)
-        ints_filters = {'quantity__gt': 0, 'sku__sku_code__in': sku_list, 'sku__user': user.id}
+        ints_filters = {'quantity__gt': 0, 'sku__sku_code__in': sku_list, 'sku__user': user.id, 'status': 'open'}
         asn_qs = ASNStockDetail.objects.filter(**ints_filters)
         intr_obj_100days_qs = asn_qs.exclude(arriving_date__lte=today_filter).filter(
             arriving_date__lte=hundred_day_filter)

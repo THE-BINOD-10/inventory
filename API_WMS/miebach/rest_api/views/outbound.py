@@ -5064,7 +5064,7 @@ def insert_order_data(request, user=''):
 
         if generic_order_id and not is_emiza_order_failed:
             check_and_raise_po(generic_order_id, cm_id)
-            create_backorders(backorder_splitup_map, admin_user, sku_total_qty_map)
+            #create_backorders(backorder_splitup_map, admin_user, sku_total_qty_map)
 
         if user_type == 'customer' and not is_distributor and message in success_messages:
             # Creating Uploading POs object with file upload pending.
@@ -6001,8 +6001,8 @@ def shipment_info_data(request, user=''):
                      'id_type':id_type,
                      'id_proof_number':id_proof_number,
                      'id_card':id_card,
-                     'mobile_no':float(mobile_no),
-                     'alternative_mobile_no':float(alternative_mobile_no),
+                     'mobile_no':mobile_no,
+                     'alternative_mobile_no':alternative_mobile_no,
                      'district':district,
                      'pack_reference': orders.order_packaging.package_reference,
                      'ship_status': ship_status, 'status': status})
@@ -6128,8 +6128,8 @@ def app_shipment_info_data(request, user=''):
                      'time': time,
                      'id_type' : id_type,
                      'model':model,
-                     'mobile_no':float(mobile_no),
-                     'alternative_mobile_no':float(alternative_mobile_no),
+                     'mobile_no':mobile_no,
+                     'alternative_mobile_no':alternative_mobile_no,
                      'district':district})
         if not ship_reference:
             ship_reference = orders.order_packaging.order_shipment.shipment_reference
@@ -8406,6 +8406,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
            'order_assigned_wh__username', 'id','creation_date']
     data_dict = {'user': user.id, 'quantity__gt': 0}
     status_map = {'1': 'Accept', '0': 'Reject','2': 'Pending'}
+    if not col_num: col_num = 1
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -13088,6 +13089,9 @@ def convert_customorder_to_actualorder(request, user=''):
             dist_order_copy['email_id'] = customer_user[0].customer.email_id
             dist_order_copy['address'] = customer_user[0].customer.address
 
+        if req_stock != sum(stock_wh_map.values()):
+            return HttpResponse('No Available Stock to Place the Order or Total quantity is not considered')
+        is_emiza_order_failed = False
         for usr, qty in stock_wh_map.items():
             if qty <= 0:
                 continue
@@ -13112,7 +13116,7 @@ def convert_customorder_to_actualorder(request, user=''):
                 ord_obj.save()
 
             corporate_po_number = enq_obj.po_number
-            create_grouping_order_for_generic(generic_order_id, ord_obj, cm_id, usr, quantity, corporate_po_number,
+            create_grouping_order_for_generic(generic_order_id, ord_obj, cm_id, usr, qty, corporate_po_number,
                                               corp_name, ask_price, ask_price, exp_date)
             usr_sku_master = SKUMaster.objects.filter(user=usr, sku_code=sku_code)
             if usr_sku_master:
@@ -13147,15 +13151,31 @@ def convert_customorder_to_actualorder(request, user=''):
             for generic_order in generic_orders:
                 original_order_id = generic_order['orderdetail__original_order_id']
                 order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
+                message = ''
                 try:
                     order_push_status = order_push(original_order_id, order_detail_user, "NEW")
                     log.info('New Order Push Status: %s' % (str(order_push_status)))
-                    if generic_order_id and not order_push_status:
+                    if order_push_status.get('Status', '') == 'Failure' or order_push_status.get('status', '') == 'Internal Server Error':
+                        is_emiza_order_failed = True
+                        if order_push_status.get('status', '') == 'Internal Server Error':
+                            message = "400 Bad Request"
+                        else:
+                            message = order_push_status['Result']['Errors'][0]['ErrorMessage']
+                        order_detail = OrderDetail.objects.filter(original_order_id=original_order_id,
+                                                                  user=order_detail_user.id)
+                        picklist_number = order_detail.values_list('picklist__picklist_number', flat=True)
+                        if picklist_number:
+                            picklist_number = picklist_number[0]
+                        log.info(order_detail.delete())
+                        check_picklist_number_created(order_detail_user, picklist_number)
+                        if message:
+                            return HttpResponse(message)
+                    if generic_order_id and not is_emiza_order_failed:
                         check_and_raise_po(generic_order_id, cm_id)
                 except:
                     log.info("Order Push failed for order: %s" %original_order_id)
 
-        if req_stock == sum(stock_wh_map.values()):
+        if req_stock == sum(stock_wh_map.values()) and is_emiza_order_failed:
             enq_obj.status = 'order_placed'
             enq_obj.save()
         else:

@@ -1108,10 +1108,10 @@ def get_picklist_data(data_id, user_id):
                 if stock_id.batch_detail:
                     mrp = stock_id.batch_detail.mrp
                     batch_no = stock_id.batch_detail.batch_no
-                try:
-                    manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
-                except:
-                    manufactured_date =''
+                    try:
+                        manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
+                    except:
+                        manufactured_date =''
             customer_name = ''
             if order.order:
                 customer_name = order.order.customer_name
@@ -2171,7 +2171,6 @@ def picklist_confirmation(request, user=''):
 	if int_obj:
 	    rista_order_id = list(set(rista_order_id_list))
 	    rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
-	detailed_invoice = get_misc_value('detailed_invoice', user.id)
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
         order_ids = picks_all.values_list('order_id', flat=True).distinct()

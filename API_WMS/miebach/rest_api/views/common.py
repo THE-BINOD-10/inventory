@@ -2364,10 +2364,16 @@ def get_order_id(user_id, is_pos=False):
     else:
         order_id = 1001
 
+
     # order_detail_id = OrderDetail.objects.filter(user=user_id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO']).aggregate(Max('order_id'))
 
     # order_id = int(order_detail_id['order_id__max']) + 1
     # order_id = time.time()* 1000000
+
+    # Need to test for POS
+
+    # user = User.objects.get(id=user_id)
+    # order_id = get_incremental(user, 'order_detail', default_val=1001)
     return order_id
 
 
@@ -7937,6 +7943,13 @@ def check_purchase_order_created(user, po_id):
                                            order_id=po_id)
     if not po_data.exists():
         check_and_update_incremetal_type_val(po_id, user, 'po')
+
+
+def check_order_detail_created(user, order_id):
+    order_data = OrderDetail.objects.filter(Q(order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO','Pre Order']) |reduce(operator.or_, (Q(order_code__icontains=x)for x in ['DC', 'PRE'])),
+                                            user=user.id, order_id=order_id)
+    if not order_data.exists():
+        check_and_update_incremetal_type_val(order_id, user, 'order_detail')
 
 
 def get_po_challan_number(user, seller_po_summary):

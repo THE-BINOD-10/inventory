@@ -4614,6 +4614,10 @@ def insert_order_data(request, user=''):
 
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
     enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
+    auto_picklist_signal = get_misc_value('auto_generate_picklist', user.id)
+    order_status_key = 1
+    if auto_picklist_signal == 'true':
+        order_status_key = 9
 
     # Using the display_sku_cust_mapping flag for ANT Stationers
     # orders_for_approval_flag = get_misc_value('display_sku_cust_mapping', user.id)
@@ -4647,6 +4651,7 @@ def insert_order_data(request, user=''):
             order_data = copy.deepcopy(UPLOAD_ORDER_DATA)
             #order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
             # order_data['order_id'] = order_id
+            order_data['status'] = order_status_key
             order_data['order_code'] = 'MN'
             order_data['marketplace'] = 'Offline'
             if custom_order == 'true':
@@ -4892,7 +4897,6 @@ def insert_order_data(request, user=''):
     success_messages = ["Success", "Order created, Picklist generated Successfully",
                         "Order Created and Dispatched Successfully", "Order created Successfully"]
     if not admin_user:
-        auto_picklist_signal = get_misc_value('auto_generate_picklist', user.id)
         if direct_dispatch == 'true':
             message = direct_dispatch_orders(user, dispatch_orders)
         elif auto_picklist_signal == 'true':
@@ -5008,6 +5012,12 @@ def direct_dispatch_orders(user, dispatch_orders, creation_date=datetime.datetim
     return 'Order Created and Dispatched Successfully'
 
 
+def update_temp_order_detail_status(order_objs):
+    for order_obj in order_objs:
+        order_obj.status = 1
+        order_obj.save()
+
+
 def check_stocks(order_sku, user, enable_damaged_stock, order_objs):
     picklist_exclude_zones = get_exclude_zones(user)
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
@@ -5048,11 +5058,13 @@ def check_stocks(order_sku, user, enable_damaged_stock, order_objs):
                 stock_detail, stock_count, sku.wms_code = get_sku_stock(combo.member_sku, sku_stocks, user,
                                                                         val_dict, sku_id_stocks)
                 if stock_count < order_sku[sku]:
+                    update_temp_order_detail_status(order_objs)
                     return "Order created Successfully"
         else:
             stock_detail, stock_count, sku.wms_code = get_sku_stock(sku, sku_stocks, user, val_dict,
                                                                     sku_id_stocks)
             if stock_count < order_sku[sku]:
+                update_temp_order_detail_status(order_objs)
                 return "Order created Successfully"
 
     picklist_number = get_picklist_number(user)

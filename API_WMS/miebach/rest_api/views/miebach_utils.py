@@ -575,6 +575,20 @@ SHIPMENT_REPORT_DICT = {
     'print_url': 'print_shipment_report',
 }
 
+PO_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label': 'Order ID', 'name': 'order_id', 'type': 'input'},
+        {'label': 'Customer ID', 'name': 'order_id', 'type': 'customer_search'}
+    ],
+    'dt_headers': ['SKU Code', 'Sku Description', 'Customer Name', 'Quantity', 'Shipped Quantity', 'Truck Number',
+                   'Date', 'Shipment Status', 'Courier Name', 'Payment Status', 'Pack Reference'],
+    'dt_url': 'get_po_report', 'excel_name': 'get_po_report',
+    'print_url': 'print_shipment_report',
+}
+
 DIST_SALES_REPORT_DICT = {
     'filters': [
         {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
@@ -785,6 +799,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'grn_report': GRN_DICT, 'sku_wise_grn_report' : SKU_WISE_GRN_DICT, 'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT,
                      'rm_picklist_report': RM_PICKLIST_REPORT_DICT, 'stock_ledger_report': STOCK_LEDGER_REPORT_DICT,
                      'shipment_report': SHIPMENT_REPORT_DICT, 'dist_sales_report': DIST_SALES_REPORT_DICT,
+                     'po_report':PO_REPORT_DICT,
                      'reseller_sales_report': RESELLER_SALES_REPORT_DICT,
                      'dist_target_summary_report': DIST_TARGET_SUMMARY_REPORT,
                      'dist_target_detailed_report': DIST_TARGET_DETAILED_REPORT,
@@ -5591,6 +5606,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                            'order__title', 'order__customer_name', 'order__quantity', 'shipping_quantity',
                                            'order_shipment__truck_number', 'creation_date',
                                            'order_shipment__courier_name',
+                                           'order_shipment__manifest_number',
                                            'order_shipment__creation_date',
                                            'order__customerordersummary__payment_status',
                                            'order_packaging__package_reference')
@@ -5681,6 +5697,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
         if delivered_time :
             delivered_time = datetime.datetime.fromtimestamp(delivered_time)
             delivered_time = get_local_date(user,delivered_time)
+        manifest_number = int(data['order_shipment__manifest_number'])
 
 
         temp_data['aaData'].append(OrderedDict((('Shipment Number', data['order_shipment__shipment_number']),
@@ -5693,6 +5710,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                                 ('Date', ' '.join(date)),
                                                 ('Signed Invoice Copy',signed_invoice_copy),
                                                 ('ID Type',id_type),
+                                                ('Manifest Number',manifest_number),
                                                 ('ID Card' , id_card),
                                                 ('Serial Number' ,serial_number),
                                                 ('ID Proof Number' , id_proof_number),
@@ -5703,7 +5721,6 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                                 ('Payment Status', data['order__customerordersummary__payment_status']),
                                                 ('Pack Reference', data['order_packaging__package_reference']))))
     return temp_data
-
 
 def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *

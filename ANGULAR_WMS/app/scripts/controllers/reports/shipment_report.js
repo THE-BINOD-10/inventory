@@ -22,6 +22,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       vm.dtColumns = data.dtColumns;
       vm.dtColumns.push(DTColumnBuilder.newColumn('Dispatched Date').withTitle('Dispatched Date'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('Delivered Date').withTitle('Delivered Date'))
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Manifest Number').withTitle('Manifest Number'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('Serial Number').withTitle('Serial Number'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('ID Type').withTitle('ID Type'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('ID Proof Number').withTitle('ID Proof Number'))

@@ -796,6 +796,7 @@ def get_picklist_data(data_id, user_id):
     courier_name = ''
     sku_total_quantities = {}
     is_combo_picklist = False
+    manufactured_date =''
     picklist_orders = Picklist.objects.filter(Q(order__sku__user=user_id) | Q(stock__sku__user=user_id),
                                               picklist_number=data_id)
     pick_stocks = StockDetail.objects.filter(sku__user=user_id)
@@ -1205,6 +1206,14 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
     if picklist.sellerorderdetail_set.filter(seller_order__isnull=False).exists():
         pic_check_data['sellerstock__seller_id'] = picklist.sellerorderdetail_set.\
                                                     filter(seller_order__isnull=False)[0].seller_order.seller_id
+    if val['location'] != val['orig_loc'] :
+        pic_check_data['batch_detail__batch_no'] = val['batchno']
+    else:
+        if picklist.stock and picklist.stock.batch_detail_id:
+            pic_check_data['batch_detail__mrp'] = picklist.stock.batch_detail.mrp
+            pic_check_data['batch_detail__batch_no'] = picklist.stock.batch_detail.batch_no
+    if val['batchno'] :
+        pic_check_data['batch_detail__batch_no'] = val['batchno']
     pic_check = StockDetail.objects.filter(**pic_check_data)
     if not pic_check:
         status.append("Insufficient Stock in given location")
@@ -1464,8 +1473,6 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail,
             if order_ids_list:
                 order_ids = [str(int(i)) for i in order_ids_list]
                 order_ids = ','.join(order_ids)
-
-
             nv_data = get_invoice_data(order_ids, user, picklists_send_mail[order_id], from_pos=from_pos)
             nv_data = modify_invoice_data(nv_data, user)
             ord_ids = order_ids.split(",")
@@ -1482,6 +1489,7 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail,
             file_name = str(user.id) + '_' + 'dispatch_invoice.html'
             pdf_file = '%s_%s.pdf' % (str(user.id), "dispatch_invoice")
             file_ = open(file_name, "w+b")
+            rendered = rendered.encode('ascii', 'ignore')
             file_.write(rendered)
             file_.close()
             os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
@@ -14256,14 +14264,15 @@ def do_delegate_orders(request, user=''):
                         'sku_code': interm_obj.sku.sku_code, 'original_order_id': original_order_id,
                         'user': wh_id})
                     if get_existing_order:
-                        get_existing_order = get_existing_order[0]
-                        get_existing_order.quantity = get_existing_order.quantity + 1
-                        get_existing_order.save()
+                        #get_existing_order = get_existing_order[0]
+                        #get_existing_order.quantity = get_existing_order.quantity + 1
+                        #get_existing_order.save()
                         order_fields.update(original_order_id=original_order_id)
                         interm_obj_filter.update(status=1)
                         if central_order_reassigning :
                             interm_obj_filter.update(order_id = get_existing_order.id)
                             interm_obj.order_id = get_existing_order.id
+                            interm_obj.status = 1
                             interm_obj.save()
 
                     else:
@@ -14274,6 +14283,7 @@ def do_delegate_orders(request, user=''):
                             interm_obj_filter.update(status=1)
                             if central_order_reassigning :
                                 interm_obj.order_id = ord_obj.id
+                                interm_obj.status = 1
                                 interm_obj.save()
 
 

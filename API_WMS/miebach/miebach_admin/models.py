@@ -1090,6 +1090,7 @@ class OrderIMEIMapping(models.Model):
 
     class Meta:
         db_table = 'ORDER_IMEI_MAPPING'
+        index_together = ("order", "sku", "po_imei")
 
 
 class UserGroups(models.Model):

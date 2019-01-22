@@ -145,7 +145,7 @@
                   <!--<th> Zone </th>-->
                   <th class="w12"> Location </th>
                   <th ng-if ="pop.industry_type=='FMCG'">Batch No</th>
-                  <!-- <th ng-if ="pop.industry_type=='FMCG' && pop.show_mfg_date">Mfg Date</th> -->
+                  <th ng-if ="pop.industry_type=='FMCG'">Mfg Date</th>
                   <th ng-if ="pop.industry_type=='FMCG'">MRP</th>
                   <th class="w10" ng-if="pop.permissions.pallet_switch"> Pallet Code </th>
                   <th class="w10"> Reserved Quantity </th>
@@ -172,8 +172,16 @@
                   <td><input ng-model="data.marketplace" class="form-control" type="text" readonly></td>
                   <!--<td><input name="zone_{{data.id}}" ng-model="record.zone" class="form-control" type="text"></td>-->
                   <td><input name="location_{{data.id}}" ng-model="record.location" class="form-control" type="text" ng-blur="pop.checkCapacity($index, data, 'location', $event);"></td>
-                  <td ng-if="pop.industry_type=='FMCG'"><input ng-model="data.batchno" class="form-control" type="text" readonly></td>
-                  <!-- <td ng-if="pop.industry_type=='FMCG' && pop.show_mfg_date"><input ng-model="data.manufactured_date" class="form-control" size="35" type="text"></td> -->
+                  <td ng-if="pop.industry_type=='FMCG'">
+                  <input type="text" autocomplete="off"  class="form-control" placeholder="Search batchno"
+                         typeahead="address.batchno for address in pop.service.getSearchValues($viewValue, 'search_batches',record)"
+                         ng-model="record.batchno" ng-blur="pop.service.checkSearchValue(record,'search_batches', $event, 'batchno', 'batchno')"
+                         typeahead-on-select="pop.get_sku_details(data, $item, $index)"
+                         required>
+                  </td>
+                  <input type="hidden" name="batchno_{{data.id}}" value="{{record.batchno}}">
+
+                  <td ng-if="pop.industry_type=='FMCG'"><input ng-model="data.manufactured_date" class="form-control" size="35" type="text" readonly></td>
                   <td ng-if="pop.industry_type=='FMCG'"><input ng-model="data.mrp" class="form-control" type="text" readonly></td>
                   <td ng-if="pop.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" ng-model="record.pallet_code" class="form-control" type="text" ng-blur="pop.checkCapacity($index, data, 'pallet_code', $event);"></td>
                   <td><input name="reserved_quantity_{{data.id}}" ng-model="data.reserved_quantity" class="form-control" type="text" readonly></td>

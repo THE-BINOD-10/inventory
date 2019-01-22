@@ -261,6 +261,9 @@ function view_orders() {
           vm.qty_validation = {};
           if(data.data == "Picklist Confirmed") {
             vm.ok("done");
+          } else if (data.data == 'Insufficient Stock in given location with batch number') {
+            Service.showNoty(data.data);
+            vm.ok('')
           } else if (typeof(data.data) == "string" && data.data.indexOf("print-invoice")) {
             vm.ok("html");
             vm.status_data.data = data.data;
@@ -373,6 +376,10 @@ function pull_confirmation() {
       data.sub_data.splice(index,1);
     }
     vm.count_sku_quantity();
+  }
+
+  vm.get_sku_details = function(record,item, index){
+    record.manufactured_date = item.manufactured_date
   }
 
   vm.cal_quantity = cal_quantity;

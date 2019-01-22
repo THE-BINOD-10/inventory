@@ -5698,8 +5698,9 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
         dispatched_date =  get_local_date(user,data['order_shipment__creation_date'])
 
         if delivered_time :
-            delivered_time = datetime.datetime.fromtimestamp(delivered_time)
-            delivered_time = get_local_date(user,delivered_time)
+            delivered_time = int(delivered_time)
+            delivered_time = time.strftime('%d %b %Y - %I:%M %p', time.localtime(delivered_time/1e3))
+
         manifest_number = int(data['order_shipment__manifest_number'])
 
 
@@ -5724,6 +5725,8 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                                 ('Payment Status', data['order__customerordersummary__payment_status']),
                                                 ('Pack Reference', data['order_packaging__package_reference']))))
     return temp_data
+
+
 
 def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *

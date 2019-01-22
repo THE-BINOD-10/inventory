@@ -8237,10 +8237,11 @@ def get_ratings_details(request, user=''):
 def get_central_orders_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                           filters={}, user_dict={}):
     un_sort_dict = {7: 'Status'}
-    lis = ['', 'interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'project_name', 'remarks',
+    lis = ['interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'project_name', 'remarks',
            'order_assigned_wh__username', 'id','creation_date']
     data_dict = {'user': user.id, 'quantity__gt': 0}
     status_map = {'1': 'Accept', '0': 'Reject','2': 'Pending'}
+    if not col_num: col_num = 0
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -8249,7 +8250,8 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
         all_orders = interm_orders.filter(Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term)|
                                             Q(quantity__icontains=search_term) | Q(shipment_date__regex=search_term)|
                                             Q(project_name__icontains=search_term) | Q(order_assigned_wh__username__icontains=search_term)|
-                                            Q(interm_order_id__icontains=search_term)|Q(creation_date__regex=search_term)).order_by(order_data)
+                                            Q(interm_order_id__icontains=search_term)|Q(creation_date__regex=search_term) |
+                                            Q(order__original_order_id__icontains=search_term)).order_by(order_data)
     else:
         all_orders = interm_orders.order_by(order_data)
     temp_data['recordsTotal'] = all_orders.count()
@@ -8260,24 +8262,32 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
         custom_sort = True
         if stop_index:
             all_orders = all_orders[start_index:stop_index]
-    for dat in all_orders[start_index:stop_index]:
-        order_date = get_local_date(user, dat.creation_date)
-        order_id = int(dat.interm_order_id)
-        if dat.order_assigned_wh:
-            wh_name = dat.order_assigned_wh.username
-        else:
-            wh_name = ''
-        shipment_date = dat.shipment_date.strftime("%d/%m/%Y")
-        if dat.status:
-            status = status_map.get(dat.status)
+    ord_items = all_orders.only('interm_order_id', 'order__original_order_id', 'order_assigned_wh__username',
+                                   'status', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'id',
+                                   'creation_date', 'project_name', 'remarks')\
+        .values_list('interm_order_id', 'order__original_order_id', 'order_assigned_wh__username', 'status',
+                     'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'id',
+                     'creation_date', 'project_name', 'remarks')
+    line_items_map = {}
+    for item in ord_items:
+        interm_order_id = item[0]
+        line_items_map.setdefault(interm_order_id, []).append(item[1:])
+
+    for order_id, dat in line_items_map.items()[start_index:stop_index]:
+        loan_proposal_id, assigned_wh, status, sku_code, sku_desc, quantity, shipment_date, \
+        id, creation_date, project_name, remarks = dat[0]
+        order_date = get_local_date(user, creation_date)
+        shipment_date = shipment_date.strftime("%d/%m/%Y")
+        if status:
+            status = status_map.get(status)
         else:
             status = 'Pending'
         temp_data['aaData'].append(
-            OrderedDict((('Order ID', order_id), ('SKU Code', dat.sku.sku_code), ('SKU Desc', dat.sku.sku_desc),
-                         ('Product Quantity', dat.quantity), ('Shipment Date', shipment_date), ('data_id', dat.id),
-                         ('Project Name', dat.project_name), ('Remarks', dat.remarks),
-                         ('Warehouse', wh_name), ('Status', status),('Order Date',order_date),
-                         ('id', index), ('DT_RowClass', 'results'))))
+            OrderedDict((('Order ID', int(order_id)), ('SKU Code', sku_code), ('SKU Desc', sku_desc),
+                         ('Product Quantity', quantity), ('Shipment Date', shipment_date), ('data_id', id),
+                         ('Project Name', project_name), ('Remarks', remarks),
+                         ('Warehouse', assigned_wh), ('Status', status), ('Order Date',order_date),
+                         ('Loan Proposal ID', loan_proposal_id), ('id', index), ('DT_RowClass', 'results'))))
         index += 1
 
     col_headers = ['Order ID', 'SKU Code', 'SKU Desc', 'Product Quantity', 'Shipment Date', 'Project Name', 'Remarks',

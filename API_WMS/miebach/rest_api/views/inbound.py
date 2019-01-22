@@ -2476,8 +2476,9 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
     if 'overall_discount' in myDict.keys() and myDict['overall_discount'][0]:
         overall_discount = myDict['overall_discount'][0]
     remarks_list = []
-    if float(data.open_po.mrp) != float(myDict['mrp'][i]) :
-         remarks_list.append("mrp_change")
+    if myDict.get('mrp', '') and myDict['mrp'][i]:
+        if float(data.open_po.mrp) != float(myDict['mrp'][i]) :
+            remarks_list.append("mrp_change")
     if 'offer_applicable' in myDict.keys() :
         offer_applicable = myDict['offer_applicable'][i]
         if offer_applicable == 'true':

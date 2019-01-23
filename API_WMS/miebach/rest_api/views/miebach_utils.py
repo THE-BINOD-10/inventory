@@ -493,14 +493,14 @@ SKU_WISE_GRN_DICT = {'filters' : [
                        "SGST(%)", "IGST(%)", "UTGST(%)", "CESS(%)", "CGST",
                        "SGST", "IGST", "UTGST", "CESS", "Post-Tax Received Value", "Invoiced Unit Rate","Overall Discount",
                        "Invoiced Total Amount", "Invoice Number", "Invoice Date", "Challan Number",
-                       "Challan Date", "Updated User"],
+                       "Challan Date", "Remarks", "Updated User"],
 		'mk_dt_headers': [ "Received Date", "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Recepient",
                            "SKU Code", "SKU Description", "HSN Code", "SKU Class", "SKU Style Name", "SKU Brand", "SKU Category",
                            "Received Qty", "Unit Rate", "MRP", "Pre-Tax Received Value", "CGST(%)", "SGST(%)",
                            "IGST(%)", "UTGST(%)", "CESS(%)", "CGST",
                             "SGST", "IGST", "UTGST", "CESS", "Post-Tax Received Value", "Margin %",
                            "Margin", "Invoiced Unit Rate","Overall Discount", "Invoiced Total Amount", "Invoice Number", "Invoice Date",
-                           "Challan Number", "Challan Date", "Updated User"],
+                           "Challan Number", "Challan Date", "Remarks", "Updated User"],
 		'dt_url': 'get_sku_wise_po_filter', 'excel_name': 'goods_receipt', 'print_url': '',
 	   }
 
@@ -2585,7 +2585,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
     if is_market_user:
         unsorted_dict = {16: 'Pre-Tax Received Value', 27: 'Post-Tax Received Value', 29: 'Margin',
                          30: 'Invoiced Unit Rate',
-                         31: 'Invoiced Total Amount'}
+                         32: 'Invoiced Total Amount'}
         lis = ['purchase_order__updation_date', 'purchase_order__creation_date', 'purchase_order__order_id',
      	       'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name', 'id',
                'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
@@ -2598,8 +2598,9 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                'purchase_order__open_po__igst_tax', 'purchase_order__open_po__utgst_tax',
                'purchase_order__open_po__cess_tax', 'purchase_order__open_po__cgst_tax', 'purchase_order__open_po__sgst_tax',
                'purchase_order__open_po__igst_tax', 'purchase_order__open_po__utgst_tax',
-               'purchase_order__open_po__cess_tax','id', 'seller_po__margin_percent', 'id', 'id', 'id',
-               'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'id']
+               'purchase_order__open_po__cess_tax','id', 'seller_po__margin_percent', 'seller_po__margin_percent',
+               'id', 'overall_discount', 'id',
+               'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'remarks', 'id']
         model_name = SellerPOSummary
         field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date',
                          'order_id': 'purchase_order__order_id',
@@ -2622,7 +2623,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price',
                          'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number','overall_discount',
-                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp']
+                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks']
     else:
         unsorted_dict = {16: 'Pre-Tax Received Value', 27: 'Post-Tax Received Value',
                          28: 'Invoiced Unit Rate',
@@ -2642,7 +2643,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                'purchase_order__open_po__igst_tax', 'purchase_order__open_po__utgst_tax',
                'purchase_order__open_po__cess_tax',
                'id', 'seller_po__margin_percent', 'id', 'id', 'id',
-               'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'id']
+               'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'remarks', 'id']
         field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date',
                          'order_id': 'purchase_order__order_id',
                          'wms_code': 'purchase_order__open_po__sku__wms_code__iexact',
@@ -2661,10 +2662,10 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'purchase_order__open_po__mrp', 'purchase_order__open_po__cgst_tax',
                          'purchase_order__open_po__sgst_tax', 'purchase_order__open_po__igst_tax',
                          'purchase_order__open_po__utgst_tax', 'purchase_order__open_po__cess_tax',
-                         'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
+                         'seller_po__margin_percent', 'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price','overall_discount',
                          'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number',
-                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp'
+                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks',
                          ]
     excl_status = {'purchase_order__status': ''}
     ord_quan = 'quantity'
@@ -2702,7 +2703,6 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
     order_term = search_params.get('order_term', 'asc')
     if order_term:
         order_data = lis[col_num]
-        print order_data
         if order_term == 'desc':
             order_data = "-%s" % order_data
         model_data = model_data.order_by(order_data)
@@ -2791,6 +2791,16 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         if version_obj.exists():
             updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
         seller_po_summary = SellerPOSummary.objects.get(id=data['id'])
+        remarks = ''
+        if data['remarks']:
+            custom_remarks = []
+            remarks_list = data['remarks'].split(',')
+            print data['remarks']
+            if 'mrp_change' in remarks_list:
+                custom_remarks.append('MRP Change')
+            elif 'offer_applied' in remarks_list:
+                custom_remarks.append('Offer Applied')
+            remarks = ','.join(custom_remarks)
         temp_data['aaData'].append(OrderedDict((('Received Date', get_local_date(user, seller_po_summary.creation_date)),
                             ('PO Date', get_local_date(user, result.creation_date)),
                             ('PO Number', po_number),
@@ -2830,6 +2840,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                             ('DT_RowAttr', {'data-id': data['id']}), ('key', 'po_summary_id'),
                             ('receipt_type', data['seller_po__receipt_type']),
                             ('receipt_no', 'receipt_no'),
+                            ('Remarks', remarks),
                             ('Updated User', updated_user_name)
 	)))
     if stop_index and custom_search:

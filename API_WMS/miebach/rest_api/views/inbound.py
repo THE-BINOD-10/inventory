@@ -2450,9 +2450,11 @@ def create_update_primary_segregation(data, quantity, temp_dict, batch_obj=None,
                 segregation_obj = PrimarySegregation.objects.create(**primary_seg_dict)
 
 def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number='', invoice_date=None,
-                     challan_number='', challan_date=None, dc_level_grn='', round_off_total=0):
+                     challan_number='', challan_date=None, dc_level_grn='', round_off_total=0, batch_dict=None):
     if not receipt_id:
         return
+    if not batch_dict:
+        batch_dict = {}
     seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id)
     seller_received_list = []
     #invoice_number = int(invoice_number)
@@ -2476,8 +2478,22 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
     if 'overall_discount' in myDict.keys() and myDict['overall_discount'][0]:
         overall_discount = myDict['overall_discount'][0]
     remarks_list = []
-    if float(data.open_po.mrp) != float(myDict['mrp'][i]) :
-         remarks_list.append("mrp_change")
+    if data.open_po:
+        if myDict.get('mrp', '') and myDict['mrp'][i]:
+            if float(data.open_po.mrp) != float(myDict['mrp'][i]):
+                 remarks_list.append("mrp_change")
+        if 'mrp_change' not in remarks_list and seller_pos:
+            if batch_dict and batch_dict.get('mrp', ''):
+                mrp = float(batch_dict['mrp'])
+                other_mrp_stock = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0,
+                                                             sku_id=data.open_po.sku_id,
+                                           sellerstock__seller_id=seller_pos[0].seller_id).\
+                    exclude(Q(location__zone__zone__in=get_exclude_zones(user)) |
+                              Q(batch_detail__mrp=mrp))
+                if other_mrp_stock.exists():
+                    mrp_change_check = ZoneMaster.objects.filter(zone='MRP Change', user=user.id)
+                    if mrp_change_check.exists():
+                        remarks_list.append("mrp_change")
     if 'offer_applicable' in myDict.keys() :
         offer_applicable = myDict['offer_applicable'][i]
         if offer_applicable == 'true':
@@ -2591,6 +2607,19 @@ def create_file_po_mapping(request, user, receipt_no, myDict):
         log.debug(traceback.format_exc())
         log.info("Create GRN File Mapping failed for user " + str(user.username) + \
                  " and error statement is " + str(e))
+
+
+def mrp_change_check(purchase_order, batch_detail):
+    if batch_detail and purchase_order.open_po:
+        other_mrp_stock = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0,
+                                                     sku_id=purchase_order.open_po.sku_id,
+                                                     sellerstock__seller_id=seller_po_summary.seller_po.seller_id). \
+            exclude(Q(location__zone__zone__in=get_exclude_zones(user)) |
+                    Q(batch_detail__mrp=seller_po_summary.batch_detail.mrp))
+        if other_mrp_stock.exists():
+            mrp_change_check = ZoneMaster.objects.filter(zone='MRP Change', user=user.id)
+            if mrp_change_check.exists():
+                put_zone = mrp_change_check[0].zone
 
 
 def update_remarks_put_zone(remarks, user, put_zone, seller_summary_id=''):
@@ -2753,7 +2782,8 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
             seller_received_list = update_seller_po(data, value, user, myDict, i, receipt_id=seller_receipt_id,
                                                     invoice_number=invoice_number, invoice_date=bill_date,
                                                     challan_number=challan_number, challan_date=challan_date,
-                                                    dc_level_grn=dc_level_grn, round_off_total=round_off_total)
+                                                    dc_level_grn=dc_level_grn, round_off_total=round_off_total,
+                                                    batch_dict=batch_dict)
         if 'wms_code' in myDict.keys():
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
@@ -6549,11 +6579,16 @@ def get_po_segregation_data(request, user=''):
                                                                             mapping_type='PO',
                                                                             sku_id=order_data['sku_id'],
                                                                             order_ids=order_ids)
+            sellable = quantity
+            non_sellable = 0
+            if remarks:
+                non_sellable = quantity
+                sellable = 0
             data_dict = {'segregation_id': segregation_obj.id,'order_id': order.id, 'wms_code': order_data['wms_code'],
                             'sku_desc': order_data['sku_desc'],
-                            'quantity': quantity, 'sellable': quantity,
+                            'quantity': quantity, 'sellable': sellable,
                             'offer_check' :offer_check,
-                            'non_sellable': 0,
+                            'non_sellable': non_sellable,
                             'name': str(order.order_id) + '-' + str(
                                 re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
                             'price': order_data['price'], 'order_type': order_data['order_type'],

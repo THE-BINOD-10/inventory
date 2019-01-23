@@ -6007,7 +6007,7 @@ def shipment_info_data(request, user=''):
                      'id_proof_number':id_proof_number,
                      'id_card':id_card,
                      'mobile_no':float(mobile_no),
-                     'alternative_mobile_no':float(alternative_mobile_no),
+                     'alternative_mobile_no':alternative_mobile_no,
                      'district':district,
                      'pack_reference': orders.order_packaging.package_reference,
                      'ship_status': ship_status, 'status': status})
@@ -14476,3 +14476,21 @@ def send_order_back(request, user=''):
         status ="Successfully sended all the orders back"
 
     return HttpResponse(json.dumps({'data':order_det_not_reassigned_orderid , 'message': 'Success', 'status':status }))
+
+@login_required
+@get_admin_user
+def invoice_print_manifest(request, user=''):
+    shipment_number = request.POST.get('shipment_id')
+    shipment_orders = ShipmentInfo.objects.filter(order_shipment__shipment_number=int(shipment_number),
+                                                  order_shipment__user=user.id)
+    final_data = ''
+    for orders in shipment_orders :
+        invoice_data = get_invoice_data(str(orders.order.id),user)
+        invoice_data = modify_invoice_data(invoice_data, user)
+        if get_misc_value('show_imei_invoice', user.id) == 'true':
+            invoice_data = build_marketplace_invoice(invoice_data, user, False)
+        else:
+            invoice_data = build_invoice(invoice_data, user, False)
+        final_data += invoice_data
+
+    return HttpResponse(final_data)

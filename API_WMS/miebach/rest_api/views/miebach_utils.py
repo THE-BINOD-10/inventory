@@ -2642,7 +2642,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
     else:
         unsorted_dict = {16: 'Pre-Tax Received Value', 27: 'Post-Tax Received Value',
                          28: 'Invoiced Unit Rate',
-                         29: 'Invoiced Total Amount'}
+                         30: 'Invoiced Total Amount'}
         model_name = SellerPOSummary
         lis = ['purchase_order__updation_date', 'purchase_order__creation_date', 'purchase_order__order_id',
                'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name', 'id',
@@ -2657,7 +2657,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                'purchase_order__open_po__cgst_tax', 'purchase_order__open_po__sgst_tax',
                'purchase_order__open_po__igst_tax', 'purchase_order__open_po__utgst_tax',
                'purchase_order__open_po__cess_tax',
-               'id', 'seller_po__margin_percent', 'id', 'id', 'id',
+               'id', 'seller_po__margin_percent', 'overall_discount', 'id',
                'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'remarks', 'id']
         field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date',
                          'order_id': 'purchase_order__order_id',
@@ -2810,10 +2810,9 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         if data['remarks']:
             custom_remarks = []
             remarks_list = data['remarks'].split(',')
-            print data['remarks']
             if 'mrp_change' in remarks_list:
                 custom_remarks.append('MRP Change')
-            elif 'offer_applied' in remarks_list:
+            if 'offer_applied' in remarks_list:
                 custom_remarks.append('Offer Applied')
             remarks = ','.join(custom_remarks)
         temp_data['aaData'].append(OrderedDict((('Received Date', get_local_date(user, seller_po_summary.creation_date)),

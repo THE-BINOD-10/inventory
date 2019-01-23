@@ -2119,7 +2119,7 @@ def picklist_confirmation(request, user=''):
                         all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
                     #Rista DM Integration Code, collect SKU code
                     int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
-                    if int_obj:
+                    if int_obj and picklist.order:
                         original_order_id_str = str(picklist.order.original_order_id)
                         model_name_value = 'rista<<>>indent_out<<>>' + original_order_id_str
                         temp_json = TempJson.objects.filter(model_id=int(user.id), model_name=model_name_value)

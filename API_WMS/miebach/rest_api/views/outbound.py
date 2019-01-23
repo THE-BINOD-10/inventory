@@ -1219,17 +1219,20 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
     if picklist.sellerorderdetail_set.filter(seller_order__isnull=False).exists():
         pic_check_data['sellerstock__seller_id'] = picklist.sellerorderdetail_set.\
                                                     filter(seller_order__isnull=False)[0].seller_order.seller_id
-    if val['location'] != val['orig_loc'] :
+    if val['location'] != val['orig_loc'] and val.get('batchno', ''):
         pic_check_data['batch_detail__batch_no'] = val['batchno']
     else:
         if picklist.stock and picklist.stock.batch_detail_id:
             pic_check_data['batch_detail__mrp'] = picklist.stock.batch_detail.mrp
             pic_check_data['batch_detail__batch_no'] = picklist.stock.batch_detail.batch_no
-    if val['batchno'] :
+    if val.get('batchno', ''):
         pic_check_data['batch_detail__batch_no'] = val['batchno']
     pic_check = StockDetail.objects.filter(**pic_check_data)
     if not pic_check:
-        status.append("Insufficient Stock in given location with batch number")
+        if val.get('batchno', ''):
+            status.append("Insufficient Stock in given location with batch number")
+        else:
+            status.append("Insufficient Stock in given location")
     location = all_locations.filter(location=val['location'], zone__user=user.id)
     if not location:
         if error_string:
@@ -1943,6 +1946,7 @@ def picklist_confirmation(request, user=''):
     picklists_send_mail = {}
     mod_locations = []
     seller_pick_number = ''
+    status = ''
     for key, value in request.POST.iterlists():
         name, picklist_id = key.rsplit('_', 1)
         data.setdefault(picklist_id, [])

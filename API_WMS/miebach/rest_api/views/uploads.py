@@ -6120,6 +6120,9 @@ def sku_pack_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls
 @login_required
 @get_admin_user
 def block_stock_download(request, user=''):
+    returns_file = request.GET['download-file']
+    if returns_file:
+        return error_file_download(returns_file)
     wb, ws = get_work_sheet('block_stock_form', BLOCK_STOCK_MAPPING.keys())
     return xls_to_response(wb, '%s.block_stock_form.xls' % str(user.id))
 
@@ -6171,7 +6174,7 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                         index_status.setdefault(row_idx, set()).add("Reseller Name not found")
             elif key == 'corporate_name':
                 res_code = get_cell_data(row_idx, blockstock_file_mapping['reseller_name'], reader, file_type)
-                res_id = reseller_ids_map[res_code]
+                res_id = reseller_ids_map.get(res_code, '')
                 mapped_corp_names = res_corp_names_map.get(res_id, [])
                 if cell_data:
                    if cell_data not in mapped_corp_names:
@@ -6248,6 +6251,7 @@ def block_stock_xls_upload(request, reader, user, admin_user, no_of_rows, fname,
         cm_id = customer_user.customer_id
         if cm_id not in enquiry_id_map:
             enquiry_id = get_enquiry_id(cm_id)
+            enquiry_id_map[cm_id] = enquiry_id
         else:
             enquiry_id = enquiry_id_map[cm_id]
         dist_id = customer_user.customer.user
@@ -6280,8 +6284,14 @@ def block_stock_xls_upload(request, reader, user, admin_user, no_of_rows, fname,
             if corporate_name:
                 enquiry_map['corporate_name'] = corporate_name
             enquiry_map.update(customer_details)
-            enq_master_obj = EnquiryMaster(**enquiry_map)
-            enq_master_obj.save()
+            enq_master_obj = EnquiryMaster.objects.filter(enquiry_id=enquiry_id,
+                                                          user=customer_user.customer.user,
+                                                          customer_id=cm_id)
+            if enq_master_obj:
+                enq_master_obj = enq_master_obj[0]
+            else:
+                enq_master_obj = EnquiryMaster(**enquiry_map)
+                enq_master_obj.save()
             sku_qs = SKUMaster.objects.filter(user=wh_id, sku_code=sku_code)
             if not sku_qs:
                 continue
@@ -6300,11 +6310,11 @@ def block_stock_xls_upload(request, reader, user, admin_user, no_of_rows, fname,
             enq_sku_obj.save()
             if int(level) == 3:
                 block_asn_stock(sku_qs[0].id, qty, 90, enq_sku_obj, is_enquiry=True) # Default max leadtime is 90days
-            return 'Success'
         except:
             import traceback
             log.debug(traceback.format_exc())
             return 'Failed'
+    return 'Success'
 
 
 @csrf_exempt

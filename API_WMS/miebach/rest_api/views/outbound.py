@@ -1791,6 +1791,8 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
         temp_json = TempJson.objects.filter(model_id=int(user.id), model_name=model_name_value)
         if temp_json:
             rista_json = eval(temp_json[0].model_json)
+        else:
+            continue
         get_all_sku_code = eval(temp_json[0].model_json)['items']
         sku_dict = {}
         for ind in get_all_sku_code:
@@ -2115,7 +2117,10 @@ def picklist_confirmation(request, user=''):
                     int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
                     if int_obj:
                         original_order_id_str = str(picklist.order.original_order_id)
-                        rista_order_id_list.append(original_order_id_str)
+                        model_name_value = 'rista<<>>indent_out<<>>' + original_order_id_str
+                        temp_json = TempJson.objects.filter(model_id=int(user.id), model_name=model_name_value)
+                        if temp_json:
+                            rista_order_id_list.append(original_order_id_str)
                         picking_count1 = int(picking_count1)
                         if picking_count1:
                             sku_code_str = picklist.order.sku.sku_code
@@ -2168,7 +2173,7 @@ def picklist_confirmation(request, user=''):
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
 	#Check DM Rista User
 	int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
-	if int_obj:
+	if int_obj and rista_order_id_list:
 	    rista_order_id = list(set(rista_order_id_list))
 	    rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
@@ -4743,6 +4748,10 @@ def insert_order_data(request, user=''):
 
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
     enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
+    auto_picklist_signal = get_misc_value('auto_generate_picklist', user.id)
+    order_status_key = 1
+    if auto_picklist_signal == 'true':
+        order_status_key = 9
 
     # Using the display_sku_cust_mapping flag for ANT Stationers
     # orders_for_approval_flag = get_misc_value('display_sku_cust_mapping', user.id)
@@ -4776,6 +4785,7 @@ def insert_order_data(request, user=''):
             order_data = copy.deepcopy(UPLOAD_ORDER_DATA)
             #order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
             # order_data['order_id'] = order_id
+            order_data['status'] = order_status_key
             order_data['order_code'] = 'MN'
             order_data['marketplace'] = 'Offline'
             if custom_order == 'true':
@@ -5021,7 +5031,6 @@ def insert_order_data(request, user=''):
     success_messages = ["Success", "Order created, Picklist generated Successfully",
                         "Order Created and Dispatched Successfully", "Order created Successfully"]
     if not admin_user:
-        auto_picklist_signal = get_misc_value('auto_generate_picklist', user.id)
         if direct_dispatch == 'true':
             message = direct_dispatch_orders(user, dispatch_orders)
         elif auto_picklist_signal == 'true':
@@ -5060,7 +5069,7 @@ def insert_order_data(request, user=''):
 
         if generic_order_id and not is_emiza_order_failed:
             check_and_raise_po(generic_order_id, cm_id)
-            create_backorders(backorder_splitup_map, admin_user, sku_total_qty_map)
+            #create_backorders(backorder_splitup_map, admin_user, sku_total_qty_map)
 
         if user_type == 'customer' and not is_distributor and message in success_messages:
             # Creating Uploading POs object with file upload pending.
@@ -5137,6 +5146,12 @@ def direct_dispatch_orders(user, dispatch_orders, creation_date=datetime.datetim
     return 'Order Created and Dispatched Successfully'
 
 
+def update_temp_order_detail_status(order_objs):
+    for order_obj in order_objs:
+        order_obj.status = 1
+        order_obj.save()
+
+
 def check_stocks(order_sku, user, enable_damaged_stock, order_objs):
     picklist_exclude_zones = get_exclude_zones(user)
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
@@ -5177,11 +5192,13 @@ def check_stocks(order_sku, user, enable_damaged_stock, order_objs):
                 stock_detail, stock_count, sku.wms_code = get_sku_stock(combo.member_sku, sku_stocks, user,
                                                                         val_dict, sku_id_stocks)
                 if stock_count < order_sku[sku]:
+                    update_temp_order_detail_status(order_objs)
                     return "Order created Successfully"
         else:
             stock_detail, stock_count, sku.wms_code = get_sku_stock(sku, sku_stocks, user, val_dict,
                                                                     sku_id_stocks)
             if stock_count < order_sku[sku]:
+                update_temp_order_detail_status(order_objs)
                 return "Order created Successfully"
 
     picklist_number = get_picklist_number(user)
@@ -5989,8 +6006,8 @@ def shipment_info_data(request, user=''):
                      'id_type':id_type,
                      'id_proof_number':id_proof_number,
                      'id_card':id_card,
-                     'mobile_no':float(mobile_no),
-                     'alternative_mobile_no':float(alternative_mobile_no),
+                     'mobile_no':mobile_no,
+                     'alternative_mobile_no':alternative_mobile_no,
                      'district':district,
                      'pack_reference': orders.order_packaging.package_reference,
                      'ship_status': ship_status, 'status': status})
@@ -6116,8 +6133,8 @@ def app_shipment_info_data(request, user=''):
                      'time': time,
                      'id_type' : id_type,
                      'model':model,
-                     'mobile_no':float(mobile_no),
-                     'alternative_mobile_no':float(alternative_mobile_no),
+                     'mobile_no':mobile_no,
+                     'alternative_mobile_no':alternative_mobile_no,
                      'district':district})
         if not ship_reference:
             ship_reference = orders.order_packaging.order_shipment.shipment_reference
@@ -8390,10 +8407,11 @@ def get_ratings_details(request, user=''):
 def get_central_orders_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                           filters={}, user_dict={}):
     un_sort_dict = {7: 'Status'}
-    lis = ['', 'interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'project_name', 'remarks',
+    lis = ['interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'project_name', 'remarks',
            'order_assigned_wh__username', 'id','creation_date']
     data_dict = {'user': user.id, 'quantity__gt': 0}
     status_map = {'1': 'Accept', '0': 'Reject','2': 'Pending'}
+    if not col_num: col_num = 0
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -8402,7 +8420,8 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
         all_orders = interm_orders.filter(Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term)|
                                             Q(quantity__icontains=search_term) | Q(shipment_date__regex=search_term)|
                                             Q(project_name__icontains=search_term) | Q(order_assigned_wh__username__icontains=search_term)|
-                                            Q(interm_order_id__icontains=search_term)|Q(creation_date__regex=search_term)).order_by(order_data)
+                                            Q(interm_order_id__icontains=search_term)|Q(creation_date__regex=search_term) |
+                                            Q(order__original_order_id__icontains=search_term)).order_by(order_data)
     else:
         all_orders = interm_orders.order_by(order_data)
     temp_data['recordsTotal'] = all_orders.count()
@@ -8413,24 +8432,32 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
         custom_sort = True
         if stop_index:
             all_orders = all_orders[start_index:stop_index]
-    for dat in all_orders[start_index:stop_index]:
-        order_date = get_local_date(user, dat.creation_date)
-        order_id = int(dat.interm_order_id)
-        if dat.order_assigned_wh:
-            wh_name = dat.order_assigned_wh.username
-        else:
-            wh_name = ''
-        shipment_date = dat.shipment_date.strftime("%d/%m/%Y")
-        if dat.status:
-            status = status_map.get(dat.status)
+    ord_items = all_orders.only('interm_order_id', 'order__original_order_id', 'order_assigned_wh__username',
+                                   'status', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'id',
+                                   'creation_date', 'project_name', 'remarks')\
+        .values_list('interm_order_id', 'order__original_order_id', 'order_assigned_wh__username', 'status',
+                     'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'id',
+                     'creation_date', 'project_name', 'remarks')
+    line_items_map = {}
+    for item in ord_items:
+        interm_order_id = item[0]
+        line_items_map.setdefault(interm_order_id, []).append(item[1:])
+
+    for order_id, dat in line_items_map.items()[start_index:stop_index]:
+        loan_proposal_id, assigned_wh, status, sku_code, sku_desc, quantity, shipment_date, \
+        id, creation_date, project_name, remarks = dat[0]
+        order_date = get_local_date(user, creation_date)
+        shipment_date = shipment_date.strftime("%d/%m/%Y")
+        if status:
+            status = status_map.get(status)
         else:
             status = 'Pending'
         temp_data['aaData'].append(
-            OrderedDict((('Order ID', order_id), ('SKU Code', dat.sku.sku_code), ('SKU Desc', dat.sku.sku_desc),
-                         ('Product Quantity', dat.quantity), ('Shipment Date', shipment_date), ('data_id', dat.id),
-                         ('Project Name', dat.project_name), ('Remarks', dat.remarks),
-                         ('Warehouse', wh_name), ('Status', status),('Order Date',order_date),
-                         ('id', index), ('DT_RowClass', 'results'))))
+            OrderedDict((('Order ID', int(order_id)), ('SKU Code', sku_code), ('SKU Desc', sku_desc),
+                         ('Product Quantity', quantity), ('Shipment Date', shipment_date), ('data_id', id),
+                         ('Project Name', project_name), ('Remarks', remarks),
+                         ('Warehouse', assigned_wh), ('Status', status), ('Order Date',order_date),
+                         ('Loan Proposal ID', loan_proposal_id), ('id', index), ('DT_RowClass', 'results'))))
         index += 1
 
     col_headers = ['Order ID', 'SKU Code', 'SKU Desc', 'Product Quantity', 'Shipment Date', 'Project Name', 'Remarks',
@@ -13076,6 +13103,9 @@ def convert_customorder_to_actualorder(request, user=''):
             dist_order_copy['email_id'] = customer_user[0].customer.email_id
             dist_order_copy['address'] = customer_user[0].customer.address
 
+        if req_stock != sum(stock_wh_map.values()):
+            return HttpResponse('No Available Stock to Place the Order or Total quantity is not considered')
+        is_emiza_order_failed = False
         for usr, qty in stock_wh_map.items():
             if qty <= 0:
                 continue
@@ -13100,7 +13130,7 @@ def convert_customorder_to_actualorder(request, user=''):
                 ord_obj.save()
 
             corporate_po_number = enq_obj.po_number
-            create_grouping_order_for_generic(generic_order_id, ord_obj, cm_id, usr, quantity, corporate_po_number,
+            create_grouping_order_for_generic(generic_order_id, ord_obj, cm_id, usr, qty, corporate_po_number,
                                               corp_name, ask_price, ask_price, exp_date)
             usr_sku_master = SKUMaster.objects.filter(user=usr, sku_code=sku_code)
             if usr_sku_master:
@@ -13135,15 +13165,31 @@ def convert_customorder_to_actualorder(request, user=''):
             for generic_order in generic_orders:
                 original_order_id = generic_order['orderdetail__original_order_id']
                 order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
+                message = ''
                 try:
                     order_push_status = order_push(original_order_id, order_detail_user, "NEW")
                     log.info('New Order Push Status: %s' % (str(order_push_status)))
-                    if generic_order_id and not order_push_status:
+                    if order_push_status.get('Status', '') == 'Failure' or order_push_status.get('status', '') == 'Internal Server Error':
+                        is_emiza_order_failed = True
+                        if order_push_status.get('status', '') == 'Internal Server Error':
+                            message = "400 Bad Request"
+                        else:
+                            message = order_push_status['Result']['Errors'][0]['ErrorMessage']
+                        order_detail = OrderDetail.objects.filter(original_order_id=original_order_id,
+                                                                  user=order_detail_user.id)
+                        picklist_number = order_detail.values_list('picklist__picklist_number', flat=True)
+                        if picklist_number:
+                            picklist_number = picklist_number[0]
+                        log.info(order_detail.delete())
+                        check_picklist_number_created(order_detail_user, picklist_number)
+                        if message:
+                            return HttpResponse(message)
+                    if generic_order_id and not is_emiza_order_failed:
                         check_and_raise_po(generic_order_id, cm_id)
                 except:
                     log.info("Order Push failed for order: %s" %original_order_id)
 
-        if req_stock == sum(stock_wh_map.values()):
+        if req_stock == sum(stock_wh_map.values()) and is_emiza_order_failed:
             enq_obj.status = 'order_placed'
             enq_obj.save()
         else:
@@ -14459,3 +14505,21 @@ def send_order_back(request, user=''):
         status ="Successfully sended all the orders back"
 
     return HttpResponse(json.dumps({'data':order_det_not_reassigned_orderid , 'message': 'Success', 'status':status }))
+
+@login_required
+@get_admin_user
+def invoice_print_manifest(request, user=''):
+    shipment_number = request.POST.get('shipment_id')
+    shipment_orders = ShipmentInfo.objects.filter(order_shipment__shipment_number=int(shipment_number),
+                                                  order_shipment__user=user.id)
+    final_data = ''
+    for orders in shipment_orders :
+        invoice_data = get_invoice_data(str(orders.order.id),user)
+        invoice_data = modify_invoice_data(invoice_data, user)
+        if get_misc_value('show_imei_invoice', user.id) == 'true':
+            invoice_data = build_marketplace_invoice(invoice_data, user, False)
+        else:
+            invoice_data = build_invoice(invoice_data, user, False)
+        final_data += invoice_data
+
+    return HttpResponse(final_data)

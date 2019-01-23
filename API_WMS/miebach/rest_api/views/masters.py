@@ -421,6 +421,27 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
 
 
 @csrf_exempt
+def get_sku_pack_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['pack_id', 'pack_id','pack_quantity']
+
+    search_params = get_filtered_params(filters, lis)
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+            master_data = SKUPackMaster.objects.filter(
+                Q(sku__wms_code__icontains=search_term)).order_by(order_data)
+    else:
+        master_data = SKUPackMaster.objects.filter(**search_params).order_by(order_data)
+
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = len(master_data)
+    for data in master_data[start_index: stop_index]:
+        temp_data['aaData'].append(
+            OrderedDict((('sku', data.sku.wms_code), ('pack_id', data.pack_id), ('pack_quantity', data.pack_quantity))))
+
+
+@csrf_exempt
 def get_corporate_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     lis = ['corporate_id', 'name', 'email_id', 'phone_number', 'address', 'status']
     search_params = get_filtered_params(filters, lis)
@@ -638,21 +659,29 @@ def location_master(request, user=''):
                                                                                          'group').distinct()
     for loc_type in distinct_loctype:
         filter_params = {'zone__zone': loc_type.zone, 'zone__user': user.id}
-        sub_zone_obj = loc_type.subzonemapping_set.filter()
+        sub_zone_objs = loc_type.subzonemapping_set.filter()
         sub_zone = ''
-        if sub_zone_obj:
-            sub_zone = sub_zone_obj[0].sub_zone.zone
-            del filter_params['zone__zone']
-            filter_params['zone__zone__in'] = [sub_zone, loc_type.zone]
+        temp_sub_zones = []
+        for sub_zone_obj in sub_zone_objs:
+            sub_zone = sub_zone_obj.sub_zone.zone
+            if 'zone__zone' in filter_params.keys():
+                del filter_params['zone__zone']
+            temp_sub_zones.append(sub_zone)
+        filter_params['zone__zone__in'] = [loc_type.zone]
+        if temp_sub_zones:
+            filter_params['zone__zone__in'] = list(chain(temp_sub_zones, filter_params['zone__zone__in']))
         loc = filter_by_values(LocationMaster, filter_params,
                                ['location', 'max_capacity', 'fill_sequence', 'pick_sequence', 'status',
-                                'pallet_capacity', 'lock_status'])
+                                'pallet_capacity', 'lock_status', 'zone__level', 'zone__zone'])
         for loc_location in loc:
             loc_group_dict = filter(lambda person: str(loc_location['location']) == str(person['location__location']),
                                     location_groups)
             loc_groups = map(lambda d: d['group'], loc_group_dict)
             loc_groups = [str(x).encode('UTF8') for x in loc_groups]
             loc_location['location_group'] = loc_groups
+            sub_zone = ''
+            if loc_location['zone__level'] == 1:
+                sub_zone = loc_location['zone__zone']
             loc_location['sub_zone'] = sub_zone
         new_loc.append(loc)
 
@@ -1545,6 +1574,42 @@ def insert_customer(request, user=''):
 
     return HttpResponse(status_msg)
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def insert_sku_pack(request, user=''):
+    sku_pack = copy.deepcopy(SKU_PACK_DATA)
+    sku_code = request.POST['sku_code']
+    pack_id = request.POST['pack_id']
+    pack_quantity = request.POST['pack_quantity']
+    sku_obj = SKUMaster.objects.filter(wms_code=sku_code.upper(), user=user.id)
+    if not sku_obj:
+        return HttpResponse('Wrong WMS Code')
+
+    redundent_sku_obj = SKUPackMaster.objects.filter(sku__wms_code= sku_code , sku__user = user.id)
+
+    if redundent_sku_obj and redundent_sku_obj[0].pack_id != pack_id :
+        return HttpResponse('SKU Code have already mapped to %s' %(str(redundent_sku_obj[0].pack_id)))
+    pack_obj = SKUPackMaster.objects.filter(sku__wms_code= sku_code,pack_id = pack_id,sku__user = user.id)
+    if pack_obj :
+        pack_obj = pack_obj[0]
+        pack_obj.pack_quantity = pack_quantity
+        pack_obj.save()
+    else:
+        sku_pack['sku'] = sku_obj[0]
+        sku_pack ['pack_id'] = pack_id
+        sku_pack ['pack_quantity'] = pack_quantity
+        try:
+         SKUPackMaster.objects.create(**sku_pack)
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Insert New SKUPACK failed for %s and params are %s and error statement is %s' % (str(user.username), \
+                                                                                                   str(request.POST.dict()),
+                                                                                                   str(e)))
+
+    return HttpResponse('Added Successfully')
 
 @csrf_exempt
 @login_required
@@ -2704,7 +2769,6 @@ def generate_barcodes(request, user=''):
     myDict.pop('pdf_format')
     if myDict.has_key('order_id'):
         myDict.pop('order_id')
-
     if myDict.has_key('format'):
         myDict.pop('format')
     others = {}
@@ -2712,7 +2776,6 @@ def generate_barcodes(request, user=''):
     if myDict.has_key('Label'):
         barcodes_list = generate_barcode_dict(pdf_format, data_dict, user)
         return HttpResponse(json.dumps(barcodes_list))
-
     tmp = []
     for d in data_dict:
         if d.has_key('quantity') and int(d['quantity']) > 1:
@@ -2899,6 +2962,13 @@ def create_network_supplier(dest, src):
     phone_number = ''
     if user_profile.phone_number:
         phone_number = user_profile.phone_number
+    true_flag = True
+    while true_flag:
+        supplier_qs = SupplierMaster.objects.filter(id=max_sup_id)
+        if supplier_qs:
+            max_sup_id += 1
+        else:
+            true_flag = False
     supplier = SupplierMaster.objects.create(id=max_sup_id, user=dest_id, name=user_profile.user.username,
                                              email_id=user_profile.user.email,
                                              phone_number=phone_number,

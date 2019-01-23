@@ -37,7 +37,9 @@
                   <tr>
                     <th ng-if="pop.model_data.barcodes[0].label">Label Code</th>
                     <th ng-if="!pop.model_data.barcodes[0].label">SKU Code</th>
-                    <th>Quantity </th>
+                    <th ng-if='pop.model_data.barcodes[0].pack_id'>SKU Pack Id</th>
+                    <th ng-if='!pop.model_data.barcodes[0].pack_id'>Quantity </th>
+                    <th ng-if='pop.model_data.barcodes[0].pack_id'>SKU Packs </th>
                     <th ng-if="pop.model_data.custom_config">Serial Number</th>
                     <th class="plus"></th>
                   </tr>
@@ -52,7 +54,11 @@
                       <input type="text" name="wms_code" class="form-control" ng-model="barcode.wms_code">
                     </td>
                     <td>
-                      <input type="text" name="quantity" class="form-control" ng-init="barcode.quantity = (pop.model_data.custom_config) ? '0' : barcode.quantity" ng-model="barcode.quantity">
+                        <input type="text" ng-if='barcode.pack_id' name="pack_id" class="form-control" ng-model="barcode.pack_id">
+                    </td>
+                    <td>
+                      <input type="text" name="quantity" class="form-control" ng-if='!barcode.pack_id' ng-init="barcode.quantity = (pop.model_data.custom_config) ? '0' : barcode.quantity" ng-model="barcode.quantity">
+                      <input type="text" name="quantity" class="form-control" ng-if='barcode.pack_id'  ng-model="barcode.num_packs">
                       <input type="hidden" name="mrp" value="{{barcode.mrp}}">
                       <input type="hidden" name="price" value="{{barcode.price}}">
                       <input type="hidden" name="tax_percent" value="{{barcode.tax_percent}}">

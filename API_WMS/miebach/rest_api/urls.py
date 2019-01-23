@@ -423,6 +423,7 @@ urlpatterns = [
     url(r'^print_stock_ledger_report/$', print_stock_ledger_report),
     url(r'^print_purchase_order_form/$', print_purchase_order_form),
     url(r'^get_shipment_report/$', get_shipment_report),
+    url(r'^get_po_report/$', get_po_report),
     url(r'^print_shipment_report/$', print_shipment_report),
     url(r'^get_dist_sales_report/$', get_dist_sales_report),
     url(r'^print_dist_sales_report/$', print_dist_sales_report),

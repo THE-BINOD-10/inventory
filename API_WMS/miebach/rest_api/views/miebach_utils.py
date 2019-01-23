@@ -580,11 +580,9 @@ PO_REPORT_DICT = {
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
-        {'label': 'Order ID', 'name': 'order_id', 'type': 'input'},
-        {'label': 'Customer ID', 'name': 'order_id', 'type': 'customer_search'}
+        {'label': 'Sister Warehouse', 'name': 'sister_warehouse', 'type': 'select'},
     ],
-    'dt_headers': ['SKU Code', 'Sku Description', 'Customer Name', 'Quantity', 'Shipped Quantity', 'Truck Number',
-                   'Date', 'Shipment Status', 'Courier Name', 'Payment Status', 'Pack Reference'],
+    'dt_headers': ['SKU Code', 'Sku Description', 'Quantity','PO No'],
     'dt_url': 'get_po_report', 'excel_name': 'get_po_report',
     'print_url': 'print_shipment_report',
 }
@@ -1351,6 +1349,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'rm_picklist_report': 'get_rm_picklist_data',
                         'stock_ledger_report': 'get_stock_ledger_data',
                         'get_shipment_report': 'get_shipment_report_data',
+                        'get_po_report':'get_po_report_data',
                         'get_dist_sales_report': 'get_dist_sales_report_data',
                         'get_reseller_sales_report': 'get_reseller_sales_report_data',
                         'get_zone_target_summary_report': 'get_zone_target_summary_report_data',
@@ -5724,6 +5723,78 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                                 ('Courier Name', data['order_shipment__courier_name']),
                                                 ('Payment Status', data['order__customerordersummary__payment_status']),
                                                 ('Pack Reference', data['order_packaging__package_reference']))))
+    return temp_data
+def get_po_report_data(search_params, user, sub_user, serial_view=False):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from common import get_admin
+    from rest_api.views.common import  get_order_detail_objs,get_purchase_order_data
+    lis = ['open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__order_quantity','open_po__sku__sku_code']
+    if search_params.get('order_term'):
+        order_data = lis[search_params['order_index']]
+        if search_params['order_term'] == 'desc':
+            order_data = "-%s" % order_data
+
+    temp_data = copy.deepcopy(AJAX_DATA)
+    search_parameters = {}
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        search_parameters['open_po__sku__sku_code'] = search_params['sku_code']
+
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    if 'sister_warehouse' in search_params:
+        sister_warehouse_name = search_params['sister_warehouse']
+        user = User.objects.get(username=sister_warehouse_name)
+        warehouses = UserGroups.objects.filter(user_id=user.id)
+    else:
+        warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+
+    for warehouse in warehouses:
+        sku_master = SKUMaster.objects.filter(user=warehouse.user_id)
+        sku_master_ids = sku_master.values_list('id', flat=True)
+        purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=warehouse.user_id,
+                                                       open_po__sku_id__in=sku_master_ids,
+                                                       received_quantity__lt=F('open_po__order_quantity')).exclude(status='location-assigned').filter(**search_parameters)
+        if not purchase_orders:
+            st_orders = STPurchaseOrder.objects.filter(open_st__sku__user=user.id,
+                                                       open_st__sku_id__in=sku_master_ids). \
+                exclude(po__status__in=['location-assigned', 'stock-transfer']).values_list('po_id', flat=True)
+            purchase_orders = PurchaseOrder.objects.filter(id__in=st_orders)
+        if not purchase_orders:
+            rw_orders = RWPurchase.objects.filter(rwo__vendor__user=user.id,
+                                                  rwo__job_order__product_code_id__in=sku_master_ids). \
+                exclude(purchase_order__status__in=['location-assigned', 'stock-transfer']). \
+                values_list('purchase_order_id', flat=True)
+            purchase_orders = PurchaseOrder.objects.filter(id__in=rw_orders)
+
+        start_index = search_params.get('start', 0)
+        stop_index = start_index + search_params.get('length', 0)
+
+        temp_data['recordsTotal'] = len(purchase_orders)
+        temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+        ship_search_params  = {}
+        if stop_index:
+            purchase_orders = purchase_orders[start_index:stop_index]
+        po_reference_no = ''
+        for order in purchase_orders:
+            po_reference_no = '%s%s_%s' % (
+            order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
+            order_data = get_purchase_order_data(order)
+
+            po_quantity = float(order_data['order_quantity']) - float(order.received_quantity)
+
+            temp_data['aaData'].append(OrderedDict((('SKU Code',order_data['wms_code'] ),('PO No',po_reference_no),
+                                                ('Quantity',po_quantity ), ('Sku Description', order_data['sku_desc']))))
     return temp_data
 
 

@@ -45,7 +45,7 @@ def get_report_data(request, user=''):
                                                          .values_list('stage_name', flat=True))
             data['filters'][data_index]['values'].extend(
                 ['Picked', 'Putaway pending', 'Picklist Generated', 'Created', 'Partially Picked'])
-    elif report_name == 'order_summary_report':
+    elif report_name == 'order_summary_report' or report_name == 'po_report':
         if 'marketplace' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'marketplace' in person['name'], data['filters'])[0])
@@ -1273,6 +1273,15 @@ def print_enquiry_status_report(request, user=''):
 def get_shipment_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_shipment_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_po_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_po_report_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 

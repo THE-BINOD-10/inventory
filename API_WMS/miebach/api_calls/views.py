@@ -1383,22 +1383,24 @@ def rista_update_orders(request):
 
 
 def store_hippo_line_items(line_items):
-    import pdb;pdb.set_trace()
     itemsArr = []
     #sub_total_price = float(order['subtotal_price'])
-    cgst_percent = 0
-    sgst_percent = 0
     #for ind in order.get('tax_lines'):
     #    if ind['title'] == "CGST":
     #        cgst_percent = (float(ind['price']) * 100) / sub_total_price
     #    elif ind['title'] == "SGST":
     #        sgst_percent = (float(ind['price']) * 100) / sub_total_price
     for Item in line_items:
+        cgst_percent = 0
+        sgst_percent = 0
+        igst_percent = 0
         for ind in Item['taxes']:
             if ind['name'] == "IGST":
-                cgst_percent += ind['rate']
+                igst_percent += ind['rate']
             if ind['name'] == "SGST":
                 sgst_percent += ind['rate']
+            if ind['name'] == "CGST":
+                cgst_percent += ind['rate']
         obj = {
             "line_item_id": Item.get('_id',None),
             "sku": Item.get('sku',None),
@@ -1406,10 +1408,12 @@ def store_hippo_line_items(line_items):
             "quantity": Item.get('quantity',None),
             "unit_price": Item.get('price',None),
             "shipping_charge": Item.get('shipping_total',None),
-            "discount_amount": Item.get('discount_total',None),
+            "discount_amount": 0,
+            #"discount_amount": int(Item.get('quantity', 0)) * int(Item.get('discounts_total', 0)),
             "tax_percent": {
                 "CGST": cgst_percent,
-                "SGST": sgst_percent
+                "SGST": sgst_percent,
+                "IGST": igst_percent
             }
         }
         itemsArr.append(obj)
@@ -1417,7 +1421,6 @@ def store_hippo_line_items(line_items):
 
 
 def store_hippo(request):
-    import pdb;pdb.set_trace()
     store_hippo_data = json.loads(request.body)
     allOrders = []
     create_order = {}
@@ -1432,6 +1435,7 @@ def store_hippo(request):
     create_order['shipping_address'] = store_hippo_data['shipping_address']
     create_order['items'] = store_hippo_line_items(store_hippo_data['items'])
     create_order['discount'] = store_hippo_data['discounts_total']
+    #create_order['discount'] = store_hippo_data['discounts_percentage']
     create_order['shipping_charges'] = store_hippo_data['shipping_total']
     create_order['customer_name'] = customer_obj['full_name']
     create_order['customer_code'] = ''
@@ -1440,7 +1444,7 @@ def store_hippo(request):
     create_order['all_total_tax'] = store_hippo_data['taxes_total']
     create_order['status'] = store_hippo_data['status']
     create_order['fulfillmentStatus'] = store_hippo_data['fulfillment_status']
-    create_order['invoice_amount'] = create_order['all_total_items'] + create_order['all_total_tax'] + create_order['shipping_charges'] - create_order['discount']
+    create_order['invoice_amount'] = create_order['all_total_items'] + create_order['all_total_tax'] + create_order['shipping_charges'] - store_hippo_data['discounts_total']
     #for order in store_hippo_data:
     #    try:
     allOrders.append(create_order)
@@ -1450,9 +1454,9 @@ def store_hippo(request):
         user_obj = User.objects.get(username='storehippo')
     except:
         return HttpResponse("User Not found")
-    #user_obj = User.objects.filter(username='storehippo')
     try:
         validation_dict, failed_status, final_data_dict = validate_orders_format_rista(allOrders, user=user_obj, company_name='mieone')
+        import pdb;pdb.set_trace()
         if validation_dict:
             return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
         if failed_status:

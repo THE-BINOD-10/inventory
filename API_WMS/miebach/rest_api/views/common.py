@@ -3871,7 +3871,6 @@ def get_group_data(request, user=''):
 def get_sku_master(user, sub_user):
     sku_master = SKUMaster.objects.filter(user=user.id)
     sku_master_ids = sku_master.values_list('id', flat=True)
-
     if not sub_user.is_staff:
         sub_user_groups = sub_user.groups.filter().exclude(name=user.username).values_list('name', flat=True)
         brands_list = GroupBrand.objects.filter(group__name__in=sub_user_groups).values_list('brand_list__brand_name',
@@ -8608,7 +8607,6 @@ def get_sub_users(user):
 
 
 def update_order_dicts_rista(orders, user='', company_name=''):
-    import pdb;pdb.set_trace()
     from outbound import check_stocks
     trans_mapping = {}
     collect_order_detail_list = []
@@ -8661,8 +8659,8 @@ def update_order_dicts_rista(orders, user='', company_name=''):
         else:
             continue
 	order_sku.update({sku_obj: order_det_dict['quantity']})
-        for order_fields in order.get('order_fields_list', ''):
-            OrderFields.objects.create(**order_fields)
+        #for order_fields in order.get('order_fields_list', ''):
+        #    OrderFields.objects.create(**order_fields)
     #for resp_obj in rista_resp:
 	#rista_orders_obj = TempJson.objects.filter(**{'model_id': user.id, 'model_name': 'rista<<>>indent_out<<>>' + resp_obj['indentNumber']})
 	#if not rista_orders_obj:

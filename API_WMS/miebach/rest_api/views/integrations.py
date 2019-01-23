@@ -2040,7 +2040,6 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
     NOW = datetime.datetime.now()
     insert_status = []
     final_data_dict = OrderedDict()
-    import pdb;pdb.set_trace()
     #alert_message_for_email = LOAD_CONFIG.get('rista', 'alert_message_for_email', '')
     #send_alert_msg_to = eval(LOAD_CONFIG.get('rista', 'send_alert_msg_to', ''))
     #body_of_alert_email = LOAD_CONFIG.get('rista', 'body_of_alert_email', '')
@@ -2092,7 +2091,7 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
                 #order_details['customer_name'] = order.get('customer_name', '')
                 order_details['address'] = billing_address.get('address', '')
                 order_details['city'] = billing_address.get('city', '')
-                order_details['pin_code'] = billing_address.get('pincode', '')
+                order_details['pin_code'] = billing_address.get('pincode', 0)
                 order_details['state'] = billing_address.get('state', '')
             if order_code:
                 filter_params['order_code'] = order_code
@@ -2171,10 +2170,12 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
                         order_summary_dict['inter_state'] = 0
                         if order_summary_dict['igst_tax']:
                             order_summary_dict['inter_state'] = 1
+                        order_summary_dict['discount'] = sku_item.get('discount_amount', 0)
                         final_data_dict = check_and_add_dict(grouping_key, 'order_summary_dict',
                                                              order_summary_dict, final_data_dict=final_data_dict)
                     if len(failed_sku_status):
                         continue
+            import pdb;pdb.set_trace()
             order_fields_dict = {}
             order_fields_dict['status'] = order['status']
             order_fields_dict['fulfillmentStatus'] = order['fulfillmentStatus']

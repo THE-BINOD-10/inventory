@@ -49,6 +49,7 @@ var vm = this;
 
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Order ID').withTitle('Order ID'),
+        DTColumnBuilder.newColumn('Loan Proposal ID').withTitle('Loan Proposal ID'),
         DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('SKU Desc').withTitle('SKU Desc'),
         DTColumnBuilder.newColumn('Product Quantity').withTitle('Product Quantity'),

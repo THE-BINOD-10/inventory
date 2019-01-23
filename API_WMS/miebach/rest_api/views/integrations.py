@@ -2040,9 +2040,10 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
     NOW = datetime.datetime.now()
     insert_status = []
     final_data_dict = OrderedDict()
-    alert_message_for_email = LOAD_CONFIG.get('rista', 'alert_message_for_email', '')
-    send_alert_msg_to = eval(LOAD_CONFIG.get('rista', 'send_alert_msg_to', ''))
-    body_of_alert_email = LOAD_CONFIG.get('rista', 'body_of_alert_email', '')
+    import pdb;pdb.set_trace()
+    #alert_message_for_email = LOAD_CONFIG.get('rista', 'alert_message_for_email', '')
+    #send_alert_msg_to = eval(LOAD_CONFIG.get('rista', 'send_alert_msg_to', ''))
+    #body_of_alert_email = LOAD_CONFIG.get('rista', 'body_of_alert_email', '')
     try:
         seller_master_dict, valid_order, query_params = {}, {}, {}
         failed_status = OrderedDict()
@@ -2050,9 +2051,10 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
             orders = {}
         if isinstance(orders, dict):
             orders = [orders]
-        customer_obj = CustomerMaster.objects.filter(**{'user':user.id})
-        customer_code_list = customer_obj.values_list('customer_code', flat=True)
+        #customer_obj = CustomerMaster.objects.filter(**{'user':user.id})
+        #customer_code_list = customer_obj.values_list('customer_code', flat=True)
         for ind, order in enumerate(orders):
+            '''
             customer_code = order.get('customer_code', '')
             if not customer_code in customer_code_list:
                 dm_rista.info('For User : ' + str(user.username) + ' , ' + str(customer_code) + str(alert_message_for_email) + str(order))
@@ -2068,6 +2070,7 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
                     order['address'] = customer_obj_get_cust_id[0].address
                     order['telephone'] = customer_obj_get_cust_id[0].phone_number
                     order['email_id'] = customer_obj_get_cust_id[0].email_id
+            '''
             try:
                 creation_date = datetime.datetime.strptime(order['order_date'], '%Y-%m-%d %H:%M:%S')
             except:
@@ -2081,17 +2084,16 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
 	    order_id = ''.join(re.findall('\d+', original_order_id))
             filter_params = {'user': user.id, 'order_id': order_id}
             filter_params1 = {'user': user.id, 'original_order_id': original_order_id}
-
             order_status = order['order_status']
-
             if order.has_key('billing_address'):
-                order_details['customer_id'] = order.get('customer_id', 0)
-                order_details['customer_code'] = order.get('customer_code', '')
-                order_details['customer_name'] = order.get('customer_name', '')
-            order_details['address'] = order.get('address', '')
-            order_details['city'] = order.get('city', '')
-            order_details['pin_code'] = order.get('pincode', '')
-            order_details['state'] = order.get('state', '')
+                billing_address = order.get('billing_address', '')
+                #order_details['customer_id'] = order.get('customer_id', 0)
+                #order_details['customer_code'] = order.get('customer_code', '')
+                #order_details['customer_name'] = order.get('customer_name', '')
+                order_details['address'] = billing_address.get('address', '')
+                order_details['city'] = billing_address.get('city', '')
+                order_details['pin_code'] = billing_address.get('pincode', '')
+                order_details['state'] = billing_address.get('state', '')
             if order_code:
                 filter_params['order_code'] = order_code
             sku_items = order['items']
@@ -2134,8 +2136,8 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
                     order_det1 = OrderDetail.objects.filter(**filter_params1)
 
                     invoice_amount = 0
-                    unit_price = sku_item['unit_price']
-                    measurement_type = sku_item['measurement_type']
+                    unit_price = sku_item.get('unit_price', 0)
+                    measurement_type = sku_item.get('measurement_type', '')
                     if not order_det:
                         order_det = order_det1
 
@@ -2179,12 +2181,12 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
             order_fields_dict['source'] = order['source']
             order_fields_dict['billing_address'] = order['billing_address']
             order_fields_dict['shipping_charges'] = order['shipping_charges']
-            order_fields_dict['to_branch_name'] = order['to_branch_name']
+            #order_fields_dict['to_branch_name'] = order['to_branch_name']
             order_fields_dict['item_count'] = order['item_count']
             order_fields_dict['all_total_items'] = order['all_total_items']
             order_fields_dict['all_total_tax'] = order['all_total_tax']
             order_fields_dict['shipping_address'] = order['shipping_address']
-            order_fields_dict['to_branch_code'] = order['to_branch_code']
+            #order_fields_dict['to_branch_code'] = order['to_branch_code']
             order_fields_list = []
             for key, value in order_fields_dict.items():
                 order_fields = {}

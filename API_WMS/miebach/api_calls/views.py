@@ -1380,3 +1380,95 @@ def rista_update_orders(request):
         log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'messages': 'Internal Server Error', 'status': 0}
     return HttpResponse(json.dumps(status))
+
+
+def store_hippo_line_items(line_items):
+    import pdb;pdb.set_trace()
+    itemsArr = []
+    #sub_total_price = float(order['subtotal_price'])
+    cgst_percent = 0
+    sgst_percent = 0
+    #for ind in order.get('tax_lines'):
+    #    if ind['title'] == "CGST":
+    #        cgst_percent = (float(ind['price']) * 100) / sub_total_price
+    #    elif ind['title'] == "SGST":
+    #        sgst_percent = (float(ind['price']) * 100) / sub_total_price
+    for Item in line_items:
+        for ind in Item['taxes']:
+            if ind['name'] == "IGST":
+                cgst_percent += ind['rate']
+            if ind['name'] == "SGST":
+                sgst_percent += ind['rate']
+        obj = {
+            "line_item_id": Item.get('_id',None),
+            "sku": Item.get('sku',None),
+            "name": Item.get('name',None),
+            "quantity": Item.get('quantity',None),
+            "unit_price": Item.get('price',None),
+            "shipping_charge": Item.get('shipping_total',None),
+            "discount_amount": Item.get('discount_total',None),
+            "tax_percent": {
+                "CGST": cgst_percent,
+                "SGST": sgst_percent
+            }
+        }
+        itemsArr.append(obj)
+    return itemsArr
+
+
+def store_hippo(request):
+    import pdb;pdb.set_trace()
+    store_hippo_data = json.loads(request.body)
+    allOrders = []
+    create_order = {}
+    customer_obj = store_hippo_data['billing_address']
+    create_order['source'] = 'store_hippo'
+    create_order['original_order_id'] = store_hippo_data['order_id']
+    create_order['order_id'] = create_order['original_order_id']
+    create_order['order_code'] = ''
+    create_order['order_date'] = store_hippo_data['created_on'][0:10] + " " + store_hippo_data['created_on'][11:19]
+    create_order['order_status'] = 'NEW'
+    create_order['billing_address'] = store_hippo_data['billing_address']
+    create_order['shipping_address'] = store_hippo_data['shipping_address']
+    create_order['items'] = store_hippo_line_items(store_hippo_data['items'])
+    create_order['discount'] = store_hippo_data['discounts_total']
+    create_order['shipping_charges'] = store_hippo_data['shipping_total']
+    create_order['customer_name'] = customer_obj['full_name']
+    create_order['customer_code'] = ''
+    create_order['item_count'] = store_hippo_data['item_count']
+    create_order['all_total_items'] = store_hippo_data['sub_total']
+    create_order['all_total_tax'] = store_hippo_data['taxes_total']
+    create_order['status'] = store_hippo_data['status']
+    create_order['fulfillmentStatus'] = store_hippo_data['fulfillment_status']
+    create_order['invoice_amount'] = create_order['all_total_items'] + create_order['all_total_tax'] + create_order['shipping_charges'] - create_order['discount']
+    #for order in store_hippo_data:
+    #    try:
+    allOrders.append(create_order)
+    #    except:
+    #        return HttpResponse("Error Occured Order List Check")
+    try:
+        user_obj = User.objects.get(username='storehippo')
+    except:
+        return HttpResponse("User Not found")
+    #user_obj = User.objects.filter(username='storehippo')
+    try:
+        validation_dict, failed_status, final_data_dict = validate_orders_format_rista(allOrders, user=user_obj, company_name='mieone')
+        if validation_dict:
+            return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
+        if failed_status:
+            if type(failed_status) == dict:
+                failed_status.update({'Status': 'Failure'})
+            if type(failed_status) == list:
+                failed_status = failed_status[0]
+                failed_status.update({'Status': 'Failure'})
+            return HttpResponse(json.dumps(failed_status))
+        status = update_order_dicts_rista(final_data_dict, user=user_obj, company_name='mieone')
+        log.info(status)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(user_obj.username), str(request.body), str(e)))
+        status = {'messages': 'Internal Server Error', 'status': 0}
+
+    return HttpResponse(json.dumps(status))
+

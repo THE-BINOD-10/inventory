@@ -1346,3 +1346,37 @@ def get_mp_inventory(request):
         log.info('Get Inventory failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         response_data = {'messages': 'Internal Server Error', 'status': 500}
         return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder), status=500)
+
+
+@csrf_exempt
+@login_required
+def rista_update_orders(request):
+    try:
+        orders = json.loads(eval(request.body)['all_orders'])
+        rista_resp = json.loads(eval(request.body)['resp'])
+    except:
+        return HttpResponse(json.dumps({'status': 400, 'message': 'Please send proper data'}))
+    log.info('Request params for ' + request.user.username + ' is ' + str(orders))
+    try:
+        if request.user.userprofile.user_type == 'marketplace_user':
+            validation_dict, failed_status, final_data_dict = validate_seller_orders_format(orders, user=request.user,
+                                                                                     company_name='mieone')
+        else:
+            validation_dict, failed_status, final_data_dict = validate_orders_format_rista(orders, user=request.user, company_name='mieone')
+        if validation_dict:
+            return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
+        if failed_status:
+            if type(failed_status) == dict:
+                failed_status.update({'Status': 'Failure'})
+            if type(failed_status) == list:
+                failed_status = failed_status[0]
+                failed_status.update({'Status': 'Failure'})
+            return HttpResponse(json.dumps(failed_status))
+        status = update_order_dicts_rista(final_data_dict, rista_resp, user=request.user, company_name='mieone')
+        log.info(status)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        status = {'messages': 'Internal Server Error', 'status': 0}
+    return HttpResponse(json.dumps(status))

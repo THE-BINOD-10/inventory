@@ -243,15 +243,15 @@ SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone N
 
 VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
 
-CUSTOMER_HEADERS = ['Customer Id', 'Customer Name', 'Credit Period', 'CST Number', 'TIN Number', 'PAN Number', 'Email',
+CUSTOMER_HEADERS = ['Customer Id', 'Customer Name', 'Customer Code', 'Credit Period', 'CST Number', 'TIN Number', 'PAN Number', 'Email',
                     'Phone No.', 'City', 'State', 'Country', 'Pin Code', 'Address', 'Shipping Address', 'Selling Price Type',
                     'Tax Type(Options: Inter State, Intra State)', 'Discount Percentage(%)', 'Markup(%)', 'SPOC Name']
 
 CUSTOMER_EXCEL_MAPPING = OrderedDict(
-    (('customer_id', 0), ('name', 1), ('credit_period', 2), ('cst_number', 3), ('tin_number', 4),
-     ('pan_number', 5), ('email_id', 6), ('phone_number', 7), ('city', 8), ('state', 9), ('country', 10),
-     ('pincode', 11), ('address', 12), ('shipping_address', 13), ('price_type', 14), ('tax_type', 15),
-     ('discount_percentage', 16), ('markup', 17), ('spoc_name', 18),
+    (('customer_id', 0), ('name', 1), ('customer_code', 2), ('credit_period', 3), ('cst_number', 4), ('tin_number', 5),
+     ('pan_number', 6), ('email_id', 7), ('phone_number', 8), ('city', 9), ('state', 10), ('country', 11),
+     ('pincode', 12), ('address', 13), ('shipping_address', 14), ('price_type', 15), ('tax_type', 16),
+     ('discount_percentage', 17), ('markup', 18), ('spoc_name', 19),
     ))
 
 MARKETPLACE_CUSTOMER_EXCEL_MAPPING = OrderedDict(
@@ -578,6 +578,20 @@ SHIPMENT_REPORT_DICT = {
     'print_url': 'print_shipment_report',
 }
 
+PO_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label': 'Order ID', 'name': 'order_id', 'type': 'input'},
+        {'label': 'Customer ID', 'name': 'order_id', 'type': 'customer_search'}
+    ],
+    'dt_headers': ['SKU Code', 'Sku Description', 'Customer Name', 'Quantity', 'Shipped Quantity', 'Truck Number',
+                   'Date', 'Shipment Status', 'Courier Name', 'Payment Status', 'Pack Reference'],
+    'dt_url': 'get_po_report', 'excel_name': 'get_po_report',
+    'print_url': 'print_shipment_report',
+}
+
 DIST_SALES_REPORT_DICT = {
     'filters': [
         {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
@@ -788,6 +802,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'grn_report': GRN_DICT, 'sku_wise_grn_report' : SKU_WISE_GRN_DICT, 'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT,
                      'rm_picklist_report': RM_PICKLIST_REPORT_DICT, 'stock_ledger_report': STOCK_LEDGER_REPORT_DICT,
                      'shipment_report': SHIPMENT_REPORT_DICT, 'dist_sales_report': DIST_SALES_REPORT_DICT,
+                     'po_report':PO_REPORT_DICT,
                      'reseller_sales_report': RESELLER_SALES_REPORT_DICT,
                      'dist_target_summary_report': DIST_TARGET_SUMMARY_REPORT,
                      'dist_target_detailed_report': DIST_TARGET_DETAILED_REPORT,
@@ -1075,7 +1090,7 @@ PICKLIST_EXCEL_FMCG = OrderedDict((
                               ('Order ID', 'original_order_id'), ('Combo SKU', 'parent_sku_code'),
                               ('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'),
                               ('Zone', 'zone'), ('Location', 'location'), ('Batch No', 'batchno'), ('MRP', 'mrp'),
-                              ('Reserved Quantity', 'reserved_quantity'),
+                              ('Reserved Quantity', 'reserved_quantity'),('Mfg Date','manufactured_date'),
                               ('Stock Left', 'stock_left'),('Last Picked Location', 'last_picked_locs')
                             ))
 
@@ -5582,6 +5597,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
     from common import get_admin
     from rest_api.views.common import get_sku_master, get_order_detail_objs
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
     search_parameters = {}
     lis = ['order_shipment__shipment_number', 'order__original_order_id', 'order__sku__sku_code', 'order__title',
            'order__customer_name',
@@ -5619,6 +5635,8 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                            'order__title', 'order__customer_name', 'order__quantity', 'shipping_quantity',
                                            'order_shipment__truck_number', 'creation_date',
                                            'order_shipment__courier_name',
+                                           'order_shipment__manifest_number',
+                                           'order_shipment__creation_date',
                                            'order__customerordersummary__payment_status',
                                            'order_packaging__package_reference')
 
@@ -5660,7 +5678,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                 log.debug(traceback.format_exc())
                 log.info('Firebase query  failed for %s and params are %s and error statement is %s' % (
                 str(user.username), str(request.POST.dict()), str(e)))
-
+        delivered_time =''
         if result :
             try:
                 signed_invoice_copy = result['signed_invoice_copy']
@@ -5682,6 +5700,10 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                 pod_status = result['pod_status']
             except:
                 pod_status = False
+            try :
+                delivered_time = result['time']
+            except:
+                delivered_time = ''
         else:
             signed_invoice_copy =''
             id_type =''
@@ -5693,12 +5715,21 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
             shipment_status = 'Delivered'
         else:
             shipment_status = shipment_status
-
+        order_return_obj = OrderReturns.objects.filter(order__original_order_id = order_id,sku__wms_code = data['order__sku__sku_code'],sku__user=user.id)
+        if order_return_obj and central_order_reassigning == 'true' :
+            shipment_status = 'Returned'
         serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data['order__sku__sku_code'],order_id=data['order__id'],po_imei__sku__user=user.id)
         if serial_number :
             serial_number = serial_number[0].po_imei.imei_number
         else:
             serial_number = ''
+        dispatched_date =  get_local_date(user,data['order_shipment__creation_date'])
+
+        if delivered_time :
+            delivered_time = int(delivered_time)
+            delivered_time = time.strftime('%d %b %Y - %I:%M %p', time.localtime(delivered_time/1e3))
+
+        manifest_number = int(data['order_shipment__manifest_number'])
 
 
         temp_data['aaData'].append(OrderedDict((('Shipment Number', data['order_shipment__shipment_number']),
@@ -5711,14 +5742,18 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                                 ('Date', ' '.join(date)),
                                                 ('Signed Invoice Copy',signed_invoice_copy),
                                                 ('ID Type',id_type),
+                                                ('Manifest Number',manifest_number),
                                                 ('ID Card' , id_card),
                                                 ('Serial Number' ,serial_number),
                                                 ('ID Proof Number' , id_proof_number),
                                                 ('Shipment Status',shipment_status ),
+                                                ('Dispatched Date',dispatched_date),
+                                                ('Delivered Date', delivered_time),
                                                 ('Courier Name', data['order_shipment__courier_name']),
                                                 ('Payment Status', data['order__customerordersummary__payment_status']),
                                                 ('Pack Reference', data['order_packaging__package_reference']))))
     return temp_data
+
 
 
 def get_sku_wise_rtv_filter_data(search_params, user, sub_user):

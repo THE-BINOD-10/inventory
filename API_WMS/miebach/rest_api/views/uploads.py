@@ -2570,6 +2570,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     mail_result_data = ""
     user_profile = user.userprofile
     creation_date = datetime.datetime.now()
+    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
     for final_dict in data_list:
         order_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
         data = copy.deepcopy(PO_DATA)
@@ -2597,6 +2598,8 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         group_key = (order_data['po_name'], order_data['supplier_id'], data['po_date'], seller_id)
         if group_key not in order_ids.keys():
             po_id = get_purchase_order_id(user)
+            if po_sub_user_prefix == 'true':
+                po_id = update_po_order_prefix(request.user, po_id)
             order_ids[group_key] = po_id
         else:
             po_id = order_ids[group_key]
@@ -4461,6 +4464,7 @@ def create_po_serial_mapping(final_data_dict, user):
     user_profile = UserProfile.objects.get(user_id=user.id)
     log.info('PO Serial Mapping data for ' + user.username + ' is ' + str(final_data_dict))
     mod_locations = []
+    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
     for key, value in final_data_dict.iteritems():
         quantity = len(value['imei_list'])
         po_details = value['po_details']
@@ -4474,6 +4478,8 @@ def create_po_serial_mapping(final_data_dict, user):
         order_id = order_id_dict.get(po_details['supplier_id'], '')
         if not order_id:
             order_id = get_purchase_order_id(user) + 1
+            if po_sub_user_prefix == 'true':
+                order_id = update_po_order_prefix(user, order_id)
             order_id_dict[po_details['supplier_id']] = order_id
         purchase_order_dict = {'open_po_id': open_po_obj.id, 'received_quantity': quantity, 'saved_quantity': 0,
                                'po_date': NOW, 'status': po_details['status'], 'prefix': user_profile.prefix,
@@ -5917,7 +5923,7 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
         warehouse = User.objects.get(username=warehouse)
         f_name = 'stock_transfer_' + warehouse_name + '_'
         all_data = insert_st(all_data, warehouse)
-        status = confirm_stock_transfer(all_data, warehouse, user.username)
+        status = confirm_stock_transfer(all_data, warehouse, user.username, request)
 
     if status.status_code == 200:
         return 'Success'
@@ -5945,46 +5951,6 @@ def insert_st(all_data, user):
             stock_transfer.save()
             all_data[key][all_data[key].index(val)][3] = stock_transfer.id
     return all_data
-
-def confirm_stock_transfer(all_data, user, warehouse_name):
-    for key, value in all_data.iteritems():
-        po_id = get_purchase_order_id(user) + 1
-        warehouse = User.objects.get(username__iexact=warehouse_name)
-        stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
-        if stock_transfer_obj:
-            order_id = int(stock_transfer_obj[0].order_id) + 1
-        else:
-            order_id = 1001
-
-        for val in value:
-            open_st = OpenST.objects.get(id=val[3])
-            sku_id = SKUMaster.objects.get(wms_code__iexact=val[0], user=warehouse.id).id
-            user_profile = UserProfile.objects.filter(user_id=user.id)
-            prefix = ''
-            if user_profile:
-                prefix = user_profile[0].prefix
-
-            po_dict = {'order_id': po_id, 'received_quantity': 0, 'saved_quantity': 0,
-                       'po_date': datetime.datetime.now(), 'ship_to': '',
-                       'status': '', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
-            po_order = PurchaseOrder(**po_dict)
-            po_order.save()
-            st_purchase_dict = {'po_id': po_order.id, 'open_st_id': open_st.id,
-                                'creation_date': datetime.datetime.now()}
-            st_purchase = STPurchaseOrder(**st_purchase_dict)
-            st_purchase.save()
-            st_dict = copy.deepcopy(STOCK_TRANSFER_FIELDS)
-            st_dict['order_id'] = order_id
-            st_dict['invoice_amount'] = float(val[1]) * float(val[2])
-            st_dict['quantity'] = float(val[1])
-            st_dict['st_po_id'] = st_purchase.id
-            st_dict['sku_id'] = sku_id
-            stock_transfer = StockTransfer(**st_dict)
-            stock_transfer.save()
-            open_st.status = 0
-            open_st.save()
-        check_purchase_order_created(user, po_id)
-    return HttpResponse("Confirmed Successfully")
 
 
 @csrf_exempt

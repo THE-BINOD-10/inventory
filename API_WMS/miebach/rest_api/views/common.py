@@ -8726,12 +8726,14 @@ def update_order_dicts_storehippo(orders, user='', company_name=''):
     status = {'status': 0, 'messages': ['Something went wrong']}
     for order_key, order in orders.iteritems():
         customer_name = order['order_details']['customer_name']
-	if order_key == "extra":
-	    if float(order.get('shipping_charges', 0)):
-                OrderCharges.objects.create(**{'order_id': order.get('original_order_id', ''), 'user':user, 'charge_name':'Shipping Charges', 'charge_amount': float(order.get('shipping_charges', 0)) })
-	    if float(order.get('discount', 0)):
-                OrderCharges.objects.create(**{'order_id': order.get('original_order_id', ''), 'user':user, 'charge_name':'Discount', 'charge_amount': float(order.get('discount',0)) })
-	    continue
+	for ord_obj in order.get('extra', ''):
+            import pdb;pdb.set_trace()
+            OrderCharges.objects.create(**ord_obj)
+            #if float(order.get('shipping_charges', 0)):
+            #    OrderCharges.objects.create(**{'order_id': order.get('original_order_id', ''), 'user':user, 'charge_name':'Shipping Charges', 'charge_amount': float(order.get('shipping_charges', 0)) })
+	    #if float(order.get('discount', 0)):
+            #    OrderCharges.objects.create(**{'order_id': order.get('original_order_id', ''), 'user':user, 'charge_name':'Discount', 'charge_amount': float(order.get('discount',0)) })
+	    #continue
         if not order.get('order_details', {}):
             continue
         order_det_dict = order['order_details']
@@ -8771,12 +8773,8 @@ def update_order_dicts_storehippo(orders, user='', company_name=''):
         else:
             continue
 	order_sku.update({sku_obj: order_det_dict['quantity']})
-        #for order_fields in order.get('order_fields_list', ''):
-        #    OrderFields.objects.create(**order_fields)
-    #for resp_obj in rista_resp:
-	#rista_orders_obj = TempJson.objects.filter(**{'model_id': user.id, 'model_name': 'rista<<>>indent_out<<>>' + resp_obj['indentNumber']})
-	#if not rista_orders_obj:
-        #    TempJson.objects.create(**{'model_id': user.id, 'model_name': 'rista<<>>indent_out<<>>' + resp_obj['indentNumber'], 'model_json': str(resp_obj)})
+        for order_fields in order.get('order_fields_list', ''):
+            OrderFields.objects.create(**order_fields)
     status = {'status': 1, 'messages': ['Success']}
     return status
 

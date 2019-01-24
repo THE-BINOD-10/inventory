@@ -1420,10 +1420,11 @@ def store_hippo_line_items(line_items):
     return itemsArr
 
 
-def store_hippo(request):
-    store_hippo_data = json.loads(request.body)
+def create_order_storehippo(store_hippo_data, user_obj):
+    import pdb;pdb.set_trace()
     allOrders = []
     create_order = {}
+    #create_order['extra_key'] = []
     customer_obj = store_hippo_data['billing_address']
     create_order['source'] = 'store_hippo'
     create_order['original_order_id'] = store_hippo_data['order_id']
@@ -1435,7 +1436,6 @@ def store_hippo(request):
     create_order['shipping_address'] = store_hippo_data['shipping_address']
     create_order['items'] = store_hippo_line_items(store_hippo_data['items'])
     create_order['discount'] = store_hippo_data['discounts_total']
-    #create_order['discount'] = store_hippo_data['discounts_percentage']
     create_order['shipping_charges'] = store_hippo_data['shipping_total']
     create_order['customer_name'] = customer_obj['full_name']
     create_order['customer_code'] = ''
@@ -1445,34 +1445,48 @@ def store_hippo(request):
     create_order['status'] = store_hippo_data['status']
     create_order['fulfillmentStatus'] = store_hippo_data['fulfillment_status']
     create_order['invoice_amount'] = create_order['all_total_items'] + create_order['all_total_tax'] + create_order['shipping_charges'] - store_hippo_data['discounts_total']
-    #for order in store_hippo_data:
-    #    try:
+    import pdb;pdb.set_trace()
+    #create_order['extra_key'].append({'shipping_charges':store_hippo_data['shipping_total']})
     allOrders.append(create_order)
-    #    except:
-    #        return HttpResponse("Error Occured Order List Check")
-    try:
-        user_obj = User.objects.get(username='storehippo')
-    except:
-        return HttpResponse("User Not found")
     try:
         validation_dict, failed_status, final_data_dict = validate_orders_format_storehippo(allOrders, user=user_obj, company_name='mieone')
-        import pdb;pdb.set_trace()
         if validation_dict:
-            return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
+            return json.dumps({'messages': validation_dict, 'status': 0})
         if failed_status:
             if type(failed_status) == dict:
                 failed_status.update({'Status': 'Failure'})
             if type(failed_status) == list:
                 failed_status = failed_status[0]
                 failed_status.update({'Status': 'Failure'})
-            return HttpResponse(json.dumps(failed_status))
+            return json.dumps(failed_status)
         status = update_order_dicts_storehippo(final_data_dict, user=user_obj, company_name='mieone')
         log.info(status)
+        return status
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(user_obj.username), str(request.body), str(e)))
         status = {'messages': 'Internal Server Error', 'status': 0}
+        return status
 
-    return HttpResponse(json.dumps(status))
+
+def create_sku_storehippo(store_hippo_data, user_obj):
+    print store_hippo_data
+    return user_obj
+
+
+def store_hippo(request):
+    store_hippo_data = json.loads(request.body)
+    api_type = request.META['HTTP_TYPE']
+    status_resp = ''
+    import pdb;pdb.set_trace()
+    try:
+        user_obj = User.objects.get(username='storehippo')
+    except:
+        return HttpResponse("User Not found")
+    if api_type == 'add_order':
+        status_resp = create_order_storehippo(store_hippo_data, user_obj)
+    if api_type == 'add_sku':
+        status_resp = create_sku_storehippo(store_hippo_data, user_obj)
+    return HttpResponse(json.dumps(status_resp))
 

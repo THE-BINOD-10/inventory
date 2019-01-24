@@ -2211,6 +2211,7 @@ def validate_orders_format_storehippo(orders, user='', company_name='', is_cance
     #alert_message_for_email = LOAD_CONFIG.get('rista', 'alert_message_for_email', '')
     #send_alert_msg_to = eval(LOAD_CONFIG.get('rista', 'send_alert_msg_to', ''))
     #body_of_alert_email = LOAD_CONFIG.get('rista', 'body_of_alert_email', '')
+    import pdb;pdb.set_trace()
     try:
         seller_master_dict, valid_order, query_params = {}, {}, {}
         failed_status = OrderedDict()
@@ -2343,29 +2344,26 @@ def validate_orders_format_storehippo(orders, user='', company_name='', is_cance
                                                              order_summary_dict, final_data_dict=final_data_dict)
                     if len(failed_sku_status):
                         continue
-            import pdb;pdb.set_trace()
             order_fields_dict = {}
-            order_fields_dict['status'] = order['status']
-            order_fields_dict['fulfillmentStatus'] = order['fulfillmentStatus']
-            order_fields_dict['source'] = order['source']
-            order_fields_dict['billing_address'] = order['billing_address']
+            #order_fields_dict['status'] = order['status']
+            #order_fields_dict['fulfillmentStatus'] = order['fulfillmentStatus']
+            #order_fields_dict['source'] = order['source']
+            #order_fields_dict['billing_address'] = order['billing_address']
+            #order_fields_dict['shipping_charges'] = order['shipping_charges']
+            #order_fields_dict['item_count'] = order['item_count']
+            #order_fields_dict['all_total_items'] = order['all_total_items']
+            #order_fields_dict['all_total_tax'] = order['all_total_tax']
             order_fields_dict['shipping_charges'] = order['shipping_charges']
-            #order_fields_dict['to_branch_name'] = order['to_branch_name']
-            order_fields_dict['item_count'] = order['item_count']
-            order_fields_dict['all_total_items'] = order['all_total_items']
-            order_fields_dict['all_total_tax'] = order['all_total_tax']
-            order_fields_dict['shipping_address'] = order['shipping_address']
-            #order_fields_dict['to_branch_code'] = order['to_branch_code']
             order_fields_list = []
             for key, value in order_fields_dict.items():
                 order_fields = {}
-                order_fields['user'] = user.id
-                order_fields['original_order_id'] = order['original_order_id']
-		order_fields['name'] = key
-                order_fields['value'] = value
-                order_fields['order_type'] = "order"
+                order_fields['user'] = user
+                order_fields['order_id'] = order['original_order_id']
+		order_fields['charge_name'] = key
+                order_fields['charge_amount'] = value
+                #order_fields['order_type'] = "order"
                 order_fields_list.append(order_fields)
-            final_data_dict = check_and_add_dict(grouping_key, 'order_fields_list', order_fields_list, final_data_dict=final_data_dict)
+            final_data_dict = check_and_add_dict(grouping_key, 'extra', order_fields_list, final_data_dict=final_data_dict)
             final_data_dict[grouping_key]['status_type'] = order_status
     except Exception as e:
         import traceback

@@ -2189,7 +2189,7 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
                 order_fields = {}
                 order_fields['user'] = user.id
                 order_fields['original_order_id'] = order['original_order_id']
-        order_fields['name'] = key
+                order_fields['name'] = key
                 order_fields['value'] = value
                 order_fields['order_type'] = "order"
                 order_fields_list.append(order_fields)

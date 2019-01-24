@@ -8614,16 +8614,16 @@ def update_order_dicts_rista(orders, rista_resp, user='', company_name=''):
     status = {'status': 0, 'messages': ['Something went wrong']}
     for order_key, order in orders.iteritems():
         customer_name = order['order_details']['customer_name']
-    if order_key == "extra":
-        if float(order.get('shipping_charges', 0)):
-                OrderCharges.objects.create(**{'order_id': order.get('original_order_id', ''), 'user':user, 'charge_name':'Shipping Charges', 'charge_amount': float(order.get('shipping_charges', 0)) })
-        if float(order.get('discount', 0)):
-                OrderCharges.objects.create(**{'order_id': order.get('original_order_id', ''), 'user':user, 'charge_name':'Discount', 'charge_amount': float(order.get('discount',0)) })
-        continue
+        if order_key == "extra":
+            if float(order.get('shipping_charges', 0)):
+                    OrderCharges.objects.create(**{'order_id': order.get('original_order_id', ''), 'user':user, 'charge_name':'Shipping Charges', 'charge_amount': float(order.get('shipping_charges', 0)) })
+            if float(order.get('discount', 0)):
+                    OrderCharges.objects.create(**{'order_id': order.get('original_order_id', ''), 'user':user, 'charge_name':'Discount', 'charge_amount': float(order.get('discount',0)) })
+            continue
         if not order.get('order_details', {}):
             continue
         order_det_dict = order['order_details']
-    original_order_id = order_det_dict['original_order_id']
+        original_order_id = order_det_dict['original_order_id']
         if not order.get('order_detail_obj', None):
             order_obj = OrderDetail.objects.filter(original_order_id=order_det_dict['original_order_id'],
                                                    order_id=order_det_dict['order_id'],
@@ -8639,7 +8639,7 @@ def update_order_dicts_rista(orders, rista_resp, user='', company_name=''):
             order_obj.sku_code = str(order_det_dict.get('line_item_id', ''))
             order_obj.save()
             order_detail = order_obj
-        collect_order_detail_list.append(order_detail)
+            collect_order_detail_list.append(order_detail)
         else:
             del(order['order_details']['customer_code'])
             order['order_details']['customer_name'] = customer_name
@@ -8658,12 +8658,12 @@ def update_order_dicts_rista(orders, rista_resp, user='', company_name=''):
             sku_obj = sku_obj[0]
         else:
             continue
-    order_sku.update({sku_obj: order_det_dict['quantity']})
+        order_sku.update({sku_obj: order_det_dict['quantity']})
         for order_fields in order.get('order_fields_list', ''):
             OrderFields.objects.create(**order_fields)
     for resp_obj in rista_resp:
-    rista_orders_obj = TempJson.objects.filter(**{'model_id': user.id, 'model_name': 'rista<<>>indent_out<<>>' + resp_obj['indentNumber']})
-    if not rista_orders_obj:
+        rista_orders_obj = TempJson.objects.filter(**{'model_id': user.id, 'model_name': 'rista<<>>indent_out<<>>' + resp_obj['indentNumber']})
+        if not rista_orders_obj:
             TempJson.objects.create(**{'model_id': user.id, 'model_name': 'rista<<>>indent_out<<>>' + resp_obj['indentNumber'], 'model_json': str(resp_obj)})
     status = {'status': 1, 'messages': ['Success']}
     return status

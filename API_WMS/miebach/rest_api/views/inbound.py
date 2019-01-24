@@ -1865,15 +1865,16 @@ def update_putaway(request, user=''):
         if send_for_approval == 'true':
             grn_permission = get_permission(request.user, 'change_purchaseorder')
             if not grn_permission:
-                perm = Permission.objects.get(codename='change_purchaseorder')
-                sub_users = get_sub_users(user)
-                sub_users = sub_users.filter(groups__permissions=perm).exclude(email='')
-                receiver_mails = list(sub_users.values_list('email', flat=True))
-                po_reference = get_po_reference(po)
-                mail_message = 'User %s requested approval for PO Number %s' % (request.user.username, po_reference)
-                subject = 'GRN Approval request for PO: %s' % po_reference
-                receiver_mails.append(user.email)
-                send_mail(list(set(receiver_mails)), subject, mail_message)
+                if get_misc_value('grn_approval', user.id) == 'true':
+                    perm = Permission.objects.get(codename='change_purchaseorder')
+                    sub_users = get_sub_users(user)
+                    sub_users = sub_users.filter(groups__permissions=perm).exclude(email='')
+                    receiver_mails = list(sub_users.values_list('email', flat=True))
+                    po_reference = get_po_reference(po)
+                    mail_message = 'User %s requested approval for PO Number %s' % (request.user.username, po_reference)
+                    subject = 'GRN Approval request for PO: %s' % po_reference
+                    receiver_mails.append(user.email)
+                    send_mail(list(set(receiver_mails)), subject, mail_message)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

@@ -13798,44 +13798,57 @@ def get_create_order_mapping_values(request, user=''):
 @login_required
 @get_admin_user
 def invoice_mark_delivered(request, user=''):
-    order_id = request.POST.getlist('selected_invoice', [])
-    selected_order_invoice = eval(request.POST.get('selected_invoice', '{}'))
-    failed_order_id = []
-    order_id_already_marked_delivered = []
-    for obj in selected_order_invoice:
-        picked_qty = obj['picked_qty']
-        order_qty = obj['order_qty']
-        invoice_id = obj['invoice_id']
-        sor_id = obj['order_id']
-        if order_qty != picked_qty:
-            failed_order_id.append(sor_id)
-            continue
-            #return HttpResponse(json.dumps({'status':False, 'message':'Partial Picked Qty Not Allowed'}), content_type='application/json')
-        sell_ids = {}
-        ids = obj['id']
-        invoice_no = obj['invoice_number']
-        sell_ids['order__user'] = user.id
-        sell_ids['order__original_order_id'] = sor_id
-        if invoice_id:
-            sell_ids['invoice_number'] = invoice_id
-        sell_ids['delivered_flag'] = 0
-        #sell_ids['quantity'] = order_qty
-        seller = SellerOrderSummary.objects.filter(**sell_ids)
-        if len(seller):
-            if seller.aggregate(Sum('quantity'))['quantity__sum'] == picked_qty:
-                if seller.filter(delivered_flag=2):
-                    order_id_already_marked_delivered.append(sor_id)
+    try:
+        order_id = request.POST.getlist('selected_invoice', [])
+        selected_order_invoice = eval(request.POST.get('selected_invoice', '{}'))
+        failed_order_id = []
+        order_id_already_marked_delivered = []
+        group_picked_dict = {}
+        for sel_inv in selected_order_invoice:
+            group_picked_dict.setdefault(sel_inv['order_id'], 0)
+            group_picked_dict[sel_inv['order_id']] += float(sel_inv['picked_qty'])
+        for obj in selected_order_invoice:
+            picked_qty = group_picked_dict[obj['order_id']] #obj['picked_qty']
+            order_qty = obj['order_qty']
+            invoice_id = obj['invoice_id']
+            sor_id = obj['order_id']
+            if order_qty != picked_qty:
+                failed_order_id.append(sor_id)
+                continue
+                #return HttpResponse(json.dumps({'status':False, 'message':'Partial Picked Qty Not Allowed'}), content_type='application/json')
+            sell_ids = {}
+            ids = obj['id']
+            invoice_no = obj['invoice_number']
+            sell_ids['order__user'] = user.id
+            sell_ids['order__original_order_id'] = sor_id
+            if invoice_id:
+                sell_ids['invoice_number'] = invoice_id
+            sell_ids['delivered_flag'] = 0
+            #sell_ids['quantity'] = order_qty
+            seller = SellerOrderSummary.objects.filter(**sell_ids)
+            if len(seller):
+                if seller.aggregate(Sum('quantity'))['quantity__sum'] == picked_qty:
+                    if seller.filter(delivered_flag=2):
+                        order_id_already_marked_delivered.append(sor_id)
+                    else:
+                        seller.update(delivered_flag=1)
                 else:
-                    seller.update(delivered_flag=1)
+                    failed_order_id.append(sor_id)
+                return HttpResponse(json.dumps({'status':True, 'message':'Marked as Delivered Successfully', 'already_marked_delivered' : order_id_already_marked_delivered}), content_type='application/json')
             else:
                 failed_order_id.append(sor_id)
-            return HttpResponse(json.dumps({'status':True, 'message':'Marked as Delivered Successfully', 'already_marked_delivered' : order_id_already_marked_delivered}), content_type='application/json')
-        else:
-            failed_order_id.append(sor_id)
-            continue
-    if len(failed_order_id):
-        failed_order_ids = ', '.join(failed_order_id)
-        return HttpResponse(json.dumps({'status':False, 'message':'Failed for '+failed_order_ids + ', Other Orders Successfully Marked as Delivered'}), content_type='application/json')
+                continue
+        if len(failed_order_id):
+            failed_order_ids = ', '.join(failed_order_id)
+            return HttpResponse(json.dumps({'status':False, 'message':'Failed for '+failed_order_ids + ', Other Orders Successfully Marked as Delivered'}), content_type='application/json')
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Marking as delivered for order failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse(json.dumps({'status': False, 'message': 'Mark as delivered Failed'}),
+                            content_type='application/json')
+
 
 @csrf_exempt
 @login_required
@@ -13886,22 +13899,29 @@ def get_ratings_data_popup(request, user=''):
 @login_required
 @get_admin_user
 def save_cutomer_ratings(request, user=''):
-    warehouse_user = user.id
-    order_rate = request.POST.get('order_rate', '')
-    product_rate = request.POST.get('product_rate', '')
-    order_reason = request.POST.get('order_reason', '')
-    product_reason = request.POST.get('product_reason', '')
-    order_ratings_data = eval(request.POST.get('order_details', '{}'))
-    customer_name = request.user.get_full_name()
-    original_order_id = order_ratings_data['order_id']
-    items = order_ratings_data['items']
-    seller = SellerOrderSummary.objects.filter(order__user=warehouse_user, order__customer_name=customer_name, order__original_order_id=original_order_id, delivered_flag=1).update(delivered_flag=2)
-    rating_obj = RatingsMaster.objects.create(user=user, original_order_id=original_order_id, rating_product=product_rate, rating_order=order_rate, reason_product=product_reason, reason_order=order_reason, updation_date=updation_date)
-    if rating_obj:
-        for obj in items:
-            sku_obj = SKUMaster.objects.filter(sku_code = obj['sku_code'], user = user.id)
-            if sku_obj:
-                RatingSKUMapping.objects.create(rating=rating_obj, sku_id=sku_obj[0].id, remarks=obj['remarks'])
+    try:
+        warehouse_user = user.id
+        order_rate = request.POST.get('order_rate', '')
+        product_rate = request.POST.get('product_rate', '')
+        order_reason = request.POST.get('order_reason', '')
+        product_reason = request.POST.get('product_reason', '')
+        order_ratings_data = eval(request.POST.get('order_details', '{}'))
+        customer_name = request.user.get_full_name()
+        original_order_id = order_ratings_data['order_id']
+        items = order_ratings_data['items']
+        seller = SellerOrderSummary.objects.filter(order__user=warehouse_user, order__customer_name=customer_name, order__original_order_id=original_order_id, delivered_flag=1).update(delivered_flag=2)
+        rating_obj = RatingsMaster.objects.create(user=user, original_order_id=original_order_id, rating_product=product_rate, rating_order=order_rate, reason_product=product_reason, reason_order=order_reason, updation_date=updation_date)
+        if rating_obj:
+            for obj in items:
+                sku_obj = SKUMaster.objects.filter(sku_code = obj['sku_code'], user = user.id)
+                if sku_obj:
+                    RatingSKUMapping.objects.create(rating=rating_obj, sku_id=sku_obj[0].id, remarks=obj['remarks'])
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Save Customer Ratings failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse(json.dumps({'status': False}), content_type='application/json')
     return HttpResponse(json.dumps({'status':True}), content_type='application/json')
 
 """

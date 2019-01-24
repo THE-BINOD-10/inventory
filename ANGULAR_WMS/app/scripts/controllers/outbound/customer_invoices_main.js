@@ -373,9 +373,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       Service.apiCall("invoice_mark_delivered/", "POST", data).then(function(resp_data) {
         if(resp_data.data.status) {
           Service.showNoty(resp_data.data.message, 'success', 'topRight');
+          vm.service.refresh(vm.dtInstance);
 
         } else {
           Service.showNoty(resp_data.data.message, 'error', 'topRight');
+          vm.service.refresh(vm.dtInstance);
         }
       })
     }

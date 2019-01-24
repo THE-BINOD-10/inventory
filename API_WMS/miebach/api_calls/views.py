@@ -1455,7 +1455,7 @@ def store_hippo(request):
     except:
         return HttpResponse("User Not found")
     try:
-        validation_dict, failed_status, final_data_dict = validate_orders_format_rista(allOrders, user=user_obj, company_name='mieone')
+        validation_dict, failed_status, final_data_dict = validate_orders_format_storehippo(allOrders, user=user_obj, company_name='mieone')
         import pdb;pdb.set_trace()
         if validation_dict:
             return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
@@ -1466,7 +1466,7 @@ def store_hippo(request):
                 failed_status = failed_status[0]
                 failed_status.update({'Status': 'Failure'})
             return HttpResponse(json.dumps(failed_status))
-        status = update_order_dicts_rista(final_data_dict, user=user_obj, company_name='mieone')
+        status = update_order_dicts_storehippo(final_data_dict, user=user_obj, company_name='mieone')
         log.info(status)
     except Exception as e:
         import traceback

@@ -3105,7 +3105,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
 
     if math.ceil(total_quantity) == total_quantity:
         total_quantity = int(total_quantity)
-
     invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name,
                     'company_address': company_address, 'company_number': company_number,
                     'order_date': order_date, 'email': email, 'marketplace': marketplace, 'total_amt': total_amt,
@@ -8727,7 +8726,6 @@ def update_order_dicts_storehippo(orders, user='', company_name=''):
     for order_key, order in orders.iteritems():
         customer_name = order['order_details']['customer_name']
 	for ord_obj in order.get('extra', ''):
-            import pdb;pdb.set_trace()
             OrderCharges.objects.create(**ord_obj)
             #if float(order.get('shipping_charges', 0)):
             #    OrderCharges.objects.create(**{'order_id': order.get('original_order_id', ''), 'user':user, 'charge_name':'Shipping Charges', 'charge_amount': float(order.get('shipping_charges', 0)) })

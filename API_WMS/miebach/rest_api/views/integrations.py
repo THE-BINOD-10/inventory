@@ -2204,6 +2204,7 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
 
 
 def validate_orders_format_storehippo(orders, user='', company_name='', is_cancelled=False):
+    import pdb;pdb.set_trace()
     order_status_dict = {'NEW': 1, 'RETURN': 3, 'CANCEL': 4}
     NOW = datetime.datetime.now()
     insert_status = []
@@ -2211,7 +2212,6 @@ def validate_orders_format_storehippo(orders, user='', company_name='', is_cance
     #alert_message_for_email = LOAD_CONFIG.get('rista', 'alert_message_for_email', '')
     #send_alert_msg_to = eval(LOAD_CONFIG.get('rista', 'send_alert_msg_to', ''))
     #body_of_alert_email = LOAD_CONFIG.get('rista', 'body_of_alert_email', '')
-    import pdb;pdb.set_trace()
     try:
         seller_master_dict, valid_order, query_params = {}, {}, {}
         failed_status = OrderedDict()
@@ -2353,7 +2353,17 @@ def validate_orders_format_storehippo(orders, user='', company_name='', is_cance
             #order_fields_dict['item_count'] = order['item_count']
             #order_fields_dict['all_total_items'] = order['all_total_items']
             #order_fields_dict['all_total_tax'] = order['all_total_tax']
-            order_fields_dict['shipping_charges'] = order['shipping_charges']
+            #if order['shipping_charges']:
+            #    order_fields_dict['shipping_charges'] = order['shipping_charges']
+            #shipping_charges_tax = (5 * order_fields_dict['shipping_charges'])/100
+            #if shipping_charges_tax:
+            #    order_fields_dict['shipping_charges_tax'] = shipping_charges_tax
+            if order.get('shipping_charges', 0):
+                order_fields_dict['shipping_charges'] = order['shipping_charges']
+                if int(order.get('custom_shipping_applied', 0)):
+                    shipping_charges_tax = (5 * float(order_fields_dict['shipping_charges']))/100
+                    if shipping_charges_tax:
+                        order_fields_dict['shipping_charges_tax'] = float(shipping_charges_tax)
             order_fields_list = []
             for key, value in order_fields_dict.items():
                 order_fields = {}

@@ -1425,29 +1425,31 @@ def store_hippo_line_items(line_items):
 
 
 def create_order_storehippo(store_hippo_data, user_obj):
+    import pdb;pdb.set_trace()
     create_order_storehippo_log.info('Create Store Hippo Data' + str(store_hippo_data))
     allOrders = []
     create_order = {}
     #create_order['extra_key'] = []
-    customer_obj = store_hippo_data['billing_address']
+    customer_obj = store_hippo_data.get('billing_address', '')
     create_order['source'] = 'store_hippo'
-    create_order['original_order_id'] = store_hippo_data['order_id']
-    create_order['order_id'] = create_order['original_order_id']
+    create_order['original_order_id'] = store_hippo_data.get('order_id', '')
+    create_order['order_id'] = create_order.get('original_order_id', '')
     create_order['order_code'] = ''
     create_order['order_date'] = store_hippo_data['created_on'][0:10] + " " + store_hippo_data['created_on'][11:19]
     create_order['order_status'] = 'NEW'
-    create_order['billing_address'] = store_hippo_data['billing_address']
-    create_order['shipping_address'] = store_hippo_data['shipping_address']
-    create_order['items'] = store_hippo_line_items(store_hippo_data['items'])
-    create_order['discount'] = store_hippo_data['discounts_total']
-    create_order['shipping_charges'] = store_hippo_data['shipping_total']
-    create_order['customer_name'] = customer_obj['full_name']
+    create_order['billing_address'] = customer_obj
+    create_order['shipping_address'] = store_hippo_data.get('shipping_address', '')
+    create_order['items'] = store_hippo_line_items(store_hippo_data.get('items', ''))
+    create_order['discount'] = store_hippo_data.get('discounts_total', 0)
+    create_order['shipping_charges'] = store_hippo_data.get('shipping_total', 0)
+    create_order['customer_name'] = customer_obj.get('full_name', '')
     create_order['customer_code'] = ''
-    create_order['item_count'] = store_hippo_data['item_count']
-    create_order['all_total_items'] = store_hippo_data['sub_total']
-    create_order['all_total_tax'] = store_hippo_data['taxes_total']
-    create_order['status'] = store_hippo_data['status']
-    create_order['fulfillmentStatus'] = store_hippo_data['fulfillment_status']
+    create_order['item_count'] = store_hippo_data.get('item_count', 0)
+    create_order['all_total_items'] = store_hippo_data.get('sub_total', 0)
+    create_order['all_total_tax'] = store_hippo_data.get('taxes_total', 0)
+    create_order['status'] = store_hippo_data.get('status', 0)
+    create_order['fulfillmentStatus'] = store_hippo_data.get('fulfillment_status', '')
+    create_order['custom_shipping_applied'] = store_hippo_data.get('custom_shipping_applied', 0)
     create_order['invoice_amount'] = create_order['all_total_items'] + create_order['all_total_tax'] + create_order['shipping_charges'] - store_hippo_data['discounts_total']
     #create_order['extra_key'].append({'shipping_charges':store_hippo_data['shipping_total']})
     allOrders.append(create_order)

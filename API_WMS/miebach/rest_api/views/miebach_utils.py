@@ -439,7 +439,9 @@ SKU_WISE_PO_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'typ
                                    'Rejected Quantity', 'Receipt Date', 'Status'],
                     'mk_dt_headers': ['PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'SKU Code',
                                       'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
-                                      'PO Qty',  'Unit Rate', 'MRP', 'Pre-Tax PO Amount', 'Tax', 'After Tax PO Amount',
+                                      'Sub Category',
+                                      'PO Qty',  'Unit Price without tax', 'Unit Price with tax', 'MRP',
+                                      'Pre-Tax PO Amount', 'Tax', 'After Tax PO Amount',
                                       'Qty received', 'Status'],
                     'dt_url': 'get_sku_purchase_filter', 'excel_name': 'sku_wise_purchases',
                     'print_url': 'print_sku_wise_purchase',
@@ -2501,7 +2503,9 @@ def sku_wise_purchase_data(search_params, user, sub_user):
         lis = ['po_date', 'order_id', 'open_po__supplier_id', 'open_po__supplier__name',
                'open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__sku__sku_class',
                'open_po__sku__style_name', 'open_po__sku__sku_brand', 'open_po__sku__sku_category',
-               'open_po__order_quantity', 'open_po__price', 'open_po__mrp', 'id', 'id', 'id', 'id', 'id']
+               'open_po__sku__sub_category',
+               'open_po__order_quantity', 'open_po__price', 'open_po__price', 'open_po__mrp', 'id', 'id', 'id',
+               'received_quantity', 'id']
         columns = SKU_WISE_PO_DICT['mk_dt_headers']
     if 'sku_code' in search_params:
         search_parameters['open_po__sku__sku_code'] = search_params['sku_code']
@@ -2529,17 +2533,16 @@ def sku_wise_purchase_data(search_params, user, sub_user):
     qc_reject_sums = map(lambda d: d['total_rejected'], quality_checks)
 
     order_term = search_params.get('order_term', '')
-    order_index = search_params.get('order_index', '')
+    order_index = search_params.get('order_index', 0)
 
     custom_search = False
-    if order_index:
-        order_data = lis[order_index]
-        if order_term == 'desc':
-            order_data = '-%s' % order_data
-        purchase_orders = purchase_orders.order_by(order_data)
-        if columns[order_index] in ['Status', 'Rejected Quantity', 'Pre-Tax PO Amount', 'Tax',
-                                    'After Tax PO Amount']:
-            custom_search = True
+    order_data = lis[order_index]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    purchase_orders = purchase_orders.order_by(order_data)
+    if columns[order_index] in ['Status', 'Rejected Quantity', 'Pre-Tax PO Amount', 'Tax',
+                                'After Tax PO Amount']:
+        custom_search = True
     if not custom_search:
         if stop_index:
             purchase_orders = purchase_orders[start_index:stop_index]
@@ -2587,9 +2590,13 @@ def sku_wise_purchase_data(search_params, user, sub_user):
                                 ('SKU Style Name', order_data['sku'].style_name),
                                 ('SKU Brand', order_data['sku'].sku_brand),
                                 ('SKU Category', order_data['sku'].sku_category),
-                                ('PO Qty', order_data['order_quantity']), ('Unit Rate', order_data['price']),
+                                ('Sub Category', order_data['sku'].sub_category),
+                                ('PO Qty', order_data['order_quantity']),
+                                ('Unit Price without tax', order_data['price']),
+                                ('Unit Price with tax', "%.2f" % aft_price),
                                 ('MRP', order_data['mrp']),
-                                ('Pre-Tax PO Amount', pre_amount), ('Tax', tax), ('After Tax PO Amount', aft_amount),
+                                ('Pre-Tax PO Amount', "%.2f" % pre_amount), ('Tax', tax),
+                                ('After Tax PO Amount', "%.2f" % aft_amount),
                                 ('Qty received', data.received_quantity), ('Status', status)
                                 ))
             if status == 'Received':

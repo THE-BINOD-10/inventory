@@ -2076,6 +2076,19 @@ var app = angular.module('urbanApp')
           }
         })
 
+        .state('app.reports.OpenorderReport', {
+          url: '/OpenorderReport',
+          templateUrl: 'views/reports/openorderreport.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/open_order.js');
+              }]
+          },
+          data: {
+            title: 'Open Order Report',
+          }
+        })
+
         .state('app.reports.DistributorWiseSalesReport', {
           url: '/DistributorSalesReport',
           templateUrl: 'views/reports/dist_sales_report.html',

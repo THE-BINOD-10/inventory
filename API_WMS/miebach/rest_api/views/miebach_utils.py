@@ -587,7 +587,7 @@ PO_REPORT_DICT = {
     ],
     'dt_headers': ['SKU Code','Sku Description', 'Quantity','PO No','Location'],
     'dt_url': 'get_po_report', 'excel_name': 'get_po_report',
-    'print_url': 'print_shipment_report',
+    'print_url': 'print_po_report',
  }
 
 OPEN_ORDER_REPORT_DICT = {
@@ -613,7 +613,7 @@ OPEN_ORDER_REPORT_DICT = {
              'IGST','Total Price',
              'Location'],
      'dt_url': 'get_open_order_report', 'excel_name': 'get_open_order_report',
-     'print_url': 'print_shipment_report',
+     'print_url': 'print_open_order_report',
   }
 
 DIST_SALES_REPORT_DICT = {

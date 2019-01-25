@@ -2072,7 +2072,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'PO Report',
+            title: 'Open PO Report',
           }
         })
 

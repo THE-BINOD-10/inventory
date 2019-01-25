@@ -45,8 +45,11 @@ ADJUST_INVENTORY_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('WMS 
                                             ('Physical Quantity', 'quantity'), ('Batch Number', 'batch_no'),
                                             ('MRP', 'mrp'), ('Reason', 'reason')))
 
-SUB_CATEGORIES = {'round_neck': 'ROUND NECK', 'v_neck': 'V NECK', 'polo': 'POLO', 'chinese_collar': 'CHINESE COLLAR', 'henley': 'HENLEY', 'bags': 'BAGS',
-                  'hoodie': 'HOODIE', 'jackets': 'JACKETS'}
+SUB_CATEGORIES = {'round_neck': 'ROUND NECK', 'v_neck': 'V NECK', 'polo': 'POLO', 'chinese_collar': 'CHINESE COLLAR',
+                  'henley': 'HENLEY', 'bags': 'BAGS',
+                  'hoodie': 'HOODIE', 'jackets': 'JACKETS', 'mens_polo': 'MENS POLO', 'ladies_polo': 'LADIES POLO',
+                  'laptop_bags': 'LAPTOP BAGS', 'gym_bags': 'GYM BAGS', 'pant': 'PANT',
+                  'belts_ear phone': 'BELTS & EAR PHONE'}
 
 # MANUAL_ENQUIRY_STATUS = {'pending_approval': 'Pending For Approval', 'approved': 'Approved',
 #                          'confirm_order': 'Confirm Order', 'hold_order': 'Block Stock', 'order_placed': 'Order Placed',

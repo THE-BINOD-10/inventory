@@ -585,7 +585,7 @@ PO_REPORT_DICT = {
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'Sister Warehouse', 'name': 'sister_warehouse', 'type': 'select'},
     ],
-    'dt_headers': ['SKU Code', 'Sku Description', 'Quantity','PO No'],
+    'dt_headers': ['SKU Code','Sku Description', 'Quantity','PO No','Location'],
     'dt_url': 'get_po_report', 'excel_name': 'get_po_report',
     'print_url': 'print_shipment_report',
  }
@@ -5839,7 +5839,7 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
             po_quantity = float(order_data['order_quantity']) - float(order.received_quantity)
 
             temp_data['aaData'].append(OrderedDict((('SKU Code',order_data['wms_code'] ),('PO No',po_reference_no),
-                                                ('Quantity',po_quantity ), ('Sku Description', order_data['sku_desc']))))
+                                                ('Quantity',po_quantity ), ('Sku Description', order_data['sku_desc']),('Location',warehouse.user.username))))
     return temp_data
 
 

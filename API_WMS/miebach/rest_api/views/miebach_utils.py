@@ -45,11 +45,14 @@ ADJUST_INVENTORY_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('WMS 
                                             ('Physical Quantity', 'quantity'), ('Batch Number', 'batch_no'),
                                             ('MRP', 'mrp'), ('Reason', 'reason')))
 
-SUB_CATEGORIES = {'round_neck': 'ROUND NECK', 'v_neck': 'V NECK', 'polo': 'POLO', 'chinese_collar': 'CHINESE COLLAR',
-                  'henley': 'HENLEY', 'bags': 'BAGS',
-                  'hoodie': 'HOODIE', 'jackets': 'JACKETS', 'mens_polo': 'MENS POLO', 'ladies_polo': 'LADIES POLO',
-                  'laptop_bags': 'LAPTOP BAGS', 'gym_bags': 'GYM BAGS', 'pant': 'PANT',
-                  'belts_ear phone': 'BELTS & EAR PHONE'}
+SUB_CATEGORIES = OrderedDict((('mens_polo', 'MENS POLO'), ('ladies_polo', 'LADIES POLO'),
+                              ('round_neck', 'ROUND NECK'), ('hoodie', 'HOODIE'), ('jackets', 'JACKETS'),
+                              ('henley', 'HENLEY'), ('laptop_bags', 'LAPTOP BAGS'),
+                              ('gym_bags', 'GYM BAGS'), ('pant', 'PANT'),
+                              ('belts', 'BELTS'), ('ear_phone', 'EAR PHONE'),
+                              ('v_neck', 'V NECK'), ('polo', 'POLO'), ('chinese_collar', 'CHINESE COLLAR'),
+                              ('bags', 'BAGS')
+                            ))
 
 # MANUAL_ENQUIRY_STATUS = {'pending_approval': 'Pending For Approval', 'approved': 'Approved',
 #                          'confirm_order': 'Confirm Order', 'hold_order': 'Block Stock', 'order_placed': 'Order Placed',
@@ -1775,7 +1778,7 @@ RECEIVE_OPTIONS = OrderedDict((('One step Receipt + Qc', 'receipt-qc'), ('Two st
 
 PERMISSION_IGNORE_LIST = ['session', 'webhookdata', 'swxmapping', 'userprofile', 'useraccesstokens', 'contenttype',
                           'user',
-                          'permission', 'group', 'logentry', 'corsmodel']
+                          'permission', 'group', 'logentry', 'corsmodel', 'subzonemapping']
 
 # Customer Invoices page headers based on user type
 MP_CUSTOMER_INVOICE_HEADERS = ['UOR ID', 'SOR ID', 'Seller ID', 'Customer Name', 'Order Quantity', 'Picked Quantity',

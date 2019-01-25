@@ -13910,7 +13910,7 @@ def save_cutomer_ratings(request, user=''):
         original_order_id = order_ratings_data['order_id']
         items = order_ratings_data['items']
         seller = SellerOrderSummary.objects.filter(order__user=warehouse_user, order__customer_name=customer_name, order__original_order_id=original_order_id, delivered_flag=1).update(delivered_flag=2)
-        rating_obj = RatingsMaster.objects.create(user=user, original_order_id=original_order_id, rating_product=product_rate, rating_order=order_rate, reason_product=product_reason, reason_order=order_reason, updation_date=updation_date)
+        rating_obj = RatingsMaster.objects.create(user=user, original_order_id=original_order_id, rating_product=product_rate, rating_order=order_rate, reason_product=product_reason, reason_order=order_reason)
         if rating_obj:
             for obj in items:
                 sku_obj = SKUMaster.objects.filter(sku_code = obj['sku_code'], user = user.id)

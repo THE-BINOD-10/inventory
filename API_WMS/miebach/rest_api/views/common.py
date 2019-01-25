@@ -309,6 +309,7 @@ def add_user_type_permissions(user_profile):
             perms_list.append('add_' + str(perm))
             perms_list.append('change_' + str(perm))
             perms_list.append('delete_' + str(perm))
+            perms_list.append('view_' + str(perm))
         permissions = Permission.objects.exclude(codename__in=perms_list)
         for permission in permissions:
             user_profile.user.user_permissions.add(permission)

@@ -5854,6 +5854,7 @@ def get_open_order_report_data(search_params, user, sub_user, serial_view=False)
 
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
+    serach_picked ={}
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_parameters['creation_date__gt'] = search_params['from_date']
@@ -5862,7 +5863,8 @@ def get_open_order_report_data(search_params, user, sub_user, serial_view=False)
                                                              datetime.time())
         search_parameters['creation_date__lt'] = search_params['to_date']
     if 'sku_code' in search_params:
-        search_parameters['open_po__sku__sku_code'] = search_params['sku_code']
+        search_parameters['sku__sku_code'] = search_params['sku_code']
+        serach_picked['order__sku__sku_code'] = search_params['sku_code']
 
     central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
 
@@ -5877,8 +5879,8 @@ def get_open_order_report_data(search_params, user, sub_user, serial_view=False)
         warehouses = UserGroups.objects.filter(admin_user_id=user.id)
 
     for warehouse in warehouses:
-        view_orders = OrderDetail.objects.filter(user= warehouse.user_id, status =1,quantity__gt=0)
-        picked_orders = Picklist.objects.filter(status__contains='open', order__user= warehouse.user_id, reserved_quantity__gt=0)
+        view_orders = OrderDetail.objects.filter(user= warehouse.user_id, status =1,quantity__gt=0).filter(**search_parameters)
+        picked_orders = Picklist.objects.filter(status__contains='open', order__user= warehouse.user_id, reserved_quantity__gt=0).filter(**serach_picked)
         temp_data['recordsTotal'] += len(view_orders)+len(picked_orders)
         temp_data['recordsFiltered'] += temp_data['recordsTotal']
         if stop_index:

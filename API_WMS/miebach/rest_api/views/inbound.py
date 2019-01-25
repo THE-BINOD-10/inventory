@@ -1009,6 +1009,7 @@ def switches(request, user=''):
                        'receive_po_mandatory_fields': 'receive_po_mandatory_fields',
                        'sku_pack_config': 'sku_pack_config',
                        'central_order_reassigning':'central_order_reassigning',
+                       'po_sub_user_prefix': 'po_sub_user_prefix',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -1079,6 +1080,9 @@ def confirm_po(request, user=''):
     ean_flag = False
     data = copy.deepcopy(PO_DATA)
     po_id = get_purchase_order_id(user)
+    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+    if po_sub_user_prefix == 'true':
+        po_id = update_po_order_prefix(request.user, po_id)
     terms_condition = request.POST.get('terms_condition', '')
     ids_dict = {}
     po_data = []
@@ -1861,15 +1865,16 @@ def update_putaway(request, user=''):
         if send_for_approval == 'true':
             grn_permission = get_permission(request.user, 'change_purchaseorder')
             if not grn_permission:
-                perm = Permission.objects.get(codename='change_purchaseorder')
-                sub_users = get_sub_users(user)
-                sub_users = sub_users.filter(groups__permissions=perm).exclude(email='')
-                receiver_mails = list(sub_users.values_list('email', flat=True))
-                po_reference = get_po_reference(po)
-                mail_message = 'User %s requested approval for PO Number %s' % (request.user.username, po_reference)
-                subject = 'GRN Approval request for PO: %s' % po_reference
-                receiver_mails.append(user.email)
-                send_mail(list(set(receiver_mails)), subject, mail_message)
+                if get_misc_value('grn_approval', user.id) == 'true':
+                    perm = Permission.objects.get(codename='change_purchaseorder')
+                    sub_users = get_sub_users(user)
+                    sub_users = sub_users.filter(groups__permissions=perm).exclude(email='')
+                    receiver_mails = list(sub_users.values_list('email', flat=True))
+                    po_reference = get_po_reference(po)
+                    mail_message = 'User %s requested approval for PO Number %s' % (request.user.username, po_reference)
+                    subject = 'GRN Approval request for PO: %s' % po_reference
+                    receiver_mails.append(user.email)
+                    send_mail(list(set(receiver_mails)), subject, mail_message)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -4449,48 +4454,6 @@ def insert_st(all_data, user):
 
 
 @csrf_exempt
-def confirm_stock_transfer(all_data, user, warehouse_name):
-    for key, value in all_data.iteritems():
-        po_id = get_purchase_order_id(user) + 1
-        warehouse = User.objects.get(username__iexact=warehouse_name)
-        stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
-        if stock_transfer_obj:
-            order_id = int(stock_transfer_obj[0].order_id) + 1
-        else:
-            order_id = 1001
-
-        for val in value:
-            open_st = OpenST.objects.get(id=val[3])
-            sku_id = SKUMaster.objects.get(wms_code__iexact=val[0], user=warehouse.id).id
-            user_profile = UserProfile.objects.filter(user_id=user.id)
-            prefix = ''
-            if user_profile:
-                prefix = user_profile[0].prefix
-
-            po_dict = {'order_id': po_id, 'received_quantity': 0, 'saved_quantity': 0,
-                       'po_date': datetime.datetime.now(), 'ship_to': '',
-                       'status': '', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
-            po_order = PurchaseOrder(**po_dict)
-            po_order.save()
-            st_purchase_dict = {'po_id': po_order.id, 'open_st_id': open_st.id,
-                                'creation_date': datetime.datetime.now()}
-            st_purchase = STPurchaseOrder(**st_purchase_dict)
-            st_purchase.save()
-            st_dict = copy.deepcopy(STOCK_TRANSFER_FIELDS)
-            st_dict['order_id'] = order_id
-            st_dict['invoice_amount'] = float(val[1]) * float(val[2])
-            st_dict['quantity'] = float(val[1])
-            st_dict['st_po_id'] = st_purchase.id
-            st_dict['sku_id'] = sku_id
-            stock_transfer = StockTransfer(**st_dict)
-            stock_transfer.save()
-            open_st.status = 0
-            open_st.save()
-        check_purchase_order_created(user, po_id)
-    return HttpResponse("Confirmed Successfully")
-
-
-@csrf_exempt
 @login_required
 @get_admin_user
 def confirm_st(request, user=''):
@@ -4512,7 +4475,7 @@ def confirm_st(request, user=''):
     status = validate_st(all_data, user)
     if not status:
         all_data = insert_st(all_data, user)
-        status = confirm_stock_transfer(all_data, user, warehouse_name)
+        status = confirm_stock_transfer(all_data, user, warehouse_name, request)
         warehouse = User.objects.get(username=warehouse_name)
         f_name = 'stock_transfer_' + warehouse_name + '_'
         rendered_html_data = render_st_html_data(request, user, warehouse, all_data)
@@ -4708,11 +4671,16 @@ def confirm_add_po(request, sales_data='', user=''):
     sku_id = ''
     data = copy.deepcopy(PO_DATA)
     display_remarks = get_misc_value('display_remarks_mail', user.id)
+    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
     if not sales_data:
         po_id = get_purchase_order_id(user)
+        if po_sub_user_prefix == 'true':
+            po_id = update_po_order_prefix(request.user, po_id)
     else:
         if sales_data['po_order_id'] == '':
             po_id = get_purchase_order_id(user)
+            if po_sub_user_prefix == 'true':
+                po_id = update_po_order_prefix(request.user, po_id)
         else:
             po_id = int(sales_data['po_order_id'])
             po_order_id = int(sales_data['po_order_id'])
@@ -5045,6 +5013,9 @@ def confirm_po1(request, user=''):
     reversion.set_user(request.user)
     data = copy.deepcopy(PO_DATA)
     po_id = get_purchase_order_id(user)
+    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+    if po_sub_user_prefix == 'true':
+        po_id = update_po_order_prefix(request.user, po_id)
     ids_dict = {}
     po_data = []
     total = 0
@@ -8900,6 +8871,9 @@ def confirm_central_po(request, user=''):
     warehouse_name = request.POST.get('warehouse_name', '')
     warehouse = User.objects.get(username=warehouse_name)
     po_id = get_purchase_order_id(warehouse)
+    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', warehouse.id)
+    if po_sub_user_prefix == 'true':
+        po_id = update_po_order_prefix(request.user, po_id)
 
     ids_dict = {}
     po_data = []

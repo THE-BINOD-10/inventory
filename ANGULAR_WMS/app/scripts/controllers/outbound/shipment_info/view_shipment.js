@@ -48,7 +48,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout,$compile, $roo
     if(vm.permissions.central_order_reassigning) {
        vm.dtColumns.push(DTColumnBuilder.newColumn('Serial Number').withTitle('Serial Number')),
        vm.dtColumns.push(DTColumnBuilder.newColumn('Manifest Number').withTitle('Manifest Number')),
-       vm.dtColumns.push(DTColumnBuilder.newColumn('Total Orders').withTitle('Total Orders'))
+       vm.dtColumns.push(DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'))
     } else {
       vm.dtColumns.push(DTColumnBuilder.newColumn('Shipment Number').withTitle('Shipment Number')),
       vm.dtColumns.push(DTColumnBuilder.newColumn('Customer ID').withTitle('Customer ID')),

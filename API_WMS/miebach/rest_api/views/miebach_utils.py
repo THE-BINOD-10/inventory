@@ -5872,38 +5872,106 @@ def get_open_order_report_data(search_params, user, sub_user, serial_view=False)
     if 'sister_warehouse' in search_params:
         sister_warehouse_name = search_params['sister_warehouse']
         user = User.objects.get(username=sister_warehouse_name)
+        warehouses = UserGroups.objects.filter(user_id=user.id)
+    else:
+        warehouses = UserGroups.objects.filter(admin_user_id=user.id)
 
-    view_orders = OrderDetail.objects.filter(user=user.id, status =1,quantity__gt=0)
-    picked_orders = Picklist.objects.filter(status__contains='open', order__user=user.id, reserved_quantity__gt=0)
-    temp_data['recordsTotal'] = len(view_orders)+len(picked_orders)
-    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for warehouse in warehouses:
+        view_orders = OrderDetail.objects.filter(user= warehouse.user_id, status =1,quantity__gt=0)
+        picked_orders = Picklist.objects.filter(status__contains='open', order__user= warehouse.user_id, reserved_quantity__gt=0)
+        temp_data['recordsTotal'] += len(view_orders)+len(picked_orders)
+        temp_data['recordsFiltered'] += temp_data['recordsTotal']
+        if stop_index:
+            view_orders = view_orders[start_index:stop_index]
+        for order in view_orders:
+            if central_order_reassigning == 'true':
+                batch_number =''
+                batch_date =''
+                branch_name =''
+                branch_id = ''
+                loan_proposal_code =''
+                client_code = ''
+                client_id =''
+                customer_name = ''
+                address1 = ''
+                address2 = ''
+                landmark = ''
+                village = ''
+                district = ''
+                state = ''
+                pincode = ''
+                unit_price = ''
+                mobile_no =''
+                alternative_mobile_no =''
+                model = ''
+                total_price =''
+                try :
+                    interm_obj = IntermediateOrders.objects.filter(order_id=str(order.id))
+                    if interm_obj :
+                        orderfield_obj = OrderFields.objects.filter(original_order_id=str(order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id))
+                        if orderfield_obj:
+                            for order_field in orderfield_obj :
+                                if order_field.name == 'batch_number':
+                                    batch_number = order_field.value
+                                elif order_field.name == 'batch_date' :
+                                    batch_date = order_field.value
+                                elif order_field.name == 'branch_id' :
+                                    branch_id = order_field.value
+                                elif order_field.name == 'branch_name' :
+                                    branch_name = order_field.value
+                                elif order_field.name == 'loan_proposal_code':
+                                    loan_proposal_code = order_field.value
+                                elif order_field.name == 'client_code' :
+                                    client_code = order_field.value
+                                elif order_field.name == 'client_id' :
+                                    client_id = order_field.value
+                                elif order_field.name == 'customer_name' :
+                                    customer_name = order_field.value
+                                elif order_field.name == 'address1' :
+                                    address1 = order_field.value
+                                elif order_field.name == 'address2' :
+                                    address2 = order_field.value
+                                elif order_field.name == 'landmark' :
+                                    landmark = order_field.value
+                                elif order_field.name == 'village' :
+                                    village = order_field.value
+                                elif order_field.name == 'district' :
+                                    district = order_field.value
+                                elif order_field.name == 'state' :
+                                    state = order_field.value
+                                elif order_field.name == 'pincode' :
+                                    pincode = order_field.value
+                                elif order_field.name == 'mobile_no' :
+                                    mobile_no = order_field.value
+                                elif order_field.name == 'alternative_mobile_no' :
+                                    alternative_mobile_no = order_field.value
+                                elif order_field.name == 'model' :
+                                    model = order_field.value
+                                elif order_field.name == 'total_price' :
+                                    total_price = order_field.value
+                        unit_price = order.unit_price
+                        cgst = interm_obj[0].cgst_tax
+                        sgst = interm_obj[0].sgst_tax
+                        igst = interm_obj[0].igst_tax
+                        location = interm_obj[0].order_assigned_wh
 
-    for order in view_orders:
-        if central_order_reassigning == 'true':
-            batch_number =''
-            batch_date =''
-            branch_name =''
-            branch_id = ''
-            loan_proposal_code =''
-            client_code = ''
-            client_id =''
-            customer_name = ''
-            address1 = ''
-            address2 = ''
-            landmark = ''
-            village = ''
-            district = ''
-            state = ''
-            pincode = ''
-            unit_price = ''
-            mobile_no =''
-            alternative_mobile_no =''
-            model = ''
-            total_price =''
+                        temp_data['aaData'].append(OrderedDict((('Central Order ID', order.original_order_id),('Batch Number',batch_number),\
+                                                        ('Batch Date',batch_date),('Branch ID',branch_id),('Branch Name',branch_name),('Loan Proposal ID',order.original_order_id),('Loan Proposal Code',loan_proposal_code),('Client Code',client_code),('Client ID',client_id),
+                                                        ('Customer Name',order.customer_name),('Address1',address1),('Address2',address2),('Landmark',landmark),('Village',village),('District',district),
+                                                        ('State1',state),('Pincode',pincode),('Mobile Number',mobile_no),('Alternative Mobile Number',alternative_mobile_no),('SKU Code',order.sku.sku_code),('Model',model),
+                                                        ('Unit Price',unit_price),('CGST',cgst),('SGST',sgst),('IGST',igst),('Total Price',total_price),('Location',location.username))))
+                except Exception as e:
+                    import traceback
+                    log.debug(traceback.format_exc())
+                    log.info(' open order report  failed for %s and params are  and error statement is %s' % (
+                    str(user.username), str(e)))
+        if stop_index:
+            picked_orders = picked_orders[start_index:stop_index]
+        for picked_order in picked_orders :
             try :
-                interm_obj = IntermediateOrders.objects.filter(order_id=str(order.id))
+                interm_obj = IntermediateOrders.objects.filter(order_id=str(picked_order.order.id))
                 if interm_obj :
-                    orderfield_obj = OrderFields.objects.filter(original_order_id=str(order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id))
+                    orderfield_obj = OrderFields.objects.filter(original_order_id=str(picked_order.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id))
                     if orderfield_obj:
                         for order_field in orderfield_obj :
                             if order_field.name == 'batch_number':
@@ -5950,77 +6018,15 @@ def get_open_order_report_data(search_params, user, sub_user, serial_view=False)
                     igst = interm_obj[0].igst_tax
                     location = interm_obj[0].order_assigned_wh
 
-                    temp_data['aaData'].append(OrderedDict((('Central Order ID', order.original_order_id),('Batch Number',batch_number),\
-                                                    ('Batch Date',batch_date),('Branch ID',branch_id),('Branch Name',branch_name),('Loan Proposal ID',order.original_order_id),('Loan Proposal Code',loan_proposal_code),('Client Code',client_code),('Client ID',client_id),
-                                                    ('Customer Name',order.customer_name),('Address1',address1),('Address2',address2),('Landmark',landmark),('Village',village),('District',district),
-                                                    ('State1',state),('Pincode',pincode),('Mobile Number',mobile_no),('Alternative Mobile Number',alternative_mobile_no),('SKU Code',order.sku.sku_code),('Model',model),
-                                                    ('Unit Price',unit_price),('CGST',cgst),('SGST',sgst),('IGST',igst),('Total Price',total_price),('Location',location.username))))
+                    temp_data['aaData'].append(OrderedDict((('Central Order ID', picked_order.order.original_order_id),('Batch Number',batch_number),
+                                                  ('Batch Date',batch_date),('Branch ID',branch_id),('Branch Name',branch_name),('Loan Proposal ID',picked_order.order.original_order_id),('Loan Proposal Code',loan_proposal_code),('Client Code',client_code),('Client ID',client_id),
+                                                  ('Customer Name',picked_order.order.customer_name),('Address1',address1),('Address2',address2),('Landmark',landmark),('Village',village),('District',district),
+                                                  ('State1',state),('Pincode',pincode),('Mobile Number',mobile_no),('Alternative Mobile Number',alternative_mobile_no),('SKU Code',picked_order.order.sku.sku_code),('Model',model),
+                                                  ('Unit Price',unit_price),('CGST',cgst),('SGST',sgst),('IGST',igst),('Total Price',total_price),('Location',location.username))))
             except Exception as e:
                 import traceback
                 log.debug(traceback.format_exc())
-                log.info(' open order report  failed for %s and params are %s and error statement is %s' % (
-                str(user.username), str(request.POST.dict()), str(e)))
-
-    for picked_order in picked_orders :
-        try :
-            interm_obj = IntermediateOrders.objects.filter(order_id=str(picked_order.order.id))
-            if interm_obj :
-                orderfield_obj = OrderFields.objects.filter(original_order_id=str(picked_order.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id))
-                if orderfield_obj:
-                    for order_field in orderfield_obj :
-                        if order_field.name == 'batch_number':
-                            batch_number = order_field.value
-                        elif order_field.name == 'batch_date' :
-                            batch_date = order_field.value
-                        elif order_field.name == 'branch_id' :
-                            branch_id = order_field.value
-                        elif order_field.name == 'branch_name' :
-                            branch_name = order_field.value
-                        elif order_field.name == 'loan_proposal_code':
-                            loan_proposal_code = order_field.value
-                        elif order_field.name == 'client_code' :
-                            client_code = order_field.value
-                        elif order_field.name == 'client_id' :
-                            client_id = order_field.value
-                        elif order_field.name == 'customer_name' :
-                            customer_name = order_field.value
-                        elif order_field.name == 'address1' :
-                            address1 = order_field.value
-                        elif order_field.name == 'address2' :
-                            address2 = order_field.value
-                        elif order_field.name == 'landmark' :
-                            landmark = order_field.value
-                        elif order_field.name == 'village' :
-                            village = order_field.value
-                        elif order_field.name == 'district' :
-                            district = order_field.value
-                        elif order_field.name == 'state' :
-                            state = order_field.value
-                        elif order_field.name == 'pincode' :
-                            pincode = order_field.value
-                        elif order_field.name == 'mobile_no' :
-                            mobile_no = order_field.value
-                        elif order_field.name == 'alternative_mobile_no' :
-                            alternative_mobile_no = order_field.value
-                        elif order_field.name == 'model' :
-                            model = order_field.value
-                        elif order_field.name == 'total_price' :
-                            total_price = order_field.value
-                unit_price = order.unit_price
-                cgst = interm_obj[0].cgst_tax
-                sgst = interm_obj[0].sgst_tax
-                igst = interm_obj[0].igst_tax
-                location = interm_obj[0].order_assigned_wh
-
-                temp_data['aaData'].append(OrderedDict((('Central Order ID', picked_order.order.original_order_id),('Batch Number',batch_number),
-                                              ('Batch Date',batch_date),('Branch ID',branch_id),('Branch Name',branch_name),('Loan Proposal ID',picked_order.order.original_order_id),('Loan Proposal Code',loan_proposal_code),('Client Code',client_code),('Client ID',client_id),
-                                              ('Customer Name',picked_order.order.customer_name),('Address1',address1),('Address2',address2),('Landmark',landmark),('Village',village),('District',district),
-                                              ('State1',state),('Pincode',pincode),('Mobile Number',mobile_no),('Alternative Mobile Number',alternative_mobile_no),('SKU Code',picked_order.order.sku.sku_code),('Model',model),
-                                              ('Unit Price',unit_price),('CGST',cgst),('SGST',sgst),('IGST',igst),('Total Price',total_price),('Location',location.username))))
-        except Exception as e:
-            import traceback
-            log.debug(traceback.format_exc())
-            log.info(' open order report   failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+                log.info(' open order report   failed for %s and params are and error statement is %s' % (str(user.username),str(e)))
 
 
     return temp_data

@@ -1325,8 +1325,9 @@ def auto_po_warehouses(sku, qty):
 
 @csrf_exempt
 def auto_po(wms_codes, user):
-    from outbound import insert_st, confirm_stock_transfer
+    from outbound import insert_st
     auto_po_switch = get_misc_value('auto_po_switch', user)
+    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
     auto_raise_stock_transfer = get_misc_value('auto_raise_stock_transfer', user)
     if 'true' in [auto_po_switch, auto_raise_stock_transfer]:
         sku_codes = SKUMaster.objects.filter(wms_code__in=wms_codes, user=user, threshold_quantity__gt=0)
@@ -1388,7 +1389,10 @@ def auto_po(wms_codes, user):
                 if auto_confirm_po == 'true':
                     po.status = 0
                     po.save()
-                    po_order_id = get_purchase_order_id(User.objects.get(id=user)) + 1
+                    user_obj = User.objects.get(id=user)
+                    po_order_id = get_purchase_order_id(user_obj) + 1
+                    if po_sub_user_prefix == 'true':
+                        po_order_id = update_po_order_prefix(user_obj, po_order_id)
                     user_profile = UserProfile.objects.get(user_id=sku.user)
                     PurchaseOrder.objects.create(open_po_id=po.id, order_id=po_order_id, status='',
                                                  received_quantity=0, po_date=datetime.datetime.now(),
@@ -7316,6 +7320,9 @@ def create_order_pos(user, order_objs, admin_user=None):
         cust_supp_mapping = {}
         user_profile = UserProfile.objects.get(user_id=user.id)
         po_id = get_purchase_order_id(user) + 1
+        po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+        if po_sub_user_prefix == 'true':
+            po_id = update_po_order_prefix(user, po_id)
         for order_obj in order_objs:
             if order_obj.customer_id:
                 customer_id = str(int(order_obj.customer_id))
@@ -8718,4 +8725,56 @@ def load_by_file(load_file_name, table_name, columns, id_dependency=False):
         log.info('loading completed')
     except:
         pass
+
+
+def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
+    sub_user = user
+    if request:
+        sub_user = request.user
+    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+    for key, value in all_data.iteritems():
+        po_id = get_purchase_order_id(user) + 1
+        if po_sub_user_prefix == 'true':
+            po_id = update_po_order_prefix(sub_user, po_id)
+        warehouse = User.objects.get(username__iexact=warehouse_name)
+        stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
+        if stock_transfer_obj:
+            order_id = int(stock_transfer_obj[0].order_id) + 1
+        else:
+            order_id = 1001
+
+        for val in value:
+            open_st = OpenST.objects.get(id=val[3])
+            sku_id = SKUMaster.objects.get(wms_code__iexact=val[0], user=warehouse.id).id
+            user_profile = UserProfile.objects.filter(user_id=user.id)
+            prefix = ''
+            if user_profile:
+                prefix = user_profile[0].prefix
+
+            po_dict = {'order_id': po_id, 'received_quantity': 0, 'saved_quantity': 0,
+                       'po_date': datetime.datetime.now(), 'ship_to': '',
+                       'status': '', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
+            po_order = PurchaseOrder(**po_dict)
+            po_order.save()
+            st_purchase_dict = {'po_id': po_order.id, 'open_st_id': open_st.id,
+                                'creation_date': datetime.datetime.now()}
+            st_purchase = STPurchaseOrder(**st_purchase_dict)
+            st_purchase.save()
+            st_dict = copy.deepcopy(STOCK_TRANSFER_FIELDS)
+            st_dict['order_id'] = order_id
+            st_dict['invoice_amount'] = float(val[1]) * float(val[2])
+            st_dict['quantity'] = float(val[1])
+            st_dict['st_po_id'] = st_purchase.id
+            st_dict['sku_id'] = sku_id
+            stock_transfer = StockTransfer(**st_dict)
+            stock_transfer.save()
+            open_st.status = 0
+            open_st.save()
+        check_purchase_order_created(user, po_id)
+    return HttpResponse("Confirmed Successfully")
+
+
+def update_po_order_prefix(sub_user, po_id):
+    po_id = '%s%s' % (str(sub_user.id), str(po_id))
+    return int(po_id)
 

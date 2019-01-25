@@ -705,6 +705,7 @@ def print_po_reports(request, user=''):
     total = 0
     total_qty = 0
     total_tax = 0
+    overall_discount = 0
     for data in results:
         receipt_type = ''
         if po_id:

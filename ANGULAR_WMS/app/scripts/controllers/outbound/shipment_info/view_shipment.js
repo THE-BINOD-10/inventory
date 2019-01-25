@@ -44,20 +44,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout,$compile, $roo
          console.log("complete")
        });
 
-    vm.dtColumns = [
-        /*DTColumnBuilder.newColumn(null).withTitle(titleHtml).notSortable().withOption('width', '20px')
-            .renderWith(function(data, type, full, meta) {
-                if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
-                  vm.selected = {};
-                 }
-                vm.selected[meta.row] = vm.selectAll;
-                return '<input class="data-select" type="checkbox" ng-model="vm.selected[' + meta.row + ']" ng-change="vm.toggleOne(vm.selected);$event.stopPropagation();">';
-            }).notSortable(),*/
-        DTColumnBuilder.newColumn('Shipment Number').withTitle('Shipment Number'),
-        DTColumnBuilder.newColumn('Customer ID').withTitle('Customer ID'),
-        DTColumnBuilder.newColumn('Customer Name').withTitle('Customer Name'),
-        DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity')
-    ];
+    vm.dtColumns = [];
+    if(vm.permissions.central_order_reassigning) {
+       vm.dtColumns.push(DTColumnBuilder.newColumn('Serial Number').withTitle('Serial Number')),
+       vm.dtColumns.push(DTColumnBuilder.newColumn('Manifest Number').withTitle('Manifest Number')),
+       vm.dtColumns.push(DTColumnBuilder.newColumn('Total Orders').withTitle('Total Orders'))
+    } else {
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Shipment Number').withTitle('Shipment Number')),
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Customer ID').withTitle('Customer ID')),
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Customer Name').withTitle('Customer Name')),
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'))
+    }
+
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $compile(angular.element('td', nRow))($scope);

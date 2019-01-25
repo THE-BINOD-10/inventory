@@ -442,7 +442,7 @@ SKU_WISE_PO_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'typ
                                       'Sub Category',
                                       'PO Qty',  'Unit Price without tax', 'Unit Price with tax', 'MRP',
                                       'Pre-Tax PO Amount', 'Tax', 'After Tax PO Amount',
-                                      'Qty received', 'Status'],
+                                      'Qty received', 'Status', 'Warehouse Name', 'Report Generation Time'],
                     'dt_url': 'get_sku_purchase_filter', 'excel_name': 'sku_wise_purchases',
                     'print_url': 'print_sku_wise_purchase',
                     }
@@ -2505,7 +2505,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
                'open_po__sku__style_name', 'open_po__sku__sku_brand', 'open_po__sku__sku_category',
                'open_po__sku__sub_category',
                'open_po__order_quantity', 'open_po__price', 'open_po__price', 'open_po__mrp', 'id', 'id', 'id',
-               'received_quantity', 'id']
+               'received_quantity', 'id', 'id', 'id']
         columns = SKU_WISE_PO_DICT['mk_dt_headers']
     if 'sku_code' in search_params:
         search_parameters['open_po__sku__sku_code'] = search_params['sku_code']
@@ -2546,6 +2546,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
     if not custom_search:
         if stop_index:
             purchase_orders = purchase_orders[start_index:stop_index]
+    time = get_local_date(user, datetime.datetime.now())
     for data in purchase_orders:
         total_quantity = 0
         receipt_date = ''
@@ -2597,7 +2598,9 @@ def sku_wise_purchase_data(search_params, user, sub_user):
                                 ('MRP', order_data['mrp']),
                                 ('Pre-Tax PO Amount', "%.2f" % pre_amount), ('Tax', tax),
                                 ('After Tax PO Amount', "%.2f" % aft_amount),
-                                ('Qty received', data.received_quantity), ('Status', status)
+                                ('Qty received', data.received_quantity), ('Status', status),
+                                ('Warehouse Name', user.username),
+                                ('Report Generation Time', time)
                                 ))
             if status == 'Received':
                 received_list.append(temp)

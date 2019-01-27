@@ -1450,7 +1450,10 @@ def create_order_storehippo(store_hippo_data, user_obj):
     create_order['status'] = store_hippo_data.get('status', 0)
     create_order['fulfillmentStatus'] = store_hippo_data.get('fulfillment_status', '')
     create_order['custom_shipping_applied'] = store_hippo_data.get('custom_shipping_applied', 0)
-    create_order['invoice_amount'] = create_order['all_total_items'] + create_order['all_total_tax'] + create_order['shipping_charges'] - store_hippo_data['discounts_total']
+    #admin_discounts = store_hippo_data.get('discounts', [])
+    #if admin_discounts:
+    #    admin_discounts = admin_discounts[0].get('saved_amount',0)
+    create_order['invoice_amount'] = create_order.get('all_total_items', 0) + create_order.get('all_total_tax', 0) + create_order.get('shipping_charges', 0) - create_order.get('discount', 0)
     #create_order['extra_key'].append({'shipping_charges':store_hippo_data['shipping_total']})
     allOrders.append(create_order)
     try:

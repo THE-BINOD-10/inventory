@@ -2062,6 +2062,33 @@ var app = angular.module('urbanApp')
             title: 'Shipment Report',
           }
         })
+
+        .state('app.reports.POReport', {
+          url: '/POReport',
+          templateUrl: 'views/reports/po_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/po_report.js');
+              }]
+          },
+          data: {
+            title: 'Open PO Report',
+          }
+        })
+
+        .state('app.reports.OpenorderReport', {
+          url: '/OpenorderReport',
+          templateUrl: 'views/reports/openorderreport.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/open_order.js');
+              }]
+          },
+          data: {
+            title: 'Open Order Report',
+          }
+        })
+
         .state('app.reports.DistributorWiseSalesReport', {
           url: '/DistributorSalesReport',
           templateUrl: 'views/reports/dist_sales_report.html',

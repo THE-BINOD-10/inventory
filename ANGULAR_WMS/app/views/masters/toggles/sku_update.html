@@ -76,6 +76,12 @@
                 <input type="text" name="sku_category" class="form-control" ng-model="showCase.model_data.sku_data.sku_category" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
+            <div class="col-md-4 col-sm-6 col-xs-6" ng-if="user.userName != 'sagar_fab'">
+              <div class="form-group">
+                <label class="control-label"> Sub Category </label>
+                <input type="text" name="sub_category" class="form-control" ng-model="showCase.model_data.sku_data.sub_category" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
+              </div>
+            </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Brand </label>

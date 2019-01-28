@@ -985,6 +985,7 @@ def insert_rwo_po(rw_order, request, user):
     phone_no = str(rw_order.vendor.phone_number)
     company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
     iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
+    left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO , request)
     po_reference = '%s%s_%s' % (prefix, str(po_order.creation_date).split(' ')[0].replace('-', ''), po_order.order_id)
     w_address, company_address = get_purchase_company_address(profile)
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': rw_order.vendor.address,
@@ -993,7 +994,7 @@ def insert_rwo_po(rw_order, request, user):
                  'total': total, 'user_name': user.username, 'total_qty': total_qty,
                  'location': profile.location, 'w_address': w_address,
                  'company_name': profile.company_name, 'company_address': company_address,
-                 'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
+                 'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
     check_purchase_order_created(user, po_id)
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
@@ -2108,7 +2109,7 @@ def jo_putaway_data(request, user=''):
             create_batch_rec = False
             if val[3] or val[4] or val[5] or val[6]:
                 create_batch_param = {'batch_no':val[3], 'mrp':val[4], 'manufactured_date':val[5],
-                                        'expiry_date':val[6],'transact_id':data.job_order.id, 
+                                        'expiry_date':val[6],'transact_id':data.job_order.id,
                                         'transact_type':'jo'}
                 create_batch_rec = create_update_batch_data(create_batch_param)
                 if create_batch_rec:

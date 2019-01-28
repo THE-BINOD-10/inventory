@@ -466,7 +466,6 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
 
 @csrf_exempt
 def get_customer_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
-    # import pdb;pdb.set_trace()
     sno = 0
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     gateout = request.POST.get('gateout', '')
@@ -5901,7 +5900,6 @@ def insert_st_shipment_info(request, user=''):
 @login_required
 @get_admin_user
 def shipment_info_data(request, user=''):
-    # import pdb;pdb.set_trace()
     headers = ('Order ID', 'SKU Code', 'Shipping Quantity', 'Shipment Reference', 'Pack Reference', 'Status')
     data = []
     loan_proposal_id = 0

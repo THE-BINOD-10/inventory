@@ -589,14 +589,38 @@ PO_REPORT_DICT = {
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
-        {'label': 'Order ID', 'name': 'order_id', 'type': 'input'},
-        {'label': 'Customer ID', 'name': 'order_id', 'type': 'customer_search'}
+        {'label': 'Sister Warehouse', 'name': 'sister_warehouse', 'type': 'select'},
     ],
-    'dt_headers': ['SKU Code', 'Sku Description', 'Customer Name', 'Quantity', 'Shipped Quantity', 'Truck Number',
-                   'Date', 'Shipment Status', 'Courier Name', 'Payment Status', 'Pack Reference'],
+    'dt_headers': ['SKU Code','Sku Description', 'Quantity','PO No','Location'],
     'dt_url': 'get_po_report', 'excel_name': 'get_po_report',
-    'print_url': 'print_shipment_report',
-}
+    'print_url': 'print_po_report',
+ }
+
+OPEN_ORDER_REPORT_DICT = {
+     'filters': [
+         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+         {'label': 'Sister Warehouse', 'name': 'sister_warehouse', 'type': 'select'},
+     ],
+     'dt_headers': [
+             'Central Order ID','Batch Number',
+             'Batch Date','Branch ID',
+             'Branch Name','Loan Proposal ID',
+             'Loan Proposal Code','Client Code',
+             'Client ID', 'Customer Name',
+             'Address1','Address2',
+             'Landmark','Village',
+             'District','State1',
+             'Pincode','Mobile Number',
+             'Alternative Mobile Number','SKU Code',
+             'Model','Unit Price',
+             'CGST', 'SGST',
+             'IGST','Total Price',
+             'Location'],
+     'dt_url': 'get_open_order_report', 'excel_name': 'get_open_order_report',
+     'print_url': 'print_open_order_report',
+  }
 
 DIST_SALES_REPORT_DICT = {
     'filters': [
@@ -809,6 +833,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'rm_picklist_report': RM_PICKLIST_REPORT_DICT, 'stock_ledger_report': STOCK_LEDGER_REPORT_DICT,
                      'shipment_report': SHIPMENT_REPORT_DICT, 'dist_sales_report': DIST_SALES_REPORT_DICT,
                      'po_report':PO_REPORT_DICT,
+                     'open_order_report':OPEN_ORDER_REPORT_DICT,
                      'reseller_sales_report': RESELLER_SALES_REPORT_DICT,
                      'dist_target_summary_report': DIST_TARGET_SUMMARY_REPORT,
                      'dist_target_detailed_report': DIST_TARGET_DETAILED_REPORT,
@@ -1363,6 +1388,8 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'rm_picklist_report': 'get_rm_picklist_data',
                         'stock_ledger_report': 'get_stock_ledger_data',
                         'get_shipment_report': 'get_shipment_report_data',
+                        'get_po_report':'get_po_report_data',
+                        'get_open_order_report':'get_open_order_report_data',
                         'get_dist_sales_report': 'get_dist_sales_report_data',
                         'get_reseller_sales_report': 'get_reseller_sales_report_data',
                         'get_zone_target_summary_report': 'get_zone_target_summary_report_data',
@@ -5683,8 +5710,8 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                 result = 0
                 import traceback
                 log.debug(traceback.format_exc())
-                log.info('Firebase query  failed for %s and params are %s and error statement is %s' % (
-                str(user.username), str(request.POST.dict()), str(e)))
+                log.info('Firebase query  failed for %s and params are  and error statement is %s' % (
+                str(user.username),str(e)))
         delivered_time =''
         if result :
             try:
@@ -5738,7 +5765,6 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
 
         manifest_number = int(data['order_shipment__manifest_number'])
 
-
         temp_data['aaData'].append(OrderedDict((('Shipment Number', data['order_shipment__shipment_number']),
                                                 ('Order ID', order_id), ('SKU Code', data['order__sku__sku_code']),
                                                 ('Title', data['order__title']),
@@ -5760,6 +5786,271 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                                 ('Payment Status', data['order__customerordersummary__payment_status']),
                                                 ('Pack Reference', data['order_packaging__package_reference']))))
     return temp_data
+
+def get_po_report_data(search_params, user, sub_user, serial_view=False):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from common import get_admin
+    from rest_api.views.common import  get_order_detail_objs,get_purchase_order_data
+    lis = ['open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__order_quantity','open_po__sku__sku_code']
+    if search_params.get('order_term'):
+        order_data = lis[search_params['order_index']]
+        if search_params['order_term'] == 'desc':
+            order_data = "-%s" % order_data
+
+    temp_data = copy.deepcopy(AJAX_DATA)
+    search_parameters = {}
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        search_parameters['open_po__sku__sku_code'] = search_params['sku_code']
+
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    if 'sister_warehouse' in search_params:
+        sister_warehouse_name = search_params['sister_warehouse']
+        user = User.objects.get(username=sister_warehouse_name)
+        warehouses = UserGroups.objects.filter(user_id=user.id)
+    else:
+        warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+
+    for warehouse in warehouses:
+        sku_master = SKUMaster.objects.filter(user=warehouse.user_id)
+        sku_master_ids = sku_master.values_list('id', flat=True)
+        purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=warehouse.user_id,
+                                                       open_po__sku_id__in=sku_master_ids,
+                                                       received_quantity__lt=F('open_po__order_quantity')).exclude(status='location-assigned').filter(**search_parameters)
+        if not purchase_orders:
+            st_orders = STPurchaseOrder.objects.filter(open_st__sku__user=user.id,
+                                                       open_st__sku_id__in=sku_master_ids). \
+                exclude(po__status__in=['location-assigned', 'stock-transfer']).values_list('po_id', flat=True)
+            purchase_orders = PurchaseOrder.objects.filter(id__in=st_orders)
+        if not purchase_orders:
+            rw_orders = RWPurchase.objects.filter(rwo__vendor__user=user.id,
+                                                  rwo__job_order__product_code_id__in=sku_master_ids). \
+                exclude(purchase_order__status__in=['location-assigned', 'stock-transfer']). \
+                values_list('purchase_order_id', flat=True)
+            purchase_orders = PurchaseOrder.objects.filter(id__in=rw_orders)
+
+        start_index = search_params.get('start', 0)
+        stop_index = start_index + search_params.get('length', 0)
+
+        temp_data['recordsTotal'] = len(purchase_orders)
+        temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+        ship_search_params  = {}
+        if stop_index:
+            purchase_orders = purchase_orders[start_index:stop_index]
+        po_reference_no = ''
+        for order in purchase_orders:
+            po_reference_no = '%s%s_%s' % (
+            order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
+            order_data = get_purchase_order_data(order)
+
+            po_quantity = float(order_data['order_quantity']) - float(order.received_quantity)
+
+            temp_data['aaData'].append(OrderedDict((('SKU Code',order_data['wms_code'] ),('PO No',po_reference_no),
+                                                ('Quantity',po_quantity ), ('Sku Description', order_data['sku_desc']),('Location',warehouse.user.username))))
+    return temp_data
+
+
+def get_open_order_report_data(search_params, user, sub_user, serial_view=False):
+    from miebach_admin.views import *
+    from common import get_admin
+    lis = ['open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__order_quantity','open_po__sku__sku_code']
+    if search_params.get('order_term'):
+        order_data = lis[search_params['order_index']]
+        if search_params['order_term'] == 'desc':
+            order_data = "-%s" % order_data
+
+    temp_data = copy.deepcopy(AJAX_DATA)
+    search_parameters = {}
+    serach_picked ={}
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        search_parameters['sku__sku_code'] = search_params['sku_code']
+        serach_picked['order__sku__sku_code'] = search_params['sku_code']
+
+    central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    if 'sister_warehouse' in search_params:
+        sister_warehouse_name = search_params['sister_warehouse']
+        user = User.objects.get(username=sister_warehouse_name)
+        warehouses = UserGroups.objects.filter(user_id=user.id)
+    else:
+        warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+
+    for warehouse in warehouses:
+        view_orders = OrderDetail.objects.filter(user= warehouse.user_id, status =1,quantity__gt=0).filter(**search_parameters)
+        picked_orders = Picklist.objects.filter(status__contains='open', order__user= warehouse.user_id, reserved_quantity__gt=0).filter(**serach_picked)
+        temp_data['recordsTotal'] += len(view_orders)+len(picked_orders)
+        temp_data['recordsFiltered'] += temp_data['recordsTotal']
+        if stop_index:
+            view_orders = view_orders[start_index:stop_index]
+        for order in view_orders:
+            if central_order_reassigning == 'true':
+                batch_number =''
+                batch_date =''
+                branch_name =''
+                branch_id = ''
+                loan_proposal_code =''
+                client_code = ''
+                client_id =''
+                customer_name = ''
+                address1 = ''
+                address2 = ''
+                landmark = ''
+                village = ''
+                district = ''
+                state = ''
+                pincode = ''
+                unit_price = ''
+                mobile_no =''
+                alternative_mobile_no =''
+                model = ''
+                total_price =''
+                try :
+                    interm_obj = IntermediateOrders.objects.filter(order_id=str(order.id))
+                    if interm_obj :
+                        orderfield_obj = OrderFields.objects.filter(original_order_id=str(order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id))
+                        if orderfield_obj:
+                            for order_field in orderfield_obj :
+                                if order_field.name == 'batch_number':
+                                    batch_number = order_field.value
+                                elif order_field.name == 'batch_date' :
+                                    batch_date = order_field.value
+                                elif order_field.name == 'branch_id' :
+                                    branch_id = order_field.value
+                                elif order_field.name == 'branch_name' :
+                                    branch_name = order_field.value
+                                elif order_field.name == 'loan_proposal_code':
+                                    loan_proposal_code = order_field.value
+                                elif order_field.name == 'client_code' :
+                                    client_code = order_field.value
+                                elif order_field.name == 'client_id' :
+                                    client_id = order_field.value
+                                elif order_field.name == 'customer_name' :
+                                    customer_name = order_field.value
+                                elif order_field.name == 'address1' :
+                                    address1 = order_field.value
+                                elif order_field.name == 'address2' :
+                                    address2 = order_field.value
+                                elif order_field.name == 'landmark' :
+                                    landmark = order_field.value
+                                elif order_field.name == 'village' :
+                                    village = order_field.value
+                                elif order_field.name == 'district' :
+                                    district = order_field.value
+                                elif order_field.name == 'state' :
+                                    state = order_field.value
+                                elif order_field.name == 'pincode' :
+                                    pincode = order_field.value
+                                elif order_field.name == 'mobile_no' :
+                                    mobile_no = order_field.value
+                                elif order_field.name == 'alternative_mobile_no' :
+                                    alternative_mobile_no = order_field.value
+                                elif order_field.name == 'model' :
+                                    model = order_field.value
+                                elif order_field.name == 'total_price' :
+                                    total_price = order_field.value
+                        unit_price = order.unit_price
+                        cgst = interm_obj[0].cgst_tax
+                        sgst = interm_obj[0].sgst_tax
+                        igst = interm_obj[0].igst_tax
+                        location = interm_obj[0].order_assigned_wh
+
+                        temp_data['aaData'].append(OrderedDict((('Central Order ID', order.original_order_id),('Batch Number',batch_number),\
+                                                        ('Batch Date',batch_date),('Branch ID',branch_id),('Branch Name',branch_name),('Loan Proposal ID',order.original_order_id),('Loan Proposal Code',loan_proposal_code),('Client Code',client_code),('Client ID',client_id),
+                                                        ('Customer Name',order.customer_name),('Address1',address1),('Address2',address2),('Landmark',landmark),('Village',village),('District',district),
+                                                        ('State1',state),('Pincode',pincode),('Mobile Number',mobile_no),('Alternative Mobile Number',alternative_mobile_no),('SKU Code',order.sku.sku_code),('Model',model),
+                                                        ('Unit Price',unit_price),('CGST',cgst),('SGST',sgst),('IGST',igst),('Total Price',total_price),('Location',location.username))))
+                except Exception as e:
+                    import traceback
+                    log.debug(traceback.format_exc())
+                    log.info(' open order report  failed for %s and params are  and error statement is %s' % (
+                    str(user.username), str(e)))
+        if stop_index:
+            picked_orders = picked_orders[start_index:stop_index]
+        for picked_order in picked_orders :
+            try :
+                interm_obj = IntermediateOrders.objects.filter(order_id=str(picked_order.order.id))
+                if interm_obj :
+                    orderfield_obj = OrderFields.objects.filter(original_order_id=str(picked_order.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id))
+                    if orderfield_obj:
+                        for order_field in orderfield_obj :
+                            if order_field.name == 'batch_number':
+                                batch_number = order_field.value
+                            elif order_field.name == 'batch_date' :
+                                batch_date = order_field.value
+                            elif order_field.name == 'branch_id' :
+                                branch_id = order_field.value
+                            elif order_field.name == 'branch_name' :
+                                branch_name = order_field.value
+                            elif order_field.name == 'loan_proposal_code':
+                                loan_proposal_code = order_field.value
+                            elif order_field.name == 'client_code' :
+                                client_code = order_field.value
+                            elif order_field.name == 'client_id' :
+                                client_id = order_field.value
+                            elif order_field.name == 'customer_name' :
+                                customer_name = order_field.value
+                            elif order_field.name == 'address1' :
+                                address1 = order_field.value
+                            elif order_field.name == 'address2' :
+                                address2 = order_field.value
+                            elif order_field.name == 'landmark' :
+                                landmark = order_field.value
+                            elif order_field.name == 'village' :
+                                village = order_field.value
+                            elif order_field.name == 'district' :
+                                district = order_field.value
+                            elif order_field.name == 'state' :
+                                state = order_field.value
+                            elif order_field.name == 'pincode' :
+                                pincode = order_field.value
+                            elif order_field.name == 'mobile_no' :
+                                mobile_no = order_field.value
+                            elif order_field.name == 'alternative_mobile_no' :
+                                alternative_mobile_no = order_field.value
+                            elif order_field.name == 'model' :
+                                model = order_field.value
+                            elif order_field.name == 'total_price' :
+                                total_price = order_field.value
+                    unit_price = order.unit_price
+                    cgst = interm_obj[0].cgst_tax
+                    sgst = interm_obj[0].sgst_tax
+                    igst = interm_obj[0].igst_tax
+                    location = interm_obj[0].order_assigned_wh
+
+                    temp_data['aaData'].append(OrderedDict((('Central Order ID', picked_order.order.original_order_id),('Batch Number',batch_number),
+                                                  ('Batch Date',batch_date),('Branch ID',branch_id),('Branch Name',branch_name),('Loan Proposal ID',picked_order.order.original_order_id),('Loan Proposal Code',loan_proposal_code),('Client Code',client_code),('Client ID',client_id),
+                                                  ('Customer Name',picked_order.order.customer_name),('Address1',address1),('Address2',address2),('Landmark',landmark),('Village',village),('District',district),
+                                                  ('State1',state),('Pincode',pincode),('Mobile Number',mobile_no),('Alternative Mobile Number',alternative_mobile_no),('SKU Code',picked_order.order.sku.sku_code),('Model',model),
+                                                  ('Unit Price',unit_price),('CGST',cgst),('SGST',sgst),('IGST',igst),('Total Price',total_price),('Location',location.username))))
+            except Exception as e:
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info(' open order report   failed for %s and params are and error statement is %s' % (str(user.username),str(e)))
+
+
+    return temp_data
+
 
 
 

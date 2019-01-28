@@ -2474,7 +2474,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                             child_sku_code = data.order.sku.sku_code
                     temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
                                                             ('Child SKU', child_sku_code),
-                                                            ('Description', data.stock.sku.sku_desc),
+                                                            ('Description', data.order.sku.sku_desc),
                                                             ('Location', pick_loc.stock.location.location),
                                                             ('Quantity', data.order.quantity),
                                                             ('Picked Quantity', picked_quantity),
@@ -5752,11 +5752,11 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
         order_return_obj = OrderReturns.objects.filter(order__original_order_id = order_id,sku__wms_code = data['order__sku__sku_code'],sku__user=user.id)
         if order_return_obj and central_order_reassigning == 'true' :
             shipment_status = 'Returned'
-        serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data['order__sku__sku_code'],order_id=data['order__id'],po_imei__sku__user=user.id)
-        if serial_number :
-            serial_number = serial_number[0].po_imei.imei_number
-        else:
-            serial_number = ''
+        serial_number = ''
+        serial_number_qs = OrderIMEIMapping.objects.filter(order_id=data['order__id'])
+        if serial_number_qs:
+            if serial_number_qs[0].po_imei:
+                serial_number = serial_number_qs[0].po_imei.imei_number
         dispatched_date =  get_local_date(user,data['order_shipment__creation_date'])
 
         if delivered_time :

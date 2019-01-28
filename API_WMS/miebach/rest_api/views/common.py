@@ -8277,16 +8277,21 @@ def get_sister_warehouse(user):
     return warehouses
 
 
-@login_required
-@csrf_exempt
-@get_admin_user
-def get_linked_warehouse_names(request, user=''):
-    current_user = request.GET.get('current_user', '')
+def get_linked_user_objs(current_user, user):
     warehouses = get_sister_warehouse(user)
     if current_user == 'true':
         wh_names = list(warehouses.values_list('user__username', flat=True))
     else:
         wh_names = list(warehouses.exclude(user_id=user.id).values_list('user__username', flat=True))
+    return wh_names
+
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_linked_warehouse_names(request, user=''):
+    current_user = request.GET.get('current_user', '')
+    wh_names = get_linked_user_objs(current_user, user)
     return HttpResponse(json.dumps({'wh_names': wh_names}))
 
 

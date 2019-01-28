@@ -20,6 +20,10 @@ from django.db.models import Q, F
 from django.core.serializers.json import DjangoJSONEncoder
 from rest_api.views.utils import *
 log = init_logger('logs/integrations.log')
+storehippo_log = init_logger('logs/storehippo.log')
+create_order_storehippo_log = init_logger('logs/create_order_storehippo_log.log')
+create_update_sku_storehippo_log = init_logger('logs/create_update_sku_storehippo_log.log')
+
 # Create your views here.
 
 NOW = datetime.datetime.now()
@@ -1380,3 +1384,189 @@ def rista_update_orders(request):
         log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'messages': 'Internal Server Error', 'status': 0}
     return HttpResponse(json.dumps(status))
+
+
+def store_hippo_line_items(line_items):
+    itemsArr = []
+    #sub_total_price = float(order['subtotal_price'])
+    #for ind in order.get('tax_lines'):
+    #    if ind['title'] == "CGST":
+    #        cgst_percent = (float(ind['price']) * 100) / sub_total_price
+    #    elif ind['title'] == "SGST":
+    #        sgst_percent = (float(ind['price']) * 100) / sub_total_price
+    for Item in line_items:
+        cgst_percent = 0
+        sgst_percent = 0
+        igst_percent = 0
+        for ind in Item['taxes']:
+            if ind['name'] == "IGST":
+                igst_percent += ind['rate']
+            if ind['name'] == "SGST":
+                sgst_percent += ind['rate']
+            if ind['name'] == "CGST":
+                cgst_percent += ind['rate']
+        obj = {
+            "line_item_id": Item.get('_id',None),
+            "sku": Item.get('sku',None),
+            "name": Item.get('name',None),
+            "quantity": Item.get('quantity',None),
+            "unit_price": Item.get('price',None),
+            "shipping_charge": Item.get('shipping_total',None),
+            "discount_amount": 0,
+            #"discount_amount": int(Item.get('quantity', 0)) * int(Item.get('discounts_total', 0)),
+            "tax_percent": {
+                "CGST": cgst_percent,
+                "SGST": sgst_percent,
+                "IGST": igst_percent
+            }
+        }
+        itemsArr.append(obj)
+    return itemsArr
+
+
+def create_order_storehippo(store_hippo_data, user_obj):
+    create_order_storehippo_log.info('Create Store Hippo Data' + str(store_hippo_data))
+    allOrders = []
+    create_order = {}
+    #create_order['extra_key'] = []
+    customer_obj = store_hippo_data.get('billing_address', '')
+    create_order['source'] = 'store_hippo'
+    create_order['original_order_id'] = store_hippo_data.get('order_id', '')
+    create_order['order_id'] = create_order.get('original_order_id', '')
+    create_order['order_code'] = ''
+    create_order['order_date'] = store_hippo_data['created_on'][0:10] + " " + store_hippo_data['created_on'][11:19]
+    create_order['order_status'] = 'NEW'
+    create_order['billing_address'] = customer_obj
+    create_order['shipping_address'] = store_hippo_data.get('shipping_address', '')
+    create_order['items'] = store_hippo_line_items(store_hippo_data.get('items', ''))
+    create_order['discount'] = store_hippo_data.get('discounts_total', 0)
+    create_order['shipping_charges'] = store_hippo_data.get('shipping_total', 0)
+    create_order['customer_name'] = customer_obj.get('full_name', '')
+    create_order['customer_code'] = ''
+    create_order['item_count'] = store_hippo_data.get('item_count', 0)
+    create_order['all_total_items'] = store_hippo_data.get('sub_total', 0)
+    create_order['all_total_tax'] = store_hippo_data.get('taxes_total', 0)
+    create_order['status'] = store_hippo_data.get('status', 0)
+    create_order['fulfillmentStatus'] = store_hippo_data.get('fulfillment_status', '')
+    create_order['custom_shipping_applied'] = store_hippo_data.get('custom_shipping_applied', 0)
+    create_order['order_reference'] = store_hippo_data.get('_id', '')
+    #admin_discounts = store_hippo_data.get('discounts', [])
+    #if admin_discounts:
+    #    admin_discounts = admin_discounts[0].get('saved_amount',0)
+    create_order['invoice_amount'] = create_order.get('all_total_items', 0) + create_order.get('all_total_tax', 0) + create_order.get('shipping_charges', 0) - create_order.get('discount', 0)
+    #create_order['extra_key'].append({'shipping_charges':store_hippo_data['shipping_total']})
+    allOrders.append(create_order)
+    try:
+        validation_dict, failed_status, final_data_dict = validate_orders_format_storehippo(allOrders, user=user_obj, company_name='mieone')
+        if validation_dict:
+            return json.dumps({'messages': validation_dict, 'status': 0})
+        if failed_status:
+            if type(failed_status) == dict:
+                failed_status.update({'Status': 'Failure'})
+            if type(failed_status) == list:
+                failed_status = failed_status[0]
+                failed_status.update({'Status': 'Failure'})
+            return json.dumps(failed_status)
+        create_order_storehippo_log.info('StoreHippo Data Sent to Stockone ' + str(final_data_dict))
+        status = update_order_dicts_storehippo(final_data_dict, user=user_obj, company_name='mieone')
+        create_order_storehippo_log.info(status)
+        return status
+    except Exception as e:
+        import traceback
+        create_order_storehippo_log.debug(traceback.format_exc())
+        create_order_storehippo_log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(user_obj.username), str(request.body), str(e)))
+        status = {'messages': 'Internal Server Error', 'status': 0}
+        return status
+
+
+def create_update_sku_storehippo(store_hippo_data, user_obj):
+    create_update_sku_storehippo_log.info('StoreHippo Data ' + str(store_hippo_data))
+    try:
+        stockone_data = {}
+        sku_code = store_hippo_data.get('uniquesku', '')
+        if sku_code:
+            sku_code = sku_code[0]
+        categories = store_hippo_data.get('categories', '')
+        if categories:
+            categories = categories[0]
+        image = store_hippo_data.get('images','')
+        if image:
+            image = image[0]['tempSrc']
+        desc = store_hippo_data.get('description', '')
+        if desc:
+            desc = desc[0]['description']
+            desc = desc.replace('<p>', '')
+            desc = desc.replace('</p>', '')
+        stockone_data['sku_code'] = sku_code
+        stockone_data['wms_code'] = sku_code
+        stockone_data['sku_desc'] = desc
+        stockone_data['sku_group'] = ''
+        stockone_data['sku_type'] = ''
+        stockone_data['sku_category'] = categories
+        stockone_data['sku_class'] = ''
+        stockone_data['threshold_quantity'] = store_hippo_data.get('inventory_low_stock_quantity', 0)
+        stockone_data['online_percentage'] = 0
+        stockone_data['image_url'] = image
+        stockone_data['qc_check'] = 0
+        stockone_data['status'] = store_hippo_data.get('publish', 0)
+        #stockone_data['zone_id'] = 0
+        stockone_data['relation_type'] = ''
+        stockone_data['discount_percentage'] = 0
+        stockone_data['price'] = store_hippo_data.get('price', 0)
+        stockone_data['product_type'] = ''
+        stockone_data['sku_brand'] = store_hippo_data.get('brand', '')
+        stockone_data['sku_size'] = ''
+        stockone_data['style_name'] = ''
+        stockone_data['mrp'] = store_hippo_data.get('price', 0)
+        stockone_data['sequence'] = 0
+        stockone_data['measurement_type'] = ''
+        stockone_data['sale_through'] = ''
+        stockone_data['color'] = ''
+        #stockone_data['ean_number'] = store_hippo_data.get('_id', 0)
+        stockone_data['mix_sku'] = ''
+        stockone_data['load_unit_handle'] = ''
+        stockone_data['hsn_code'] = 0
+        stockone_data['sub_category'] = ''
+        stockone_data['primary_category'] = ''
+        stockone_data['cost_price'] = store_hippo_data.get('price', 0)
+        stockone_data['shelf_life'] = 0
+        stockone_data['enable_serial_based'] = 0
+        stockone_data['youtube_url'] = ''
+        stockone_data['user'] = user_obj.id
+    except:
+        create_update_sku_storehippo_log.info('Error Occured')
+        return "Error Occured"
+    try:
+        sku_obj = SKUMaster.objects.filter(**{'user':user_obj.id, 'sku_code':sku_code})
+        if not sku_obj:
+            sku_query_obj = SKUMaster.objects.create(**stockone_data)
+            create_update_sku_storehippo_log.info('Created SKU ' + str(stockone_data))
+        else:
+            sku_query_obj = sku_obj.update(**stockone_data)
+            create_update_sku_storehippo_log.info('Updated SKU '+ str(stockone_data))
+    except:
+        sku_query_obj = "Error Occured"
+        create_update_sku_storehippo_log.info('Error Occured')
+    return sku_query_obj
+
+
+def store_hippo(request):
+    a = datetime.datetime.now()
+    api_type = request.META['HTTP_TYPE']
+    store_hippo_data = json.loads(request.body)
+    storehippo_log.info('------------API Type -' + api_type + '------------')
+    status_resp = ''
+    try:
+        user_obj = User.objects.get(username='storehippo')
+    except:
+        return HttpResponse("User Not found")
+    if api_type == 'add_order':
+        status_resp = create_order_storehippo(store_hippo_data, user_obj)
+    if api_type in ['add_sku', 'edit_sku']:
+        status_resp = create_update_sku_storehippo(store_hippo_data, user_obj)
+    b = datetime.datetime.now()
+    delta = b - a
+    time_taken = str(delta.total_seconds())
+    storehippo_log.info('------------End Time Taken in Seconds --- ' + time_taken + '-----')
+    return HttpResponse(json.dumps(status_resp))
+

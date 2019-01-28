@@ -466,15 +466,20 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
 
 @csrf_exempt
 def get_customer_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
+    sno = 0
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     gateout = request.POST.get('gateout', '')
     if gateout:
         gateout = int(gateout)
-    lis = ['Shipment Number', 'Customer ID', 'Customer Name', 'Total Quantity']
+    central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
+    if central_order_reassigning == 'true':
+        lis = ['Serial Number', 'Shipment Number', 'Customer ID', 'Customer Name', 'Manifest Number', 'Total Quantity', 'Total Quantity']
+    else:
+        lis = ['Shipment Number', 'Customer ID', 'Customer Name', 'Manifest Number', 'Total Quantity', 'Total Orders', 'Serial Number']
     all_data = OrderedDict()
     if search_term:
         results = ShipmentInfo.objects.filter(order__sku_id__in=sku_master_ids). \
-            filter(Q(order_shipment__shipment_number__icontains=search_term) |
+            filter(Q(order_shipment__shipment_number__icontains=search_term) | Q(order_shipment__manifest_number__icontains=search_term) | 
                    Q(order__customer_id__icontains=search_term) | Q(order__customer_name__icontains=search_term),
                    order_shipment__user=user.id).order_by('order_id')
     else:
@@ -484,23 +489,31 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
         tracking = ShipmentTracking.objects.filter(shipment_id=result.id, shipment__order__user=user.id).order_by(
             '-creation_date'). \
             values_list('ship_status', flat=True)
-
         if gateout:
             if tracking and tracking[0] != 'Out for Delivery':
                 continue
         else:
             if tracking and tracking[0] in ['Delivered', 'Out for Delivery']:
                 continue
-
-        cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name)
+        central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
+        if central_order_reassigning == 'true':
+            if result.order_shipment.shipment_number:
+                shipment_orders_count = ShipmentInfo.objects.filter(order_shipment__shipment_number=result.order_shipment.shipment_number,
+                                                  order_shipment__user=user.id)
+                total_orders = shipment_orders_count.count()
+                cond = (result.order_shipment.shipment_number, 0, 0, int(result.order_shipment.manifest_number), total_orders)
+        else:
+            total_orders = 0
+            cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name, int(result.order_shipment.manifest_number), total_orders)
         all_data.setdefault(cond, 0)
         all_data[cond] += result.shipping_quantity
 
     temp_data['recordsTotal'] = len(all_data)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for key, value in all_data.iteritems():
+        sno = sno+1
         temp_data['aaData'].append(
-            {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2],
+            {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Serial Number' : sno,
              'Total Quantity': value, 'DT_RowClass': 'results'})
     sort_col = lis[col_num]
 
@@ -5865,6 +5878,7 @@ def shipment_info_data(request, user=''):
     ship_reference = ''
     shipment_orders = ShipmentInfo.objects.filter(order_shipment__shipment_number=shipment_number,
                                                   order_shipment__user=user.id)
+    print shipment_orders.count()
     truck_number = ''
     driver_phone_number = ''
     driver_name = ''

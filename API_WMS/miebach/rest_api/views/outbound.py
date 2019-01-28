@@ -1219,17 +1219,20 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
     if picklist.sellerorderdetail_set.filter(seller_order__isnull=False).exists():
         pic_check_data['sellerstock__seller_id'] = picklist.sellerorderdetail_set.\
                                                     filter(seller_order__isnull=False)[0].seller_order.seller_id
-    if val['location'] != val['orig_loc'] :
+    if val['location'] != val['orig_loc'] and val.get('batchno', ''):
         pic_check_data['batch_detail__batch_no'] = val['batchno']
     else:
         if picklist.stock and picklist.stock.batch_detail_id:
             pic_check_data['batch_detail__mrp'] = picklist.stock.batch_detail.mrp
             pic_check_data['batch_detail__batch_no'] = picklist.stock.batch_detail.batch_no
-    if val['batchno'] :
+    if val.get('batchno', ''):
         pic_check_data['batch_detail__batch_no'] = val['batchno']
     pic_check = StockDetail.objects.filter(**pic_check_data)
     if not pic_check:
-        status.append("Insufficient Stock in given location with batch number")
+        if val.get('batchno', ''):
+            status.append("Insufficient Stock in given location with batch number")
+        else:
+            status.append("Insufficient Stock in given location")
     location = all_locations.filter(location=val['location'], zone__user=user.id)
     if not location:
         if error_string:
@@ -1791,6 +1794,8 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
         temp_json = TempJson.objects.filter(model_id=int(user.id), model_name=model_name_value)
         if temp_json:
             rista_json = eval(temp_json[0].model_json)
+        else:
+            continue
         get_all_sku_code = eval(temp_json[0].model_json)['items']
         sku_dict = {}
         for ind in get_all_sku_code:
@@ -1941,6 +1946,7 @@ def picklist_confirmation(request, user=''):
     picklists_send_mail = {}
     mod_locations = []
     seller_pick_number = ''
+    status = ''
     for key, value in request.POST.iterlists():
         name, picklist_id = key.rsplit('_', 1)
         data.setdefault(picklist_id, [])
@@ -2113,9 +2119,12 @@ def picklist_confirmation(request, user=''):
                         all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
                     #Rista DM Integration Code, collect SKU code
                     int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
-                    if int_obj:
+                    if int_obj and picklist.order:
                         original_order_id_str = str(picklist.order.original_order_id)
-                        rista_order_id_list.append(original_order_id_str)
+                        model_name_value = 'rista<<>>indent_out<<>>' + original_order_id_str
+                        temp_json = TempJson.objects.filter(model_id=int(user.id), model_name=model_name_value)
+                        if temp_json:
+                            rista_order_id_list.append(original_order_id_str)
                         picking_count1 = int(picking_count1)
                         if picking_count1:
                             sku_code_str = picklist.order.sku.sku_code
@@ -2168,7 +2177,7 @@ def picklist_confirmation(request, user=''):
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
 	#Check DM Rista User
 	int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
-	if int_obj:
+	if int_obj and rista_order_id_list:
 	    rista_order_id = list(set(rista_order_id_list))
 	    rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
@@ -3890,6 +3899,7 @@ def check_and_raise_po(generic_order_id, cm_id, ord_det_id=None):
     mapping = mapping[0]
     wh_list = list(generic_data.values_list('cust_wh_id', flat=True).distinct())
     user_profile = UserProfile.objects.filter(user_id=mapping.warehouse.id)
+    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', mapping.warehouse.id)
     for wh in wh_list:
         po_data = generic_data.filter(cust_wh_id=wh)
         supplier = NetworkMaster.objects.filter(dest_location_code_id=mapping.warehouse.id, source_location_code_id=wh)
@@ -3899,6 +3909,8 @@ def check_and_raise_po(generic_order_id, cm_id, ord_det_id=None):
         if not supplier.supplier:
             continue
         po_id = get_purchase_order_id(mapping.warehouse) + 1
+        if po_sub_user_prefix == 'true':
+            po_id = update_po_order_prefix(mapping.warehouse, po_id)
         for data in po_data:
             purchase_data = copy.deepcopy(PO_DATA)
             po_sku_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
@@ -5064,7 +5076,7 @@ def insert_order_data(request, user=''):
 
         if generic_order_id and not is_emiza_order_failed:
             check_and_raise_po(generic_order_id, cm_id)
-            create_backorders(backorder_splitup_map, admin_user, sku_total_qty_map)
+            #create_backorders(backorder_splitup_map, admin_user, sku_total_qty_map)
 
         if user_type == 'customer' and not is_distributor and message in success_messages:
             # Creating Uploading POs object with file upload pending.
@@ -5298,46 +5310,6 @@ def insert_st(all_data, user):
     return all_data
 
 
-def confirm_stock_transfer(all_data, user, warehouse_name):
-    for key, value in all_data.iteritems():
-        po_id = get_purchase_order_id(user) + 1
-        warehouse = User.objects.get(username__iexact=warehouse_name)
-        stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
-        if stock_transfer_obj:
-            order_id = int(stock_transfer_obj[0].order_id) + 1
-        else:
-            order_id = 1001
-
-        for val in value:
-            open_st = OpenST.objects.get(id=val[3])
-            sku_id = SKUMaster.objects.get(wms_code__iexact=val[0], user=warehouse.id).id
-            user_profile = UserProfile.objects.filter(user_id=user.id)
-            prefix = ''
-            if user_profile:
-                prefix = user_profile[0].prefix
-
-            po_dict = {'order_id': po_id, 'received_quantity': 0, 'saved_quantity': 0,
-                       'po_date': datetime.datetime.now(), 'ship_to': '',
-                       'status': '', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
-            po_order = PurchaseOrder(**po_dict)
-            po_order.save()
-            st_purchase_dict = {'po_id': po_order.id, 'open_st_id': open_st.id,
-                                'creation_date': datetime.datetime.now()}
-            st_purchase = STPurchaseOrder(**st_purchase_dict)
-            st_purchase.save()
-            st_dict = copy.deepcopy(STOCK_TRANSFER_FIELDS)
-            st_dict['order_id'] = order_id
-            st_dict['invoice_amount'] = float(val[1]) * float(val[2])
-            st_dict['quantity'] = float(val[1])
-            st_dict['st_po_id'] = st_purchase.id
-            st_dict['sku_id'] = sku_id
-            stock_transfer = StockTransfer(**st_dict)
-            stock_transfer.save()
-            open_st.status = 0
-            open_st.save()
-        check_purchase_order_created(user, po_id)
-    return HttpResponse("Confirmed Successfully")
-
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -5360,7 +5332,7 @@ def create_stock_transfer(request, user=''):
     status = validate_st(all_data, warehouse)
     if not status:
         all_data = insert_st(all_data, warehouse)
-        status = confirm_stock_transfer(all_data, warehouse, user.username)
+        status = confirm_stock_transfer(all_data, warehouse, user.username, request)
         #rendered_html_data = render_st_html_data(request, user, warehouse, all_data)
         #stock_transfer_mail_pdf(request, f_name, rendered_html_data, warehouse)
     return HttpResponse(status)
@@ -6001,8 +5973,8 @@ def shipment_info_data(request, user=''):
                      'id_type':id_type,
                      'id_proof_number':id_proof_number,
                      'id_card':id_card,
-                     'mobile_no':float(mobile_no),
-                     'alternative_mobile_no':float(alternative_mobile_no),
+                     'mobile_no':mobile_no,
+                     'alternative_mobile_no':alternative_mobile_no,
                      'district':district,
                      'pack_reference': orders.order_packaging.package_reference,
                      'ship_status': ship_status, 'status': status})
@@ -6128,8 +6100,8 @@ def app_shipment_info_data(request, user=''):
                      'time': time,
                      'id_type' : id_type,
                      'model':model,
-                     'mobile_no':float(mobile_no),
-                     'alternative_mobile_no':float(alternative_mobile_no),
+                     'mobile_no':mobile_no,
+                     'alternative_mobile_no':alternative_mobile_no,
                      'district':district})
         if not ship_reference:
             ship_reference = orders.order_packaging.order_shipment.shipment_reference
@@ -13098,6 +13070,9 @@ def convert_customorder_to_actualorder(request, user=''):
             dist_order_copy['email_id'] = customer_user[0].customer.email_id
             dist_order_copy['address'] = customer_user[0].customer.address
 
+        if req_stock != sum(stock_wh_map.values()):
+            return HttpResponse('No Available Stock to Place the Order or Total quantity is not considered')
+        is_emiza_order_failed = False
         for usr, qty in stock_wh_map.items():
             if qty <= 0:
                 continue
@@ -13122,7 +13097,7 @@ def convert_customorder_to_actualorder(request, user=''):
                 ord_obj.save()
 
             corporate_po_number = enq_obj.po_number
-            create_grouping_order_for_generic(generic_order_id, ord_obj, cm_id, usr, quantity, corporate_po_number,
+            create_grouping_order_for_generic(generic_order_id, ord_obj, cm_id, usr, qty, corporate_po_number,
                                               corp_name, ask_price, ask_price, exp_date)
             usr_sku_master = SKUMaster.objects.filter(user=usr, sku_code=sku_code)
             if usr_sku_master:
@@ -13157,15 +13132,31 @@ def convert_customorder_to_actualorder(request, user=''):
             for generic_order in generic_orders:
                 original_order_id = generic_order['orderdetail__original_order_id']
                 order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
+                message = ''
                 try:
                     order_push_status = order_push(original_order_id, order_detail_user, "NEW")
                     log.info('New Order Push Status: %s' % (str(order_push_status)))
-                    if generic_order_id and not order_push_status:
+                    if order_push_status.get('Status', '') == 'Failure' or order_push_status.get('status', '') == 'Internal Server Error':
+                        is_emiza_order_failed = True
+                        if order_push_status.get('status', '') == 'Internal Server Error':
+                            message = "400 Bad Request"
+                        else:
+                            message = order_push_status['Result']['Errors'][0]['ErrorMessage']
+                        order_detail = OrderDetail.objects.filter(original_order_id=original_order_id,
+                                                                  user=order_detail_user.id)
+                        picklist_number = order_detail.values_list('picklist__picklist_number', flat=True)
+                        if picklist_number:
+                            picklist_number = picklist_number[0]
+                        log.info(order_detail.delete())
+                        check_picklist_number_created(order_detail_user, picklist_number)
+                        if message:
+                            return HttpResponse(message)
+                    if generic_order_id and not is_emiza_order_failed:
                         check_and_raise_po(generic_order_id, cm_id)
                 except:
                     log.info("Order Push failed for order: %s" %original_order_id)
 
-        if req_stock == sum(stock_wh_map.values()):
+        if req_stock == sum(stock_wh_map.values()) and is_emiza_order_failed:
             enq_obj.status = 'order_placed'
             enq_obj.save()
         else:
@@ -13770,44 +13761,57 @@ def get_create_order_mapping_values(request, user=''):
 @login_required
 @get_admin_user
 def invoice_mark_delivered(request, user=''):
-    order_id = request.POST.getlist('selected_invoice', [])
-    selected_order_invoice = eval(request.POST.get('selected_invoice', '{}'))
-    failed_order_id = []
-    order_id_already_marked_delivered = []
-    for obj in selected_order_invoice:
-        picked_qty = obj['picked_qty']
-        order_qty = obj['order_qty']
-        invoice_id = obj['invoice_id']
-        sor_id = obj['order_id']
-        if order_qty != picked_qty:
-            failed_order_id.append(sor_id)
-            continue
-            #return HttpResponse(json.dumps({'status':False, 'message':'Partial Picked Qty Not Allowed'}), content_type='application/json')
-        sell_ids = {}
-        ids = obj['id']
-        invoice_no = obj['invoice_number']
-        sell_ids['order__user'] = user.id
-        sell_ids['order__original_order_id'] = sor_id
-        if invoice_id:
-            sell_ids['invoice_number'] = invoice_id
-        sell_ids['delivered_flag'] = 0
-        #sell_ids['quantity'] = order_qty
-        seller = SellerOrderSummary.objects.filter(**sell_ids)
-        if len(seller):
-            if seller.aggregate(Sum('quantity'))['quantity__sum'] == picked_qty:
-                if seller.filter(delivered_flag=2):
-                    order_id_already_marked_delivered.append(sor_id)
+    try:
+        order_id = request.POST.getlist('selected_invoice', [])
+        selected_order_invoice = eval(request.POST.get('selected_invoice', '{}'))
+        failed_order_id = []
+        order_id_already_marked_delivered = []
+        group_picked_dict = {}
+        for sel_inv in selected_order_invoice:
+            group_picked_dict.setdefault(sel_inv['order_id'], 0)
+            group_picked_dict[sel_inv['order_id']] += float(sel_inv['picked_qty'])
+        for obj in selected_order_invoice:
+            picked_qty = group_picked_dict[obj['order_id']] #obj['picked_qty']
+            order_qty = obj['order_qty']
+            invoice_id = obj['invoice_id']
+            sor_id = obj['order_id']
+            if order_qty != picked_qty:
+                failed_order_id.append(sor_id)
+                continue
+                #return HttpResponse(json.dumps({'status':False, 'message':'Partial Picked Qty Not Allowed'}), content_type='application/json')
+            sell_ids = {}
+            ids = obj['id']
+            invoice_no = obj['invoice_number']
+            sell_ids['order__user'] = user.id
+            sell_ids['order__original_order_id'] = sor_id
+            if invoice_id:
+                sell_ids['invoice_number'] = invoice_id
+            sell_ids['delivered_flag'] = 0
+            #sell_ids['quantity'] = order_qty
+            seller = SellerOrderSummary.objects.filter(**sell_ids)
+            if len(seller):
+                if seller.aggregate(Sum('quantity'))['quantity__sum'] == picked_qty:
+                    if seller.filter(delivered_flag=2):
+                        order_id_already_marked_delivered.append(sor_id)
+                    else:
+                        seller.update(delivered_flag=1)
                 else:
-                    seller.update(delivered_flag=1)
+                    failed_order_id.append(sor_id)
+                return HttpResponse(json.dumps({'status':True, 'message':'Marked as Delivered Successfully', 'already_marked_delivered' : order_id_already_marked_delivered}), content_type='application/json')
             else:
                 failed_order_id.append(sor_id)
-            return HttpResponse(json.dumps({'status':True, 'message':'Marked as Delivered Successfully', 'already_marked_delivered' : order_id_already_marked_delivered}), content_type='application/json')
-        else:
-            failed_order_id.append(sor_id)
-            continue
-    if len(failed_order_id):
-        failed_order_ids = ', '.join(failed_order_id)
-        return HttpResponse(json.dumps({'status':False, 'message':'Failed for '+failed_order_ids + ', Other Orders Successfully Marked as Delivered'}), content_type='application/json')
+                continue
+        if len(failed_order_id):
+            failed_order_ids = ', '.join(failed_order_id)
+            return HttpResponse(json.dumps({'status':False, 'message':'Failed for '+failed_order_ids + ', Other Orders Successfully Marked as Delivered'}), content_type='application/json')
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Marking as delivered for order failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse(json.dumps({'status': False, 'message': 'Mark as delivered Failed'}),
+                            content_type='application/json')
+
 
 @csrf_exempt
 @login_required
@@ -13858,22 +13862,29 @@ def get_ratings_data_popup(request, user=''):
 @login_required
 @get_admin_user
 def save_cutomer_ratings(request, user=''):
-    warehouse_user = user.id
-    order_rate = request.POST.get('order_rate', '')
-    product_rate = request.POST.get('product_rate', '')
-    order_reason = request.POST.get('order_reason', '')
-    product_reason = request.POST.get('product_reason', '')
-    order_ratings_data = eval(request.POST.get('order_details', '{}'))
-    customer_name = request.user.get_full_name()
-    original_order_id = order_ratings_data['order_id']
-    items = order_ratings_data['items']
-    seller = SellerOrderSummary.objects.filter(order__user=warehouse_user, order__customer_name=customer_name, order__original_order_id=original_order_id, delivered_flag=1).update(delivered_flag=2)
-    rating_obj = RatingsMaster.objects.create(user=user, original_order_id=original_order_id, rating_product=product_rate, rating_order=order_rate, reason_product=product_reason, reason_order=order_reason, updation_date=updation_date)
-    if rating_obj:
-        for obj in items:
-            sku_obj = SKUMaster.objects.filter(sku_code = obj['sku_code'], user = user.id)
-            if sku_obj:
-                RatingSKUMapping.objects.create(rating=rating_obj, sku_id=sku_obj[0].id, remarks=obj['remarks'])
+    try:
+        warehouse_user = user.id
+        order_rate = request.POST.get('order_rate', '')
+        product_rate = request.POST.get('product_rate', '')
+        order_reason = request.POST.get('order_reason', '')
+        product_reason = request.POST.get('product_reason', '')
+        order_ratings_data = eval(request.POST.get('order_details', '{}'))
+        customer_name = request.user.get_full_name()
+        original_order_id = order_ratings_data['order_id']
+        items = order_ratings_data['items']
+        seller = SellerOrderSummary.objects.filter(order__user=warehouse_user, order__customer_name=customer_name, order__original_order_id=original_order_id, delivered_flag=1).update(delivered_flag=2)
+        rating_obj = RatingsMaster.objects.create(user=user, original_order_id=original_order_id, rating_product=product_rate, rating_order=order_rate, reason_product=product_reason, reason_order=order_reason)
+        if rating_obj:
+            for obj in items:
+                sku_obj = SKUMaster.objects.filter(sku_code = obj['sku_code'], user = user.id)
+                if sku_obj:
+                    RatingSKUMapping.objects.create(rating=rating_obj, sku_id=sku_obj[0].id, remarks=obj['remarks'])
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Save Customer Ratings failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse(json.dumps({'status': False}), content_type='application/json')
     return HttpResponse(json.dumps({'status':True}), content_type='application/json')
 
 """
@@ -14481,3 +14492,21 @@ def send_order_back(request, user=''):
         status ="Successfully sended all the orders back"
 
     return HttpResponse(json.dumps({'data':order_det_not_reassigned_orderid , 'message': 'Success', 'status':status }))
+
+@login_required
+@get_admin_user
+def invoice_print_manifest(request, user=''):
+    shipment_number = request.POST.get('shipment_id')
+    shipment_orders = ShipmentInfo.objects.filter(order_shipment__shipment_number=int(shipment_number),
+                                                  order_shipment__user=user.id)
+    final_data = ''
+    for orders in shipment_orders :
+        invoice_data = get_invoice_data(str(orders.order.id),user)
+        invoice_data = modify_invoice_data(invoice_data, user)
+        if get_misc_value('show_imei_invoice', user.id) == 'true':
+            invoice_data = build_marketplace_invoice(invoice_data, user, False)
+        else:
+            invoice_data = build_invoice(invoice_data, user, False)
+        final_data += invoice_data
+
+    return HttpResponse(final_data)

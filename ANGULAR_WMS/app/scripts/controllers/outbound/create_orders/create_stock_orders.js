@@ -33,17 +33,25 @@ vm.get_sku_details = function (data){
 }
 vm.changeUnitPrice = function(data){
   data.total_price = (data.order_quantity * data.price)
+  var cgst_percentage = 0;
+  var sgst_percentage = 0;
+
   if(data.cgst)
   {
-    data.total_price += parseFloat(data.cgst)
+      cgst_percentage = (data.total_price * parseFloat(data.cgst)) / 100
   }
   if(data.sgst)
   {
-   data.total_price += parseFloat(data.cgst)
+     sgst_percentage = (data.total_price * parseFloat(data.sgst)) / 100
   }
+
   if(data.igst)
   {
-   data.total_price += parseFloat(data.cgst)
+    var igst_percentage = (data.total_price * parseFloat(data.igst)) / 100
+    data.total_price += igst_percentage;
+  }
+  else{
+    data.total_price += cgst_percentage + sgst_percentage;
   }
 }
   vm.warehouse_list = [];

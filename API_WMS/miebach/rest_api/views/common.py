@@ -1323,7 +1323,7 @@ def auto_po_warehouses(sku, qty):
 
 @csrf_exempt
 def auto_po(wms_codes, user):
-    from outbound import insert_st, confirm_stock_transfer
+    from outbound import insert_st_gst, confirm_stock_transfer_gst
     auto_po_switch = get_misc_value('auto_po_switch', user)
     auto_raise_stock_transfer = get_misc_value('auto_raise_stock_transfer', user)
     if 'true' in [auto_po_switch, auto_raise_stock_transfer]:
@@ -5334,7 +5334,7 @@ def get_invoice_html_data(invoice_data):
     if show_mrp == 'true':
         data['columns'] += 1
     if show_sno == 'true' :
-        data['columns'] += 1    
+        data['columns'] += 1
     if invoice_data.get('is_cess_tax_flag', '') == 'false':
         data['columns'] -= 1
     if invoice_data.get('invoice_remarks', '') not in ['false', '']:
@@ -8542,3 +8542,69 @@ def delete_temp_json(request, user=''):
 def get_sub_users(user):
     sub_users = AdminGroups.objects.get(user_id=user.id).group.user_set.filter()
     return sub_users
+
+def insert_st_gst(all_data, user):
+    for key, value in all_data.iteritems():
+        for val in value:
+            if val[6]:
+                open_st = OpenST.objects.get(id=val[6])
+                open_st.warehouse_id = User.objects.get(username__iexact=key).id
+                open_st.sku_id = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
+                open_st.price = float(val[2])
+                open_st.order_quantity = float(val[1])
+                open_st.cgst_tax = float(val[3])
+                open_st.sgst_tax = float(val[4])
+                open_st.igst_tax = float(val[5])
+                open_st.save()
+                continue
+            stock_dict = copy.deepcopy(OPEN_ST_FIELDS)
+            stock_dict['warehouse_id'] = User.objects.get(username__iexact=key).id
+            stock_dict['sku_id'] = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
+            stock_dict['order_quantity'] = float(val[1])
+            stock_dict['price'] = float(val[2])
+            stock_dict['cgst_tax'] = float(val[3])
+            stock_dict['sgst_tax'] = float(val[4])
+            stock_dict['igst_tax'] = float(val[5])
+            stock_transfer = OpenST(**stock_dict)
+            stock_transfer.save()
+            all_data[key][all_data[key].index(val)][6] = stock_transfer.id
+    return all_data
+
+
+def confirm_stock_transfer_gst(all_data, user, warehouse_name):
+    for key, value in all_data.iteritems():
+        po_id = get_purchase_order_id(user) + 1
+        warehouse = User.objects.get(username__iexact=warehouse_name)
+        stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
+        if stock_transfer_obj:
+            order_id = int(stock_transfer_obj[0].order_id) + 1
+        else:
+            order_id = 1001
+        for val in value:
+            open_st = OpenST.objects.get(id=val[6])
+            sku_id = SKUMaster.objects.get(wms_code__iexact=val[0], user=warehouse.id).id
+            user_profile = UserProfile.objects.filter(user_id=user.id)
+            prefix = ''
+            if user_profile:
+                prefix = user_profile[0].prefix
+            po_dict = {'order_id': po_id, 'received_quantity': 0, 'saved_quantity': 0,
+                       'po_date': datetime.datetime.now(), 'ship_to': '',
+                       'status': '', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
+            po_order = PurchaseOrder(**po_dict)
+            po_order.save()
+            st_purchase_dict = {'po_id': po_order.id, 'open_st_id': open_st.id,
+                                'creation_date': datetime.datetime.now()}
+            st_purchase = STPurchaseOrder(**st_purchase_dict)
+            st_purchase.save()
+            st_dict = copy.deepcopy(STOCK_TRANSFER_FIELDS)
+            st_dict['order_id'] = order_id
+            st_dict['invoice_amount'] = (float(val[1]) * float(val[2])) + float(val[3]) + float(val[4]) + float(val[5])
+            st_dict['quantity'] = float(val[1])
+            st_dict['st_po_id'] = st_purchase.id
+            st_dict['sku_id'] = sku_id
+            stock_transfer = StockTransfer(**st_dict)
+            stock_transfer.save()
+            open_st.status = 0
+            open_st.save()
+        check_purchase_order_created(user, po_id)
+    return HttpResponse("Confirmed Successfully")

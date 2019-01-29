@@ -1450,7 +1450,6 @@ def create_order_storehippo(store_hippo_data, user_obj):
     create_order['fulfillmentStatus'] = store_hippo_data.get('fulfillment_status', '')
     create_order['custom_shipping_applied'] = store_hippo_data.get('custom_shipping_applied', 0)
     create_order['order_reference'] = store_hippo_data.get('_id', '')
-    #import pdb;pdb.set_trace()
     admin_discounts = store_hippo_data.get('discounts', [])
     if admin_discounts:
         admin_discounts = admin_discounts[0].get('saved_amount',0)
@@ -1567,7 +1566,6 @@ def store_hippo(request):
     store_hippo_data = json.loads(request.body)
     storehippo_log.info('------------API Type -' + api_type + '------------')
     status_resp = ''
-    import pdb;pdb.set_trace()
     try:
         user_obj = User.objects.get(username='storehippo')
     except:

@@ -1952,7 +1952,6 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
 @login_required
 @get_admin_user
 def picklist_confirmation(request, user=''):
-    import pdb;pdb.set_trace()
     st_time = datetime.datetime.now()
     data = {}
     all_data = {}

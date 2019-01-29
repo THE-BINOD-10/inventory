@@ -1921,6 +1921,8 @@ TOP_COMPANY_LOGO_PATHS = {'Konda_foundation': 'dr_reddy_logo.png'}
 
 ISO_COMPANY_LOGO_PATHS = {'aidin_technologies': 'iso_aidin_tech.jpg'}
 
+LEFT_SIDE_COMPNAY_LOGO = {'Skinstore': 'skin_store.png'}
+
 # Configurtions Mapping
 REMAINDER_MAIL_ALERTS = OrderedDict((('po_remainder', 'PO Remainder'),))
 
@@ -2478,7 +2480,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                             child_sku_code = data.order.sku.sku_code
                     temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
                                                             ('Child SKU', child_sku_code),
-                                                            ('Description', data.stock.sku.sku_desc),
+                                                            ('Description', data.order.sku.sku_desc),
                                                             ('Location', pick_loc.stock.location.location),
                                                             ('Quantity', data.order.quantity),
                                                             ('Picked Quantity', picked_quantity),
@@ -3572,7 +3574,8 @@ def get_order_summary_data(search_params, user, sub_user):
             invoice_date = 0
 
         try:
-            serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data.sku.sku_code,order__original_order_id=order_id,po_imei__sku__user=user.id)
+            #serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data.sku.sku_code,order__original_order_id=order_id,po_imei__sku__user=user.id)
+            serial_number = OrderIMEIMapping.objects.filter(order__id=data.id)
         except:
             serial_number =''
         if serial_number :
@@ -5545,10 +5548,10 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
     lis = ['id', 'user']
     if user.userprofile.warehouse_type != 'DIST':
         distributors = get_same_level_warehouses(2, user)
-        if sub_user.userprofile.zone:
-            zone_id = sub_user.userprofile.zone
-            distributors = UserProfile.objects.filter(user__in=distributors,
-                                                      zone__icontains=zone_id).values_list('user_id', flat=True)
+        # if sub_user.userprofile.zone:
+        #     zone_id = sub_user.userprofile.zone
+        #     distributors = UserProfile.objects.filter(user__in=distributors,
+        #                                               zone__icontains=zone_id).values_list('user_id', flat=True)
     else:
         distributors = [user.id]
     temp_data = copy.deepcopy(AJAX_DATA)
@@ -5756,11 +5759,11 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
         order_return_obj = OrderReturns.objects.filter(order__original_order_id = order_id,sku__wms_code = data['order__sku__sku_code'],sku__user=user.id)
         if order_return_obj and central_order_reassigning == 'true' :
             shipment_status = 'Returned'
-        serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data['order__sku__sku_code'],order_id=data['order__id'],po_imei__sku__user=user.id)
-        if serial_number :
-            serial_number = serial_number[0].po_imei.imei_number
-        else:
-            serial_number = ''
+        serial_number = ''
+        serial_number_qs = OrderIMEIMapping.objects.filter(order_id=data['order__id'])
+        if serial_number_qs:
+            if serial_number_qs[0].po_imei:
+                serial_number = serial_number_qs[0].po_imei.imei_number
         dispatched_date =  get_local_date(user,data['order_shipment__creation_date'])
 
         if delivered_time :

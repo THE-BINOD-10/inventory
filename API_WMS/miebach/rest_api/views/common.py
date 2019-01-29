@@ -3633,7 +3633,7 @@ def search_wms_data(request, user=''):
 
     lis = ['wms_code', 'sku_desc', 'mrp']
     query_objects = sku_master.filter(Q(wms_code__icontains=search_key) | Q(sku_desc__icontains=search_key),
-                                      user=user.id)
+                                      status = 1,user=user.id)
 
     master_data = query_objects.filter(Q(wms_code__exact=search_key) | Q(sku_desc__exact=search_key), user=user.id)
     if master_data:
@@ -8717,4 +8717,3 @@ def load_by_file(load_file_name, table_name, columns, id_dependency=False):
         log.info('loading completed')
     except:
         pass
-

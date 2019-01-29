@@ -355,7 +355,6 @@ class EasyopsAPI:
         json_response = self.get_response(url, data)
         return json_response
 
-
     def qssi_order_push(self, data={}, user=''):
         """ API to push order (QSSI)"""
         if user:
@@ -383,6 +382,7 @@ class EasyopsAPI:
         json_response = self.get_response(url, data)
         return json_response
 
+
     def qssi_get_order_status(self, data={}, user=''):
         """ API to get order status (QSSI)"""
         if user:
@@ -394,4 +394,12 @@ class EasyopsAPI:
             url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'get_order_status', ''))
         json_response = self.get_response(url, data)
         return json_response
+
+    def store_hippo_fulfillments(self, user=''):
+        if user:
+            self.user = user
+	return ''
+
+    #def store_hippo_cancel_orders_stockone(self, user=''):
+        
 

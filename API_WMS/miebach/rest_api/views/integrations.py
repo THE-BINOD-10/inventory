@@ -2204,7 +2204,6 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
 
 
 def validate_orders_format_storehippo(orders, user='', company_name='', is_cancelled=False):
-    import pdb;pdb.set_trace()
     order_status_dict = {'NEW': 1, 'RETURN': 3, 'CANCEL': 4}
     NOW = datetime.datetime.now()
     insert_status = []
@@ -2327,6 +2326,7 @@ def validate_orders_format_storehippo(orders, user='', company_name='', is_cance
                         order_details['customer_id'] = order.get('customer_id', 0)
                         order_details['customer_code'] = order.get('customer_code', '')
                         order_details['customer_name'] = order.get('customer_name', '')
+                        order_details['order_reference'] = order.get('order_reference', '')
                         final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details,
                                                              final_data_dict=final_data_dict)
                     if not failed_status and not insert_status and sku_item.get('tax_percent', {}):

@@ -1564,6 +1564,8 @@ def store_hippo(request):
         status_resp = create_order_storehippo(store_hippo_data, user_obj)
     if api_type in ['add_sku', 'edit_sku']:
         status_resp = create_update_sku_storehippo(store_hippo_data, user_obj)
+    if api_type == 'order_delete':
+        status_resp = delete_order_storehippo(store_hippo_data, user_obj)
     b = datetime.datetime.now()
     delta = b - a
     time_taken = str(delta.total_seconds())

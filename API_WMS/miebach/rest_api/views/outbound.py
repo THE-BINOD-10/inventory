@@ -2193,6 +2193,12 @@ def picklist_confirmation(request, user=''):
 	if int_obj and rista_order_id_list:
 	    rista_order_id = list(set(rista_order_id_list))
 	    rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
+
+        #Check StoreHippo User
+        #check_store_hippo = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
+        #if check_store_hippo:
+        #    store_hippo_fulfillments = store_hippo_fulfillments(rista_order_dict, user)
+
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
         order_ids = picks_all.values_list('order_id', flat=True).distinct()
@@ -14524,3 +14530,4 @@ def invoice_print_manifest(request, user=''):
         final_data += invoice_data
 
     return HttpResponse(final_data)
+

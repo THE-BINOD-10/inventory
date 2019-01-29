@@ -2364,6 +2364,7 @@ def validate_orders_format_storehippo(orders, user='', company_name='', is_cance
                     shipping_charges_tax = (5 * float(order_fields_dict['shipping_charges']))/100
                     if shipping_charges_tax:
                         order_fields_dict['shipping_charges_tax'] = float(shipping_charges_tax)
+            order_fields_dict['discount'] = -(order.get('discount', 0))
             order_fields_list = []
             for key, value in order_fields_dict.items():
                 order_fields = {}

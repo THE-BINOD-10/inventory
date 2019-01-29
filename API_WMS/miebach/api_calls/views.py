@@ -1450,9 +1450,10 @@ def create_order_storehippo(store_hippo_data, user_obj):
     create_order['fulfillmentStatus'] = store_hippo_data.get('fulfillment_status', '')
     create_order['custom_shipping_applied'] = store_hippo_data.get('custom_shipping_applied', 0)
     create_order['order_reference'] = store_hippo_data.get('_id', '')
-    #admin_discounts = store_hippo_data.get('discounts', [])
-    #if admin_discounts:
-    #    admin_discounts = admin_discounts[0].get('saved_amount',0)
+    #import pdb;pdb.set_trace()
+    admin_discounts = store_hippo_data.get('discounts', [])
+    if admin_discounts:
+        admin_discounts = admin_discounts[0].get('saved_amount',0)
     create_order['invoice_amount'] = create_order.get('all_total_items', 0) + create_order.get('all_total_tax', 0) + create_order.get('shipping_charges', 0) - create_order.get('discount', 0)
     #create_order['extra_key'].append({'shipping_charges':store_hippo_data['shipping_total']})
     allOrders.append(create_order)
@@ -1550,12 +1551,23 @@ def create_update_sku_storehippo(store_hippo_data, user_obj):
     return sku_query_obj
 
 
+def order_edit_storehippo(store_hippo_data, user_obj):
+    order_id_list = []
+    if store_hippo_data['status'] == 'cancelled':
+        order_id = store_hippo_data.get('order_id', '')
+        order_id_list.append(order_id)
+	ids_of_orders = list(set(OrderDetail.objects.filter(original_order_id__in=order_id_list).values_list('id', flat=True)))
+	cancel_order = order_cancel_functionality(ids_of_orders)
+    return store_hippo_data
+    
+
 def store_hippo(request):
     a = datetime.datetime.now()
     api_type = request.META['HTTP_TYPE']
     store_hippo_data = json.loads(request.body)
     storehippo_log.info('------------API Type -' + api_type + '------------')
     status_resp = ''
+    import pdb;pdb.set_trace()
     try:
         user_obj = User.objects.get(username='storehippo')
     except:
@@ -1566,6 +1578,8 @@ def store_hippo(request):
         status_resp = create_update_sku_storehippo(store_hippo_data, user_obj)
     if api_type == 'order_delete':
         status_resp = delete_order_storehippo(store_hippo_data, user_obj)
+    if api_type == 'order_edit':
+        status_resp = order_edit_storehippo(store_hippo_data, user_obj)
     b = datetime.datetime.now()
     delta = b - a
     time_taken = str(delta.total_seconds())

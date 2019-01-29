@@ -395,11 +395,3 @@ class EasyopsAPI:
         json_response = self.get_response(url, data)
         return json_response
 
-    def store_hippo_fulfillments(self, user=''):
-        if user:
-            self.user = user
-	return ''
-
-    #def store_hippo_cancel_orders_stockone(self, user=''):
-        
-

@@ -1285,6 +1285,7 @@ def confirm_po(request, user=''):
         table_headers.insert(10, 'CESS (%)')
     company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
     iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
+    left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO , request)
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address,
@@ -1299,7 +1300,7 @@ def confirm_po(request, user=''):
                  'wh_telephone': wh_telephone, 'terms_condition' : terms_condition,
                  'total_amt_in_words' : total_amt_in_words, 'show_cess_tax': show_cess_tax,
                  'company_address': company_address, 'wh_gstin': profile.gst_number,
-                 'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
+                 'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value
     t = loader.get_template('templates/toggle/po_download.html')
@@ -4907,6 +4908,7 @@ def confirm_add_po(request, sales_data='', user=''):
         round_value = float(round(total) - float(total))
         company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
         iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
+        left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO , request)
         data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address.encode('ascii', 'ignore'), 'order_id': order_id,
                      'telephone': str(telephone), 'ship_to_address': ship_to_address.encode('ascii', 'ignore'),
                      'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,
@@ -4919,7 +4921,7 @@ def confirm_add_po(request, sales_data='', user=''):
                      'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number, 'wh_pan': profile.pan_number,
                      'terms_condition': terms_condition, 'show_cess_tax' : show_cess_tax,
                      'company_address': company_address.encode('ascii', 'ignore'),
-                     'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
+                     'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
         if round_value:
             data_dict['round_total'] = "%.2f" % round_value
         t = loader.get_template('templates/toggle/po_download.html')
@@ -5140,6 +5142,7 @@ def confirm_po1(request, user=''):
             round_value = float(round(total) - float(total))
             company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
             iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
+            left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO , request)
             data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                          'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': round(total),
                          'company_name': profile.company_name, 'location': profile.location,
@@ -5150,7 +5153,7 @@ def confirm_po1(request, user=''):
                          'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number,
                          'terms_condition' : terms_condition, 'total_amt_in_words' : total_amt_in_words,
                          'show_cess_tax': show_cess_tax, 'company_address': company_address,
-                         'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
+                         'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
             if round_value:
                 data_dict['round_total'] = "%.2f" % round_value
             t = loader.get_template('templates/toggle/po_download.html')

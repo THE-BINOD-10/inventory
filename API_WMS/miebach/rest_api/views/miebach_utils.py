@@ -3568,7 +3568,8 @@ def get_order_summary_data(search_params, user, sub_user):
             invoice_date = 0
 
         try:
-            serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data.sku.sku_code,order__original_order_id=order_id,po_imei__sku__user=user.id)
+            #serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data.sku.sku_code,order__original_order_id=order_id,po_imei__sku__user=user.id)
+            serial_number = OrderIMEIMapping.objects.filter(order__id=data.id)
         except:
             serial_number =''
         if serial_number :
@@ -5541,10 +5542,10 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
     lis = ['id', 'user']
     if user.userprofile.warehouse_type != 'DIST':
         distributors = get_same_level_warehouses(2, user)
-        if sub_user.userprofile.zone:
-            zone_id = sub_user.userprofile.zone
-            distributors = UserProfile.objects.filter(user__in=distributors,
-                                                      zone__icontains=zone_id).values_list('user_id', flat=True)
+        # if sub_user.userprofile.zone:
+        #     zone_id = sub_user.userprofile.zone
+        #     distributors = UserProfile.objects.filter(user__in=distributors,
+        #                                               zone__icontains=zone_id).values_list('user_id', flat=True)
     else:
         distributors = [user.id]
     temp_data = copy.deepcopy(AJAX_DATA)

@@ -622,7 +622,10 @@ def generate_picklist(request, user=''):
         if key in ('sortingTable_length', 'fifo-switch', 'ship_reference', 'remarks', 'filters', 'enable_damaged_stock'):
             continue
 
-        order_data = OrderDetail.objects.get(id=key, user=user.id)
+        order_data = OrderDetail.objects.filter(id=key, user=user.id, status=1)
+        if not order_data.exists():
+            continue
+        order_data = order_data[0]
         seller_orders = all_seller_orders.filter(order_id=key, status=1).order_by('order__shipment_date')
         try:
             if seller_orders:
@@ -734,7 +737,7 @@ def batch_generate_picklist(request, user=''):
 
             key = key.split('<>')
             sku_code, marketplace_sku_code, title = key
-            order_filter = {'sku__sku_code': sku_code, 'quantity__gt': 0, 'title': title}
+            order_filter = {'sku__sku_code': sku_code, 'quantity__gt': 0, 'title': title, 'status': 1}
 
             if sku_code != marketplace_sku_code:
                 order_filter['sku_code'] = marketplace_sku_code
@@ -8560,7 +8563,7 @@ def order_category_generate_picklist(request, user=''):
     for key, value in request.POST.iteritems():
         if key in PICKLIST_SKIP_LIST or key in ['filters', 'enable_damaged_stock']:
             continue
-        order_filter = {'quantity__gt': 0}
+        order_filter = {'quantity__gt': 0, 'status': 1}
         if '<>' in key:
             key = key.split('<>')
             order_id, sku_category = key

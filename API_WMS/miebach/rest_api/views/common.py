@@ -8628,9 +8628,9 @@ def update_order_dicts_rista(orders, rista_resp, user='', company_name=''):
         customer_name = order['order_details']['customer_name']
         if order_key == "extra":
             if float(order.get('shipping_charges', 0)):
-                    OrderCharges.objects.create(**{'order_id': order.get('original_order_id', ''), 'user':user, 'charge_name':'Shipping Charges', 'charge_amount': float(order.get('shipping_charges', 0)) })
+                OrderCharges.objects.create(**{'order_id': order.get('original_order_id', ''), 'user':user, 'charge_name':'Shipping Charges', 'charge_amount': float(order.get('shipping_charges', 0)) })
             if float(order.get('discount', 0)):
-                    OrderCharges.objects.create(**{'order_id': order.get('original_order_id', ''), 'user':user, 'charge_name':'Discount', 'charge_amount': float(order.get('discount',0)) })
+                OrderCharges.objects.create(**{'order_id': order.get('original_order_id', ''), 'user':user, 'charge_name':'Discount', 'charge_amount': float(order.get('discount',0)) })
             continue
         if not order.get('order_details', {}):
             continue

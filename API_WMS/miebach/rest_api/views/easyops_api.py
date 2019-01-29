@@ -382,7 +382,6 @@ class EasyopsAPI:
         json_response = self.get_response(url, data)
         return json_response
 
-
     def qssi_get_order_status(self, data={}, user=''):
         """ API to get order status (QSSI)"""
         if user:

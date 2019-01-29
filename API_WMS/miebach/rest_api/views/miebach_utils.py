@@ -1917,6 +1917,8 @@ TOP_COMPANY_LOGO_PATHS = {'Konda_foundation': 'dr_reddy_logo.png'}
 
 ISO_COMPANY_LOGO_PATHS = {'aidin_technologies': 'iso_aidin_tech.jpg'}
 
+LEFT_SIDE_COMPNAY_LOGO = {'Skinstore': 'skin_store.png'}
+
 # Configurtions Mapping
 REMAINDER_MAIL_ALERTS = OrderedDict((('po_remainder', 'PO Remainder'),))
 

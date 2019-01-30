@@ -13,6 +13,8 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
   vm.record_qcitems_data = [];
   vm.status_data = {message:"cancel", data:{}}
   vm.qty_validation = {};
+  vm.collect_imei_data = {}
+  vm.get_id = ''
 
   vm.getPoData = function(data){
     Service.apiCall(data.url, data.method, data.data, true).then(function(data){
@@ -149,7 +151,8 @@ function view_orders() {
 
   vm.serial_scan = function(event, scan, data, record) {
     vm.getrecordSerialnumber(data);
-      if ( event.keyCode == 13) {
+      if (event.keyCode == 13) {
+        vm.get_id = data.id
         var id = data.id;
         var total = 0;
         for(var i=0; i < data.sub_data.length; i++) {
@@ -163,13 +166,13 @@ function view_orders() {
           vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
           if(data.data.status == "Success") {
               if(data.data.data.sku_code == record.wms_code) {
-                if(vm.record_serial_data[0] == scan_data) {
-                  vm.qc_items(vm.model_data);
-                  vm.increament(record);
-                } else {
-                  vm.service.showNoty("Please Enter the Correct Serial Number !");
-                  record.scan = '';
-                }
+                //if(vm.record_serial_data[0] == scan_data) {
+                  //vm.qc_items(vm.model_data);
+                vm.increament(record);
+                //} else {
+                //  vm.service.showNoty("Please Enter the Correct Serial Number !");
+                //  record.scan = '';
+                //}
               } else {
                 Service.pop_msg(data.data.status);
                 scan_data.splice(length-1,1);
@@ -180,6 +183,7 @@ function view_orders() {
             }
             else{
               Service.pop_msg(data.data.status);
+              record.scan = '';
             }
           });
         } else {
@@ -187,6 +191,7 @@ function view_orders() {
           record.scan = scan_data.join('\n');
           record.scan = record.scan+"\n";
           vm.service.showNoty("picked already equal to reserved quantity !");
+          record.scan = '';
           // Service.pop_msg("picked already equal to reserved quantity");
         }
       }
@@ -195,6 +200,13 @@ function view_orders() {
     vm.increament = function (record) {
       record.picked_quantity = parseInt(record.picked_quantity) + 1;
       vm.record_serial_data.shift()
+      if(vm.collect_imei_data.hasOwnProperty(vm.get_id)) {
+        vm.collect_imei_data[vm.get_id].push(record.scan)
+      } else {
+        vm.collect_imei_data[vm.get_id] = []
+        vm.collect_imei_data[vm.get_id].push(record.scan)
+      }
+      $("input[name=imei_"+vm.get_id+"]").prop('value', String(vm.collect_imei_data[vm.get_id]))
       record.scan = '';
     }
 
@@ -256,6 +268,7 @@ function view_orders() {
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
+      debugger;
       vm.service.apiCall('picklist_confirmation/', 'POST', elem, true).then(function(data){
         if(data.message) {
           vm.qty_validation = {};

@@ -1266,6 +1266,7 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
 
 
 def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
+    import pdb;pdb.set_trace()
     if ',' in val['imei']:
         imei_nos = list(set(val['imei'].split(',')))
     else:
@@ -1980,6 +1981,7 @@ def picklist_confirmation(request, user=''):
     rista_picklist_dict = {}
 
     log.info('Request params for ' + user.username + ' is ' + str(data))
+    import pdb;pdb.set_trace()
     try:
 	rista_order_id_list = []
 	rista_order_dict = {}
@@ -2059,6 +2061,7 @@ def picklist_confirmation(request, user=''):
                     picking_count1 = 0  # picking_count
                     wms_id = all_skus.exclude(sku_code='').get(wms_code=val['wms_code'], user=user.id)
                     total_stock = StockDetail.objects.filter(**pic_check_data)
+                    import pdb;pdb.set_trace()
                     if 'imei' in val.keys() and val['imei'] and picklist.order:
                         insert_order_serial(picklist, val)
                     if 'labels' in val.keys() and val['labels'] and picklist.order:
@@ -2276,6 +2279,7 @@ def serial_order_mapping(picklist, user):
         val['imei'] = ','.join(imeis)
 
         # Map Serial Number with Order
+        import pdb;pdb.set_trace()
         insert_order_serial(picklist, val)
 
         # Create Shipment automatically
@@ -2927,6 +2931,7 @@ def awb_direct_insert_shipment_info(data_params, order_awb_obj, user=''):
                         shipment_data[key] = value
 
                 # Need to comment below 3 lines if shipment scan is ready
+                import pdb;pdb.set_trace()
                 if 'imei_number' in ship_data[i].keys() and ship_data[i]['imei_number']:
                     shipped_orders_dict = insert_order_serial([], {'wms_code': order_detail.sku.wms_code,
                                                                    'imei': ship_data[i]['imei_number']},

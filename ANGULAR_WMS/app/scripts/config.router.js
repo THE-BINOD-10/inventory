@@ -2238,6 +2238,42 @@ var app = angular.module('urbanApp')
            url: '/DebitNotePrint',
            templateUrl: 'views/reports/toggles/purchase_order.html',
         })
+        .state('app.reports.CurrentStockReport', {
+          url: '/CurrentStockReport',
+          templateUrl: 'views/reports/current_stock_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/current_stock_report.js');
+              }]
+          },
+          data: {
+            title: 'Current Stock Report',
+          }
+        })
+        .state('app.reports.InventoryValueReport', {
+          url: '/InventoryValueReport',
+          templateUrl: 'views/reports/inventory_value_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/inventory_value_report.js');
+              }]
+          },
+          data: {
+            title: 'Inventory Value Report',
+          }
+        })
+        .state('app.reports.BulkToRetailReport', {
+          url: '/BulkToRetailReport',
+          templateUrl: 'views/reports/bulk_to_retail_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/bulk_to_retail_report.js');
+              }]
+          },
+          data: {
+            title: 'Bulk to Retail Report',
+          }
+        })
 
 
       // configuration route

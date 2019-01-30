@@ -754,23 +754,6 @@ class InventoryAdjustment(models.Model):
         return str(self.id)
 
 
-class SubstitutionSummary(models.Model):
-    source_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='source_sku')
-    destination_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='destination_sku')
-    source_location = models.CharField(max_length=64)
-    destination_location = models.CharField(max_length=64)
-    source_quantity = models.FloatField(default=0)
-    destination_quantity = models.FloatField(default=0)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'SUBSTITUTION_SUMMARY'
-
-    def __unicode__(self):
-        return str(self.id)
-
-
 class Issues(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)
@@ -1054,6 +1037,26 @@ class SellerMaster(models.Model):
             'supplier': supplier_id,
             'status': self.status
         }
+
+
+class SubstitutionSummary(models.Model):
+    source_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='source_sku')
+    destination_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='destination_sku')
+    source_location = models.CharField(max_length=64)
+    destination_location = models.CharField(max_length=64)
+    source_quantity = models.FloatField(default=0)
+    destination_quantity = models.FloatField(default=0)
+    source_batch = models.ForeignKey(BatchDetail, blank=True, null=True)
+    dest_batch = models.ForeignKey(BatchDetail, blank=True, null=True, related_name='dest_batch')
+    seller = models.ForeignKey(SellerMaster, blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SUBSTITUTION_SUMMARY'
+
+    def __unicode__(self):
+        return str(self.id)
 
 
 class POIMEIMapping(models.Model):

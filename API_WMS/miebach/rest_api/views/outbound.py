@@ -211,6 +211,11 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
             alternative_mobile_no =''
             model = ''
             total_price =''
+            unit_price = ''
+            cgst = ''
+            sgst = ''
+            igst = ''
+            location_name = ''
             try :
                 interm_obj = IntermediateOrders.objects.filter(order_id=str(data.id))
                 if interm_obj :
@@ -260,6 +265,7 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
                     sgst = interm_obj[0].sgst_tax
                     igst = interm_obj[0].igst_tax
                     location = interm_obj[0].order_assigned_wh
+                    location_name = location.username
             except Exception as e:
                 import traceback
                 log.debug(traceback.format_exc())
@@ -270,7 +276,7 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
                                                     ('Batch Date',batch_date),('Branch ID',branch_id),('Branch Name',branch_name),('Loan Proposal ID',data.original_order_id),('Loan Proposal Code',loan_proposal_code),('Client Code',client_code),('Client ID',client_id),
                                                     ('Customer Name',data.customer_name),('Address1',address1),('Address2',address2),('Landmark',landmark),('Village',village),('District',district),
                                                     ('State1',state),('Pincode',pincode),('Mobile Number',mobile_no),('Alternative Mobile Number',alternative_mobile_no),('SKU Code',sku_code),('Model',model),
-                                                    ('Unit Price',unit_price),('CGST',cgst),('SGST',sgst),('IGST',igst),('Total Price',total_price),('Location',location.username))))
+                                                    ('Unit Price',unit_price),('CGST',cgst),('SGST',sgst),('IGST',igst),('Total Price',total_price),('Location',location_name))))
         else:
             temp_data['aaData'].append(OrderedDict((('', checkbox), ('Order ID', order_id), ('SKU Code', sku_code),
                                                 ('Title', data.title), ('id', count), ('Product Quantity', quantity),
@@ -8394,8 +8400,6 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
                                             Q(order__original_order_id__icontains=search_term)).order_by(order_data)
     else:
         all_orders = interm_orders.order_by(order_data)
-    temp_data['recordsTotal'] = all_orders.count()
-    temp_data['recordsFiltered'] = temp_data['recordsTotal']
     index = 0
     custom_sort = False
     if col_num in un_sort_dict.keys():
@@ -8412,6 +8416,9 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
     for item in ord_items:
         interm_order_id = item[0]
         line_items_map.setdefault(interm_order_id, []).append(item[1:])
+
+    temp_data['recordsTotal'] = len(line_items_map.keys())
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     for order_id, dat in line_items_map.items()[start_index:stop_index]:
         loan_proposal_id, assigned_wh, status, sku_code, sku_desc, quantity, shipment_date, \
@@ -14492,7 +14499,7 @@ def send_order_back(request, user=''):
     if  len(order_det_not_reassigned_orderid) > 0 :
         status = "These Order ID's are not sent back"
     else:
-        status ="Successfully sended all the orders back"
+        status ="Successfully sent all the orders back"
 
     return HttpResponse(json.dumps({'data':order_det_not_reassigned_orderid , 'message': 'Success', 'status':status }))
 

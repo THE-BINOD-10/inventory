@@ -166,13 +166,7 @@ function view_orders() {
           vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
           if(data.data.status == "Success") {
               if(data.data.data.sku_code == record.wms_code) {
-                //if(vm.record_serial_data[0] == scan_data) {
-                  //vm.qc_items(vm.model_data);
                 vm.increament(record);
-                //} else {
-                //  vm.service.showNoty("Please Enter the Correct Serial Number !");
-                //  record.scan = '';
-                //}
               } else {
                 Service.pop_msg(data.data.status);
                 scan_data.splice(length-1,1);
@@ -192,7 +186,6 @@ function view_orders() {
           record.scan = record.scan+"\n";
           vm.service.showNoty("picked already equal to reserved quantity !");
           record.scan = '';
-          // Service.pop_msg("picked already equal to reserved quantity");
         }
       }
     }
@@ -268,7 +261,6 @@ function view_orders() {
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      debugger;
       vm.service.apiCall('picklist_confirmation/', 'POST', elem, true).then(function(data){
         if(data.message) {
           vm.qty_validation = {};

@@ -454,6 +454,7 @@ class OpenPO(models.Model):
     igst_tax = models.FloatField(default=0)
     cess_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
+    apmc_tax = models.FloatField(default=0)
     mrp = models.FloatField(default=0)
     delivery_date = models.DateField(blank=True, null=True)
     status = models.CharField(max_length=32)
@@ -1967,6 +1968,7 @@ class SellerPOSummary(models.Model):
     discount_percent = models.FloatField(default=0)
     round_off_total = models.FloatField(default=0)
     cess_tax = models.FloatField(default=0)
+    apmc_tax = models.FloatField(default=0)
     overall_discount = models.FloatField(default=0)
     remarks = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -2350,6 +2352,7 @@ class TaxMaster(models.Model):
     igst_tax = models.FloatField(default=0)
     cess_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
+    apmc_tax = models.FloatField(default=0)
     min_amt = models.FloatField(default=0)
     max_amt = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -2370,6 +2373,7 @@ class TaxMaster(models.Model):
             'igst_tax': self.igst_tax,
             'cess_tax': self.cess_tax,
             'utgst_tax': self.utgst_tax,
+            'apmc_tax': self.apmc_tax,
             'min_amt': self.min_amt,
             'max_amt': self.max_amt,
             'user_id': self.user.id

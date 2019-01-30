@@ -1327,7 +1327,7 @@ def auto_po_warehouses(sku, qty):
 def auto_po(wms_codes, user):
     from outbound import insert_st
     auto_po_switch = get_misc_value('auto_po_switch', user)
-    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user)
     auto_raise_stock_transfer = get_misc_value('auto_raise_stock_transfer', user)
     if 'true' in [auto_po_switch, auto_raise_stock_transfer]:
         sku_codes = SKUMaster.objects.filter(wms_code__in=wms_codes, user=user, threshold_quantity__gt=0)

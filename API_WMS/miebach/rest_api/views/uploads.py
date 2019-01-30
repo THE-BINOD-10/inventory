@@ -5289,8 +5289,6 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
     sister_wh_names = dict(sister_wh.values_list('user__username', 'user_id'))
     sister_user_sku_map = {}
     user_sku_map = {}
-    if no_of_rows > 1500:
-        return "Orders exceeded. Please upload 1500 at a time."
     for row_idx in range(1, no_of_rows):
         print "Validation Row: " + str(row_idx)
         user_obj = ''
@@ -5397,14 +5395,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
     cos_objs = []
     order_fields_objs = []
     inter_objs = []
-    get_interm_order_id = IntermediateOrders.objects.filter(user=user.id). \
-        aggregate(Max('interm_order_id'))
-    if get_interm_order_id['interm_order_id__max']:
-        interm_order_id = get_interm_order_id['interm_order_id__max']
-    else:
-        interm_order_id = 10000
     for row_idx in range(1, no_of_rows):
-        interm_order_id += 1
         print "Creation Row: " + str(row_idx)
         order_data = copy.deepcopy(CENTRAL_ORDER_XLS_UPLOAD)
         order_data['user'] = user
@@ -5415,6 +5406,12 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                     order_id = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     order_id = str(get_cell_data(row_idx, value, reader, file_type))
+                get_interm_order_id = IntermediateOrders.objects.filter(user=user.id).\
+                                        aggregate(Max('interm_order_id'))
+                if get_interm_order_id['interm_order_id__max']:
+                    interm_order_id = get_interm_order_id['interm_order_id__max'] + 1
+                else:
+                    interm_order_id = 10000
                 order_data['interm_order_id'] = interm_order_id
                 order_fields_objs= create_order_fields_entry(order_id, key, order_id, user, is_bulk_create=True,
                               order_fields_objs=order_fields_objs)

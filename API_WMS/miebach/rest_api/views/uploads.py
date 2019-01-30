@@ -2570,6 +2570,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     mail_result_data = ""
     user_profile = user.userprofile
     creation_date = datetime.datetime.now()
+    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
     for final_dict in data_list:
         order_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
         data = copy.deepcopy(PO_DATA)
@@ -2597,6 +2598,8 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         group_key = (order_data['po_name'], order_data['supplier_id'], data['po_date'], seller_id)
         if group_key not in order_ids.keys():
             po_id = get_purchase_order_id(user)
+            if po_sub_user_prefix == 'true':
+                po_id = update_po_order_prefix(request.user, po_id)
             order_ids[group_key] = po_id
         else:
             po_id = order_ids[group_key]
@@ -2699,6 +2702,7 @@ def purchase_upload_mail(request, data_to_send, user):
                             one_stat['quantity'] * one_stat['price']))
         company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
         iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
+        left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO , request)
         profile = UserProfile.objects.get(user=request.user.id)
         t = loader.get_template('templates/toggle/po_download.html')
         w_address, company_address = get_purchase_company_address(profile)
@@ -2710,7 +2714,7 @@ def purchase_upload_mail(request, data_to_send, user):
                            'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone,
                            'customization': customization, 'ship_to_address': ship_to_address,
                            'company_address': company_address, 'wh_gstin': profile.gst_number,
-                           'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
+                           'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
         rendered = t.render(data_dictionary)
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                            str(order_date).split(' ')[0])
@@ -4461,6 +4465,7 @@ def create_po_serial_mapping(final_data_dict, user):
     user_profile = UserProfile.objects.get(user_id=user.id)
     log.info('PO Serial Mapping data for ' + user.username + ' is ' + str(final_data_dict))
     mod_locations = []
+    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
     for key, value in final_data_dict.iteritems():
         quantity = len(value['imei_list'])
         po_details = value['po_details']
@@ -4474,6 +4479,8 @@ def create_po_serial_mapping(final_data_dict, user):
         order_id = order_id_dict.get(po_details['supplier_id'], '')
         if not order_id:
             order_id = get_purchase_order_id(user) + 1
+            if po_sub_user_prefix == 'true':
+                order_id = update_po_order_prefix(user, order_id)
             order_id_dict[po_details['supplier_id']] = order_id
         purchase_order_dict = {'open_po_id': open_po_obj.id, 'received_quantity': quantity, 'saved_quantity': 0,
                                'po_date': NOW, 'status': po_details['status'], 'prefix': user_profile.prefix,
@@ -5213,6 +5220,9 @@ def sku_substitution_upload(request, user=''):
         if data_dict.get('dest_mrp', 0):
             dest_filter['batch_detail__mrp'] = data_dict['dest_mrp']
             mrp_dict['mrp'] = data_dict['dest_mrp']
+        if data_dict.get('seller_master_id', 0):
+            dest_filter['sellerstock__seller_id'] = data_dict['seller_master_id']
+            mrp_dict['mrp'] = data_dict['dest_mrp']
         dest_stocks = StockDetail.objects.filter(**dest_filter)
         update_substitution_data(data_dict['src_stocks'], dest_stocks, data_dict['source_sku_code_obj'],
                                  data_dict['source_location_obj'], data_dict['source_quantity'],
@@ -5282,6 +5292,8 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
     sister_wh_names = dict(sister_wh.values_list('user__username', 'user_id'))
     sister_user_sku_map = {}
     user_sku_map = {}
+    if no_of_rows > 1500:
+        return "Orders exceeded. Please upload 1500 at a time."
     for row_idx in range(1, no_of_rows):
         print "Validation Row: " + str(row_idx)
         user_obj = ''
@@ -5388,7 +5400,14 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
     cos_objs = []
     order_fields_objs = []
     inter_objs = []
+    get_interm_order_id = IntermediateOrders.objects.filter(user=user.id). \
+        aggregate(Max('interm_order_id'))
+    if get_interm_order_id['interm_order_id__max']:
+        interm_order_id = get_interm_order_id['interm_order_id__max']
+    else:
+        interm_order_id = 10000
     for row_idx in range(1, no_of_rows):
+        interm_order_id += 1
         print "Creation Row: " + str(row_idx)
         order_data = copy.deepcopy(CENTRAL_ORDER_XLS_UPLOAD)
         order_data['user'] = user
@@ -5399,12 +5418,6 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                     order_id = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     order_id = str(get_cell_data(row_idx, value, reader, file_type))
-                get_interm_order_id = IntermediateOrders.objects.filter(user=user.id).\
-                                        aggregate(Max('interm_order_id'))
-                if get_interm_order_id['interm_order_id__max']:
-                    interm_order_id = get_interm_order_id['interm_order_id__max'] + 1
-                else:
-                    interm_order_id = 10000
                 order_data['interm_order_id'] = interm_order_id
                 order_fields_objs= create_order_fields_entry(order_id, key, order_id, user, is_bulk_create=True,
                               order_fields_objs=order_fields_objs)
@@ -5917,7 +5930,7 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
         warehouse = User.objects.get(username=warehouse)
         f_name = 'stock_transfer_' + warehouse_name + '_'
         all_data = insert_st(all_data, warehouse)
-        status = confirm_stock_transfer(all_data, warehouse, user.username)
+        status = confirm_stock_transfer(all_data, warehouse, user.username, request)
 
     if status.status_code == 200:
         return 'Success'
@@ -5945,46 +5958,6 @@ def insert_st(all_data, user):
             stock_transfer.save()
             all_data[key][all_data[key].index(val)][3] = stock_transfer.id
     return all_data
-
-def confirm_stock_transfer(all_data, user, warehouse_name):
-    for key, value in all_data.iteritems():
-        po_id = get_purchase_order_id(user) + 1
-        warehouse = User.objects.get(username__iexact=warehouse_name)
-        stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
-        if stock_transfer_obj:
-            order_id = int(stock_transfer_obj[0].order_id) + 1
-        else:
-            order_id = 1001
-
-        for val in value:
-            open_st = OpenST.objects.get(id=val[3])
-            sku_id = SKUMaster.objects.get(wms_code__iexact=val[0], user=warehouse.id).id
-            user_profile = UserProfile.objects.filter(user_id=user.id)
-            prefix = ''
-            if user_profile:
-                prefix = user_profile[0].prefix
-
-            po_dict = {'order_id': po_id, 'received_quantity': 0, 'saved_quantity': 0,
-                       'po_date': datetime.datetime.now(), 'ship_to': '',
-                       'status': '', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
-            po_order = PurchaseOrder(**po_dict)
-            po_order.save()
-            st_purchase_dict = {'po_id': po_order.id, 'open_st_id': open_st.id,
-                                'creation_date': datetime.datetime.now()}
-            st_purchase = STPurchaseOrder(**st_purchase_dict)
-            st_purchase.save()
-            st_dict = copy.deepcopy(STOCK_TRANSFER_FIELDS)
-            st_dict['order_id'] = order_id
-            st_dict['invoice_amount'] = float(val[1]) * float(val[2])
-            st_dict['quantity'] = float(val[1])
-            st_dict['st_po_id'] = st_purchase.id
-            st_dict['sku_id'] = sku_id
-            stock_transfer = StockTransfer(**st_dict)
-            stock_transfer.save()
-            open_st.status = 0
-            open_st.save()
-        check_purchase_order_created(user, po_id)
-    return HttpResponse("Confirmed Successfully")
 
 
 @csrf_exempt
@@ -6120,6 +6093,9 @@ def sku_pack_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls
 @login_required
 @get_admin_user
 def block_stock_download(request, user=''):
+    returns_file = request.GET['download-file']
+    if returns_file:
+        return error_file_download(returns_file)
     wb, ws = get_work_sheet('block_stock_form', BLOCK_STOCK_MAPPING.keys())
     return xls_to_response(wb, '%s.block_stock_form.xls' % str(user.id))
 
@@ -6171,7 +6147,7 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                         index_status.setdefault(row_idx, set()).add("Reseller Name not found")
             elif key == 'corporate_name':
                 res_code = get_cell_data(row_idx, blockstock_file_mapping['reseller_name'], reader, file_type)
-                res_id = reseller_ids_map[res_code]
+                res_id = reseller_ids_map.get(res_code, '')
                 mapped_corp_names = res_corp_names_map.get(res_id, [])
                 if cell_data:
                    if cell_data not in mapped_corp_names:
@@ -6248,6 +6224,7 @@ def block_stock_xls_upload(request, reader, user, admin_user, no_of_rows, fname,
         cm_id = customer_user.customer_id
         if cm_id not in enquiry_id_map:
             enquiry_id = get_enquiry_id(cm_id)
+            enquiry_id_map[cm_id] = enquiry_id
         else:
             enquiry_id = enquiry_id_map[cm_id]
         dist_id = customer_user.customer.user
@@ -6280,8 +6257,14 @@ def block_stock_xls_upload(request, reader, user, admin_user, no_of_rows, fname,
             if corporate_name:
                 enquiry_map['corporate_name'] = corporate_name
             enquiry_map.update(customer_details)
-            enq_master_obj = EnquiryMaster(**enquiry_map)
-            enq_master_obj.save()
+            enq_master_obj = EnquiryMaster.objects.filter(enquiry_id=enquiry_id,
+                                                          user=customer_user.customer.user,
+                                                          customer_id=cm_id)
+            if enq_master_obj:
+                enq_master_obj = enq_master_obj[0]
+            else:
+                enq_master_obj = EnquiryMaster(**enquiry_map)
+                enq_master_obj.save()
             sku_qs = SKUMaster.objects.filter(user=wh_id, sku_code=sku_code)
             if not sku_qs:
                 continue
@@ -6300,11 +6283,11 @@ def block_stock_xls_upload(request, reader, user, admin_user, no_of_rows, fname,
             enq_sku_obj.save()
             if int(level) == 3:
                 block_asn_stock(sku_qs[0].id, qty, 90, enq_sku_obj, is_enquiry=True) # Default max leadtime is 90days
-            return 'Success'
         except:
             import traceback
             log.debug(traceback.format_exc())
             return 'Failed'
+    return 'Success'
 
 
 @csrf_exempt

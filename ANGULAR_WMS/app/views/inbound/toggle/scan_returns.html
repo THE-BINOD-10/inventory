@@ -69,7 +69,7 @@
            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.permissions.use_imei && showCase.return_process == 'scan_imei'">
              <div class="form-group">
                <label class="control-label"> Scan IMEI Number </label>
-              <textarea id="return_imei" rows="1" class="form-control" ng-model="showCase.model_data.return_imei" ng-keydown="showCase.scan_imei($event, showCase.model_data.return_imei)"></textarea>
+              <textarea id="return_imei" rows="1" class="form-control" ng-model="showCase.model_data.return_imei" ng-keydown="showCase.scan_imei($event, showCase.model_data.return_imei)" ng-readonly="showCase.scan_imei_readonly==true"></textarea>
              </div>
            </div>
 

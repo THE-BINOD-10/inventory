@@ -107,6 +107,7 @@ def get_uploaded_pos_by_customers(start_index, stop_index, temp_data, search_ter
                                   request, user, filters={}):
     lis = ['id', 'uploaded_user__first_name', 'po_number', 'uploaded_date', 'customer_name', 'verification_flag']
     all_data = OrderedDict()
+    orderprefix_map = {}
     filter_params = get_filtered_params(filters, lis)
     if user.userprofile.warehouse_type == 'DIST':
         dist_customers = CustomerUserMapping.objects.filter(customer__user=user.id).values_list('user_id', flat=True)
@@ -118,6 +119,7 @@ def get_uploaded_pos_by_customers(start_index, stop_index, temp_data, search_ter
             all_wh_dists = all_wh_dists_obj.filter(user__userprofile__zone=request.user.userprofile.zone).values_list('user_id', flat=True)
         else:
             all_wh_dists = all_wh_dists_obj.values_list('user_id', flat=True)
+        orderprefix_map = dict(all_wh_dists_obj.values_list('user_id', 'user__userprofile__order_prefix'))
         customers = CustomerUserMapping.objects.filter(customer__user__in=all_wh_dists).values_list('user_id', flat=True)
         if customers:
             filter_params['uploaded_user_id__in'] = customers
@@ -132,6 +134,7 @@ def get_uploaded_pos_by_customers(start_index, stop_index, temp_data, search_ter
     for result in results:
         generic_id = ''
         distributor = ''
+        emiza_order_ids = []
         customer_user = CustomerUserMapping.objects.filter(user=result.uploaded_user.id)
         if customer_user:
             customer_user = customer_user[0]
@@ -141,20 +144,27 @@ def get_uploaded_pos_by_customers(start_index, stop_index, temp_data, search_ter
                          po_number=result.po_number, client_name=result.customer_name)
             if order_data:
                 generic_id = order_data[0].generic_order_id
+                ord_det_ids = order_data.values_list('orderdetail__user', 'orderdetail__order_id')
+                for usr, org_id in ord_det_ids:
+                    if usr in orderprefix_map:
+                        emiza_id = orderprefix_map[usr]+'MN'+str(org_id)
+                        emiza_order_ids.append(emiza_id)
+                emiza_order_ids = list(set(emiza_order_ids))
         cond = (result.id, result.uploaded_user, result.po_number, result.uploaded_date,
                 result.customer_name, result.uploaded_file, result.verification_flag, result.remarks,
-                generic_id, result.uploaded_user.userprofile.zone, distributor)
+                generic_id, result.uploaded_user.userprofile.zone, distributor, tuple(emiza_order_ids))
         all_data.setdefault(cond, 0)
     temp_data['recordsTotal'] = len(all_data)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for key, value in all_data.iteritems():
         _id, uploaded_user, po_number, uploaded_date, customer_name, uploaded_file, \
-        verification_flag, remarks, generic_id, zone, distributor = key
+        verification_flag, remarks, generic_id, zone, distributor, emiza_order_ids = key
         temp_data['aaData'].append(
             {'id': _id, 'uploaded_user': uploaded_user.first_name, 'po_number': po_number,
              'uploaded_date': uploaded_date.strftime('%Y-%m-%d'),
              'customer_name': customer_name, 'uploaded_file': str(uploaded_file),
-             'verification_flag': verification_flag, 'zone': zone, 'order_id': generic_id, 'distributor': distributor})
+             'verification_flag': verification_flag, 'zone': zone, 'order_id': generic_id, 'distributor': distributor,
+             'emizaids': emiza_order_ids})
     sort_col = lis[col_num]
 
     if order_term == 'asc':

@@ -1,0 +1,4 @@
+<div class="form-group">
+  <label class="control-label">Destination SKU Code</label>
+  <input type="text" autocomplete="off" name="destination_sku_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-blur="showCase.service.checkSearchValue(showCase.model_data.sku_code,'search_wms_codes?', $event)" ng-model="showCase.model_data.destination_sku_code">
+</div>

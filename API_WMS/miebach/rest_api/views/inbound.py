@@ -1009,6 +1009,7 @@ def switches(request, user=''):
                        'receive_po_mandatory_fields': 'receive_po_mandatory_fields',
                        'sku_pack_config': 'sku_pack_config',
                        'central_order_reassigning':'central_order_reassigning',
+                       'po_sub_user_prefix': 'po_sub_user_prefix',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -1079,6 +1080,9 @@ def confirm_po(request, user=''):
     ean_flag = False
     data = copy.deepcopy(PO_DATA)
     po_id = get_purchase_order_id(user)
+    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+    if po_sub_user_prefix == 'true':
+        po_id = update_po_order_prefix(request.user, po_id)
     terms_condition = request.POST.get('terms_condition', '')
     ids_dict = {}
     po_data = []
@@ -1281,6 +1285,7 @@ def confirm_po(request, user=''):
         table_headers.insert(10, 'CESS (%)')
     company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
     iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
+    left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO , request)
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address,
@@ -1295,7 +1300,7 @@ def confirm_po(request, user=''):
                  'wh_telephone': wh_telephone, 'terms_condition' : terms_condition,
                  'total_amt_in_words' : total_amt_in_words, 'show_cess_tax': show_cess_tax,
                  'company_address': company_address, 'wh_gstin': profile.gst_number,
-                 'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
+                 'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value
     t = loader.get_template('templates/toggle/po_download.html')
@@ -1861,15 +1866,16 @@ def update_putaway(request, user=''):
         if send_for_approval == 'true':
             grn_permission = get_permission(request.user, 'change_purchaseorder')
             if not grn_permission:
-                perm = Permission.objects.get(codename='change_purchaseorder')
-                sub_users = get_sub_users(user)
-                sub_users = sub_users.filter(groups__permissions=perm).exclude(email='')
-                receiver_mails = list(sub_users.values_list('email', flat=True))
-                po_reference = get_po_reference(po)
-                mail_message = 'User %s requested approval for PO Number %s' % (request.user.username, po_reference)
-                subject = 'GRN Approval request for PO: %s' % po_reference
-                receiver_mails.append(user.email)
-                send_mail(list(set(receiver_mails)), subject, mail_message)
+                if get_misc_value('grn_approval', user.id) == 'true':
+                    perm = Permission.objects.get(codename='change_purchaseorder')
+                    sub_users = get_sub_users(user)
+                    sub_users = sub_users.filter(groups__permissions=perm).exclude(email='')
+                    receiver_mails = list(sub_users.values_list('email', flat=True))
+                    po_reference = get_po_reference(po)
+                    mail_message = 'User %s requested approval for PO Number %s' % (request.user.username, po_reference)
+                    subject = 'GRN Approval request for PO: %s' % po_reference
+                    receiver_mails.append(user.email)
+                    send_mail(list(set(receiver_mails)), subject, mail_message)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -2450,9 +2456,11 @@ def create_update_primary_segregation(data, quantity, temp_dict, batch_obj=None,
                 segregation_obj = PrimarySegregation.objects.create(**primary_seg_dict)
 
 def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number='', invoice_date=None,
-                     challan_number='', challan_date=None, dc_level_grn='', round_off_total=0):
+                     challan_number='', challan_date=None, dc_level_grn='', round_off_total=0, batch_dict=None):
     if not receipt_id:
         return
+    if not batch_dict:
+        batch_dict = {}
     seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id)
     seller_received_list = []
     #invoice_number = int(invoice_number)
@@ -2476,9 +2484,22 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
     if 'overall_discount' in myDict.keys() and myDict['overall_discount'][0]:
         overall_discount = myDict['overall_discount'][0]
     remarks_list = []
-    if myDict.get('mrp', '') and myDict['mrp'][i]:
-        if float(data.open_po.mrp) != float(myDict['mrp'][i]) :
-            remarks_list.append("mrp_change")
+    if data.open_po:
+        if myDict.get('mrp', '') and myDict['mrp'][i]:
+            if float(data.open_po.mrp) != float(myDict['mrp'][i]):
+                 remarks_list.append("mrp_change")
+        if 'mrp_change' not in remarks_list and seller_pos:
+            if batch_dict and batch_dict.get('mrp', ''):
+                mrp = float(batch_dict['mrp'])
+                other_mrp_stock = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0,
+                                                             sku_id=data.open_po.sku_id,
+                                           sellerstock__seller_id=seller_pos[0].seller_id).\
+                    exclude(Q(location__zone__zone__in=get_exclude_zones(user)) |
+                              Q(batch_detail__mrp=mrp))
+                if other_mrp_stock.exists():
+                    mrp_change_check = ZoneMaster.objects.filter(zone='MRP Change', user=user.id)
+                    if mrp_change_check.exists():
+                        remarks_list.append("mrp_change")
     if 'offer_applicable' in myDict.keys() :
         offer_applicable = myDict['offer_applicable'][i]
         if offer_applicable == 'true':
@@ -2592,6 +2613,19 @@ def create_file_po_mapping(request, user, receipt_no, myDict):
         log.debug(traceback.format_exc())
         log.info("Create GRN File Mapping failed for user " + str(user.username) + \
                  " and error statement is " + str(e))
+
+
+def mrp_change_check(purchase_order, batch_detail):
+    if batch_detail and purchase_order.open_po:
+        other_mrp_stock = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0,
+                                                     sku_id=purchase_order.open_po.sku_id,
+                                                     sellerstock__seller_id=seller_po_summary.seller_po.seller_id). \
+            exclude(Q(location__zone__zone__in=get_exclude_zones(user)) |
+                    Q(batch_detail__mrp=seller_po_summary.batch_detail.mrp))
+        if other_mrp_stock.exists():
+            mrp_change_check = ZoneMaster.objects.filter(zone='MRP Change', user=user.id)
+            if mrp_change_check.exists():
+                put_zone = mrp_change_check[0].zone
 
 
 def update_remarks_put_zone(remarks, user, put_zone, seller_summary_id=''):
@@ -2754,7 +2788,8 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
             seller_received_list = update_seller_po(data, value, user, myDict, i, receipt_id=seller_receipt_id,
                                                     invoice_number=invoice_number, invoice_date=bill_date,
                                                     challan_number=challan_number, challan_date=challan_date,
-                                                    dc_level_grn=dc_level_grn, round_off_total=round_off_total)
+                                                    dc_level_grn=dc_level_grn, round_off_total=round_off_total,
+                                                    batch_dict=batch_dict)
         if 'wms_code' in myDict.keys():
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
@@ -4420,48 +4455,6 @@ def insert_st(all_data, user):
 
 
 @csrf_exempt
-def confirm_stock_transfer(all_data, user, warehouse_name):
-    for key, value in all_data.iteritems():
-        po_id = get_purchase_order_id(user) + 1
-        warehouse = User.objects.get(username__iexact=warehouse_name)
-        stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
-        if stock_transfer_obj:
-            order_id = int(stock_transfer_obj[0].order_id) + 1
-        else:
-            order_id = 1001
-
-        for val in value:
-            open_st = OpenST.objects.get(id=val[3])
-            sku_id = SKUMaster.objects.get(wms_code__iexact=val[0], user=warehouse.id).id
-            user_profile = UserProfile.objects.filter(user_id=user.id)
-            prefix = ''
-            if user_profile:
-                prefix = user_profile[0].prefix
-
-            po_dict = {'order_id': po_id, 'received_quantity': 0, 'saved_quantity': 0,
-                       'po_date': datetime.datetime.now(), 'ship_to': '',
-                       'status': '', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
-            po_order = PurchaseOrder(**po_dict)
-            po_order.save()
-            st_purchase_dict = {'po_id': po_order.id, 'open_st_id': open_st.id,
-                                'creation_date': datetime.datetime.now()}
-            st_purchase = STPurchaseOrder(**st_purchase_dict)
-            st_purchase.save()
-            st_dict = copy.deepcopy(STOCK_TRANSFER_FIELDS)
-            st_dict['order_id'] = order_id
-            st_dict['invoice_amount'] = float(val[1]) * float(val[2])
-            st_dict['quantity'] = float(val[1])
-            st_dict['st_po_id'] = st_purchase.id
-            st_dict['sku_id'] = sku_id
-            stock_transfer = StockTransfer(**st_dict)
-            stock_transfer.save()
-            open_st.status = 0
-            open_st.save()
-        check_purchase_order_created(user, po_id)
-    return HttpResponse("Confirmed Successfully")
-
-
-@csrf_exempt
 @login_required
 @get_admin_user
 def confirm_st(request, user=''):
@@ -4483,7 +4476,7 @@ def confirm_st(request, user=''):
     status = validate_st(all_data, user)
     if not status:
         all_data = insert_st(all_data, user)
-        status = confirm_stock_transfer(all_data, user, warehouse_name)
+        status = confirm_stock_transfer(all_data, user, warehouse_name, request)
         warehouse = User.objects.get(username=warehouse_name)
         f_name = 'stock_transfer_' + warehouse_name + '_'
         rendered_html_data = render_st_html_data(request, user, warehouse, all_data)
@@ -4679,11 +4672,16 @@ def confirm_add_po(request, sales_data='', user=''):
     sku_id = ''
     data = copy.deepcopy(PO_DATA)
     display_remarks = get_misc_value('display_remarks_mail', user.id)
+    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
     if not sales_data:
         po_id = get_purchase_order_id(user)
+        if po_sub_user_prefix == 'true':
+            po_id = update_po_order_prefix(request.user, po_id)
     else:
         if sales_data['po_order_id'] == '':
             po_id = get_purchase_order_id(user)
+            if po_sub_user_prefix == 'true':
+                po_id = update_po_order_prefix(request.user, po_id)
         else:
             po_id = int(sales_data['po_order_id'])
             po_order_id = int(sales_data['po_order_id'])
@@ -4910,6 +4908,7 @@ def confirm_add_po(request, sales_data='', user=''):
         round_value = float(round(total) - float(total))
         company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
         iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
+        left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO , request)
         data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address.encode('ascii', 'ignore'), 'order_id': order_id,
                      'telephone': str(telephone), 'ship_to_address': ship_to_address.encode('ascii', 'ignore'),
                      'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,
@@ -4922,7 +4921,7 @@ def confirm_add_po(request, sales_data='', user=''):
                      'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number, 'wh_pan': profile.pan_number,
                      'terms_condition': terms_condition, 'show_cess_tax' : show_cess_tax,
                      'company_address': company_address.encode('ascii', 'ignore'),
-                     'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
+                     'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
         if round_value:
             data_dict['round_total'] = "%.2f" % round_value
         t = loader.get_template('templates/toggle/po_download.html')
@@ -5016,6 +5015,9 @@ def confirm_po1(request, user=''):
     reversion.set_user(request.user)
     data = copy.deepcopy(PO_DATA)
     po_id = get_purchase_order_id(user)
+    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+    if po_sub_user_prefix == 'true':
+        po_id = update_po_order_prefix(request.user, po_id)
     ids_dict = {}
     po_data = []
     total = 0
@@ -5140,6 +5142,7 @@ def confirm_po1(request, user=''):
             round_value = float(round(total) - float(total))
             company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
             iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
+            left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO , request)
             data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                          'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': round(total),
                          'company_name': profile.company_name, 'location': profile.location,
@@ -5150,7 +5153,7 @@ def confirm_po1(request, user=''):
                          'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number,
                          'terms_condition' : terms_condition, 'total_amt_in_words' : total_amt_in_words,
                          'show_cess_tax': show_cess_tax, 'company_address': company_address,
-                         'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
+                         'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
             if round_value:
                 data_dict['round_total'] = "%.2f" % round_value
             t = loader.get_template('templates/toggle/po_download.html')
@@ -6550,11 +6553,16 @@ def get_po_segregation_data(request, user=''):
                                                                             mapping_type='PO',
                                                                             sku_id=order_data['sku_id'],
                                                                             order_ids=order_ids)
+            sellable = quantity
+            non_sellable = 0
+            if remarks:
+                non_sellable = quantity
+                sellable = 0
             data_dict = {'segregation_id': segregation_obj.id,'order_id': order.id, 'wms_code': order_data['wms_code'],
                             'sku_desc': order_data['sku_desc'],
-                            'quantity': quantity, 'sellable': quantity,
+                            'quantity': quantity, 'sellable': sellable,
                             'offer_check' :offer_check,
-                            'non_sellable': 0,
+                            'non_sellable': non_sellable,
                             'name': str(order.order_id) + '-' + str(
                                 re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
                             'price': order_data['price'], 'order_type': order_data['order_type'],
@@ -8866,6 +8874,9 @@ def confirm_central_po(request, user=''):
     warehouse_name = request.POST.get('warehouse_name', '')
     warehouse = User.objects.get(username=warehouse_name)
     po_id = get_purchase_order_id(warehouse)
+    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', warehouse.id)
+    if po_sub_user_prefix == 'true':
+        po_id = update_po_order_prefix(request.user, po_id)
 
     ids_dict = {}
     po_data = []

@@ -26,7 +26,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'invoice_based_payment_tracker': false, 'receive_po_invoice_check': false,
                     'auto_raise_stock_transfer': false, 'inbound_supplier_invoice': false, 'customer_dc': false,
                     'mark_as_delivered': false, 'order_exceed_stock': false, 'receive_po_mandatory_fields': false,
-                    'sku_pack_config': false, 'central_order_reassigning':false,'sno_in_invoice':false,
+                    'sku_pack_config': false, 'central_order_reassigning':false,'sno_in_invoice':false, 'po_sub_user_prefix': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -47,7 +47,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      62: 'auto_raise_stock_transfer', 63: 'inbound_supplier_invoice', 64: 'customer_dc',
                      65: 'auto_expire_enq_limit', 66: 'invoice_based_payment_tracker', 67: 'receive_po_invoice_check',
                      68: 'mark_as_delivered', 69: 'receive_po_mandatory_fields', 70: 'central_order_mgmt',
-                     71: 'order_exceed_stock',72:'invoice_declaration',73:'central_order_reassigning', 74: 'sku_pack_config',75:'sno_in_invoice',}
+                     71: 'order_exceed_stock',72:'invoice_declaration',73:'central_order_reassigning',
+                     74: 'sku_pack_config', 75: 'po_sub_user_prefix',76:'sno_in_invoice'}
 
   vm.check_box_data = [
     {
@@ -167,7 +168,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       model_name: "auto_confirm_po",
       param_no: 50,
       class_name: "fa fa-server",
-      display: true
+      display: false
     },
     {
       name: "Display Place Sample option in Customer Portal",
@@ -415,9 +416,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
      display: true
    },
    {
+      name: "User Prefix for PO Order ID",
+      model_name: "po_sub_user_prefix",
+      param_no: 75,
+      class_name: "fa fa-server",
+      display: true
+   },
+   {
      name: "Sno in Invoice",
      model_name: "sno_in_invoice",
-     param_no: 75,
+     param_no: 76,
      class_name: "fa fa-server",
      display: true
    }

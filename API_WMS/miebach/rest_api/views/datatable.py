@@ -203,6 +203,120 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
 
 
 @fn_timer
+def central_orders_excel_download(filter_params, user, request):
+    data_dict = {'user': user.id, 'quantity__gt': 0}
+    status_map = {'1': 'Accept', '0': 'Reject', '2': 'Pending'}
+    search_term = request.POST.get("search[value]", '')
+    all_orders = IntermediateOrders.objects.filter(**data_dict)
+    if search_term:
+        all_orders = all_orders.filter(
+            Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term) |
+            Q(quantity__icontains=search_term) | Q(shipment_date__regex=search_term) |
+            Q(project_name__icontains=search_term) | Q(order_assigned_wh__username__icontains=search_term) |
+            Q(interm_order_id__icontains=search_term) | Q(creation_date__regex=search_term) |
+            Q(order__original_order_id__icontains=search_term)
+        )
+
+    file_type = 'xls'
+    excel_headers = copy.deepcopy(CENTRAL_ORDER_EXCEL)
+    status_index = len(CENTRAL_ORDER_EXCEL)
+    excel_headers['status'] = status_index
+    wb, ws = get_work_sheet('central_orders', excel_headers)
+    file_name = "%s.%s" % (user.id, 'Central_Orders')
+    folder_path = 'static/excel_files/'
+    folder_check(folder_path)
+    if all_orders.count() > 65535:
+        file_type = 'csv'
+        wb = open(folder_path + file_name + '.' + file_type, 'w')
+        ws = ''
+        for head in excel_headers:
+            ws = ws + str(head).replace(',', '  ') + ','
+        ws = ws[:-1] + '\n'
+        wb.write(ws)
+
+    path = folder_path + file_name + '.' + file_type
+    data_count = 0
+
+    ord_items = all_orders.values_list('interm_order_id', 'order__original_order_id', 'order_assigned_wh__username',
+                                       'status', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'id',
+                                       'creation_date', 'project_name', 'remarks', 'unit_price', 'cgst_tax', 'sgst_tax',
+                                       'igst_tax', 'user_id', 'customer_name')
+    line_items_map = {}
+    line_ord_fields_map = {}
+    for item in ord_items:
+        interm_order_id = item[0]
+        original_order_id = item[1]
+        line_items_map.setdefault(interm_order_id, []).append(item[1:])
+        ord_fields_map = dict(OrderFields.objects.filter(user=user.id,
+                                                         original_order_id=original_order_id).
+                              only('name', 'value').values_list('name', 'value'))
+        line_ord_fields_map.setdefault(interm_order_id, {}).update(ord_fields_map)
+
+    for order_id, dat in line_items_map.items():
+        data_count += 1
+        loan_proposal_id, assigned_wh, status, sku_code, sku_desc, quantity, shipment_date, \
+        id, creation_date, project_name, remarks, unit_price, cgst_tax, sgst_tax, igst_tax, user_id, \
+        customer_name = dat[0]
+        if status:
+            status = status_map.get(status)
+        else:
+            status = 'Pending'
+        batch_number = line_ord_fields_map.get(order_id, {}).get('batch_number')
+        batch_date = line_ord_fields_map.get(order_id, {}).get('batch_date', '')
+        branch_id = line_ord_fields_map.get(order_id, {}).get('branch_id', '')
+        branch_name = line_ord_fields_map.get(order_id, {}).get('branch_name', '')
+        loan_proposal_code = line_ord_fields_map.get(order_id, {}).get('loan_proposal_code')
+        client_code = line_ord_fields_map.get(order_id, {}).get('client_code')
+        client_id = line_ord_fields_map.get(order_id, {}).get('client_id')
+        address1 = line_ord_fields_map.get(order_id, {}).get('address1')
+        address2 = line_ord_fields_map.get(order_id, {}).get('address2')
+        total_price = line_ord_fields_map.get(order_id, {}).get('total_price')
+        village = line_ord_fields_map.get(order_id, {}).get('village')
+        landmark = line_ord_fields_map.get(order_id, {}).get('landmark')
+        district = line_ord_fields_map.get(order_id, {}).get('district')
+        state = line_ord_fields_map.get(order_id, {}).get('state')
+        pincode = line_ord_fields_map.get(order_id, {}).get('pincode')
+        mobile_no = line_ord_fields_map.get(order_id, {}).get('mobile_no')
+        alternative_mobile_no = line_ord_fields_map.get(order_id, {}).get('alternative_mobile_no')
+
+        ws = write_excel(ws, data_count, excel_headers['original_order_id'], loan_proposal_id, file_type)
+        ws = write_excel(ws, data_count, excel_headers['batch_number'], batch_number, file_type)
+        ws = write_excel(ws, data_count, excel_headers['batch_date'], batch_date, file_type)
+        ws = write_excel(ws, data_count, excel_headers['branch_id'], branch_id, file_type)
+        ws = write_excel(ws, data_count, excel_headers['branch_name'], branch_name, file_type)
+        ws = write_excel(ws, data_count, excel_headers['loan_proposal_id'], loan_proposal_id, file_type)
+        ws = write_excel(ws, data_count, excel_headers['loan_proposal_code'], loan_proposal_code, file_type)
+        ws = write_excel(ws, data_count, excel_headers['client_code'], client_code, file_type)
+        ws = write_excel(ws, data_count, excel_headers['client_id'], client_id, file_type)
+        ws = write_excel(ws, data_count, excel_headers['customer_name'], customer_name, file_type)
+        ws = write_excel(ws, data_count, excel_headers['address1'], address1, file_type)
+        ws = write_excel(ws, data_count, excel_headers['address2'], address2, file_type)
+        ws = write_excel(ws, data_count, excel_headers['landmark'], landmark, file_type)
+        ws = write_excel(ws, data_count, excel_headers['village'], village, file_type)
+        ws = write_excel(ws, data_count, excel_headers['sku_code'], sku_code, file_type)
+        ws = write_excel(ws, data_count, excel_headers['model'], sku_desc, file_type)
+        ws = write_excel(ws, data_count, excel_headers['unit_price'], unit_price, file_type)
+        ws = write_excel(ws, data_count, excel_headers['cgst'], cgst_tax, file_type)
+        ws = write_excel(ws, data_count, excel_headers['sgst'], sgst_tax, file_type)
+        ws = write_excel(ws, data_count, excel_headers['igst'], igst_tax, file_type)
+        ws = write_excel(ws, data_count, excel_headers['total_price'], total_price, file_type)
+        ws = write_excel(ws, data_count, excel_headers['location'], assigned_wh, file_type)
+        ws = write_excel(ws, data_count, excel_headers['district'], district, file_type)
+        ws = write_excel(ws, data_count, excel_headers['state'], state, file_type)
+        ws = write_excel(ws, data_count, excel_headers['pincode'], pincode, file_type)
+        ws = write_excel(ws, data_count, excel_headers['mobile_no'], mobile_no, file_type)
+        ws = write_excel(ws, data_count, excel_headers['alternative_mobile_no'], alternative_mobile_no, file_type)
+        ws = write_excel(ws, data_count, status_index, status, file_type)
+
+    if file_type == 'xls':
+        wb.save(path)
+    else:
+        wb.close()
+    path_to_file = '../' + path
+    return path_to_file
+
+
+@fn_timer
 def easyops_stock_excel_download(search_params, temp_data, headers, user, request):
     headers = EASYOPS_STOCK_HEADERS.keys()
     search_term = request.POST.get("search[value]", '')
@@ -270,6 +384,9 @@ def results_data(request, user=''):
             return HttpResponse(str(excel_data))
         if request.POST.get('datatable', '') == 'StockSummarySerials':
             excel_data = get_stock_summary_serials_excel(filter_params, temp_data, headers, user, request)
+            return HttpResponse(str(excel_data))
+        if request.POST.get('datatable', '') == 'CentralOrders' and request.user.username.lower() == '72networks':
+            excel_data = central_orders_excel_download(filter_params, user, request)
             return HttpResponse(str(excel_data))
     temp_data['draw'] = search_params.get('draw')
     start_index = search_params.get('start')

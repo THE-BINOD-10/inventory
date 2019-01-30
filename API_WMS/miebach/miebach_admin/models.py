@@ -371,6 +371,7 @@ class IntermediateOrders(models.Model):
 
     class Meta:
         db_table = "INTERMEDIATE_ORDERS"
+        index_together = (('user', ), ('user', 'interm_order_id'), ('sku', 'interm_order_id'))
         #unique_together = ('interm_order_id', 'sku')
 
     def json(self):
@@ -401,6 +402,7 @@ class OrderFields(models.Model):
 
     class Meta:
         db_table = 'ORDER_FIELDS'
+        index_together = (('user', 'original_order_id'), ('user', 'original_order_id', 'name'))
 
     def __unicode__(self):
         return str(self.original_order_id)
@@ -751,23 +753,6 @@ class InventoryAdjustment(models.Model):
         return str(self.id)
 
 
-class SubstitutionSummary(models.Model):
-    source_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='source_sku')
-    destination_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='destination_sku')
-    source_location = models.CharField(max_length=64)
-    destination_location = models.CharField(max_length=64)
-    source_quantity = models.FloatField(default=0)
-    destination_quantity = models.FloatField(default=0)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'SUBSTITUTION_SUMMARY'
-
-    def __unicode__(self):
-        return str(self.id)
-
-
 class Issues(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)
@@ -835,6 +820,7 @@ class OrderPackaging(models.Model):
     id = BigAutoField(primary_key=True)
     order_shipment = models.ForeignKey(OrderShipment)
     package_reference = models.CharField(max_length=64)
+    box_number = models.CharField(max_length=64, default='')
     status = models.CharField(max_length=32)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -875,6 +861,7 @@ class CustomerMaster(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
     customer_id = models.PositiveIntegerField(default=0)
+    customer_code = models.CharField(max_length=256, default='')
     name = models.CharField(max_length=256, default='')
     last_name = models.CharField(max_length=256, default='')
     address = models.CharField(max_length=256, default='')
@@ -904,8 +891,8 @@ class CustomerMaster(models.Model):
 
     class Meta:
         db_table = 'CUSTOMER_MASTER'
-        unique_together = ('user', 'customer_id')
-        index_together = ('user', 'customer_id')
+        unique_together = ('user', 'customer_id', 'customer_code')
+        index_together = ('user', 'customer_id', 'customer_code')
 
 
 class CustomerUserMapping(models.Model):
@@ -1051,6 +1038,26 @@ class SellerMaster(models.Model):
         }
 
 
+class SubstitutionSummary(models.Model):
+    source_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='source_sku')
+    destination_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='destination_sku')
+    source_location = models.CharField(max_length=64)
+    destination_location = models.CharField(max_length=64)
+    source_quantity = models.FloatField(default=0)
+    destination_quantity = models.FloatField(default=0)
+    source_batch = models.ForeignKey(BatchDetail, blank=True, null=True)
+    dest_batch = models.ForeignKey(BatchDetail, blank=True, null=True, related_name='dest_batch')
+    seller = models.ForeignKey(SellerMaster, blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SUBSTITUTION_SUMMARY'
+
+    def __unicode__(self):
+        return str(self.id)
+
+
 class POIMEIMapping(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster, blank=True, null=True)
@@ -1086,6 +1093,7 @@ class OrderIMEIMapping(models.Model):
 
     class Meta:
         db_table = 'ORDER_IMEI_MAPPING'
+        index_together = ("order", "sku", "po_imei")
 
 
 class UserGroups(models.Model):
@@ -1966,6 +1974,7 @@ class SellerPOSummary(models.Model):
     round_off_total = models.FloatField(default=0)
     cess_tax = models.FloatField(default=0)
     overall_discount = models.FloatField(default=0)
+    remarks = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2355,7 +2364,7 @@ class TaxMaster(models.Model):
     class Meta:
         db_table = 'TAX_MASTER'
         # unique_together = ('user', 'product_type', 'inter_state', 'cgst_tax', 'sgst_tax', 'igst_tax')
-        index_together = ('user', 'product_type', 'inter_state')
+        index_together = (('user', 'product_type', 'inter_state'), ('cgst_tax', 'sgst_tax', 'igst_tax', 'cess_tax', 'user'))
 
     def json(self):
         return {
@@ -2891,6 +2900,7 @@ class PrimarySegregation(models.Model):
     id = BigAutoField(primary_key=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
     batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True)
+    seller_po_summary = models.ForeignKey(SellerPOSummary, blank=True, null=True)
     quantity = models.FloatField(default=0)
     sellable = models.FloatField(default=0)
     non_sellable = models.FloatField(default=0)
@@ -2900,7 +2910,7 @@ class PrimarySegregation(models.Model):
 
     class Meta:
         db_table = 'PRIMARY_SEGREGATION'
-        unique_together = ('purchase_order', 'batch_detail')
+        unique_together = ('purchase_order', 'batch_detail', 'seller_po_summary')
 
 
 

@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('ViewShipmentCtrl',['$scope', '$http', '$state', '$compile', '$rootScope', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', '$modal', 'Data', ServerSideProcessingCtrl]);
+  .controller('ViewShipmentCtrl',['$scope', '$http', '$state','$timeout', '$compile', '$rootScope', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', '$modal', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, Session, DTOptionsBuilder, DTColumnBuilder, Service, $modal, Data) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout,$compile, $rootScope, Session, DTOptionsBuilder, DTColumnBuilder, Service, $modal, Data) {
     var vm = this;
     vm.service = Service
     vm.selected = {};
@@ -44,20 +44,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
          console.log("complete")
        });
 
-    vm.dtColumns = [
-        /*DTColumnBuilder.newColumn(null).withTitle(titleHtml).notSortable().withOption('width', '20px')
-            .renderWith(function(data, type, full, meta) {
-                if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
-                  vm.selected = {};
-                 }
-                vm.selected[meta.row] = vm.selectAll;
-                return '<input class="data-select" type="checkbox" ng-model="vm.selected[' + meta.row + ']" ng-change="vm.toggleOne(vm.selected);$event.stopPropagation();">';
-            }).notSortable(),*/
-        DTColumnBuilder.newColumn('Shipment Number').withTitle('Shipment Number'),
-        DTColumnBuilder.newColumn('Customer ID').withTitle('Customer ID'),
-        DTColumnBuilder.newColumn('Customer Name').withTitle('Customer Name'),
-        DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity')
-    ];
+    vm.dtColumns = [];
+    if(vm.permissions.central_order_reassigning) {
+       vm.dtColumns.push(DTColumnBuilder.newColumn('Serial Number').withTitle('Serial Number')),
+       vm.dtColumns.push(DTColumnBuilder.newColumn('Manifest Number').withTitle('Manifest Number')),
+       vm.dtColumns.push(DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'))
+    } else {
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Shipment Number').withTitle('Shipment Number')),
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Customer ID').withTitle('Customer ID')),
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Customer Name').withTitle('Customer Name')),
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'))
+    }
+
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $compile(angular.element('td', nRow))($scope);
@@ -236,6 +234,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
           vm.service.print_data(data.data, vm.model_data.manifest_number);
         }
       })
+    }
+    vm.invoice_print = function(){
+      vm.service.apiCall("invoice_print_manifest/", "POST", {"shipment_id":vm.model_data.shipment_number}).then(function(data){
+        if(data.message){
+            $state.go("app.outbound.ShipmentInfo.InvoiceE");
+            vm.pdf_data = data.data;
+            $timeout(function () {
+              $(".modal-body:visible").html(vm.pdf_data)
+              }, 3000);
+
+        }
+      })
+
     }
 
     $rootScope.$on("CallParentMethod", function(){

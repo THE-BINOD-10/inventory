@@ -886,6 +886,7 @@ var app = angular.module('urbanApp')
           .state('app.inbound.SellerInvoice.InvoiceE', {
             url: '/InvoiceE',
             templateUrl: 'views/outbound/print/empty_invoice.html'
+
           })
 
         .state('app.inbound.SupplierInvoice', {
@@ -1535,6 +1536,10 @@ var app = angular.module('urbanApp')
             title: 'Shipment Info',
           }
         })
+        .state('app.outbound.ShipmentInfo.InvoiceE', {
+           url: '/InvoiceE',
+           templateUrl: 'views/outbound/print/manifest_invoice.html'
+         })
         .state('app.outbound.ShipmentInfo.Shipment', {
           url: '/Shipment',
           templateUrl: 'views/outbound/toggle/ship_tg.html'
@@ -1547,6 +1552,7 @@ var app = angular.module('urbanApp')
           url: '/STShipment',
           templateUrl: 'views/outbound/toggle/st_ship_tg.html'
         })
+
         .state('app.outbound.BackOrders', {
           url: '/BackOrders',
           templateUrl: 'views/outbound/back_orders.html',
@@ -2056,6 +2062,33 @@ var app = angular.module('urbanApp')
             title: 'Shipment Report',
           }
         })
+
+        .state('app.reports.POReport', {
+          url: '/POReport',
+          templateUrl: 'views/reports/po_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/po_report.js');
+              }]
+          },
+          data: {
+            title: 'Open PO Report',
+          }
+        })
+
+        .state('app.reports.OpenorderReport', {
+          url: '/OpenorderReport',
+          templateUrl: 'views/reports/openorderreport.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/open_order.js');
+              }]
+          },
+          data: {
+            title: 'Open Order Report',
+          }
+        })
+
         .state('app.reports.DistributorWiseSalesReport', {
           url: '/DistributorSalesReport',
           templateUrl: 'views/reports/dist_sales_report.html',
@@ -2216,6 +2249,42 @@ var app = angular.module('urbanApp')
         .state('app.reports.RTVReport.DebitNotePrint', {
            url: '/DebitNotePrint',
            templateUrl: 'views/reports/toggles/purchase_order.html',
+        })
+        .state('app.reports.CurrentStockReport', {
+          url: '/CurrentStockReport',
+          templateUrl: 'views/reports/current_stock_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/current_stock_report.js');
+              }]
+          },
+          data: {
+            title: 'Current Stock Report',
+          }
+        })
+        .state('app.reports.InventoryValueReport', {
+          url: '/InventoryValueReport',
+          templateUrl: 'views/reports/inventory_value_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/inventory_value_report.js');
+              }]
+          },
+          data: {
+            title: 'Inventory Value Report',
+          }
+        })
+        .state('app.reports.BulkToRetailReport', {
+          url: '/BulkToRetailReport',
+          templateUrl: 'views/reports/bulk_to_retail_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/bulk_to_retail_report.js');
+              }]
+          },
+          data: {
+            title: 'Bulk to Retail Report',
+          }
         })
 
 

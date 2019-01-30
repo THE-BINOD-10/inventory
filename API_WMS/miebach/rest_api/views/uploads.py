@@ -5549,8 +5549,8 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                     order_data['order_assigned_wh_id'] = sister_wh_names[value]
                     order_data['status'] = ''
         try:
-            only_addr = address1 + ' ' + address2
-            address_value = only_addr[:150] + ' ' + client_code + ' ' + mobile_no + ' ' + alt_mobile_no
+            only_addr = address1[:200] + ' ' + address2[:200]  # Max length of addr in OrderFields is 255, but text field in OrderDetail
+            address_value = only_addr + ' ' + client_code + ' ' + mobile_no + ' ' + alt_mobile_no
             order_dict = {}
             order_dict['user'] = order_data['order_assigned_wh_id']
             sku_id = sister_user_sku_map[str(order_data['order_assigned_wh_id'])+':'+str(excel_sku_code)]

@@ -461,6 +461,12 @@ urlpatterns = [
     url(r'^get_sku_categories_list/$', get_sku_categories_list),
     url(r'^get_sku_wise_rtv_filter/$', get_sku_wise_rtv_filter),
     url(r'^download_grn_invoice_mapping/$', download_grn_invoice_mapping),
+    url(r'^get_current_stock_report/$', get_current_stock_report),
+    url(r'^print_current_stock_report/$', print_current_stock_report),
+    url(r'^get_inventory_value_report/$', get_inventory_value_report),
+    url(r'^print_inventory_value_report/$', print_inventory_value_report),
+    url(r'^get_bulk_to_retail_report/$', get_bulk_to_retail_report),
+    url(r'^print_bulk_to_retail_report/$', print_bulk_to_retail_report),
 
 ]
 

@@ -558,6 +558,21 @@
             <span>RTV</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user' && user.user_profile['industry_type'] == 'FMCG' && show_tab('view_skudetailstats')">
+          <a ui-sref="app.reports.CurrentStockReport">
+            <span>Current Stock</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user' && user.user_profile['industry_type'] == 'FMCG' && show_tab('delete_skudetailstats')">
+          <a ui-sref="app.reports.InventoryValueReport">
+            <span>Inventory Value</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user' && user.user_profile['industry_type'] == 'FMCG' && show_tab('view_substitutionsummary')">
+          <a ui-sref="app.reports.BulkToRetailReport">
+            <span>Bulk to Retail</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor' || permissions.user_type == 'admin_sub_user'">
           <a ui-sref="app.reports.DistributorWiseSalesReport">
             <span>Distributor Sales</span>

@@ -730,9 +730,10 @@ def print_po_reports(request, user=''):
                     igst_tax = open_data.igst_tax
                     utgst_tax = open_data.utgst_tax
                     cess_tax = open_data.cess_tax
+                    apmc_tax = seller_summary_obj.apmc_tax
                     if seller_summary_obj.cess_tax:
                         cess_tax = seller_summary_obj.cess_tax
-                    gst_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax + cess_tax
+                    gst_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax + cess_tax + apmc_tax
                     discount = seller_summary_obj.discount_percent
                     if seller_summary_obj.batch_detail:
                         price = seller_summary_obj.batch_detail.buy_price
@@ -746,7 +747,7 @@ def print_po_reports(request, user=''):
                             igst_tax = temp_tax_percent
                             cgst_tax = 0
                             sgst_tax = 0
-                        gst_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax + cess_tax
+                        gst_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax + cess_tax + apmc_tax
                     grouping_key = '%s:%s' % (str(open_data.sku.sku_code), str(price))
                     amount = float(quantity) * float(price)
                     if discount:
@@ -766,7 +767,7 @@ def print_po_reports(request, user=''):
             else:
                 open_data = data.open_po
                 amount = float(quantity) * float(data.open_po.price)
-                gst_tax = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax
+                gst_tax = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax + open_data.apmc_tax
                 if gst_tax:
                     amount += (amount / 100) * gst_tax
                 po_data[headers].append((open_data.sku.wms_code, open_data.order_quantity, quantity,
@@ -775,7 +776,7 @@ def print_po_reports(request, user=''):
                                 open_data.utgst_tax, amount, open_data.sku.sku_desc))
                 total += amount
                 total_qty += quantity
-                total_tax += (open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax)
+                total_tax += (open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax + open_data.cess_tax + open_data.apmc_tax)
         else:
             bill_date = data.invoice_date if data.invoice_date else data.creation_date
             bill_no = data.invoice_number if data.invoice_number else ''

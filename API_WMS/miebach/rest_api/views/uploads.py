@@ -2454,12 +2454,12 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  purchase_mapping)
     if not set(['po_name', 'po_date', 'po_delivery_date', 'supplier_id', 'wms_code', 'quantity', 'price', 'mrp',
-                'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax', 'ship_to']).issubset(excel_mapping.keys()):
+                'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax', 'apmc_tax', 'ship_to']).issubset(excel_mapping.keys()):
         return 'Invalid File', []
     mapping_fields = {'po_date': 'PO Date', 'po_delivery_date': 'PO Delivery Date', 'mrp': 'MRP',
                       'cgst_tax': 'CGST Tax', 'sgst_tax': 'SGST Tax', 'igst_tax': 'IGST Tax', 'utgst_tax': 'UTGST Tax',
-                      'cess_tax': 'CESS Tax'}
-    number_fields = ['mrp', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax', 'cess_tax']
+                      'cess_tax': 'CESS Tax', 'apmc_tax': 'APMC Tax'}
+    number_fields = ['mrp', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax', 'cess_tax', 'apmc_tax']
     user_profile = user.userprofile
     for row_idx in range(1, no_of_rows):
         data_dict = {}
@@ -2585,6 +2585,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         order_data['igst_tax'] = final_dict.get('igst_tax', 0)
         order_data['utgst_tax'] = final_dict.get('utgst_tax', 0)
         order_data['cess_tax'] = final_dict.get('cess_tax', 0)
+        order_data['apmc_tax'] = final_dict.get('apmc_tax', 0)
         order_data['measurement_unit'] = final_dict['sku'].measurement_type
         order_data['creation_date'] = creation_date
         if final_dict.get('po_delivery_date', ''):

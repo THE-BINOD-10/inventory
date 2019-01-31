@@ -286,7 +286,7 @@ class OrderDetail(models.Model):
     customer_id = models.PositiveIntegerField(default=0)
     customer_name = models.CharField(max_length=256, default='')
     email_id = models.EmailField(max_length=64, default='')
-    address = models.CharField(max_length=256, default='')
+    address = models.TextField(max_length=512, default='')
     telephone = models.CharField(max_length=128, default='', blank=True, null=True)
     sku = models.ForeignKey(SKUMaster)
     title = models.CharField(max_length=256, default='')

@@ -1838,7 +1838,7 @@ def confirm_sku_substitution(request, user=''):
     src_qty = request.POST.get('src_quantity', '')
     src_loc = request.POST.get('src_location', '')
     src_batch_no = request.POST.get('src_batch_number', '')
-    src_mrp = request.POST.get('mrp', 0)
+    src_mrp = request.POST.get('src_mrp', 0)
     seller_id = request.POST.get('seller_id', '')
     if user.userprofile.user_type == 'marketplace_user' and not seller_id:
         return HttpResponse('Seller ID is Mandatory')
@@ -1905,6 +1905,8 @@ def confirm_sku_substitution(request, user=''):
             if data_dict['dest_mrp'][ind]:
                 mrp_dict['mrp'] = data_dict['dest_mrp'][ind]
                 dest_filter['batch_detail__mrp'] = data_dict['dest_mrp'][ind]
+        if seller_id:
+            dest_filter['sellerstock__seller_id'] = seller_id
         dest_stocks = StockDetail.objects.filter(**dest_filter)
         dest_list.append({'dest_sku': dest_sku[0], 'dest_loc': dest_loc[0], 'dest_qty': dest_qty,
                           'dest_stocks': dest_stocks, 'mrp_dict': mrp_dict})

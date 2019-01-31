@@ -5220,6 +5220,9 @@ def sku_substitution_upload(request, user=''):
         if data_dict.get('dest_mrp', 0):
             dest_filter['batch_detail__mrp'] = data_dict['dest_mrp']
             mrp_dict['mrp'] = data_dict['dest_mrp']
+        if data_dict.get('seller_master_id', 0):
+            dest_filter['sellerstock__seller_id'] = data_dict['seller_master_id']
+            mrp_dict['mrp'] = data_dict['dest_mrp']
         dest_stocks = StockDetail.objects.filter(**dest_filter)
         update_substitution_data(data_dict['src_stocks'], dest_stocks, data_dict['source_sku_code_obj'],
                                  data_dict['source_location_obj'], data_dict['source_quantity'],
@@ -5271,7 +5274,7 @@ def create_order_fields_entry(interm_order_id, name, value, user, is_bulk_create
 
 
 def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
-    log.info("order upload started")
+    log.info("Central order upload started")
     st_time = datetime.datetime.now()
     index_status = {}
     order_mapping = get_order_mapping(reader, file_type)
@@ -5306,8 +5309,6 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 index_status.setdefault(count, set()).add('Invalid Location')
             else:
                 try:
-                    #sister_wh = get_sister_warehouse(user)
-                    #user_obj = sister_wh.filter(user__username=location)
                     if location not in sister_wh_names.keys():
                         index_status.setdefault(count, set()).add('Invalid Warehouse Location')
                 except:
@@ -5404,8 +5405,6 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
     else:
         interm_order_id = 10000
     for row_idx in range(1, no_of_rows):
-        interm_order_id += 1
-        print "Creation Row: " + str(row_idx)
         order_data = copy.deepcopy(CENTRAL_ORDER_XLS_UPLOAD)
         order_data['user'] = user
         for key, value in order_mapping.iteritems():
@@ -5429,7 +5428,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                     key_value = datetime.datetime(year, month, day, hour, minute, second)
                 except:
                     key_value = datetime.datetime.now()
-                    order_fields_objs = create_order_fields_entry(order_id, key, key_value, user, is_bulk_create=True,
+                order_fields_objs = create_order_fields_entry(order_id, key, key_value, user, is_bulk_create=True,
                               order_fields_objs=order_fields_objs)
             elif key == 'branch_id':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
@@ -5505,8 +5504,6 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                     value = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     value = str(get_cell_data(row_idx, value, reader, file_type))
-                #sku_data = SKUMaster.objects.filter(wms_code=value, user=user.id)
-                #if sku_data:
                 excel_sku_code = ''
                 if value:
                     order_data['sku_id'] = user_sku_map[str(user.id)+':'+str(value)]
@@ -5552,36 +5549,20 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                     value = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     value = str(get_cell_data(row_idx, value, reader, file_type))
-                # sister_wh = get_sister_warehouse(user)
-                # user_obj = sister_wh.filter(user__username=value)
                 if value:
                     order_data['order_assigned_wh_id'] = sister_wh_names[value]
                     order_data['status'] = ''
-        # if order_fields_objs:
-        #     OrderFields.objects.bulk_create(order_fields_objs)
         try:
-            address_value = address1 + ' ' + address2 + ' ' + client_code + ' ' + mobile_no + ' ' + alt_mobile_no
+            only_addr = address1[:200] + ' ' + address2[:200]  # Max length of addr in OrderFields is 255, but text field in OrderDetail
+            address_value = only_addr + ' ' + client_code + ' ' + mobile_no + ' ' + alt_mobile_no
             order_dict = {}
-            #interm_obj = IntermediateOrders.objects.create(**order_data)
-            #order_fields = OrderFields.objects.filter(user = user.id, original_order_id=interm_obj.interm_order_id)
             order_dict['user'] = order_data['order_assigned_wh_id']
-            #sel_sku_id = interm_obj.sku.id
             sku_id = sister_user_sku_map[str(order_data['order_assigned_wh_id'])+':'+str(excel_sku_code)]
-            #sku_id = get_syncedusers_mapped_sku(wh=interm_obj.order_assigned_wh_id, sku_id=sel_sku_id)
             if not sku_id:
                 return HttpResponse("SKU Not found in Selected Warehouse")
             order_dict['sku_id'] = sku_id
             order_dict['title'] = SKUMaster.objects.filter(sku_code=excel_sku_code, user=user.id)[0].sku_desc
             order_dict['status'] = 1
-
-            # if interm_obj.customer_user:
-            #    customer_user = CustomerUserMapping.objects.filter(user_id=interm_obj.customer_user.id)
-            #    if customer_user:
-            #        order_dict['customer_id'] = customer_user[0].customer.customer_id
-            #        order_dict['customer_name'] = customer_user[0].customer.name
-            #        order_dict['telephone'] = customer_user[0].customer.phone_number
-            #        order_dict['email_id'] = customer_user[0].customer.email_id
-            #        order_dict['address'] = customer_user[0].customer.address
 
             if order_data['customer_id']:
                customer_master = CustomerMaster.objects.filter(user=user.id,
@@ -5593,11 +5574,6 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                    order_dict['address'] = customer_master[0].address
             else:
                 order_dict['customer_id'] = 0
-                # mail_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='email_id')
-                # if mail_obj:
-                #     order_dict['email_id'] = mail_obj[0].value
-                # mobile_no_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='mobile_no')
-                # if mobile_no_obj:
                 if mobile_no:
                     order_dict['telephone'] = mobile_no
                 if address_value:
@@ -5609,41 +5585,27 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             order_dict['order_code'] = order_code
             order_dict['order_id'] = order_id
             order_dict['shipment_date'] = datetime.datetime.now() #interm_obj.shipment_date
-            #order_dict['remarks'] = interm_obj.remarks
             order_dict['quantity'] = 1
             order_dict['unit_price'] = unit_price
             get_existing_order = OrderDetail.objects.filter(**{'sku_id': sku_id,
                 'original_order_id': order_id, 'user':order_data['order_assigned_wh_id'] })
             if get_existing_order.exists():
                 continue
-                # get_existing_order = get_existing_order[0]
-                # get_existing_order.quantity = get_existing_order.quantity + 1
-                # get_existing_order.save()
-                # ord_obj = get_existing_order
-                #order_fields.update(original_order_id=order_dict['original_order_id'])
             else:
                 try:
                     ord_obj = OrderDetail(**order_dict)
                     ord_obj.save()
-                    #order_fields.update(original_order_id=order_dict['original_order_id'])
                 except:
-                    # resp_dict[str(interm_obj.interm_order_id)] = 'Error in Saving Order ID'
-                    # created_order_objs.append(resp_dict)
-                    # resp_str = str(interm_obj.interm_order_id) + ' - Error in Saving Order ID'
-                    # output_list.append(resp_str)
-                    log.info("Order Not Created")
+                    log.info("Central Order Upload: Order Not Created: %s" % order_dict)
                     continue
+            interm_order_id += 1
             cust_ord_dict = {'order_id': ord_obj.id, 'sgst_tax': order_data['sgst_tax'],
                              'cgst_tax': order_data['cgst_tax'],
                              'igst_tax': order_data['igst_tax']}
-            #CustomerOrderSummary.objects.create(**cust_ord_dict)
             cos_objs.append(CustomerOrderSummary(**cust_ord_dict))
             order_data['order_id'] = ord_obj.id
             order_data['status'] = 1
             inter_objs.append(IntermediateOrders(**order_data))
-            #interm_obj.order_id = ord_obj.id
-            #interm_obj.status = 1
-            #interm_obj.save()
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())

@@ -461,7 +461,10 @@ def get_search_params(request, user=''):
                     'zone_code': 'zone_code', 'distributor_code': 'distributor_code', 'reseller_code': 'reseller_code',
                     'supplier_id': 'supplier_id', 'rtv_number': 'rtv_number', 'corporate_name': 'corporate_name',
                     'enquiry_number': 'enquiry_number', 'enquiry_status': 'enquiry_status',
-                    'aging_period': 'aging_period'}
+                    'aging_period': 'aging_period', 'source_sku_code': 'source_sku_code',
+                    'destination_sku_code': 'destination_sku_code',
+                    'destination_sku_category': 'destination_sku_category',
+                    'source_sku_category': 'source_sku_category'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -1563,6 +1566,7 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
 def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id='',
                        dest_seller_id='', source_updated=False, mrp_dict=None):
     batch_obj = ''
+
     if not source_updated:
         for stock in stocks:
             batch_obj = stock.batch_detail
@@ -1574,7 +1578,6 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                     stock.quantity = 0
                 stock.save()
             elif stock.quantity <= move_quantity:
-
                 move_quantity -= stock.quantity
                 change_seller_stock(src_seller_id, stock, user, stock.quantity, 'dec')
                 stock.quantity = 0
@@ -1618,6 +1621,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
         dest_stocks.save()
         change_seller_stock(dest_seller_id, dest_stocks, user, quantity, 'inc')
 
+    return batch_obj
 
 def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp=''):
     # sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
@@ -8019,14 +8023,20 @@ def create_seller_order_transfer(seller_order, seller_id, trans_mapping):
     return trans_mapping
 
 
-def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty, dest_sku, dest_loc, dest_qty, user, seller_id,
-                             source_updated, mrp_dict):
-    update_stocks_data(src_stocks, float(src_qty), dest_stocks, float(dest_qty), user, [dest_loc], dest_sku.id,
+def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty, dest_sku, dest_loc, dest_qty, user,
+                             seller_id, source_updated, mrp_dict):
+    desc_batch_obj = update_stocks_data(src_stocks, float(src_qty), dest_stocks, float(dest_qty), user, [dest_loc], dest_sku.id,
                        src_seller_id=seller_id, dest_seller_id=seller_id, source_updated=source_updated,
                        mrp_dict=mrp_dict)
     sub_data = {'source_sku_code_id': src_sku.id, 'source_location': src_loc.location, 'source_quantity': src_qty,
                 'destination_sku_code_id': dest_sku.id, 'destination_location': dest_loc.location,
                 'destination_quantity': dest_qty}
+    if src_stocks and src_stocks[0].batch_detail:
+        sub_data['source_batch_id'] = src_stocks[0].batch_detail_id
+    if desc_batch_obj:
+        sub_data['dest_batch_id'] = desc_batch_obj.id
+    if seller_id:
+        sub_data['seller_id'] = seller_id
     SubstitutionSummary.objects.create(**sub_data)
     log.info("Substitution Done For " + str(json.dumps(sub_data)))
 

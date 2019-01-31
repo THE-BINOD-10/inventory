@@ -201,7 +201,7 @@
                       <input type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
                     </td>
                     <td>
-                      <input type="text" ng-model="product.fields.apmc_tax" name="apmc_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
+                      <input type="text" ng-model="product.fields.apmc_tax" name="apmc_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
                     </td>
                     <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
                       <input type="text" ng-model="product.fields.remarks" name="remarks" class="form-control detectTab"

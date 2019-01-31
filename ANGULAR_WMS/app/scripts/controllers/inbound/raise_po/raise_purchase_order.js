@@ -711,17 +711,19 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.taxChange = function(data) {
 
       data.fields.tax = Number(data.fields.cgst_tax) + Number(data.fields.sgst_tax) + Number(data.fields.igst_tax) + Number(data.fields.cess_tax) + Number(data.fields.apmc_tax) + Number(data.fields.utgst_tax);
-      vm.getTotals(vm.model_data);
+      vm.getTotals(vm.model_data, true);
     }
 
-    vm.getTotals = function(data) {
-
+    vm.getTotals = function(data, not_update_tax) {
+      if(not_update_tax === undefined) {
+        not_update_tax = false;
+      }
       vm.model_data.total_price = 0;
       vm.model_data.sub_total = 0;
       angular.forEach(vm.model_data.data, function(sku_data){
         var temp = sku_data.fields.order_quantity * sku_data.fields.price;
         //vm.model_data.supplier_sku_prices.price = sku_data.fields.price;
-        if(sku_data.taxes) {
+        if(sku_data.taxes && !not_update_tax) {
             vm.get_tax_value(sku_data);
         }
         if (!sku_data.fields.tax) {

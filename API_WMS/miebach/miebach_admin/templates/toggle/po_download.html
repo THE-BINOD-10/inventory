@@ -123,20 +123,21 @@
                   {% endfor %}
                   </td>
                 {% else %}
+                  <td style="text-align: center;">{{ d }}</td>
 
-                  {% if not show_cess_tax %}
-                    {% if industry_type == 'FMCG' %}
-                      {% if forloop.counter0 != 12 %}
-                        <td style="text-align: center;">{{ d }}</td>
-                      {% endif %}
-                    {% else %}
-                      {% if forloop.counter0 != 10 %}
-                        <td style="text-align: center;">{{ d }}</td>
-                      {% endif %}
-                    {% endif %}
-                  {% else %}
-                    <td style="text-align: center;">{{ d }}</td>
-                  {% endif %}
+                  <!--{% if not show_cess_tax %}-->
+                    <!--{% if industry_type == 'FMCG' %}-->
+                      <!--{% if forloop.counter0 != 12 %}-->
+                        <!--<td style="text-align: center;">{{ d }}</td>-->
+                      <!--{% endif %}-->
+                    <!--{% else %}-->
+                      <!--{% if forloop.counter0 != 10 %}-->
+                        <!--<td style="text-align: center;">{{ d }}</td>-->
+                      <!--{% endif %}-->
+                    <!--{% endif %}-->
+                  <!--{% else %}-->
+                    <!--<td style="text-align: center;">{{ d }}</td>-->
+                  <!--{% endif %}-->
 
                 {% endif %}
               {% endfor %}

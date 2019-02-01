@@ -46,7 +46,7 @@ INSTALLED_APPS = (
     'api_calls',
     'rest_api',
     'oauth2_provider',
-    #'reversion'
+    'reversion'
 )
 
 #INSTALLED_APPS = ("longerusername",) + INSTALLED_APPS

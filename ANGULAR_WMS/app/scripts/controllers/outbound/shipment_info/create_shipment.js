@@ -645,6 +645,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 
     vm.update_sku_quan = function(event, scanned_sku) {
       event.stopPropagation();
+      if(event.keyCode == 13 && vm.mk_user) {
+        $('#scan_imei_input').focus();
+        vm.scan_sku = '';
+        return
+      }
       if (event.keyCode == 13 && scanned_sku.length > 0) {
           console.log(vm);
         vm.service.apiCall("create_orders_check_ean", "GET", {ean: scanned_sku}).then(function(api_data){

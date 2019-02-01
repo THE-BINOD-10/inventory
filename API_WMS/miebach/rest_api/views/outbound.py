@@ -13525,9 +13525,17 @@ def create_orders_check_ean(request, user=''):
     sku_code = ''
     ean = request.GET.get('ean')
     try:
-        sku_obj = SKUMaster.objects.filter(Q(ean_number=ean) | Q(eannumbers__ean_number=ean) | Q(sku_code=ean), user=user.id)
-        if sku_obj:
+        sku_obj = SKUMaster.objects.filter(sku_code=ean, user=user.id)
+        if sku_obj.exists():
             sku_code = sku_obj[0].sku_code
+        elif not sku_code:
+            sku_obj = SKUMaster.objects.filter(ean_number=ean, user=user.id)
+            if sku_obj.exists():
+                sku_code = sku_obj[0].sku_code
+        elif not sku_code:
+            sku_obj = SKUMaster.objects.filter(eannumbers__ean_number=ean, user=user.id)
+            if sku_obj.exists():
+                sku_code = sku_obj[0].sku_code
     except:
         sku_obj = SKUMaster.objects.filter(sku_code=ean, user=user.id)
         if sku_obj:

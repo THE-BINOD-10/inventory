@@ -3124,7 +3124,6 @@ def check_imei(request, user=''):
                 sku_code = po_mapping[0].sku.sku_code
             if not po_mapping:
                 status = str(value) + ' is invalid Imei number'
-
             order_mapping = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, sku__user=user.id, status=1)
             if order_mapping:
                 if order_mapping[0].order:
@@ -3135,6 +3134,10 @@ def check_imei(request, user=''):
                 elif order_mapping[0].jo_material:
                     status = str(value) + ' is already mapped with this job order ' + \
                             str(order_mapping[0].jo_material.job_order.job_code)
+                elif not order_mapping[0].order:
+                    order = picklist.storder_set.filter()
+		    if order:
+			status = str(value) + ' is already mapped with an order'
 
             if is_shipment and po_mapping:
                 seller_id = ''

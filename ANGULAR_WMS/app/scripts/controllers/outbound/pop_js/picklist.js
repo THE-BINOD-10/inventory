@@ -162,6 +162,13 @@ function view_orders() {
           record.scan = '';
           return false
         }
+		if(vm.collect_imei_data.hasOwnProperty(data.id)) {
+			if ($.inArray(record.scan, vm.collect_imei_data[data.id]) != -1) {
+				vm.service.showNoty("Serial Number Already Scanned");
+				record.scan = '';
+				return false
+			}
+		}
         vm.get_id = data.id
         var id = data.id;
         var total = 0;

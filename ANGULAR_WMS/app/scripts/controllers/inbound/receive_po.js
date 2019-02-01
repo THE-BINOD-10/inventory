@@ -1096,7 +1096,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.serial_numbers = [];
     vm.check_imei_exists = function(event, data1, index) {
       event.stopPropagation();
-      if (event.keyCode == 13 && data1.imei_number.length > 0) {
+      if (event.keyCode == 13 && data1.imei_number.length > 0 && data1["disable"] != true) {
         //if(vm.imei_list.indexOf(data1.imei_number) > -1) {
 
         //  Service.showNoty("IMEI Already Scanned");

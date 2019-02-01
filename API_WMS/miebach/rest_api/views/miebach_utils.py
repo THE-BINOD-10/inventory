@@ -5673,6 +5673,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
     if stop_index:
         enquired_sku_qs = enquired_sku_qs[start_index:stop_index]
 
+    totals_map = {}
     for en_obj in enquired_sku_qs:
         em_obj = en_obj.enquiry
         enq_id = int(em_obj.enquiry_id)
@@ -5688,6 +5689,10 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         zone = dist_obj.userprofile.zone
         sku_code = en_obj.sku.sku_code
         quantity = en_obj.quantity
+        if 'Total Qty' not in totals_map:
+            totals_map['Total Qty'] = quantity
+        else:
+            totals_map['Total Qty'] += quantity
         prod_catg = en_obj.sku.sku_category
         ord_dict = OrderedDict((('Zone Code', zone),
                                 ('Distributor Code', distributor_name),
@@ -5699,6 +5704,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
                                 ('Enquiry Aging', days_left),
                                 ('Enquiry Status', extend_status)))
         temp_data['aaData'].append(ord_dict)
+    temp_data['totals'] = totals_map
     return temp_data
 
 def get_shipment_report_data(search_params, user, sub_user, serial_view=False):

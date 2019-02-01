@@ -131,10 +131,15 @@ function view_orders() {
     vm.getrecordSerialnumber = function(rowdata) {
       for(var i=0; i < vm.model_data.data.length; i++) {
         if(vm.model_data.data[i].wms_code == rowdata.wms_code) {
+          if(!vm.model_data.data[i].hasOwnProperty('sku_imeis_map')) {
+            return false
+          }
           angular.copy(vm.model_data.data[i]['sku_imeis_map'][vm.model_data.data[i].wms_code].sort(), vm.record_serial_data);
         }
       }
+      return true
     }
+
     vm.myFunction = function(rowdata, record) {
     var x = document.getElementById("serial_no");
     if (x.style.display === "none" || x.style.display === "") {
@@ -150,8 +155,13 @@ function view_orders() {
   }
 
   vm.serial_scan = function(event, scan, data, record) {
-    vm.getrecordSerialnumber(data);
       if (event.keyCode == 13) {
+        var resp_data = vm.getrecordSerialnumber(data);
+        if (!resp_data) {
+          vm.service.showNoty("Serial Number Not Available For this SKU");
+          record.scan = '';
+          return false
+        }
         vm.get_id = data.id
         var id = data.id;
         var total = 0;

@@ -960,7 +960,7 @@ def get_picklist_data(data_id, user_id):
                                                'order_no': order_id, 'remarks': remarks,
                                                'load_unit_handle': load_unit_handle, 'category': category,
                                                'original_order_id': original_order_id, 'mrp':mrp,
-                                               'batchno':batch_no, 'is_combo_picklist': is_combo_picklist}
+                                               'batchno':batch_no, 'is_combo_picklist': is_combo_picklist, 'sku_imeis_map': sku_imeis_map}
             else:
                 batch_data[match_condition]['reserved_quantity'] += order.reserved_quantity
                 batch_data[match_condition]['picked_quantity'] += order.reserved_quantity
@@ -1170,7 +1170,7 @@ def get_picklist_data(data_id, user_id):
                  'manufactured_date':manufactured_date,
                  'marketplace': marketplace, 'original_order_id' : original_order_id,
                  'mrp':mrp, 'batchno':batch_no, 'is_combo_picklist': is_combo_picklist,
-                 'parent_sku_code':parent_sku_code})
+                 'parent_sku_code':parent_sku_code, 'sku_imeis_map': sku_imeis_map})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -1336,7 +1336,10 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
 
 
 def insert_st_order_serial(picklist, val, order='', shipped_orders_dict={}):
-    imei_nos = val['imei']
+    if ',' in val['imei']:
+        imei_nos = list(set(val['imei'].split(',')))
+    else:
+        imei_nos = list(set(val['imei'].split('\r\n')))
     user_id = None
     for imei in imei_nos:
         imei_filter = {}
@@ -2063,6 +2066,11 @@ def picklist_confirmation(request, user=''):
                         insert_order_serial(picklist, val)
                     if 'labels' in val.keys() and val['labels'] and picklist.order:
                         update_order_labels(picklist, val)
+                    if 'imei' in val.keys() and val['imei'] and not picklist.order:
+                        order = picklist.storder_set.filter()
+                        if order:
+                            order = order[0]
+                            insert_st_order_serial(picklist, val, order=order)
                     reserved_quantity1 = picklist.reserved_quantity
                     tot_quan = 0
                     for stock in total_stock:
@@ -3100,10 +3108,13 @@ def check_imei(request, user=''):
                 else:
                     picklist = Picklist.objects.get(id=key)
                     if not picklist.order:
-                        continue
-                    sku_code = picklist.order.sku.sku_code
-                    order = picklist.order
-
+                        sku_code = picklist.stock.sku.sku_code
+                        order = picklist.storder_set.filter()
+                        if order:
+                            order = order[0]
+                    else:
+                        sku_code = picklist.order.sku.sku_code
+                        order = picklist.order
             po_mapping, status, imei_data = check_get_imei_details(value, sku_code, user.id, check_type='order_mapping',
                                                                    order=order, job_order=job_order)
             if imei_data.get('wms_code', ''):

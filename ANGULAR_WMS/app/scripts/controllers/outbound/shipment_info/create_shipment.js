@@ -12,6 +12,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     vm.permissions = Session.roles.permissions;
     vm.mk_user = (vm.permissions.use_imei == true) ? true: false;
     vm.awb_ship_type = (vm.permissions.create_shipment_type == true) ? true: false;
+    vm.scan_imei_readonly = false;
 
     vm.g_data = Data.create_shipment;
 
@@ -471,10 +472,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     vm.serial_numbers = [];
     vm.check_imei_exists = function(event, imei) {
       event.stopPropagation();
-      if (event.keyCode == 13 && imei.length > 0) {
+      if (event.keyCode == 13 && imei.length > 0 && vm.scan_imei_readonly==false) {
+        vm.scan_imei_readonly = true;
         if (vm.serial_numbers.indexOf(imei) != -1){
             vm.service.showNoty("IMEI Number Already Exist");
             vm.imei_number = "";
+            vm.scan_imei_readonly = false;
         } else {
           var imei_order_id = ''
           if(vm.model_data.data.length > 0 && vm.model_data.data[0].order_id)
@@ -500,6 +503,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                }
                vm.imei_number = "";
              }
+             vm.scan_imei_readonly = false;
            });
           }
         else{
@@ -517,7 +521,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                               }
                             }
                         }
-                  }
+               }
+               vm.scan_imei_readonly = false;
             }
 
         }

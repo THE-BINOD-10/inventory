@@ -281,7 +281,6 @@
       function cal_total(){
         urlService.current_order.summary.total_amount = 0;
         urlService.current_order.summary.total_quantity = 0;
-        //urlService.current_order.summary.total_discount = 0;
         urlService.current_order.summary.total_returned = 0;
         urlService.current_order.summary.subtotal = 0;
         urlService.current_order.summary.sgst = 0;
@@ -302,19 +301,25 @@
           urlService.current_order.summary.igst += (self.skus[i].igst * self.skus[i].quantity);
           urlService.current_order.summary.utgst += (self.skus[i].utgst * self.skus[i].quantity);
           if (!self.tax_inclusive) {
-            urlService.current_order.summary.sgst = -urlService.current_order.summary.sgst;
-            urlService.current_order.summary.cgst = -urlService.current_order.summary.cgst;
-            urlService.current_order.summary.igst = -urlService.current_order.summary.igst;
-            urlService.current_order.summary.utgst = -urlService.current_order.summary.utgst;
+            urlService.current_order.summary.sgst = -(self.skus[i].sgst * self.skus[i].quantity);
+            urlService.current_order.summary.cgst = -(self.skus[i].cgst * self.skus[i].quantity);
+            urlService.current_order.summary.igst = -(self.skus[i].igst * self.skus[i].quantity);
+            urlService.current_order.summary.utgst = -(self.skus[i].utgst * self.skus[i].quantity);
+          } else {
+            var total_tax_percent =  self.skus[i].sgst_percent + self.skus[i].cgst_percent + self.skus[i].igst_percent + self.skus[i].utgst_percent
+            var unit_price = (self.skus[i].selling_price / ((total_tax_percent + 100)/100)) / self.skus[i].quantity;
+            self.skus[i].sgst = (unit_price * self.skus[i].sgst_percent)/100
+            self.skus[i].cgst = (unit_price * self.skus[i].cgst_percent)/100
+            self.skus[i].igst = (unit_price * self.skus[i].igst_percent)/100
+            self.skus[i].utgst = (unit_price * self.skus[i].utgst_percent)/100
+            urlService.current_order.summary.sgst = self.skus[i].sgst * self.skus[i].quantity;
+            urlService.current_order.summary.cgst = self.skus[i].cgst * self.skus[i].quantity;
+            urlService.current_order.summary.igst = self.skus[i].igst * self.skus[i].quantity;
+            urlService.current_order.summary.utgst = self.skus[i].utgst * self.skus[i].quantity;
           }
           urlService.current_order.summary.total_quantity += self.skus[i].quantity;
-
           var discount = (((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100);
-          /*if (!self.tax_inclusive) {
-            urlService.current_order.summary.total_discount += discount;
-          }*/
           discount = (urlService.current_order.summary.total_discount/self.skus.length);
-
           var agg = (self.skus[i].price + (self.skus[i].cgst*self.skus[i].quantity) + (self.skus[i].sgst*self.skus[i].quantity));
           var tax_amt = agg - (self.skus[i].cgst_percent *(agg/100)) - (self.skus[i].sgst_percent *(agg/100)) - discount;
           if(Object.keys(urlService.current_order.summary.gst_based).includes(self.skus[i].cgst_percent.toString())) {
@@ -339,7 +344,6 @@
           urlService.current_order.summary.sgst = Math.abs(urlService.current_order.summary.sgst);
           if (self.tax_inclusive) {
             self.skus[i].price = self.skus[i].price + (self.skus[i].cgst * self.skus[i].quantity) + (self.skus[i].sgst * self.skus[i].quantity);
-            //self.skus[i].subtotal = self.skus[i].subtotal - (self.skus[i].cgst * self.skus[i].quantity) - (self.skus[i].sgst * self.skus[i].quantity);
           }
 		  if (self.skus[i].return_status === "true" ) {
 			    urlService.current_order.summary.total_discount += 0;
@@ -353,10 +357,6 @@
             urlService.current_order.summary.total_amount = urlService.current_order.summary.total_amount + urlService.current_order.summary.sgst + urlService.current_order.summary.cgst + urlService.current_order.summary.igst + urlService.current_order.summary.utgst;
           }
         }
-
-        /*if (self.tax_inclusive) {
-          urlService.current_order.summary.subtotal -= urlService.current_order.summary.sgst + urlService.current_order.summary.igst + urlService.current_order.summary.cgst + urlService.current_order.summary.utgst
-        }*/
         urlService.current_order.summary.issue_type = self.issue_selected;
         var date=new Date();
         urlService.current_order.summary.invoice_number = "TI/"+(date.getMonth()+1)+date.getFullYear().toString().substr(2)+"/";

@@ -33,13 +33,11 @@
       
       $http.get(urlService.mainUrl+'rest_api/get_file_content/?name=sku_master&user='+urlService.userData.parent_id)
            .then( function(data) {
-            
-            self.sku_data_filtered = data.data.file_content.slice(0,500);
-            self.sku_data = data.data.file_content;
-            self.slice_from = 0;
-            self.slice_to = 500;
-            self.selected_skus = [];
-            
+              self.sku_data_filtered = data.data.file_content.slice(0,500);
+              self.sku_data = data.data.file_content;
+              self.slice_from = 0;
+              self.slice_to = 500;
+              self.selected_skus = [];
             },function(error){
               getOflfineSkuContent();
               

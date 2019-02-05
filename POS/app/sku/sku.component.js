@@ -126,9 +126,9 @@
       self.checked_sku = false;
       function check_sku(sku_code) {
         if(sku_code.includes('"')){
-            var check_box = $("input[name='selected_sku'][value='"+sku_code+"']");
+          var check_box = $("input[name='selected_sku'][value='"+sku_code+"']");
         } else {
-            var check_box = $('input[name="selected_sku"][value="'+sku_code+'"]');
+          var check_box = $('input[name="selected_sku"][value="'+sku_code+'"]');
         }
         if(check_box.prop("checked")) {
             check_box.prop("checked", false);
@@ -186,7 +186,7 @@
                 self.sku_data_filtered[sk]["checked"] = true;
             }
         }
-    }
+      }
 
     //uncheck all the select sku fields
     function uncheckMultiSelectSkus(){
@@ -201,22 +201,22 @@
     
     self.hide_load = hide_load;
     function hide_load(last) {
-    //last ? $(".preloader").addClass("ng-hide") : $(".preloader").removeClass("ng-hide");
+      //last ? $(".preloader").addClass("ng-hide") : $(".preloader").removeClass("ng-hide");
     }
     self.checkbox_click = checkbox_click;
-   function checkbox_click($event, sku_code, index) {
-    //$event.stopPropagation();
-        if(sku_code.includes('"')){
-            var check_box = $("input[name='selected_sku'][value='"+sku_code+"']");
-        } else {
+    function checkbox_click($event, sku_code, index) {
+      //$event.stopPropagation();
+      if(sku_code.includes('"')){
+        var check_box = $("input[name='selected_sku'][value='"+sku_code+"']");
+      } else {
         var check_box = $('input[name="selected_sku"][value="'+sku_code+'"]');
-        }
-    if(check_box.prop("checked")) {
-      check_box.prop("checked", false);
-    } else {
-      check_box.prop("checked", true);
+      }
+      if(check_box.prop("checked")) {
+        check_box.prop("checked", false);
+      } else {
+        check_box.prop("checked", true);
+      }
     }
-   }
 
      //style based SKU search
      self.change_style_switch = change_style_switch;

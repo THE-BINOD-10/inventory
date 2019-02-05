@@ -288,7 +288,7 @@
           self.skus[i].sgst = self.skus[i].cgst = self.skus[i].igst = self.skus[i].utgst = 0;
         }
           if (!self.tax_inclusive) {
-            self.skus[i].price = self.skus[i].quantity * self.skus[i].unit_price;
+            self.skus[i].price = (self.skus[i].quantity * self.skus[i].unit_price).toFixed(2);
             urlService.current_order.summary.total_amount += self.skus[i].price;
             urlService.current_order.summary.subtotal += self.skus[i].price;
             var total_tax_percent =  self.skus[i].sgst_percent + self.skus[i].cgst_percent + self.skus[i].igst_percent + self.skus[i].utgst_percent
@@ -312,7 +312,7 @@
             urlService.current_order.summary.cgst += self.skus[i].cgst;
             urlService.current_order.summary.igst += self.skus[i].igst;
             urlService.current_order.summary.utgst += self.skus[i].utgst;
-            self.skus[i].price = unit_price;
+            self.skus[i].price = (unit_price).toFixed(2);
             urlService.current_order.summary.total_amount += self.skus[i].price;
             urlService.current_order.summary.subtotal += self.skus[i].price;
           }

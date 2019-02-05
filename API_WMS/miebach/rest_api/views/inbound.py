@@ -6597,6 +6597,7 @@ def get_po_segregation_data(request, user=''):
     orders = []
     order_data = {}
     order_ids = []
+    remarks = ''
     shelf_life_ratio = get_misc_value('shelf_life_ratio', user.id)
     for segregation_obj in segregations:
         #deviation_remarks = {'Price Deviation': False, 'MRP Deviation': False, 'Shelf Life Ratio Exceeded': False,

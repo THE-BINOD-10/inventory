@@ -93,9 +93,7 @@
           });
           console.log("no network");
         });
-      //Session.roles.permissions[switch_name] = switch_value;
     }
-
     var temp_url=urlService.mainUrl+"rest_api/pos_tax_inclusive/";
     $http({
       method: 'GET',
@@ -124,18 +122,16 @@
             });  
          
     });
-
-    //check sku
-    self.check_sku = check_sku;
-    self.checked_sku = false;
-    function check_sku(sku_code) {
+      self.check_sku = check_sku;
+      self.checked_sku = false;
+      function check_sku(sku_code) {
         if(sku_code.includes('"')){
             var check_box = $("input[name='selected_sku'][value='"+sku_code+"']");
         } else {
-        var check_box = $('input[name="selected_sku"][value="'+sku_code+'"]');
+            var check_box = $('input[name="selected_sku"][value="'+sku_code+'"]');
         }
-    if(check_box.prop("checked")) {
-      check_box.prop("checked", false);
+        if(check_box.prop("checked")) {
+            check_box.prop("checked", false);
             var indx = self.selected_skus.indexOf(sku_code);
             self.selected_skus.splice(indx, 1);
             for (var sk in self.sku_data_filtered) {
@@ -146,43 +142,43 @@
                 }
             }
             console.log(self.selected_skus);
-    } else {
-      check_box.prop("checked", true);
+        } else {
+            check_box.prop("checked", true);
             self.selected_skus.push(sku_code);
             console.log(self.selected_skus);
-      for (var sk in self.sku_data_filtered) {
-        if(self.sku_data_filtered[sk]["SKUCode"] === sku_code) {
+            for (var sk in self.sku_data_filtered) {
+              if(self.sku_data_filtered[sk]["SKUCode"] === sku_code) {
                     self.sku_data_filtered[sk]["checked"] = true;
-          update_search_results([self.sku_data_filtered[sk]], sku_code);
-          angular.forEach(self.skus, function(value, index) {
-            self.changeQuantity(value);
-          });
+                    update_search_results([self.sku_data_filtered[sk]], sku_code);
+                    angular.forEach(self.skus, function(value, index) {
+                      self.changeQuantity(value);
+                    });
+              }
+            }
         }
       }
-    }
-    }
 
     //sku pagination
     self.sku_pagination = sku_pagination;
     function sku_pagination(type) {
     //$(".preloader").removeClass("ng-hide").addClass("ng-show");
-    if(type === "next") {
-      if(self.slice_from < self.sku_data.length){
-        self.slice_from += 500;
-        self.slice_to += 500;
-      }else{
-        urlService.show_toast("No more SKUs to show");
+      if(type === "next") {
+        if(self.slice_from < self.sku_data.length){
+          self.slice_from += 500;
+          self.slice_to += 500;
+        }else{
+          urlService.show_toast("No more SKUs to show");
+        }
+      } else {
+        if(self.slice_from != 0){
+          self.slice_from -= 500;
+          self.slice_to -= 500;
+        }else{
+          urlService.show_toast("Already at begining");
+        }
       }
-    } else {
-      if(self.slice_from != 0){
-        self.slice_from -= 500;
-        self.slice_to -= 500;
-      }else{
-        urlService.show_toast("Already at begining");
-      }
-    }
 
-    self.sku_data_filtered = self.sku_data.slice(self.slice_from, self.slice_to);
+      self.sku_data_filtered = self.sku_data.slice(self.slice_from, self.slice_to);
         for (var sk in self.sku_data_filtered) {
             if(self.selected_skus.indexOf(self.sku_data_filtered[sk]["SKUCode"]) === -1) {
                 self.sku_data_filtered[sk]["checked"] = false;

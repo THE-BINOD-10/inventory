@@ -1336,10 +1336,12 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
 
 
 def insert_st_order_serial(picklist, val, order='', shipped_orders_dict={}):
-    if ',' in val['imei']:
-        imei_nos = list(set(val['imei'].split(',')))
-    else:
-        imei_nos = list(set(val['imei'].split('\r\n')))
+    imei_nos = val['imei']
+    if not isinstance(val['imei'], list):
+        if ',' in val['imei']:
+            imei_nos = list(set(val['imei'].split(',')))
+        else:
+            imei_nos = list(set(val['imei'].split('\r\n')))
     user_id = None
     for imei in imei_nos:
         imei_filter = {}
@@ -5800,7 +5802,7 @@ def insert_st_shipment_info(request, user=''):
                                             shipped_orders_dict=shipped_orders_dict)
                 # Until Here
                 order_pack_instance = OrderPackaging.objects.filter(order_shipment_id=order_shipment.id,
-                                                                    package_reference=all_sku_data[i]['pack_reference'],
+                                                                    package_reference=all_sku_data[i].get('pack_reference', ''),
                                                                     order_shipment__user=user.id)
                 if not order_pack_instance:
                     data_dict['order_shipment_id'] = order_shipment.id
@@ -14057,8 +14059,8 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
         picked_total_qty = STOrder.objects.filter(stock_transfer__st_po__open_st__sku__user=user_id, stock_transfer__order_id=order_id).values_list('stock_transfer__order_id').annotate(picked_qty=Sum('picklist__picked_quantity', distinct=True), st_obj=Sum('stock_transfer__quantity', distinct=True))
         if picked_total_qty:
             picked_total_qty = picked_total_qty[0]
-            picked_qty = picked_total_qty[1]
-            total_qty = picked_total_qty[2]
+            picked_qty = picked_total_qty[2]
+            total_qty = picked_total_qty[1]
         temp_data['aaData'].append(OrderedDict(( ('Stock Transfer ID', order_id),
                                             ('Picked Quantity', picked_qty),
                                             ('Stock Transfer Date&Time', str(stock_transfer['date_only'])),
@@ -14107,6 +14109,7 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
         'id': 24L, 'quantity': 1.0}
         '''
         for obj in stock_transfer_obj:
+            picked_qty = total_qty = 0
             data_dict = obj
             sku_obj = SKUMaster.objects.get(id=data_dict['sku_id'])
             if sku_obj:
@@ -14114,6 +14117,13 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
                 sku_desc = sku_obj.sku_desc
             data_dict['sku_code'] = sku_code
             data_dict['sku_desc'] = sku_desc
+            picked_total_qty = STOrder.objects.filter(stock_transfer__st_po__open_st__sku__user=dest_user_id.id, stock_transfer__order_id=st_order_id[0]).values_list('stock_transfer__order_id').annotate(picked_qty=Sum('picklist__picked_quantity', distinct=True), st_obj=Sum('stock_transfer__quantity', distinct=True))
+            if picked_total_qty:
+                picked_total_qty = picked_total_qty[0]
+                picked_qty = picked_total_qty[1]
+                total_qty = picked_total_qty[2]
+            data_dict['quantity'] = total_qty
+            data_dict['picked_quantity'] = picked_qty
             data.append(data_dict)
         '''
         for order_ids in request_data['stock_transfer_id']:

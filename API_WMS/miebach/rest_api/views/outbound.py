@@ -14043,9 +14043,6 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
                                     order_by(sort_data)
     temp_data['recordsTotal'] = stock_transfers.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    picklist_qtys = dict(STOrder.objects.filter(stock_transfer_id__in=stock_transfers.values_list('id', flat=True)).\
-                         values_list('stock_transfer__order_id').annotate(picked_qty=Sum('picklist__picked_quantity',
-                                                                                         distinct=True)))
     for stock_transfer in stock_transfers:
         destination_wh = ''
         order_id = stock_transfer['order_id']
@@ -14053,11 +14050,17 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
         user_profile = User.objects.get(id=user_id)
         if user_profile:
             destination_wh = user_profile.username
+        picked_qty = total_qty = 0
+        picked_total_qty = STOrder.objects.filter(stock_transfer__st_po__open_st__warehouse__username=destination_wh, stock_transfer__order_id=order_id).values_list('stock_transfer__order_id').annotate(picked_qty=Sum('picklist__picked_quantity', distinct=True), st_obj=Sum('stock_transfer__quantity', distinct=True))
+        if picked_total_qty:
+            picked_total_qty = picked_total_qty[0]
+            picked_qty = picked_total_qty[1]
+            total_qty = picked_total_qty[2]
         temp_data['aaData'].append(OrderedDict(( ('Stock Transfer ID', order_id),
-                                            ('Picked Quantity', picklist_qtys.get(order_id, 0)),
+                                            ('Picked Quantity', picked_qty),
                                             ('Stock Transfer Date&Time', str(stock_transfer['date_only'])),
                                             ('Destination Warehouse', destination_wh),
-                                            ('Total Quantity', stock_transfer['ordered']))))
+                                            ('Total Quantity', total_qty))))
 
 
 @csrf_exempt

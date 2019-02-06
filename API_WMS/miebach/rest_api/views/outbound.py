@@ -3094,6 +3094,7 @@ def check_imei(request, user=''):
     shipping_quantity = 0
     try:
         for key, value in request.GET.iteritems():
+            picklist = ''
             if key in ['is_shipment', 'order_id', 'groupby', 'is_rm_picklist']:
                 continue
             sku_code = ''
@@ -3134,11 +3135,10 @@ def check_imei(request, user=''):
                 elif order_mapping[0].jo_material:
                     status = str(value) + ' is already mapped with this job order ' + \
                             str(order_mapping[0].jo_material.job_order.job_code)
-                elif not order_mapping[0].order:
+                elif not order_mapping[0].order and picklist:
                     order = picklist.storder_set.filter()
 		    if order:
 			status = str(value) + ' is already mapped with an order'
-
             if is_shipment and po_mapping:
                 seller_id = ''
                 if po_mapping[0].seller:
@@ -3173,9 +3173,12 @@ def check_imei(request, user=''):
                         #    shipped_orders_dict.setdefault(int(order.id), {}).setdefault('quantity', 0)
                         #    shipped_orders_dict[int(order.id)]['quantity'] += 1
                         #    shipping_quantity += 1
+                else:
+		    check_st_order_wise = OrderIMEIMapping.objects.filter(sku__user=user.id, stock_transfer__order_id=order_id, status=1, po_imei__imei_number=value)
+		    if not check_st_order_wise:
+			status = 'IMEI not related to this Order'
             if not status:
                 status = 'Success'
-
         if shipped_orders_dict:
             log.info('Order Status update call for user ' + str(user.username) + ' is ' + str(shipped_orders_dict))
             check_and_update_order_status(shipped_orders_dict, user)
@@ -14051,7 +14054,7 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
         if user_profile:
             destination_wh = user_profile.username
         picked_qty = total_qty = 0
-        picked_total_qty = STOrder.objects.filter(stock_transfer__st_po__open_st__warehouse__username=destination_wh, stock_transfer__order_id=order_id).values_list('stock_transfer__order_id').annotate(picked_qty=Sum('picklist__picked_quantity', distinct=True), st_obj=Sum('stock_transfer__quantity', distinct=True))
+        picked_total_qty = STOrder.objects.filter(stock_transfer__st_po__open_st__sku__user=user_id, stock_transfer__order_id=order_id).values_list('stock_transfer__order_id').annotate(picked_qty=Sum('picklist__picked_quantity', distinct=True), st_obj=Sum('stock_transfer__quantity', distinct=True))
         if picked_total_qty:
             picked_total_qty = picked_total_qty[0]
             picked_qty = picked_total_qty[1]
@@ -14093,7 +14096,8 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
     if 'st_order_id' in request_data.keys() and datatable_view == 'StockTransferShipment':
         filter_order_ids = []
         st_order_id = request_data['st_order_id']
-        stock_transfer_obj = StockTransfer.objects.filter(order_id__in = st_order_id, st_po__open_st__warehouse__username = dest_wh_username)
+        dest_user_id = User.objects.get(username=dest_wh_username)
+        stock_transfer_obj = StockTransfer.objects.filter(order_id__in = st_order_id, st_po__open_st__sku__user = dest_user_id.id)
         if len(stock_transfer_obj):
             stock_transfer_obj = stock_transfer_obj.values()
         '''

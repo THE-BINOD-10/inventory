@@ -157,7 +157,7 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
             function(isConfirm){
               // var elem = {'order_id': vm.order_id, 'uploaded_po': vm.upload_file_name};
               if (!vm.upload_file_name) {
-                Service.showNoty('Upload the Image First');
+                Service.showNoty('Upload the Image First', 'warning');
                 return false;
               }
               var elem = {'order_id': vm.order_id};

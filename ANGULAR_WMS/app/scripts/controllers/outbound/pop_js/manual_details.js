@@ -326,8 +326,6 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     console.log(Session);
     Service.apiCall(url, "GET", vm.model_data).then(function(data){
       if(data.message) {
-
-//        console.log(data.data);
         vm.order_details = data.data;
         vm.warehouse_data = vm.order_details.wh_stock_dict;
         vm.tot_quantity = vm.order_details.order.quantity;

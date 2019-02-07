@@ -152,7 +152,6 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
             type: "warning",
             showCancelButton: true,
             confirmButtonText: "Confirm Order",
-            cancelButtonText: "Block Stock",
             closeOnConfirm: true
             },
             function(isConfirm){

@@ -12892,7 +12892,7 @@ def request_manual_enquiry_approval(request, user=''):
     enquiry_id = request.POST.get('enquiry_id', '')
     user_id = request.POST.get('user_id', '')
     status = request.POST.get('enq_status', '')
-    quantity = int(request.POST.get('quantity', 0))
+    quantity = request.POST.get('quantity', 0)
     resp = {'msg': 'Success', 'data': []}
     if not enquiry_id or not user_id or not status:
         resp['msg'] = "Given information insufficient"
@@ -12913,7 +12913,7 @@ def request_manual_enquiry_approval(request, user=''):
         resp['msg'] = "No Enquiry Data for Id"
         return HttpResponse(json.dumps(resp))
     if quantity:
-        enq_data.update(quantity=quantity)
+        enq_data.update(quantity=int(quantity))
     expected_date = request.POST.get('expected_date', '')
     if expected_date or request.user.userprofile.warehouse_type == 'SM_DESIGN_ADMIN':
         save_manual_enquiry_data(request)

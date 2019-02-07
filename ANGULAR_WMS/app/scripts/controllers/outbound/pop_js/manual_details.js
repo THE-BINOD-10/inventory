@@ -185,10 +185,10 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
           Service.showNoty(data.data.msg);
           $modalInstance.close();
         } else {
-          Service.showNoty(data.message);
+          Service.showNoty(data.message, 'warning');
         }
       } else {
-        Service.showNoty('Something went wrong');
+        Service.showNoty('Something went wrong', 'warning');
       }
       vm.disable_btn = false;
     });
@@ -272,11 +272,13 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     Service.apiCall('request_manual_enquiry_approval/', 'POST', data).then(function(data) {
       if (data.message) {
         if (data.data.msg == 'Success') {
+          Service.showNoty(data.data.msg);
           $modalInstance.close();
+        } else {
+          Service.showNoty(data.message, 'warning');
         }
-        Service.showNoty(data.data.msg);
       } else {
-        Service.showNoty('Something went wrong');
+        Service.showNoty('Something went wrong', 'warning');
       }
       vm.disable_btn = false;
     });

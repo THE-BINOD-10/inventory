@@ -176,7 +176,7 @@
                 <input type="text" ng-if="!order.clear_flag" name="ask_price" ng-model="order.model_data.ask_price" class="form-control ng-pristine" placeholder="Modify Price *" decimal-number required ng-readonly="true">
               </div>
             </div>
-            <div class="col-md-4 col-sm-4 col-xs-12" ng-if="order.permissions.user_type != 'sm_design_admin' && order.permissions.user_type != 'sm_purchase_admin'">
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-12" ng-if="order.permissions.user_type != 'sm_design_admin' && order.permissions.user_type != 'sm_purchase_admin'">
               <div class="form-group">
                 <input name="extended_date" ng-if="!order.clear_flag" ui-jq="datepicker" ng-model="order.model_data.expected_date" placeholder="Select Expected Date *" class="form-control stk-readonly" type="text" id="extended_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{order.date}}" data-date-format="dd/mm/yyyy" readonly="true" required ng-readonly="true">
               </div>
@@ -209,18 +209,18 @@
             </div>
           </div>
         </div>
-        <div class="row col-md-12 no-margin" ng-if="order.order_details.order.enq_status=='pending_approval' && order.permissions.user_type != 'admin_sub_user' && showCase.user_type !='reseller'">
-          <div class="col-md-4 col-sm-4 col-xs-12">
+        <div class="row no-margin" ng-if="order.order_details.order.enq_status=='pending_approval' && order.permissions.user_type != 'admin_sub_user' && showCase.user_type !='reseller'">
+          <div class="col-lg-4 col-md-4 col-sm-4 col-xs-12">
             <div class="form-group">
               <input type="text" name="sm_d_price" ng-model="order.model_data.sm_d_price" class="form-control ng-pristine" placeholder="SM-D Price *" decimal-number required>
             </div>
           </div>
-          <div class="col-md-4 col-sm-4 col-xs-12">
+          <div class="col-lg-4 col-md-4 col-sm-4 col-xs-12">
             <div class="form-group">
               <input type="text" name="r_c_price" ng-model="order.model_data.r_c_price" class="form-control ng-pristine" placeholder="R-C Price *" decimal-number required>
             </div>
           </div>
-          <div class="row col-md-12 no-margin" ng-init="order.show_remove={};">
+          <div class="row no-margin" ng-init="order.show_remove={};">
             <div class="col-md-2 no-padding" ng-repeat="image in order.order_details.style.art_images" ng-mouseover="order.show_remove[$index]=true" ng-mouseleave="order.show_remove[$index]=false">
               <img ng-if="order.image_loding[$index]" style="z-index: 12;position:absolute;left: 0px;right: 0px;height:100%;opacity:0.6;" class="img-thumbnail" src="images/DYALX.gif" ng-click="$event.stopPropagation();">
               <button class="btn btn-danger" ng-hide="order.save"  ng-if="order.show_remove[$index]" style="position:absolute;top:0px;right:0px;" ng-click="order.remove_image($index)">X</button>

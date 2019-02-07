@@ -182,9 +182,11 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     Service.apiCall('request_manual_enquiry_approval/', 'POST', data).then(function(data) {
       if (data.message) {
         if (data.data.msg == 'Success') {
+          Service.showNoty(data.data.msg);
           $modalInstance.close();
+        } else {
+          Service.showNoty(data.message);
         }
-        Service.showNoty(data.data.msg);
       } else {
         Service.showNoty('Something went wrong');
       }
@@ -205,9 +207,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
 
 
   vm.send_for_approval = function(form) {
-
     if(vm.model_data.ask_price || vm.model_data.expected_date || vm.model_data.remarks) {
-
       if(!vm.model_data.ask_price) {
         Service.showNoty('Please Fill Ask Price', 'warning');
         return false;
@@ -222,7 +222,6 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
         return false;
       }
     }
-
     vm.disable_btn = true;
     var data = {};
     angular.copy(vm.model_data, data);
@@ -231,11 +230,13 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     Service.apiCall('request_manual_enquiry_approval/', 'POST', data).then(function(data) {
       if (data.message) {
         if (data.data.msg == 'Success') {
+          Service.showNoty(data.data.msg);
           $modalInstance.close();
+        } else {
+          Service.showNoty(data.message, 'warning');
         }
-        Service.showNoty(data.data.msg);
       } else {
-        Service.showNoty('Something went wrong');
+        Service.showNoty('Something went wrong', 'warning');
       }
       vm.disable_btn = false;
     });

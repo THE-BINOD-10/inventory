@@ -194,12 +194,13 @@
                 <input type="text" ng-if="!order.clear_flag" name="sm_d_price" ng-model="order.model_data.sm_d_price" class="form-control ng-pristine" placeholder="SMD Price *" decimal-number required ng-readonly="true">
               </div>
             </div>
-  		      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-12" ng-if="order.model_data.r_c_price">
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-12" ng-if="order.model_data.r_c_price">
               <div class="form-group">
                 R-C Price:
                 <input type="text" ng-if="!order.clear_flag" name="r_c_price" ng-model="order.model_data.r_c_price" class="form-control ng-pristine" placeholder="RC Price *" decimal-number required ng-readonly="true">
               </div>
             </div>
+
           </div>
           <div class="row col-md-12 no-margin" ng-init="order.show_remove={};" ng-if="order.order_details.order.enq_status!='pending_approval'">
             <div class="col-md-2 no-padding" ng-repeat="image in order.order_details.style.art_images" ng-mouseover="order.show_remove[$index]=true" ng-mouseleave="order.show_remove[$index]=false">
@@ -218,6 +219,11 @@
           <div class="col-md-4 col-sm-4 col-xs-12">
             <div class="form-group">
               <input type="text" name="r_c_price" ng-model="order.model_data.r_c_price" class="form-control ng-pristine" placeholder="R-C Price *" decimal-number required>
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-4 col-sm-4 col-xs-12">
+            <div class="form-group">
+              <input type="text" name="quantity" ng-model="order.model_data.quantity" class="form-control ng-pristine number" placeholder="Quantity">
             </div>
           </div>
           <div class="row col-md-12 no-margin" ng-init="order.show_remove={};">

@@ -12892,6 +12892,7 @@ def request_manual_enquiry_approval(request, user=''):
     enquiry_id = request.POST.get('enquiry_id', '')
     user_id = request.POST.get('user_id', '')
     status = request.POST.get('enq_status', '')
+    quantity = int(request.POST.get('quantity', 0))
     resp = {'msg': 'Success', 'data': []}
     if not enquiry_id or not user_id or not status:
         resp['msg'] = "Given information insufficient"
@@ -12911,6 +12912,8 @@ def request_manual_enquiry_approval(request, user=''):
     if not enq_data:
         resp['msg'] = "No Enquiry Data for Id"
         return HttpResponse(json.dumps(resp))
+    if quantity:
+        enq_data.update(quantity=quantity)
     expected_date = request.POST.get('expected_date', '')
     if expected_date or request.user.userprofile.warehouse_type == 'SM_DESIGN_ADMIN':
         save_manual_enquiry_data(request)
@@ -12999,6 +13002,7 @@ def convert_customorder_to_actualorder(request, user=''):
     stock_wh_map = {}
     try:
         warehouse_data = json.loads(request.POST['warehouse_data'])
+        remarks_value = request.POST.get('remarks', '')
         for level, warehouse_list in warehouse_data.items():
             for warehouse in warehouse_list:
                 if warehouse['quantity']:
@@ -13109,7 +13113,7 @@ def convert_customorder_to_actualorder(request, user=''):
                                  'original_order_id': org_ord_id, 'user': usr,
                                  'shipment_date': exp_date, 'unit_price': smd_price, 'invoice_amount': invoice_amount,
                                  'creation_date': datetime.datetime.now(), 'status': 1,
-                                 'order_code': 'MN'}
+                                 'order_code': 'MN', 'remarks' : remarks_value}
             order_detail_dict.update(dist_order_copy)
             ord_qs = OrderDetail.objects.filter(sku_id=mapped_sku_id, order_id=order_id, user=usr)
             if not ord_qs:

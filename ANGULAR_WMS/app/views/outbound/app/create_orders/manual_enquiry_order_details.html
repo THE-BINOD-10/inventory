@@ -200,7 +200,6 @@
                 <input type="text" ng-if="!order.clear_flag" name="r_c_price" ng-model="order.model_data.r_c_price" class="form-control ng-pristine" placeholder="RC Price *" decimal-number required ng-readonly="true">
               </div>
             </div>
-
           </div>
           <div class="row col-md-12 no-margin" ng-init="order.show_remove={};" ng-if="order.order_details.order.enq_status!='pending_approval'">
             <div class="col-md-2 no-padding" ng-repeat="image in order.order_details.style.art_images" ng-mouseover="order.show_remove[$index]=true" ng-mouseleave="order.show_remove[$index]=false">

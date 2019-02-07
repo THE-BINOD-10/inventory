@@ -4305,7 +4305,7 @@ def create_central_order(request, user):
             interm_order_map['remarks'] = remarks_dict[cart_item.sku.sku_code]
             intermediate_obj =  IntermediateOrders.objects.create(**interm_order_map)
             #x = intermediate_obj.shipment_date
-            order_date = intermediate_obj.shipment_date.strftime("%d, %b, %Y")
+            order_date = intermediate_obj.creation_date.strftime("%d, %b, %Y")
             #order_date =  intermediate_obj.shipment_date.day + "/"+intermediate_obj.shipment_date.month+"/"+intermediate_obj.shipment_date.year
             inv_amt = (cart_item.levelbase_price * cart_item.quantity) + cart_item.tax
             items.append([intermediate_obj.interm_order_id,cart_item.sku.sku_code,cart_item.sku.sku_desc,cart_item.quantity, inv_amt,intermediate_obj.project_name,order_date])
@@ -4329,6 +4329,12 @@ def create_central_order(request, user):
             rendered = t.render(data_dict)
             t_user = loader.get_template('templates/central_order/order_placed.html')
             rendered_user = t_user.render(data_dict)
+            internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='Internal Emails')
+            misc_internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='internal_mail', misc_value='true')
+            if misc_internal_mail and internal_mail:
+                internal_mail = internal_mail[0].misc_value.split(",")
+                mail_ids.extend(internal_mail)
+                user_mail_id.extend(internal_mail)
             if mail_ids:
                 send_mail(mail_ids, 'Order Approval Request, Customer: %s' % request.user.username, rendered)
             if user_mail_id:
@@ -8397,8 +8403,8 @@ def get_ratings_details(request, user=''):
 def get_central_orders_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                           filters={}, user_dict={}):
     un_sort_dict = {7: 'Status'}
-    lis = ['interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'project_name', 'remarks',
-           'order_assigned_wh__username', 'id','creation_date']
+    lis = ['interm_order_id', 'interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'project_name', 'remarks',
+           'order_assigned_wh__username', 'status', 'id','creation_date']
     data_dict = {'user': user.id, 'quantity__gt': 0}
     status_map = {'1': 'Accept', '0': 'Reject','2': 'Pending'}
     if not col_num: col_num = 0
@@ -8423,32 +8429,35 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
     ord_items = all_orders.only('interm_order_id', 'order__original_order_id', 'order_assigned_wh__username',
                                    'status', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'id',
                                    'creation_date', 'project_name', 'remarks')\
-        .values_list('interm_order_id', 'order__original_order_id', 'order_assigned_wh__username', 'status',
+        .values('interm_order_id', 'order__original_order_id', 'order_assigned_wh__username', 'status',
                      'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'id',
                      'creation_date', 'project_name', 'remarks')
-    line_items_map = {}
+    '''line_items_map = {}
     for item in ord_items:
         interm_order_id = item[0]
-        line_items_map.setdefault(interm_order_id, []).append(item[1:])
+        line_items_map.setdefault(interm_order_id, []).append(item[1:])'''
 
-    temp_data['recordsTotal'] = len(line_items_map.keys())
+    #temp_data['recordsTotal'] = len(line_items_map.keys())
+    temp_data['recordsTotal'] = ord_items.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
-    for order_id, dat in line_items_map.items()[start_index:stop_index]:
-        loan_proposal_id, assigned_wh, status, sku_code, sku_desc, quantity, shipment_date, \
-        id, creation_date, project_name, remarks = dat[0]
-        order_date = get_local_date(user, creation_date)
-        shipment_date = shipment_date.strftime("%d/%m/%Y")
+    #for order_id, dat in line_items_map.items()[start_index:stop_index]:
+    for dat in ord_items[start_index:stop_index]:
+        #order_id ,loan_proposal_id, assigned_wh, status, sku_code, sku_desc, quantity, shipment_date, \
+        #id, creation_date, project_name, remarks = dat[0]
+        order_date = get_local_date(user, dat['creation_date'])
+        shipment_date = dat['shipment_date'].strftime("%d/%m/%Y")
+        status = dat['status']
         if status:
             status = status_map.get(status)
         else:
             status = 'Pending'
         temp_data['aaData'].append(
-            OrderedDict((('Order ID', int(order_id)), ('SKU Code', sku_code), ('SKU Desc', sku_desc),
-                         ('Product Quantity', quantity), ('Shipment Date', shipment_date), ('data_id', id),
-                         ('Project Name', project_name), ('Remarks', remarks),
-                         ('Warehouse', assigned_wh), ('Status', status), ('Order Date',order_date),
-                         ('Loan Proposal ID', loan_proposal_id), ('id', index), ('DT_RowClass', 'results'))))
+            OrderedDict((('Order ID', int(dat['interm_order_id'])), ('SKU Code', dat['sku__sku_code']), ('SKU Desc', dat['sku__sku_desc']),
+                         ('Product Quantity', dat['quantity']), ('Shipment Date', shipment_date), ('data_id', dat['id']),
+                         ('Project Name', dat['project_name']), ('Remarks', dat['remarks']),
+                         ('Warehouse', dat['order_assigned_wh__username']), ('Status', status), ('Order Date',order_date),
+                         ('Loan Proposal ID', dat['order__original_order_id']), ('id', index), ('DT_RowClass', 'results'))))
         index += 1
 
     col_headers = ['Order ID', 'SKU Code', 'SKU Desc', 'Product Quantity', 'Shipment Date', 'Project Name', 'Remarks',

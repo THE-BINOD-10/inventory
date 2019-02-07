@@ -14314,7 +14314,7 @@ def do_delegate_orders(request, user=''):
                     order_dict['marketplace'] = ''
                     order_dict['vat_percentage'] = 0
                     order_dict['status'] = 0
-                    order_dict['city'] = village
+                    order_dict['city'] = village[:59]
                     order_dict['state'] = state
                     try:
                         order_dict['pin_code'] = int(pincode)

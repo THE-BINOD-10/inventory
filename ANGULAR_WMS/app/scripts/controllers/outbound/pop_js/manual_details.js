@@ -329,25 +329,29 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     console.log(Session);
     Service.apiCall(url, "GET", vm.model_data).then(function(data){
       if(data.message) {
-        vm.order_details = data.data;
-        vm.warehouse_data = vm.order_details.wh_stock_dict;
-        vm.tot_quantity = vm.order_details.order.quantity;
-        // if(vm.order_details.order.status == "confirm_order" || vm.order_details.order.status == 'hold_order'){
-        if(vm.order_details.order.enq_status == "confirm_order" || vm.order_details.order.enq_status == 'hold_order'){
-            vm.model_data.confirmed_price = vm.order_details.data[vm.order_details.data.length - 1].ask_price;
-        }
-        if(vm.order_details.enq_details.expected_date && vm.model_data.from == 'pending_approval') {
+        if (data.data.status) {
+          vm.order_details = data.data;
+          vm.warehouse_data = vm.order_details.wh_stock_dict;
+          vm.tot_quantity = vm.order_details.order.quantity;
+          if(vm.order_details.order.enq_status == "confirm_order" || vm.order_details.order.enq_status == 'hold_order'){
+              vm.model_data.confirmed_price = vm.order_details.data[vm.order_details.data.length - 1].ask_price;
+          }
+          if(vm.order_details.enq_details.expected_date && vm.model_data.from == 'pending_approval') {
 
-          vm.model_data.expected_date = vm.order_details.enq_details.expected_date;
-          vm.model_data.ask_price = vm.order_details.enq_details.ask_price;
-          vm.model_data.remarks = vm.order_details.enq_details.remarks;
-        }
-        if(vm.order_details.md_approved_details.expected_date && vm.order_details.order.enq_status == 'approved') {
-          vm.model_data.expected_date = vm.order_details.md_approved_details.expected_date;
-          vm.model_data.ask_price = vm.order_details.md_approved_details.ask_price;
-          vm.model_data.remarks = vm.order_details.md_approved_details.remarks;
-          vm.model_data.sm_d_price = vm.order_details.md_approved_details.smd_price;
-          vm.model_data.r_c_price = vm.order_details.md_approved_details.rc_price;
+            vm.model_data.expected_date = vm.order_details.enq_details.expected_date;
+            vm.model_data.ask_price = vm.order_details.enq_details.ask_price;
+            vm.model_data.remarks = vm.order_details.enq_details.remarks;
+          }
+          if(vm.order_details.md_approved_details.expected_date && vm.order_details.order.enq_status == 'approved') {
+            vm.model_data.expected_date = vm.order_details.md_approved_details.expected_date;
+            vm.model_data.ask_price = vm.order_details.md_approved_details.ask_price;
+            vm.model_data.remarks = vm.order_details.md_approved_details.remarks;
+            vm.model_data.sm_d_price = vm.order_details.md_approved_details.smd_price;
+            vm.model_data.r_c_price = vm.order_details.md_approved_details.rc_price;
+          }
+        } else {
+          Service.showNoty(data.data.data, 'warning');
+          $modalInstance.close();
         }
       }
       vm.loading = false;

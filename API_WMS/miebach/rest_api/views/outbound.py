@@ -12684,7 +12684,7 @@ def get_manual_enquiry_detail(request, user=''):
                           'quantity': manual_enq[0].quantity, 'custom_remarks': manual_enq[0].custom_remarks.split("<<>>"),
                           'enq_status': manual_enq[0].status, 'enq_det_id': int(manual_enq[0].id),
                           'client_po_rate': manual_enq[0].client_po_rate}
-        if request.user.userprofile.warehouse_type in ('CENTRAL_ADMIN', 'SM_DESIGN_ADMIN', 'SM_PURCHASE_ADMIN'):
+        if request.user.userprofile.warehouse_type in ('CENTRAL_ADMIN', 'SM_DESIGN_ADMIN', 'SM_PURCHASE_ADMIN', 'SM_FINANCE_ADMIN'):
             admin_user = user
         else:
             admin_user = get_priceband_admin_user(user)
@@ -12785,16 +12785,16 @@ def get_manual_enquiry_detail(request, user=''):
                                       'wh_open': 0, 'wh_blocked': 0,
                                       'intr_open': 0, 'intr_blocked': 0})
         wh_stock_dict = {'L1': wh_stock_list}
-
         return HttpResponse(json.dumps({'data': enquiry_dict, 'style': style_dict, 'order': manual_eq_dict,
                                         'enq_details': enq_details, 'far_wh_leadtime': far_wh_lt,
-                                        'wh_stock_dict': wh_stock_dict, 'md_approved_details': md_approved_details}))
+                                        'wh_stock_dict': wh_stock_dict, 'md_approved_details': md_approved_details,
+                                        'status': True}))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Get Manual Enquiry Detail failed. User: %s, Params: %s, Error: %s'
                  % (main_user.username, str(request.POST.dict()), str(e)))
-        return HttpResponse('Get Manual Enquiry Detail failed')
+        return HttpResponse(json.dumps({'data':'Get Manual Enquiry Detail Failed', 'status': False}))
 
 
 @csrf_exempt

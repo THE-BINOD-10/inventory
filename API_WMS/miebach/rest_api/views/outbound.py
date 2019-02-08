@@ -12646,15 +12646,24 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
                                                  **data_filters).order_by(order_data)
         else:
             em_qs = ManualEnquiry.objects.filter(**data_filters).order_by(order_data)
+        if request.user.username == 'sm_purchase_admin':
+            status = 'ArtWork Submitted'
+        elif request.user.username == 'sm_design_admin':
+            status = 'Design Pending'
+        elif request.user.username == 'sm_finance_admin':
+            status = 'Order Placed'
+        else:
+            status = 'Remaining Status'
         for em_obj in em_qs:
             date = em_obj.creation_date.strftime('%Y-%m-%d')
             customization_types = dict(CUSTOMIZATION_TYPES)
             customization_type = customization_types[em_obj.customization_type]
-            temp_data['aaData'].append(OrderedDict((('Enquiry ID', int(em_obj.enquiry_id)), ('Sub Distributor', em_obj.user.username),
-                                                    ('Customer Name', em_obj.customer_name), ('Style Name', em_obj.sku.sku_class),
-                                                    ('Date', date), ('User ID', em_obj.user.id), ('Customization Type', customization_type),
-                                                    ('status', MANUAL_ENQUIRY_STATUS.get(em_obj.status, ''))
-                                                   )))
+            if MANUAL_ENQUIRY_STATUS.get(em_obj.status, '') == status or status == 'Remaining Status':
+                temp_data['aaData'].append(OrderedDict((('Enquiry ID', int(em_obj.enquiry_id)), ('Sub Distributor', em_obj.user.username),
+                                                        ('Customer Name', em_obj.customer_name), ('Style Name', em_obj.sku.sku_class),
+                                                        ('Date', date), ('User ID', em_obj.user.id), ('Customization Type', customization_type),
+                                                        ('status', MANUAL_ENQUIRY_STATUS.get(em_obj.status, ''))
+                                                       )))
         temp_data['recordsTotal'] = len(temp_data['aaData'])
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]

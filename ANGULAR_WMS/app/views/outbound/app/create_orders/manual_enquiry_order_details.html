@@ -4,67 +4,67 @@
     <div class="detail-item border-grey detail-bg-grey mb5">
       <h4><b>Order Details: #{{order.order_details.order.enquiry_id}}</b></h4>
       <div class="row no-margin">
-        <div class="col-md-4 col-sm-4 col-xs-4">
+        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
           <span>Customer Name</span>
         </div>
-        <div class="col-md-8 col-sm-8 col-xs-8">
+        <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
           <span>: {{order.order_details.order.customer_name}}</span>
         </div>
       </div>
       <!-- <div class="row no-margin" ng-repeat="name in ['style_name', 'sku_code', 'category']"> -->
       <div class="row no-margin" ng-repeat="name in ['style_name', 'category']">
-        <div class="col-md-4 col-sm-4 col-xs-4">
+        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
           <span>{{order.labels[name]}}</span>
         </div>
-        <div class="col-md-8 col-sm-8 col-xs-8">
+        <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
           <span>: {{order.order_details.style[name]}}</span>
         </div>
       </div>
       <div class="row no-margin">
-        <div class="col-md-4 col-sm-4 col-xs-4">
+        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
           <span><b>Quantity</b></span>
         </div>
-        <div class="col-md-8 col-sm-8 col-xs-8">
+        <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
           <span><b>: {{order.order_details.order.quantity}}</b></span>
         </div>
       </div>
       <div class="row no-margin">
-        <div class="col-md-4 col-sm-4 col-xs-4">
+        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
           <span><b>Price</b></span>
         </div>
-        <div class="col-md-8 col-sm-8 col-xs-8">
+        <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
           <span><b>: {{order.order_details.order.dr_price}}</b></span>
         </div>
       </div>
       <div class="row no-margin">
-        <div class="col-md-4 col-sm-4 col-xs-4">
+        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
           <span><b>Apprx Client PO Rate</b></span>
         </div>
-        <div class="col-md-8 col-sm-8 col-xs-8">
+        <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
           <span><b>: {{order.order_details.order.client_po_rate}}</b></span>
         </div>
       </div>
       <div class="row no-margin">
-        <div class="col-md-4 col-sm-4 col-xs-4">
+        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
           <span><b>Customization Type</b></span>
         </div>
-        <div class="col-md-8 col-sm-8 col-xs-8">
+        <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
           <span><b>: {{order.order_details.order.customization_type}}</b></span>
         </div>
       </div>
       <div class="row no-margin" ng-if="order.order_details.order.customization_type != 'Price Customization'">
       <!-- <div class="row no-margin"> -->
-        <div class="col-md-4 col-sm-4 col-xs-4">
+        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
           <span><b>Customization Remarks</b></span>
         </div>
-        <div class="col-md-8 col-sm-8 col-xs-8">
+        <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
           <ol style="padding-left: 20px;"><li ng-repeat="remark in order.order_details.order.custom_remarks"> {{remark}}.<br></li></ol>
         </div>
       </div>
     </div>
     <div class="row no-margin" ng-if="order.order_details.order.customization_type != 'Price Customization'">
     <!-- <div class="row no-margin"> -->
-      <div class="col-md-12 col-sm-12 col-xs-12">
+      <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
         <h5 class="pull-left"><b>Uploaded mages</b></h5>
 
         <span ng-hide="order.save" class="btn btn-primary up-btn pull-right" style="position: relative;overflow: hidden;width: 150px;">{{(order.uploading)?'Uploading Images':'Choose File';}}
@@ -93,11 +93,11 @@
         <table class="table mb0 mw40">
           <thead>
             <tr>
-              <th class="col-md-4">Price</th>
-              <th class="col-md-4" ng-if="hist.sm_d_price &&showCase.user_type!='reseller'">SM-D Price</th>
-              <th class="col-md-4" ng-if="hist.r_c_price &&showCase.user_type!='reseller'">R-C Price</th>
-              <th class="col-md-4">Approximate Delivery Date</th>
-              <th class="col-md-4">Remarks</th>
+              <th class="col-lg-4 col-md-4">Price</th>
+              <th class="col-lg-4 col-md-4" ng-if="hist.sm_d_price &&showCase.user_type!='reseller'">SM-D Price</th>
+              <th class="col-lg-4 col-md-4" ng-if="hist.r_c_price &&showCase.user_type!='reseller'">R-C Price</th>
+              <th class="col-lg-4 col-md-4">Approximate Delivery Date</th>
+              <th class="col-lg-4 col-md-4">Remarks</th>
             </tr>
           </thead>
           <tbody>
@@ -161,7 +161,7 @@
               <textarea ng-if="!order.clear_flag" rows="1" class="form-control ng-pristine" cols="27" name="remarks" placeholder="Remarks *" ng-model="order.model_data.remarks" required style="width: 250px;"></textarea>
             </div>
           </div>
-          <div class="row col-md-12 no-margin" ng-init="order.show_remove={};" ng-if="order.order_details.order.enq_status!='pending_approval'">
+          <div class="row col-lg-12 col-md-12 col-sm-12 col-xs-12 no-margin" ng-init="order.show_remove={};" ng-if="order.order_details.order.enq_status!='pending_approval'">
             <div class="col-md-2 no-padding" ng-repeat="image in order.order_details.style.art_images" ng-mouseover="order.show_remove[$index]=true" ng-mouseleave="order.show_remove[$index]=false">
               <img ng-if="order.image_loding[$index]" style="z-index: 12;position:absolute;left: 0px;right: 0px;height:100%;opacity:0.6;" class="img-thumbnail" src="images/DYALX.gif" ng-click="$event.stopPropagation();">
               <button class="btn btn-danger" ng-hide="order.save"  ng-if="order.show_remove[$index]" style="position:absolute;top:0px;right:0px;" ng-click="order.remove_image($index)">X</button>
@@ -201,7 +201,7 @@
               </div>
             </div>
           </div>
-          <div class="row col-md-12 no-margin" ng-init="order.show_remove={};" ng-if="order.order_details.order.enq_status!='pending_approval'">
+          <div class="row col-lg-12 col-md-12 col-sm-12 col-xs-12 no-margin" ng-init="order.show_remove={};" ng-if="order.order_details.order.enq_status!='pending_approval'">
             <div class="col-md-2 no-padding" ng-repeat="image in order.order_details.style.art_images" ng-mouseover="order.show_remove[$index]=true" ng-mouseleave="order.show_remove[$index]=false">
               <img ng-if="order.image_loding[$index]" style="z-index: 12;position:absolute;left: 0px;right: 0px;height:100%;opacity:0.6;" class="img-thumbnail" src="images/DYALX.gif" ng-click="$event.stopPropagation();">
               <button class="btn btn-danger" ng-hide="order.save"  ng-if="order.show_remove[$index]" style="position:absolute;top:0px;right:0px;" ng-click="order.remove_image($index)">X</button>
@@ -209,7 +209,7 @@
             </div>
           </div>
         </div>
-        <div class="row col-md-12 no-margin" ng-if="order.order_details.order.enq_status=='pending_approval' && order.permissions.user_type != 'admin_sub_user' && showCase.user_type !='reseller'">
+        <div class="row col-lg-12 col-md-12 col-sm-12 col-xs-12 no-margin" ng-if="order.order_details.order.enq_status=='pending_approval' && order.permissions.user_type != 'admin_sub_user' && showCase.user_type !='reseller'">
           <div class="col-md-4 col-sm-4 col-xs-12">
             <div class="form-group">
               <input type="text" name="sm_d_price" ng-model="order.model_data.sm_d_price" class="form-control ng-pristine" placeholder="SM-D Price *" decimal-number required>
@@ -220,7 +220,7 @@
               <input type="text" name="r_c_price" ng-model="order.model_data.r_c_price" class="form-control ng-pristine" placeholder="R-C Price *" decimal-number required>
             </div>
           </div>
-          <div class="row col-md-12 no-margin" ng-init="order.show_remove={};">
+          <div class="row col-lg-12 col-md-12 col-sm-12 col-xs-12 no-margin" ng-init="order.show_remove={};">
             <div class="col-md-2 no-padding" ng-repeat="image in order.order_details.style.art_images" ng-mouseover="order.show_remove[$index]=true" ng-mouseleave="order.show_remove[$index]=false">
               <img ng-if="order.image_loding[$index]" style="z-index: 12;position:absolute;left: 0px;right: 0px;height:100%;opacity:0.6;" class="img-thumbnail" src="images/DYALX.gif" ng-click="$event.stopPropagation();">
               <button class="btn btn-danger" ng-hide="order.save"  ng-if="order.show_remove[$index]" style="position:absolute;top:0px;right:0px;" ng-click="order.remove_image($index)">X</button>

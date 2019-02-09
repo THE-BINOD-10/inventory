@@ -8731,7 +8731,7 @@ def load_by_file(load_file_name, table_name, columns, id_dependency=False):
         columns_string = '(' + ','.join(columns) +')'
         query = "LOAD DATA LOCAL INFILE '%s' REPLACE INTO TABLE %s CHARACTER SET utf8 FIELDS TERMINATED BY '#<>#' lines terminated by '\n' %s" %\
                 (load_file_name, table_name, columns_string)
-        if table_name in ['SKU_ATTRIBUTES']:
+        if table_name in ['SKU_ATTRIBUTES', 'CUSTOMER_ORDER_SUMMARY', 'SELLER_ORDER']:
             query += " SET creation_date=NOW(), updation_date=NOW();"
         else:
             query += ";"

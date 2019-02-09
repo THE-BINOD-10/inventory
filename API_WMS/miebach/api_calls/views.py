@@ -1146,6 +1146,7 @@ def update_mp_orders(request):
         validation_dict, failed_status, final_data_dict = validate_seller_orders_format(orders, user=request.user, company_name='mieone')
         if validation_dict:
             return HttpResponse(json.dumps({'messages': validation_dict, 'status': 207}), status=207)
+        insert_status = update_order_dicts_skip_errors(final_data_dict, failed_status, user=request.user, company_name='mieone')
         if failed_status:
             final_failed_status = {'status': 422}
             if type(failed_status) == dict:
@@ -1154,7 +1155,8 @@ def update_mp_orders(request):
                 failed_status = failed_status
                 final_failed_status.update({'messages': failed_status})
             return HttpResponse(json.dumps(final_failed_status), status=422)
-        status = update_order_dicts(final_data_dict, user=request.user, company_name='mieone')
+        #status = update_order_dicts(final_data_dict, user=request.user, company_name='mieone')
+        status = {'status': 1, 'messages': 'Success'}
         log.info(status)
     except Exception as e:
         import traceback

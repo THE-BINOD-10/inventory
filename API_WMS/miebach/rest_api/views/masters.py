@@ -3450,15 +3450,18 @@ def add_or_update_tax(request, user=''):
             taxes = TaxMaster.objects.filter(user=user.id, product_type__exact=product_type)
             if taxes:
                 return HttpResponse('Product Type Already Exist')
-        columns = ['sgst_tax', 'cgst_tax', 'igst_tax', 'cess_tax', 'min_amt', 'max_amt']
+        columns = ['sgst_tax', 'cgst_tax', 'igst_tax', 'cess_tax', 'min_amt', 'max_amt', 'apmc_tax']
         for data in tax_data['data']:
 
             data_dict = {'user_id': user.id}
             if data.get('id', ''):
                 tax_master = get_or_none(TaxMaster, {'id': data['id'], 'user_id': user.id})
                 for key in columns:
-                    if data[key]:
-                        setattr(tax_master, key, float(data[key]))
+                    try:
+                        data_key = float(data[key])
+                    except:
+                        data_key = 0
+                    setattr(tax_master, key, data_key)
                 tax_master.save()
             else:
                 if not data['min_amt'] or not data['max_amt']:

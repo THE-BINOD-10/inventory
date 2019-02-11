@@ -5,6 +5,8 @@ function LocationMasterCtrl($scope, $state, $http, $timeout, Session, Service) {
   var vm = this;
   vm.service = Service;
   vm.permissions = Session.roles.permissions;
+  vm.segregation_list = {};
+  vm.segregation_selected = 'sellable';
 
   vm.data = [];
   function location_data() {
@@ -27,6 +29,7 @@ function LocationMasterCtrl($scope, $state, $http, $timeout, Session, Service) {
     vm.service.apiCall('get_marketplaces_list/?status=all_marketplaces').then(function(mk_data){
       if(mk_data.message) {
         vm.market_list = mk_data.data.marketplaces;
+        vm.segregation_list = mk_data.data.segregation_options;
         $state.go('app.masters.LocationMaster.Zone');
         $timeout(function() {
           $('.selectpicker').selectpicker();
@@ -45,7 +48,7 @@ function LocationMasterCtrl($scope, $state, $http, $timeout, Session, Service) {
      } else {
        var marketplaces = vm.marketplace_selected.join(",");
      }
-     vm.service.apiCall('add_zone/', 'GET', {zone: zone, marketplaces: marketplaces, update: vm.update, level: vm.level}, true).then(function(data){
+     vm.service.apiCall('add_zone/', 'GET', {zone: zone, marketplaces: marketplaces, update: vm.update, level: vm.level, segregation: vm.segregation}, true).then(function(data){
        if(data.message){
          if(data.data == "Added Successfully") {
            vm.zone = "";
@@ -156,10 +159,13 @@ function LocationMasterCtrl($scope, $state, $http, $timeout, Session, Service) {
     vm.service.apiCall('get_zone_data/?zone='+vm.zone).then(function(data){
       if(data.message) {
       vm.level = data.data.level;
+      vm.segregation_selected = data.data.segregation;
       vm.service.apiCall('get_marketplaces_list/?status=all_marketplaces').then(function(mk_data){
         if(mk_data.message) {
           vm.market_list = mk_data.data.marketplaces;
           vm.marketplace_selected = data.data.marketplaces;
+	  vm.segregation = data.data.segregation;
+	  vm.segregation_list = mk_data.data.segregation_options;
           $state.go('app.masters.LocationMaster.Zone');
           $timeout(function() {
             $('.selectpicker').selectpicker();
@@ -217,11 +223,14 @@ function LocationMasterCtrl($scope, $state, $http, $timeout, Session, Service) {
   }
 
   vm.market_list = [];
-  /*vm.service.apiCall('get_marketplaces_list/?status=all_marketplaces').then(function(data){
+  /*
+  vm.service.apiCall('get_marketplaces_list/?status=all_marketplaces').then(function(data){
     if(data.message) {
       vm.market_list = data.data.marketplaces;
+      vm.segregation_list = data.data.segregation_options;
     }
-  })*/
+  })
+  */
 }
 
 angular.module('urbanApp', [])

@@ -60,7 +60,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     var empty_data = {
                        product_type: "",
-                       data: [{tax_type: "intra_state", min_amt: "", max_amt: "", sgst_tax: "", cgst_tax: "", igst_tax: "", cess_tax:"", new_tax: true}]
+                       data: [{tax_type: "intra_state", min_amt: "", max_amt: "", sgst_tax: "", cgst_tax: "", igst_tax: "", cess_tax:"", apmc_tax: "", new_tax: true}]
                      }
     vm.update = false;
     vm.title = "Add Tax"
@@ -145,7 +145,7 @@ app.controller('TaxPOPCtrl', function ($scope, $http, $state, $timeout, Session,
   };
 
   vm.add = function() {
-    vm.model_data.data.push({tax_type: "intra_state", min_amt: "", max_amt: "", sgst_tax: "", cgst_tax: "", igst_tax: "", cess_tax: "", new_tax: true})
+    vm.model_data.data.push({tax_type: "intra_state", min_amt: "", max_amt: "", sgst_tax: "", cgst_tax: "", igst_tax: "", cess_tax: "", apmc_tax: "", new_tax: true})
   }
 
   vm.update_data = function(index) {

@@ -2454,12 +2454,12 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  purchase_mapping)
     if not set(['po_name', 'po_date', 'po_delivery_date', 'supplier_id', 'wms_code', 'quantity', 'price', 'mrp',
-                'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax', 'ship_to']).issubset(excel_mapping.keys()):
+                'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax', 'apmc_tax', 'ship_to']).issubset(excel_mapping.keys()):
         return 'Invalid File', []
     mapping_fields = {'po_date': 'PO Date', 'po_delivery_date': 'PO Delivery Date', 'mrp': 'MRP',
                       'cgst_tax': 'CGST Tax', 'sgst_tax': 'SGST Tax', 'igst_tax': 'IGST Tax', 'utgst_tax': 'UTGST Tax',
-                      'cess_tax': 'CESS Tax'}
-    number_fields = ['mrp', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax', 'cess_tax']
+                      'cess_tax': 'CESS Tax', 'apmc_tax': 'APMC Tax'}
+    number_fields = ['mrp', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax', 'cess_tax', 'apmc_tax']
     user_profile = user.userprofile
     for row_idx in range(1, no_of_rows):
         data_dict = {}
@@ -2565,12 +2565,42 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
 
 
 def purchase_order_excel_upload(request, user, data_list, demo_data=False):
+    from inbound import write_and_mail_pdf
     order_ids = {}
     data_req = {}
     mail_result_data = ""
     user_profile = user.userprofile
     creation_date = datetime.datetime.now()
     po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+    show_cess_tax = False
+    show_apmc_tax = False
+    ean_flag = False
+    total_qty = 0
+    wms_codes_list = list(set(map(lambda d: d['sku'].wms_code, data_list)))
+    ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
+                                        wms_code__in=wms_codes_list, user=user.id)
+    if ean_data.exists():
+        ean_flag = True
+    for final_dict1 in data_list:
+        if final_dict1.get('cess_tax', 0):
+            show_cess_tax = True
+        if final_dict1.get('apmc_tax', 0):
+            show_apmc_tax = True
+        if show_cess_tax and show_apmc_tax and ean_flag:
+            break
+    if user_profile.industry_type == 'FMCG':
+        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
+                         'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+    else:
+        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
+                         'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+    if ean_flag:
+        table_headers.insert(1, 'EAN')
+    if show_cess_tax:
+        table_headers.insert(table_headers.index('UTGST (%)'), 'CESS (%)')
+    if show_apmc_tax:
+        table_headers.insert(table_headers.index('UTGST (%)'), 'APMC (%)')
+    po_data = []
     for final_dict in data_list:
         order_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
         data = copy.deepcopy(PO_DATA)
@@ -2585,6 +2615,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         order_data['igst_tax'] = final_dict.get('igst_tax', 0)
         order_data['utgst_tax'] = final_dict.get('utgst_tax', 0)
         order_data['cess_tax'] = final_dict.get('cess_tax', 0)
+        order_data['apmc_tax'] = final_dict.get('apmc_tax', 0)
         order_data['measurement_unit'] = final_dict['sku'].measurement_type
         order_data['creation_date'] = creation_date
         if final_dict.get('po_delivery_date', ''):
@@ -2604,7 +2635,6 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         else:
             po_id = order_ids[group_key]
         ids_dict = {}
-        po_data = []
         total = 0
         order_data['status'] = 0
         data1 = OpenPO(**order_data)
@@ -2627,9 +2657,114 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         order.save()
         order.po_date = data['po_date']
         order.save()
-        mail_result_data = purchase_order_dict(data1, data_req, purchase_order, user, order)
-    if mail_result_data and get_misc_value('raise_po', user.id) == 'true':
-        mail_status = purchase_upload_mail(request, mail_result_data, user)
+        amount = data1.order_quantity * data1.price
+        total_qty += data1.order_quantity
+        total_tax_amt = (data1.utgst_tax + data1.sgst_tax + data1.cgst_tax + data1.igst_tax + data1.cess_tax + data1.apmc_tax + data1.utgst_tax) * (
+                                    amount / 100)
+        total_sku_amt = total_tax_amt + amount
+        if user_profile.industry_type == 'FMCG':
+            po_temp_data = [data1.sku.wms_code, data1.supplier_code, data1.sku.sku_desc,
+                            data1.order_quantity,
+                            data1.measurement_unit,
+                            data1.price, data1.mrp, amount, data1.sgst_tax,
+                            data1.cgst_tax,
+                            data1.igst_tax,
+                            data1.utgst_tax,
+                            total_sku_amt
+                            ]
+        else:
+            po_temp_data = [data1.sku.wms_code, data1.supplier_code, data1.sku.sku_desc,
+                            data1.order_quantity,
+                            data1.measurement_unit,
+                            data1.price, amount, data1.sgst_tax, data1.cgst_tax,
+                            data1.igst_tax,
+                            data1.utgst_tax,
+                            total_sku_amt
+                            ]
+        if ean_flag:
+            ean_number = 0
+            eans = get_sku_ean_list(data1.sku)
+            if eans:
+                ean_number = eans[0]
+            po_temp_data.insert(1, ean_number)
+        if show_cess_tax:
+            po_temp_data.insert(table_headers.index('CESS (%)'), data1.cess_tax)
+        if show_apmc_tax:
+            po_temp_data.insert(table_headers.index('APMC (%)'), data1.apmc_tax)
+        po_data.append(po_temp_data)
+
+        #mail_result_data = purchase_order_dict(data1, data_req, purchase_order, user, order)
+    try:
+        purchase_order = data1
+        address = purchase_order.supplier.address
+        address = '\n'.join(address.split(','))
+        if purchase_order.ship_to:
+            ship_to_address = purchase_order.ship_to
+            company_address = user.userprofile.address
+        else:
+            ship_to_address, company_address = get_purchase_company_address(user.userprofile)
+        wh_telephone = user.userprofile.wh_phone_number
+        ship_to_address = '\n'.join(ship_to_address.split(','))
+        vendor_name = ''
+        vendor_address = ''
+        vendor_telephone = ''
+        if purchase_order.order_type == 'VR':
+            vendor_address = purchase_order.vendor.address
+            vendor_address = '\n'.join(vendor_address.split(','))
+            vendor_name = purchase_order.vendor.name
+            vendor_telephone = purchase_order.vendor.phone_number
+        telephone = purchase_order.supplier.phone_number
+        name = purchase_order.supplier.name
+        order_id = ids_dict[supplier]
+        supplier_email = purchase_order.supplier.email_id
+        phone_no = purchase_order.supplier.phone_number
+        gstin_no = purchase_order.supplier.tin_number
+        po_exp_duration = purchase_order.supplier.po_exp_duration
+        order_date = get_local_date(request.user, order.creation_date)
+        if po_exp_duration:
+            expiry_date = order.creation_date + datetime.timedelta(days=po_exp_duration)
+        else:
+            expiry_date = ''
+        po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+        profile = UserProfile.objects.get(user=user.id)
+        company_name = profile.company_name
+        title = 'Purchase Order'
+        receipt_type = request.GET.get('receipt_type', '')
+        if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
+            company_name = 'SHPROC Procurement Pvt. Ltd.'
+            title = 'Purchase Order'
+        total_amt_in_words = number_in_words(round(total)) + ' ONLY'
+        round_value = float(round(total) - float(total))
+        company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
+        iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
+        left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO, request)
+        data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address.encode('ascii', 'ignore'),
+                     'order_id': order_id,
+                     'telephone': str(telephone), 'ship_to_address': ship_to_address.encode('ascii', 'ignore'),
+                     'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,
+                     'user_name': request.user.username, 'total_amt_in_words': total_amt_in_words,
+                     'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
+                     'w_address': ship_to_address.encode('ascii', 'ignore'),
+                     'vendor_name': vendor_name, 'vendor_address': vendor_address.encode('ascii', 'ignore'),
+                     'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
+                     'gstin_no': gstin_no, 'industry_type': user_profile.industry_type, 'expiry_date': expiry_date,
+                     'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number, 'wh_pan': profile.pan_number,
+                     'terms_condition': '',
+                     'company_address': company_address.encode('ascii', 'ignore'),
+                     'company_logo': company_logo, 'iso_company_logo': iso_company_logo,
+                     'left_side_logo': left_side_logo}
+        if round_value:
+            data_dict['round_total'] = "%.2f" % round_value
+        t = loader.get_template('templates/toggle/po_download.html')
+        rendered = t.render(data_dict)
+        if get_misc_value('raise_po', user.id) == 'true':
+            write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
+                               str(order_date).split(' ')[0], ean_flag=ean_flag)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Purchase Order send mail failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
     for key, value in order_ids.iteritems():
         if value:
             check_purchase_order_created(user, value)
@@ -5274,7 +5409,7 @@ def create_order_fields_entry(interm_order_id, name, value, user, is_bulk_create
 
 
 def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
-    log.info("order upload started")
+    log.info("Central order upload started")
     st_time = datetime.datetime.now()
     index_status = {}
     order_mapping = get_order_mapping(reader, file_type)
@@ -5309,8 +5444,6 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 index_status.setdefault(count, set()).add('Invalid Location')
             else:
                 try:
-                    #sister_wh = get_sister_warehouse(user)
-                    #user_obj = sister_wh.filter(user__username=location)
                     if location not in sister_wh_names.keys():
                         index_status.setdefault(count, set()).add('Invalid Warehouse Location')
                 except:
@@ -5407,8 +5540,6 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
     else:
         interm_order_id = 10000
     for row_idx in range(1, no_of_rows):
-        interm_order_id += 1
-        print "Creation Row: " + str(row_idx)
         order_data = copy.deepcopy(CENTRAL_ORDER_XLS_UPLOAD)
         order_data['user'] = user
         for key, value in order_mapping.iteritems():
@@ -5432,7 +5563,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                     key_value = datetime.datetime(year, month, day, hour, minute, second)
                 except:
                     key_value = datetime.datetime.now()
-                    order_fields_objs = create_order_fields_entry(order_id, key, key_value, user, is_bulk_create=True,
+                order_fields_objs = create_order_fields_entry(order_id, key, key_value, user, is_bulk_create=True,
                               order_fields_objs=order_fields_objs)
             elif key == 'branch_id':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
@@ -5508,8 +5639,6 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                     value = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     value = str(get_cell_data(row_idx, value, reader, file_type))
-                #sku_data = SKUMaster.objects.filter(wms_code=value, user=user.id)
-                #if sku_data:
                 excel_sku_code = ''
                 if value:
                     order_data['sku_id'] = user_sku_map[str(user.id)+':'+str(value)]
@@ -5555,36 +5684,20 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                     value = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     value = str(get_cell_data(row_idx, value, reader, file_type))
-                # sister_wh = get_sister_warehouse(user)
-                # user_obj = sister_wh.filter(user__username=value)
                 if value:
                     order_data['order_assigned_wh_id'] = sister_wh_names[value]
                     order_data['status'] = ''
-        # if order_fields_objs:
-        #     OrderFields.objects.bulk_create(order_fields_objs)
         try:
-            address_value = address1 + ' ' + address2 + ' ' + client_code + ' ' + mobile_no + ' ' + alt_mobile_no
+            only_addr = address1[:200] + ' ' + address2[:200]  # Max length of addr in OrderFields is 255, but text field in OrderDetail
+            address_value = only_addr + ' ' + client_code + ' ' + mobile_no + ' ' + alt_mobile_no
             order_dict = {}
-            #interm_obj = IntermediateOrders.objects.create(**order_data)
-            #order_fields = OrderFields.objects.filter(user = user.id, original_order_id=interm_obj.interm_order_id)
             order_dict['user'] = order_data['order_assigned_wh_id']
-            #sel_sku_id = interm_obj.sku.id
             sku_id = sister_user_sku_map[str(order_data['order_assigned_wh_id'])+':'+str(excel_sku_code)]
-            #sku_id = get_syncedusers_mapped_sku(wh=interm_obj.order_assigned_wh_id, sku_id=sel_sku_id)
             if not sku_id:
                 return HttpResponse("SKU Not found in Selected Warehouse")
             order_dict['sku_id'] = sku_id
             order_dict['title'] = SKUMaster.objects.filter(sku_code=excel_sku_code, user=user.id)[0].sku_desc
             order_dict['status'] = 1
-
-            # if interm_obj.customer_user:
-            #    customer_user = CustomerUserMapping.objects.filter(user_id=interm_obj.customer_user.id)
-            #    if customer_user:
-            #        order_dict['customer_id'] = customer_user[0].customer.customer_id
-            #        order_dict['customer_name'] = customer_user[0].customer.name
-            #        order_dict['telephone'] = customer_user[0].customer.phone_number
-            #        order_dict['email_id'] = customer_user[0].customer.email_id
-            #        order_dict['address'] = customer_user[0].customer.address
 
             if order_data['customer_id']:
                customer_master = CustomerMaster.objects.filter(user=user.id,
@@ -5596,11 +5709,6 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                    order_dict['address'] = customer_master[0].address
             else:
                 order_dict['customer_id'] = 0
-                # mail_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='email_id')
-                # if mail_obj:
-                #     order_dict['email_id'] = mail_obj[0].value
-                # mobile_no_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='mobile_no')
-                # if mobile_no_obj:
                 if mobile_no:
                     order_dict['telephone'] = mobile_no
                 if address_value:
@@ -5612,41 +5720,27 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             order_dict['order_code'] = order_code
             order_dict['order_id'] = order_id
             order_dict['shipment_date'] = datetime.datetime.now() #interm_obj.shipment_date
-            #order_dict['remarks'] = interm_obj.remarks
             order_dict['quantity'] = 1
             order_dict['unit_price'] = unit_price
             get_existing_order = OrderDetail.objects.filter(**{'sku_id': sku_id,
                 'original_order_id': order_id, 'user':order_data['order_assigned_wh_id'] })
             if get_existing_order.exists():
                 continue
-                # get_existing_order = get_existing_order[0]
-                # get_existing_order.quantity = get_existing_order.quantity + 1
-                # get_existing_order.save()
-                # ord_obj = get_existing_order
-                #order_fields.update(original_order_id=order_dict['original_order_id'])
             else:
                 try:
                     ord_obj = OrderDetail(**order_dict)
                     ord_obj.save()
-                    #order_fields.update(original_order_id=order_dict['original_order_id'])
                 except:
-                    # resp_dict[str(interm_obj.interm_order_id)] = 'Error in Saving Order ID'
-                    # created_order_objs.append(resp_dict)
-                    # resp_str = str(interm_obj.interm_order_id) + ' - Error in Saving Order ID'
-                    # output_list.append(resp_str)
-                    log.info("Order Not Created")
+                    log.info("Central Order Upload: Order Not Created: %s" % order_dict)
                     continue
+            interm_order_id += 1
             cust_ord_dict = {'order_id': ord_obj.id, 'sgst_tax': order_data['sgst_tax'],
                              'cgst_tax': order_data['cgst_tax'],
                              'igst_tax': order_data['igst_tax']}
-            #CustomerOrderSummary.objects.create(**cust_ord_dict)
             cos_objs.append(CustomerOrderSummary(**cust_ord_dict))
             order_data['order_id'] = ord_obj.id
             order_data['status'] = 1
             inter_objs.append(IntermediateOrders(**order_data))
-            #interm_obj.order_id = ord_obj.id
-            #interm_obj.status = 1
-            #interm_obj.save()
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())

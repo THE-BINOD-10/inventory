@@ -1701,6 +1701,9 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
     NOW = datetime.datetime.now()
     insert_status = []
     final_data_dict = OrderedDict()
+    token_user = user
+    sister_whs = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    sister_whs.append(token_user.username)
     try:
         seller_master_dict, valid_order, query_params = {}, {}, {}
         failed_status = OrderedDict()
@@ -1709,6 +1712,7 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
         if isinstance(orders, dict):
             orders = [orders]
         for ind, order in enumerate(orders):
+            print ind
             order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
             channel_name = order['source']
             order_details = copy.deepcopy(ORDER_DATA)
@@ -1731,14 +1735,11 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                 error_message = 'Invalid Order Status - Should be ' + ','.join(order_status_dict.keys())
                 update_error_message(failed_status, 5024, error_message, original_order_id)
                 break
-            token_user = user
             if 'warehouse' not in order.keys():
                 error_message = 'warehouse key missing'
                 update_error_message(failed_status, 5021, error_message, original_order_id)
             else:
                 warehouse = order['warehouse']
-                sister_whs = list(get_sister_warehouse(user).values_list('user__username', flat=True))
-                sister_whs.append(token_user.username)
                 if warehouse in sister_whs:
                     user = User.objects.get(username=warehouse)
                 else:
@@ -1760,7 +1761,7 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                 order_details['customer_name'] = order['billing_address'].get('name', '')
                 order_details['telephone'] = order['billing_address'].get('phone_number', '')
                 order_details['city'] = order['billing_address'].get('city', '')
-                order_details['address'] = order['billing_address'].get('address', '')
+                order_details['address'] = str(order['billing_address'].get('address', '')).encode('ascii', 'ignore')[:255]
                 try:
                     order_details['pin_code'] = int(order['billing_address'].get('pincode', ''))
                 except:
@@ -1778,7 +1779,7 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
             elif order_details['status'] in [3, 4]:
                 valid_order['status__in'] = [3, 4]
             order_detail_present = OrderDetail.objects.filter(**valid_order)
-            if order_detail_present:
+            if order_detail_present.exists():
                 if int(order_detail_present[0].status) == 1:
                     error_code = "5001"
                     message = 'Duplicate Order, ignored at Stockone'
@@ -1809,11 +1810,12 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                 if seller_order.exists():
                     update_error_message(failed_status, 5022, 'SOR Id exists already', original_order_id)
                 sku_items = sub_order['items']
+                sku_obj = None
                 for sku_item in sku_items:
                     failed_sku_status = []
                     sku_code = sku_item['sku']
                     sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
-                    if sku_master:
+                    if sku_master.exists():
                         filter_params['sku_id'] = sku_master[0].id
                         filter_params1['sku_id'] = sku_master[0].id
                     else:
@@ -1821,6 +1823,7 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                         continue
 
                     if sku_master:
+                        sku_obj = sku_master[0]
                         grouping_key = str(original_order_id) + '<<>>' + str(sku_master[0].sku_code)
                         order_det = OrderDetail.objects.filter(**filter_params)
                         order_det1 = OrderDetail.objects.filter(**filter_params1)
@@ -1855,19 +1858,25 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                                                                  final_data_dict=final_data_dict)
                         if not failed_status and not insert_status:
                             order_summary_dict['mrp'] = mrp
+                            order_summary_dict['cgst_tax'] = 0
+                            order_summary_dict['sgst_tax'] = 0
+                            order_summary_dict['igst_tax'] = 0
+                            order_summary_dict['utgst_tax'] = 0
+                            order_summary_dict['cess_tax'] = 0
                             if sku_item.get('tax_percent', {}):
                                 order_summary_dict['cgst_tax'] = float(sku_item['tax_percent'].get('CGST', 0))
                                 order_summary_dict['sgst_tax'] = float(sku_item['tax_percent'].get('SGST', 0))
                                 order_summary_dict['igst_tax'] = float(sku_item['tax_percent'].get('IGST', 0))
                                 order_summary_dict['utgst_tax'] = float(sku_item['tax_percent'].get('UTGST', 0))
                                 order_summary_dict['cess_tax'] = float(sku_item['tax_percent'].get('CESS', 0))
+                            order_summary_dict['discount'] = 0
                             if sku_item.get('discount_amount', 0):
                                 try:
                                     order_summary_dict['discount'] = float(sku_item['discount_amount'])
                                 except:
                                     order_summary_dict['discount'] = 0
-                            order_summary_dict['consignee'] = order_details.get('address', '')
-                            order_summary_dict['invoice_date'] = order_details['creation_date']
+                            order_summary_dict['consignee'] = str(order_details.get('address', '')).encode('ascii', 'ignore')[:255]
+                            #order_summary_dict['invoice_date'] = order_details['creation_date']
                             order_summary_dict['inter_state'] = 0
                             if order_summary_dict['igst_tax']:
                                 order_summary_dict['inter_state'] = 1
@@ -1880,6 +1889,7 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                         final_data_dict = check_and_add_dict(grouping_key, 'seller_order_dict', seller_order_dict,
                                                             final_data_dict=final_data_dict)
                 final_data_dict[grouping_key]['status_type'] = order_status
+                final_data_dict[grouping_key]['sku_obj'] = sku_obj
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -2202,3 +2212,103 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
         log.info('Update Order API failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(orders), str(e)))
     return insert_status, failed_status.values(), final_data_dict
+
+
+def update_order_dicts_skip_errors(orders, failed_status, user='', company_name=''):
+    from outbound import check_stocks
+    trans_mapping = {}
+    status = {'status': 0, 'messages': ['Something went wrong']}
+    error_ids = map(lambda x: x.get('OrderId', ''), failed_status)
+    mysql_file_path = 'static/mysql_files'
+    folder_check(mysql_file_path)
+    file_time_stamp = str(datetime.datetime.now()).replace(' ', '_').replace(':', '_').split('.')[0]
+    cod_load_file_path = '%s/%s' % (mysql_file_path, 'customer_order_summary_' + file_time_stamp + '.txt')
+    cod_load_file = open(cod_load_file_path, 'w')
+    cod_columns = []
+    so_load_file_path = '%s/%s' % (mysql_file_path, 'seller_order_' + file_time_stamp + '.txt')
+    so_load_file = open(so_load_file_path, 'w')
+    so_columns = []
+    loop_count = 0
+    for order_key, order in orders.iteritems():
+        print loop_count
+        loop_count += 1
+        if not order.get('order_details', {}):
+            continue
+        order_det_dict = order['order_details']
+        if order_det_dict['original_order_id'] in error_ids:
+            continue
+        if not order.get('order_detail_obj', None):
+            order_obj = OrderDetail.objects.filter(original_order_id=order_det_dict['original_order_id'],
+                                                   order_id=order_det_dict['order_id'],
+                                                   order_code=order_det_dict['order_code'],
+                                                   sku_id=order_det_dict['sku_id'],
+                                                   user=order_det_dict['user'])
+        else:
+            order_obj = [order.get('order_detail_obj', None)]
+        order_created = False
+        if order_obj:
+            order_obj = order_obj[0]
+            order_obj.quantity = float(order_obj.quantity) + float(order_det_dict.get('quantity', 0))
+            order_obj.invoice_amount = float(order_obj.invoice_amount) + float(order_det_dict.get('invoice_amount', 0))
+            order_obj.save()
+            order_detail = order_obj
+        else:
+            try:
+                order_detail = OrderDetail.objects.create(**order['order_details'])
+                order_created = True
+            except Exception as e:
+                import traceback
+                log.info(str(order['order_details']))
+                log.debug(traceback.format_exc())
+
+        if order.get('order_summary_dict', {}) and not order_obj and order_created:
+            order['order_summary_dict']['order_id'] = order_detail.id
+
+            #if order['order_summary_dict']['invoice_date']:
+            #    order['order_summary_dict']['invoice_date'] = order['order_summary_dict']['invoice_date'].strftime("%Y-%m-%d %H:%M:%S")
+            cod_column_vals = order['order_summary_dict'].values()
+            cod_column_vals = map(str, cod_column_vals)
+            cod_columns = order['order_summary_dict'].keys()
+            update_string = "order_id=%s, updation_date=NOW()" % (order_detail.id)
+            date_string = 'NOW(), NOW()'
+            mysql_query_to_file(cod_load_file, 'CUSTOMER_ORDER_SUMMARY', cod_columns,
+                                cod_column_vals, date_string=date_string, update_string=update_string)
+            '''customer_order_summary = CustomerOrderSummary.objects.create(**order['order_summary_dict'])'''
+        if order.get('seller_order_dict', {}) and order_created:
+            seller_order_dict = order['seller_order_dict']
+            seller_order_dict['order_id'] = order_detail.id
+            if seller_order_dict.get('seller_id', ''):
+                so_column_vals = seller_order_dict.values()
+                so_column_vals = map(str, so_column_vals)
+                so_columns = seller_order_dict.keys()
+                update_string = "order_id=%s, updation_date=NOW()" % (order_detail.id)
+                date_string = 'NOW(), NOW()'
+                mysql_query_to_file(so_load_file, 'SELLER_ORDER', so_columns,
+                                    so_column_vals, date_string=date_string, update_string=update_string)
+            '''trans_mapping = check_create_seller_order(order['seller_order_dict'], order_detail, user,
+                                                      order.get('swx_mappings', []), trans_mapping=trans_mapping)'''
+        order_sku = {}
+        #sku_obj = SKUMaster.objects.filter(id=order_det_dict['sku_id'])
+        sku_obj = order.get('sku_obj', None)
+        if not sku_obj:
+            continue
+        order_sku.update({sku_obj: order_det_dict['quantity']})
+        auto_picklist_signal = get_misc_value('auto_generate_picklist', order_det_dict['user'])
+        if auto_picklist_signal == 'true':
+            message = check_stocks(order_sku, user, 'false', [order_detail])
+        status = {'status': 1, 'messages': 'Success'}
+    if cod_columns:
+        try:
+           load_by_file(cod_load_file_path, 'CUSTOMER_ORDER_SUMMARY', cod_columns)
+        except Exception as e:
+            import traceback
+            log.info("Customer Order Summary Bulk Creation Failed")
+            log.debug(traceback.format_exc())
+    if so_columns:
+        try:
+            load_by_file(so_load_file_path, 'SELLER_ORDER', so_columns)
+        except Exception as e:
+            import traceback
+            log.info("Seller Order Bulk Creation Failed")
+            log.debug(traceback.format_exc())
+    return status

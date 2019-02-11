@@ -18,6 +18,7 @@ from django.db.models.functions import Cast, Concat
 from django.db.models.fields import DateField, CharField
 from django.db.models import Value
 from utils import init_logger, get_currency_format
+from miebach_admin.choices import SELLABLE_CHOICES
 
 
 # from inbound import *

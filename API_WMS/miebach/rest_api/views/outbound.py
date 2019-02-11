@@ -5402,6 +5402,7 @@ def stock_transfer_delete(request, user=""):
 def get_marketplaces_list(request, user=''):
     status_type = request.GET.get('status', '')
     marketplace = get_marketplace_names(user, status_type)
+    segregation_options = OrderedDict(SELLABLE_CHOICES)
     '''if status_type == 'picked':
         marketplace = list(Picklist.objects.exclude(order__marketplace='').filter(picked_quantity__gt=0, order__user = user.id).\
                                             values_list('order__marketplace', flat=True).distinct())
@@ -5411,7 +5412,7 @@ def get_marketplaces_list(request, user=''):
     else:
         marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(status=1, user = user.id, quantity__gt=0).values_list('marketplace', flat=True).\
                                                distinct())'''
-    return HttpResponse(json.dumps({'marketplaces': marketplace}))
+    return HttpResponse(json.dumps({'marketplaces': marketplace, 'segregation_options': segregation_options}))
 
 
 @csrf_exempt

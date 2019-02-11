@@ -6017,9 +6017,11 @@ def app_shipment_info_data(request, user=''):
     model = ''
     district = ''
     alternative_mobile_no = 0
-    manifest_number = request.GET['manifest_number']
-    start_index = request.GET['start_index']
-    stop_index = request.GET['stop_index']
+    response = request.GET['manifest_number']
+    manifest_number = response.split('/')[0]
+    page = response.split('/')[1]
+    stop_index = int(page)*10
+    start_index = stop_index -10
     ship_reference = ''
     shipment_orders = ShipmentInfo.objects.filter(order_shipment__manifest_number=manifest_number)
     truck_number = ''

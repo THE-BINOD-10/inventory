@@ -485,7 +485,7 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
     all_data = OrderedDict()
     if search_term:
         results = ShipmentInfo.objects.filter(order__sku_id__in=sku_master_ids). \
-            filter(Q(order_shipment__shipment_number__icontains=search_term) | Q(order_shipment__manifest_number__icontains=search_term) | 
+            filter(Q(order_shipment__shipment_number__icontains=search_term) | Q(order_shipment__manifest_number__icontains=search_term) |
                    Q(order__customer_id__icontains=search_term) | Q(order__customer_name__icontains=search_term),
                    order_shipment__user=user.id).order_by('order_id')
     else:
@@ -6018,6 +6018,8 @@ def app_shipment_info_data(request, user=''):
     district = ''
     alternative_mobile_no = 0
     manifest_number = request.GET['manifest_number']
+    start_index = request.GET['start_index']
+    stop_index = request.GET['stop_index']
     ship_reference = ''
     shipment_orders = ShipmentInfo.objects.filter(order_shipment__manifest_number=manifest_number)
     truck_number = ''
@@ -6030,7 +6032,7 @@ def app_shipment_info_data(request, user=''):
         driver_phone_number = shipment_orders[0].order_shipment.driver_phone_number
         manifest_number = shipment_orders[0].order_shipment.manifest_number
 
-    for orders in shipment_orders:
+    for orders in shipment_orders[start_index:stop_index]:
         ship_status = copy.deepcopy(SHIPMENT_STATUS)
         status = 'Dispatched'
         interm_obj = IntermediateOrders.objects.filter(order_id=str(orders.order.id))

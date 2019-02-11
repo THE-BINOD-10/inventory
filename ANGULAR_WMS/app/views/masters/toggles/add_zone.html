@@ -31,6 +31,16 @@
                        ng-model="showCase.level" ng-readonly="showCase.update" ng-keyup="showCase.check_zone_level(showCase.level)">
               </div>
             </div>
+
+	    <div class="col-md-4 col-sm-4 col-xs-6" ng-if="user.user_profile.industry_type == 'FMCG'">
+              <div class="form-group">
+                <label class="control-label">Sellable Segregation</label>
+		<select class="form-control" ng-model="showCase.segregation" name="segregation" ng-init="showCase.segregation = showCase.segregation_selected">
+                  <option ng-if="key !== '? undefined:undefined ?'" ng-repeat="(key, value) in showCase.segregation_list" ng-selected="key==showCase.segregation_selected" value="{{key}}">{{value}}</option>
+                </select>
+              </div>
+            </div>
+
           </div>
         </div>
         <div class="row"><h4 align="center">{{showCase.service.message}}</h4></div>

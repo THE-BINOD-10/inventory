@@ -1325,7 +1325,6 @@ def stock_summary_data(request, user=''):
             elif quantity:
                 production_stages.append(
                     {'job_code': job_code, 'stage_name': head, 'stage_quantity': tracking.get(head, 0)})
-
     return HttpResponse(json.dumps({'zones_data': zones_data.values(), 'production_stages': production_stages,
                                     'load_unit_handle': load_unit_handle}))
 

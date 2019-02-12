@@ -7314,12 +7314,14 @@ def get_view_order_details(request, user=''):
     invoice_types = get_invoice_types(user)
     invoice_type = ''
     courier_name = ''
+    mrp = 0
     if customer_order_summary:
         status_obj = customer_order_summary[0].status
         central_remarks = customer_order_summary[0].central_remarks
         invoice_type = customer_order_summary[0].invoice_type
         client_name = customer_order_summary[0].client_name
         courier_name = customer_order_summary[0].courier_name
+        mrp = customer_order_summary[0].mrp
 
     cus_data = []
     order_details_data = []
@@ -7437,14 +7439,12 @@ def get_view_order_details(request, user=''):
              'cess_tax': cess_tax,
              'unit_price': unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data,
              'order_charges': order_charges,
-             'sku_status': one_order.status, 'client_name':client_name, 'payment_status':payment_status})
-
+             'sku_status': one_order.status, 'client_name':client_name, 'payment_status':payment_status, 'mrp':mrp})
     if status_obj in view_order_status:
         view_order_status = view_order_status[view_order_status.index(status_obj):]
     data_dict.append({'cus_data': cus_data, 'status': status_obj, 'ord_data': order_details_data,
                       'central_remarks': central_remarks, 'all_status': view_order_status, 'tax_type': tax_type,
                       'invoice_type': invoice_type, 'invoice_types': invoice_types, 'courier_name':courier_name})
-
     return HttpResponse(json.dumps({'data_dict': data_dict}))
 
 

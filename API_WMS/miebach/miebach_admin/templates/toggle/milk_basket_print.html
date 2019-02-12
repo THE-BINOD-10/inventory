@@ -34,7 +34,7 @@
                     <span><b>GSTIN :</b>{{ page.warehouse_details.gst_number }}</span><br>
                     <span><b>PAN No :</b>{{ page.warehouse_details.pan_number }}</span><br>
                     <span><b>Serial no. of Debit Note :</b>{{ page.rtv_number }}</span><br>
-					<span><b>Date of Debit Note :</b> {{ page.rtv_creation_date }}</span><br>
+					          <span><b>Date of Debit Note :</b> {{ page.rtv_creation_date }}</span><br>
                   </div>
                 </div>
               </div>
@@ -52,7 +52,7 @@
           </tr>
           <tr>
             <td style="width: 50%">
-			  <div class="row m0" style="overflow: hidden;">
+              <div class="row m0" style="overflow: hidden;">
                 <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
                   <div class="col-md-12 p0">
                     <h4>Details of Receiver (Billed to) :</h4>
@@ -65,8 +65,8 @@
                   </div>
                 </div>
               </div>
-			</td>
-			<td style="width: 50%">
+			      </td>
+			      <td style="width: 50%">
               <div class="row m0" style="overflow: hidden;">
                 <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
                   <div class="col-md-12 p0">
@@ -81,37 +81,40 @@
                 </div>
               </div>
             </td>
-		  </tr>
+		      </tr>
         </tbody>
       </table>
-      <table class="table table-bordered bl br cal-table m0">
-		<thead>
-		<tr align="center">
-			<th style="padding:2.5px;" rowspan="2"><center>SKU Code</center></th>
-			<th style="padding:2.5px;" rowspan="2"><center>Description of Goods</center></th>
-			<th style="padding:2.5px;" rowspan="2"><center>HSN Code</center></th>
-			<th style="padding:2.5px;" rowspan="2"><center>QTY</center></th>
-			<th style="padding:2.5px;" rowspan="2"><center>Unit</center></th>
-			<th style="padding:2.5px;" rowspan="2"><center>Rate Per Unit</center></th>
-			<th style="padding:2.5px;" rowspan="2"><center>Total</center></th>
-			<th style="padding:2.5px;" rowspan="2"><center>Discount</center></th>
-			<th style="padding:2.5px;" rowspan="2"><center>Taxable value</center></th>
-			<th style="padding:2.5px;" colspan="2"><center>CGST</center></th>
-			<th style="padding:2.5px;" colspan="2"><center>SGST/UTGST</center></th>
-			<th style="padding:2.5px;" colspan="2"><center>IGST</center></th>
-            <th style="padding:2.5px;" colspan="2"><center>CESS</center></th>
-		</tr>
-		<tr>
-			<th>Rate</th>
-			<th>Amount</th>
-			<th>Rate</th>
-			<th>Amount</th>
-			<th>Rate</th>
-            <th>Amount</th>
+      <table class="table table-bordered m0">
+    		<thead>
+      		<tr align="center">
+      			<th style="padding:2.5px;" rowspan="2"><center>SKU Code</center></th>
+      			<th style="padding:2.5px;" rowspan="2"><center>Description of Goods</center></th>
+      			<th style="padding:2.5px;" rowspan="2"><center>HSN Code</center></th>
+      			<th style="padding:2.5px;" rowspan="2"><center>QTY</center></th>
+      			<th style="padding:2.5px;" rowspan="2"><center>Unit</center></th>
+      			<th style="padding:2.5px;" rowspan="2"><center>Rate Per Unit</center></th>
+      			<th style="padding:2.5px;" rowspan="2"><center>Total</center></th>
+      			<th style="padding:2.5px;" rowspan="2"><center>Discount</center></th>
+      			<th style="padding:2.5px;" rowspan="2"><center>Taxable value</center></th>
+      			<th style="padding:2.5px;" colspan="2"><center>CGST</center></th>
+      			<th style="padding:2.5px;" colspan="2"><center>SGST/UTGST</center></th>
+      			<th style="padding:2.5px;" colspan="2"><center>IGST</center></th>
+                  <th style="padding:2.5px;" colspan="2"><center>CESS</center></th>
+                  <th style="padding:2.5px;" colspan="2"><center>APMC</center></th>
+      		</tr>
+      		<tr>
+      			<th>Rate</th>
+      			<th>Amt</th>
+      			<th>Rate</th>
+      			<th>Amt</th>
+      			<th>Rate</th>
+            <th>Amt</th>
             <th>Rate</th>
-            <th>Amount</th>
-		</tr>
-		</thead>
+            <th>Amt</th>
+            <th>Rate</th>
+            <th>Amt</th>
+      		</tr>
+    		</thead>
         <tbody>
           {% for i in page.item_details %}
           <tr class="fs14 rm-border">
@@ -122,24 +125,26 @@
             <td class="text-right" style="padding:2.5px;">{{ i.measurement_unit }}</td>
             <td class="text-right" style="padding:2.5px;">{{ i.price }}</td>
             <td class="text-right" style="padding:2.5px;">{{ i.total_amt }}</td>
-			<td class="text-right" style="padding:2.5px;">{{ i.discount }}</td>
+			      <td class="text-right" style="padding:2.5px;">{{ i.discount }}</td>
             <td class="text-left" style="padding:2.5px;">{{ i.taxable_value }}</td>
             <td class="text-right" style="padding:2.5px;">{{ i.cgst }}</td>
-			<td class="text-right" style="padding:2.5px;">{{ i.cgst_value }}</td>
-			<td class="text-right" style="padding:2.5px;">{{ i.sgst }}</td>
+			      <td class="text-right" style="padding:2.5px;">{{ i.cgst_value }}</td>
+			      <td class="text-right" style="padding:2.5px;">{{ i.sgst }}</td>
             <td class="text-right" style="padding:2.5px;">{{ i.sgst_value }}</td>
-			<td class="text-right" style="padding:2.5px;">{{ i.igst }}</td>
+			      <td class="text-right" style="padding:2.5px;">{{ i.igst }}</td>
             <td class="text-right" style="padding:2.5px;">{{ i.igst_value }}</td>
             <td class="text-right" style="padding:2.5px;">{{ i.cess }}</td>
             <td class="text-right" style="padding:2.5px;">{{ i.cess_value }}</td>
+            <td class="text-right" style="padding:2.5px;">{{ i.apmc }}</td>
+            <td class="text-right" style="padding:2.5px;">{{ i.apmc_value }}</td>
           </tr>
           {% endfor %}
-		  <tr style="border-top: 1px solid black;">
-			<td class="text-left" style="padding:2.5px;"></td>
+		      <tr style="border-top: 1px solid black;">
+			      <td class="text-left" style="padding:2.5px;"></td>
             <td class="text-left" style="padding:2.5px;"></td>
             <td class="text-left" style="padding:2.5px;"></td>
-			<td class="text-left" style="padding:2.5px;">{{ page.total_qty }}</td>
-			<td class="text-right" style="padding:2.5px;"></td>
+			      <td class="text-left" style="padding:2.5px;">{{ page.total_qty }}</td>
+			      <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;">{{page.total_without_discount}}</td>
             <td class="text-right" style="padding:2.5px;">{{ page.total_only_discount }}</td>
@@ -152,8 +157,10 @@
             <td class="text-right" style="padding:2.5px;">{{ page.total_igst_value }}</td>
             <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;">{{ page.total_cess_value }}</td>
-		  </tr>
-		  <tr>
+            <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;">{{ page.total_apmc_value }}</td>
+		      </tr>
+		      <tr>
             <td class="text-left" style="padding:2.5px;"></td>
             <td class="text-left" style="padding:2.5px;"></td>
             <td class="text-left" style="padding:2.5px;"></td>
@@ -163,6 +170,8 @@
             <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-left" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;"></td>

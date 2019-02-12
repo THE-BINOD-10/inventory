@@ -309,6 +309,7 @@ def add_user_type_permissions(user_profile):
             perms_list.append('add_' + str(perm))
             perms_list.append('change_' + str(perm))
             perms_list.append('delete_' + str(perm))
+            perms_list.append('view_' + str(perm))
         permissions = Permission.objects.exclude(codename__in=perms_list)
         for permission in permissions:
             user_profile.user.user_permissions.add(permission)
@@ -460,7 +461,10 @@ def get_search_params(request, user=''):
                     'zone_code': 'zone_code', 'distributor_code': 'distributor_code', 'reseller_code': 'reseller_code',
                     'supplier_id': 'supplier_id', 'rtv_number': 'rtv_number', 'corporate_name': 'corporate_name',
                     'enquiry_number': 'enquiry_number', 'enquiry_status': 'enquiry_status',
-                    'aging_period': 'aging_period'}
+                    'aging_period': 'aging_period', 'source_sku_code': 'source_sku_code',
+                    'destination_sku_code': 'destination_sku_code',
+                    'destination_sku_category': 'destination_sku_category',
+                    'source_sku_category': 'source_sku_category'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -1324,8 +1328,9 @@ def auto_po_warehouses(sku, qty):
 
 @csrf_exempt
 def auto_po(wms_codes, user):
-    from outbound import insert_st, confirm_stock_transfer
+    from outbound import insert_st
     auto_po_switch = get_misc_value('auto_po_switch', user)
+    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user)
     auto_raise_stock_transfer = get_misc_value('auto_raise_stock_transfer', user)
     if 'true' in [auto_po_switch, auto_raise_stock_transfer]:
         sku_codes = SKUMaster.objects.filter(wms_code__in=wms_codes, user=user, threshold_quantity__gt=0)
@@ -1387,7 +1392,10 @@ def auto_po(wms_codes, user):
                 if auto_confirm_po == 'true':
                     po.status = 0
                     po.save()
-                    po_order_id = get_purchase_order_id(User.objects.get(id=user)) + 1
+                    user_obj = User.objects.get(id=user)
+                    po_order_id = get_purchase_order_id(user_obj) + 1
+                    if po_sub_user_prefix == 'true':
+                        po_order_id = update_po_order_prefix(user_obj, po_order_id)
                     user_profile = UserProfile.objects.get(user_id=sku.user)
                     PurchaseOrder.objects.create(open_po_id=po.id, order_id=po_order_id, status='',
                                                  received_quantity=0, po_date=datetime.datetime.now(),
@@ -1558,6 +1566,7 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
 def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id='',
                        dest_seller_id='', source_updated=False, mrp_dict=None):
     batch_obj = ''
+
     if not source_updated:
         for stock in stocks:
             batch_obj = stock.batch_detail
@@ -1569,7 +1578,6 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                     stock.quantity = 0
                 stock.save()
             elif stock.quantity <= move_quantity:
-
                 move_quantity -= stock.quantity
                 change_seller_stock(src_seller_id, stock, user, stock.quantity, 'dec')
                 stock.quantity = 0
@@ -1613,6 +1621,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
         dest_stocks.save()
         change_seller_stock(dest_seller_id, dest_stocks, user, quantity, 'inc')
 
+    return batch_obj
 
 def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp=''):
     # sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
@@ -5226,7 +5235,7 @@ def get_purchase_order_data(order):
                       'sku': order.product_code,
                       'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle,
                       'sku_desc': order.product_code.sku_desc,
-                      'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0, 'tin_number': '',
+                      'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0, 'apmc_tax': 0, 'tin_number': '',
                       'intransit_quantity': intransit_quantity, 'shelf_life': order.product_code.shelf_life,
                       'show_imei': order.product_code.enable_serial_based}
         return order_data
@@ -5247,6 +5256,7 @@ def get_purchase_order_data(order):
         sgst_tax = 0
         igst_tax = 0
         utgst_tax = 0
+        apmc_tax = 0
         cess_tax = 0
         tin_number = ''
     elif order.open_po:
@@ -5269,6 +5279,7 @@ def get_purchase_order_data(order):
         igst_tax = open_data.igst_tax
         utgst_tax = open_data.utgst_tax
         cess_tax = open_data.cess_tax
+        apmc_tax = open_data.apmc_tax
         tin_number = open_data.supplier.tin_number
         if sku.wms_code == 'TEMP':
             temp_wms = open_data.wms_code
@@ -5290,6 +5301,7 @@ def get_purchase_order_data(order):
         igst_tax = 0
         utgst_tax = 0
         cess_tax = 0
+        apmc_tax = 0
         tin_number = ''
     order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp,'wms_code': sku.wms_code,
                   'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
@@ -5299,7 +5311,8 @@ def get_purchase_order_data(order):
                   'sku_group': sku.sku_group, 'sku_id': sku.id, 'sku': sku, 'temp_wms': temp_wms,
                   'order_type': order_type,
                   'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
-                  'utgst_tax': utgst_tax, 'cess_tax':cess_tax, 'intransit_quantity': intransit_quantity,
+                  'utgst_tax': utgst_tax, 'cess_tax':cess_tax, 'apmc_tax': apmc_tax,
+                  'intransit_quantity': intransit_quantity,
                   'tin_number': tin_number, 'shelf_life': sku.shelf_life, 'show_imei': sku.enable_serial_based }
 
     return order_data
@@ -7315,6 +7328,9 @@ def create_order_pos(user, order_objs, admin_user=None):
         cust_supp_mapping = {}
         user_profile = UserProfile.objects.get(user_id=user.id)
         po_id = get_purchase_order_id(user) + 1
+        po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+        if po_sub_user_prefix == 'true':
+            po_id = update_po_order_prefix(user, po_id)
         for order_obj in order_objs:
             if order_obj.customer_id:
                 customer_id = str(int(order_obj.customer_id))
@@ -8011,14 +8027,20 @@ def create_seller_order_transfer(seller_order, seller_id, trans_mapping):
     return trans_mapping
 
 
-def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty, dest_sku, dest_loc, dest_qty, user, seller_id,
-                             source_updated, mrp_dict):
-    update_stocks_data(src_stocks, float(src_qty), dest_stocks, float(dest_qty), user, [dest_loc], dest_sku.id,
+def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty, dest_sku, dest_loc, dest_qty, user,
+                             seller_id, source_updated, mrp_dict):
+    desc_batch_obj = update_stocks_data(src_stocks, float(src_qty), dest_stocks, float(dest_qty), user, [dest_loc], dest_sku.id,
                        src_seller_id=seller_id, dest_seller_id=seller_id, source_updated=source_updated,
                        mrp_dict=mrp_dict)
     sub_data = {'source_sku_code_id': src_sku.id, 'source_location': src_loc.location, 'source_quantity': src_qty,
                 'destination_sku_code_id': dest_sku.id, 'destination_location': dest_loc.location,
                 'destination_quantity': dest_qty}
+    if src_stocks and src_stocks[0].batch_detail:
+        sub_data['source_batch_id'] = src_stocks[0].batch_detail_id
+    if desc_batch_obj:
+        sub_data['dest_batch_id'] = desc_batch_obj.id
+    if seller_id:
+        sub_data['seller_id'] = seller_id
     SubstitutionSummary.objects.create(**sub_data)
     log.info("Substitution Done For " + str(json.dumps(sub_data)))
 
@@ -8269,16 +8291,21 @@ def get_sister_warehouse(user):
     return warehouses
 
 
-@login_required
-@csrf_exempt
-@get_admin_user
-def get_linked_warehouse_names(request, user=''):
-    current_user = request.GET.get('current_user', '')
+def get_linked_user_objs(current_user, user):
     warehouses = get_sister_warehouse(user)
     if current_user == 'true':
         wh_names = list(warehouses.values_list('user__username', flat=True))
     else:
         wh_names = list(warehouses.exclude(user_id=user.id).values_list('user__username', flat=True))
+    return wh_names
+
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_linked_warehouse_names(request, user=''):
+    current_user = request.GET.get('current_user', '')
+    wh_names = get_linked_user_objs(current_user, user)
     return HttpResponse(json.dumps({'wh_names': wh_names}))
 
 
@@ -8307,18 +8334,20 @@ def get_exclude_zones(user):
     return exclude_zones
 
 
-def get_all_zones(user, zone=''):
+def get_all_zones(user, zones=None):
     """ Send Zones under the mentioned Zones"""
     zone_filter = {'user': user.id}
     all_zones = []
-    if zone:
-        zone_filter['zone'] = zone
+    if not zones:
+        zones = []
+    if zones:
+        zone_filter['zone__in'] = zones
     zone_master = ZoneMaster.objects.filter(**zone_filter)
     all_zones = list(zone_master.values_list('zone', flat=True))
     sub_zones = SubZoneMapping.objects.filter(zone__user=user.id, zone__zone__in=all_zones).\
                                         values_list('sub_zone__zone', flat=True)
     if sub_zones.exists():
-        all_zones = list(chain(all_zones, list(sub_zones)))
+        all_zones = list(set(chain(all_zones, list(sub_zones))))
     return all_zones
 
 
@@ -8344,7 +8373,7 @@ def update_auto_sellable_data(user):
              (user.username, get_local_date(user,creation_date)))
     try:
         picklist_exclude_zones = get_exclude_zones(user)
-        non_sellable_zones = get_all_zones(user, zone='Non Sellable Zone')
+        non_sellable_zones = get_all_zones(user, zones=['Non Sellable Zone'])
         non_sellable_stock = StockDetail.objects.filter(sku__user=user.id, location__zone__zone__in=non_sellable_zones,
                                                         quantity__gt=0)
         non_sellable_skus = non_sellable_stock.values_list('sku_id', flat=True)
@@ -8375,7 +8404,7 @@ def update_auto_sellable_data(user):
                         if other_mrp_obj.exists():
                             sugg_stock = sugg_stock.filter(batch_detail__mrp=other_mrp_obj[0].batch_detail.mrp)
             if sugg_stock:
-                suggsting_zone_list = get_all_zones(user, sugg_stock[0].location.zone.zone)
+                suggsting_zone_list = get_all_zones(user, zones=[sugg_stock[0].location.zone.zone])
                 sugg_stock = sugg_stock.filter(location__zone__zone__in=suggsting_zone_list)
             for stock in sugg_stock:
                 sellable_dict = {'stock_id': stock.id, 'status': 1}
@@ -8704,7 +8733,7 @@ def load_by_file(load_file_name, table_name, columns, id_dependency=False):
         columns_string = '(' + ','.join(columns) +')'
         query = "LOAD DATA LOCAL INFILE '%s' REPLACE INTO TABLE %s CHARACTER SET utf8 FIELDS TERMINATED BY '#<>#' lines terminated by '\n' %s" %\
                 (load_file_name, table_name, columns_string)
-        if table_name in ['SKU_ATTRIBUTES']:
+        if table_name in ['SKU_ATTRIBUTES', 'CUSTOMER_ORDER_SUMMARY', 'SELLER_ORDER']:
             query += " SET creation_date=NOW(), updation_date=NOW();"
         else:
             query += ";"
@@ -8717,3 +8746,59 @@ def load_by_file(load_file_name, table_name, columns, id_dependency=False):
         log.info('loading completed')
     except:
         pass
+<<<<<<< HEAD
+=======
+
+
+def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
+    sub_user = user
+    if request:
+        sub_user = request.user
+    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+    for key, value in all_data.iteritems():
+        po_id = get_purchase_order_id(user) + 1
+        if po_sub_user_prefix == 'true':
+            po_id = update_po_order_prefix(sub_user, po_id)
+        warehouse = User.objects.get(username__iexact=warehouse_name)
+        stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
+        if stock_transfer_obj:
+            order_id = int(stock_transfer_obj[0].order_id) + 1
+        else:
+            order_id = 1001
+
+        for val in value:
+            open_st = OpenST.objects.get(id=val[3])
+            sku_id = SKUMaster.objects.get(wms_code__iexact=val[0], user=warehouse.id).id
+            user_profile = UserProfile.objects.filter(user_id=user.id)
+            prefix = ''
+            if user_profile:
+                prefix = user_profile[0].prefix
+
+            po_dict = {'order_id': po_id, 'received_quantity': 0, 'saved_quantity': 0,
+                       'po_date': datetime.datetime.now(), 'ship_to': '',
+                       'status': '', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
+            po_order = PurchaseOrder(**po_dict)
+            po_order.save()
+            st_purchase_dict = {'po_id': po_order.id, 'open_st_id': open_st.id,
+                                'creation_date': datetime.datetime.now()}
+            st_purchase = STPurchaseOrder(**st_purchase_dict)
+            st_purchase.save()
+            st_dict = copy.deepcopy(STOCK_TRANSFER_FIELDS)
+            st_dict['order_id'] = order_id
+            st_dict['invoice_amount'] = float(val[1]) * float(val[2])
+            st_dict['quantity'] = float(val[1])
+            st_dict['st_po_id'] = st_purchase.id
+            st_dict['sku_id'] = sku_id
+            stock_transfer = StockTransfer(**st_dict)
+            stock_transfer.save()
+            open_st.status = 0
+            open_st.save()
+        check_purchase_order_created(user, po_id)
+    return HttpResponse("Confirmed Successfully")
+
+
+def update_po_order_prefix(sub_user, po_id):
+    po_id = '%s%s' % (str(sub_user.id), str(po_id))
+    return int(po_id)
+
+>>>>>>> 1cf7dcfa9a5215af1596b2303a3d79c9f0a75692

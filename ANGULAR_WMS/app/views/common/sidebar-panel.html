@@ -84,7 +84,7 @@
             <span>Project Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="permissions.user_type == 'central_admin' && permissions.priceband_sync == true">
+        <li ui-sref-active="active" ng-if="permissions.user_type == 'central_admin'">
           <a ui-sref="app.masters.CorporateMaster" ng-show="show_tab('add_corporatemaster')">
             <span>Corporate Master</span>
           </a>
@@ -543,9 +543,34 @@
             <span>Shipment</span>
           </a>
         </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.POReport">
+            <span>Open PO Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.OpenorderReport">
+            <span>Open Order Report</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-show="show_tab('view_returntovendor')">
           <a ui-sref="app.reports.RTVReport">
             <span>RTV</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user' && user.user_profile['industry_type'] == 'FMCG' && show_tab('view_skudetailstats')">
+          <a ui-sref="app.reports.CurrentStockReport">
+            <span>Current Stock</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user' && user.user_profile['industry_type'] == 'FMCG' && show_tab('delete_skudetailstats')">
+          <a ui-sref="app.reports.InventoryValueReport">
+            <span>Inventory Value</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user' && user.user_profile['industry_type'] == 'FMCG' && show_tab('view_substitutionsummary')">
+          <a ui-sref="app.reports.BulkToRetailReport">
+            <span>Bulk to Retail</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor' || permissions.user_type == 'admin_sub_user'">

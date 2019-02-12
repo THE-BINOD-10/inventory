@@ -6,7 +6,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 import reversion
 from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, CUSTOMIZATION_TYPES, ROLE_TYPE_CHOICES, \
-    CUSTOMER_ROLE_CHOICES, APPROVAL_STATUSES
+    CUSTOMER_ROLE_CHOICES, APPROVAL_STATUSES, SELLABLE_CHOICES
 
 # from longerusername import MAX_USERNAME_LENGTH
 # Create your models here.
@@ -16,6 +16,7 @@ class ZoneMaster(models.Model):
     user = models.PositiveIntegerField()
     zone = models.CharField(max_length=64)
     level = models.IntegerField(default=0)
+    segregation = models.CharField(max_length=32, choices=SELLABLE_CHOICES, default='sellable')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -286,7 +287,7 @@ class OrderDetail(models.Model):
     customer_id = models.PositiveIntegerField(default=0)
     customer_name = models.CharField(max_length=256, default='')
     email_id = models.EmailField(max_length=64, default='')
-    address = models.CharField(max_length=256, default='')
+    address = models.TextField(max_length=512, default='')
     telephone = models.CharField(max_length=128, default='', blank=True, null=True)
     sku = models.ForeignKey(SKUMaster)
     title = models.CharField(max_length=256, default='')
@@ -454,6 +455,7 @@ class OpenPO(models.Model):
     igst_tax = models.FloatField(default=0)
     cess_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
+    apmc_tax = models.FloatField(default=0)
     mrp = models.FloatField(default=0)
     delivery_date = models.DateField(blank=True, null=True)
     status = models.CharField(max_length=32)
@@ -753,23 +755,6 @@ class InventoryAdjustment(models.Model):
         return str(self.id)
 
 
-class SubstitutionSummary(models.Model):
-    source_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='source_sku')
-    destination_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='destination_sku')
-    source_location = models.CharField(max_length=64)
-    destination_location = models.CharField(max_length=64)
-    source_quantity = models.FloatField(default=0)
-    destination_quantity = models.FloatField(default=0)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'SUBSTITUTION_SUMMARY'
-
-    def __unicode__(self):
-        return str(self.id)
-
-
 class Issues(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)
@@ -1053,6 +1038,26 @@ class SellerMaster(models.Model):
             'supplier': supplier_id,
             'status': self.status
         }
+
+
+class SubstitutionSummary(models.Model):
+    source_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='source_sku')
+    destination_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='destination_sku')
+    source_location = models.CharField(max_length=64)
+    destination_location = models.CharField(max_length=64)
+    source_quantity = models.FloatField(default=0)
+    destination_quantity = models.FloatField(default=0)
+    source_batch = models.ForeignKey(BatchDetail, blank=True, null=True)
+    dest_batch = models.ForeignKey(BatchDetail, blank=True, null=True, related_name='dest_batch')
+    seller = models.ForeignKey(SellerMaster, blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SUBSTITUTION_SUMMARY'
+
+    def __unicode__(self):
+        return str(self.id)
 
 
 class POIMEIMapping(models.Model):
@@ -1967,6 +1972,7 @@ class SellerPOSummary(models.Model):
     discount_percent = models.FloatField(default=0)
     round_off_total = models.FloatField(default=0)
     cess_tax = models.FloatField(default=0)
+    apmc_tax = models.FloatField(default=0)
     overall_discount = models.FloatField(default=0)
     remarks = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -2350,6 +2356,7 @@ class TaxMaster(models.Model):
     igst_tax = models.FloatField(default=0)
     cess_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
+    apmc_tax = models.FloatField(default=0)
     min_amt = models.FloatField(default=0)
     max_amt = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -2370,6 +2377,7 @@ class TaxMaster(models.Model):
             'igst_tax': self.igst_tax,
             'cess_tax': self.cess_tax,
             'utgst_tax': self.utgst_tax,
+            'apmc_tax': self.apmc_tax,
             'min_amt': self.min_amt,
             'max_amt': self.max_amt,
             'user_id': self.user.id

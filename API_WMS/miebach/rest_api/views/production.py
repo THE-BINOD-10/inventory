@@ -963,6 +963,9 @@ def insert_rwo_po(rw_order, request, user):
     if job_order.filter(status='order-confirmed'):
         return
     po_id = get_purchase_order_id(user) + 1
+    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+    if po_sub_user_prefix == 'true':
+        po_id = update_po_order_prefix(request.user, po_id)
     for order in job_order:
         total_qty += order.product_quantity
         prefix = UserProfile.objects.get(user_id=rw_order.vendor.user).prefix

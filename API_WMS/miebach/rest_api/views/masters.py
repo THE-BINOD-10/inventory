@@ -2101,6 +2101,11 @@ def update_zone_marketplace_mapping(zone, marketplace_list):
     return resp
 
 
+def update_sub_zone_segregation(zone_obj):
+    sub_zone_ids = SubZoneMapping.objects.filter(zone_id=zone_obj.id).values_list('sub_zone_id', flat=True)
+    ZoneMaster.objects.filter(user=zone_obj.user, id__in=sub_zone_ids).update(segregation=zone_obj.segregation)
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -2112,6 +2117,10 @@ def add_zone(request, user=''):
     update = request.GET.get('update', '')
     marketplace = request.GET.get('marketplaces', '')
     level = request.GET.get('level', 0)
+    segregation = request.GET.get('segregation', '')
+    seg_options = dict(SELLABLE_CHOICES).keys()
+    if segregation and segregation not in seg_options:
+        return HttpResponse("Invalid Segragation Option")
     if level == '':
         level = 0
     if update == 'true':
@@ -2119,6 +2128,11 @@ def add_zone(request, user=''):
             status = 'ZONE not found'
         else:
             update_zone_marketplace_mapping(data[0], marketplace)
+            if segregation:
+                data = data[0]
+                data.segregation = segregation
+                data.save()
+                update_sub_zone_segregation(data)
             status = 'Update Successfully'
     else:
         if not data:
@@ -2126,6 +2140,8 @@ def add_zone(request, user=''):
             location_dict['user'] = user.id
             location_dict['zone'] = zone
             location_dict['level'] = level
+            if segregation:
+                location_dict['segregation'] = segregation
             loc_master = ZoneMaster(**location_dict)
             loc_master.save()
             update_zone_marketplace_mapping(loc_master, marketplace)
@@ -2150,6 +2166,7 @@ def get_zone_data(request, user=''):
                 'marketplace', flat=True))
         resp['marketplaces'] = marketplace_list
         resp['level'] = data[0].level
+        resp['segregation'] = data[0].segregation
         status = 'Success'
     resp['msg'] = status
     return HttpResponse(json.dumps(resp))
@@ -3450,15 +3467,18 @@ def add_or_update_tax(request, user=''):
             taxes = TaxMaster.objects.filter(user=user.id, product_type__exact=product_type)
             if taxes:
                 return HttpResponse('Product Type Already Exist')
-        columns = ['sgst_tax', 'cgst_tax', 'igst_tax', 'cess_tax', 'min_amt', 'max_amt']
+        columns = ['sgst_tax', 'cgst_tax', 'igst_tax', 'cess_tax', 'min_amt', 'max_amt', 'apmc_tax']
         for data in tax_data['data']:
 
             data_dict = {'user_id': user.id}
             if data.get('id', ''):
                 tax_master = get_or_none(TaxMaster, {'id': data['id'], 'user_id': user.id})
                 for key in columns:
-                    if data[key]:
-                        setattr(tax_master, key, float(data[key]))
+                    try:
+                        data_key = float(data[key])
+                    except:
+                        data_key = 0
+                    setattr(tax_master, key, data_key)
                 tax_master.save()
             else:
                 if not data['min_amt'] or not data['max_amt']:
@@ -4014,7 +4034,10 @@ def add_sub_zone_mapping(request, user=''):
         return HttpResponse('Invalid Sub zone')
     exist_mapping = SubZoneMapping.objects.filter(zone_id=zone_obj[0].id, sub_zone_id=sub_zone_obj[0].id)
     if not exist_mapping:
-        mapping_dict = {'zone_id': zone_obj[0].id, 'sub_zone_id': sub_zone_obj[0].id, 'status': 1,
+        sub_zone_obj = sub_zone_obj[0]
+        sub_zone_obj.segregation = zone_obj[0].segregation
+        sub_zone_obj.save()
+        mapping_dict = {'zone_id': zone_obj[0].id, 'sub_zone_id': sub_zone_obj.id, 'status': 1,
                         'creation_date': datetime.datetime.now()}
         mapping_obj = SubZoneMapping(**mapping_dict)
         mapping_obj.save()

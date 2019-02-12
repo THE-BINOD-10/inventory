@@ -211,6 +211,11 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
             alternative_mobile_no =''
             model = ''
             total_price =''
+            unit_price = ''
+            cgst = ''
+            sgst = ''
+            igst = ''
+            location_name = ''
             try :
                 interm_obj = IntermediateOrders.objects.filter(order_id=str(data.id))
                 if interm_obj :
@@ -260,6 +265,7 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
                     sgst = interm_obj[0].sgst_tax
                     igst = interm_obj[0].igst_tax
                     location = interm_obj[0].order_assigned_wh
+                    location_name = location.username
             except Exception as e:
                 import traceback
                 log.debug(traceback.format_exc())
@@ -270,7 +276,7 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
                                                     ('Batch Date',batch_date),('Branch ID',branch_id),('Branch Name',branch_name),('Loan Proposal ID',data.original_order_id),('Loan Proposal Code',loan_proposal_code),('Client Code',client_code),('Client ID',client_id),
                                                     ('Customer Name',data.customer_name),('Address1',address1),('Address2',address2),('Landmark',landmark),('Village',village),('District',district),
                                                     ('State1',state),('Pincode',pincode),('Mobile Number',mobile_no),('Alternative Mobile Number',alternative_mobile_no),('SKU Code',sku_code),('Model',model),
-                                                    ('Unit Price',unit_price),('CGST',cgst),('SGST',sgst),('IGST',igst),('Total Price',total_price),('Location',location.username))))
+                                                    ('Unit Price',unit_price),('CGST',cgst),('SGST',sgst),('IGST',igst),('Total Price',total_price),('Location',location_name))))
         else:
             temp_data['aaData'].append(OrderedDict((('', checkbox), ('Order ID', order_id), ('SKU Code', sku_code),
                                                 ('Title', data.title), ('id', count), ('Product Quantity', quantity),
@@ -466,15 +472,20 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
 
 @csrf_exempt
 def get_customer_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
+    sno = 0
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     gateout = request.POST.get('gateout', '')
     if gateout:
         gateout = int(gateout)
-    lis = ['Shipment Number', 'Customer ID', 'Customer Name', 'Total Quantity']
+    central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
+    if central_order_reassigning == 'true':
+        lis = ['Serial Number', 'Shipment Number', 'Customer ID', 'Customer Name', 'Manifest Number', 'Total Quantity', 'Total Quantity']
+    else:
+        lis = ['Shipment Number', 'Customer ID', 'Customer Name', 'Manifest Number', 'Total Quantity', 'Total Orders', 'Serial Number']
     all_data = OrderedDict()
     if search_term:
         results = ShipmentInfo.objects.filter(order__sku_id__in=sku_master_ids). \
-            filter(Q(order_shipment__shipment_number__icontains=search_term) |
+            filter(Q(order_shipment__shipment_number__icontains=search_term) | Q(order_shipment__manifest_number__icontains=search_term) |
                    Q(order__customer_id__icontains=search_term) | Q(order__customer_name__icontains=search_term),
                    order_shipment__user=user.id).order_by('order_id')
     else:
@@ -484,23 +495,31 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
         tracking = ShipmentTracking.objects.filter(shipment_id=result.id, shipment__order__user=user.id).order_by(
             '-creation_date'). \
             values_list('ship_status', flat=True)
-
         if gateout:
             if tracking and tracking[0] != 'Out for Delivery':
                 continue
         else:
             if tracking and tracking[0] in ['Delivered', 'Out for Delivery']:
                 continue
-
-        cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name)
+        central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
+        if central_order_reassigning == 'true':
+            if result.order_shipment.shipment_number:
+                shipment_orders_count = ShipmentInfo.objects.filter(order_shipment__shipment_number=result.order_shipment.shipment_number,
+                                                  order_shipment__user=user.id)
+                total_orders = shipment_orders_count.count()
+                cond = (result.order_shipment.shipment_number, 0, 0, int(result.order_shipment.manifest_number), total_orders)
+        else:
+            total_orders = 0
+            cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name, int(result.order_shipment.manifest_number), total_orders)
         all_data.setdefault(cond, 0)
         all_data[cond] += result.shipping_quantity
 
     temp_data['recordsTotal'] = len(all_data)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for key, value in all_data.iteritems():
+        sno = sno+1
         temp_data['aaData'].append(
-            {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2],
+            {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Serial Number' : sno,
              'Total Quantity': value, 'DT_RowClass': 'results'})
     sort_col = lis[col_num]
 
@@ -622,7 +641,10 @@ def generate_picklist(request, user=''):
         if key in ('sortingTable_length', 'fifo-switch', 'ship_reference', 'remarks', 'filters', 'enable_damaged_stock'):
             continue
 
-        order_data = OrderDetail.objects.get(id=key, user=user.id)
+        order_data = OrderDetail.objects.filter(id=key, user=user.id, status=1)
+        if not order_data.exists():
+            continue
+        order_data = order_data[0]
         seller_orders = all_seller_orders.filter(order_id=key, status=1).order_by('order__shipment_date')
         try:
             if seller_orders:
@@ -734,7 +756,7 @@ def batch_generate_picklist(request, user=''):
 
             key = key.split('<>')
             sku_code, marketplace_sku_code, title = key
-            order_filter = {'sku__sku_code': sku_code, 'quantity__gt': 0, 'title': title}
+            order_filter = {'sku__sku_code': sku_code, 'quantity__gt': 0, 'title': title, 'status': 1}
 
             if sku_code != marketplace_sku_code:
                 order_filter['sku_code'] = marketplace_sku_code
@@ -3899,6 +3921,7 @@ def check_and_raise_po(generic_order_id, cm_id, ord_det_id=None):
     mapping = mapping[0]
     wh_list = list(generic_data.values_list('cust_wh_id', flat=True).distinct())
     user_profile = UserProfile.objects.filter(user_id=mapping.warehouse.id)
+    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', mapping.warehouse.id)
     for wh in wh_list:
         po_data = generic_data.filter(cust_wh_id=wh)
         supplier = NetworkMaster.objects.filter(dest_location_code_id=mapping.warehouse.id, source_location_code_id=wh)
@@ -3908,6 +3931,8 @@ def check_and_raise_po(generic_order_id, cm_id, ord_det_id=None):
         if not supplier.supplier:
             continue
         po_id = get_purchase_order_id(mapping.warehouse) + 1
+        if po_sub_user_prefix == 'true':
+            po_id = update_po_order_prefix(mapping.warehouse, po_id)
         for data in po_data:
             purchase_data = copy.deepcopy(PO_DATA)
             po_sku_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
@@ -4280,7 +4305,7 @@ def create_central_order(request, user):
             interm_order_map['remarks'] = remarks_dict[cart_item.sku.sku_code]
             intermediate_obj =  IntermediateOrders.objects.create(**interm_order_map)
             #x = intermediate_obj.shipment_date
-            order_date = intermediate_obj.shipment_date.strftime("%d, %b, %Y")
+            order_date = intermediate_obj.creation_date.strftime("%d, %b, %Y")
             #order_date =  intermediate_obj.shipment_date.day + "/"+intermediate_obj.shipment_date.month+"/"+intermediate_obj.shipment_date.year
             inv_amt = (cart_item.levelbase_price * cart_item.quantity) + cart_item.tax
             items.append([intermediate_obj.interm_order_id,cart_item.sku.sku_code,cart_item.sku.sku_desc,cart_item.quantity, inv_amt,intermediate_obj.project_name,order_date])
@@ -4304,6 +4329,12 @@ def create_central_order(request, user):
             rendered = t.render(data_dict)
             t_user = loader.get_template('templates/central_order/order_placed.html')
             rendered_user = t_user.render(data_dict)
+            internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='Internal Emails')
+            misc_internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='internal_mail', misc_value='true')
+            if misc_internal_mail and internal_mail:
+                internal_mail = internal_mail[0].misc_value.split(",")
+                mail_ids.extend(internal_mail)
+                user_mail_id.extend(internal_mail)
             if mail_ids:
                 send_mail(mail_ids, 'Order Approval Request, Customer: %s' % request.user.username, rendered)
             if user_mail_id:
@@ -5307,46 +5338,6 @@ def insert_st(all_data, user):
     return all_data
 
 
-def confirm_stock_transfer(all_data, user, warehouse_name):
-    for key, value in all_data.iteritems():
-        po_id = get_purchase_order_id(user) + 1
-        warehouse = User.objects.get(username__iexact=warehouse_name)
-        stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
-        if stock_transfer_obj:
-            order_id = int(stock_transfer_obj[0].order_id) + 1
-        else:
-            order_id = 1001
-
-        for val in value:
-            open_st = OpenST.objects.get(id=val[3])
-            sku_id = SKUMaster.objects.get(wms_code__iexact=val[0], user=warehouse.id).id
-            user_profile = UserProfile.objects.filter(user_id=user.id)
-            prefix = ''
-            if user_profile:
-                prefix = user_profile[0].prefix
-
-            po_dict = {'order_id': po_id, 'received_quantity': 0, 'saved_quantity': 0,
-                       'po_date': datetime.datetime.now(), 'ship_to': '',
-                       'status': '', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
-            po_order = PurchaseOrder(**po_dict)
-            po_order.save()
-            st_purchase_dict = {'po_id': po_order.id, 'open_st_id': open_st.id,
-                                'creation_date': datetime.datetime.now()}
-            st_purchase = STPurchaseOrder(**st_purchase_dict)
-            st_purchase.save()
-            st_dict = copy.deepcopy(STOCK_TRANSFER_FIELDS)
-            st_dict['order_id'] = order_id
-            st_dict['invoice_amount'] = float(val[1]) * float(val[2])
-            st_dict['quantity'] = float(val[1])
-            st_dict['st_po_id'] = st_purchase.id
-            st_dict['sku_id'] = sku_id
-            stock_transfer = StockTransfer(**st_dict)
-            stock_transfer.save()
-            open_st.status = 0
-            open_st.save()
-        check_purchase_order_created(user, po_id)
-    return HttpResponse("Confirmed Successfully")
-
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -5369,7 +5360,7 @@ def create_stock_transfer(request, user=''):
     status = validate_st(all_data, warehouse)
     if not status:
         all_data = insert_st(all_data, warehouse)
-        status = confirm_stock_transfer(all_data, warehouse, user.username)
+        status = confirm_stock_transfer(all_data, warehouse, user.username, request)
         #rendered_html_data = render_st_html_data(request, user, warehouse, all_data)
         #stock_transfer_mail_pdf(request, f_name, rendered_html_data, warehouse)
     return HttpResponse(status)
@@ -5411,6 +5402,7 @@ def stock_transfer_delete(request, user=""):
 def get_marketplaces_list(request, user=''):
     status_type = request.GET.get('status', '')
     marketplace = get_marketplace_names(user, status_type)
+    segregation_options = OrderedDict(SELLABLE_CHOICES)
     '''if status_type == 'picked':
         marketplace = list(Picklist.objects.exclude(order__marketplace='').filter(picked_quantity__gt=0, order__user = user.id).\
                                             values_list('order__marketplace', flat=True).distinct())
@@ -5420,7 +5412,7 @@ def get_marketplaces_list(request, user=''):
     else:
         marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(status=1, user = user.id, quantity__gt=0).values_list('marketplace', flat=True).\
                                                distinct())'''
-    return HttpResponse(json.dumps({'marketplaces': marketplace}))
+    return HttpResponse(json.dumps({'marketplaces': marketplace, 'segregation_options': segregation_options}))
 
 
 @csrf_exempt
@@ -5902,6 +5894,7 @@ def shipment_info_data(request, user=''):
     ship_reference = ''
     shipment_orders = ShipmentInfo.objects.filter(order_shipment__shipment_number=shipment_number,
                                                   order_shipment__user=user.id)
+    print shipment_orders.count()
     truck_number = ''
     driver_phone_number = ''
     driver_name = ''
@@ -6031,7 +6024,11 @@ def app_shipment_info_data(request, user=''):
     model = ''
     district = ''
     alternative_mobile_no = 0
-    manifest_number = request.GET['manifest_number']
+    response = request.GET['manifest_number']
+    manifest_number = response.split('/')[0]
+    page = response.split('/')[1]
+    stop_index = int(page)*10
+    start_index = stop_index -10
     ship_reference = ''
     shipment_orders = ShipmentInfo.objects.filter(order_shipment__manifest_number=manifest_number)
     truck_number = ''
@@ -6044,7 +6041,7 @@ def app_shipment_info_data(request, user=''):
         driver_phone_number = shipment_orders[0].order_shipment.driver_phone_number
         manifest_number = shipment_orders[0].order_shipment.manifest_number
 
-    for orders in shipment_orders:
+    for orders in shipment_orders[start_index:stop_index]:
         ship_status = copy.deepcopy(SHIPMENT_STATUS)
         status = 'Dispatched'
         interm_obj = IntermediateOrders.objects.filter(order_id=str(orders.order.id))
@@ -8411,8 +8408,8 @@ def get_ratings_details(request, user=''):
 def get_central_orders_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                           filters={}, user_dict={}):
     un_sort_dict = {7: 'Status'}
-    lis = ['interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'project_name', 'remarks',
-           'order_assigned_wh__username', 'id','creation_date']
+    lis = ['interm_order_id', 'interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'project_name', 'remarks',
+           'order_assigned_wh__username', 'status', 'id','creation_date']
     data_dict = {'user': user.id, 'quantity__gt': 0}
     status_map = {'1': 'Accept', '0': 'Reject','2': 'Pending'}
     if not col_num: col_num = 0
@@ -8428,8 +8425,6 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
                                             Q(order__original_order_id__icontains=search_term)).order_by(order_data)
     else:
         all_orders = interm_orders.order_by(order_data)
-    temp_data['recordsTotal'] = all_orders.count()
-    temp_data['recordsFiltered'] = temp_data['recordsTotal']
     index = 0
     custom_sort = False
     if col_num in un_sort_dict.keys():
@@ -8439,29 +8434,35 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
     ord_items = all_orders.only('interm_order_id', 'order__original_order_id', 'order_assigned_wh__username',
                                    'status', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'id',
                                    'creation_date', 'project_name', 'remarks')\
-        .values_list('interm_order_id', 'order__original_order_id', 'order_assigned_wh__username', 'status',
+        .values('interm_order_id', 'order__original_order_id', 'order_assigned_wh__username', 'status',
                      'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'id',
                      'creation_date', 'project_name', 'remarks')
-    line_items_map = {}
+    '''line_items_map = {}
     for item in ord_items:
         interm_order_id = item[0]
-        line_items_map.setdefault(interm_order_id, []).append(item[1:])
+        line_items_map.setdefault(interm_order_id, []).append(item[1:])'''
 
-    for order_id, dat in line_items_map.items()[start_index:stop_index]:
-        loan_proposal_id, assigned_wh, status, sku_code, sku_desc, quantity, shipment_date, \
-        id, creation_date, project_name, remarks = dat[0]
-        order_date = get_local_date(user, creation_date)
-        shipment_date = shipment_date.strftime("%d/%m/%Y")
+    #temp_data['recordsTotal'] = len(line_items_map.keys())
+    temp_data['recordsTotal'] = ord_items.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    #for order_id, dat in line_items_map.items()[start_index:stop_index]:
+    for dat in ord_items[start_index:stop_index]:
+        #order_id ,loan_proposal_id, assigned_wh, status, sku_code, sku_desc, quantity, shipment_date, \
+        #id, creation_date, project_name, remarks = dat[0]
+        order_date = get_local_date(user, dat['creation_date'])
+        shipment_date = dat['shipment_date'].strftime("%d/%m/%Y")
+        status = dat['status']
         if status:
             status = status_map.get(status)
         else:
             status = 'Pending'
         temp_data['aaData'].append(
-            OrderedDict((('Order ID', int(order_id)), ('SKU Code', sku_code), ('SKU Desc', sku_desc),
-                         ('Product Quantity', quantity), ('Shipment Date', shipment_date), ('data_id', id),
-                         ('Project Name', project_name), ('Remarks', remarks),
-                         ('Warehouse', assigned_wh), ('Status', status), ('Order Date',order_date),
-                         ('Loan Proposal ID', loan_proposal_id), ('id', index), ('DT_RowClass', 'results'))))
+            OrderedDict((('Order ID', int(dat['interm_order_id'])), ('SKU Code', dat['sku__sku_code']), ('SKU Desc', dat['sku__sku_desc']),
+                         ('Product Quantity', dat['quantity']), ('Shipment Date', shipment_date), ('data_id', dat['id']),
+                         ('Project Name', dat['project_name']), ('Remarks', dat['remarks']),
+                         ('Warehouse', dat['order_assigned_wh__username']), ('Status', status), ('Order Date',order_date),
+                         ('Loan Proposal ID', dat['order__original_order_id']), ('id', index), ('DT_RowClass', 'results'))))
         index += 1
 
     col_headers = ['Order ID', 'SKU Code', 'SKU Desc', 'Product Quantity', 'Shipment Date', 'Project Name', 'Remarks',
@@ -8597,7 +8598,7 @@ def order_category_generate_picklist(request, user=''):
     for key, value in request.POST.iteritems():
         if key in PICKLIST_SKIP_LIST or key in ['filters', 'enable_damaged_stock']:
             continue
-        order_filter = {'quantity__gt': 0}
+        order_filter = {'quantity__gt': 0, 'status': 1}
         if '<>' in key:
             key = key.split('<>')
             order_id, sku_category = key
@@ -13538,9 +13539,17 @@ def create_orders_check_ean(request, user=''):
     sku_code = ''
     ean = request.GET.get('ean')
     try:
-        sku_obj = SKUMaster.objects.filter(Q(ean_number=ean) | Q(eannumbers__ean_number=ean) | Q(sku_code=ean), user=user.id)
-        if sku_obj:
+        sku_obj = SKUMaster.objects.filter(sku_code=ean, user=user.id)
+        if sku_obj.exists():
             sku_code = sku_obj[0].sku_code
+        elif not sku_code:
+            sku_obj = SKUMaster.objects.filter(ean_number=ean, user=user.id)
+            if sku_obj.exists():
+                sku_code = sku_obj[0].sku_code
+        elif not sku_code:
+            sku_obj = SKUMaster.objects.filter(eannumbers__ean_number=ean, user=user.id)
+            if sku_obj.exists():
+                sku_code = sku_obj[0].sku_code
     except:
         sku_obj = SKUMaster.objects.filter(sku_code=ean, user=user.id)
         if sku_obj:
@@ -13910,7 +13919,7 @@ def save_cutomer_ratings(request, user=''):
         original_order_id = order_ratings_data['order_id']
         items = order_ratings_data['items']
         seller = SellerOrderSummary.objects.filter(order__user=warehouse_user, order__customer_name=customer_name, order__original_order_id=original_order_id, delivered_flag=1).update(delivered_flag=2)
-        rating_obj = RatingsMaster.objects.create(user=user, original_order_id=original_order_id, rating_product=product_rate, rating_order=order_rate, reason_product=product_reason, reason_order=order_reason, updation_date=updation_date)
+        rating_obj = RatingsMaster.objects.create(user=user, original_order_id=original_order_id, rating_product=product_rate, rating_order=order_rate, reason_product=product_reason, reason_order=order_reason)
         if rating_obj:
             for obj in items:
                 sku_obj = SKUMaster.objects.filter(sku_code = obj['sku_code'], user = user.id)
@@ -14319,7 +14328,7 @@ def do_delegate_orders(request, user=''):
                     order_dict['marketplace'] = ''
                     order_dict['vat_percentage'] = 0
                     order_dict['status'] = 0
-                    order_dict['city'] = village
+                    order_dict['city'] = village[:59]
                     order_dict['state'] = state
                     try:
                         order_dict['pin_code'] = int(pincode)
@@ -14526,7 +14535,7 @@ def send_order_back(request, user=''):
     if  len(order_det_not_reassigned_orderid) > 0 :
         status = "These Order ID's are not sent back"
     else:
-        status ="Successfully sended all the orders back"
+        status ="Successfully sent all the orders back"
 
     return HttpResponse(json.dumps({'data':order_det_not_reassigned_orderid , 'message': 'Success', 'status':status }))
 

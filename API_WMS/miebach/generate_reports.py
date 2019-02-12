@@ -31,8 +31,9 @@ class MailReports:
         self.report_file_names = []
 
     def send_reports_mail(self, user, mail_now=False):
-        from rest_api.views.common import folder_check, get_work_sheet, write_excel
+        from rest_api.views.common import folder_check, get_work_sheet, write_excel, get_linked_user_objs
         report_frequency = MiscDetail.objects.filter(misc_type__contains='report_frequency', user=user.id)
+        log.info("Report Frequency::%s" %report_frequency)
         if not report_frequency and not mail_now:
             return
 
@@ -50,58 +51,41 @@ class MailReports:
             #date_difference = (datetime.datetime.now().date() - report_date.date()).days
             #if (frequency_value in (0, 1) or (date_difference % frequency_value) != 0) and not mail_now:
             if ((frequency_value in (0,) or (date_difference % frequency_value) != 0) and not mail_now):
+                log.info("Came to this if condition ::%s ::%s" %(frequency_value, (date_difference % frequency_value)))
                 return
 
         enabled_reports = MiscDetail.objects.filter(misc_type__contains='report', misc_value='true', user=user.id)
+        sister_whs = [user]
+        append_wh_name = False
+        if user.username == '72Networks':
+            sister_whs = User.objects.filter(username__in=get_linked_user_objs(user, user))
+            append_wh_name = True
+
 
         for report in enabled_reports:
-            report_data = report.misc_type.replace('report_', '')
-            report_name = data_dict[report_data]
+            report_misc_data = report.misc_type.replace('report_', '')
+            report_name = data_dict[report_misc_data]
+            log.info("Report Name::%s" % report_name)
             report = reports_list[report_name]
 
-            report_data = report({}, user, user)
-            if isinstance(report_data, tuple):
-                report_data = report_data[0]
-            report_data = report_data.get('aaData')
+            mail_report_data = {}
+            for each_wh in sister_whs:
+                try:
+                    wh_report_data = report({}, each_wh, each_wh)
+                except:
+                    wh_report_data = {}
+                if isinstance(wh_report_data, tuple):
+                    wh_report_data = wh_report_data[0]
+                if wh_report_data.get('aaData', []):
+                    mail_report_data[each_wh.username] = wh_report_data.get('aaData', [])
+            report_data = mail_report_data
             if not report_data:
+                log.info("No Report Data")
                 continue
+            self.write_report_excel(report_data, report_name, user, append_wh_name)
 
-            file_type = 'xls'
-            headers = report_data[0].keys()
-            file_name = "%s.%s" % (user.id, report_name.replace(' ', '_'))
-            wb, ws = get_work_sheet(file_name, headers)
-            folder_path = 'static/excel_files/'
-            folder_check(folder_path)
-            if len(report_data) > 65535:
-                file_type = 'csv'
-                wb = open(folder_path + file_name + '.' + file_type, 'w')
-                ws = ''
-                for head in headers:
-                    ws = ws + str(head).replace(',', '  ') + ','
-                ws = ws[:-1] + '\n'
-                wb.write(ws)
-                ws = ''
-            path = folder_path + file_name + '.' + file_type
-
-            counter = 1
-            for data in report_data:
-                index = 0
-                for value in data.values():
-                    ws = write_excel(ws, counter, index, value, file_type)
-                    index += 1
-
-                counter += 1
-                if file_type == 'csv':
-                    ws = ws[:-1] + '\n'
-                    wb.write(ws)
-                    ws = ''
-
-            if file_type == 'xls':
-                wb.save(path)
-            else:
-                wb.close()
-            self.report_file_names.append({'name': file_name + '.' + file_type, 'path': path})
         if enabled_reports:
+            log.info("Enabled Reports Condition")
             send_to = []
             mailing_list = MiscDetail.objects.filter(misc_type='email', user=user.id)
             if mailing_list and mailing_list[0].misc_value:
@@ -116,6 +100,52 @@ class MailReports:
                     datetime.datetime.now().date())
                 send_mail_attachment(send_to, subject, text, files=self.report_file_names)
 
+    def write_report_excel(self, report_data, report_name, user, append_wh_name=False):
+        from rest_api.views.common import folder_check, get_work_sheet, write_excel
+        file_type = 'xls'
+        headers = report_data.values()[0][0].keys()
+        if append_wh_name:
+            headers.append('Warehouse')
+        file_name = "%s.%s" % (user.id, report_name.replace(' ', '_'))
+        wb, ws = get_work_sheet(file_name, headers)
+        folder_path = 'static/excel_files/'
+        folder_check(folder_path)
+        #for i, in report_data.values():
+        # report_data.extend(i)
+        total_records = 0
+        for val in report_data.values():
+            total_records += len(val)
+        if total_records > 65535:
+            file_type = 'csv'
+            wb = open(folder_path + file_name + '.' + file_type, 'w')
+            ws = ''
+            for head in headers:
+                ws = ws + str(head).replace(',', '  ') + ','
+            ws = ws[:-1] + '\n'
+            wb.write(ws)
+            ws = ''
+        path = folder_path + file_name + '.' + file_type
+        counter = 1
+        for key, report_value in report_data.items():
+            for data in report_value:
+                index = 0
+                for value in data.values():
+                    ws = write_excel(ws, counter, index, value, file_type)
+                    index += 1
+                if append_wh_name:
+                    ws = write_excel(ws, counter, index, key, file_type)
+
+                counter += 1
+                if file_type == 'csv':
+                    ws = ws[:-1] + '\n'
+                    wb.write(ws)
+                    ws = ''
+
+        if file_type == 'xls':
+            wb.save(path)
+        else:
+            wb.close()
+        self.report_file_names.append({'name': file_name + '.' + file_type, 'path': path})
 
 if __name__ == "__main__":
 

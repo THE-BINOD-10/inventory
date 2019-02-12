@@ -8663,9 +8663,9 @@ def insert_st_gst(all_data, user):
 
 
 def confirm_stock_transfer_gst(all_data, user, warehouse_name):
+    warehouse = User.objects.get(username__iexact=warehouse_name)
     for key, value in all_data.iteritems():
-        po_id = get_purchase_order_id(user) + 1
-        warehouse = User.objects.get(username__iexact=warehouse_name)
+        po_id = get_purchase_order_id(user)
         stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
         if stock_transfer_obj:
             order_id = int(stock_transfer_obj[0].order_id) + 1
@@ -8836,18 +8836,17 @@ def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
     sub_user = user
     if request:
         sub_user = request.user
+    warehouse = User.objects.get(username__iexact=warehouse_name)
     po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
     for key, value in all_data.iteritems():
         po_id = get_purchase_order_id(user) + 1
         if po_sub_user_prefix == 'true':
             po_id = update_po_order_prefix(sub_user, po_id)
-        warehouse = User.objects.get(username__iexact=warehouse_name)
         stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
         if stock_transfer_obj:
             order_id = int(stock_transfer_obj[0].order_id) + 1
         else:
             order_id = 1001
-
         for val in value:
             open_st = OpenST.objects.get(id=val[3])
             sku_id = SKUMaster.objects.get(wms_code__iexact=val[0], user=warehouse.id).id

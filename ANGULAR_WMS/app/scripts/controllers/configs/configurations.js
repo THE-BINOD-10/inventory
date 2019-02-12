@@ -423,7 +423,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
    },
    {
-     name: "Sno in Invoice",
+     name: "Sno(Sequence Number) in Invoice",
      model_name: "sno_in_invoice",
      param_no: 76,
      class_name: "fa fa-server",

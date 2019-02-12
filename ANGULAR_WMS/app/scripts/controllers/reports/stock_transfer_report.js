@@ -15,12 +15,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
   vm.toggle_sku_wise = false;
 
-  /*vm.close = close;
-  function close() {
-    vm.title = "Debit Note";
-    $state.go('app.reports.RTVReport');
-  }*/
-
   vm.print = print;
   vm.print = function() {
     console.log(vm.print_page);

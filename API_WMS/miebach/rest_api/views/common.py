@@ -8746,8 +8746,6 @@ def load_by_file(load_file_name, table_name, columns, id_dependency=False):
         log.info('loading completed')
     except:
         pass
-<<<<<<< HEAD
-=======
 
 
 def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
@@ -8800,5 +8798,3 @@ def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
 def update_po_order_prefix(sub_user, po_id):
     po_id = '%s%s' % (str(sub_user.id), str(po_id))
     return int(po_id)
-
->>>>>>> 1cf7dcfa9a5215af1596b2303a3d79c9f0a75692

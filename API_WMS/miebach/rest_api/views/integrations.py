@@ -1064,7 +1064,6 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
             #update_ean_sku_mapping(user, ean_numbers, sku_master, True)
         except:
             pass
-    print sku_master_dict['sku_code']
     return sku_master, insert_status, new_ean_objs
 
 
@@ -1712,7 +1711,6 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
         if isinstance(orders, dict):
             orders = [orders]
         for ind, order in enumerate(orders):
-            print ind
             order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
             channel_name = order['source']
             order_details = copy.deepcopy(ORDER_DATA)
@@ -1865,11 +1863,31 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                             order_summary_dict['utgst_tax'] = 0
                             order_summary_dict['cess_tax'] = 0
                             if sku_item.get('tax_percent', {}):
-                                order_summary_dict['cgst_tax'] = float(sku_item['tax_percent'].get('CGST', 0))
-                                order_summary_dict['sgst_tax'] = float(sku_item['tax_percent'].get('SGST', 0))
-                                order_summary_dict['igst_tax'] = float(sku_item['tax_percent'].get('IGST', 0))
-                                order_summary_dict['utgst_tax'] = float(sku_item['tax_percent'].get('UTGST', 0))
-                                order_summary_dict['cess_tax'] = float(sku_item['tax_percent'].get('CESS', 0))
+                                # order_summary_dict['cgst_tax'] = float(sku_item['tax_percent'].get('CGST', 0))
+                                # order_summary_dict['sgst_tax'] = float(sku_item['tax_percent'].get('SGST', 0))
+                                # order_summary_dict['igst_tax'] = float(sku_item['tax_percent'].get('IGST', 0))
+                                # order_summary_dict['utgst_tax'] = float(sku_item['tax_percent'].get('UTGST', 0))
+                                # order_summary_dict['cess_tax'] = float(sku_item['tax_percent'].get('CESS', 0))
+                                try:
+                                    order_summary_dict['cgst_tax'] = float(sku_item['tax_percent'].get('CGST', 0))
+                                except:
+                                    order_summary_dict['cgst_tax'] = 0
+                                try:
+                                    order_summary_dict['sgst_tax'] = float(sku_item['tax_percent'].get('SGST', 0))
+                                except:
+                                    order_summary_dict['sgst_tax'] = 0
+                                try:
+                                    order_summary_dict['igst_tax'] = float(sku_item['tax_percent'].get('IGST', 0))
+                                except:
+                                    order_summary_dict['igst_tax'] = 0
+                                try:
+                                    order_summary_dict['utgst_tax'] = float(sku_item['tax_percent'].get('UTGST', 0))
+                                except:
+                                    order_summary_dict['utgst_tax'] = 0
+                                try:
+                                    order_summary_dict['cess_tax'] = float(sku_item['tax_percent'].get('CESS', 0))
+                                except:
+                                    order_summary_dict['cess_tax'] = 0
                             order_summary_dict['discount'] = 0
                             if sku_item.get('discount_amount', 0):
                                 try:
@@ -2239,10 +2257,7 @@ def update_order_dicts_skip_errors(orders, failed_status, user='', company_name=
     oc_load_file_path = '%s/%s' % (mysql_file_path, 'order_charges_' + file_time_stamp + '.txt')
     oc_load_file = open(oc_load_file_path, 'w')
     oc_columns = []
-    loop_count = 0
     for order_key, order in orders.iteritems():
-        print loop_count
-        loop_count += 1
         if not order.get('order_details', {}):
             continue
         order_det_dict = order['order_details']

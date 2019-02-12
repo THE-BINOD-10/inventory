@@ -21,16 +21,16 @@ log = init_logger('logs/stock_locator.log')
 def get_stock_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     is_excel = request.POST.get('excel', 'false')
-    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'total', 'total',
-           'sku__measurement_type', 'stock_value']
+    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'total', 'total', 'total',
+           'sku__measurement_type', 'stock_value', 'sku__wms_code']
     lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_brand', 'product_code__sku_category',
             'total',
-            'total', 'total', 'product_code__measurement_type', 'stock_value']
+            'total', 'total', 'total', 'product_code__measurement_type', 'stock_value', 'product_code__wms_code']
     sort_cols = ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Quantity', 'Reserved Quantity',
                  'Total Quantity',
                  'Unit of Measurement', 'Stock Value']
     lis2 = ['wms_code', 'sku_desc', 'sku_brand', 'sku_category', 'threshold_quantity', 'threshold_quantity',
-            'threshold_quantity', 'measurement_type', 'measurement_type']
+            'threshold_quantity', 'measurement_type', 'measurement_type', 'wms_code']
     search_params = get_filtered_params(filters, lis)
     search_params1 = get_filtered_params(filters, lis1)
     search_params2 = get_filtered_params(filters, lis2)

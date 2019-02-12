@@ -8733,7 +8733,7 @@ def load_by_file(load_file_name, table_name, columns, id_dependency=False):
         columns_string = '(' + ','.join(columns) +')'
         query = "LOAD DATA LOCAL INFILE '%s' REPLACE INTO TABLE %s CHARACTER SET utf8 FIELDS TERMINATED BY '#<>#' lines terminated by '\n' %s" %\
                 (load_file_name, table_name, columns_string)
-        if table_name in ['SKU_ATTRIBUTES', 'CUSTOMER_ORDER_SUMMARY', 'SELLER_ORDER']:
+        if table_name in ['SKU_ATTRIBUTES', 'CUSTOMER_ORDER_SUMMARY', 'SELLER_ORDER', 'ORDER_CHARGES']:
             query += " SET creation_date=NOW(), updation_date=NOW();"
         else:
             query += ";"
@@ -8744,8 +8744,9 @@ def load_by_file(load_file_name, table_name, columns, id_dependency=False):
         cmd = cmd % tuple(cmd_tuple)
         subprocess.check_output(cmd+'&', stderr=subprocess.STDOUT,shell=True)
         log.info('loading completed')
-    except:
-        pass
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
 
 
 def confirm_stock_transfer(all_data, user, warehouse_name, request=''):

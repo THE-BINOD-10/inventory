@@ -1811,6 +1811,7 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                     update_error_message(failed_status, 5022, 'SOR Id exists already', original_order_id)
                 sku_items = sub_order['items']
                 sku_obj = None
+                shipping_amt = 0
                 for sku_item in sku_items:
                     failed_sku_status = []
                     sku_code = sku_item['sku']
@@ -1888,6 +1889,13 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                         seller_order_dict['quantity'] = sku_item['quantity']
                         final_data_dict = check_and_add_dict(grouping_key, 'seller_order_dict', seller_order_dict,
                                                             final_data_dict=final_data_dict)
+                        try:
+                            sku_shipping = float(sku_item.get('shiping_charge', 0))
+                        except:
+                            sku_shipping = 0
+                        shipping_amt += sku_shipping
+
+                final_data_dict[grouping_key]['shipping_charge'] = shipping_amt
                 final_data_dict[grouping_key]['status_type'] = order_status
                 final_data_dict[grouping_key]['sku_obj'] = sku_obj
     except Exception as e:
@@ -2228,6 +2236,9 @@ def update_order_dicts_skip_errors(orders, failed_status, user='', company_name=
     so_load_file_path = '%s/%s' % (mysql_file_path, 'seller_order_' + file_time_stamp + '.txt')
     so_load_file = open(so_load_file_path, 'w')
     so_columns = []
+    oc_load_file_path = '%s/%s' % (mysql_file_path, 'order_charges_' + file_time_stamp + '.txt')
+    oc_load_file = open(oc_load_file_path, 'w')
+    oc_columns = []
     loop_count = 0
     for order_key, order in orders.iteritems():
         print loop_count
@@ -2287,6 +2298,13 @@ def update_order_dicts_skip_errors(orders, failed_status, user='', company_name=
                                     so_column_vals, date_string=date_string, update_string=update_string)
             '''trans_mapping = check_create_seller_order(order['seller_order_dict'], order_detail, user,
                                                       order.get('swx_mappings', []), trans_mapping=trans_mapping)'''
+        if order.get('shipping_charge', 0) and order_created:
+            oc_columns = ['order_id', 'user_id', 'charge_name', 'charge_amount']
+            oc_column_vals = [str(order_detail.original_order_id), str(user.id), 'Shipping Charge', str(order['shipping_charge'])]
+            update_string = "order_id=%s, updation_date=NOW()" % (order_detail.original_order_id)
+            date_string = 'NOW(), NOW()'
+            mysql_query_to_file(oc_load_file, 'ORDER_CHARGES', oc_columns,
+                                oc_column_vals, date_string=date_string, update_string=update_string)
         order_sku = {}
         #sku_obj = SKUMaster.objects.filter(id=order_det_dict['sku_id'])
         sku_obj = order.get('sku_obj', None)
@@ -2310,5 +2328,12 @@ def update_order_dicts_skip_errors(orders, failed_status, user='', company_name=
         except Exception as e:
             import traceback
             log.info("Seller Order Bulk Creation Failed")
+            log.debug(traceback.format_exc())
+    if oc_columns:
+        try:
+            load_by_file(oc_load_file_path, 'ORDER_CHARGES', oc_columns)
+        except Exception as e:
+            import traceback
+            log.info("Order Charges Bulk Creation Failed")
             log.debug(traceback.format_exc())
     return status

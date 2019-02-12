@@ -178,7 +178,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             sku_packs = int(quantity / sku_pack_obj.pack_quantity)
         except:
             sku_packs = 0
-	 open_order_qty = sku_type_qty.get(data[0], 0)
+        open_order_qty = sku_type_qty.get(data[0], 0)
         temp_data['aaData'].append(OrderedDict((('WMS Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),
                                                 ('sku_packs',sku_packs),

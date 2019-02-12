@@ -228,6 +228,7 @@
             <th>ITEM CODE</th>
             <th>PRODUCT TITLE </th>
             <th>QUANTITY</th>
+	    <th>MRP</th>
             <th>UNIT PRICE</th>
             <th>DISCOUNT(%)</th>
             <th ng-if="showCase.model_data.tax_type == 'intra_state'">SGST(%)</th>
@@ -253,6 +254,9 @@
             </td>
             <td>
               <input type="text" class="form-control" name="quantity" ng-model="data.quantity" ng-change="showCase.changeInvoiceAmt(data)" ng-readonly="showCase.input_status">
+            </td>
+	    <td>
+              <input type="text" class="form-control" name="mrp" ng-model="data.mrp" readonly>
             </td>
             <td>
               <input type="text" class="form-control" name="unit_price" ng-model="data.unit_price" ng-change="showCase.changeInvoiceAmt(data, true)" ng-class="service.get_decimal_perm()" ng-readonly="showCase.input_status">

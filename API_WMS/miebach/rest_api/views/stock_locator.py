@@ -21,16 +21,16 @@ log = init_logger('logs/stock_locator.log')
 def get_stock_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     is_excel = request.POST.get('excel', 'false')
-    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'total', 'total',
-           'sku__measurement_type', 'stock_value']
+    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'total', 'total', 'total',
+           'sku__measurement_type', 'stock_value', 'sku__wms_code']
     lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_brand', 'product_code__sku_category',
             'total',
-            'total', 'total', 'product_code__measurement_type', 'stock_value']
+            'total', 'total', 'total', 'product_code__measurement_type', 'stock_value', 'product_code__wms_code']
     sort_cols = ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Quantity', 'Reserved Quantity',
                  'Total Quantity',
                  'Unit of Measurement', 'Stock Value']
     lis2 = ['wms_code', 'sku_desc', 'sku_brand', 'sku_category', 'threshold_quantity', 'threshold_quantity',
-            'threshold_quantity', 'measurement_type', 'measurement_type']
+            'threshold_quantity', 'measurement_type', 'measurement_type', 'wms_code']
     search_params = get_filtered_params(filters, lis)
     search_params1 = get_filtered_params(filters, lis1)
     search_params2 = get_filtered_params(filters, lis2)
@@ -144,11 +144,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
 
     temp_data['totalAvailableQuantity'] = int(temp_data['totalAvailableQuantity'])
 
-    #reserveds = map(lambda d: d['stock__sku__wms_code'], reserved_instances)
-    #reserved_quantities = map(lambda d: d['reserved'], reserved_instances)
-    #raw_reserveds = map(lambda d: d['material_picklist__jo_material__material_code__wms_code'], raw_res_instances)
-    #raw_reserved_quantities = map(lambda d: d['rm_reserved'], raw_res_instances)
-    # temp_data['totalQuantity'] = sum([data[4] for data in master_data])
+    sku_type_qty = dict(OrderDetail.objects.filter(user=user.id, quantity__gt=0, status=1).values_list('sku__sku_code').distinct().annotate(Sum('quantity')))
     for ind, data in enumerate(master_data[start_index:stop_index]):
         total_stock_value = 0
         reserved = 0
@@ -182,11 +178,13 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             sku_packs = int(quantity / sku_pack_obj.pack_quantity)
         except:
             sku_packs = 0
+        open_order_qty = sku_type_qty.get(data[0], 0)
         temp_data['aaData'].append(OrderedDict((('WMS Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),
                                                 ('sku_packs',sku_packs),
                                                 ('Available Quantity', quantity),
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total),
+						 ('Open Order Quantity', open_order_qty),
                                                 ('Unit of Measurement', sku.measurement_type), ('Stock Value', total_stock_value ),
                                                 ('DT_RowId', data[0]) )))
 
@@ -1325,7 +1323,6 @@ def stock_summary_data(request, user=''):
             elif quantity:
                 production_stages.append(
                     {'job_code': job_code, 'stage_name': head, 'stage_quantity': tracking.get(head, 0)})
-
     return HttpResponse(json.dumps({'zones_data': zones_data.values(), 'production_stages': production_stages,
                                     'load_unit_handle': load_unit_handle}))
 

@@ -1215,9 +1215,11 @@ def get_mp_inventory(request):
         sku_records = page_info['data']
         if industry_type == 'FMCG':
             sellable_zones = ZoneMaster.objects.filter(user=user.id, segregation='sellable').values_list('zone', flat=True)
-            sellable_zones = get_all_zones(user, zones=sellable_zones)
+            if sellable_zones:
+                sellable_zones = get_all_zones(user, zones=sellable_zones)
             non_sellable_zones = ZoneMaster.objects.filter(user=user.id, segregation='non_sellable').values_list('zone', flat=True)
-            non_sellable_zones = get_all_zones(user, zones=non_sellable_zones)
+            if non_sellable_zones:
+                non_sellable_zones = get_all_zones(user, zones=non_sellable_zones)
             stocks = SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone').\
                           filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0, stock__location__zone__zone__in=sellable_zones).\
                                 exclude(Q(stock__location__zone__zone__in=picklist_exclude_zones) |

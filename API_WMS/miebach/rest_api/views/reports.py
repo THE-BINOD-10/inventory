@@ -1447,6 +1447,8 @@ def print_purchase_order_form(request, user=''):
     company_name = profile.company_name
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
+    left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO , request)
+
     # if receipt_type == 'Hosted Warehouse':
     #if request.POST.get('seller_id', ''):
     #    title = 'Stock Transfer Note'
@@ -1478,6 +1480,7 @@ def print_purchase_order_form(request, user=''):
                  'location': profile.location,
                  'po_reference': po_reference,
                  'industry_type': profile.industry_type,
+                 'left_side_logo':left_side_logo,
                  'company_address': company_address
                 }
     if round_value:

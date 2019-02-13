@@ -857,7 +857,7 @@ def update_cancelled(orders, user='', company_name=''):
 
 
 def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_status, user_attr_list, sizes_dict,
-                             new_ean_objs, load_file, columns):
+                             new_ean_objs, load_file, columns, exist_sku_eans, exist_ean_list):
     sku_master = None
     sku_code = sku_data.get(sku_mapping['sku_code'], '')
     if sku_data.get(sku_mapping['sku_desc'], ''):
@@ -959,6 +959,23 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                     ean_numbers = str(value.encode('utf-8').replace('\xc2\xa0', ''))
                 except:
                     ean_numbers = ''
+                for temp_ean in ean_numbers.split(','):
+                    if not temp_ean:
+                        continue
+                    if len(str(temp_ean)) > 20:
+                        error_message = 'EAN Number Length should be less than 20'
+                        update_error_message(failed_status, 5032, error_message, sku_code,
+                                            field_key='sku_code') 
+                    if temp_ean in exist_ean_list:
+                        if not str(exist_ean_list[temp_ean]) == str(sku_code):
+                            error_message = 'EAN Number already mapped to SKU ' + str(exist_ean_list[temp_ean])
+                            update_error_message(failed_status, 5031, error_message, sku_code,
+                                                 field_key='sku_code')
+                    elif temp_ean in exist_sku_eans:
+                        if not str(exist_sku_eans[temp_ean]) == str(sku_code):
+                            error_message = 'EAN Number already mapped to SKU ' + str(exist_sku_eans[temp_ean])
+                            update_error_message(failed_status, 5031, error_message, sku_code,
+                                                 field_key='sku_code')
             continue
         if value == None:
             value = ''
@@ -1049,16 +1066,29 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                 rem_ean_objs = sku_master.eannumbers_set.filter(ean_number__in=rem_eans)
                 if rem_ean_objs.exists():
                     rem_ean_objs.delete()
+                for rem_ean in rem_eans:
+                    if exist_ean_list.get(rem_ean, ''):
+                        del exist_ean_list[rem_ean]
+                    if exist_sku_eans.get(rem_ean, ''):
+                        del exist_sku_eans[rem_ean]
             if str(sku_master.ean_number) in rem_eans:
                 sku_master.ean_number = 0
                 sku_master.save()
-            new_ean_objs = []
             for ean in create_eans:
                 if not ean:
                     continue
                 try:
                     ean = int(ean)
                     new_ean_objs.append(EANNumbers(**{'ean_number': ean, 'sku_id': sku_master.id}))
+                    ean_found = False
+                    if exist_ean_list.get(ean, ''):
+                        exist_ean_list[ean] = sku_master.sku_code
+                        ean_found = True
+                    elif exist_sku_eans.get(ean, ''):
+                        exist_sku_eans[ean] = sku_master.sku_code
+                        ean_found = True
+                    if not ean_found:
+                        exist_ean_list[ean] = sku_master.sku_code
                 except:
                     pass
             #update_ean_sku_mapping(user, ean_numbers, sku_master, True)
@@ -1105,10 +1135,15 @@ def update_skus(skus, user='', company_name=''):
         columns = ['sku_id', 'attribute_name', 'attribute_value']
         new_ean_objs = []
 
+        exist_sku_eans = dict(SKUMaster.objects.filter(user=user.id, ean_number__gt=0, status=1).annotate(
+            ean_str=Cast('ean_number', output_field=CharField())).values_list('ean_str', 'sku_code'))
+        exist_ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1).annotate(
+            ean_str=Cast('ean_number', output_field=CharField())).values_list('ean_str', 'sku__sku_code'))
         for sku_data in skus:
             sku_master, insert_status, new_ean_objs = sku_master_insert_update(sku_data, user, sku_mapping, insert_status,
                                                                  failed_status, user_attr_list, sizes_dict,
-                                                                 new_ean_objs, load_file, columns)
+                                                                 new_ean_objs, load_file, columns, exist_sku_eans,
+                                                                               exist_ean_list)
             all_sku_masters.append(sku_master)
             if sku_data.has_key('child_skus') and sku_data['child_skus'] and isinstance(sku_data['child_skus'], list):
                 for child_data in sku_data['child_skus']:
@@ -1852,6 +1887,10 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                             order_details['invoice_amount'] = float(invoice_amount)
                             order_details['unit_price'] = float(unit_price)
                             order_details['creation_date'] = creation_date
+                            try:
+                                invoice_amount = float(sku_item['quantity']) * float(unit_price)
+                            except:
+                                invoice_amount = 0
 
                             final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details,
                                                                  final_data_dict=final_data_dict)
@@ -1894,6 +1933,13 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                                     order_summary_dict['discount'] = float(sku_item['discount_amount'])
                                 except:
                                     order_summary_dict['discount'] = 0
+                            if order_summary_dict['discount']:
+                                invoice_amount -= order_summary_dict['discount']
+                            taxes = order_summary_dict['cgst_tax'] + order_summary_dict['sgst_tax'] + \
+                                    order_summary_dict['igst_tax'] + order_summary_dict['utgst_tax'] + \
+                                    order_summary_dict['cess_tax']
+                            if taxes:
+                                invoice_amount += (invoice_amount/100) * taxes
                             order_summary_dict['consignee'] = str(order_details.get('address', '')).encode('ascii', 'ignore')[:255]
                             #order_summary_dict['invoice_date'] = order_details['creation_date']
                             order_summary_dict['inter_state'] = 0
@@ -1912,6 +1958,7 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                         except:
                             sku_shipping = 0
                         shipping_amt += sku_shipping
+                        final_data_dict[grouping_key]['order_details']['invoice_amount'] = invoice_amount
 
                 final_data_dict[grouping_key]['shipping_charge'] = shipping_amt
                 final_data_dict[grouping_key]['status_type'] = order_status

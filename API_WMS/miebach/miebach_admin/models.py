@@ -130,7 +130,7 @@ class SKUMaster(models.Model):
     class Meta:
         db_table = 'SKU_MASTER'
         unique_together = ('user', 'sku_code', 'wms_code')
-        index_together = ('user', 'sku_code', 'wms_code')
+        index_together = (('user', 'sku_code', 'wms_code'), ('user', 'sku_code'))
 
     def __unicode__(self):
         return str(self.sku_code)
@@ -157,6 +157,7 @@ class EANNumbers(models.Model):
     class Meta:
         db_table = 'EAN_NUMBERS'
         unique_together = ('ean_number', 'sku')
+        index_together = (('sku', 'ean_number'), ('sku',))
 
 
 class SKUJson(models.Model):
@@ -2033,7 +2034,7 @@ class SellerOrder(models.Model):
     class Meta:
         db_table = 'SELLER_ORDER'
         unique_together = ('sor_id', 'order')
-        index_together = ('sor_id', 'order')
+        index_together = (('sor_id', 'order'), ('order', 'status'))
 
     def __unicode__(self):
         return str(self.sor_id)

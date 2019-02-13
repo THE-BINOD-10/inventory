@@ -3642,7 +3642,7 @@ def search_wms_data(request, user=''):
 
     lis = ['wms_code', 'sku_desc', 'mrp']
     query_objects = sku_master.filter(Q(wms_code__icontains=search_key) | Q(sku_desc__icontains=search_key),
-                                      user=user.id)
+                                      status = 1,user=user.id)
 
     master_data = query_objects.filter(Q(wms_code__exact=search_key) | Q(sku_desc__exact=search_key), user=user.id)
     if master_data:
@@ -8799,4 +8799,3 @@ def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
 def update_po_order_prefix(sub_user, po_id):
     po_id = '%s%s' % (str(sub_user.id), str(po_id))
     return int(po_id)
-

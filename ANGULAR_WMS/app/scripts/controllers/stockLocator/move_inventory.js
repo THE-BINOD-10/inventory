@@ -288,6 +288,24 @@
          }
       })
     }
+
+    vm.combo_allocate_stock = function() {
+	var mod_data = vm.marginData;
+        var modalInstance = $modal.open({
+        templateUrl: 'views/stockLocator/toggles/create_bundle_allocate_stock.html',
+        controller: 'skuBundle',
+        controllerAs: 'bundleObj',
+        size: 'lg',
+        backdrop: 'static',
+        keyboard: false,
+	resolve: {
+          items: function () {
+            return mod_data;
+          }
+        }
+      });
+    }
+
   }
 
   angular.module('urbanApp').controller('skuSubstitute', function ($modalInstance, $modal, items, Service, colFilters) {
@@ -536,5 +554,10 @@
       $modalInstance.dismiss('cancel');
     };
   });
+
+  angular.module('urbanApp').controller('skuBundle', function ($modalInstance, $modal, items, Service, colFilters) {
+    var $ctrl = this;
+  })
+
 
 })();

@@ -2293,6 +2293,8 @@ def update_order_dicts_skip_errors(orders, failed_status, user='', company_name=
         else:
             try:
                 order_detail = OrderDetail.objects.create(**order['order_details'])
+                order_detail.creation_date = order['order_details']['creation_date']
+                order_detail.save()
                 order_created = True
             except Exception as e:
                 import traceback

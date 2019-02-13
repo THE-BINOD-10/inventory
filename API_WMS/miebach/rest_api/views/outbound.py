@@ -11355,7 +11355,7 @@ def get_seller_order_view(start_index, stop_index, temp_data, search_term, order
         single_search = "yes"
         del (search_params['city__icontains'])
 
-    all_seller_orders = SellerOrder.objects.filter(**data_dict)
+    all_seller_orders = SellerOrder.objects.select_related('order', 'seller').filter(**data_dict)
     if search_term:
         mapping_results = all_seller_orders.values('order__customer_name', 'order__order_id', 'order__order_code',
                                                    'order__original_order_id',
@@ -11374,34 +11374,41 @@ def get_seller_order_view(start_index, stop_index, temp_data, search_term, order
             distinct().annotate(total=Sum('quantity')).filter(**search_params).order_by(order_data)
 
     temp_data['recordsTotal'] = mapping_results.count()
-    temp_data['recordsFiltered'] = mapping_results.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     index = 0
     for dat in mapping_results[start_index:stop_index]:
-        cust_status_obj = CustomerOrderSummary.objects.filter(order__order_id=dat['order__order_id'])
+        cust_status_obj = CustomerOrderSummary.objects.filter(order__order_id=dat['order__order_id']).only('status', 'shipment_time_slot', 'order_taken_by',
+                                                                'order__creation_date')
         if cust_status_obj:
             cust_status = cust_status_obj[0].status
             time_slot = cust_status_obj[0].shipment_time_slot
+            order_taken_val = cust_status_obj[0].order_taken_by
+            creation_date = cust_status_obj[0].order.creation_date
         else:
             cust_status = ""
             time_slot = ""
+            order_taken_val = ''
 
-        order_taken_val = ''
+        '''order_taken_val = ''
         if order_taken_val_user:
             order_taken_val = order_taken_val_user.filter(order__order_id=dat['order__order_id'])
             if order_taken_val:
                 order_taken_val = order_taken_val[0].order_taken_by
             else:
-                order_taken_val = ''
+                order_taken_val = ""'''
         if single_search == "yes" and order_taken_val == '':
             continue
 
-        order_id = dat['order__order_code'] + str(dat['order__order_id'])
+        if dat['order__original_order_id']:
+            order_id = dat['order__original_order_id']
+        else:
+            order_id = dat['order__order_code'] + str(dat['order__order_id'])
         check_values = str(order_id) + '<>' + str(dat['sor_id']) + '<>' + str(dat['seller_id'])
-        name = all_seller_orders.filter(order__order_id=dat['order__order_id'],
-                                        order__order_code=dat['order__order_code'], order__user=user.id)
-        creation_date = name[0].creation_date
-        name = name[0].id
+        #name = all_seller_orders.filter(order__order_id=dat['order__order_id'],
+        #                                order__order_code=dat['order__order_code'], order__user=user.id)
+        #creation_date = name[0].creation_date
+        #name = name[0].id
         creation_data = get_local_date(user, creation_date, True).strftime("%d %b, %Y")
         # if time_slot:
         #    shipment_data = shipment_data + ', ' + time_slot

@@ -2034,7 +2034,7 @@ class SellerOrder(models.Model):
     class Meta:
         db_table = 'SELLER_ORDER'
         unique_together = ('sor_id', 'order')
-        index_together = ('sor_id', 'order')
+        index_together = (('sor_id', 'order'), ('order', 'status'))
 
     def __unicode__(self):
         return str(self.sor_id)

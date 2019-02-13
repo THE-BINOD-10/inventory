@@ -857,7 +857,7 @@ def update_cancelled(orders, user='', company_name=''):
 
 
 def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_status, user_attr_list, sizes_dict,
-                             new_ean_objs, load_file, columns):
+                             new_ean_objs, load_file, columns, exist_sku_eans, exist_ean_list):
     sku_master = None
     sku_code = sku_data.get(sku_mapping['sku_code'], '')
     if sku_data.get(sku_mapping['sku_desc'], ''):
@@ -959,6 +959,16 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                     ean_numbers = str(value.encode('utf-8').replace('\xc2\xa0', ''))
                 except:
                     ean_numbers = ''
+                for temp_ean in ean_numbers.split(','):
+                    if temp_ean in exist_ean_list:
+                        if not str(exist_ean_list[temp_ean]) == str(sku_code):
+                            error_message = 'EAN Number already mapped to SKU ' + str(exist_ean_list[temp_ean])
+                            update_error_message(failed_status, 5031, error_message, sku_code,
+                                                 field_key='sku_code')
+                    elif temp_ean in exist_sku_eans:
+                        error_message = 'EAN Number already mapped to SKU ' + str(exist_sku_eans[temp_ean])
+                        update_error_message(failed_status, 5031, error_message, sku_code,
+                                             field_key='sku_code')
             continue
         if value == None:
             value = ''
@@ -1105,10 +1115,15 @@ def update_skus(skus, user='', company_name=''):
         columns = ['sku_id', 'attribute_name', 'attribute_value']
         new_ean_objs = []
 
+        exist_sku_eans = dict(SKUMaster.objects.filter(user=user.id, ean_number__gt=0, status=1).annotate(
+            ean_str=Cast('ean_number', output_field=CharField())).values_list('ean_str', 'sku_code'))
+        exist_ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1).annotate(
+            ean_str=Cast('ean_number', output_field=CharField())).values_list('ean_str', 'sku__sku_code'))
         for sku_data in skus:
             sku_master, insert_status, new_ean_objs = sku_master_insert_update(sku_data, user, sku_mapping, insert_status,
                                                                  failed_status, user_attr_list, sizes_dict,
-                                                                 new_ean_objs, load_file, columns)
+                                                                 new_ean_objs, load_file, columns, exist_sku_eans,
+                                                                               exist_ean_list)
             all_sku_masters.append(sku_master)
             if sku_data.has_key('child_skus') and sku_data['child_skus'] and isinstance(sku_data['child_skus'], list):
                 for child_data in sku_data['child_skus']:

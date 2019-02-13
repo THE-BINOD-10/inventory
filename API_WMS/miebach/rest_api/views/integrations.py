@@ -1852,6 +1852,10 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                             order_details['invoice_amount'] = float(invoice_amount)
                             order_details['unit_price'] = float(unit_price)
                             order_details['creation_date'] = creation_date
+                            try:
+                                invoice_amount = float(sku_item['quantity']) * float(unit_price)
+                            except:
+                                invoice_amount = 0
 
                             final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details,
                                                                  final_data_dict=final_data_dict)
@@ -1894,6 +1898,13 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                                     order_summary_dict['discount'] = float(sku_item['discount_amount'])
                                 except:
                                     order_summary_dict['discount'] = 0
+                            if order_summary_dict['discount']:
+                                invoice_amount -= order_summary_dict['discount']
+                            taxes = order_summary_dict['cgst_tax'] + order_summary_dict['sgst_tax'] + \
+                                    order_summary_dict['igst_tax'] + order_summary_dict['utgst_tax'] + \
+                                    order_summary_dict['cess_tax']
+                            if taxes:
+                                invoice_amount += (invoice_amount/100) * taxes
                             order_summary_dict['consignee'] = str(order_details.get('address', '')).encode('ascii', 'ignore')[:255]
                             #order_summary_dict['invoice_date'] = order_details['creation_date']
                             order_summary_dict['inter_state'] = 0
@@ -1912,6 +1923,7 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                         except:
                             sku_shipping = 0
                         shipping_amt += sku_shipping
+                        final_data_dict[grouping_key]['order_details']['invoice_amount'] = invoice_amount
 
                 final_data_dict[grouping_key]['shipping_charge'] = shipping_amt
                 final_data_dict[grouping_key]['status_type'] = order_status

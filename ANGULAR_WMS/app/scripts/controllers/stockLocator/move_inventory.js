@@ -304,6 +304,9 @@
           }
         }
       });
+      modalInstance.result.then(function (selectedItem) {
+         console.log(selectedItem)
+      })
     }
 
   }
@@ -550,14 +553,22 @@
     };
 
     $ctrl.close = function () {
-      
       $modalInstance.dismiss('cancel');
     };
   });
 
   angular.module('urbanApp').controller('skuBundle', function ($modalInstance, $modal, items, Service, colFilters) {
-    var $ctrl = this;
+    var bundleObj = this;
+    bundleObj.marginData = items;
+    bundleObj.service = Service;
+    bundleObj.model_data = {};
+    bundleObj.isLast = isLast;
+    function isLast(check) {
+      var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
+      return cssClass
+    }
+    bundleObj.close = function () {
+      $modalInstance.dismiss('cancel');
+    };
   })
-
-
 })();

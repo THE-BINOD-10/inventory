@@ -960,15 +960,22 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                 except:
                     ean_numbers = ''
                 for temp_ean in ean_numbers.split(','):
+                    if not temp_ean:
+                        continue
+                    if len(str(temp_ean)) > 20:
+                        error_message = 'EAN Number Length should be less than 20'
+                        update_error_message(failed_status, 5032, error_message, sku_code,
+                                            field_key='sku_code') 
                     if temp_ean in exist_ean_list:
                         if not str(exist_ean_list[temp_ean]) == str(sku_code):
                             error_message = 'EAN Number already mapped to SKU ' + str(exist_ean_list[temp_ean])
                             update_error_message(failed_status, 5031, error_message, sku_code,
                                                  field_key='sku_code')
                     elif temp_ean in exist_sku_eans:
-                        error_message = 'EAN Number already mapped to SKU ' + str(exist_sku_eans[temp_ean])
-                        update_error_message(failed_status, 5031, error_message, sku_code,
-                                             field_key='sku_code')
+                        if not str(exist_sku_eans[temp_ean]) == str(sku_code):
+                            error_message = 'EAN Number already mapped to SKU ' + str(exist_sku_eans[temp_ean])
+                            update_error_message(failed_status, 5031, error_message, sku_code,
+                                                 field_key='sku_code')
             continue
         if value == None:
             value = ''
@@ -1059,16 +1066,29 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                 rem_ean_objs = sku_master.eannumbers_set.filter(ean_number__in=rem_eans)
                 if rem_ean_objs.exists():
                     rem_ean_objs.delete()
+                for rem_ean in rem_eans:
+                    if exist_ean_list.get(rem_ean, ''):
+                        del exist_ean_list[rem_ean]
+                    if exist_sku_eans.get(rem_ean, ''):
+                        del exist_sku_eans[rem_ean]
             if str(sku_master.ean_number) in rem_eans:
                 sku_master.ean_number = 0
                 sku_master.save()
-            new_ean_objs = []
             for ean in create_eans:
                 if not ean:
                     continue
                 try:
                     ean = int(ean)
                     new_ean_objs.append(EANNumbers(**{'ean_number': ean, 'sku_id': sku_master.id}))
+                    ean_found = False
+                    if exist_ean_list.get(ean, ''):
+                        exist_ean_list[ean] = sku_master.sku_code
+                        ean_found = True
+                    elif exist_sku_eans.get(ean, ''):
+                        exist_sku_eans[ean] = sku_master.sku_code
+                        ean_found = True
+                    if not ean_found:
+                        exist_ean_list[ean] = sku_master.sku_code
                 except:
                     pass
             #update_ean_sku_mapping(user, ean_numbers, sku_master, True)

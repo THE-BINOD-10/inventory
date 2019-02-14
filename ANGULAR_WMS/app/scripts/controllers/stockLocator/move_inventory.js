@@ -7,7 +7,7 @@
   angular.module('urbanApp', ['datatables'])
     .controller('MoveInventoryCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', 'focus', '$timeout', '$modal', ServerSideProcessingCtrl]);
 
-  function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, focus, $timeout, $modal) {
+  function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, focus, $timeout, $modal, $q) {
       var vm = this;
       vm.apply_filters = colFilters;
       vm.service = Service;
@@ -559,7 +559,7 @@
     };
   });
 
-  angular.module('urbanApp').controller('skuBundle', function ($modalInstance, $modal, items, Service, colFilters) {
+  angular.module('urbanApp').controller('skuBundle', function ($modalInstance, $modal, items, Service, colFilters, $q) {
     var bundleObj = this;
     bundleObj.marginData = items;
     bundleObj.service = Service;
@@ -577,13 +577,13 @@
 
     function check_exist(sku_data, index) {
       var d = $q.defer();
-      for(var i = 0; i < vm.model_data.results.length; i++) {
-	if(vm.model_data.results[i].$$hashKey != sku_data.$$hashKey && vm.model_data.results[i].product_code == sku_data.product_code) {
+      for(var i = 0; i < bundleObj.bundle_model_data.results.length; i++) {
+	if(bundleObj.bundle_model_data.results[i].$$hashKey != sku_data.$$hashKey && bundleObj.bundle_model_data.results[i].product_code == sku_data.product_code) {
 	  d.resolve(false);
-	  vm.model_data.results.splice(index, 1);
+	  bundleObj.bundle_model_data.results.splice(index, 1);
 	  alert("It is already exist in index");
 	  break;
-	} else if( i+1 == vm.model_data.results.length) {
+	} else if( i+1 == bundleObj.bundle_model_data.results.length) {
 	  d.resolve(true);
 	}
       }
@@ -591,21 +591,15 @@
     }
 
     bundleObj.get_product_data = function(item, sku_data, index) {
-      debugger;
-      //onsole.log(vm.model_data);
-      check_exist(sku_data, index).then(function(data){
+      check_exist(sku_data, index).then(function(data) {
         if(data) {
-          var elem = $.param({'sku_code': item});
-          vm.service.apiCall('get_material_codes/','POST', {'sku_code': item}).then(function(data) {
-            if(data.message) {
-              if(data.data != "No Data Found") {
-                sku_data.data = data.data.materials;
-                sku_data.product_description = 1;
-                sku_data.description = data.data.product.description;
-                vm.change_quantity(sku_data);
-              } else {
-                sku_data.data = [{"material_code": "", "material_quantity": '', "id": ''}];
-              }
+          bundleObj.service.apiCall('get_combo_sku_codes/','POST', {'sku_code': item['results'][0]['combo_sku_code']}).then(function(data) {
+            if(data['status']) {
+                sku_data.data = data.data.childs;
+		sku_data.combo_sku_code = data.data.parent.combo_sku_desc;
+                bundleObj.change_quantity(sku_data);
+            } else {
+		sku_data.data = [{"child_sku_batch": "", "child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_mrp": "", "child_sku_qty": ""}]
             }
           });
         }

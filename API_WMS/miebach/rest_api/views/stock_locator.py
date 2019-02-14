@@ -2593,3 +2593,20 @@ def auto_sellable_confirm(request, user=''):
 def update_sellable_suggestions(request, user=''):
     update_auto_sellable_data(user)
     return HttpResponse("Success")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_combo_sku_codes(request, user=''):
+    sku_code = request.GET.get('sku_code', '')
+    all_data = []
+    combo_skus = SKURelation.objects.filter(parent_sku__user=user.id, parent_sku__sku_code=sku_code)
+    if not combo_skus:
+        return HttpResponse("No Data Found")
+    for combo in combo_skus:
+        cond = (combo.member_sku.sku_code)
+        child_quantity = combo.quantity
+        all_data.append({'child_quantity': child_quantity, 'child_sku': cond})
+    parent_data = {'sku_code': combo_skus[0].parent_sku.sku_code, 'description': combo_skus[0].parent_sku.sku_desc}
+    return HttpResponse(json.dumps({'parent': parent_data, 'childs': all_data}), content_type='application/json')

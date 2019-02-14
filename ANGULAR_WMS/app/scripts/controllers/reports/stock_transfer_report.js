@@ -17,7 +17,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
   vm.print = print;
   vm.print = function() {
-    console.log(vm.print_page);
     vm.service.print_data(vm.print_page, "Debit Note");
   }
 

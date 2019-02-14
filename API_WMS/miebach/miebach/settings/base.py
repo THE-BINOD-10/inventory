@@ -55,7 +55,7 @@ AUTHENTICATION_BACKENDS = (
 'oauth2_provider.backends.OAuth2Backend',
 )
 '''
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE_CLASSES = ( 
     'oauth2_provider.middleware.OAuth2TokenMiddleware',
     #'reversion.middleware.RevisionMiddleware',
     'django.middleware.security.SecurityMiddleware',

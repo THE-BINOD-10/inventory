@@ -1223,7 +1223,7 @@ class SKURelation(models.Model):
     class Meta:
         db_table = 'SKU_RELATION'
         unique_together = ('parent_sku', 'member_sku', 'relation_type')
-        index_together = ('parent_sku', 'member_sku', 'relation_type')
+        index_together = (('parent_sku', 'member_sku', 'relation_type'), ('parent_sku', 'member_sku'))
 
     def __unicode__(self):
         return '%s: %s || %s' % (self.relation_type, self.parent_sku, self.member_sku)

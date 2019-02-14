@@ -290,7 +290,9 @@
     }
 
     vm.combo_allocate_stock = function() {
-	var mod_data = vm.marginData;
+	vm.allocate_empty_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": ""}] } ] }
+	angular.copy(vm.allocate_empty_data, vm.model_data);
+	var mod_data = vm.model_data;
         var modalInstance = $modal.open({
         templateUrl: 'views/stockLocator/toggles/create_bundle_allocate_stock.html',
         controller: 'skuBundle',
@@ -561,7 +563,8 @@
     var bundleObj = this;
     bundleObj.marginData = items;
     bundleObj.service = Service;
-    bundleObj.model_data = {};
+    //bundleObj.model_data = {};
+    bundleObj.bundle_model_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": ""}] } ] }
     bundleObj.isLast = isLast;
     function isLast(check) {
       var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
@@ -570,5 +573,26 @@
     bundleObj.close = function () {
       $modalInstance.dismiss('cancel');
     };
+    bundleObj.get_product_data = function(item, sku_data, index) {
+      debugger;
+      //onsole.log(vm.model_data);
+      check_exist(sku_data, index).then(function(data){
+        if(data) {
+          var elem = $.param({'sku_code': item});
+          vm.service.apiCall('get_material_codes/','POST', {'sku_code': item}).then(function(data) {
+            if(data.message) {
+              if(data.data != "No Data Found") {
+                sku_data.data = data.data.materials;
+                sku_data.product_description = 1;
+                sku_data.description = data.data.product.description;
+                vm.change_quantity(sku_data);
+              } else {
+                sku_data.data = [{"material_code": "", "material_quantity": '', "id": ''}];
+              }
+            }
+          });
+        }
+      });
+    }
   })
 })();

@@ -3647,7 +3647,7 @@ def get_order_summary_data(search_params, user, sub_user):
             serial_number = OrderIMEIMapping.objects.filter(order__id=data.id)
         except:
             serial_number =''
-        if serial_number :
+        if serial_number and serial_number[0].po_imei:
             serial_number = serial_number[0].po_imei.imei_number
         else:
             serial_number = ''
@@ -5843,7 +5843,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
 
         if delivered_time :
             delivered_time = int(delivered_time)
-            delivered_time = time.strftime('%d %b %Y', time.localtime(delivered_time))
+            delivered_time = time.strftime('%d %b %Y', time.localtime(delivered_time/1e3))
 
         manifest_number = int(data['order_shipment__manifest_number'])
 

@@ -3642,7 +3642,7 @@ def search_wms_data(request, user=''):
 
     lis = ['wms_code', 'sku_desc', 'mrp']
     query_objects = sku_master.filter(Q(wms_code__icontains=search_key) | Q(sku_desc__icontains=search_key),
-                                      user=user.id)
+                                      status = 1,user=user.id)
 
     master_data = query_objects.filter(Q(wms_code__exact=search_key) | Q(sku_desc__exact=search_key), user=user.id)
     if master_data:
@@ -8334,18 +8334,20 @@ def get_exclude_zones(user):
     return exclude_zones
 
 
-def get_all_zones(user, zone=''):
+def get_all_zones(user, zones=None):
     """ Send Zones under the mentioned Zones"""
     zone_filter = {'user': user.id}
     all_zones = []
-    if zone:
-        zone_filter['zone'] = zone
+    if not zones:
+        zones = []
+    if zones:
+        zone_filter['zone__in'] = zones
     zone_master = ZoneMaster.objects.filter(**zone_filter)
     all_zones = list(zone_master.values_list('zone', flat=True))
     sub_zones = SubZoneMapping.objects.filter(zone__user=user.id, zone__zone__in=all_zones).\
                                         values_list('sub_zone__zone', flat=True)
     if sub_zones.exists():
-        all_zones = list(chain(all_zones, list(sub_zones)))
+        all_zones = list(set(chain(all_zones, list(sub_zones))))
     return all_zones
 
 
@@ -8371,7 +8373,7 @@ def update_auto_sellable_data(user):
              (user.username, get_local_date(user,creation_date)))
     try:
         picklist_exclude_zones = get_exclude_zones(user)
-        non_sellable_zones = get_all_zones(user, zone='Non Sellable Zone')
+        non_sellable_zones = get_all_zones(user, zones=['Non Sellable Zone'])
         non_sellable_stock = StockDetail.objects.filter(sku__user=user.id, location__zone__zone__in=non_sellable_zones,
                                                         quantity__gt=0)
         non_sellable_skus = non_sellable_stock.values_list('sku_id', flat=True)
@@ -8402,7 +8404,7 @@ def update_auto_sellable_data(user):
                         if other_mrp_obj.exists():
                             sugg_stock = sugg_stock.filter(batch_detail__mrp=other_mrp_obj[0].batch_detail.mrp)
             if sugg_stock:
-                suggsting_zone_list = get_all_zones(user, sugg_stock[0].location.zone.zone)
+                suggsting_zone_list = get_all_zones(user, zones=[sugg_stock[0].location.zone.zone])
                 sugg_stock = sugg_stock.filter(location__zone__zone__in=suggsting_zone_list)
             for stock in sugg_stock:
                 sellable_dict = {'stock_id': stock.id, 'status': 1}
@@ -8731,7 +8733,7 @@ def load_by_file(load_file_name, table_name, columns, id_dependency=False):
         columns_string = '(' + ','.join(columns) +')'
         query = "LOAD DATA LOCAL INFILE '%s' REPLACE INTO TABLE %s CHARACTER SET utf8 FIELDS TERMINATED BY '#<>#' lines terminated by '\n' %s" %\
                 (load_file_name, table_name, columns_string)
-        if table_name in ['SKU_ATTRIBUTES', 'CUSTOMER_ORDER_SUMMARY', 'SELLER_ORDER']:
+        if table_name in ['SKU_ATTRIBUTES', 'CUSTOMER_ORDER_SUMMARY', 'SELLER_ORDER', 'ORDER_CHARGES']:
             query += " SET creation_date=NOW(), updation_date=NOW();"
         else:
             query += ";"
@@ -8742,8 +8744,9 @@ def load_by_file(load_file_name, table_name, columns, id_dependency=False):
         cmd = cmd % tuple(cmd_tuple)
         subprocess.check_output(cmd+'&', stderr=subprocess.STDOUT,shell=True)
         log.info('loading completed')
-    except:
-        pass
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
 
 
 def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
@@ -8796,4 +8799,3 @@ def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
 def update_po_order_prefix(sub_user, po_id):
     po_id = '%s%s' % (str(sub_user.id), str(po_id))
     return int(po_id)
-

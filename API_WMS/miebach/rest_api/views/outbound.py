@@ -485,7 +485,7 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
     all_data = OrderedDict()
     if search_term:
         results = ShipmentInfo.objects.filter(order__sku_id__in=sku_master_ids). \
-            filter(Q(order_shipment__shipment_number__icontains=search_term) | Q(order_shipment__manifest_number__icontains=search_term) | 
+            filter(Q(order_shipment__shipment_number__icontains=search_term) | Q(order_shipment__manifest_number__icontains=search_term) |
                    Q(order__customer_id__icontains=search_term) | Q(order__customer_name__icontains=search_term),
                    order_shipment__user=user.id).order_by('order_id')
     else:
@@ -5402,6 +5402,7 @@ def stock_transfer_delete(request, user=""):
 def get_marketplaces_list(request, user=''):
     status_type = request.GET.get('status', '')
     marketplace = get_marketplace_names(user, status_type)
+    segregation_options = OrderedDict(SELLABLE_CHOICES)
     '''if status_type == 'picked':
         marketplace = list(Picklist.objects.exclude(order__marketplace='').filter(picked_quantity__gt=0, order__user = user.id).\
                                             values_list('order__marketplace', flat=True).distinct())
@@ -5411,7 +5412,7 @@ def get_marketplaces_list(request, user=''):
     else:
         marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(status=1, user = user.id, quantity__gt=0).values_list('marketplace', flat=True).\
                                                distinct())'''
-    return HttpResponse(json.dumps({'marketplaces': marketplace}))
+    return HttpResponse(json.dumps({'marketplaces': marketplace, 'segregation_options': segregation_options}))
 
 
 @csrf_exempt
@@ -6023,7 +6024,11 @@ def app_shipment_info_data(request, user=''):
     model = ''
     district = ''
     alternative_mobile_no = 0
-    manifest_number = request.GET['manifest_number']
+    response = request.GET['manifest_number']
+    manifest_number = response.split('/')[0]
+    page = response.split('/')[1]
+    stop_index = int(page)*10
+    start_index = stop_index -10
     ship_reference = ''
     shipment_orders = ShipmentInfo.objects.filter(order_shipment__manifest_number=manifest_number)
     truck_number = ''
@@ -6036,7 +6041,7 @@ def app_shipment_info_data(request, user=''):
         driver_phone_number = shipment_orders[0].order_shipment.driver_phone_number
         manifest_number = shipment_orders[0].order_shipment.manifest_number
 
-    for orders in shipment_orders:
+    for orders in shipment_orders[start_index:stop_index]:
         ship_status = copy.deepcopy(SHIPMENT_STATUS)
         status = 'Dispatched'
         interm_obj = IntermediateOrders.objects.filter(order_id=str(orders.order.id))
@@ -7146,11 +7151,13 @@ def get_seller_order_details(request, user=''):
     central_remarks = ''
     invoice_types = get_invoice_types(user)
     invoice_type = ''
+    mrp = 0
     customer_order_summary = CustomerOrderSummary.objects.filter(order_id=row_id)
     if customer_order_summary:
         status_obj = customer_order_summary[0].status
         central_remarks = customer_order_summary[0].central_remarks
         invoice_type = customer_order_summary[0].invoice_type
+        mrp = customer_order_summary[0].mrp
 
     data_dict = []
     cus_data = []
@@ -7254,7 +7261,7 @@ def get_seller_order_details(request, user=''):
              'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
              'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
              'unit_price': one_order.unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data,
-             'order_charges': order_charges, 'sku_status': one_order.status})
+             'order_charges': order_charges, 'sku_status': one_order.status, 'mrp': mrp})
     data_dict.append({'cus_data': cus_data, 'status': status_obj, 'ord_data': order_details_data,
                       'central_remarks': central_remarks, 'seller_details': seller_details,
                       'invoice_type': invoice_type, 'invoice_types': invoice_types})
@@ -7309,12 +7316,14 @@ def get_view_order_details(request, user=''):
     invoice_types = get_invoice_types(user)
     invoice_type = ''
     courier_name = ''
+    mrp = 0
     if customer_order_summary:
         status_obj = customer_order_summary[0].status
         central_remarks = customer_order_summary[0].central_remarks
         invoice_type = customer_order_summary[0].invoice_type
         client_name = customer_order_summary[0].client_name
         courier_name = customer_order_summary[0].courier_name
+        mrp = customer_order_summary[0].mrp
 
     cus_data = []
     order_details_data = []
@@ -7432,14 +7441,12 @@ def get_view_order_details(request, user=''):
              'cess_tax': cess_tax,
              'unit_price': unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data,
              'order_charges': order_charges,
-             'sku_status': one_order.status, 'client_name':client_name, 'payment_status':payment_status})
-
+             'sku_status': one_order.status, 'client_name':client_name, 'payment_status':payment_status, 'mrp':mrp})
     if status_obj in view_order_status:
         view_order_status = view_order_status[view_order_status.index(status_obj):]
     data_dict.append({'cus_data': cus_data, 'status': status_obj, 'ord_data': order_details_data,
                       'central_remarks': central_remarks, 'all_status': view_order_status, 'tax_type': tax_type,
                       'invoice_type': invoice_type, 'invoice_types': invoice_types, 'courier_name':courier_name})
-
     return HttpResponse(json.dumps({'data_dict': data_dict}))
 
 
@@ -11348,7 +11355,7 @@ def get_seller_order_view(start_index, stop_index, temp_data, search_term, order
         single_search = "yes"
         del (search_params['city__icontains'])
 
-    all_seller_orders = SellerOrder.objects.filter(**data_dict)
+    all_seller_orders = SellerOrder.objects.select_related('order', 'seller').filter(**data_dict)
     if search_term:
         mapping_results = all_seller_orders.values('order__customer_name', 'order__order_id', 'order__order_code',
                                                    'order__original_order_id',
@@ -11367,34 +11374,41 @@ def get_seller_order_view(start_index, stop_index, temp_data, search_term, order
             distinct().annotate(total=Sum('quantity')).filter(**search_params).order_by(order_data)
 
     temp_data['recordsTotal'] = mapping_results.count()
-    temp_data['recordsFiltered'] = mapping_results.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     index = 0
     for dat in mapping_results[start_index:stop_index]:
-        cust_status_obj = CustomerOrderSummary.objects.filter(order__order_id=dat['order__order_id'])
+        cust_status_obj = CustomerOrderSummary.objects.filter(order__order_id=dat['order__order_id']).only('status', 'shipment_time_slot', 'order_taken_by',
+                                                                'order__creation_date')
         if cust_status_obj:
             cust_status = cust_status_obj[0].status
             time_slot = cust_status_obj[0].shipment_time_slot
+            order_taken_val = cust_status_obj[0].order_taken_by
+            creation_date = cust_status_obj[0].order.creation_date
         else:
             cust_status = ""
             time_slot = ""
+            order_taken_val = ''
 
-        order_taken_val = ''
+        '''order_taken_val = ''
         if order_taken_val_user:
             order_taken_val = order_taken_val_user.filter(order__order_id=dat['order__order_id'])
             if order_taken_val:
                 order_taken_val = order_taken_val[0].order_taken_by
             else:
-                order_taken_val = ''
+                order_taken_val = ""'''
         if single_search == "yes" and order_taken_val == '':
             continue
 
-        order_id = dat['order__order_code'] + str(dat['order__order_id'])
+        if dat['order__original_order_id']:
+            order_id = dat['order__original_order_id']
+        else:
+            order_id = dat['order__order_code'] + str(dat['order__order_id'])
         check_values = str(order_id) + '<>' + str(dat['sor_id']) + '<>' + str(dat['seller_id'])
-        name = all_seller_orders.filter(order__order_id=dat['order__order_id'],
-                                        order__order_code=dat['order__order_code'], order__user=user.id)
-        creation_date = name[0].creation_date
-        name = name[0].id
+        #name = all_seller_orders.filter(order__order_id=dat['order__order_id'],
+        #                                order__order_code=dat['order__order_code'], order__user=user.id)
+        #creation_date = name[0].creation_date
+        #name = name[0].id
         creation_data = get_local_date(user, creation_date, True).strftime("%d %b, %Y")
         # if time_slot:
         #    shipment_data = shipment_data + ', ' + time_slot

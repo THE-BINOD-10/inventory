@@ -570,9 +570,26 @@
       var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
       return cssClass
     }
+
     bundleObj.close = function () {
       $modalInstance.dismiss('cancel');
     };
+
+    function check_exist(sku_data, index) {
+      var d = $q.defer();
+      for(var i = 0; i < vm.model_data.results.length; i++) {
+	if(vm.model_data.results[i].$$hashKey != sku_data.$$hashKey && vm.model_data.results[i].product_code == sku_data.product_code) {
+	  d.resolve(false);
+	  vm.model_data.results.splice(index, 1);
+	  alert("It is already exist in index");
+	  break;
+	} else if( i+1 == vm.model_data.results.length) {
+	  d.resolve(true);
+	}
+      }
+      return d.promise;
+    }
+
     bundleObj.get_product_data = function(item, sku_data, index) {
       debugger;
       //onsole.log(vm.model_data);

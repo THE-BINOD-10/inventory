@@ -282,8 +282,8 @@ def add_user_permissions(request, response_data, user=''):
         user_type = 'sm_purchase_admin'
     elif request_user_profile.warehouse_type == 'SM_DESIGN_ADMIN':
         user_type = 'sm_design_admin'
-    # elif user_profile.warehouse_type == 'CENTRAL_ADMIN':
-    #     user_type = 'default'
+    elif request_user_profile.warehouse_type == 'SM_FINANCE_ADMIN':
+        user_type = 'sm_finance_admin'
     else:
         user_type = request_user_profile.user_type
     response_data['data']['roles']['permissions']['user_type'] = user_type

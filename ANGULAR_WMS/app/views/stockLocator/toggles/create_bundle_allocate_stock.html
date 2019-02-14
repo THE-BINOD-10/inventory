@@ -1,0 +1,84 @@
+<div id="page-pop" style="overflow-y: visible;">
+  <form name="myForm" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine" novalidate="novalidate">
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="bundleObj.close()">
+        <span aria-hidden="true">×</span>
+      </button>
+      <h4 class="modal-title" id="modal-title">Combo Allocate Stock</h4>
+    </div>
+    <div class="modal-body lebel-error-hide" id="modal-body">
+      <div class="row">
+            <div class="col-md-12">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Combo SKU Code</th>
+                    <th>Combo SKU Desc</th>
+                    <th>Location</th>
+                    <th>Batch</th>
+                    <th>MRP</th>
+                    <th>Qty</th>
+		    <th>Child SKU Code</th>
+                    <th>Child SKU Desc</th>
+                    <th>Child SKU Location</th>
+                    <th>Child SKU Batch</th>
+                    <th>Child SKU MRP</th>
+                    <th>Child SKU Qty</th>
+                  </tr>
+                </thead>
+                <tbody ng-repeat="data in bundleObj.model_data.results">
+                  <tr ng-repeat="item in data.data">
+                    <td>
+                      <input type="hidden" name="id" value="{{item.id}}">
+                      <input type="text" autocomplete="off" ng-readonly="bundleObj.update && (!(data.new_sku))" ng-show="$first" name="combo_sku_code" class="form-control" placeholder="Search Combo SKU Code" typeahead="address for address in bundleObj.service.getSearchValues($viewValue, 'search_wms_codes?', 'RM')" typeahead-loading="loadingLocations" ng-model="data.combo_sku_code" typeahead-on-select="bundleObj.get_product_data(data.product_code, data, $parent.$index)">
+                    </td>
+                    <td>
+                      <input ng-show="$first" type="text" name="description" class="form-control" ng-model="data.combo_sku_description">
+                    </td>
+
+		    <td>
+                      <input ng-show="$first" type="text" name="location" class="form-control" ng-model="data.location">
+                    </td>
+
+		    <td>
+                      <input ng-show="$first" type="text" name="batch" class="form-control" ng-model="data.batch">
+                    </td>
+
+		    <td>
+                      <input ng-show="$first" type="text" name="mrp" class="form-control" ng-model="data.mrp">
+                    </td>
+
+                    <td>
+                      <input ng-show="$first" type="text" d-perm="true" name="quantity" ng-model="data.quantity" ng-change="bundleObj.change_quantity(data)" class="form-control" ng-class="service.get_decimal_perm()">
+                    </td>
+
+
+                    <td>
+                      <input type="text" autocomplete="off" name="material_code" class="form-control" placeholder="Search Material SKU Code" typeahead="address for address in bundleObj.service.getSearchValues($viewValue, 'search_wms_codes?','RM')" typeahead-loading="loadingLocations" ng-model="item.material_code">
+                    </td>
+                    <td>
+                      <input type="text" name="material_quantity" d-perm="true" class="form-control" ng-model="item.temp_qty" ng-class="service.get_decimal_perm()">                      </td>
+                    <td>
+                      <select name="measurement_type" class="form-control" ng-model="item.measurement_type">
+                        <option value="" ng-selected= "item.measurement_type == ''">Default</option>
+                        <option ng-repeat="unit in showCase.units" value="{{unit}}" ng-selected= "item.measurement_type == unit">{{unit}}</option>
+                      </select>
+                    </td>
+                    <td>
+                      <i ng-click="showCase.update_data(data, $index, $last, $first)" ng-class="showCase.isLast($last)"></i> 
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn pop pop-normal" ng-click="$ctrl.close()">Close</button>
+      <button type="button" class="btn pop pop-green" ng-click="$ctrl.submit(myForm)" ng-disabled="myForm.$invalid; $ctrl.disabled_button">Save
+        <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="$ctrl.success_resp"></span>
+      </button>
+    </div>
+  </form>
+</div>
+

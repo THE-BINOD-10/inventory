@@ -1981,8 +1981,8 @@ def picklist_confirmation(request, user=''):
 
     log.info('Request params for ' + user.username + ' is ' + str(data))
     try:
-	rista_order_id_list = []
-	rista_order_dict = {}
+        rista_order_id_list = []
+        rista_order_dict = {}
         data = OrderedDict(sorted(data.items(), reverse=True))
         error_string = ''
         picklist_number = request.POST['picklist_number']
@@ -2197,11 +2197,11 @@ def picklist_confirmation(request, user=''):
             else:
                 auto_po(auto_skus, user.id)
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
-	#Check DM Rista User
-	int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
-	if int_obj and rista_order_id_list:
-	    rista_order_id = list(set(rista_order_id_list))
-	    rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
+        #Check DM Rista User
+        int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
+        if int_obj and rista_order_id_list:
+            rista_order_id = list(set(rista_order_id_list))
+            rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
         order_ids = picks_all.values_list('order_id', flat=True).distinct()
@@ -11452,7 +11452,8 @@ def seller_generate_picklist(request, user=''):
         picklist_exclude_zones = get_exclude_zones(user)
         switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                        'fifo_switch': get_misc_value('fifo_switch', user.id),
-                       'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
+                       'no_stock_switch': get_misc_value('no_stock_switch', user.id),
+                       'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
         sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
             location__zone__zone__in=picklist_exclude_zones). \

@@ -5316,27 +5316,6 @@ def validate_st(all_data, user):
     return sku_status.strip(", ")
 
 
-def insert_st(all_data, user):
-    for key, value in all_data.iteritems():
-        for val in value:
-            if val[3]:
-                open_st = OpenST.objects.get(id=val[3])
-                open_st.warehouse_id = User.objects.get(username__iexact=key).id
-                open_st.sku_id = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
-                open_st.price = float(val[2])
-                open_st.order_quantity = float(val[1])
-                open_st.save()
-                continue
-            stock_dict = copy.deepcopy(OPEN_ST_FIELDS)
-            stock_dict['warehouse_id'] = User.objects.get(username__iexact=key).id
-            stock_dict['sku_id'] = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
-            stock_dict['order_quantity'] = float(val[1])
-            stock_dict['price'] = float(val[2])
-            stock_transfer = OpenST(**stock_dict)
-            stock_transfer.save()
-            all_data[key][all_data[key].index(val)][3] = stock_transfer.id
-    return all_data
-
 
 @csrf_exempt
 @login_required
@@ -5351,16 +5330,19 @@ def create_stock_transfer(request, user=''):
         data_id = ''
         if data_dict['id'][i]:
             data_id = data_dict['id'][i]
+        data_dict['cgst'][i] = data_dict['cgst'][i] if data_dict['cgst'][i] else 0
+        data_dict['sgst'][i] = data_dict['sgst'][i] if data_dict['sgst'][i] else 0
+        data_dict['igst'][i] = data_dict['igst'][i] if data_dict['igst'][i] else 0
         cond = (user.username)
         all_data.setdefault(cond, [])
         all_data[cond].append(
-            [data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i], data_id])
+            [data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i],data_dict['cgst'][i],data_dict['sgst'][i],data_dict['igst'][i], data_id])
     warehouse = User.objects.get(username=warehouse_name)
     f_name = 'stock_transfer_' + warehouse_name + '_'
     status = validate_st(all_data, warehouse)
     if not status:
-        all_data = insert_st(all_data, warehouse)
-        status = confirm_stock_transfer(all_data, warehouse, user.username, request)
+        all_data = insert_st_gst(all_data, warehouse)
+        status = confirm_stock_transfer_gst(all_data, warehouse, user.username)
         #rendered_html_data = render_st_html_data(request, user, warehouse, all_data)
         #stock_transfer_mail_pdf(request, f_name, rendered_html_data, warehouse)
     return HttpResponse(status)
@@ -11145,9 +11127,17 @@ def generate_stock_transfer_invoice(request, user=''):
                 'pin_code' : to_warehouse_details[0]['pin_code'], 'country' : to_warehouse_details[0]['country'] }
             #warehouse = obj.stock_transfer.st_po.open_st.warehouse.username
             sku_price = stock_transfer.st_po.open_st.price
+            cgst_tax = stock_transfer.st_po.open_st.cgst_tax
+            sgst_tax = stock_transfer.st_po.open_st.sgst_tax
+            igst_tax = stock_transfer.st_po.open_st.igst_tax
             rate = stock_transfer.st_po.open_st.price
             total_picked_quantity = pick_qtys.get(str(stock_transfer.order_id) + '<<>>' + str(stock_transfer.sku.sku_code), 0)
             total_price = rate * stock_transfer.quantity
+            if cgst_tax :
+                gst = (total_price * (cgst_tax + sgst_tax))/100
+            else:
+                gst  = (total_price * igst_tax)/100
+            total_price += gst
             invoice_amt = total_price + invoice_amt
             sku_description = stock_transfer.sku.sku_desc
             sku = stock_transfer.sku.wms_code
@@ -11171,7 +11161,9 @@ def generate_stock_transfer_invoice(request, user=''):
                 invoice_number = order_id[0]
             else:
                 invoice_number = ''
+
         resp_list['resp'].append({'order_id' : order_id[0], 'picked_quantity' : total_picked_quantity, 'rate' : rate,
+                               'cgst_tax':cgst_tax,'sgst_tax':sgst_tax,'igst_tax':igst_tax,
             'amount' : total_price, 'stock_transfer_date_time' : str(shipment_date), 'warehouse_name': warehouse,
             'sku_code' : sku, 'invoice_date' : str(invoice_date), 'from_warehouse' : from_warehouse,
             'to_warehouse' : to_warehouse, 'invoice_amount' : invoice_amt, 'sku_description' : sku_description,

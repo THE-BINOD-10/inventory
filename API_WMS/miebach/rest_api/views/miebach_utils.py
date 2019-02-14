@@ -831,6 +831,16 @@ RETURN_TO_VENDOR_REPORT = {
     'dt_url': 'get_rtv_report', 'excel_name': 'get_rtv_report',
     'print_url': 'print_rtv_report',
 }
+STOCK_TRANSFER_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'Sku Code', 'name': 'sku_code', 'type': 'input'},
+    ],
+    'dt_headers': ['Date', 'Invoice Number', 'Source Location', 'Destination', 'SKU Code', 'SKU Description','Quantity','Price','Net Value','CGST','SGST','IGST','Total Value','Status'],
+    'dt_url': 'get_stock_transfer_report', 'excel_name': 'get_stock_transfer_report',
+    'print_url': 'print_stock_transfer_report',
+}
 
 CURRENT_STOCK_REPORT_DICT = {
     'filters': [
@@ -1410,7 +1420,7 @@ CENTRAL_ORDER_EXCEL_ONE_ASSIST = OrderedDict((
                           ))
 STOCK_TRANSFER_ORDER_EXCEL = OrderedDict((
                             ('warehouse_name', 0), ('wms_code', 1), ('quantity', 2),
-                            ('price', 3)))
+                            ('price', 3),('cgst_tax',4),('sgst_tax',5),('igst_tax',6)))
 
 CENTRAL_ORDER_XLS_UPLOAD = {'interm_order_id': '', 'sku': '', 'quantity': 1,
               'unit_price': 0, 'tax': 0, 'inter_state': 0, 'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0,
@@ -2076,7 +2086,7 @@ CENTRAL_ORDER_MAPPING = OrderedDict((
                                    ))
 STOCK_TRANSFER_ORDER_MAPPING = OrderedDict((
                                       ('Warehouse Name', 'warehouse_name'), ('WMS Code', 'wms_code'),
-                                      ('Quantity', 'quantity'), ('Price', 'price')
+                                      ('Quantity', 'quantity'), ('Price', 'price'),('Cgst(%)','cgst_tax'),('Sgst(%)','sgst_tax'),('Igst(%)','igst_tax')
                                    ))
 
 CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((
@@ -6399,6 +6409,13 @@ def print_sku_wise_data(search_params, user, sub_user):
                                                 ('Total Quantity', total_quantity))))
     return temp_data
 
+def get_stock_transfer_report_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date
+    temp_data = copy.deepcopy(AJAX_DATA)
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    lis = ['creation_date','st_po__open_st__sku__user','st_po__open_st__sku__user','st_po__open_st__sku__user','sku__sku_code','sku__sku_desc',\
+           'quantity', 'st_po__open_st__price','st_po__open_st__sku__user','st_po__open_st__cgst_tax','st_po__open_st__sgst_tax','st_po__open_st__igst_tax','st_po__open_st__price','status']
+    status_map = ['Pick List Generated','Pending','Accepted']
 
 def get_current_stock_report_data(search_params, user, sub_user):
     from miebach_admin.models import *

@@ -12,6 +12,9 @@
               <table class="table table-bordered table-responsive bl br cal-table m0">
                 <thead>
                   <tr class="fs14">
+                    {% if show_sno == 'true' %}
+                    <th><center>Sno.</center></th>
+                    {% endif %}
                     <th><center>SKU Code</center></th>
                     <th class="w7"><center>HSN</center></th>
                     <th><center>Description</center></th>
@@ -38,6 +41,9 @@
                   {% for record in page.data %}
                   {% if not record.continue %}
                   <tr ng-repeat="record in page.data" class="fs14 rm-border">
+                    {% if show_sno == 'true' %}
+                    <td class="text-left">{{record.sno}}</td>
+                    {% endif %}
                     <td class="text-left">
                       <div>{{record.sku_code}}
                         <!-- this is for 72networks -->
@@ -112,7 +118,7 @@
                   <tr class="fs14" style="border-top: 1px solid black" ng-if="perm_hsn_summary && $last">
                     <td></td>
                     <td></td>
-                    {% if show_mrp == 'true' %}
+                    {% if show_mrp == 'true' or show_sno == 'true' %}
                       <td></td>
                     {% endif %}
                     <td colspan='{{html_data.hsn_summary_span}}'><b>Summary</b></td>
@@ -129,7 +135,7 @@
                   <tr class="fs14 text-right rm-border" ng-repeat="(hsn, data) in showCase.pdf_data.hsn_summary" ng-if="permissions.hsn_summary && $parent.$last">
                     <td></td>
                     <td></td>
-                    {% if show_mrp == 'true' %}
+                    {% if show_mrp == 'true' or show_sno == 'true' %}
                       <td></td>
                     {% endif %}
                     <td colspan='{{html_data.hsn_summary_span}}' class="text-left">{{hsn}}</td>
@@ -147,11 +153,12 @@
                   {% endif %}
                   {% if forloop.last %}
                   <tr style="border-top: 1px solid black;font-weight: bold;" class="fs14 text-right" ng-if="$last">
-                    {% if show_mrp == 'true' %}
+                    {% if show_mrp == 'true' or show_sno == 'true' %}
                       <td colspan="4" style="text-align:left"><b>Total: </b></td>
                     {% else %}
                       <td colspan="3" style="text-align:left"><b>Total: </b></td>
                     {% endif %}
+
                     <td></td>
                     <td>{{total_quantity}}</td>
                     {% if show_disc_invoice == 'true' %}
@@ -244,7 +251,7 @@
                     </td>
                   </tr>
                   <tr ng-if="$last">
-                    {% if show_mrp == 'true' %}
+                    {% if show_mrp == 'true' or show_sno == 'true' %}
                       <td colspan='9' style="text-align:left;" class="fs14">
                     {% else %}
                       <td colspan='8' style="text-align:left;" class="fs14">

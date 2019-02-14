@@ -246,6 +246,7 @@ urlpatterns = [
     url(r'^auto_sellable_confirm/$', auto_sellable_confirm),
     url(r'^update_sellable_suggestions/$', update_sellable_suggestions),
     url(r'^get_style_level_stock/$', get_style_level_stock),
+    url(r'^get_combo_sku_codes/$', get_combo_sku_codes),
 
     # OutBound
     url(r'^batch_generate_picklist/$', batch_generate_picklist),

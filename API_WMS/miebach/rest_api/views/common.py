@@ -6503,6 +6503,9 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
     no_stock_switch = False
     if switch_vals['no_stock_switch'] == 'true':
         no_stock_switch = True
+    combo_allocate_stock = False
+    if switch_vals.get('combo_allocate_stock', '') == 'true':
+        combo_allocate_stock = True
 
     for order in order_data:
         picklist_data = copy.deepcopy(PICKLIST_FIELDS)
@@ -6541,7 +6544,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         val_dict['pic_res_quans'] = map(lambda d: d['total'], pick_res_locat)
 
         members = [order.sku]
-        if order.sku.relation_type == 'combo':
+        if order.sku.relation_type == 'combo' and not combo_allocate_stock:
             picklist_data['order_type'] = 'combo'
             members = []
             combo_data = sku_combos.filter(parent_sku_id=order.sku.id)
@@ -6571,7 +6574,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                                                                          user, val_dict, sku_id_stocks)
                 stock_detail = list(chain(stock_detail, stock_detail1))
                 stock_quantity += stock_quantity1
-            elif order.sku.relation_type == 'combo':
+            elif order.sku.relation_type == 'combo' and not combo_allocate_stock:
                 stock_detail, stock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
                                                                        sku_id_stocks)
 

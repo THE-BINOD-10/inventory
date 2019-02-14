@@ -713,7 +713,30 @@ function pull_confirmation() {
     });
   }
   */
-
+  vm.deliveryChallan = function(text, click_type){
+    let send = {'seller_summary_id': String(text[0].order_no+':1'), 'delivery_challan': true}
+    console.log(send)
+    vm.bt_disable = true;
+    vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
+      if(data.message) {
+        if(click_type == 'generate') {
+          vm.pdf_data = data.data;
+          if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
+            $state.go("app.outbound.PullConfirmation.DeliveryChallan");
+            $timeout(function () {
+              vm.ok();
+              $(".modal-body:visible").html(vm.pdf_data)
+            }, 1000);
+          } else {
+            console.log('error in delivery_challan')
+          }
+        } else {
+          console.log('error in delivery_challan')
+        }
+      }
+      vm.bt_disable = false;
+    });
+  }
   vm.update_picklist = function(pick_id) {
     vm.service.apiCall('update_picklist_loc/','GET',{picklist_id: pick_id}, true).then(function(data){
       if (data.message) {

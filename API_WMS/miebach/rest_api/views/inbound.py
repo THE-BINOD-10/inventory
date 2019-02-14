@@ -1012,6 +1012,7 @@ def switches(request, user=''):
                        'sku_pack_config': 'sku_pack_config',
                        'central_order_reassigning':'central_order_reassigning',
                        'po_sub_user_prefix': 'po_sub_user_prefix',
+                       'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

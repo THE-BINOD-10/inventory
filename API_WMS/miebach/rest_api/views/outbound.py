@@ -6233,7 +6233,7 @@ def get_sku_categories(request, user=''):
         reseller_id = reseller_obj[0].customer_id
         res_corps = list(CorpResellerMapping.objects.filter(reseller_id=reseller_id,
                                                    status=1).values_list('corporate_id', flat=True).distinct())
-        corp_names = list(CorporateMaster.objects.filter(id__in=res_corps).values_list('name', flat=True).distinct())
+        corp_names = list(CorporateMaster.objects.filter(corporate_id__in=res_corps, user=user.id).values_list('name', flat=True).distinct())
 
     return HttpResponse(
         json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list,
@@ -9569,9 +9569,10 @@ def get_customer_cart_data(request, user=""):
     reseller_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     if reseller_obj and price_band_flag == 'true':
         reseller_id = reseller_obj[0].customer_id
+        central_admin = get_admin(user)
         res_corps = list(CorpResellerMapping.objects.filter(reseller_id=reseller_id,
                                                    status=1).values_list('corporate_id', flat=True).distinct())
-        corp_names = CorporateMaster.objects.filter(id__in=res_corps).values_list('name', flat=True).distinct()
+        corp_names = CorporateMaster.objects.filter(corporate_id__in=res_corps, user=central_admin.id).values_list('name', flat=True).distinct()
         response['reseller_corporates'].extend(corp_names)
     elif reseller_obj and central_order_mgmt == 'true': # ISPRAVA
         corp_names = CorporateMaster.objects.filter(user=user.id).values_list('name', flat=True).distinct()
@@ -13128,7 +13129,7 @@ def convert_customorder_to_actualorder(request, user=''):
             invoice_amount = get_tax_inclusive_invoice_amt(cm_id, smd_price, qty, usr, sku_code, admin_user=admin_user)
             mapped_sku_id = get_syncedusers_mapped_sku(usr, sku_id)
 
-            order_detail_dict = {'sku_id': mapped_sku_id, 'title': title, 'quantity': quantity, 'order_id': order_id,
+            order_detail_dict = {'sku_id': mapped_sku_id, 'title': title, 'quantity': qty, 'order_id': order_id,
                                  'original_order_id': org_ord_id, 'user': usr,
                                  'shipment_date': exp_date, 'unit_price': smd_price, 'invoice_amount': invoice_amount,
                                  'creation_date': datetime.datetime.now(), 'status': 1,
@@ -13203,7 +13204,7 @@ def convert_customorder_to_actualorder(request, user=''):
                 except:
                     log.info("Order Push failed for order: %s" %original_order_id)
 
-        if req_stock == sum(stock_wh_map.values()) and is_emiza_order_failed:
+        if req_stock == sum(stock_wh_map.values()) and not is_emiza_order_failed:
             enq_obj.status = 'order_placed'
             enq_obj.save()
         else:

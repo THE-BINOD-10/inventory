@@ -179,7 +179,7 @@
           var elem = angular.element($('form'));
           elem = elem[0];
           elem = $(elem).serializeArray();
-          vm.service.apiCall('insert_move_inventory/', 'GET', elem, true).then(function(data){
+          vm.service.apiCall('confirm_combo_allocation/', 'POST', elem, true).then(function(data) {
             if(data.message) {
               if (data.data == "Added Successfully") {
                 vm.close()
@@ -594,16 +594,35 @@
       check_exist(sku_data, index).then(function(data) {
         if(data) {
           bundleObj.service.apiCall('get_combo_sku_codes/','POST', {'sku_code': item['results'][0]['combo_sku_code']}).then(function(data) {
-            if(data['status']) {
+            if(data.data.status) {
                 sku_data.data = data.data.childs;
-		sku_data.combo_sku_code = data.data.parent.combo_sku_desc;
-                bundleObj.change_quantity(sku_data);
+		sku_data.combo_sku_desc = data.data.parent.combo_sku_desc;
+                //bundleObj.change_quantity(sku_data);
             } else {
 		sku_data.data = [{"child_sku_batch": "", "child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_mrp": "", "child_sku_qty": ""}]
             }
           });
         }
       });
+    }
+
+    bundleObj.submit_bundle = submit_bundle;
+    function submit_bundle(data) {
+      if(data.$valid) {
+	var elem = angular.element($('form'));
+	elem = elem[0];
+	elem = $(elem).serializeArray();
+	bundleObj.service.apiCall('confirm_combo_allocation/', 'POST', elem, true).then(function(data) {
+	  if(data.message) {
+	    if (data.data == "Added Successfully") {
+	      bundleObj.close()
+	      angular.extend(bundleObj.model_data, bundleObj.empty_data);
+	    } else { 
+	      Service.showNoty(data.data, 'warning');
+	    }
+	  }
+	});
+      }
     }
   })
 })();

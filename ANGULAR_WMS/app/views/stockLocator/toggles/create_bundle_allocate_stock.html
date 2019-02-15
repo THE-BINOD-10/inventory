@@ -8,6 +8,16 @@
     </div>
     <div class="modal-body lebel-error-hide" id="modal-body">
       <div class="row">
+	    <div class="col-md-12">
+		<div class="col-md-4 col-sm-4 col-xs-6">
+		    <div class="form-group">
+			<label class="control-label"> Seller ID </label>
+			<select class="form-control zone" name="seller_id" ng-model="bundleObj.model_data.seller_type" ng-change="bundleObj.seller_change(bundleObj.model_data.seller_type)" ng-init="bundleObj.model_data.seller_type=bundleObj.model_data.seller_types[0]; bundleObj.seller_change(bundleObj.model_data.seller_type)">
+			  <option ng-repeat="type in bundleObj.model_data.seller_types" ng-selected="bundleObj.model_data.seller_type==type" value="{{type}}">{{type}}</option>
+			</select>
+		    </div>
+		</div>
+	    </div>
             <div class="col-md-12">
               <table class="table">
                 <thead>
@@ -33,23 +43,23 @@
                       <input type="text" autocomplete="off" ng-readonly="bundleObj.update && (!(data.new_sku))" ng-show="$first" name="combo_sku_code" class="form-control" placeholder="Search Combo SKU Code" typeahead="address for address in bundleObj.service.getSearchValues($viewValue, 'search_wms_codes?', 'RM')" typeahead-loading="loadingLocations" ng-model="data.combo_sku_code" typeahead-on-select="bundleObj.get_product_data(bundleObj.bundle_model_data, data, $parent.$index)">
                     </td>
                     <td>
-                      <input type="text" name="combo_sku_desc" class="form-control" ng-model="data.combo_sku_desc">
+                      <input type="text" name="combo_sku_desc" class="form-control" ng-model="data.combo_sku_desc" ng-show="$first">
                     </td>
 
 		    <td>
-                      <input type="text" name="location" class="form-control" ng-model="data.location">
+                      <input type="text" name="location" class="form-control" ng-model="data.location" ng-show="$first">
                     </td>
 
 		    <td>
-                      <input type="text" name="batch" class="form-control" ng-model="data.batch">
+                      <input type="text" name="batch" class="form-control" ng-model="data.batch" ng-show="$first">
                     </td>
 
 		    <td>
-                      <input type="text" name="mrp" class="form-control" ng-model="data.mrp">
+                      <input type="text" name="mrp" class="form-control" ng-model="data.mrp" ng-show="$first">
                     </td>
 
                     <td>
-                      <input type="text" d-perm="true" name="quantity" ng-model="data.quantity" ng-change="bundleObj.change_quantity(data)" class="form-control" ng-class="service.get_decimal_perm()">
+                      <input type="text" d-perm="true" name="quantity" ng-model="data.quantity" ng-change="bundleObj.change_quantity(data)" class="form-control" ng-class="service.get_decimal_perm()" ng-show="$first">
                     </td>
 
                     <td>
@@ -83,9 +93,9 @@
           </div>
     </div>
     <div class="modal-footer">
-      <button type="button" class="btn pop pop-normal" ng-click="$ctrl.close()">Close</button>
-      <button type="button" class="btn pop pop-green" ng-click="$ctrl.submit(myForm)" ng-disabled="myForm.$invalid; $ctrl.disabled_button">Save
-        <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="$ctrl.success_resp"></span>
+      <button type="button" class="btn pop pop-normal" ng-click="bundleObj.close()">Close</button>
+      <button type="button" class="btn pop pop-green" ng-click="bundleObj.submit_bundle(myForm)" ng-disabled="bundleObj.$invalid; bundleObj.disabled_button">Save
+        <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="bundleObj.success_resp"></span>
       </button>
     </div>
   </form>

@@ -2611,3 +2611,98 @@ def get_combo_sku_codes(request, user=''):
         all_data.append({'child_sku_qty': child_quantity, 'child_sku_code': cond, 'child_sku_batch':'', 'child_sku_desc': '', 'child_sku_location': '', 'child_sku_mrp': ''})
     parent_data = {'combo_sku_code': combo_skus[0].parent_sku.sku_code, 'combo_sku_desc': combo_skus[0].parent_sku.sku_desc}
     return HttpResponse(json.dumps({"status": True, 'parent': parent_data, 'childs': all_data}), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def confirm_combo_allocation(request, user=''):
+    data_dict = dict(request.POST.iterlists())
+    seller_id = request.POST.get('seller_id', '')
+    if seller_id:
+        seller = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
+        if not seller:
+            return HttpResponse('Invalid Seller Id')
+        else:
+            seller_id = seller[0].id
+    final_data = OrderedDict()
+    for ind in range(0, len(data_dict['combo_sku_code'])):
+        combo_batch_no = request.POST['batch'][ind]
+        combo_mrp = request.POST['mrp'][ind]
+        combo_qty = request.POST['quantity'][ind]
+        child_batch_no = request.POST['child_sku_batch'][ind]
+        child_mrp = request.POST['child_sku_mrp'][ind]
+        child_qty = request.POST['child_sku_qty'][ind]
+        combo_sku = SKUMaster.objects.filter(user=user.id, sku_code=data_dict['combo_sku_code'][ind])
+        if not combo_sku:
+            return HttpResponse('Combo SKU Code Not Found')
+        child_sku = SKUMaster.objects.filter(user=user.id, sku_code=data_dict['child_sku_code'][ind])
+        if not child_sku:
+            return HttpResponse('Child SKU Code Not Found')
+        combo_loc = LocationMaster.objects.filter(zone__user=user.id, location=data_dict['location'][ind])
+        if not combo_loc:
+            return HttpResponse('Combo Location Not Found')
+        child_loc = LocationMaster.objects.filter(zone__user=user.id, location=data_dict['child_sku_location'][ind])
+        if not child_loc:
+            return HttpResponse('Child Location Not Found')
+        stock_dict = {"sku_id": child_sku[0].id, "location_id": child_loc[0].id,
+                      "sku__user": user.id, "quantity__gt": 0}
+        if seller_id:
+            stock_dict['sellerstock__seller_id'] = seller_id
+        if child_batch_no:
+            stock_dict['batch_detail__batch_no'] = child_batch_no
+        if child_mrp:
+            stock_dict['batch_detail__mrp'] = child_mrp
+        child_stocks = StockDetail.objects.filter(**stock_dict)
+        child_stock_count = child_stocks.aggregate(Sum('quantity'))['quantity__sum']
+        if not child_stock_count:
+            return HttpResponse('Source SKU Code Don\'t Have Stock')
+        elif child_stock_count < child_qty:
+            return HttpResponse('Source SKU Code Have Stock, ' + str(child_stock_count))
+        combo_filter = {'sku_id': combo_sku[0].id, 'location_id': combo_loc[0].id,
+                       'sku__user': user.id}
+        mrp_dict = {}
+        mrp_dict['batch_no'] = combo_batch_no
+        combo_filter['batch_detail__batch_no'] = combo_batch_no
+        if combo_mrp:
+            mrp_dict['mrp'] = combo_mrp
+            combo_filter['batch_detail__mrp'] = combo_mrp
+        if seller_id:
+            combo_filter['sellerstock__seller_id'] = seller_id
+        combo_stocks = StockDetail.objects.filter(**combo_filter)
+        group_key = '%s<<>>%s<<>>%s<<>>%s' % (str(combo_sku[0].sku_code), str(combo_loc[0].location),
+                                              str(combo_batch_no), str(combo_mrp))
+        final_data.setdefault(group_key, {'combo_sku': combo_sku[0], 'combo_loc': combo_loc[0],
+                                          'combo_batch_no': combo_batch_no, 'combo_mrp': combo_mrp,
+                                          'combo_qty': combo_qty, 'combo_mrp_dict': mrp_dict,
+                                          'combo_stocks': combo_stocks,
+                                          'childs': []})
+        final_data[group_key]['childs'].append({'child_sku': child_sku[0], 'child_loc': child_loc[0],
+                                                'child_batch_no': child_batch_no, 'child_mrp': child_mrp,
+                                                'child_qty': child_qty, 'child_stocks': child_stocks})
+    print final_data
+    final_data = final_data.values()
+    for row_data in final_data.values:
+        print row_data
+        source_updated = False
+        for data in row_data:
+            desc_batch_obj = update_stocks_data(data['child_stocks'], float(data['child_qty']), data['combo_stocks'],
+                                                float(data['combo_qty']), user, [data['combo_loc']],
+                                                data['combo_sku'].id,
+                                                src_seller_id=seller_id, dest_seller_id=seller_id,
+                                                source_updated=source_updated,
+                                                mrp_dict=data['combo_mrp_dict'])
+            source_updated = True
+            # sub_data = {'source_sku_code_id': src_sku.id, 'source_location': src_loc.location, 'source_quantity': src_qty,
+            #             'destination_sku_code_id': dest_sku.id, 'destination_location': dest_loc.location,
+            #             'destination_quantity': dest_qty}
+            # if src_stocks and src_stocks[0].batch_detail:
+            #     sub_data['source_batch_id'] = src_stocks[0].batch_detail_id
+            # if desc_batch_obj:
+            #     sub_data['dest_batch_id'] = desc_batch_obj.id
+            # if seller_id:
+            #     sub_data['seller_id'] = seller_id
+            # SubstitutionSummary.objects.create(**sub_data)
+            # log.info("Substitution Done For " + str(json.dumps(sub_data)))
+
+    return HttpResponse("Success")

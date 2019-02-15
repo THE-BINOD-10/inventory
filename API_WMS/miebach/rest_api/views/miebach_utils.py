@@ -5815,27 +5815,21 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
            except:
                pod_status = False
            delivered_time = result.get('time','')
-           refusal =  result.get('refusal','False')
+           refusal =  result.get('refusal',False)
            refusal_reason = result.get('refusal_reason','')
-           if refusal:
-               refusal = 'True'
-           else:
-               refusal = 'False'
-
-
         else:
             signed_invoice_copy =''
             id_type =''
             id_card =''
             id_proof_number = ''
             pod_status = False
-            refusal = "False"
+            refusal = False
             refusal_reason =''
 
         if pod_status :
             shipment_status = 'Delivered'
-        else:
-            shipment_status = shipment_status
+        if refusal :
+            shipment_status =  'Refused'
         order_return_obj = OrderReturns.objects.filter(order__original_order_id = order_id,sku__wms_code = data['order__sku__sku_code'],sku__user=user.id)
         if order_return_obj and central_order_reassigning == 'true' :
             shipment_status = 'Returned'
@@ -5869,7 +5863,6 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                                 ('Shipment Status',shipment_status ),
                                                 ('Dispatched Date',dispatched_date),
                                                 ('Delivered Date', delivered_time),
-                                                ('Refused',refusal),
                                                 ('Refusal Reason',refusal_reason),
                                                 ('Courier Name', data['order_shipment__courier_name']),
                                                 ('Payment Status', data['order__customerordersummary__payment_status']),

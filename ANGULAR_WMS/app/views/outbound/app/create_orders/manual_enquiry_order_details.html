@@ -30,7 +30,7 @@
       </div>
       <div class="row no-margin">
         <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-          <span><b>Price</b></span>
+          <span><b>D-R Price</b></span>
         </div>
         <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
           <span><b>: {{order.order_details.order.dr_price}}</b></span>
@@ -93,7 +93,7 @@
         <table class="table mb0 mw40">
           <thead>
             <tr>
-              <th class="col-lg-4 col-md-4">Price</th>
+              <th class="col-lg-4 col-md-4">Ask Price</th>
               <th class="col-lg-4 col-md-4" ng-if="hist.sm_d_price &&showCase.user_type!='reseller'">SM-D Price</th>
               <th class="col-lg-4 col-md-4" ng-if="hist.r_c_price &&showCase.user_type!='reseller'">R-C Price</th>
               <th class="col-lg-4 col-md-4">Approximate Delivery Date</th>
@@ -189,7 +189,7 @@
             <div class="col-lg-4 col-md-4 col-sm-4 col-xs-12" ng-if="order.model_data.r_c_price">
               <div class="form-group">
                 R-C Price:
-                <input type="text" ng-if="!order.clear_flag" name="r_c_price" ng-model="order.model_data.r_c_price" class="form-control ng-pristine" placeholder="RC Price *" decimal-number required ng-readonly="true">
+                <input type="text" ng-if="!order.clear_flag" name="r_c_price" ng-model="order.model_data.r_c_price" class="form-control ng-pristine" placeholder="RC Price *" decimal-number ng-readonly="true">
               </div>
             </div>
           </div>
@@ -209,7 +209,7 @@
           </div>
           <div class="col-md-4 col-sm-4 col-xs-12">
             <div class="form-group">
-              <input type="text" name="r_c_price" ng-model="order.model_data.r_c_price" class="form-control ng-pristine" placeholder="R-C Price *" decimal-number required>
+              <input type="text" name="r_c_price" ng-model="order.model_data.r_c_price" class="form-control ng-pristine" placeholder="R-C Price *" decimal-number>
             </div>
           </div>
           <div class="row col-lg-12 col-md-12 col-sm-12 col-xs-12 no-margin">
@@ -219,7 +219,7 @@
           </div>
           <div class="col-md-12 col-sm-12 col-xs-12">
             <div class="form-group">
-              <textarea ng-if="!order.clear_flag" rows="4" class="form-control ng-pristine" cols="27" name="remarks" placeholder="Remarks *" ng-model="order.model_data.remarks" required style="width: 545px;"></textarea>
+              <textarea rows="4" class="form-control ng-pristine" cols="27" name="remarks" placeholder="Remarks *" ng-model="order.model_data.remarks" required style="width: 545px;"></textarea>
             </div>
           </div>
 

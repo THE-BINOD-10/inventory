@@ -965,15 +965,15 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                     if len(str(temp_ean)) > 20:
                         error_message = 'EAN Number Length should be less than 20'
                         update_error_message(failed_status, 5032, error_message, sku_code,
-                                            field_key='sku_code') 
+                                            field_key='sku_code')
                     if temp_ean in exist_ean_list:
                         if not str(exist_ean_list[temp_ean]) == str(sku_code):
-                            error_message = 'EAN Number already mapped to SKU ' + str(exist_ean_list[temp_ean])
+                            error_message = str(temp_ean) + ' EAN Number already mapped to SKU ' + str(exist_ean_list[temp_ean])
                             update_error_message(failed_status, 5031, error_message, sku_code,
                                                  field_key='sku_code')
                     elif temp_ean in exist_sku_eans:
                         if not str(exist_sku_eans[temp_ean]) == str(sku_code):
-                            error_message = 'EAN Number already mapped to SKU ' + str(exist_sku_eans[temp_ean])
+                            error_message = str(temp_ean) + ' EAN Number already mapped to SKU ' + str(exist_sku_eans[temp_ean])
                             update_error_message(failed_status, 5031, error_message, sku_code,
                                                  field_key='sku_code')
             continue

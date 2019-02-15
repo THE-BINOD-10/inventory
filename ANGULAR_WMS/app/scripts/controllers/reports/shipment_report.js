@@ -28,7 +28,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       vm.dtColumns.push(DTColumnBuilder.newColumn('ID Proof Number').withTitle('ID Proof Number'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('ID Card').withTitle('ID Card'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('Signed Invoice Copy').withTitle('Signed Invoice Copy'))
-      vm.dtColumns.push(DTColumnBuilder.newColumn('Refused').withTitle('Refused'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('Refusal Reason').withTitle('Refusal Reason'))
 
       vm.datatable = true;

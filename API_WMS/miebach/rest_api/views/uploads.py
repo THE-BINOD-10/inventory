@@ -5385,9 +5385,6 @@ def central_order_form(request, user=''):
 @login_required
 @get_admin_user
 def stock_transfer_order_form(request, user=''):
-    central_order_file = request.GET['download-file']
-    if central_order_file:
-        return error_file_download(central_order_file)
     wb, ws = get_work_sheet('stock_transfer_order_form', STOCK_TRANSFER_ORDER_MAPPING.keys())
     return xls_to_response(wb, '%s.stock_transfer_order_form.xls' % str(user.id))
 
@@ -6015,44 +6012,42 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                     wms_code = str(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'quantity':
                  quantity = int(get_cell_data(row_idx, value, reader, file_type))
-
             elif key == 'price':
                  price = int(get_cell_data(row_idx, value, reader, file_type))
+            elif key == 'cgst_tax':
+                try:
+                    cgst_tax = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                except:
+                    cgst_tax = str(get_cell_data(row_idx, value, reader, file_type))
+                if cgst_tax == '':
+                    cgst_tax = 0
+            elif key == 'sgst_tax':
+                try:
+                    sgst_tax = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                except:
+                    sgst_tax = str(get_cell_data(row_idx, value, reader, file_type))
+                if sgst_tax == '':
+                    sgst_tax = 0
+            elif key == 'igst_tax':
+                try:
+                    igst_tax = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                except:
+                    igst_tax = str(get_cell_data(row_idx, value, reader, file_type))
+                if igst_tax == '':
+                    igst_tax = 0
+
         cond = (user.username)
         all_data.setdefault(cond, [])
-        all_data[cond].append([wms_code, quantity, price, 0])
+        all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax, 0])
         warehouse = User.objects.get(username=warehouse)
         f_name = 'stock_transfer_' + warehouse_name + '_'
-        all_data = insert_st(all_data, warehouse)
-        status = confirm_stock_transfer(all_data, warehouse, user.username, request)
+        all_data = insert_st_gst(all_data, warehouse)
+        status = confirm_stock_transfer_gst(all_data, warehouse, user.username)
 
     if status.status_code == 200:
         return 'Success'
     else:
         return 'Failed'
-
-
-def insert_st(all_data, user):
-    for key, value in all_data.iteritems():
-        for val in value:
-            if val[3]:
-                open_st = OpenST.objects.get(id=val[3])
-                open_st.warehouse_id = User.objects.get(username__iexact=key).id
-                open_st.sku_id = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
-                open_st.price = float(val[2])
-                open_st.order_quantity = float(val[1])
-                open_st.save()
-                continue
-            stock_dict = copy.deepcopy(OPEN_ST_FIELDS)
-            stock_dict['warehouse_id'] = User.objects.get(username__iexact=key).id
-            stock_dict['sku_id'] = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
-            stock_dict['order_quantity'] = float(val[1])
-            stock_dict['price'] = float(val[2])
-            stock_transfer = OpenST(**stock_dict)
-            stock_transfer.save()
-            all_data[key][all_data[key].index(val)][3] = stock_transfer.id
-    return all_data
-
 
 @csrf_exempt
 @login_required

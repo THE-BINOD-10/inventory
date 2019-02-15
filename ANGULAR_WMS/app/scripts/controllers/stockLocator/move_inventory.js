@@ -290,6 +290,7 @@
     }
 
     vm.combo_allocate_stock = function() {
+	
 	vm.allocate_empty_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": ""}] } ] }
 	angular.copy(vm.allocate_empty_data, vm.model_data);
 	var mod_data = vm.model_data;
@@ -624,5 +625,21 @@
 	});
       }
     }
+
+    bundleObj.bundle_model_data.seller_types = [];
+    bundleObj.service.apiCall('get_sellers_list/', 'GET').then(function(data){
+	if (data.message) {
+	  var seller_data = data.data.sellers;
+	  //vm.model_data.tax = data.data.tax;
+	  //vm.model_data.seller_supplier_map = data.data.seller_supplier_map
+	  //vm.model_data.warehouse_names = data.data.warehouse
+	  //vm.model_data["receipt_types"] = data.data.receipt_types;
+	  angular.forEach(seller_data, function(seller_single) {
+	    bundleObj.bundle_model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
+	  });
+	  //.seller_types = vm.model_data.seller_types;
+	}
+    });
+
   })
 })();

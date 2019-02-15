@@ -12,8 +12,8 @@
 		<div class="col-md-4 col-sm-4 col-xs-6">
 		    <div class="form-group">
 			<label class="control-label"> Seller ID </label>
-			<select class="form-control zone" name="seller_id" ng-model="bundleObj.model_data.seller_type" ng-change="bundleObj.seller_change(bundleObj.model_data.seller_type)" ng-init="bundleObj.model_data.seller_type=bundleObj.model_data.seller_types[0]; bundleObj.seller_change(bundleObj.model_data.seller_type)">
-			  <option ng-repeat="type in bundleObj.model_data.seller_types" ng-selected="bundleObj.model_data.seller_type==type" value="{{type}}">{{type}}</option>
+			<select class="form-control zone" name="seller_id" ng-model="bundleObj.bundle_model_data.seller_type" ng-change="bundleObj.seller_change(bundleObj.bundle_model_data.seller_type)" ng-init="bundleObj.bundle_model_data.seller_type=bundleObj.bundle_model_data.seller_types[0]; bundleObj.seller_change(bundleObj.bundle_model_data.seller_type)">
+			  <option ng-repeat="type in bundleObj.bundle_model_data.seller_types" ng-selected="bundleObj.model_data.seller_type==type" value="{{type}}">{{type}}</option>
 			</select>
 		    </div>
 		</div>

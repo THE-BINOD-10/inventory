@@ -564,8 +564,8 @@
     var bundleObj = this;
     bundleObj.marginData = items;
     bundleObj.service = Service;
-    //bundleObj.model_data = {};
     bundleObj.bundle_model_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": ""}] } ] }
+    bundleObj.bundle_model_data.seller_show = false;
     bundleObj.isLast = isLast;
     function isLast(check) {
       var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
@@ -598,6 +598,7 @@
             if(data.data.status) {
                 sku_data.data = data.data.childs;
 		sku_data.combo_sku_desc = data.data.parent.combo_sku_desc;
+		sku_data.quantity = data.data.parent.quantity;
                 //bundleObj.change_quantity(sku_data);
             } else {
 		sku_data.data = [{"child_sku_batch": "", "child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_mrp": "", "child_sku_qty": ""}]
@@ -629,6 +630,7 @@
     bundleObj.bundle_model_data.seller_types = [];
     bundleObj.service.apiCall('get_sellers_list/', 'GET').then(function(data){
 	if (data.message) {
+	  bundleObj.bundle_model_data.seller_show = true;
 	  var seller_data = data.data.sellers;
 	  //vm.model_data.tax = data.data.tax;
 	  //vm.model_data.seller_supplier_map = data.data.seller_supplier_map

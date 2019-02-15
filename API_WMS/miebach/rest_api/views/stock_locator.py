@@ -2601,15 +2601,14 @@ def update_sellable_suggestions(request, user=''):
 def get_combo_sku_codes(request, user=''):
     sku_code = request.POST.get('sku_code', '')
     all_data = []
-    import pdb;pdb.set_trace()
     combo_skus = SKURelation.objects.filter(parent_sku__user=user.id, parent_sku__sku_code=sku_code)
     if not combo_skus:
         return HttpResponse(json.dumps({"status": False, "message":"No Data Found"}))
     for combo in combo_skus:
         cond = (combo.member_sku.sku_code)
         child_quantity = combo.quantity
-        all_data.append({'child_sku_qty': child_quantity, 'child_sku_code': cond, 'child_sku_batch':'', 'child_sku_desc': '', 'child_sku_location': '', 'child_sku_mrp': ''})
-    parent_data = {'combo_sku_code': combo_skus[0].parent_sku.sku_code, 'combo_sku_desc': combo_skus[0].parent_sku.sku_desc}
+        all_data.append({'child_sku_qty': child_quantity, 'child_sku_code': cond, 'child_sku_batch':'', 'child_sku_desc': combo.member_sku.sku_desc, 'child_sku_location': '', 'child_sku_mrp': ''})
+    parent_data = {'combo_sku_code': combo_skus[0].parent_sku.sku_code, 'combo_sku_desc': combo_skus[0].parent_sku.sku_desc, 'quantity':1}
     return HttpResponse(json.dumps({"status": True, 'parent': parent_data, 'childs': all_data}), content_type='application/json')
 
 

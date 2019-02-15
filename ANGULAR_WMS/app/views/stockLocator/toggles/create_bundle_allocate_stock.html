@@ -1,5 +1,19 @@
+<style type="text/css">
+  .modal-lg{
+    width: 1200px
+  }
+  .rotate{
+    -webkit-transform: rotate(-90deg);
+    -moz-transform: rotate(-90deg);
+    -ms-transform: rotate(-90deg);
+    -o-transform: rotate(-90deg);
+  }
+</style>
+
 <div id="page-pop" style="overflow-y: visible;">
   <form name="myForm" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine" novalidate="novalidate">
+
+
     <div class="modal-header">
       <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="bundleObj.close()">
         <span aria-hidden="true">×</span>
@@ -12,7 +26,7 @@
 		<div class="col-md-4 col-sm-4 col-xs-6">
 		    <div class="form-group">
 			<label class="control-label"> Seller ID </label>
-			<select class="form-control zone" name="seller_id" ng-model="bundleObj.bundle_model_data.seller_type" ng-change="bundleObj.seller_change(bundleObj.bundle_model_data.seller_type)" ng-init="bundleObj.bundle_model_data.seller_type=bundleObj.bundle_model_data.seller_types[0]; bundleObj.seller_change(bundleObj.bundle_model_data.seller_type)">
+			<select class="form-control zone" name="seller_id" ng-model="bundleObj.bundle_model_data.seller_type" ng-change="bundleObj.seller_change(bundleObj.bundle_model_data.seller_type)" ng-init="bundleObj.bundle_model_data.seller_type=bundleObj.bundle_model_data.seller_types[0]; bundleObj.seller_change(bundleObj.bundle_model_data.seller_type)" ng-if="bundleObj.bundle_model_data.seller_show">
 			  <option ng-repeat="type in bundleObj.bundle_model_data.seller_types" ng-selected="bundleObj.model_data.seller_type==type" value="{{type}}">{{type}}</option>
 			</select>
 		    </div>
@@ -71,19 +85,19 @@
                     </td>
 
                     <td>
-                      <input type="text" name="child_location" class="form-control" ng-model="item.child_location">
+                      <input type="text" name="child_location" class="form-control" ng-model="item.child_sku_location">
                     </td>
 
                     <td>
-                      <input type="text" name="child_batch" class="form-control" ng-model="item.child_batch">
+                      <input type="text" name="child_batch" class="form-control" ng-model="item.child_sku_batch">
                     </td>
 
                     <td>
-                      <input type="text" name="child_mrp" class="form-control" ng-model="item.child_mrp">
+                      <input type="text" name="child_mrp" class="form-control" ng-model="item.child_sku_mrp">
                     </td>
 
                     <td>
-                      <input type="text" name="child_quantity" ng-model="item.child_quantity" ng-change="bundleObj.change_quantity(data)" class="form-control" ng-class="service.get_decimal_perm()">
+                      <input type="text" name="child_quantity" ng-model="item.child_sku_qty" ng-change="bundleObj.change_quantity(data)" class="form-control" ng-class="service.get_decimal_perm()">
                     </td>
 
                   </tr>

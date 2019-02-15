@@ -30,7 +30,7 @@
                   <tr ng-repeat="item in data.data">
                     <td>
                       <input type="hidden" name="id" value="{{item.id}}">
-                      <input type="text" autocomplete="off" ng-readonly="bundleObj.update && (!(data.new_sku))" ng-show="$first" name="combo_sku_code" class="form-control" placeholder="Search Combo SKU Code" typeahead="address for address in bundleObj.service.getSearchValues($viewValue, 'search_wms_codes?', 'RM')" typeahead-loading="loadingLocations" ng-model="data.combo_sku_code" typeahead-on-select="bundleObj.get_product_data(data.product_code, data, $parent.$index)">
+                      <input type="text" autocomplete="off" ng-readonly="bundleObj.update && (!(data.new_sku))" ng-show="$first" name="combo_sku_code" class="form-control" placeholder="Search Combo SKU Code" typeahead="address for address in bundleObj.service.getSearchValues($viewValue, 'search_wms_codes?', 'RM')" typeahead-loading="loadingLocations" ng-model="data.combo_sku_code" typeahead-on-select="bundleObj.get_product_data(bundleObj.bundle_model_data, data, $parent.$index)">
                     </td>
                     <td>
                       <input type="text" name="combo_sku_desc" class="form-control" ng-model="data.combo_sku_desc">

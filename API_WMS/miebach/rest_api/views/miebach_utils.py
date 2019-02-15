@@ -5785,6 +5785,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
 
     admin_user = get_admin(user)
     result = ''
+    seventytwo_networks = False
     for data in model_data:
         order_id = data['order__original_order_id']
         if not order_id:
@@ -5794,6 +5795,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
         shipment_status = ship_status.get(data['id'], '')
 
         if admin_user.get_username().lower() == '72Networks'.lower() :
+            seventytwo_networks = True
             try:
                 from firebase import firebase
                 firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
@@ -5825,7 +5827,8 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
             pod_status = False
             refusal = False
             refusal_reason =''
-
+        if seventytwo_networks :
+            shipment_status = 'Dispatched'
         if pod_status :
             shipment_status = 'Delivered'
         if refusal :

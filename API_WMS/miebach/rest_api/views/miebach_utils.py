@@ -5806,36 +5806,31 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                 str(user.username),str(e)))
         delivered_time =''
         if result :
-            try:
-                signed_invoice_copy = result['signed_invoice_copy']
-            except:
-                signed_invoice_copy = ''
-            try :
-                id_type = result['id_type']
-            except:
-                id_type = ''
-            try :
-                id_card = result['id_card']
-            except :
-                id_card = ''
-            try :
-                id_proof_number = result['id_proof_number']
-            except:
-                id_proof_number = ''
-            try :
-                pod_status = result['pod_status']
-            except:
-                pod_status = False
-            try :
-                delivered_time = result['time']
-            except:
-                delivered_time = ''
+           signed_invoice_copy = result.get('signed_invoice_copy','')
+           id_type = result.get('id_type','')
+           id_card = result.get('id_card','')
+           id_proof_number = result.get('id_proof_number','')
+           try :
+               pod_status = result['pod_status']
+           except:
+               pod_status = False
+           delivered_time = result.get('time','')
+           refusal =  result.get('refusal','False')
+           refusal_reason = result.get('refusal_reason','')
+           if refusal:
+               refusal = 'True'
+           else:
+               refusal = 'False'
+
+
         else:
             signed_invoice_copy =''
             id_type =''
             id_card =''
             id_proof_number = ''
             pod_status = False
+            refusal = "False"
+            refusal_reason =''
 
         if pod_status :
             shipment_status = 'Delivered'
@@ -5874,6 +5869,8 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                                 ('Shipment Status',shipment_status ),
                                                 ('Dispatched Date',dispatched_date),
                                                 ('Delivered Date', delivered_time),
+                                                ('Refused',refusal),
+                                                ('Refusal Reason',refusal_reason),
                                                 ('Courier Name', data['order_shipment__courier_name']),
                                                 ('Payment Status', data['order__customerordersummary__payment_status']),
                                                 ('Pack Reference', data['order_packaging__package_reference']))))

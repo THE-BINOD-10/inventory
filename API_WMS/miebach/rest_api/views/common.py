@@ -1564,7 +1564,7 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
 
 
 def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id='',
-                       dest_seller_id='', source_updated=False, mrp_dict=None):
+                       dest_seller_id='', source_updated=False, mrp_dict=None, dest_updated=False):
     batch_obj = ''
 
     if not source_updated:
@@ -1586,40 +1586,41 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                 break
     else:
         batch_obj = stocks[0].batch_detail
-    if not dest_stocks:
-        dict_values = {'receipt_number': 1, 'receipt_date': datetime.datetime.now(),
-                       'quantity': float(quantity), 'status': 1,
-                       'creation_date': datetime.datetime.now(),
-                       'updation_date': datetime.datetime.now(),
-                       'location_id': dest[0].id, 'sku_id': sku_id}
-        if mrp_dict:
-            mrp_dict['creation_date'] = datetime.datetime.now()
-            dict_values['batch_detail_id'] = BatchDetail.objects.create(**mrp_dict).id
-        elif batch_obj:
-            dict_values['batch_detail'] = batch_obj
-        if batch_obj:
-            batch_stock_filter = {'sku_id': sku_id, 'location_id': dest[0].id, 'batch_detail_id': batch_obj.id}
-            if dest_seller_id:
-                batch_stock_filter['sellerstock__seller_id'] = dest_seller_id
-            dest_stock_objs = StockDetail.objects.filter(**batch_stock_filter)
-            if not dest_stock_objs:
+    if not dest_updated:
+        if not dest_stocks:
+            dict_values = {'receipt_number': 1, 'receipt_date': datetime.datetime.now(),
+                           'quantity': float(quantity), 'status': 1,
+                           'creation_date': datetime.datetime.now(),
+                           'updation_date': datetime.datetime.now(),
+                           'location_id': dest[0].id, 'sku_id': sku_id}
+            if mrp_dict:
+                mrp_dict['creation_date'] = datetime.datetime.now()
+                dict_values['batch_detail_id'] = BatchDetail.objects.create(**mrp_dict).id
+            elif batch_obj:
+                dict_values['batch_detail'] = batch_obj
+            if batch_obj:
+                batch_stock_filter = {'sku_id': sku_id, 'location_id': dest[0].id, 'batch_detail_id': batch_obj.id}
+                if dest_seller_id:
+                    batch_stock_filter['sellerstock__seller_id'] = dest_seller_id
+                dest_stock_objs = StockDetail.objects.filter(**batch_stock_filter)
+                if not dest_stock_objs:
+                    dest_stocks = StockDetail(**dict_values)
+                    dest_stocks.save()
+                    change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
+                else:
+                    dest_stocks = dest_stock_objs[0]
+                    dest_stocks.quantity = dest_stocks.quantity + float(quantity)
+                    dest_stocks.save()
+                    change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'inc')
+            else:
                 dest_stocks = StockDetail(**dict_values)
                 dest_stocks.save()
                 change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
-            else:
-                dest_stocks = dest_stock_objs[0]
-                dest_stocks.quantity = dest_stocks.quantity + float(quantity)
-                dest_stocks.save()
-                change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'inc')
         else:
-            dest_stocks = StockDetail(**dict_values)
+            dest_stocks = dest_stocks[0]
+            dest_stocks.quantity += float(quantity)
             dest_stocks.save()
-            change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
-    else:
-        dest_stocks = dest_stocks[0]
-        dest_stocks.quantity += float(quantity)
-        dest_stocks.save()
-        change_seller_stock(dest_seller_id, dest_stocks, user, quantity, 'inc')
+            change_seller_stock(dest_seller_id, dest_stocks, user, quantity, 'inc')
 
     return batch_obj
 

@@ -2676,9 +2676,9 @@ def confirm_combo_allocation(request, user=''):
             child_stocks = StockDetail.objects.filter(**stock_dict)
             child_stock_count = child_stocks.aggregate(Sum('quantity'))['quantity__sum']
             if not child_stock_count:
-                return HttpResponse('Source SKU Code Don\'t Have Stock')
+                return HttpResponse('Child SKU Code Don\'t Have Stock')
             elif child_stock_count < child_qty:
-                return HttpResponse('Source SKU Code Have Stock, ' + str(child_stock_count))
+                return HttpResponse('Child SKU Code Have Stock, ' + str(child_stock_count))
             combo_filter = {'sku_id': combo_sku[0].id, 'location_id': combo_loc[0].id,
                            'sku__user': user.id}
             mrp_dict = {}

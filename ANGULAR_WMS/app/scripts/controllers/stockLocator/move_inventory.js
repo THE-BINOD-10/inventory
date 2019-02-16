@@ -565,6 +565,9 @@
     bundleObj.marginData = items;
     bundleObj.service = Service;
     bundleObj.bundle_model_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": ""}] } ] }
+    bundleObj.empty_bundle_model_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": ""}] } ] }
+
+
     bundleObj.bundle_model_data.seller_show = false;
     bundleObj.isLast = isLast;
     function isLast(check) {
@@ -579,12 +582,13 @@
     function check_exist(sku_data, index) {
       var d = $q.defer();
       for(var i = 0; i < bundleObj.bundle_model_data.results.length; i++) {
-	if(bundleObj.bundle_model_data.results[i].$$hashKey != sku_data.$$hashKey && bundleObj.bundle_model_data.results[i].product_code == sku_data.product_code) {
+	//debugger;
+	if(bundleObj.bundle_model_data.results[i].$$hashKey != sku_data.$$hashKey && bundleObj.bundle_model_data.results[i].combo_sku_code == sku_data.combo_sku_code) {
 	  d.resolve(false);
 	  bundleObj.bundle_model_data.results.splice(index, 1);
 	  alert("It is already exist in index");
 	  break;
-	} else if( i+1 == bundleObj.bundle_model_data.results.length) {
+	} else if(i+1 == bundleObj.bundle_model_data.results.length) {
 	  d.resolve(true);
 	}
       }
@@ -594,7 +598,7 @@
     bundleObj.get_product_data = function(item, sku_data, index) {
       check_exist(sku_data, index).then(function(data) {
         if(data) {
-          bundleObj.service.apiCall('get_combo_sku_codes/','POST', {'sku_code': item['results'][0]['combo_sku_code']}).then(function(data) {
+          bundleObj.service.apiCall('get_combo_sku_codes/','POST', {'sku_code': sku_data['combo_sku_code']}).then(function(data) {
             if(data.data.status) {
                 sku_data.data = data.data.childs;
 		sku_data.combo_sku_desc = data.data.parent.combo_sku_desc;
@@ -643,5 +647,12 @@
 	}
     });
 
+    bundleObj.add_bundle_product = function () {
+      var temp = {};
+      //bundleObj.bundle_model_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": ""}] } ] }
+      angular.copy(bundleObj.empty_bundle_model_data.results[0], temp);
+      //temp.data[0]['new_sku'] = true;
+      bundleObj.bundle_model_data.results.push(temp);
+    }
   })
 })();

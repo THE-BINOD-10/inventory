@@ -12,8 +12,6 @@
 
 <div id="page-pop" style="overflow-y: visible;">
   <form name="myForm" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine" novalidate="novalidate">
-
-
     <div class="modal-header">
       <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="bundleObj.close()">
         <span aria-hidden="true">×</span>
@@ -69,11 +67,11 @@
                     </td>
 
 		    <td>
-                      <input type="text" name="mrp" class="form-control" ng-model="data.mrp" ng-show="$first">
+                      <input type="number" name="mrp" class="form-control" ng-model="data.mrp" ng-show="$first">
                     </td>
 
                     <td>
-                      <input type="text" d-perm="true" name="quantity" ng-model="data.quantity" ng-change="bundleObj.change_quantity(data)" class="form-control" ng-class="service.get_decimal_perm()" ng-show="$first">
+                      <input type="number" d-perm="true" name="quantity" ng-model="data.quantity" ng-change="bundleObj.change_quantity(data)" class="form-control number" ng-class="service.get_decimal_perm()" ng-show="$first">
                     </td>
 
                     <td>
@@ -93,17 +91,23 @@
                     </td>
 
                     <td>
-                      <input type="text" name="child_mrp" class="form-control" ng-model="item.child_sku_mrp">
+                      <input type="number" name="child_mrp" class="form-control" ng-model="item.child_sku_mrp">
                     </td>
 
                     <td>
-                      <input type="text" name="child_quantity" ng-model="item.child_sku_qty" ng-change="bundleObj.change_quantity(data)" class="form-control" ng-class="service.get_decimal_perm()">
+                      <input type="number" name="child_quantity" ng-model="item.child_sku_qty" ng-change="bundleObj.change_quantity(data)" class="form-control number" ng-class="service.get_decimal_perm()">
                     </td>
 
                   </tr>
                 </tbody>
               </table>
             </div>
+	    <div class="row">
+		<div class="col-md-12" style="margin-top:10px">
+		<center><button ng-click="bundleObj.add_bundle_product();" type="button" class="btn btn-default">Add New Product SKU Code</button></center>
+            </div>
+          </div>
+          <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
           </div>
     </div>
     <div class="modal-footer">

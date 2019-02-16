@@ -67,11 +67,11 @@
                     </td>
 
 		    <td>
-                      <input type="number" name="mrp" class="form-control" ng-model="data.mrp" ng-show="$first">
+                      <input type="number" name="mrp" min=0 class="form-control" ng-model="data.mrp" ng-show="$first">
                     </td>
 
                     <td>
-                      <input type="number" d-perm="true" name="quantity" ng-model="data.quantity" ng-change="bundleObj.change_quantity(data)" class="form-control number" ng-class="service.get_decimal_perm()" ng-show="$first">
+                      <input type="number" min=0 d-perm="true" name="quantity" ng-model="data.quantity" ng-change="bundleObj.change_quantity(data)" class="form-control number" ng-class="service.get_decimal_perm()" ng-show="$first">
                     </td>
 
                     <td>
@@ -91,11 +91,15 @@
                     </td>
 
                     <td>
-                      <input type="number" name="child_mrp" class="form-control" ng-model="item.child_sku_mrp">
+                      <input type="number" name="child_mrp" min=0 class="form-control" ng-model="item.child_sku_mrp">
                     </td>
 
                     <td>
-                      <input type="number" name="child_quantity" ng-model="item.child_sku_qty" ng-change="bundleObj.change_quantity(data)" class="form-control number" ng-class="service.get_decimal_perm()">
+                      <input type="number" name="child_quantity" min=0 ng-model="item.child_sku_qty" ng-change="bundleObj.change_quantity(data)" class="form-control number" ng-class="service.get_decimal_perm()">
+                    </td>
+
+		    <td>
+                      <i ng-click="bundleObj.bundle_update_data(data, $index, $last, $first)" ng-class="bundleObj.isLast($last)"></i>
                     </td>
 
                   </tr>

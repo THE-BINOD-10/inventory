@@ -654,5 +654,24 @@
       //temp.data[0]['new_sku'] = true;
       bundleObj.bundle_model_data.results.push(temp);
     }
+
+    bundleObj.bundle_update_data = function(data, index, last, first) {
+      //console.log(data, index, last);
+      debugger;
+      if (first && !(last)) {
+        if (vm.update) {
+	  vm.delete_jo(data.data[index].id, data.product_code, first);
+	}
+	vm.remove_product(data);
+      } else if (last) {
+        data.data.push({"material_code": "", "material_quantity": '' ,'new_sku': true})
+      } else {
+        if (vm.update) {
+	  vm.delete_jo(data.data[index].id, "", first);
+	}
+        data.data.splice(index,1);
+      }
+    }
+
   })
 })();

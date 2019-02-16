@@ -40,7 +40,7 @@
                     <th>Batch</th>
                     <th>MRP</th>
                     <th>Qty</th>
-		    <th>Child SKU Code</th>
+		                <th>Child SKU Code</th>
                     <th>Child SKU Desc</th>
                     <th>Child SKU Location</th>
                     <th>Child SKU Batch</th>
@@ -75,11 +75,11 @@
                     </td>
 
                     <td>
-                      <input type="text" autocomplete="off" name="child_sku_code" class="form-control" placeholder="Search Child SKU Code" typeahead="address for address in bundleObj.service.getSearchValues($viewValue, 'search_wms_codes?','RM')" typeahead-loading="loadingLocations" ng-model="item.child_sku_code">
+                      <input type="text" autocomplete="off" name="child_sku_code" class="form-control" placeholder="Search Child SKU Code" typeahead="address for address in bundleObj.service.getSearchValues($viewValue, 'search_wms_codes?','RM')" typeahead-loading="loadingLocations" ng-model="item.child_sku_code" readonly>
                     </td>
 
 		    <td>
-                      <input type="text" name="child_sku_desc" class="form-control" ng-model="item.child_sku_desc">
+                      <input type="text" name="child_sku_desc" class="form-control" ng-model="item.child_sku_desc" readonly>
                     </td>
 
                     <td>
@@ -98,7 +98,7 @@
                       <input type="number" name="child_quantity" min=0 ng-model="item.child_sku_qty" ng-change="bundleObj.change_quantity(data)" class="form-control number" ng-class="service.get_decimal_perm()">
                     </td>
 
-		    <td>
+		                <td>
                       <i ng-click="bundleObj.bundle_update_data(data, $index, $last, $first)" ng-class="bundleObj.isLast($last)"></i>
                     </td>
 

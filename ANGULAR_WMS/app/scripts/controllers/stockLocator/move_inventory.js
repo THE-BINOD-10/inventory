@@ -562,6 +562,7 @@
 
   angular.module('urbanApp').controller('skuBundle', function ($modalInstance, $modal, items, Service, colFilters, $q) {
     var bundleObj = this;
+    bundleObj.bundle_skus_list = [];
     bundleObj.marginData = items;
     bundleObj.service = Service;
     bundleObj.bundle_model_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": ""}] } ] }
@@ -579,56 +580,56 @@
       $modalInstance.dismiss('cancel');
     };
 
-    function check_exist(sku_data, index) {
+    function bundle_check_exist() {
       var d = $q.defer();
       for(var i = 0; i < bundleObj.bundle_model_data.results.length; i++) {
-	//debugger;
-	if(bundleObj.bundle_model_data.results[i].$$hashKey != sku_data.$$hashKey && bundleObj.bundle_model_data.results[i].combo_sku_code == sku_data.combo_sku_code) {
-	  d.resolve(false);
-	  bundleObj.bundle_model_data.results.splice(index, 1);
-	  alert("It is already exist in index");
-	  break;
-	} else if(i+1 == bundleObj.bundle_model_data.results.length) {
-	  d.resolve(true);
-	}
+        if (bundleObj.bundle_skus_list.indexOf(bundleObj.bundle_model_data.results[i].combo_sku_code + ":" + bundleObj.bundle_model_data.results[i].batch + ":" + bundleObj.bundle_model_data.results[i].mrp) !== -1) {
+          d.resolve(false);
+          alert("It is already exist in index");
+          break;
+        } else {
+          bundleObj.bundle_skus_list.push(bundleObj.bundle_model_data.results[i].combo_sku_code + ":" + bundleObj.bundle_model_data.results[i].batch + ":" + bundleObj.bundle_model_data.results[i].mrp)
+        }
+        if(bundleObj.bundle_model_data.results.length-1 == i) {
+          d.resolve(true);
+          break;
+        }
       }
       return d.promise;
     }
 
     bundleObj.get_product_data = function(item, sku_data, index) {
-      check_exist(sku_data, index).then(function(data) {
-        if(data) {
-          bundleObj.service.apiCall('get_combo_sku_codes/','POST', {'sku_code': sku_data['combo_sku_code']}).then(function(data) {
-            if(data.data.status) {
-                sku_data.data = data.data.childs;
-		sku_data.combo_sku_desc = data.data.parent.combo_sku_desc;
-		sku_data.quantity = data.data.parent.quantity;
-                //bundleObj.change_quantity(sku_data);
-            } else {
-		sku_data.data = [{"child_sku_batch": "", "child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_mrp": "", "child_sku_qty": ""}]
-            }
-          });
+      bundleObj.service.apiCall('get_combo_sku_codes/','POST', {'sku_code': sku_data['combo_sku_code']}).then(function(data) {
+        if(data.data.status) {
+          sku_data.data = data.data.childs;
+          sku_data.combo_sku_desc = data.data.parent.combo_sku_desc;
+          sku_data.quantity = data.data.parent.quantity;
+        } else {
+          sku_data.data = [{"child_sku_batch": "", "child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_mrp": "", "child_sku_qty": ""}]
         }
       });
     }
 
     bundleObj.submit_bundle = submit_bundle;
     function submit_bundle(data) {
-      if(data.$valid) {
-	var elem = angular.element($('form'));
-	elem = elem[0];
-	elem = $(elem).serializeArray();
-	bundleObj.service.apiCall('confirm_combo_allocation/', 'POST', elem, true).then(function(data) {
-	  if(data.message) {
-	    if (data.data == "Added Successfully") {
-	      bundleObj.close()
-	      angular.extend(bundleObj.model_data, bundleObj.empty_data);
-	    } else { 
-	      Service.showNoty(data.data, 'warning');
-	    }
-	  }
-	});
-      }
+      bundle_check_exist().then(function(data_resp) {
+        bundleObj.bundle_skus_list = []
+        if(data.$valid && data_resp) {
+          var elem = angular.element($('form'));
+          elem = elem[0];
+          elem = $(elem).serializeArray();
+          bundleObj.service.apiCall('confirm_combo_allocation/', 'POST', elem, true).then(function(data) {
+            if(data.message) {
+              if (data.data == "Added Successfully") {
+                bundleObj.close()
+                angular.extend(bundleObj.model_data, bundleObj.empty_data);
+              } else {
+                Service.showNoty(data.data, 'warning');
+              }
+            }
+          });
+        }
+      })
     }
 
     bundleObj.bundle_model_data.seller_types = [];
@@ -636,42 +637,34 @@
 	if (data.message) {
 	  bundleObj.bundle_model_data.seller_show = true;
 	  var seller_data = data.data.sellers;
-	  //vm.model_data.tax = data.data.tax;
-	  //vm.model_data.seller_supplier_map = data.data.seller_supplier_map
-	  //vm.model_data.warehouse_names = data.data.warehouse
-	  //vm.model_data["receipt_types"] = data.data.receipt_types;
 	  angular.forEach(seller_data, function(seller_single) {
 	    bundleObj.bundle_model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
 	  });
-	  //.seller_types = vm.model_data.seller_types;
 	}
     });
 
     bundleObj.add_bundle_product = function () {
       var temp = {};
-      //bundleObj.bundle_model_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": ""}] } ] }
       angular.copy(bundleObj.empty_bundle_model_data.results[0], temp);
-      //temp.data[0]['new_sku'] = true;
       bundleObj.bundle_model_data.results.push(temp);
     }
 
+    bundleObj.remove_product = function (data) {
+      angular.forEach(bundleObj.bundle_model_data.results, function(item) {
+        if (item.$$hashKey == data.$$hashKey) {
+          angular.copy(bundleObj.empty_bundle_model_data.results[0], item);
+        }
+      });
+    }
+
     bundleObj.bundle_update_data = function(data, index, last, first) {
-      //console.log(data, index, last);
-      debugger;
       if (first && !(last)) {
-        if (vm.update) {
-	  vm.delete_jo(data.data[index].id, data.product_code, first);
-	}
-	vm.remove_product(data);
+        bundleObj.remove_product(data);
       } else if (last) {
-        data.data.push({"material_code": "", "material_quantity": '' ,'new_sku': true})
+        data.data.push({"child_sku_batch": "", "child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_mrp": "", "child_sku_qty": "", "new_sku": true})
       } else {
-        if (vm.update) {
-	  vm.delete_jo(data.data[index].id, "", first);
-	}
         data.data.splice(index,1);
       }
     }
-
   })
 })();

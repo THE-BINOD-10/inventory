@@ -599,7 +599,8 @@
     }
 
     bundleObj.get_product_data = function(item, sku_data, index) {
-      bundleObj.service.apiCall('get_combo_sku_codes/','POST', {'sku_code': sku_data['combo_sku_code']}).then(function(data) {
+      var seller_id = bundleObj.bundle_model_data.seller_type;
+      bundleObj.service.apiCall('get_combo_sku_codes/','POST', {'sku_code': sku_data['combo_sku_code'], 'seller_id': seller_id}).then(function(data) {
         if(data.data.status) {
           sku_data.data = data.data.childs;
           sku_data.combo_sku_desc = data.data.parent.combo_sku_desc;

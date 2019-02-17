@@ -732,7 +732,8 @@ def get_sku_data(request, user=''):
     combo_skus = SKURelation.objects.filter(relation_type='combo', parent_sku_id=data.id)
     for combo in combo_skus:
         combo_data.append(
-            OrderedDict((('combo_sku', combo.member_sku.wms_code), ('combo_desc', combo.member_sku.sku_desc))))
+            OrderedDict((('combo_sku', combo.member_sku.wms_code), ('combo_desc', combo.member_sku.sku_desc),
+                         ('combo_quantity', combo.quantity))))
 
     sku_data = {}
     sku_data['sku_code'] = data.sku_code

@@ -2595,6 +2595,13 @@ def update_sellable_suggestions(request, user=''):
     return HttpResponse("Success")
 
 
+def get_all_sellable_zones(user):
+    sellable_zones = ZoneMaster.objects.filter(user=user.id, segregation='sellable').exclude(zone__in=['DAMAGED_ZONE', 'QC_ZONE']).values_list('zone', flat=True)
+    if sellable_zones:
+        sellable_zones = get_all_zones(user, zones=sellable_zones)
+    return sellable_zones
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -2604,10 +2611,18 @@ def get_combo_sku_codes(request, user=''):
     combo_skus = SKURelation.objects.filter(parent_sku__user=user.id, parent_sku__sku_code=sku_code)
     if not combo_skus:
         return HttpResponse(json.dumps({"status": False, "message":"No Data Found"}))
+    sellable_zones = get_all_sellable_zones(user)
     for combo in combo_skus:
         cond = (combo.member_sku.sku_code)
         child_quantity = combo.quantity
-        all_data.append({'child_sku_qty': child_quantity, 'child_sku_code': cond, 'child_sku_batch':'', 'child_sku_desc': combo.member_sku.sku_desc, 'child_sku_location': '', 'child_sku_mrp': ''})
+        stock_detail = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0,
+                                                            sku_id=combo.member_sku_id, location__zone__zone__in=sellable_zones,
+                                                            batch_detail__isnull=False).only('batch_detail__mrp')
+        child_mrp = 0
+        if stock_detail.exists():
+            child_mrp = stock_detail[0].batch_detail.mrp
+        all_data.append({'child_sku_qty': child_quantity, 'child_sku_code': cond, 'child_sku_batch':'', 'child_sku_desc': combo.member_sku.sku_desc,
+                        'child_sku_location': '', 'child_sku_mrp': child_mrp})
     parent_data = {'combo_sku_code': combo_skus[0].parent_sku.sku_code, 'combo_sku_desc': combo_skus[0].parent_sku.sku_desc, 'quantity':1}
     return HttpResponse(json.dumps({"status": True, 'parent': parent_data, 'childs': all_data}), content_type='application/json')
 
@@ -2711,6 +2726,16 @@ def confirm_combo_allocation(request, user=''):
                                                     src_seller_id=seller_id, dest_seller_id=seller_id,
                                                     source_updated=source_updated,
                                                     mrp_dict=row_data['combo_mrp_dict'], dest_updated=dest_updated)
+                sub_data = {'source_sku_code_id': data['child_sku'].id, 'source_location': data['child_loc'].location, 'source_quantity': data['child_qty'],
+                            'destination_sku_code_id': row_data['combo_sku'].id, 'destination_location': row_data['combo_loc'].location,
+                            'destination_quantity': row_data['combo_qty'], 'summary_type': 'combo_allocation'}
+                if data['child_stocks'] and data['child_stocks'][0].batch_detail:
+                    sub_data['source_batch_id'] = data['child_stocks'][0].batch_detail_id
+                if desc_batch_obj:
+                    sub_data['dest_batch_id'] = desc_batch_obj.id
+                if seller_id:
+                    sub_data['seller_id'] = seller_id
+                SubstitutionSummary.objects.create(**sub_data)
                 dest_updated = True
     except Exception as e:
         import traceback

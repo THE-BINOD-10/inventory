@@ -1043,13 +1043,14 @@ class SellerMaster(models.Model):
 class SubstitutionSummary(models.Model):
     source_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='source_sku')
     destination_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='destination_sku')
-    source_location = models.CharField(max_length=64)
-    destination_location = models.CharField(max_length=64)
+    source_location = models.CharField(max_length=64, default='')
+    destination_location = models.CharField(max_length=64, default='')
     source_quantity = models.FloatField(default=0)
     destination_quantity = models.FloatField(default=0)
     source_batch = models.ForeignKey(BatchDetail, blank=True, null=True)
     dest_batch = models.ForeignKey(BatchDetail, blank=True, null=True, related_name='dest_batch')
     seller = models.ForeignKey(SellerMaster, blank=True, null=True)
+    summary_type = models.CharField(max_length=32, default='substitute')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

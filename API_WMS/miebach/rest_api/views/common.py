@@ -8801,5 +8801,13 @@ def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
 
 
 def update_po_order_prefix(sub_user, po_id):
+    ''' Returns Purchase Order Id with User Prefix'''
     po_id = '%s%s' % (str(sub_user.id), str(po_id))
     return int(po_id)
+
+def get_all_sellable_zones(user):
+    ''' Returns all Sellable Zones list '''
+    sellable_zones = ZoneMaster.objects.filter(user=user.id, segregation='sellable').exclude(zone__in=['DAMAGED_ZONE', 'QC_ZONE']).values_list('zone', flat=True)
+    if sellable_zones:
+        sellable_zones = get_all_zones(user, zones=sellable_zones)
+    return sellable_zones

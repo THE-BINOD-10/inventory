@@ -1563,7 +1563,7 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
 
 
 def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id='',
-                       dest_seller_id='', source_updated=False, mrp_dict=None):
+                       dest_seller_id='', source_updated=False, mrp_dict=None, dest_updated=False):
     batch_obj = ''
 
     if not source_updated:
@@ -1585,40 +1585,41 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                 break
     else:
         batch_obj = stocks[0].batch_detail
-    if not dest_stocks:
-        dict_values = {'receipt_number': 1, 'receipt_date': datetime.datetime.now(),
-                       'quantity': float(quantity), 'status': 1,
-                       'creation_date': datetime.datetime.now(),
-                       'updation_date': datetime.datetime.now(),
-                       'location_id': dest[0].id, 'sku_id': sku_id}
-        if mrp_dict:
-            mrp_dict['creation_date'] = datetime.datetime.now()
-            dict_values['batch_detail_id'] = BatchDetail.objects.create(**mrp_dict).id
-        elif batch_obj:
-            dict_values['batch_detail'] = batch_obj
-        if batch_obj:
-            batch_stock_filter = {'sku_id': sku_id, 'location_id': dest[0].id, 'batch_detail_id': batch_obj.id}
-            if dest_seller_id:
-                batch_stock_filter['sellerstock__seller_id'] = dest_seller_id
-            dest_stock_objs = StockDetail.objects.filter(**batch_stock_filter)
-            if not dest_stock_objs:
+    if not dest_updated:
+        if not dest_stocks:
+            dict_values = {'receipt_number': 1, 'receipt_date': datetime.datetime.now(),
+                           'quantity': float(quantity), 'status': 1,
+                           'creation_date': datetime.datetime.now(),
+                           'updation_date': datetime.datetime.now(),
+                           'location_id': dest[0].id, 'sku_id': sku_id}
+            if mrp_dict:
+                mrp_dict['creation_date'] = datetime.datetime.now()
+                dict_values['batch_detail_id'] = BatchDetail.objects.create(**mrp_dict).id
+            elif batch_obj:
+                dict_values['batch_detail'] = batch_obj
+            if batch_obj:
+                batch_stock_filter = {'sku_id': sku_id, 'location_id': dest[0].id, 'batch_detail_id': batch_obj.id}
+                if dest_seller_id:
+                    batch_stock_filter['sellerstock__seller_id'] = dest_seller_id
+                dest_stock_objs = StockDetail.objects.filter(**batch_stock_filter)
+                if not dest_stock_objs:
+                    dest_stocks = StockDetail(**dict_values)
+                    dest_stocks.save()
+                    change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
+                else:
+                    dest_stocks = dest_stock_objs[0]
+                    dest_stocks.quantity = dest_stocks.quantity + float(quantity)
+                    dest_stocks.save()
+                    change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'inc')
+            else:
                 dest_stocks = StockDetail(**dict_values)
                 dest_stocks.save()
                 change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
-            else:
-                dest_stocks = dest_stock_objs[0]
-                dest_stocks.quantity = dest_stocks.quantity + float(quantity)
-                dest_stocks.save()
-                change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'inc')
         else:
-            dest_stocks = StockDetail(**dict_values)
+            dest_stocks = dest_stocks[0]
+            dest_stocks.quantity += float(quantity)
             dest_stocks.save()
-            change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
-    else:
-        dest_stocks = dest_stocks[0]
-        dest_stocks.quantity += float(quantity)
-        dest_stocks.save()
-        change_seller_stock(dest_seller_id, dest_stocks, user, quantity, 'inc')
+            change_seller_stock(dest_seller_id, dest_stocks, user, quantity, 'inc')
 
     return batch_obj
 
@@ -6508,6 +6509,9 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
     no_stock_switch = False
     if switch_vals['no_stock_switch'] == 'true':
         no_stock_switch = True
+    combo_allocate_stock = False
+    if switch_vals.get('combo_allocate_stock', '') == 'true':
+        combo_allocate_stock = True
 
     for order in order_data:
         picklist_data = copy.deepcopy(PICKLIST_FIELDS)
@@ -6546,7 +6550,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         val_dict['pic_res_quans'] = map(lambda d: d['total'], pick_res_locat)
 
         members = [order.sku]
-        if order.sku.relation_type == 'combo':
+        if order.sku.relation_type == 'combo' and not combo_allocate_stock:
             picklist_data['order_type'] = 'combo'
             members = []
             combo_data = sku_combos.filter(parent_sku_id=order.sku.id)
@@ -6576,7 +6580,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                                                                          user, val_dict, sku_id_stocks)
                 stock_detail = list(chain(stock_detail, stock_detail1))
                 stock_quantity += stock_quantity1
-            elif order.sku.relation_type == 'combo':
+            elif order.sku.relation_type == 'combo' and not combo_allocate_stock:
                 stock_detail, stock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
                                                                        sku_id_stocks)
 
@@ -8886,5 +8890,13 @@ def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
 
 
 def update_po_order_prefix(sub_user, po_id):
+    ''' Returns Purchase Order Id with User Prefix'''
     po_id = '%s%s' % (str(sub_user.id), str(po_id))
     return int(po_id)
+
+def get_all_sellable_zones(user):
+    ''' Returns all Sellable Zones list '''
+    sellable_zones = ZoneMaster.objects.filter(user=user.id, segregation='sellable').exclude(zone__in=['DAMAGED_ZONE', 'QC_ZONE']).values_list('zone', flat=True)
+    if sellable_zones:
+        sellable_zones = get_all_zones(user, zones=sellable_zones)
+    return sellable_zones

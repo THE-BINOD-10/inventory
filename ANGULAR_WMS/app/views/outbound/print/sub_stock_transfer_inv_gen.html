@@ -1,38 +1,47 @@
-    <thead>
-      <tr class="rm-padding">
-        <th><center>SKU Code</center></th>
-        <th><center>Description</center></th>
-        <th><center>Quantity</center></th>
-        <th><center>Rate</center></th>
-        <th><center>Total</center></th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr class="rm-padding rm-brdr" ng-repeat="record in showCase.pdf_data">
-        <td style="text-align: left;">{{record.sku_code}}</td>
-        <td style="text-align: left;">{{record.sku_description}}</td>
-        <td>{{record.picked_quantity}}</td>
-        <td>{{record.rate | number:2}}</td>
-        <td>{{record.amount | number:2}}</td>
-      <tr style="border-top: 1px solid rgba(128, 128, 128, 0.14)" class="rm-padding">
-       <td colspan="2" style="text-align:left"><b>Total: </b></td>
-	   <td></td>
-	   <td></td>
-       <td style="text-align:left">{{showCase.pdf_data[0].invoice_amount}}</td>
-      </tr>
-      <tr class="rm-padding">
-        <td style="text-align:left;">
-          <b>Total amount (After rounding): &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase;text-align:right"> {{showCase.pdf_data[0].invoice_amount}}</span></b>
-        </td>
-      </tr>
-    </tbody>
-    <tfoot>
-      <tr class="rm-padding">
-        <td colspan='{{(permissions.show_mrp)?9: 8;}}' style="text-align:left;">
-          <b class="pull-left">Dispatched Via:</b>
-          <b class="pull-right">{{ showCase.pdf_data[0].company_name }}</b><br>
-          <span>DECLARATION:</span><br>
-          <span>The above shipment is not for sale and has no commercialvalue. Value is declared for transit purposes only.</span>
-        </td>
-      </tr>
-    </tfoot>
+<thead>
+  <tr class="rm-padding">
+    <th><center>SKU Code</center></th>
+    <th><center>Description</center></th>
+    <th><center>Quantity</center></th>
+    <th><center>Rate</center></th>
+    <th><center>Cgst(%)</center></th>
+    <th><center>Sgst(%)</center></th>
+    <th><center>Igst(%)</center></th>
+    <th><center>Total</center></th>
+  </tr>
+</thead>
+<tbody>
+  <tr class="rm-padding rm-brdr" ng-repeat="record in showCase.pdf_data">
+    <td style="text-align: left;">{{record.sku_code}}</td>
+    <td style="text-align: left;">{{record.sku_description}}</td>
+    <td>{{record.picked_quantity}}</td>
+    <td>{{record.rate | number:2}}</td>
+    <td>{{ record.cgst_tax }}</td>
+    <td>{{ record.sgst_tax }}</td>
+    <td>{{ record.igst_tax }}</td>
+    <td>{{record.amount | number:2}}</td>
+  <tr style="border-top: 1px solid rgba(128, 128, 128, 0.14)" class="rm-padding">
+   <td colspan="2" style="text-align:left"><b>Total: </b></td>
+ <td></td>
+ <td></td>
+ <td></td>
+ <td></td>
+ <td></td>
+   <td style="text-align:left">{{showCase.pdf_data[0].invoice_amount}}</td>
+  </tr>
+  <tr class="rm-padding">
+    <td style="text-align:left;">
+      <b>Total amount (After rounding): &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase;text-align:right"> {{showCase.pdf_data[0].invoice_amount}}</span></b>
+    </td>
+  </tr>
+</tbody>
+<tfoot>
+  <tr class="rm-padding">
+    <td colspan='{{(permissions.show_mrp)?9: 8;}}' style="text-align:left;">
+      <b class="pull-left">Dispatched Via:</b>
+      <b class="pull-right">{{ showCase.pdf_data[0].company_name }}</b><br>
+      <span>DECLARATION:</span><br>
+      <span>The above shipment is not for sale and has no commercialvalue. Value is declared for transit purposes only.</span>
+    </td>
+  </tr>
+</tfoot>

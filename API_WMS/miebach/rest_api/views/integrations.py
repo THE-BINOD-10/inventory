@@ -960,15 +960,22 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                 except:
                     ean_numbers = ''
                 for temp_ean in ean_numbers.split(','):
+                    if not temp_ean:
+                        continue
+                    if len(str(temp_ean)) > 20:
+                        error_message = 'EAN Number Length should be less than 20'
+                        update_error_message(failed_status, 5032, error_message, sku_code,
+                                            field_key='sku_code')
                     if temp_ean in exist_ean_list:
                         if not str(exist_ean_list[temp_ean]) == str(sku_code):
-                            error_message = 'EAN Number already mapped to SKU ' + str(exist_ean_list[temp_ean])
+                            error_message = str(temp_ean) + ' EAN Number already mapped to SKU ' + str(exist_ean_list[temp_ean])
                             update_error_message(failed_status, 5031, error_message, sku_code,
                                                  field_key='sku_code')
                     elif temp_ean in exist_sku_eans:
-                        error_message = 'EAN Number already mapped to SKU ' + str(exist_sku_eans[temp_ean])
-                        update_error_message(failed_status, 5031, error_message, sku_code,
-                                             field_key='sku_code')
+                        if not str(exist_sku_eans[temp_ean]) == str(sku_code):
+                            error_message = str(temp_ean) + ' EAN Number already mapped to SKU ' + str(exist_sku_eans[temp_ean])
+                            update_error_message(failed_status, 5031, error_message, sku_code,
+                                                 field_key='sku_code')
             continue
         if value == None:
             value = ''
@@ -1007,8 +1014,10 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                                  field_key='sku_code')
     if '%s:%s' % ('sku_code', str(sku_code)) in failed_status.keys():
         return sku_master, insert_status, new_ean_objs
+    update_sku_obj = False
     if sku_master:
-        sku_master.save()
+        update_sku_obj = True
+        #sku_master.save()
         insert_status['SKUS updated'].append(sku_code)
     else:
         sku_master_dict['wms_code'] = sku_master_dict['sku_code']
@@ -1021,7 +1030,8 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
         check_update_size_type(sku_master, size_type)
         sku_master.sku_size = sku_size
         sku_master.size_type = size_type
-        sku_master.save()
+        update_sku_obj = True
+        #sku_master.save()
     if sku_master and sku_options:
         for option in sku_options:
             if not option.get('value', ''):
@@ -1044,7 +1054,8 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
             #                                  creation_date=datetime.datetime.now())
     if sku_master and product_type:
         sku_master.product_type = product_type
-        sku_master.save()
+        update_sku_obj = True
+        #sku_master.save()
     if sku_master and ean_numbers:
         try:
             ean_numbers = ean_numbers.split(',')
@@ -1059,21 +1070,37 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                 rem_ean_objs = sku_master.eannumbers_set.filter(ean_number__in=rem_eans)
                 if rem_ean_objs.exists():
                     rem_ean_objs.delete()
+                for rem_ean in rem_eans:
+                    if exist_ean_list.get(rem_ean, ''):
+                        del exist_ean_list[rem_ean]
+                    if exist_sku_eans.get(rem_ean, ''):
+                        del exist_sku_eans[rem_ean]
             if str(sku_master.ean_number) in rem_eans:
                 sku_master.ean_number = 0
-                sku_master.save()
-            new_ean_objs = []
+                update_sku_obj = True
+                #sku_master.save()
             for ean in create_eans:
                 if not ean:
                     continue
                 try:
                     ean = int(ean)
                     new_ean_objs.append(EANNumbers(**{'ean_number': ean, 'sku_id': sku_master.id}))
+                    ean_found = False
+                    if exist_ean_list.get(ean, ''):
+                        exist_ean_list[ean] = sku_master.sku_code
+                        ean_found = True
+                    elif exist_sku_eans.get(ean, ''):
+                        exist_sku_eans[ean] = sku_master.sku_code
+                        ean_found = True
+                    if not ean_found:
+                        exist_ean_list[ean] = sku_master.sku_code
                 except:
                     pass
             #update_ean_sku_mapping(user, ean_numbers, sku_master, True)
         except:
             pass
+    if update_sku_obj:
+        sku_master.save()
     return sku_master, insert_status, new_ean_objs
 
 
@@ -1115,9 +1142,9 @@ def update_skus(skus, user='', company_name=''):
         columns = ['sku_id', 'attribute_name', 'attribute_value']
         new_ean_objs = []
 
-        exist_sku_eans = dict(SKUMaster.objects.filter(user=user.id, ean_number__gt=0, status=1).annotate(
+        exist_sku_eans = dict(SKUMaster.objects.filter(user=user.id, ean_number__gt=0, status=1).only('ean_number', 'sku_code').annotate(
             ean_str=Cast('ean_number', output_field=CharField())).values_list('ean_str', 'sku_code'))
-        exist_ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1).annotate(
+        exist_ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1).only('ean_number', 'sku__sku_code').annotate(
             ean_str=Cast('ean_number', output_field=CharField())).values_list('ean_str', 'sku__sku_code'))
         for sku_data in skus:
             sku_master, insert_status, new_ean_objs = sku_master_insert_update(sku_data, user, sku_mapping, insert_status,
@@ -1127,8 +1154,8 @@ def update_skus(skus, user='', company_name=''):
             all_sku_masters.append(sku_master)
             if sku_data.has_key('child_skus') and sku_data['child_skus'] and isinstance(sku_data['child_skus'], list):
                 for child_data in sku_data['child_skus']:
-                    child_sku_master = SKUMaster.objects.filter(user=user.id, sku_code=child_data['sku_code'])
-                    if not child_sku_master:
+                    child_sku_master = SKUMaster.objects.filter(user=user.id, sku_code=child_data['sku_code']).only('id', 'sku_code')
+                    if not child_sku_master.exists():
                         child_obj = SKUMaster.objects.create(sku_code=child_data['sku_code'],
                                                              wms_code=child_data['sku_code'],
                                                              status=1, user=user.id, creation_date=NOW)
@@ -1138,15 +1165,15 @@ def update_skus(skus, user='', company_name=''):
                         quantity = float(child_data['quantity'])
                     except:
                         quantity = 1
+                    NOW = datetime.datetime.now()
                     if child_obj and sku_master:
-                        sku_relation = SKURelation.objects.filter(member_sku_id=child_obj.id,
-                                                                  parent_sku_id=sku_master.id)
-                        if not sku_relation:
+                        sku_relation = SKURelation.objects.filter(parent_sku_id=sku_master.id, member_sku_id=child_obj.id)
+                        if not sku_relation.exists():
                             sku_master.relation_type = 'combo'
                             sku_master.save()
                             SKURelation.objects.create(member_sku_id=child_obj.id, parent_sku_id=sku_master.id,
                                                        relation_type='combo', quantity=quantity,
-                                                       creation_date=datetime.datetime.now())
+                                                       creation_date=NOW)
                             insert_status['SKUS Created'].append(child_obj.sku_code)
                         else:
                             sku_relation = sku_relation[0]

@@ -430,6 +430,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "glyphicon glyphicon-sort",
       display: true
    },
+   {
      name: "Sno(Sequence Number) in Invoice",
      model_name: "sno_in_invoice",
      param_no: 77,

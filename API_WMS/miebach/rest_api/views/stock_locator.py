@@ -2642,7 +2642,7 @@ def confirm_combo_allocation(request, user=''):
         if seller_id:
             seller = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
             if not seller:
-                return HttpResponse('Invalid Seller Id')
+                return HttpResponse(json.dumps({'status':False, 'message':'Invalid Seller Id'}))
             else:
                 seller_id = seller[0].id
         final_data = OrderedDict()
@@ -2654,37 +2654,37 @@ def confirm_combo_allocation(request, user=''):
             child_mrp = data_dict['child_mrp'][ind]
             child_qty = data_dict['child_quantity'][ind]
             if not combo_qty:
-                return HttpResponse("Child Quantity should be number")
+                return HttpResponse(json.dumps({'status':False, 'message':'Child Quantity should be number'}))
             combo_qty = float(combo_qty)
             if not child_qty:
-                return HttpResponse("Child Quantity should be number")
+                return HttpResponse(json.dumps({'status':False, 'message':'Child Quantity should be number'}))
             child_qty = float(child_qty)
             if child_mrp:
                 try:
                     child_mrp = float(child_mrp)
                 except:
-                    return HttpResponse("Child MRP should be number")
+                    return HttpResponse(json.dumps({'status':False, 'message':'Child MRP should be number'}))
             else:
                 child_mrp = 0
             if combo_mrp:
                 try:
                     combo_mrp = float(combo_mrp)
                 except:
-                    return HttpResponse("Combo MRP should be number")
+                    return HttpResponse(json.dumps({'status':False, 'message':'Combo MRP should be number'}))
             else:
                 combo_mrp = 0
             combo_sku = SKUMaster.objects.filter(user=user.id, sku_code=data_dict['combo_sku_code'][ind])
             if not combo_sku:
-                return HttpResponse('Combo SKU Code Not Found')
+                return HttpResponse(json.dumps({'status':False, 'message':'Combo SKU Code Not Found'}))
             child_sku = SKUMaster.objects.filter(user=user.id, sku_code=data_dict['child_sku_code'][ind])
             if not child_sku:
-                return HttpResponse('Child SKU Code Not Found')
+                return HttpResponse(json.dumps({'status':False, 'message':'Child SKU Code Not Found'}))
             combo_loc = LocationMaster.objects.filter(zone__user=user.id, location=data_dict['location'][ind])
             if not combo_loc:
-                return HttpResponse('Combo Location Not Found')
+                return HttpResponse(json.dumps({'status':False, 'message':'Combo Location Not Found'}))
             child_loc = LocationMaster.objects.filter(zone__user=user.id, location=data_dict['child_location'][ind])
             if not child_loc:
-                return HttpResponse('Child Location Not Found')
+                return HttpResponse(json.dumps({'status':False, 'message':'Child Location Not Found'}))
             stock_dict = {"sku_id": child_sku[0].id, "location_id": child_loc[0].id,
                           "sku__user": user.id, "quantity__gt": 0}
             if seller_id:
@@ -2696,9 +2696,9 @@ def confirm_combo_allocation(request, user=''):
             child_stocks = StockDetail.objects.filter(**stock_dict)
             child_stock_count = child_stocks.aggregate(Sum('quantity'))['quantity__sum']
             if not child_stock_count:
-                return HttpResponse('Child SKU Code Don\'t Have Stock')
+                return HttpResponse(json.dumps({'status':False, 'message':'Child SKU Code Don\'t Have Stock'}))
             elif child_stock_count < child_qty:
-                return HttpResponse('Child SKU Code Have Stock, ' + str(child_stock_count))
+                return HttpResponse(json.dumps({'status':False, 'message':'Child SKU Code Have Stock, ' + str(child_stock_count) }))
             combo_filter = {'sku_id': combo_sku[0].id, 'location_id': combo_loc[0].id,
                            'sku__user': user.id}
             mrp_dict = {}
@@ -2748,4 +2748,4 @@ def confirm_combo_allocation(request, user=''):
         log.info('Combo allocate stock failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(data_dict), str(e)))
 
-    return HttpResponse("Success")
+    return HttpResponse(json.dumps({'status':True, 'message' : 'Success'}))

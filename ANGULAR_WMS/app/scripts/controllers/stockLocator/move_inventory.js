@@ -649,13 +649,12 @@
           elem = elem[0];
           elem = $(elem).serializeArray();
           bundleObj.service.apiCall('confirm_combo_allocation/', 'POST', elem, true).then(function(data) {
-            if(data.message) {
-              if (data.data == "Added Successfully") {
-                bundleObj.close()
-                angular.extend(bundleObj.model_data, bundleObj.empty_data);
-              } else {
-                Service.showNoty(data.data, 'warning');
-              }
+            if(data.data.status) {
+              bundleObj.close()
+              Service.showNoty(data.data.message, 'success');
+              angular.extend(bundleObj.model_data, bundleObj.empty_data);
+            } else {
+              Service.showNoty(data.data.message, 'warning');
             }
           });
         }
@@ -690,7 +689,7 @@
     bundleObj.bundle_update_data = function(data, index, last, first) {
       if (last) {
         var prefill_data = data.data[index]
-        data.data.push({"child_sku_batch": prefill_data['child_sku_batch'], "child_sku_code": prefill_data['child_sku_code'], "child_sku_desc": prefill_data['child_sku_desc'], "child_sku_location": "", "child_sku_mrp": prefill_data['child_sku_mrp'], "child_sku_qty": prefill_data['child_sku_qty'], "new_sku" : true})
+        data.data.splice(index+1, 0, {"child_sku_batch": prefill_data['child_sku_batch'], "child_sku_code": prefill_data['child_sku_code'], "child_sku_desc": prefill_data['child_sku_desc'], "child_sku_location": "", "child_sku_mrp": prefill_data['child_sku_mrp'], "child_sku_qty": prefill_data['child_sku_qty'], "new_sku" : true});
       } else {
         data.data.splice(index,1);
       }

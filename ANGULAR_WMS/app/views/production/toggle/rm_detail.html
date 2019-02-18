@@ -1,0 +1,113 @@
+<style>
+  .form-control{
+    padding: 6px 5px;
+  }
+  .table > tbody > tr > td{
+    padding: 10px 4px;
+  }
+  .sidebar-panel{
+    z-index: 1000;
+  }
+  /* .ng-invalid-required {
+    border: 1px solid red;
+  } */
+</style>
+<div id="page-pop" class="modal fade in over-x" tabindex="-1" role="dialog" style="z-index: 1049">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid grn-form" novalidate="novalidate">
+  <div class="modal-dialog model-custom modal-lg" ng-style="showCase.extra_width">
+    <div class="modal-content mw100">
+      <div class="process-overlay" ng-if="process || showCase.fb.process"><div class="process-text">Loading...</div></div>
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span> </button>
+        <h4 class="modal-title">{{showCase.title}}</h4> </div>
+      <!-- body-->
+      <div class="modal-body">
+          <div class="row">
+            <div class="col-lg -8 col-md-8 col-sm-8 col-xs-12">
+              <h4>Details :</h4>
+              <div class="row">
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6"><b>Job Code</b></div>
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">: {{showCase.send_data['job_code']}}</div>
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6"><b>Job Creation date </b></div>
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">: {{showCase.send_data['job_creation_date']}}</div>
+              </div>
+            </div>
+
+            <div class="col-sm-12"><hr></div>
+          </div>
+          <div class="row">
+            <div class="col-md-3 col-sm-3 col-xs-6" style="height:74px;">
+              <div class="form-group">
+                <label for="scan_sku" class="control-label"> Return Serial Number </label>
+                <textarea class="form-control" rows="1" ng-model="showCase.send_data.scan_return_serial" type="text" name="scan_return" ng-keydown="showCase.scan_return__serial($event, showCase.send_data.scan_return_serial)" focus-on="focusSKU" auto-focus ng-readonly="showCase.scan_sku_disable"></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12">
+              <hr>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th> RM Sku</th>
+                    <th>RM Sku product description</th>
+                    <th>RM Picked Quantity</th>
+                    <th>Current Location</th>
+                    <th>Return Location</th>
+                    <th>Return Quantity</th>
+                    <th>Replacement Serial Number</th>
+                    <th>Replacement Location</th>
+                    <th>Replacement Quantity</th>
+                  <tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="record in showCase.send_data.data" id="tab_count">
+                    <td>
+                      <input type="text" name = "sku_code" ng-model="record.wms_code" size="70" title="{{ data.material_code }}" class="form-control detectTab" readonly>
+                    </td>
+                    <td>
+                      <input type="text" name = "sku_desc" ng-model="record.sku_desc" size="70" title="{{ data.material_code }}" class="form-control detectTab" readonly>
+                    </td>
+                    <td>
+                      <input type="text" name = "quantity"  ng-model="record.picked_quantity" size="70" title="{{ data.measurement_type }}" class="form-control detectTab" readonly>
+                    </td>
+                    <td>
+                      <input type="text" name = "location"  ng-model="record.location" size="70"  class="form-control detectTab" readonly>
+                    </td>
+                    <td>
+                      <input type="text"  name ='return_location' ng-readonly="showCase.permissions.use_imei || record.show_imei" ng-model="record.return_location" size="70" title="{{ data.material_code }}" class="form-control detectTab">
+                    </td>
+                    <td>
+                      <input type="text" name = 'return_quantity' ng-model="record.return_quantity" size="70" title="{{ data.material_code }}" class="form-control detectTab" >
+                    </td>
+                    <td>
+                      <input type="text"  ng-model="record.replace_serial" class="form-control detectTab"  ng-keydown="showCase.scan_replace_serial($event,record)" focus-on="focusSKU" >
+                    </td>
+                    <td>
+                      <input type="text" name ='replacement_location' ng-model="record.replacement_location" size="70" title="{{ record.replacement_location }}" class="form-control detectTab">
+                    </td>
+                    <td>
+                      <input type="text" name ='replacement_quntity' ng-model="record.replacement_quntity" size="70" title="{{ record.replacement_quntity }}" class="form-control detectTab">
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="row">
+            <button  type="button" class="btn pop pop-green pull-right col-xs-12 col-sm-3 col-md-2" ng-click="showCase.save_replace(form)">Save</button>
+          </div>
+          <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
+      </div>
+      <!-- body end-->
+
+    </div>
+    <!-- /.modal-content -->
+  </div>
+  </form>
+  <!-- /.modal-dialog -->
+</div>

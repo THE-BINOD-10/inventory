@@ -316,7 +316,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
       temp_dict[data1.id] = data1.imei_number
       vm.service.apiCall('check_imei/', 'GET', temp_dict).then(function(data){
         if(data.message) {
-          if (!data.data.status && data1.wms_code == data.data.data.sku_code) {
+          if (data.data.status == 'Success' && data1.wms_code == data.data.data.sku_code) {
             // data1.received_quantity = Number(sku.received_quantity) + 1;
             // data1.imei_number = data.data.data.label;
             let skuWiseQtyTotal = 0;

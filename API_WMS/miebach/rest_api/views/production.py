@@ -3370,3 +3370,83 @@ def generate_jo_labels(request, user=''):
         log.debug(traceback.format_exc())
         log.info("Generating Labels failed for params " + str(data_dict) + " and error statement is " + str(e))
         return HttpResponse("Generate Labels Failed")
+@login_required
+@get_admin_user
+def check_return_imei_scan(request, user):
+    sku_code =''
+    value = request.GET['serial_number']
+    order_imei = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, sku__user=user.id, status=1)
+    if order_imei:
+       sku_master = SKUMaster.objects.get(id =order_imei[0].sku_id)
+       sku_code = sku_master.wms_code
+    return HttpResponse(json.dumps({'data': sku_code}))
+
+@login_required
+@get_admin_user
+def rwo_data(request,user):
+    batch_data = {}
+    data_id = request.POST['data_id']
+    material_picklist = MaterialPicklist.objects.filter(jo_material__job_order__job_code=data_id,
+                                                    jo_material__job_order__product_code__user=user.id)
+    for picklist in material_picklist:
+        picklist_locations = RMLocation.objects.filter(material_picklist_id=picklist.id)
+        for location in picklist_locations:
+            location_name = 'NO STOCK'
+            if location.stock:
+                location_name = location.stock.location.location
+            match_condition = (location_name,picklist.jo_material.material_code.sku_code)
+            batch_data[match_condition] = {
+                'wms_code': location.material_picklist.jo_material.material_code.sku_code,
+                'sku_id':location.material_picklist.jo_material.material_code.id,
+                'location': location_name,
+                'sku_desc':location.material_picklist.jo_material.material_code.sku_desc,
+                'job_code': picklist.jo_material.job_order.job_code,
+                'picked_quantity': picklist.picked_quantity,
+                'id': location.id,
+                'title': location.material_picklist.jo_material.material_code.sku_desc,
+                'image': picklist.jo_material.material_code.image_url,
+                'measurement_type': picklist.jo_material.unit_measurement_type,
+                'return_quantity':0,
+                'replacement_quntity':0,
+                'show_imei': location.material_picklist.jo_material.material_code.enable_serial_based
+            }
+
+    data = batch_data.values()
+    return HttpResponse(json.dumps({'data': data}))
+@get_admin_user
+def check__replace_imei_exists(request,user):
+    status = ''
+    po_id = 0
+    imei = request.GET.get('imei', '')
+    sku_code = request.GET.get('sku_code', '')
+    if imei and sku_code:
+        check_params = {'imei_number': imei, 'sku__user':user.id }
+        po_mapping = POIMEIMapping.objects.get(**check_params)
+        if po_mapping:
+            status = "Success"
+            po_id = po_mapping.id
+        else:
+            status = "Invalid Imei Number"
+    else:
+        status = "Missing Serial or SKU Code"
+
+    return HttpResponse(json.dumps({'status': status,'po_id':po_id}))
+
+@get_admin_user
+def save_replaced_serials(request , user):
+    import pdb; pdb.set_trace()
+    returned_serials = request.POST.getlist('returned_serials[]')
+    replacement_dict = json.loads(request.POST.get('replacement_serials'))
+try:
+    for returned_imei in returned_serials:
+        order_imei = OrderIMEIMapping.objects.get(po_imei__imei_number=returned_imei, sku__user=user.id, status=1)
+        for i in range(len(replacement_dict)):
+            if (replacement_dict[i]['sku_id'] == order_imei.sku_id):
+                order_imei.po_imei_id = replacement_dict[i]['po_id']
+                print(order_imei.id)
+                order_imei.save()
+                replacement_dict.pop(i)
+except Exception as e:
+    import traceback
+    log.debug(traceback.format_exc())
+    log.info("Saving replacement serial number  and error statement is " + str(e))

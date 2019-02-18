@@ -365,7 +365,7 @@
             <span>Shipment Info</span>
           </a>
         </li>
-        <li ng-show="show_tab('multi_warehouse') && show_tab('add_stocktransfer')" ui-sref-active="active">
+        <li show_tab('add_stocktransfer')" ui-sref-active="active">
           <a ui-sref="app.outbound.CreateStockTransfer">
             <span>Create Stock Transfer</span>
           </a>
@@ -628,6 +628,11 @@
             <span>Enquiry Status Report</span>
           </a>
         </li>
+        <li ui-sref-active="active">
+        <a ui-sref="app.reports.StockTransferReport">
+          <span>Stock Transfer </span>
+        </a>
+      </li>
       </ul>
     </li>
     <!-- /extras -->

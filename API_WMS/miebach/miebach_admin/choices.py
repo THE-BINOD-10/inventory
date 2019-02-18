@@ -11,3 +11,4 @@ CUSTOMIZATION_TYPES = (('price_custom', 'Price Customization'),
                        ('price_product_custom', 'Price and Product Customization'))
 CUSTOMER_ROLE_CHOICES = (('', ''), ('customer_user', 'user'), ('customer_hod', 'hod'), ('customer_admin', 'admin'))
 APPROVAL_STATUSES = (('accept', 'Accept'), ('reject', 'Reject'), ('pending', 'Pending'))
+SELLABLE_CHOICES = (('sellable', 'Sellable'), ('non_sellable', 'Non Sellable'))

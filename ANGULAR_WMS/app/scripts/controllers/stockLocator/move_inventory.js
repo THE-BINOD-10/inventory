@@ -7,7 +7,7 @@
   angular.module('urbanApp', ['datatables'])
     .controller('MoveInventoryCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', 'focus', '$timeout', '$modal', ServerSideProcessingCtrl]);
 
-  function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, focus, $timeout, $modal) {
+  function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, focus, $timeout, $modal, $q) {
       var vm = this;
       vm.apply_filters = colFilters;
       vm.service = Service;
@@ -179,7 +179,7 @@
           var elem = angular.element($('form'));
           elem = elem[0];
           elem = $(elem).serializeArray();
-          vm.service.apiCall('insert_move_inventory/', 'GET', elem, true).then(function(data){
+          vm.service.apiCall('confirm_combo_allocation/', 'POST', elem, true).then(function(data) {
             if(data.message) {
               if (data.data == "Added Successfully") {
                 vm.close()
@@ -288,6 +288,30 @@
          }
       })
     }
+
+    vm.combo_allocate_stock = function() {
+	
+	vm.allocate_empty_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": ""}] } ] }
+	angular.copy(vm.allocate_empty_data, vm.model_data);
+	var mod_data = vm.model_data;
+        var modalInstance = $modal.open({
+        templateUrl: 'views/stockLocator/toggles/create_bundle_allocate_stock.html',
+        controller: 'skuBundle',
+        controllerAs: 'bundleObj',
+        size: 'lg',
+        backdrop: 'static',
+        keyboard: false,
+	resolve: {
+          items: function () {
+            return mod_data;
+          }
+        }
+      });
+      modalInstance.result.then(function (selectedItem) {
+         console.log(selectedItem)
+      })
+    }
+
   }
 
   angular.module('urbanApp').controller('skuSubstitute', function ($modalInstance, $modal, items, Service, colFilters) {
@@ -532,9 +556,116 @@
     };
 
     $ctrl.close = function () {
-      
       $modalInstance.dismiss('cancel');
     };
   });
 
+  angular.module('urbanApp').controller('skuBundle', function ($modalInstance, $modal, items, Service, colFilters, $q) {
+    var bundleObj = this;
+    bundleObj.bundle_skus_list = [];
+    bundleObj.marginData = items;
+    bundleObj.service = Service;
+    bundleObj.bundle_model_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": ""}] } ] }
+    bundleObj.empty_bundle_model_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": ""}] } ] }
+
+
+    bundleObj.bundle_model_data.seller_show = false;
+    bundleObj.isLast = isLast;
+    function isLast(check) {
+      var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
+      return cssClass
+    }
+
+    bundleObj.close = function () {
+      $modalInstance.dismiss('cancel');
+    };
+
+    function bundle_check_exist() {
+      var d = $q.defer();
+      for(var i = 0; i < bundleObj.bundle_model_data.results.length; i++) {
+        if (bundleObj.bundle_skus_list.indexOf(bundleObj.bundle_model_data.results[i].combo_sku_code + ":" + bundleObj.bundle_model_data.results[i].batch + ":" + bundleObj.bundle_model_data.results[i].mrp) !== -1) {
+          d.resolve(false);
+          alert("It is already exist in index");
+          break;
+        } else {
+          bundleObj.bundle_skus_list.push(bundleObj.bundle_model_data.results[i].combo_sku_code + ":" + bundleObj.bundle_model_data.results[i].batch + ":" + bundleObj.bundle_model_data.results[i].mrp)
+        }
+        if(bundleObj.bundle_model_data.results.length-1 == i) {
+          d.resolve(true);
+          break;
+        }
+      }
+      return d.promise;
+    }
+
+    bundleObj.get_product_data = function(item, sku_data, index) {
+      var seller_id = bundleObj.bundle_model_data.seller_type;
+      bundleObj.service.apiCall('get_combo_sku_codes/','POST', {'sku_code': sku_data['combo_sku_code'], 'seller_id': seller_id}).then(function(data) {
+        if(data.data.status) {
+          sku_data.data = data.data.childs;
+          sku_data.combo_sku_desc = data.data.parent.combo_sku_desc;
+          sku_data.quantity = data.data.parent.quantity;
+        } else {
+          sku_data.data = [{"child_sku_batch": "", "child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_mrp": "", "child_sku_qty": ""}]
+        }
+      });
+    }
+
+    bundleObj.submit_bundle = submit_bundle;
+    function submit_bundle(data) {
+      bundle_check_exist().then(function(data_resp) {
+        bundleObj.bundle_skus_list = []
+        if(data.$valid && data_resp) {
+          var elem = angular.element($('form'));
+          elem = elem[0];
+          elem = $(elem).serializeArray();
+          bundleObj.service.apiCall('confirm_combo_allocation/', 'POST', elem, true).then(function(data) {
+            if(data.message) {
+              if (data.data == "Added Successfully") {
+                bundleObj.close()
+                angular.extend(bundleObj.model_data, bundleObj.empty_data);
+              } else {
+                Service.showNoty(data.data, 'warning');
+              }
+            }
+          });
+        }
+      })
+    }
+
+    bundleObj.bundle_model_data.seller_types = [];
+    bundleObj.service.apiCall('get_sellers_list/', 'GET').then(function(data){
+	if (data.message) {
+	  bundleObj.bundle_model_data.seller_show = true;
+	  var seller_data = data.data.sellers;
+	  angular.forEach(seller_data, function(seller_single) {
+	    bundleObj.bundle_model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
+	  });
+	}
+    });
+
+    bundleObj.add_bundle_product = function () {
+      var temp = {};
+      angular.copy(bundleObj.empty_bundle_model_data.results[0], temp);
+      bundleObj.bundle_model_data.results.push(temp);
+    }
+
+    bundleObj.remove_product = function (data) {
+      angular.forEach(bundleObj.bundle_model_data.results, function(item) {
+        if (item.$$hashKey == data.$$hashKey) {
+          angular.copy(bundleObj.empty_bundle_model_data.results[0], item);
+        }
+      });
+    }
+
+    bundleObj.bundle_update_data = function(data, index, last, first) {
+      if (first && !(last)) {
+        bundleObj.remove_product(data);
+      } else if (last) {
+        data.data.push({"child_sku_batch": "", "child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_mrp": "", "child_sku_qty": "", "new_sku": true})
+      } else {
+        data.data.splice(index,1);
+      }
+    }
+  })
 })();

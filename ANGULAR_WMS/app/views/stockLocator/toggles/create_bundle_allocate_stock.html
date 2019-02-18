@@ -75,11 +75,11 @@
                     </td>
 
                     <td>
-                      <input type="text" autocomplete="off" name="child_sku_code" class="form-control" placeholder="Search Child SKU Code" typeahead="address for address in bundleObj.service.getSearchValues($viewValue, 'search_wms_codes?','RM')" typeahead-loading="loadingLocations" ng-model="item.child_sku_code">
+                      <input type="text" autocomplete="off" name="child_sku_code" class="form-control" placeholder="Child SKU Code" typeahead="address for address in bundleObj.service.getSearchValues($viewValue, 'search_wms_codes?','RM')" typeahead-loading="loadingLocations" ng-model="item.child_sku_code" readonly>
                     </td>
 
 		                <td>
-                      <input type="text" name="child_sku_desc" class="form-control" ng-model="item.child_sku_desc">
+                      <input type="text" placeholder="SKU Desc" name="child_sku_desc" class="form-control" ng-model="item.child_sku_desc" readonly>
                     </td>
 
                     <td>
@@ -99,7 +99,10 @@
                     </td>
 
 		                <td>
-                      <i ng-click="bundleObj.bundle_update_data(data, $index, $last, $first)" ng-class="bundleObj.isLast($last)" ng-hide="true"></i>
+                      <i ng-click="bundleObj.bundle_update_data(data, $index, true, false)" ng-class="bundleObj.onlyPlus($last)"></i>
+                      <i ng-click="bundleObj.bundle_update_data(data, $index, false, true)" ng-class="bundleObj.onlyMinus($last)" ng-show="item.new_sku"></i>
+                      <i ng-click="bundleObj.bundle_update_data(data, $index, $last, $first)" ng-hide="true"></i>
+                      <i ng-click="bundleObj.bundle_update_data(data, $index, $last, $first)" ng-hide="true"></i>
                     </td>
 
                   </tr>

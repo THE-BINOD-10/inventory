@@ -171,8 +171,12 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
         if data.status:
             status = 'Active'
 
-        creation_date = get_local_date(user, data.creation_date, send_date=True).strftime('%Y-%m-%d %I:%M %p')
-        updation_date = get_local_date(user, data.updation_date, send_date=True).strftime('%Y-%m-%d %I:%M %p')
+        creation_date = ''
+        updation_date = ''
+        if data.creation_date:
+            creation_date = get_local_date(user, data.creation_date, send_date=True).strftime('%Y-%m-%d %I:%M %p')
+        if data.updation_date:
+            updation_date = get_local_date(user, data.updation_date, send_date=True).strftime('%Y-%m-%d %I:%M %p')
         zone = ''
         if data.zone_id:
             zone = data.zone.zone

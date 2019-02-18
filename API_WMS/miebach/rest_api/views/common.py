@@ -4131,6 +4131,7 @@ def get_size_names(requst, user=""):
 @get_admin_user
 def get_sellers_list(request, user=''):
     sellers = SellerMaster.objects.filter(user=user.id).order_by('seller_id')
+    raise_po_terms_conditions = get_misc_value('raisepo_terms_conditions', user.id)
     seller_list = []
     seller_supplier = {}
     for seller in sellers:
@@ -4139,7 +4140,7 @@ def get_sellers_list(request, user=''):
             seller_supplier[seller.seller_id] = seller.supplier.id
     user_list = get_all_warehouses(user)
     return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5, 'receipt_types': PO_RECEIPT_TYPES, \
-                                    'seller_supplier_map': seller_supplier, 'warehouse' : user_list}))
+                                    'seller_supplier_map': seller_supplier, 'warehouse' : user_list, 'raise_po_terms_conditions' : raise_po_terms_conditions}))
 
 
 def update_filled_capacity(locations, user_id):

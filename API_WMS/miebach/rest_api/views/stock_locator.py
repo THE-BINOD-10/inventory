@@ -2707,6 +2707,7 @@ def confirm_combo_allocation(request, user=''):
             if combo_mrp:
                 mrp_dict['mrp'] = combo_mrp
                 combo_filter['batch_detail__mrp'] = combo_mrp
+            add_ean_weight_to_batch_detail(combo_sku[0], mrp_dict)
             if seller_id:
                 combo_filter['sellerstock__seller_id'] = seller_id
             combo_stocks = StockDetail.objects.filter(**combo_filter)

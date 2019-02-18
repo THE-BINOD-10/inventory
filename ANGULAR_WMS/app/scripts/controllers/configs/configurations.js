@@ -962,7 +962,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     Auth.status();
   }
   vm.raise_po_terms_conditions = function(raisepo_terms_conditions) {
-
     var data = $("[name='raisepo_terms_conditions']").val().split("\n").join("<<>>");
     vm.switches(data, 78);
     Auth.status();
@@ -989,7 +988,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     }, 1000);
   }
   vm.getRaisePOterms= function(raisepo_terms_conditions) {
-
     $timeout(function() {
     if(raisepo_terms_conditions && raisepo_terms_conditions.split("<<>>").length > 1) {
       $("[name='raisepo_terms_conditions']").val( raisepo_terms_conditions.split("<<>>").join("\n") )

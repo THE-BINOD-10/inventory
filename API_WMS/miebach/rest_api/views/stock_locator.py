@@ -2608,6 +2608,11 @@ def get_all_sellable_zones(user):
 def get_combo_sku_codes(request, user=''):
     sku_code = request.POST.get('sku_code', '')
     all_data = []
+    seller_id = request.POST.get('seller_id', '').split(':')[0]
+    seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
+    if not seller_master:
+        return HttpResponse(json.dumps({"status": False, "message":"Invalid Seller ID"}))
+    seller_master_id = seller_master[0].id
     combo_skus = SKURelation.objects.filter(parent_sku__user=user.id, parent_sku__sku_code=sku_code)
     if not combo_skus:
         return HttpResponse(json.dumps({"status": False, "message":"No Data Found"}))
@@ -2615,7 +2620,7 @@ def get_combo_sku_codes(request, user=''):
     for combo in combo_skus:
         cond = (combo.member_sku.sku_code)
         child_quantity = combo.quantity
-        stock_detail = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0,
+        stock_detail = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sellerstock__seller_id=seller_master_id,
                                                             sku_id=combo.member_sku_id, location__zone__zone__in=sellable_zones,
                                                             batch_detail__isnull=False).only('batch_detail__mrp')
         child_mrp = 0

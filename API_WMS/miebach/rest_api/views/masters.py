@@ -3591,10 +3591,15 @@ def get_corporates(request, user=''):
     ''' Get Corporates list'''
     message = 0
     checked_corporates = {}
+    price_band_flag = get_misc_value('priceband_sync', user.id)
+    if price_band_flag:
+       admin_user = get_admin(user)
+    else:
+       admin_user = user
     if request.GET['reseller']:
         res = request.GET['reseller']
         checked_corporates = list(CorpResellerMapping.objects.filter(reseller_id=res).exclude(status=0).values('corporate_id', 'status'))
-    corporates = list(CorporateMaster.objects.all().values('corporate_id', 'name').order_by('name'))
+    corporates = list(CorporateMaster.objects.filter(user=admin_user.id).values('corporate_id', 'name').order_by('name'))
     if corporates:
         message = 1
     return HttpResponse(json.dumps({'message': message, 'data': corporates, 'checked_corporates': checked_corporates}))

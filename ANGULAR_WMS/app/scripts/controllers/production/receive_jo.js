@@ -275,7 +275,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       elem = elem[0];
       elem = $(elem).serializeArray();
       vm.save_repalced_serials();
-      vm.close()
+      vm.service.apiCall('save_replaced_locations/', 'POST', elem, true).then(function(data){
+        if(data.message) {
+          if (data.data == 'Added Successfully') {
+            vm.close();
+            vm.reloadData();
+          } else {
+            pop_msg(data.data);
+          }
+        }
+      });
     }
     vm.save_repalced_serials = function()
     {

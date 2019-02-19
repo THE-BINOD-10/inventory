@@ -3434,19 +3434,34 @@ def check__replace_imei_exists(request,user):
 
 @get_admin_user
 def save_replaced_serials(request , user):
-    import pdb; pdb.set_trace()
     returned_serials = request.POST.getlist('returned_serials[]')
     replacement_dict = json.loads(request.POST.get('replacement_serials'))
-try:
-    for returned_imei in returned_serials:
-        order_imei = OrderIMEIMapping.objects.get(po_imei__imei_number=returned_imei, sku__user=user.id, status=1)
-        for i in range(len(replacement_dict)):
-            if (replacement_dict[i]['sku_id'] == order_imei.sku_id):
-                order_imei.po_imei_id = replacement_dict[i]['po_id']
-                print(order_imei.id)
-                order_imei.save()
-                replacement_dict.pop(i)
-except Exception as e:
-    import traceback
-    log.debug(traceback.format_exc())
-    log.info("Saving replacement serial number  and error statement is " + str(e))
+    try:
+        for returned_imei in returned_serials:
+            order_imei = OrderIMEIMapping.objects.get(po_imei__imei_number=returned_imei, sku__user=user.id, status=1)
+            for i in range(len(replacement_dict)):
+                if (replacement_dict[i]['sku_id'] == order_imei.sku_id):
+                    order_imei.po_imei_id = replacement_dict[i]['po_id']
+                    print(order_imei.id)
+                    order_imei.save()
+                    replacement_dict.pop(i)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Saving replacement serial number  and error statement is " + str(e))
+    return HttpResponse("Success")    
+
+@login_required
+@get_admin_user
+def save_replaced_locations(request , user):
+    data_dict = dict(request.POST.iterlists())
+    for i in range(len(data_dict['sku_code'])):
+        wms_code = data_dict['sku_code'][i]
+        source_loc = data_dict['replacement_location'][i]
+        dest_loc = data_dict['return_location'][i]
+        quantity= data_dict['replacement_quntity'][i]
+        status = move_stock_location(1, wms_code, source_loc, dest_loc, quantity, user, '', '', '')
+        if 'success' in status.lower():
+            update_filled_capacity([source_loc, dest_loc], user.id)
+        log.info("Staus for the replacement location %s,"%(status))
+    return HttpResponse(status)

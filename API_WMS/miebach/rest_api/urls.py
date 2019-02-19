@@ -230,6 +230,8 @@ urlpatterns = [
     url(r'^rwo_data/$', rwo_data),
     url(r'^check__replace_imei_exists/$', check__replace_imei_exists),
     url(r'^save_replaced_serials/$', save_replaced_serials),
+    url(r'^save_replaced_locations/$', save_replaced_locations),
+
 
 
     # Stock Locator

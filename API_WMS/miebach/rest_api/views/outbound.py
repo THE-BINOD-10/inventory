@@ -13062,8 +13062,12 @@ def convert_customorder_to_actualorder(request, user=''):
         if ask_price_qs:
             ask_price = ask_price_qs[0]
         exp_date_qs = enq_obj.manualenquirydetails_set.values_list('expected_date', flat=True).order_by('-id')
-        if exp_date_qs:
+        if not exp_date_qs:
+            return HttpResponse("Some thing went wrong, please check with team")
+        else:
             exp_date = exp_date_qs[0]
+            if exp_date < datetime.date.today():
+                exp_date = datetime.date.today()
 
         cust_qs = CustomerUserMapping.objects.filter(user_id=enq_obj.user)
         if not cust_qs:
@@ -13126,7 +13130,8 @@ def convert_customorder_to_actualorder(request, user=''):
             dist_order_copy['address'] = customer_user[0].customer.address
 
         if req_stock != sum(stock_wh_map.values()):
-            return HttpResponse('No Available Stock to Place the Order or Total quantity is not considered')
+            resp['msg'] = 'No Available Stock to Place the Order or Total quantity is not considered'
+            return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
         is_emiza_order_failed = False
         for usr, qty in stock_wh_map.items():
             if qty <= 0:
@@ -13211,7 +13216,7 @@ def convert_customorder_to_actualorder(request, user=''):
                 except:
                     log.info("Order Push failed for order: %s" %original_order_id)
 
-        if req_stock == sum(stock_wh_map.values()) and not is_emiza_order_failed:
+        if not is_emiza_order_failed:
             enq_obj.status = 'order_placed'
             enq_obj.save()
         else:

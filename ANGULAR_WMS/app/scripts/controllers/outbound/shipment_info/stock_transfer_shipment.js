@@ -423,8 +423,8 @@ vm.add_shipment = function(valid) {
   vm.serial_numbers = [];
   vm.check_imei_exists = function(event, imei) {
     event.stopPropagation();
-    imei = imei.toUpperCase();
     if (event.keyCode == 13 && imei.length > 0) {
+      imei = imei.toUpperCase();
       if (vm.serial_numbers.indexOf(imei) != -1){
           vm.service.showNoty("IMEI Number Already Exist");
           vm.imei_number = "";

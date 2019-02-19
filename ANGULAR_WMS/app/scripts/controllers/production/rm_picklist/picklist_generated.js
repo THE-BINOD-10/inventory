@@ -310,8 +310,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
   vm.serial_numbers = [];
   vm.check_imei_exists = function(event, data1, index, innerIndex) {
     event.stopPropagation();
-    data1.imei_number = data1.imei_number.toUpperCase();
     if (event.keyCode == 13 && data1.imei_number.length > 0) {
+      data1.imei_number = data1.imei_number.toUpperCase();
       // if(vm.permissions.barcode_generate_opt != "sku_serial") {
       var temp_dict = {'is_rm_picklist': true}
       temp_dict[data1.id] = data1.imei_number

@@ -1934,8 +1934,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.status_imei = "";
     vm.status_scan_imei = function(event, field) {
-      field = field.toUpperCase();
       if ( event.keyCode == 13 && field.length > 0) {
+        field = field.toUpperCase();
         vm.enable_button = true;
         vm.reason_show = false;
         vm.current_sku = "";

@@ -217,11 +217,9 @@
 
       vm.model_imei = {};
       vm.scan_imei = function(event, field) {
-        field = field.toUpperCase();
         if ( event.keyCode == 13 && field) {
-
+          field = field.toUpperCase();
           vm.service.apiCall('get_imei_details/', 'GET', {imei:field}, true).then(function(data){
-
             if(!data.data.result) {
               vm.model_imei = data.data.data;
               vm.model_imei["display_details"]= true;

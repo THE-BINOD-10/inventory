@@ -484,8 +484,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.imei_data = {};
 
     vm.scan_imei = function(event, field) {
-      field = field.toUpperCase();
       if ( event.keyCode == 13 && field) {
+        field = field.toUpperCase();
         vm.scan_imei_readonly = true;
         if(vm.scan_imeis.indexOf(field) == -1) {
           vm.service.apiCall('check_return_imei/', 'GET', {imei: field}).then(function(data){

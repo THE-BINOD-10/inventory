@@ -1016,10 +1016,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.from_qc_scan = function(event, field) {
-
       event.stopPropagation();
       if (event.keyCode == 13 && field.length > 0) {
-
+        field = field.toUpperCase();
         if (!vm.current_sku && (vm.permissions.grn_scan_option == "sku_serial_scan")) {
 
           focus('focusSKU');
@@ -1095,9 +1094,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.serial_numbers = [];
     vm.check_imei_exists = function(event, data1, index) {
-      data1.imei_number = data1.imei_number.toUpperCase();
       event.stopPropagation();
       if (event.keyCode == 13 && data1.imei_number.length > 0) {
+        data1.imei_number = data1.imei_number.toUpperCase();
         //if(vm.imei_list.indexOf(data1.imei_number) > -1) {
 
         //  Service.showNoty("IMEI Already Scanned");

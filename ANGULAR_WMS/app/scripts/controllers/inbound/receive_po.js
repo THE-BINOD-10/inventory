@@ -1041,7 +1041,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               }
             } else {
               if(vm.permissions.barcode_generate_opt == 'sku_serial' || vm.permissions.barcode_generate_opt == 'sku_code') {
-                vm.service.apiCall('check_imei_exists/', 'GET',{imei: field, sku_code: vm.model_data.data[vm.current_index][0].wms_code}).then(function(data){
+                vm.service.apiCall('check_imei_exists/', 'GET',{imei: field.toLowerCase(), sku_code: vm.model_data.data[vm.current_index][0].wms_code}).then(function(data){
                   if(data.message) {
                     if (data.data == "") {
                       vm.imei_list.push(field);
@@ -1114,7 +1114,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         } else {
 
           data1["disable"] = true;
-          fb.check_imei(data1.imei_number).then(function(resp) {
+          fb.check_imei(data1.imei_number.toLowerCase()).then(function(resp) {
             if (resp.status) {
               Service.showNoty("Serial Number already Exist in other PO: "+resp.data.po);
               data1.imei_number = "";
@@ -1127,7 +1127,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               data1["disable"] = false;
             } else {
               if(vm.permissions.barcode_generate_opt != "sku_serial") {
-                vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number, sku_code: data1.wms_code}).then(function(data){
+                vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number.toLowerCase(), sku_code: data1.wms_code}).then(function(data){
                   if(data.message) {
                     if (data.data == "") {
                       if(vm.po_qc) {

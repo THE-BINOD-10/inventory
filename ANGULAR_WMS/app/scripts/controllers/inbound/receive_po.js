@@ -1041,7 +1041,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               }
             } else {
               if(vm.permissions.barcode_generate_opt == 'sku_serial' || vm.permissions.barcode_generate_opt == 'sku_code') {
-                debugger;
                 vm.service.apiCall('check_imei_exists/', 'GET',{imei: field, sku_code: vm.model_data.data[vm.current_index][0].wms_code}).then(function(data){
                   if(data.message) {
                     if (data.data == "") {

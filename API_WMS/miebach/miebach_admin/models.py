@@ -1075,27 +1075,6 @@ class POIMEIMapping(models.Model):
         unique_together = ('purchase_order','imei_number', 'sku', 'job_order', 'seller')
 
 
-class OrderIMEIMapping(models.Model):
-    id = BigAutoField(primary_key=True)
-    order = models.ForeignKey(OrderDetail, blank=True, null=True)
-    jo_material = models.ForeignKey(JOMaterial, blank=True, null=True)
-    sku = models.ForeignKey(SKUMaster)
-    seller = models.ForeignKey(SellerMaster, blank=True, null=True)
-    po_imei = models.ForeignKey(POIMEIMapping, blank=True, null=True)
-    #stock_transfer = models.ForeignKey(StockTransfer, blank=True, null=True)
-    imei_number = models.CharField(max_length=64, default='')
-    sor_id = models.CharField(max_length=128, default='')
-    order_reference = models.CharField(max_length=128, default='')
-    marketplace = models.CharField(max_length=64, default='')
-    status = models.IntegerField(default=1)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'ORDER_IMEI_MAPPING'
-        index_together = ("order", "sku", "po_imei")
-
-
 class UserGroups(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)
@@ -2068,22 +2047,6 @@ class OrderReturnReasons(models.Model):
 
     class Meta:
         db_table = 'ORDER_RETURN_REASONS'
-
-
-class ReturnsIMEIMapping(models.Model):
-    id = BigAutoField(primary_key=True)
-    order_imei = models.ForeignKey(OrderIMEIMapping, blank=True, null=True)
-    order_return = models.ForeignKey(OrderReturns, blank=True, null=True)
-    status = models.CharField(max_length=64, default='')
-    reason = models.CharField(max_length=128, default='')
-    imei_status = models.IntegerField(max_length=1, default=1)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'RETURNS_IMEI_MAPPING'
-        unique_together = ('order_imei', 'order_return')
-        index_together = ('order_imei', 'order_return')
 
 
 class ReturnsLocation(models.Model):
@@ -3099,3 +3062,40 @@ class TempJson(models.Model):
     class Meta:
         db_table = 'TEMP_JSON'
         index_together = ('model_id', 'model_name')
+
+
+class OrderIMEIMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    order = models.ForeignKey(OrderDetail, blank=True, null=True)
+    jo_material = models.ForeignKey(JOMaterial, blank=True, null=True)
+    sku = models.ForeignKey(SKUMaster)
+    seller = models.ForeignKey(SellerMaster, blank=True, null=True)
+    po_imei = models.ForeignKey(POIMEIMapping, blank=True, null=True)
+    stock_transfer = models.ForeignKey(StockTransfer, blank=True, null=True)
+    imei_number = models.CharField(max_length=64, default='')
+    sor_id = models.CharField(max_length=128, default='')
+    order_reference = models.CharField(max_length=128, default='')
+    marketplace = models.CharField(max_length=64, default='')
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ORDER_IMEI_MAPPING'
+        index_together = ("order", "sku", "po_imei")
+
+
+class ReturnsIMEIMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    order_imei = models.ForeignKey(OrderIMEIMapping, blank=True, null=True)
+    order_return = models.ForeignKey(OrderReturns, blank=True, null=True)
+    status = models.CharField(max_length=64, default='')
+    reason = models.CharField(max_length=128, default='')
+    imei_status = models.IntegerField(max_length=1, default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'RETURNS_IMEI_MAPPING'
+        unique_together = ('order_imei', 'order_return')
+        index_together = ('order_imei', 'order_return')

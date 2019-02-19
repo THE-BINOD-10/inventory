@@ -13,6 +13,8 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
   vm.record_qcitems_data = [];
   vm.status_data = {message:"cancel", data:{}}
   vm.qty_validation = {};
+  vm.collect_imei_data = {}
+  vm.get_id = ''
 
   vm.getPoData = function(data){
     Service.apiCall(data.url, data.method, data.data, true).then(function(data){
@@ -129,10 +131,15 @@ function view_orders() {
     vm.getrecordSerialnumber = function(rowdata) {
       for(var i=0; i < vm.model_data.data.length; i++) {
         if(vm.model_data.data[i].wms_code == rowdata.wms_code) {
+          if(!vm.model_data.data[i].hasOwnProperty('sku_imeis_map')) {
+            return false
+          }
           angular.copy(vm.model_data.data[i]['sku_imeis_map'][vm.model_data.data[i].wms_code].sort(), vm.record_serial_data);
         }
       }
+      return true
     }
+
     vm.myFunction = function(rowdata, record) {
     var x = document.getElementById("serial_no");
     if (x.style.display === "none" || x.style.display === "") {
@@ -148,8 +155,21 @@ function view_orders() {
   }
 
   vm.serial_scan = function(event, scan, data, record) {
-    vm.getrecordSerialnumber(data);
-      if ( event.keyCode == 13) {
+      if (event.keyCode == 13) {
+        var resp_data = vm.getrecordSerialnumber(data);
+        if (!resp_data) {
+          vm.service.showNoty("Serial Number Not Available For this SKU");
+          record.scan = '';
+          return false
+        }
+		if(vm.collect_imei_data.hasOwnProperty(data.id)) {
+			if ($.inArray(record.scan, vm.collect_imei_data[data.id]) != -1) {
+				vm.service.showNoty("Serial Number Already Scanned");
+				record.scan = '';
+				return false
+			}
+		}
+        vm.get_id = data.id
         var id = data.id;
         var total = 0;
         for(var i=0; i < data.sub_data.length; i++) {
@@ -164,13 +184,7 @@ function view_orders() {
           vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
           if(data.data.status == "Success") {
               if(data.data.data.sku_code == record.wms_code) {
-                if(vm.record_serial_data[0] == scan_data) {
-                  vm.qc_items(vm.model_data);
-                  vm.increament(record);
-                } else {
-                  vm.service.showNoty("Please Enter the Correct Serial Number !");
-                  record.scan = '';
-                }
+                vm.increament(record);
               } else {
                 Service.pop_msg(data.data.status);
                 scan_data.splice(length-1,1);
@@ -181,6 +195,7 @@ function view_orders() {
             }
             else{
               Service.pop_msg(data.data.status);
+              record.scan = '';
             }
           });
         } else {
@@ -188,7 +203,7 @@ function view_orders() {
           record.scan = scan_data.join('\n');
           record.scan = record.scan+"\n";
           vm.service.showNoty("picked already equal to reserved quantity !");
-          // Service.pop_msg("picked already equal to reserved quantity");
+          record.scan = '';
         }
       }
     }
@@ -196,6 +211,13 @@ function view_orders() {
     vm.increament = function (record) {
       record.picked_quantity = parseInt(record.picked_quantity) + 1;
       vm.record_serial_data.shift()
+      if(vm.collect_imei_data.hasOwnProperty(vm.get_id)) {
+        vm.collect_imei_data[vm.get_id].push(record.scan)
+      } else {
+        vm.collect_imei_data[vm.get_id] = []
+        vm.collect_imei_data[vm.get_id].push(record.scan)
+      }
+      $("input[name=imei_"+vm.get_id+"]").prop('value', String(vm.collect_imei_data[vm.get_id]))
       record.scan = '';
     }
 

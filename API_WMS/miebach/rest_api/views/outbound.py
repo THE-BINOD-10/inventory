@@ -960,7 +960,7 @@ def get_picklist_data(data_id, user_id):
                                                'order_no': order_id, 'remarks': remarks,
                                                'load_unit_handle': load_unit_handle, 'category': category,
                                                'original_order_id': original_order_id, 'mrp':mrp,
-                                               'batchno':batch_no, 'is_combo_picklist': is_combo_picklist}
+                                               'batchno':batch_no, 'is_combo_picklist': is_combo_picklist, 'sku_imeis_map': sku_imeis_map}
             else:
                 batch_data[match_condition]['reserved_quantity'] += order.reserved_quantity
                 batch_data[match_condition]['picked_quantity'] += order.reserved_quantity
@@ -1170,7 +1170,7 @@ def get_picklist_data(data_id, user_id):
                  'manufactured_date':manufactured_date,
                  'marketplace': marketplace, 'original_order_id' : original_order_id,
                  'mrp':mrp, 'batchno':batch_no, 'is_combo_picklist': is_combo_picklist,
-                 'parent_sku_code':parent_sku_code})
+                 'parent_sku_code':parent_sku_code, 'sku_imeis_map': sku_imeis_map})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -1337,6 +1337,11 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
 
 def insert_st_order_serial(picklist, val, order='', shipped_orders_dict={}):
     imei_nos = val['imei']
+    if not isinstance(val['imei'], list):
+        if ',' in val['imei']:
+            imei_nos = list(set(val['imei'].split(',')))
+        else:
+            imei_nos = list(set(val['imei'].split('\r\n')))
     user_id = None
     for imei in imei_nos:
         imei_filter = {}
@@ -2063,6 +2068,11 @@ def picklist_confirmation(request, user=''):
                         insert_order_serial(picklist, val)
                     if 'labels' in val.keys() and val['labels'] and picklist.order:
                         update_order_labels(picklist, val)
+                    if 'imei' in val.keys() and val['imei'] and not picklist.order:
+                        order = picklist.storder_set.filter()
+                        if order:
+                            order = order[0]
+                            insert_st_order_serial(picklist, val, order=order)
                     reserved_quantity1 = picklist.reserved_quantity
                     tot_quan = 0
                     for stock in total_stock:
@@ -3086,6 +3096,7 @@ def check_imei(request, user=''):
     shipping_quantity = 0
     try:
         for key, value in request.GET.iteritems():
+            picklist = ''
             if key in ['is_shipment', 'order_id', 'groupby', 'is_rm_picklist']:
                 continue
             sku_code = ''
@@ -3100,10 +3111,13 @@ def check_imei(request, user=''):
                 else:
                     picklist = Picklist.objects.get(id=key)
                     if not picklist.order:
-                        continue
-                    sku_code = picklist.order.sku.sku_code
-                    order = picklist.order
-
+                        sku_code = picklist.stock.sku.sku_code
+                        order = picklist.storder_set.filter()
+                        if order:
+                            order = order[0]
+                    else:
+                        sku_code = picklist.order.sku.sku_code
+                        order = picklist.order
             po_mapping, status, imei_data = check_get_imei_details(value, sku_code, user.id, check_type='order_mapping',
                                                                    order=order, job_order=job_order)
             if imei_data.get('wms_code', ''):
@@ -3113,7 +3127,6 @@ def check_imei(request, user=''):
                 sku_code = po_mapping[0].sku.sku_code
             if not po_mapping:
                 status = str(value) + ' is invalid Imei number'
-
             order_mapping = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, sku__user=user.id, status=1)
             if order_mapping:
                 if order_mapping[0].order:
@@ -3124,7 +3137,10 @@ def check_imei(request, user=''):
                 elif order_mapping[0].jo_material:
                     status = str(value) + ' is already mapped with this job order ' + \
                             str(order_mapping[0].jo_material.job_order.job_code)
-
+                elif not order_mapping[0].order and picklist:
+                    order = picklist.storder_set.filter()
+		    if order:
+			status = str(value) + ' is already mapped with an order'
             if is_shipment and po_mapping:
                 seller_id = ''
                 if po_mapping[0].seller:
@@ -3159,9 +3175,12 @@ def check_imei(request, user=''):
                         #    shipped_orders_dict.setdefault(int(order.id), {}).setdefault('quantity', 0)
                         #    shipped_orders_dict[int(order.id)]['quantity'] += 1
                         #    shipping_quantity += 1
+                else:
+		    check_st_order_wise = OrderIMEIMapping.objects.filter(sku__user=user.id, stock_transfer__order_id=order_id, status=1, po_imei__imei_number=value)
+		    if not check_st_order_wise:
+			status = 'IMEI not related to this Order'
             if not status:
                 status = 'Success'
-
         if shipped_orders_dict:
             log.info('Order Status update call for user ' + str(user.username) + ' is ' + str(shipped_orders_dict))
             check_and_update_order_status(shipped_orders_dict, user)
@@ -5783,7 +5802,7 @@ def insert_st_shipment_info(request, user=''):
                                             shipped_orders_dict=shipped_orders_dict)
                 # Until Here
                 order_pack_instance = OrderPackaging.objects.filter(order_shipment_id=order_shipment.id,
-                                                                    package_reference=all_sku_data[i]['pack_reference'],
+                                                                    package_reference=all_sku_data[i].get('pack_reference', ''),
                                                                     order_shipment__user=user.id)
                 if not order_pack_instance:
                     data_dict['order_shipment_id'] = order_shipment.id
@@ -14029,9 +14048,6 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
                                     order_by(sort_data)
     temp_data['recordsTotal'] = stock_transfers.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    picklist_qtys = dict(STOrder.objects.filter(stock_transfer_id__in=stock_transfers.values_list('id', flat=True)).\
-                         values_list('stock_transfer__order_id').annotate(picked_qty=Sum('picklist__picked_quantity',
-                                                                                         distinct=True)))
     for stock_transfer in stock_transfers:
         destination_wh = ''
         order_id = stock_transfer['order_id']
@@ -14039,11 +14055,17 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
         user_profile = User.objects.get(id=user_id)
         if user_profile:
             destination_wh = user_profile.username
+        picked_qty = total_qty = 0
+        picked_total_qty = STOrder.objects.filter(stock_transfer__st_po__open_st__sku__user=user_id, stock_transfer__order_id=order_id).values_list('stock_transfer__order_id').annotate(picked_qty=Sum('picklist__picked_quantity', distinct=True), st_obj=Sum('stock_transfer__quantity', distinct=True))
+        if picked_total_qty:
+            picked_total_qty = picked_total_qty[0]
+            picked_qty = picked_total_qty[2]
+            total_qty = picked_total_qty[1]
         temp_data['aaData'].append(OrderedDict(( ('Stock Transfer ID', order_id),
-                                            ('Picked Quantity', picklist_qtys.get(order_id, 0)),
+                                            ('Picked Quantity', picked_qty),
                                             ('Stock Transfer Date&Time', str(stock_transfer['date_only'])),
                                             ('Destination Warehouse', destination_wh),
-                                            ('Total Quantity', stock_transfer['ordered']))))
+                                            ('Total Quantity', total_qty))))
 
 
 @csrf_exempt
@@ -14076,7 +14098,8 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
     if 'st_order_id' in request_data.keys() and datatable_view == 'StockTransferShipment':
         filter_order_ids = []
         st_order_id = request_data['st_order_id']
-        stock_transfer_obj = StockTransfer.objects.filter(order_id__in = st_order_id, st_po__open_st__warehouse__username = dest_wh_username)
+        dest_user_id = User.objects.get(username=dest_wh_username)
+        stock_transfer_obj = StockTransfer.objects.filter(order_id__in = st_order_id, st_po__open_st__sku__user = dest_user_id.id)
         if len(stock_transfer_obj):
             stock_transfer_obj = stock_transfer_obj.values()
         '''
@@ -14086,6 +14109,7 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
         'id': 24L, 'quantity': 1.0}
         '''
         for obj in stock_transfer_obj:
+            picked_qty = total_qty = 0
             data_dict = obj
             sku_obj = SKUMaster.objects.get(id=data_dict['sku_id'])
             if sku_obj:
@@ -14093,6 +14117,13 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
                 sku_desc = sku_obj.sku_desc
             data_dict['sku_code'] = sku_code
             data_dict['sku_desc'] = sku_desc
+            picked_total_qty = STOrder.objects.filter(stock_transfer__st_po__open_st__sku__user=dest_user_id.id, stock_transfer__order_id=st_order_id[0]).values_list('stock_transfer__order_id').annotate(picked_qty=Sum('picklist__picked_quantity', distinct=True), st_obj=Sum('stock_transfer__quantity', distinct=True))
+            if picked_total_qty:
+                picked_total_qty = picked_total_qty[0]
+                picked_qty = picked_total_qty[1]
+                total_qty = picked_total_qty[2]
+            data_dict['quantity'] = total_qty
+            data_dict['picked_quantity'] = picked_qty
             data.append(data_dict)
         '''
         for order_ids in request_data['stock_transfer_id']:

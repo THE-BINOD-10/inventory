@@ -6543,6 +6543,7 @@ def get_inventory_value_report_data(search_params, user, sub_user):
                                                  'stock__batch_detail__weight', 'stock__batch_detail__batch_no',
                                                  'stock__batch_detail__ean_number',
                                                  'stock__batch_detail__manufactured_date',
+                                                 'stock__batch_detail__expiry_date',
                                                  'stock__batch_detail__mrp',
                                                  'stock__batch_detail__buy_price',
                                                  'stock__sku__sku_desc',
@@ -6578,7 +6579,7 @@ def get_inventory_value_report_data(search_params, user, sub_user):
         ean_number = ''
         if sku_data['stock__batch_detail__manufactured_date']:
             manufactured_date = str(sku_data['stock__batch_detail__manufactured_date'])
-        if sku_data['stock__batch_detail__manufactured_date']:
+        if sku_data['stock__batch_detail__expiry_date']:
             expiry_date = str(sku_data['stock__batch_detail__expiry_date'])
         if sku_data['stock__batch_detail__weight']:
             weight = sku_data['stock__batch_detail__weight']

@@ -518,7 +518,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                               }
                             }
                         }
-                  }
+                }
+              vm.imei_number = "";
             }
 
         }

@@ -3449,19 +3449,21 @@ def save_replaced_serials(request , user):
         import traceback
         log.debug(traceback.format_exc())
         log.info("Saving replacement serial number  and error statement is " + str(e))
-    return HttpResponse("Success")    
+    return HttpResponse("Success")
 
 @login_required
 @get_admin_user
 def save_replaced_locations(request , user):
     data_dict = dict(request.POST.iterlists())
+    status =''
     for i in range(len(data_dict['sku_code'])):
         wms_code = data_dict['sku_code'][i]
         source_loc = data_dict['replacement_location'][i]
         dest_loc = data_dict['return_location'][i]
         quantity= data_dict['replacement_quntity'][i]
-        status = move_stock_location(1, wms_code, source_loc, dest_loc, quantity, user, '', '', '')
-        if 'success' in status.lower():
-            update_filled_capacity([source_loc, dest_loc], user.id)
-        log.info("Staus for the replacement location %s,"%(status))
+        if source_loc :
+            status = move_stock_location(1, wms_code, source_loc, dest_loc, quantity, user, '', '', '')
+            if 'success' in status.lower():
+                update_filled_capacity([source_loc, dest_loc], user.id)
+                log.info("Staus for the replacement location %s,"%(status))
     return HttpResponse(status)

@@ -6065,7 +6065,11 @@ def app_shipment_info_data(request, user=''):
         time =0
         id_type =' '
         pod_status = False
+        returned = False
         loan_proposal_id = str(orders.order.original_order_id)
+        order_return_obj = OrderReturns.objects.filter(order__original_order_id = orders.order.original_order_id,sku__wms_code = orders.order.sku.sku_code)
+        if order_return_obj :
+            returned = True
         from firebase import firebase
         firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
         try:
@@ -6077,30 +6081,15 @@ def app_shipment_info_data(request, user=''):
             log.info('Firebase query  failed for %s and params are %s and error statement is %s' % (
             str(user.username), str(request.POST.dict()), str(e)))
         if  result :
-            try:
-                signed_invoice_copy = result['signed_invoice_copy']
-            except:
-                signed_invoice_copy = ''
-            try :
-                id_type = result['id_type']
-            except:
-                id_type = ''
-            try :
-                id_card = result['id_card']
-            except :
-                id_card = ''
-            try :
-                id_proof_number = result['id_proof_number']
-            except :
-                id_proof_number = ''
-            try :
-                pod_status = result['pod_status']
-            except:
-                pod_status = False
-            try:
-                uid= result['uid']
-            except :
-                uid = ' '
+            signed_invoice_copy = result.get('signed_invoice_copy','')
+            id_type = result.get('id_type','')
+            id_card = result.get('id_card','')
+            id_proof_number = result.get('id_proof_number','')
+            uid = result.get('uid','')
+            pod_status = result.get('pod_status',False)
+            uid = result.get('uid','')
+            refusal = result.get('refusal',False)
+            refusal_reason = result.get('refusal_reason','')
 
         data.append({'id': orders.id,
                      'customer_name':orders.order.customer_name,
@@ -6115,7 +6104,10 @@ def app_shipment_info_data(request, user=''):
                      'id_proof_number': id_proof_number,
                      'time': time,
                      'id_type' : id_type,
+                     'refusal':refusal,
+                     'refusal_reason':refusal_reason,
                      'model':model,
+                     'returned':returned,
                      'mobile_no':mobile_no,
                      'alternative_mobile_no':alternative_mobile_no,
                      'district':district})

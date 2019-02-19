@@ -958,7 +958,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     FUN.scan_sku = vm.scan_sku;
 
     vm.po_imei_scan = function(data1, field) {
-
+      field = field.toUpperCase();
       if(data1["imei_list"].indexOf(field) != -1) {
 
         Service.showNoty("IMEI Already Scanned");
@@ -999,7 +999,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       //vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number}).then(function(data){
       //  if(data.message) {
       //    if (data.data == "") {
-
+            data1.sku_details[0].fields = data1.sku_details[0].fields.toUpperCase();
             vm.current_index = index;
             vm.model_data1["sku_data"] = data1.sku_details[0].fields;
             vm.imei_list.push(data1.imei_number);
@@ -1041,6 +1041,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               }
             } else {
               if(vm.permissions.barcode_generate_opt == 'sku_serial' || vm.permissions.barcode_generate_opt == 'sku_code') {
+                debugger;
                 vm.service.apiCall('check_imei_exists/', 'GET',{imei: field, sku_code: vm.model_data.data[vm.current_index][0].wms_code}).then(function(data){
                   if(data.message) {
                     if (data.data == "") {
@@ -1095,6 +1096,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.serial_numbers = [];
     vm.check_imei_exists = function(event, data1, index) {
+      data1.imei_number = data1.imei_number.toUpperCase();
       event.stopPropagation();
       if (event.keyCode == 13 && data1.imei_number.length > 0) {
         //if(vm.imei_list.indexOf(data1.imei_number) > -1) {
@@ -1914,7 +1916,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         var field = sku["accept_imei"][index].split("<<>>")[0];
         sku["accept_imei"].splice(index,1);
       } else {
-        field = imei;
+        field = imei.toUpperCase();
       }
       sku.rejected_quantity = Number(sku.rejected_quantity) + 1;
 
@@ -1933,6 +1935,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.status_imei = "";
     vm.status_scan_imei = function(event, field) {
+      field = field.toUpperCase();
       if ( event.keyCode == 13 && field.length > 0) {
         vm.enable_button = true;
         vm.reason_show = false;
@@ -1956,7 +1959,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.status_move_imei = function(field) {
-
+      field = field.toUpperCase();
       for(var i = 0; i < vm.model_data.data.length; i++) {
 
         var data = vm.model_data.data[i][0];

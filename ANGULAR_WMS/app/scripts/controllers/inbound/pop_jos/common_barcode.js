@@ -67,6 +67,7 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
   vm.accept_imei = [];
   vm.tempUniqueDict = {};
   vm.check_imei_exists = function(event, data1) {
+    data1.imei_number = data1.imei_number.toUpperCase();
     event.stopPropagation();
     if (event.keyCode == 13 && data1.imei_number.length > 0) {
       // if(vm.permissions.barcode_generate_opt != "sku_serial") {

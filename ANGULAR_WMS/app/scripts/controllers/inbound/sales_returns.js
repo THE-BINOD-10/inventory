@@ -466,6 +466,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.add_new_imei = function(data, field) {
+      field = field.toUpperCase();
       vm.model_data.data.push({'sku_code': data.data.sku_code, 'sku_desc': data.data.sku_desc,
                                'shipping_quantity': data.data.shipping_quantity, 'order_id': data.data.order_id,
                                'return_quantity': 1, 'damaged_quantity': '', 'track_id_enable': false,
@@ -483,6 +484,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.imei_data = {};
 
     vm.scan_imei = function(event, field) {
+      field = field.toUpperCase();
       if ( event.keyCode == 13 && field) {
         vm.scan_imei_readonly = true;
         if(vm.scan_imeis.indexOf(field) == -1) {

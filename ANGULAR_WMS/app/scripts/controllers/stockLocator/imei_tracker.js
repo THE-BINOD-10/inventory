@@ -7,6 +7,7 @@ function IMEITrackerCtrl($scope, $http, Service) {
   vm.model_data = {};
   vm.scan_item_type = 'PO';
   vm.scan_imei = function(event, field) {
+      field = field.toUpperCase();
       if ( event.keyCode == 13 && field) {
 
         Service.apiCall('get_imei_data/', 'GET', {imei:field}, true).then(function(data){

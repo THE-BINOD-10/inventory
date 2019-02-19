@@ -1370,6 +1370,7 @@ function CreateCentralOrders($scope, $filter, $http, $q, Session, colFilters, Se
   }
 
   vm.serial_scan = function(event, scan, sku_data) {
+    scan = scan.toUpperCase();
     if ( event.keyCode == 13 && scan) {
       event.preventDefault();
       sku_data.serial = "";

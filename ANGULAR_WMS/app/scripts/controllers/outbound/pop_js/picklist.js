@@ -155,6 +155,7 @@ function view_orders() {
         for(var i=0; i < data.sub_data.length; i++) {
           total = total + parseInt(data.sub_data[i].picked_quantity);
         }
+        scan = scan.toUpperCase();
         var scan_data = scan.split("\n");
         var length = scan_data.length;
         var elem = {};

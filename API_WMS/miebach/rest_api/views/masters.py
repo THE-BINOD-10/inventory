@@ -171,8 +171,12 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
         if data.status:
             status = 'Active'
 
-        creation_date = get_local_date(user, data.creation_date, send_date=True).strftime('%Y-%m-%d %I:%M %p')
-        updation_date = get_local_date(user, data.updation_date, send_date=True).strftime('%Y-%m-%d %I:%M %p')
+        creation_date = ''
+        updation_date = ''
+        if data.creation_date:
+            creation_date = get_local_date(user, data.creation_date, send_date=True).strftime('%Y-%m-%d %I:%M %p')
+        if data.updation_date:
+            updation_date = get_local_date(user, data.updation_date, send_date=True).strftime('%Y-%m-%d %I:%M %p')
         zone = ''
         if data.zone_id:
             zone = data.zone.zone
@@ -732,7 +736,8 @@ def get_sku_data(request, user=''):
     combo_skus = SKURelation.objects.filter(relation_type='combo', parent_sku_id=data.id)
     for combo in combo_skus:
         combo_data.append(
-            OrderedDict((('combo_sku', combo.member_sku.wms_code), ('combo_desc', combo.member_sku.sku_desc))))
+            OrderedDict((('combo_sku', combo.member_sku.wms_code), ('combo_desc', combo.member_sku.sku_desc),
+                         ('combo_quantity', combo.quantity))))
 
     sku_data = {}
     sku_data['sku_code'] = data.sku_code
@@ -2101,6 +2106,11 @@ def update_zone_marketplace_mapping(zone, marketplace_list):
     return resp
 
 
+def update_sub_zone_segregation(zone_obj):
+    sub_zone_ids = SubZoneMapping.objects.filter(zone_id=zone_obj.id).values_list('sub_zone_id', flat=True)
+    ZoneMaster.objects.filter(user=zone_obj.user, id__in=sub_zone_ids).update(segregation=zone_obj.segregation)
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -2112,6 +2122,10 @@ def add_zone(request, user=''):
     update = request.GET.get('update', '')
     marketplace = request.GET.get('marketplaces', '')
     level = request.GET.get('level', 0)
+    segregation = request.GET.get('segregation', '')
+    seg_options = dict(SELLABLE_CHOICES).keys()
+    if segregation and segregation not in seg_options:
+        return HttpResponse("Invalid Segragation Option")
     if level == '':
         level = 0
     if update == 'true':
@@ -2119,6 +2133,11 @@ def add_zone(request, user=''):
             status = 'ZONE not found'
         else:
             update_zone_marketplace_mapping(data[0], marketplace)
+            if segregation:
+                data = data[0]
+                data.segregation = segregation
+                data.save()
+                update_sub_zone_segregation(data)
             status = 'Update Successfully'
     else:
         if not data:
@@ -2126,6 +2145,8 @@ def add_zone(request, user=''):
             location_dict['user'] = user.id
             location_dict['zone'] = zone
             location_dict['level'] = level
+            if segregation:
+                location_dict['segregation'] = segregation
             loc_master = ZoneMaster(**location_dict)
             loc_master.save()
             update_zone_marketplace_mapping(loc_master, marketplace)
@@ -2150,6 +2171,7 @@ def get_zone_data(request, user=''):
                 'marketplace', flat=True))
         resp['marketplaces'] = marketplace_list
         resp['level'] = data[0].level
+        resp['segregation'] = data[0].segregation
         status = 'Success'
     resp['msg'] = status
     return HttpResponse(json.dumps(resp))
@@ -3573,10 +3595,15 @@ def get_corporates(request, user=''):
     ''' Get Corporates list'''
     message = 0
     checked_corporates = {}
+    price_band_flag = get_misc_value('priceband_sync', user.id)
+    if price_band_flag:
+       admin_user = get_admin(user)
+    else:
+       admin_user = user
     if request.GET['reseller']:
         res = request.GET['reseller']
         checked_corporates = list(CorpResellerMapping.objects.filter(reseller_id=res).exclude(status=0).values('corporate_id', 'status'))
-    corporates = list(CorporateMaster.objects.all().values('corporate_id', 'name').order_by('name'))
+    corporates = list(CorporateMaster.objects.filter(user=admin_user.id).values('corporate_id', 'name').order_by('name'))
     if corporates:
         message = 1
     return HttpResponse(json.dumps({'message': message, 'data': corporates, 'checked_corporates': checked_corporates}))
@@ -4017,7 +4044,10 @@ def add_sub_zone_mapping(request, user=''):
         return HttpResponse('Invalid Sub zone')
     exist_mapping = SubZoneMapping.objects.filter(zone_id=zone_obj[0].id, sub_zone_id=sub_zone_obj[0].id)
     if not exist_mapping:
-        mapping_dict = {'zone_id': zone_obj[0].id, 'sub_zone_id': sub_zone_obj[0].id, 'status': 1,
+        sub_zone_obj = sub_zone_obj[0]
+        sub_zone_obj.segregation = zone_obj[0].segregation
+        sub_zone_obj.save()
+        mapping_dict = {'zone_id': zone_obj[0].id, 'sub_zone_id': sub_zone_obj.id, 'status': 1,
                         'creation_date': datetime.datetime.now()}
         mapping_obj = SubZoneMapping(**mapping_dict)
         mapping_obj.save()

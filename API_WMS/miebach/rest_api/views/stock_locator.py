@@ -21,16 +21,16 @@ log = init_logger('logs/stock_locator.log')
 def get_stock_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     is_excel = request.POST.get('excel', 'false')
-    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'total', 'total',
-           'sku__measurement_type', 'stock_value']
+    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'total', 'total', 'total',
+           'sku__measurement_type', 'stock_value', 'sku__wms_code']
     lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_brand', 'product_code__sku_category',
             'total',
-            'total', 'total', 'product_code__measurement_type', 'stock_value']
+            'total', 'total', 'total', 'product_code__measurement_type', 'stock_value', 'product_code__wms_code']
     sort_cols = ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Quantity', 'Reserved Quantity',
                  'Total Quantity',
                  'Unit of Measurement', 'Stock Value']
     lis2 = ['wms_code', 'sku_desc', 'sku_brand', 'sku_category', 'threshold_quantity', 'threshold_quantity',
-            'threshold_quantity', 'measurement_type', 'measurement_type']
+            'threshold_quantity', 'measurement_type', 'measurement_type', 'wms_code']
     search_params = get_filtered_params(filters, lis)
     search_params1 = get_filtered_params(filters, lis1)
     search_params2 = get_filtered_params(filters, lis2)
@@ -144,11 +144,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
 
     temp_data['totalAvailableQuantity'] = int(temp_data['totalAvailableQuantity'])
 
-    #reserveds = map(lambda d: d['stock__sku__wms_code'], reserved_instances)
-    #reserved_quantities = map(lambda d: d['reserved'], reserved_instances)
-    #raw_reserveds = map(lambda d: d['material_picklist__jo_material__material_code__wms_code'], raw_res_instances)
-    #raw_reserved_quantities = map(lambda d: d['rm_reserved'], raw_res_instances)
-    # temp_data['totalQuantity'] = sum([data[4] for data in master_data])
+    sku_type_qty = dict(OrderDetail.objects.filter(user=user.id, quantity__gt=0, status=1).values_list('sku__sku_code').distinct().annotate(Sum('quantity')))
     for ind, data in enumerate(master_data[start_index:stop_index]):
         total_stock_value = 0
         reserved = 0
@@ -182,11 +178,13 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             sku_packs = int(quantity / sku_pack_obj.pack_quantity)
         except:
             sku_packs = 0
+        open_order_qty = sku_type_qty.get(data[0], 0)
         temp_data['aaData'].append(OrderedDict((('WMS Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),
                                                 ('sku_packs',sku_packs),
                                                 ('Available Quantity', quantity),
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total),
+						 ('Open Order Quantity', open_order_qty),
                                                 ('Unit of Measurement', sku.measurement_type), ('Stock Value', total_stock_value ),
                                                 ('DT_RowId', data[0]) )))
 
@@ -1325,7 +1323,6 @@ def stock_summary_data(request, user=''):
             elif quantity:
                 production_stages.append(
                     {'job_code': job_code, 'stage_name': head, 'stage_quantity': tracking.get(head, 0)})
-
     return HttpResponse(json.dumps({'zones_data': zones_data.values(), 'production_stages': production_stages,
                                     'load_unit_handle': load_unit_handle}))
 
@@ -2596,3 +2593,160 @@ def auto_sellable_confirm(request, user=''):
 def update_sellable_suggestions(request, user=''):
     update_auto_sellable_data(user)
     return HttpResponse("Success")
+
+
+def get_all_sellable_zones(user):
+    sellable_zones = ZoneMaster.objects.filter(user=user.id, segregation='sellable').exclude(zone__in=['DAMAGED_ZONE', 'QC_ZONE']).values_list('zone', flat=True)
+    if sellable_zones:
+        sellable_zones = get_all_zones(user, zones=sellable_zones)
+    return sellable_zones
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_combo_sku_codes(request, user=''):
+    sku_code = request.POST.get('sku_code', '')
+    all_data = []
+    seller_id = request.POST.get('seller_id', '').split(':')[0]
+    seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
+    if not seller_master:
+        return HttpResponse(json.dumps({"status": False, "message":"Invalid Seller ID"}))
+    seller_master_id = seller_master[0].id
+    combo_skus = SKURelation.objects.filter(parent_sku__user=user.id, parent_sku__sku_code=sku_code)
+    if not combo_skus:
+        return HttpResponse(json.dumps({"status": False, "message":"No Data Found"}))
+    sellable_zones = get_all_sellable_zones(user)
+    for combo in combo_skus:
+        cond = (combo.member_sku.sku_code)
+        child_quantity = combo.quantity
+        stock_detail = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sellerstock__seller_id=seller_master_id,
+                                                            sku_id=combo.member_sku_id, location__zone__zone__in=sellable_zones,
+                                                            batch_detail__isnull=False).only('batch_detail__mrp')
+        child_mrp = 0
+        if stock_detail.exists():
+            child_mrp = stock_detail[0].batch_detail.mrp
+        all_data.append({'child_sku_qty': child_quantity, 'child_sku_code': cond, 'child_sku_batch':'', 'child_sku_desc': combo.member_sku.sku_desc,
+                        'child_sku_location': '', 'child_sku_mrp': child_mrp})
+    parent_data = {'combo_sku_code': combo_skus[0].parent_sku.sku_code, 'combo_sku_desc': combo_skus[0].parent_sku.sku_desc, 'quantity':1}
+    return HttpResponse(json.dumps({"status": True, 'parent': parent_data, 'childs': all_data}), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def confirm_combo_allocation(request, user=''):
+    data_dict = dict(request.POST.iterlists())
+    try:
+        seller_id = request.POST.get('seller_id', '').split(':')[0]
+        if seller_id:
+            seller = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
+            if not seller:
+                return HttpResponse(json.dumps({'status':False, 'message':'Invalid Seller Id'}))
+            else:
+                seller_id = seller[0].id
+        final_data = OrderedDict()
+        for ind in range(0, len(data_dict['combo_sku_code'])):
+            combo_batch_no = data_dict['batch'][ind]
+            combo_mrp = data_dict['mrp'][ind]
+            combo_qty = data_dict['quantity'][ind]
+            child_batch_no = data_dict['child_batch'][ind]
+            child_mrp = data_dict['child_mrp'][ind]
+            child_qty = data_dict['child_quantity'][ind]
+            if not combo_qty:
+                return HttpResponse(json.dumps({'status':False, 'message':'Child Quantity should be number'}))
+            combo_qty = float(combo_qty)
+            if not child_qty:
+                return HttpResponse(json.dumps({'status':False, 'message':'Child Quantity should be number'}))
+            child_qty = float(child_qty)
+            if child_mrp:
+                try:
+                    child_mrp = float(child_mrp)
+                except:
+                    return HttpResponse(json.dumps({'status':False, 'message':'Child MRP should be number'}))
+            else:
+                child_mrp = 0
+            if combo_mrp:
+                try:
+                    combo_mrp = float(combo_mrp)
+                except:
+                    return HttpResponse(json.dumps({'status':False, 'message':'Combo MRP should be number'}))
+            else:
+                combo_mrp = 0
+            combo_sku = SKUMaster.objects.filter(user=user.id, sku_code=data_dict['combo_sku_code'][ind])
+            if not combo_sku:
+                return HttpResponse(json.dumps({'status':False, 'message':'Combo SKU Code Not Found'}))
+            child_sku = SKUMaster.objects.filter(user=user.id, sku_code=data_dict['child_sku_code'][ind])
+            if not child_sku:
+                return HttpResponse(json.dumps({'status':False, 'message':'Child SKU Code Not Found'}))
+            combo_loc = LocationMaster.objects.filter(zone__user=user.id, location=data_dict['location'][ind])
+            if not combo_loc:
+                return HttpResponse(json.dumps({'status':False, 'message':'Combo Location Not Found'}))
+            child_loc = LocationMaster.objects.filter(zone__user=user.id, location=data_dict['child_location'][ind])
+            if not child_loc:
+                return HttpResponse(json.dumps({'status':False, 'message':'Child Location Not Found'}))
+            stock_dict = {"sku_id": child_sku[0].id, "location_id": child_loc[0].id,
+                          "sku__user": user.id, "quantity__gt": 0}
+            if seller_id:
+                stock_dict['sellerstock__seller_id'] = seller_id
+            if child_batch_no:
+                stock_dict['batch_detail__batch_no'] = child_batch_no
+            if child_mrp:
+                stock_dict['batch_detail__mrp'] = child_mrp
+            child_stocks = StockDetail.objects.filter(**stock_dict)
+            child_stock_count = child_stocks.aggregate(Sum('quantity'))['quantity__sum']
+            if not child_stock_count:
+                return HttpResponse(json.dumps({'status':False, 'message':'Child SKU Code Don\'t Have Stock'}))
+            elif child_stock_count < child_qty:
+                return HttpResponse(json.dumps({'status':False, 'message':'Child SKU Code Have Stock, ' + str(child_stock_count) }))
+            combo_filter = {'sku_id': combo_sku[0].id, 'location_id': combo_loc[0].id,
+                           'sku__user': user.id}
+            mrp_dict = {}
+            mrp_dict['batch_no'] = combo_batch_no
+            combo_filter['batch_detail__batch_no'] = combo_batch_no
+            if combo_mrp:
+                mrp_dict['mrp'] = combo_mrp
+                combo_filter['batch_detail__mrp'] = combo_mrp
+            add_ean_weight_to_batch_detail(combo_sku[0], mrp_dict)
+            if seller_id:
+                combo_filter['sellerstock__seller_id'] = seller_id
+            combo_stocks = StockDetail.objects.filter(**combo_filter)
+            group_key = '%s<<>>%s<<>>%s<<>>%s' % (str(combo_sku[0].sku_code), str(combo_loc[0].location),
+                                                  str(combo_batch_no), str(combo_mrp))
+            final_data.setdefault(group_key, {'combo_sku': combo_sku[0], 'combo_loc': combo_loc[0],
+                                              'combo_batch_no': combo_batch_no, 'combo_mrp': combo_mrp,
+                                              'combo_qty': combo_qty, 'combo_mrp_dict': mrp_dict,
+                                              'combo_stocks': combo_stocks,
+                                              'childs': []})
+            final_data[group_key]['childs'].append({'child_sku': child_sku[0], 'child_loc': child_loc[0],
+                                                    'child_batch_no': child_batch_no, 'child_mrp': child_mrp,
+                                                    'child_qty': child_qty, 'child_stocks': child_stocks})
+        final_data = final_data.values()
+        source_updated=False
+        for row_data in final_data:
+            dest_updated = False
+            for data in row_data['childs']:
+                desc_batch_obj = update_stocks_data(data['child_stocks'], float(data['child_qty']), row_data['combo_stocks'],
+                                                    float(row_data['combo_qty']), user, [row_data['combo_loc']],
+                                                    row_data['combo_sku'].id,
+                                                    src_seller_id=seller_id, dest_seller_id=seller_id,
+                                                    source_updated=source_updated,
+                                                    mrp_dict=row_data['combo_mrp_dict'], dest_updated=dest_updated)
+                sub_data = {'source_sku_code_id': data['child_sku'].id, 'source_location': data['child_loc'].location, 'source_quantity': data['child_qty'],
+                            'destination_sku_code_id': row_data['combo_sku'].id, 'destination_location': row_data['combo_loc'].location,
+                            'destination_quantity': row_data['combo_qty'], 'summary_type': 'combo_allocation'}
+                if data['child_stocks'] and data['child_stocks'][0].batch_detail:
+                    sub_data['source_batch_id'] = data['child_stocks'][0].batch_detail_id
+                if desc_batch_obj:
+                    sub_data['dest_batch_id'] = desc_batch_obj.id
+                if seller_id:
+                    sub_data['seller_id'] = seller_id
+                SubstitutionSummary.objects.create(**sub_data)
+                dest_updated = True
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Combo allocate stock failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(data_dict), str(e)))
+
+    return HttpResponse(json.dumps({'status':True, 'message' : 'Success'}))

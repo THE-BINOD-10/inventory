@@ -6132,7 +6132,6 @@ def app_shipment_info_data(request, user=''):
 
 
 def confirm_order_request(request, user=''):
-    # import pdb;pdb.set_trace()
     confirm_order_number = request.GET['loan_proposal_id']
     from firebase import firebase
     firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
@@ -6156,9 +6155,10 @@ def confirm_order_request(request, user=''):
                 return HttpResponse(eval(content)[0].get('Remarks'))
             else:
                 return HttpResponse("Failed")
-        except:
-            print content
-            print resp
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('72_Networks API Integration Server Error')
             return HttpResponse("Server Not Found")
     else:
         return HttpResponse("Invalid loan proposal ID")

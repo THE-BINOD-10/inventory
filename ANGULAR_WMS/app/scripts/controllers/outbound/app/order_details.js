@@ -152,11 +152,14 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
             type: "warning",
             showCancelButton: true,
             confirmButtonText: "Confirm Order",
-            cancelButtonText: "Block Stock",
             closeOnConfirm: true
             },
             function(isConfirm){
               // var elem = {'order_id': vm.order_id, 'uploaded_po': vm.upload_file_name};
+              if (!vm.upload_file_name) {
+                Service.showNoty('Upload the Image First', 'warning');
+                return false;
+              }
               var elem = {'order_id': vm.order_id};
               if(isConfirm){
                   elem['enq_status'] = 'confirm_order'
@@ -172,22 +175,21 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
               // $.each(files, function(i, file) {
               //   formData.append('po_file', file);
               // });
-
               // var data = {'user_id': Session.userId, 'enquiry_id': vm.order_details.order.enquiry_id}
               // $.each(elem, function(key, value) {
               //   formData.append(key, value);
               // });
-              vm.service.apiCall('confirm_or_hold_custom_order/', 'POST', elem  ).then(function(data){
-                    if(data.data.msg == 'Success') {
-                       if(isConfirm){
-                         vm.upload_po(vm.po_number_header, vm.client_name_header);
-                         Service.showNoty('Order Confirmed Successfully');
-                       }else{
-                         Service.showNoty('Placed Enquiry Order Successfully');
-                       }
-                    }else{
-                        Service.showNoty(data.data, 'warning');
-                    }
+              vm.service.apiCall('confirm_or_hold_custom_order/', 'POST', elem).then(function(data){
+                if(data.data.msg == 'Success') {
+                   if(isConfirm) {
+                     vm.upload_po(vm.po_number_header, vm.client_name_header);
+                     Service.showNoty('Order Confirmed Successfully');
+                   } else {
+                     Service.showNoty('Placed Enquiry Order Successfully');
+                   }
+                } else {
+                    Service.showNoty(data.data, 'warning');
+                }
               })
             }
           );

@@ -1981,8 +1981,8 @@ def picklist_confirmation(request, user=''):
 
     log.info('Request params for ' + user.username + ' is ' + str(data))
     try:
-	rista_order_id_list = []
-	rista_order_dict = {}
+        rista_order_id_list = []
+        rista_order_dict = {}
         data = OrderedDict(sorted(data.items(), reverse=True))
         error_string = ''
         picklist_number = request.POST['picklist_number']
@@ -2197,11 +2197,11 @@ def picklist_confirmation(request, user=''):
             else:
                 auto_po(auto_skus, user.id)
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
-	#Check DM Rista User
-	int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
-	if int_obj and rista_order_id_list:
-	    rista_order_id = list(set(rista_order_id_list))
-	    rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
+        #Check DM Rista User
+        int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
+        if int_obj and rista_order_id_list:
+            rista_order_id = list(set(rista_order_id_list))
+            rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
         order_ids = picks_all.values_list('order_id', flat=True).distinct()
@@ -8559,7 +8559,8 @@ def order_category_generate_picklist(request, user=''):
     picklist_exclude_zones = get_exclude_zones(user)
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
-                   'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
+                   'no_stock_switch': get_misc_value('no_stock_switch', user.id),
+                   'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     if enable_damaged_stock  == 'true':
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0, location__zone__zone__in=['DAMAGED_ZONE'])
@@ -11452,7 +11453,8 @@ def seller_generate_picklist(request, user=''):
         picklist_exclude_zones = get_exclude_zones(user)
         switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                        'fifo_switch': get_misc_value('fifo_switch', user.id),
-                       'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
+                       'no_stock_switch': get_misc_value('no_stock_switch', user.id),
+                       'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
         sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
             location__zone__zone__in=picklist_exclude_zones). \
@@ -12662,15 +12664,24 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
                                                  **data_filters).order_by(order_data)
         else:
             em_qs = ManualEnquiry.objects.filter(**data_filters).order_by(order_data)
+        if request.user.username == 'sm_purchase_admin':
+            status = 'ArtWork Submitted'
+        elif request.user.username == 'sm_design_admin':
+            status = 'Design Pending'
+        elif request.user.username == 'sm_finance_admin':
+            status = 'Order Placed'
+        else:
+            status = 'Remaining Status'
         for em_obj in em_qs:
             date = em_obj.creation_date.strftime('%Y-%m-%d')
             customization_types = dict(CUSTOMIZATION_TYPES)
             customization_type = customization_types[em_obj.customization_type]
-            temp_data['aaData'].append(OrderedDict((('Enquiry ID', int(em_obj.enquiry_id)), ('Sub Distributor', em_obj.user.username),
-                                                    ('Customer Name', em_obj.customer_name), ('Style Name', em_obj.sku.sku_class),
-                                                    ('Date', date), ('User ID', em_obj.user.id), ('Customization Type', customization_type),
-                                                    ('status', MANUAL_ENQUIRY_STATUS.get(em_obj.status, ''))
-                                                   )))
+            if MANUAL_ENQUIRY_STATUS.get(em_obj.status, '') == status or status == 'Remaining Status':
+                temp_data['aaData'].append(OrderedDict((('Enquiry ID', int(em_obj.enquiry_id)), ('Sub Distributor', em_obj.user.username),
+                                                        ('Customer Name', em_obj.customer_name), ('Style Name', em_obj.sku.sku_class),
+                                                        ('Date', date), ('User ID', em_obj.user.id), ('Customization Type', customization_type),
+                                                        ('status', MANUAL_ENQUIRY_STATUS.get(em_obj.status, ''))
+                                                       )))
         temp_data['recordsTotal'] = len(temp_data['aaData'])
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
@@ -12700,7 +12711,7 @@ def get_manual_enquiry_detail(request, user=''):
                           'quantity': manual_enq[0].quantity, 'custom_remarks': manual_enq[0].custom_remarks.split("<<>>"),
                           'enq_status': manual_enq[0].status, 'enq_det_id': int(manual_enq[0].id),
                           'client_po_rate': manual_enq[0].client_po_rate}
-        if request.user.userprofile.warehouse_type in ('CENTRAL_ADMIN', 'SM_DESIGN_ADMIN', 'SM_PURCHASE_ADMIN'):
+        if request.user.userprofile.warehouse_type in ('CENTRAL_ADMIN', 'SM_DESIGN_ADMIN', 'SM_PURCHASE_ADMIN', 'SM_FINANCE_ADMIN'):
             admin_user = user
         else:
             admin_user = get_priceband_admin_user(user)
@@ -12801,16 +12812,16 @@ def get_manual_enquiry_detail(request, user=''):
                                       'wh_open': 0, 'wh_blocked': 0,
                                       'intr_open': 0, 'intr_blocked': 0})
         wh_stock_dict = {'L1': wh_stock_list}
-
         return HttpResponse(json.dumps({'data': enquiry_dict, 'style': style_dict, 'order': manual_eq_dict,
                                         'enq_details': enq_details, 'far_wh_leadtime': far_wh_lt,
-                                        'wh_stock_dict': wh_stock_dict, 'md_approved_details': md_approved_details}))
+                                        'wh_stock_dict': wh_stock_dict, 'md_approved_details': md_approved_details,
+                                        'status': True}))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Get Manual Enquiry Detail failed. User: %s, Params: %s, Error: %s'
                  % (main_user.username, str(request.POST.dict()), str(e)))
-        return HttpResponse('Get Manual Enquiry Detail failed')
+        return HttpResponse(json.dumps({'data':'Get Manual Enquiry Detail Failed', 'status': False}))
 
 
 @csrf_exempt
@@ -12908,6 +12919,7 @@ def request_manual_enquiry_approval(request, user=''):
     enquiry_id = request.POST.get('enquiry_id', '')
     user_id = request.POST.get('user_id', '')
     status = request.POST.get('enq_status', '')
+    quantity = request.POST.get('quantity', 0)
     resp = {'msg': 'Success', 'data': []}
     if not enquiry_id or not user_id or not status:
         resp['msg'] = "Given information insufficient"
@@ -12927,6 +12939,8 @@ def request_manual_enquiry_approval(request, user=''):
     if not enq_data:
         resp['msg'] = "No Enquiry Data for Id"
         return HttpResponse(json.dumps(resp))
+    if quantity:
+        enq_data.update(quantity=int(quantity))
     expected_date = request.POST.get('expected_date', '')
     if expected_date or request.user.userprofile.warehouse_type == 'SM_DESIGN_ADMIN':
         save_manual_enquiry_data(request)
@@ -13015,6 +13029,7 @@ def convert_customorder_to_actualorder(request, user=''):
     stock_wh_map = {}
     try:
         warehouse_data = json.loads(request.POST['warehouse_data'])
+        remarks_value = request.POST.get('remarks', '')
         for level, warehouse_list in warehouse_data.items():
             for warehouse in warehouse_list:
                 if warehouse['quantity']:
@@ -13047,8 +13062,12 @@ def convert_customorder_to_actualorder(request, user=''):
         if ask_price_qs:
             ask_price = ask_price_qs[0]
         exp_date_qs = enq_obj.manualenquirydetails_set.values_list('expected_date', flat=True).order_by('-id')
-        if exp_date_qs:
+        if not exp_date_qs:
+            return HttpResponse("Some thing went wrong, please check with team")
+        else:
             exp_date = exp_date_qs[0]
+            if exp_date < datetime.date.today():
+                exp_date = datetime.date.today()
 
         cust_qs = CustomerUserMapping.objects.filter(user_id=enq_obj.user)
         if not cust_qs:
@@ -13111,8 +13130,10 @@ def convert_customorder_to_actualorder(request, user=''):
             dist_order_copy['address'] = customer_user[0].customer.address
 
         if req_stock != sum(stock_wh_map.values()):
-            return HttpResponse('No Available Stock to Place the Order or Total quantity is not considered')
+            resp['msg'] = 'No Available Stock to Place the Order or Total quantity is not considered'
+            return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
         is_emiza_order_failed = False
+        message = ''
         for usr, qty in stock_wh_map.items():
             if qty <= 0:
                 continue
@@ -13125,7 +13146,7 @@ def convert_customorder_to_actualorder(request, user=''):
                                  'original_order_id': org_ord_id, 'user': usr,
                                  'shipment_date': exp_date, 'unit_price': smd_price, 'invoice_amount': invoice_amount,
                                  'creation_date': datetime.datetime.now(), 'status': 1,
-                                 'order_code': 'MN'}
+                                 'order_code': 'MN', 'remarks' : remarks_value}
             order_detail_dict.update(dist_order_copy)
             ord_qs = OrderDetail.objects.filter(sku_id=mapped_sku_id, order_id=order_id, user=usr)
             if not ord_qs:
@@ -13172,7 +13193,6 @@ def convert_customorder_to_actualorder(request, user=''):
             for generic_order in generic_orders:
                 original_order_id = generic_order['orderdetail__original_order_id']
                 order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
-                message = ''
                 try:
                     order_push_status = order_push(original_order_id, order_detail_user, "NEW")
                     log.info('New Order Push Status: %s' % (str(order_push_status)))
@@ -13182,25 +13202,29 @@ def convert_customorder_to_actualorder(request, user=''):
                             message = "400 Bad Request"
                         else:
                             message = order_push_status['Result']['Errors'][0]['ErrorMessage']
-                        order_detail = OrderDetail.objects.filter(original_order_id=original_order_id,
-                                                                  user=order_detail_user.id)
-                        picklist_number = order_detail.values_list('picklist__picklist_number', flat=True)
-                        if picklist_number:
-                            picklist_number = picklist_number[0]
-                        log.info(order_detail.delete())
-                        check_picklist_number_created(order_detail_user, picklist_number)
-                        if message:
-                            return HttpResponse(message)
+                        # order_detail = OrderDetail.objects.filter(original_order_id=original_order_id,
+                        #                                           user=order_detail_user.id)
+                        # picklist_number = order_detail.values_list('picklist__picklist_number', flat=True)
+                        # if picklist_number:
+                        #     picklist_number = picklist_number[0]
+                        #log.info(order_detail.delete())
+                        # check_picklist_number_created(order_detail_user, picklist_number)
+                        # if message:
+                        #     return HttpResponse(message)
                     if generic_order_id and not is_emiza_order_failed:
                         check_and_raise_po(generic_order_id, cm_id)
-                except:
-                    log.info("Order Push failed for order: %s" %original_order_id)
+                except Exception as e:
+                    import traceback
+                    log.debug(traceback.format_exc())
+                    log.info("Order Push failed for order: %s, Error: %s" %(original_order_id, str(e)))
 
-        if req_stock == sum(stock_wh_map.values()) and not is_emiza_order_failed:
+        if not is_emiza_order_failed:
             enq_obj.status = 'order_placed'
             enq_obj.save()
         else:
-            return HttpResponse('No Available Stock to Place the Order')
+            log.info("Order Push failed for order:%s : Customer Id:%s : Error: %s" %(generic_order_id, cm_id, message))
+            cancel_emiza_order(generic_order_id, cm_id)
+            return HttpResponse('Order is not placed properly in Emiza, please check with Stockone Team')
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

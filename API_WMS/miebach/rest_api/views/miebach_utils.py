@@ -2035,7 +2035,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'receive_po_invoice_check': 'receive_po_invoice_check', 'mark_as_delivered': 'mark_as_delivered',
                         'order_exceed_stock': 'order_exceed_stock', 'sku_pack_config': 'sku_pack_config',
                         'central_order_reassigning':'central_order_reassigning',
-                        'po_sub_user_prefix': 'po_sub_user_prefix',
+                        'po_sub_user_prefix': 'po_sub_user_prefix', 'combo_allocate_stock': 'combo_allocate_stock',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -6546,6 +6546,7 @@ def get_inventory_value_report_data(search_params, user, sub_user):
                                                  'stock__batch_detail__weight', 'stock__batch_detail__batch_no',
                                                  'stock__batch_detail__ean_number',
                                                  'stock__batch_detail__manufactured_date',
+                                                 'stock__batch_detail__expiry_date',
                                                  'stock__batch_detail__mrp',
                                                  'stock__batch_detail__buy_price',
                                                  'stock__sku__sku_desc',
@@ -6581,7 +6582,7 @@ def get_inventory_value_report_data(search_params, user, sub_user):
         ean_number = ''
         if sku_data['stock__batch_detail__manufactured_date']:
             manufactured_date = str(sku_data['stock__batch_detail__manufactured_date'])
-        if sku_data['stock__batch_detail__manufactured_date']:
+        if sku_data['stock__batch_detail__expiry_date']:
             expiry_date = str(sku_data['stock__batch_detail__expiry_date'])
         if sku_data['stock__batch_detail__weight']:
             weight = sku_data['stock__batch_detail__weight']

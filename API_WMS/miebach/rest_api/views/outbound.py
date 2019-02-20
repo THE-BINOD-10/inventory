@@ -13133,6 +13133,7 @@ def convert_customorder_to_actualorder(request, user=''):
             resp['msg'] = 'No Available Stock to Place the Order or Total quantity is not considered'
             return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
         is_emiza_order_failed = False
+        message = ''
         for usr, qty in stock_wh_map.items():
             if qty <= 0:
                 continue
@@ -13192,7 +13193,6 @@ def convert_customorder_to_actualorder(request, user=''):
             for generic_order in generic_orders:
                 original_order_id = generic_order['orderdetail__original_order_id']
                 order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
-                message = ''
                 try:
                     order_push_status = order_push(original_order_id, order_detail_user, "NEW")
                     log.info('New Order Push Status: %s' % (str(order_push_status)))
@@ -13202,25 +13202,29 @@ def convert_customorder_to_actualorder(request, user=''):
                             message = "400 Bad Request"
                         else:
                             message = order_push_status['Result']['Errors'][0]['ErrorMessage']
-                        order_detail = OrderDetail.objects.filter(original_order_id=original_order_id,
-                                                                  user=order_detail_user.id)
-                        picklist_number = order_detail.values_list('picklist__picklist_number', flat=True)
-                        if picklist_number:
-                            picklist_number = picklist_number[0]
-                        log.info(order_detail.delete())
-                        check_picklist_number_created(order_detail_user, picklist_number)
-                        if message:
-                            return HttpResponse(message)
+                        # order_detail = OrderDetail.objects.filter(original_order_id=original_order_id,
+                        #                                           user=order_detail_user.id)
+                        # picklist_number = order_detail.values_list('picklist__picklist_number', flat=True)
+                        # if picklist_number:
+                        #     picklist_number = picklist_number[0]
+                        #log.info(order_detail.delete())
+                        # check_picklist_number_created(order_detail_user, picklist_number)
+                        # if message:
+                        #     return HttpResponse(message)
                     if generic_order_id and not is_emiza_order_failed:
                         check_and_raise_po(generic_order_id, cm_id)
-                except:
-                    log.info("Order Push failed for order: %s" %original_order_id)
+                except Exception as e:
+                    import traceback
+                    log.debug(traceback.format_exc())
+                    log.info("Order Push failed for order: %s, Error: %s" %(original_order_id, str(e)))
 
         if not is_emiza_order_failed:
             enq_obj.status = 'order_placed'
             enq_obj.save()
         else:
-            return HttpResponse('No Available Stock to Place the Order')
+            log.info("Order Push failed for order:%s : Customer Id:%s : Error: %s" %(generic_order_id, cm_id, message))
+            cancel_emiza_order(generic_order_id, cm_id)
+            return HttpResponse('Order is not placed properly in Emiza, please check with Stockone Team')
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

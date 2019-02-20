@@ -431,11 +431,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           }
         }
       }
+      vm.record_serial_data = $.map(vm.record_serial_data, function(n,i){return n.toUpperCase();});
       return true
     }
 
     vm.serial_scan = function(event, scan, data, record) {
       if (event.keyCode == 13) {
+        scan = scan.toUpperCase();
         var resp_data = vm.getrecordSerialnumber(data);
         if (!resp_data) {
           vm.service.showNoty("Serial Number Not Available For this SKU");
@@ -443,7 +445,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           return false
         }
 		if(vm.collect_imei_data.hasOwnProperty(data.id)) {
-			if ($.inArray(record.scan, vm.collect_imei_data[data.id]) != -1) {
+			if ($.inArray(scan, vm.collect_imei_data[data.id]) != -1) {
 				vm.service.showNoty("Serial Number Already Scanned");
 				record.scan = '';
 				return false
@@ -455,7 +457,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         for(var i=0; i < data.sub_data.length; i++) {
           total = total + parseInt(data.sub_data[i].picked_quantity);
         }
-        scan = scan.toUpperCase();
         var scan_data = scan.split("\n");
         var length = scan_data.length;
         var elem = {};

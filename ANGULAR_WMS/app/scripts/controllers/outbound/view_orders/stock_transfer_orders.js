@@ -426,7 +426,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           if(!vm.model_data.data[i].hasOwnProperty('sku_imeis_map')) {
             return false
           }
-          angular.copy(vm.model_data.data[i]['sku_imeis_map'][vm.model_data.data[i].wms_code].sort(), vm.record_serial_data);
+          if (vm.model_data.data[i]['sku_imeis_map'].hasOwnProperty(vm.model_data.data[i].wms_code)) {
+            angular.copy(vm.model_data.data[i]['sku_imeis_map'][vm.model_data.data[i].wms_code].sort(), vm.record_serial_data);
+          }
         }
       }
       return true

@@ -2627,7 +2627,7 @@ def get_combo_sku_codes(request, user=''):
         if stock_detail.exists():
             child_mrp = stock_detail[0].batch_detail.mrp
         all_data.append({'child_sku_qty': child_quantity, 'child_sku_code': cond, 'child_sku_batch':'', 'child_sku_desc': combo.member_sku.sku_desc,
-                        'child_sku_location': '', 'child_sku_mrp': child_mrp})
+                        'child_sku_location': '', 'child_sku_mrp': child_mrp, 'child_qty': child_quantity})
     parent_data = {'combo_sku_code': combo_skus[0].parent_sku.sku_code, 'combo_sku_desc': combo_skus[0].parent_sku.sku_desc, 'quantity':1}
     return HttpResponse(json.dumps({"status": True, 'parent': parent_data, 'childs': all_data}), content_type='application/json')
 

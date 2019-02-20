@@ -689,10 +689,16 @@
     bundleObj.bundle_update_data = function(data, index, last, first) {
       if (last) {
         var prefill_data = data.data[index]
-        data.data.splice(index+1, 0, {"child_sku_batch": prefill_data['child_sku_batch'], "child_sku_code": prefill_data['child_sku_code'], "child_sku_desc": prefill_data['child_sku_desc'], "child_sku_location": "", "child_sku_mrp": prefill_data['child_sku_mrp'], "child_sku_qty": prefill_data['child_sku_qty'], "new_sku" : true});
+        data.data.splice(index+1, 0, {"child_sku_batch": prefill_data['child_sku_batch'], "child_sku_code": prefill_data['child_sku_code'], "child_sku_desc": prefill_data['child_sku_desc'], "child_sku_location": "", "child_sku_mrp": prefill_data['child_sku_mrp'], "child_sku_qty": prefill_data['child_sku_qty'], "child_qty": prefill_data['child_qty'], "new_sku" : true});
       } else {
         data.data.splice(index,1);
       }
+    }
+
+    bundleObj.change_child_quantity = function(data) {
+      angular.forEach(data['data'], function (dict) {
+        dict['child_qty'] = dict['child_sku_qty'] * data['quantity']
+      })
     }
   })
 })();

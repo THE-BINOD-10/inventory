@@ -28,6 +28,14 @@
           <span><b>: {{order.order_details.order.quantity}}</b></span>
         </div>
       </div>
+      <div class="row no-margin" ng-if="showCase.user_type != 'reseller'">
+        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+          <span><b>SM-D Price</b></span>
+        </div>
+        <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
+          <span><b>: {{order.order_details.order.smd_price}}</b></span>
+        </div>
+      </div>
       <div class="row no-margin">
         <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
           <span><b>D-R Price</b></span>

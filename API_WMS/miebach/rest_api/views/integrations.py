@@ -2341,7 +2341,7 @@ def update_order_dicts_skip_errors(orders, failed_status, user='', company_name=
                 log.info(str(order['order_details']))
                 log.debug(traceback.format_exc())
 
-        if order.get('order_summary_dict', {}) and not order_obj and order_created:
+        if order.get('order_summary_dict', {}) and order_created:
             order['order_summary_dict']['order_id'] = order_detail.id
 
             #if order['order_summary_dict']['invoice_date']:

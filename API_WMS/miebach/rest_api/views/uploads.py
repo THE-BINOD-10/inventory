@@ -1439,10 +1439,6 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Sequence should be in number')
 
-    master_sku = SKUMaster.objects.filter(user=user.id)
-    master_sku = [data.sku_code for data in master_sku]
-    missing_data = set(sku_data) - set(master_sku)
-
     if not index_status:
         return 'Success'
 
@@ -1516,7 +1512,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 wms_code = cell_data
                 data_dict[key] = wms_code
                 if wms_code:
-                    sku_data = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
+                    sku_data = SKUMaster.objects.filter(user=user.id, sku_code=wms_code)
                     if sku_data:
                         sku_data = sku_data[0]
 
@@ -1662,8 +1658,10 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def sku_upload(request, user=''):
     try:
+        reversion.set_user(request.user)
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
         if ex_status:

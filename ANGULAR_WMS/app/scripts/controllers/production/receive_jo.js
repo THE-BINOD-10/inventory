@@ -277,7 +277,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.save_repalced_serials();
       vm.service.apiCall('save_replaced_locations/', 'POST', elem, true).then(function(data){
         if(data.message) {
-          if (data.data == 'Added Successfully') {
+          if (data.data == 'Success') {
             vm.close();
             vm.reloadData();
           } else {

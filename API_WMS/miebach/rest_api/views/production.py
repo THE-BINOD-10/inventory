@@ -3398,7 +3398,6 @@ def rwo_data(request,user):
             batch_data[match_condition] = {
                 'wms_code': location.material_picklist.jo_material.material_code.sku_code,
                 'sku_id':location.material_picklist.jo_material.material_code.id,
-                'location': location_name,
                 'sku_desc':location.material_picklist.jo_material.material_code.sku_desc,
                 'job_code': picklist.jo_material.job_order.job_code,
                 'picked_quantity': picklist.picked_quantity,
@@ -3456,14 +3455,54 @@ def save_replaced_serials(request , user):
 def save_replaced_locations(request , user):
     data_dict = dict(request.POST.iterlists())
     status =''
-    for i in range(len(data_dict['sku_code'])):
-        wms_code = data_dict['sku_code'][i]
-        source_loc = data_dict['replacement_location'][i]
-        dest_loc = data_dict['return_location'][i]
-        quantity= data_dict['replacement_quntity'][i]
-        if source_loc :
-            status = move_stock_location(1, wms_code, source_loc, dest_loc, quantity, user, '', '', '')
-            if 'success' in status.lower():
-                update_filled_capacity([source_loc, dest_loc], user.id)
-                log.info("Staus for the replacement location %s,"%(status))
-    return HttpResponse(status)
+    try:
+        for i in range(len(data_dict['sku_code'])):
+            wms_code = data_dict['sku_code'][i]
+            source_loc = data_dict['replacement_location'][i]
+            return_loc = data_dict['return_location'][i]
+            return_quantity = data_dict['return_quantity'][i]
+            quantity= float(data_dict['replacement_quntity'][i])
+            source = LocationMaster.objects.filter(location=source_loc, zone__user=user.id)
+            return_location = LocationMaster.objects.filter(location=return_loc, zone__user=user.id)
+            sku = check_and_return_mapping_id(wms_code, "", user, False)
+            if sku:
+                sku_id = sku
+            else:
+                return HttpResponse('Invalid WMS Code')
+            if return_loc and return_quantity > 0:
+                return_dict = {"sku_id": sku_id,
+                              "location_id": return_location[0].id,
+                              "sku__user": user.id}
+                return_stocks = StockDetail.objects.filter(**return_dict)
+                if return_stocks :
+                   return_stocks[0].quantity += float(return_quantity)
+                   return_stocks[0].save()
+            if source:
+                stock_dict = {"sku_id": sku_id,
+                              "location_id": source[0].id,
+                              "sku__user": user.id}
+                stocks = StockDetail.objects.filter(**stock_dict)
+                if not stocks:
+                    return  HttpResponse('No Stocks Found')
+                stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
+                reserved_dict = {'stock__sku_id': sku_id, 'stock__sku__user': user.id, 'status': 1,
+                                 'stock__location_id': source[0].id}
+                reserved_quantity = \
+                PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).aggregate(Sum('reserved'))[
+                    'reserved__sum']
+                if reserved_quantity:
+                    if (stock_count - reserved_quantity) < float(quantity):
+                        return HttpResponse('Source Quantity reserved for Picklist')
+                for stock in stocks:
+                    if stock.quantity > quantity:
+                        stock.quantity -= quantity
+                        change_seller_stock('', stock, user, quantity, 'dec')
+                        quantity = 0
+                        if stock.quantity < 0:
+                            stock.quantity = 0
+                        stock.save()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Stock replacement got an error statement is " + str(e))
+    return HttpResponse("Success")

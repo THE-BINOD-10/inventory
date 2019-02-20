@@ -282,8 +282,8 @@ def add_user_permissions(request, response_data, user=''):
         user_type = 'sm_purchase_admin'
     elif request_user_profile.warehouse_type == 'SM_DESIGN_ADMIN':
         user_type = 'sm_design_admin'
-    # elif user_profile.warehouse_type == 'CENTRAL_ADMIN':
-    #     user_type = 'default'
+    elif request_user_profile.warehouse_type == 'SM_FINANCE_ADMIN':
+        user_type = 'sm_finance_admin'
     else:
         user_type = request_user_profile.user_type
     response_data['data']['roles']['permissions']['user_type'] = user_type
@@ -8900,3 +8900,49 @@ def get_all_sellable_zones(user):
     if sellable_zones:
         sellable_zones = get_all_zones(user, zones=sellable_zones)
     return sellable_zones
+
+
+def cancel_emiza_order(gen_ord_id, cm_id):
+    customer_qs = CustomerUserMapping.objects.filter(customer_id=cm_id)
+    if customer_qs:
+        customer_user = customer_qs[0]
+    gen_qs = GenericOrderDetailMapping.objects.filter(generic_order_id=gen_ord_id, customer_id=cm_id)
+    generic_orders = gen_qs.values('orderdetail__original_order_id', 'orderdetail__user').distinct()
+    for generic_order in generic_orders:
+        original_order_id = generic_order['orderdetail__original_order_id']
+        order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
+        resp = order_push(original_order_id, order_detail_user, "CANCEL")
+        log.info('Cancel Order Push Status: %s' % (str(resp)))
+    uploaded_po_details = gen_qs.values('po_number', 'client_name').distinct()
+    if uploaded_po_details.count() == 1:
+        po_number = uploaded_po_details[0]['po_number']
+        client_name = uploaded_po_details[0]['client_name']
+        ord_upload_qs = OrderUploads.objects.filter(uploaded_user=customer_user.id,
+                                                    po_number=po_number, customer_name=client_name)
+        ord_upload_qs.delete()
+    order_det_ids = gen_qs.values_list('orderdetail_id', flat=True)
+    ord_det_qs = OrderDetail.objects.filter(id__in=order_det_ids)
+    for order_det in ord_det_qs:
+        if order_det.status == 1:
+            order_det.status = 3
+            order_det.save()
+        else:
+            picklists = Picklist.objects.filter(order_id=order_det.id)
+            for picklist in picklists:
+                if picklist.picked_quantity <= 0:
+                    picklist.delete()
+                elif picklist.stock:
+                    cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id)
+                    if not cancel_location:
+                        CancelledLocation.objects.create(picklist_id=picklist.id,
+                                                         quantity=picklist.picked_quantity,
+                                                         location_id=picklist.stock.location_id,
+                                                         creation_date=datetime.datetime.now(), status=1)
+                        picklist.status = 'cancelled'
+                        picklist.save()
+                else:
+                    picklist.status = 'cancelled'
+                    picklist.save()
+            order_det.status = 3
+            order_det.save()
+    gen_qs.delete()

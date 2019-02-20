@@ -19,6 +19,7 @@
       vm.user_type = Session.user_profile.user_type;
       vm.batch_nos = [];
       vm.batches = {};
+      vm.combo_allocate_stock = Session.roles.permissions.combo_allocate_stock;
 
       vm.dtOptions = DTOptionsBuilder.newOptions()
          .withOption('ajax', {

@@ -5237,6 +5237,7 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                         else:
                             data_dict[key] = seller_master[0].seller_id
                             data_dict['seller_master_id'] = seller_master[0].id
+                            prev_data_dict = {}
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid Seller ID')
                 elif prev_data_dict:
@@ -5356,12 +5357,14 @@ def sku_substitution_upload(request, user=''):
         if data_dict.get('seller_master_id', 0):
             dest_filter['sellerstock__seller_id'] = data_dict['seller_master_id']
             mrp_dict['mrp'] = data_dict['dest_mrp']
+        if not data_dict['source_updated']:
+            transact_number = get_max_substitute_allocation_id(user)
         dest_stocks = StockDetail.objects.filter(**dest_filter)
         update_substitution_data(data_dict['src_stocks'], dest_stocks, data_dict['source_sku_code_obj'],
                                  data_dict['source_location_obj'], data_dict['source_quantity'],
                                  data_dict['dest_sku_code_obj'], data_dict['dest_location_obj'],
                                  data_dict['dest_quantity'],user, data_dict.get('seller_master_id', ''),
-                                 data_dict['source_updated'], mrp_dict)
+                                 data_dict['source_updated'], mrp_dict, transact_number)
     return HttpResponse('Success')
 
 

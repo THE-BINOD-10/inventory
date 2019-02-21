@@ -12731,6 +12731,18 @@ def get_manual_enquiry_detail(request, user=''):
         else:
             smd_price = ''
         manual_eq_dict['smd_price'] = smd_price
+        emiza_order_ids = []
+        if manual_enq[0].status == 'order_placed':
+            po_number = manual_enq[0].po_number
+            client_name = manual_enq[0].customer_name
+            gen_qs = GenericOrderDetailMapping.objects.filter(client_name=client_name, po_number=po_number).values_list(
+                'orderdetail__original_order_id', 'cust_wh_id')
+            for ord_id, wh_id in gen_qs:
+                emiza_ord_prefix = UserProfile.objects.get(user_id=wh_id).order_prefix
+                emiza_ord_id = '%s%s' %(emiza_ord_prefix, ord_id)
+                if emiza_ord_id:
+                    emiza_order_ids.append(emiza_ord_id)
+        manual_eq_dict['EmizaOrderIds'] = ', '.join(emiza_order_ids)
         enquiry_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id, image_type='res_images').values_list('image', flat=True))
         art_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id, image_type='art_work').values_list('image', flat=True))
         style_dict = {'sku_code': manual_enq[0].sku.sku_code, 'style_name':  manual_enq[0].sku.sku_class,

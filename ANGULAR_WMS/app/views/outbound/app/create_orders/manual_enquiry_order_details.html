@@ -20,6 +20,14 @@
           <span>: {{order.order_details.style[name]}}</span>
         </div>
       </div>
+      <div class="row no-margin" ng-if="showCase.user_type != 'reseller'">
+        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+          <span><b>Emiza Order Ids</b></span>
+        </div>
+        <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
+          <span><b>: {{order.order_details.order.EmizaOrderIds}}</b></span>
+        </div>
+      </div>
       <div class="row no-margin">
         <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
           <span><b>Quantity</b></span>

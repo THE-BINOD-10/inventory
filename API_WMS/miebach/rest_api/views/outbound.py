@@ -6064,6 +6064,8 @@ def app_shipment_info_data(request, user=''):
         id_proof_number =' '
         time =0
         id_type =' '
+        refusal = False
+        refusal_reason = ' '
         pod_status = False
         returned = False
         loan_proposal_id = str(orders.order.original_order_id)
@@ -6074,7 +6076,7 @@ def app_shipment_info_data(request, user=''):
         firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
         try:
             result = firebase.get('/OrderDetails/'+loan_proposal_id, None)
-            
+
         except Exception as e:
             result = 0
             import traceback

@@ -1908,10 +1908,11 @@ def confirm_sku_substitution(request, user=''):
         dest_list.append({'dest_sku': dest_sku[0], 'dest_loc': dest_loc[0], 'dest_qty': dest_qty,
                           'dest_stocks': dest_stocks, 'mrp_dict': mrp_dict})
     source_updated = False
+    transact_number = get_max_substitute_allocation_id(user)
     for dest_dict in dest_list:
         update_substitution_data(src_stocks, dest_stocks, source_sku, source_location, src_qty, dest_dict['dest_sku'],
                                  dest_dict['dest_loc'], dest_dict['dest_qty'], user, seller_id,
-                                 source_updated, dest_dict['mrp_dict'])
+                                 source_updated, dest_dict['mrp_dict'], transact_number)
         source_updated = True
     return HttpResponse('Successfully Updated')
 
@@ -2723,7 +2724,9 @@ def confirm_combo_allocation(request, user=''):
                                                     'child_qty': child_qty, 'child_stocks': child_stocks})
         final_data = final_data.values()
         source_updated=False
+
         for row_data in final_data:
+            transact_number = get_max_combo_allocation_id(user)
             dest_updated = False
             for data in row_data['childs']:
                 desc_batch_obj = update_stocks_data(data['child_stocks'], float(data['child_qty']), row_data['combo_stocks'],
@@ -2741,6 +2744,7 @@ def confirm_combo_allocation(request, user=''):
                     sub_data['dest_batch_id'] = desc_batch_obj.id
                 if seller_id:
                     sub_data['seller_id'] = seller_id
+                sub_data['transact_number'] = transact_number
                 SubstitutionSummary.objects.create(**sub_data)
                 dest_updated = True
     except Exception as e:

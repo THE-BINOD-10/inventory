@@ -618,7 +618,8 @@ def generate_picklist(request, user=''):
     picklist_exclude_zones = get_exclude_zones(user)
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
-                   'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
+                   'no_stock_switch': get_misc_value('no_stock_switch', user.id),
+                   'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     if enable_damaged_stock == 'true':
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0, location__zone__zone__in=['DAMAGED_ZONE'])
@@ -728,7 +729,8 @@ def batch_generate_picklist(request, user=''):
         picklist_exclude_zones = get_exclude_zones(user)
         switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                        'fifo_switch': get_misc_value('fifo_switch', user.id),
-                       'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
+                       'no_stock_switch': get_misc_value('no_stock_switch', user.id),
+                       'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
         picklist_number = get_picklist_number(user)
         sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
         if enable_damaged_stock  == 'true':
@@ -3455,7 +3457,8 @@ def st_generate_picklist(request, user=''):
 
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
-                   'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
+                   'no_stock_switch': get_misc_value('no_stock_switch', user.id),
+                   'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
     if switch_vals['fifo_switch'] == 'true':
         stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
             'receipt_date')
@@ -5191,7 +5194,8 @@ def check_stocks(order_sku, user, enable_damaged_stock, order_objs):
     picklist_exclude_zones = get_exclude_zones(user)
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
-                   'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
+                   'no_stock_switch': get_misc_value('no_stock_switch', user.id),
+                   'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
         location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
@@ -13744,7 +13748,8 @@ def stock_transfer_generate_picklist(request, user=''):
 
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
-                   'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
+                   'no_stock_switch': get_misc_value('no_stock_switch', user.id),
+                   'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
     if switch_vals['fifo_switch'] == 'true':
         stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
             'receipt_date')

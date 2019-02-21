@@ -31,7 +31,7 @@
         <div class="col-md-4 col-sm-12 col-xs-12">
             <div class="col-md-6 col-sm-5 col-xs-12">
                 <label class="control-label">Source SKU Code</label>
-                <input type="text" autocomplete="off" name="src_sku_code" class="form-control" placeholder="Search SKU Code &sol; Desc" typeahead="address.wms_code+' : '+address.sku_desc for address in $ctrl.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" typeahead-on-select="$ctrl.model_data.src_sku_code = $item.wms_code; $ctrl.check_sku_code($item, $ctrl.model_data.src_location, 'src_sku')" ng-model="$ctrl.model_data.src_sku_code"  ng-blur="$ctrl.empty_sku(); $ctrl.get_sku_batches($ctrl.model_data.src_sku_code)">
+                <input type="text" autocomplete="off" name="src_sku_code" class="form-control" placeholder="Search SKU Code &sol; Desc" typeahead="address.wms_code+' : '+address.sku_desc for address in $ctrl.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" typeahead-on-select="$ctrl.model_data.src_sku_code = $item.wms_code; $ctrl.check_sku_code($item, $ctrl.model_data.src_location, 'src_sku')" ng-model="$ctrl.model_data.src_sku_code"  ng-blur="$ctrl.empty_sku(); $ctrl.get_sku_batches($ctrl.model_data.src_sku_code)" required>
             </div>
 
             <div class="col-md-6 col-sm-5 col-xs-12" ng-if="$ctrl.industry_type == 'FMCG'">
@@ -87,7 +87,7 @@
         <div class="col-md-7 col-sm-10 col-xs-12" style="float: right;" ng-repeat="data in $ctrl.model_data.dest_info">
             <div class="col-md-{{$ctrl.cols}} col-sm-{{$ctrl.cols}} col-xs-12" style="margin-top: 10px">
                 <label class="control-label">Dest SKU Code</label>
-                <input type="text" autocomplete="off" name="dest_sku_code" class="form-control" placeholder="Search SKU Code  &sol; Desc" typeahead="address.wms_code+' : '+address.sku_desc for address in $ctrl.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" typeahead-on-select="data.dest_sku_code=$item.wms_code" ng-model="data.dest_sku_code" ng-disabled="$ctrl.model_data.src_quantity == 0">
+                <input type="text" autocomplete="off" name="dest_sku_code" class="form-control" placeholder="Search SKU Code  &sol; Desc" typeahead="address.wms_code+' : '+address.sku_desc for address in $ctrl.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" typeahead-on-select="data.dest_sku_code=$item.wms_code" ng-model="data.dest_sku_code" ng-disabled="$ctrl.model_data.src_quantity == 0" required>
             </div>
 
             <div class="col-md-{{$ctrl.cols}} col-sm-{{$ctrl.cols}} col-xs-12" style="margin-top: 10px" ng-if="$ctrl.industry_type == 'FMCG'">

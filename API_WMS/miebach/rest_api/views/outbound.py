@@ -6074,6 +6074,7 @@ def app_shipment_info_data(request, user=''):
         firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
         try:
             result = firebase.get('/OrderDetails/'+loan_proposal_id, None)
+            
         except Exception as e:
             result = 0
             import traceback

@@ -11383,10 +11383,12 @@ def get_seller_order_view(start_index, stop_index, temp_data, search_term, order
             time_slot = cust_status_obj[0].shipment_time_slot
             order_taken_val = cust_status_obj[0].order_taken_by
             creation_date = cust_status_obj[0].order.creation_date
+            creation_data = get_local_date(user, creation_date, True).strftime("%d %b, %Y")
         else:
             cust_status = ""
             time_slot = ""
             order_taken_val = ''
+            creation_data = ''
 
         '''order_taken_val = ''
         if order_taken_val_user:
@@ -11407,7 +11409,7 @@ def get_seller_order_view(start_index, stop_index, temp_data, search_term, order
         #                                order__order_code=dat['order__order_code'], order__user=user.id)
         #creation_date = name[0].creation_date
         #name = name[0].id
-        creation_data = get_local_date(user, creation_date, True).strftime("%d %b, %Y")
+        #creation_data = get_local_date(user, creation_date, True).strftime("%d %b, %Y")
         # if time_slot:
         #    shipment_data = shipment_data + ', ' + time_slot
 

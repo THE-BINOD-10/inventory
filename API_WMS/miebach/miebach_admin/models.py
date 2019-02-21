@@ -86,6 +86,7 @@ class VendorMaster(models.Model):
         return str(self.name)
 
 
+@reversion.register()
 class SKUMaster(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()

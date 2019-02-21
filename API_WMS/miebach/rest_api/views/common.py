@@ -3837,15 +3837,18 @@ def build_style_search_data(to_data, from_data, limit):
 @fn_timer
 def insert_update_brands(user):
     request = {}
-    # user = User.objects.get(id=sku.user)
     sku_master = list(
         SKUMaster.objects.filter(user=user.id).exclude(sku_brand='').values_list('sku_brand', flat=True).distinct())
     if not 'All' in sku_master:
         sku_master.append('All')
-    for brand in sku_master:
-        brand_instance = Brands.objects.filter(brand_name=brand, user_id=user.id)
-        if not brand_instance:
-            Brands.objects.create(brand_name=brand, user_id=user.id)
+    brand_instance = Brands.objects.filter(user_id=user.id)
+    brands_list = list(brand_instance.values_list('brand_name', flat=True))
+    brand_creation_list = set(sku_master) - set(brands_list)
+    all_brand_objs = []
+    for brand in brand_creation_list:
+        all_brand_objs.append(Brands(**{'user_id': user.id, 'brand_name': brand}))
+    if all_brand_objs:
+        Brands.objects.bulk_create(all_brand_objs)
     deleted_brands = Brands.objects.filter(user_id=user.id).exclude(brand_name__in=sku_master).delete()
 
 

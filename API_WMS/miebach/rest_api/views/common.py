@@ -6806,7 +6806,8 @@ def open_orders_allocate_stock(request, user, sku_combos, sku_open_orders, all_s
                                stock_objs, picklist_order_mapping):
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
-                   'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
+                   'no_stock_switch': get_misc_value('no_stock_switch', user.id),
+                   'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
     remarks = 'Auto-generated Picklist'
     consumed_qty = 0
     for open_order in sku_open_orders:
@@ -8335,7 +8336,11 @@ def get_sku_ean_list(sku, order_by_val=''):
 
 
 def get_exclude_zones(user):
-    exclude_zones = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
+    exclude_zones = ['DAMAGED_ZONE', 'QC_ZONE']
+    if user.userprofile.industry_type == 'FMCG':
+        non_sellable_zones = list(ZoneMaster.objects.filter(user=user.id, segregation='non_sellable').values_list('zone',
+                                                                                                             flat=True))
+        exclude_zones.extend(non_sellable_zones)
     sub_zones = SubZoneMapping.objects.filter(zone__zone__in=exclude_zones, zone__user=user.id).\
         values_list('sub_zone__zone', flat=True)
     if sub_zones:

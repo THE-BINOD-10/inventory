@@ -23,7 +23,7 @@
                   <button type="button" class="btn btn-success" ng-click="showCase.add()">New Move Inventory</button>
                   <button type="button" class="btn btn-success" ng-click="showCase.move_imei()">Status</button>
                   <button type="button" class="btn btn-success" ng-click="showCase.add_sku_substitute()">Add Substitute</button>
-		              <button ng-show="showCase.combo_allocate_stock && user.user_profile.industry_type == 'FMCG' && user.user_profile.user_type == 'marketplace_user'" type="button" class="btn btn-success" ng-click="showCase.combo_allocate_stock()">Combo Allocate Stock</button>
+		              <button ng-show="user.roles.permissions.combo_allocate_stock && user.user_profile.industry_type == 'FMCG' && user.user_profile.user_type == 'marketplace_user'" type="button" class="btn btn-success" ng-click="showCase.combo_allocate_stock()">Combo Allocate Stock</button>
                 </div>
               </div>
             </div>

@@ -180,7 +180,7 @@
           var elem = angular.element($('form'));
           elem = elem[0];
           elem = $(elem).serializeArray();
-          vm.service.apiCall('confirm_combo_allocation/', 'POST', elem, true).then(function(data) {
+          vm.service.apiCall('insert_move_inventory/', 'GET', elem, true).then(function(data) {
             if(data.message) {
               if (data.data == "Added Successfully") {
                 vm.close()

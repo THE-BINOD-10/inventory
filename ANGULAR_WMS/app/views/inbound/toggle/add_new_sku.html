@@ -28,7 +28,7 @@
           <div class="row m15" id="newSkuAdd">
             <input type='hidden' id='scanned_val' ng-model="$ctrl.model_data.scanned_val" class='form-control' style='margin-bottom:0px' value='{{$ctrl.model_data.scanned_val}}'>
             <input type='hidden' ng-model="$ctrl.model_data.map_sku_code" class='form-control' value="{{$ctrl.model_data.map_sku_code}}">
-            <input type="text" autocomplete="off" id="map_sku_code" class="form-control" placeholder="Search WMS Code / Description" typeahead="address.wms_code+' : '+address.sku_desc for address in $ctrl.service.getSearchValues($viewValue, 'search_wms_data?')" ng-model="$ctrl.model_data.sku_details" title="{{ $ctrl.model_data.map_sku_code }}" typeahead-on-select="$ctrl.model_data.map_sku_code=$item.wms_code;$ctrl.service.popup_dyn_style=155">
+            <input type="text" autocomplete="off" id="map_sku_code" class="form-control" placeholder="Search WMS Code / Description" typeahead="address.wms_code+' : '+address.sku_desc for address in $ctrl.service.getSearchValues($viewValue, 'search_wms_data?')" ng-model="$ctrl.model_data.sku_details" title="{{ $ctrl.model_data.map_sku_code }}" typeahead-on-select="$ctrl.model_data.map_sku_code=$item.wms_code;$ctrl.service.popup_dyn_style=155" required>
           </div>
           <div class="row text-center">
             <button type="button" class="btn btn-success mr5" ng-click="$ctrl.ok(form)" ng-disabled="$ctrl.processing">Map SKU<span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right" ng-if="$ctrl.processing"></button>

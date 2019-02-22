@@ -3418,6 +3418,9 @@ def check__replace_imei_exists(request,user):
     po_id = 0
     imei = request.GET.get('imei', '')
     sku_code = request.GET.get('sku_code', '')
+    order_imei = OrderIMEIMapping.objects.filter(po_imei__imei_number=imei, sku__user=user.id)
+    if order_imei.exists():
+        return HttpResponse(json.dumps({'status': "Imei number number Already Mapped to other JOB Order"}))
     if imei and sku_code:
         check_params = {'imei_number': imei, 'sku__user':user.id }
         po_mapping = POIMEIMapping.objects.get(**check_params)

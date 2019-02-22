@@ -184,7 +184,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             if (data.data.status == "Success") {
               if(vm.scanned_return_serials.length > 0 && value.return_quantity > value.replacement_quntity)
               {
-                replace_dict['po_id']= data.data.po_id;
+               replace_dict['po_id']= data.data.po_id;
                replace_dict['serial_number'] = value.replace_serial;
                replace_dict['sku_id'] = value.sku_id;
               vm.scanned_replaced_serials.push(replace_dict);
@@ -199,6 +199,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             } else {
               Service.showNoty(data.data.status);
             }
+          }
+          else{
+            Service.showNoty("Invalid IMEI number");
           }
         })
       }

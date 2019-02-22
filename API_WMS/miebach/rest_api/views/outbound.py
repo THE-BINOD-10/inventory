@@ -13208,7 +13208,7 @@ def convert_customorder_to_actualorder(request, user=''):
             CustomerOrderSummary.objects.create(order=ord_obj, sgst_tax=taxes['sgst_tax'], cgst_tax=taxes['cgst_tax'],
                                                 igst_tax=taxes['igst_tax'], tax_type=customer_master.tax_type)
             generic_orders = GenericOrderDetailMapping.objects.filter(generic_order_id=generic_order_id,
-                                                                      customer_id=cm_id). \
+                                                                      customer_id=cm_id, cust_wh_id=usr). \
                 values('orderdetail__original_order_id', 'orderdetail__user').distinct()
             for generic_order in generic_orders:
                 original_order_id = generic_order['orderdetail__original_order_id']

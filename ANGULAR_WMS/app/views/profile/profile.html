@@ -1,3 +1,22 @@
+<style>
+label:hover {
+  cursor: pointer;
+  font-size: 13px;
+  color: darkgreen;
+}
+.input-groups {
+    position: relative;
+    display: table;
+    border-collapse: separate;
+}
+.mbalign {
+  margin-bottom: 15px;
+}
+.bg-format {
+  color: #615757;
+  background-color: #f1efeb;
+}
+</style>
 <div class="page-layout" ng-controller="Profile as showCase">
   <div class='layout-header'>
     <div class="row">
@@ -86,12 +105,92 @@
               <div class="row">
                 <div class="col-sm-4 col-xs-4"></div>
                 <div class="col-sm-6 col-xs-8 ml10">
-                  <a ng-click="showCase.changePassword();" style="color: #33cc66; text-decoration: underline;" class=""> Change Password </a>
+                  <button type="button" class="btn btn-danger btn-sm btn-icon mr5" ng-click="showCase.changePassword();"> <i class="fa fa-exclamation-triangle"></i> <span>Change Password</span> </button>
+                </div>
+              </div>
+              <hr>
+              <div class="row">
+                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                  <accordion close-others="oneAtATime">
+                  <accordion-group>
+                    <!-- <a href="javascript:;" class="panel-refresh" panel-control-refresh=""><i class="panel-icon-circular"></i></a> -->
+                    <accordion-heading>
+                      <div class="row">
+                        <div class="col-lg-4 col-md-4"></div>
+                        <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12 fa-hover"><label><i class="fa fa-user-plus">         ADD NEW SHIPMENT ADDRESS</i></label></div>
+                      </div>
+                    </accordion-heading>
+                    <div class="over-x">
+                      <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 mbalign">
+                        <div class="col-lg-4 col-md-4 input-groups mb15"></div>
+                        <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12 input-groups mb15">
+                          <span class="input-group-addon"><i class="fa fa-map-marker" style="color: darkorange"></i></span>
+                          <input type="text" class="form-control" ng-model="showCase.model_data.address_title" placeholder="ADDRESS TITLE" style="border-color: #2ecc71" required>
+                        </div>
+                        <div class="col-lg-4 col-md-4 input-groups mb15"></div>
+                      </div>
+                      <div class="row col-lg-12 col-md-12 col-sm-12 col-xs-12 mbalign">
+                        <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12 input-groups mb15">
+                          <span class="input-group-addon"><i class="fa fa-user"></i></span>
+                          <input type="text" class="form-control" ng-model="showCase.model_data.address_name" placeholder="Name *" required>
+                        </div>
+                        <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12 input-groups mb15">
+                          <span class="input-group-addon"><i class="fa fa-phone"></i></span>
+                          <input type="text" class="form-control" ng-model="showCase.model_data.address_mobile_number" placeholder="10 - Digit Mobile Number *" required>
+                        </div>
+                        <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12 input-groups mb15">
+                          <span class="input-group-addon"><i class="fa fa-location-arrow"></i></span>
+                          <input type="text" class="form-control" ng-model="showCase.model_data.address_pincode" placeholder="Pincode *" required>
+                        </div>
+                      </div>
+                      <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 mbalign">
+                        <textarea rows="3" class="form-control ng-pristine" cols="27" name="address_shipment" placeholder="Address *" ng-model="showCase.model_data.address_shipment" required ></textarea>
+                      </div>
+                      <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 mbalign">
+                        <button type="button" class="btn btn-danger btn-outline pull-right mr10" ng-click="showCase.emptyData()">CANCEL</button>
+                        <button type="button" class="btn btn-success btn-outline pull-right mr10" ng-click="showCase.updateShipmentAddress(form)">SAVE</button>
+                      </div>
+                    </div>
+                  </accordion-group>
+                  </accordion>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                  <accordion close-others="oneAtATime">
+                  <accordion-group>
+                    <accordion-heading>
+                      <div class="row">
+                        <div class="col-lg-4 col-md-4"></div>
+                        <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12 fa-hover" ng-click="showCase.reload_shipment_address()"><label><i class="fa fa-list">         VIEW SHIPMENT ADDRESS</i></label>
+                        </div>
+                      </div>
+                    </accordion-heading>
+                    <div class="over-x" ng-if = "showCase.model_shipment_data.data">
+                      <div class="col-lg-4 col-md-4 col-sm-6 col-xs-12" ng-repeat="shipaddr in showCase.model_shipment_data.data">
+                        <div class="widget widget-weather bg-format">
+                          <span class="label label-success mb15">{{shipaddr.title}}</span>
+                          <div><strong>{{shipaddr.addr_name}},   Mobile-{{shipaddr.mobile_number}}</strong></div>
+                          <span class="mb15">{{shipaddr.address}} - {{shipaddr.pincode}}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="over-x" ng-if = "!showCase.model_shipment_data.data">
+                      <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                        <div class="widget bg-format mb15">
+                          <div class="widget-icon bg-success pull-left fa fa-map-marker">
+                          </div> <div class="overflow-hidden">
+                            <span>Oh Snap! Please create Shipment Address ..</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </accordion-group>
+                  </accordion>
                 </div>
               </div>
               <div class="row" ng-if="showCase.model_data.main_user">
                 <div class="col-md-12">
-                  <hr>
                   <button class="btn btn-success pull-right mr10" ng-disabled="showCase.process" ng-if="showCase.edit_form" ng-click="showCase.updateProfile(form)" type="submit">Save</button>
                   <button class="btn btn-primary pull-right mr10" ng-if="!showCase.edit_form" ng-click="showCase.edit_form=true" type="button">Edit</button>
                   <button class="btn btn-primary pull-right mr10" ng-if="showCase.edit_form" ng-click="showCase.edit_form=false;showCase.back();" type="button">Back</button>

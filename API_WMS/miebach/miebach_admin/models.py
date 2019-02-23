@@ -953,6 +953,20 @@ class UserProfile(models.Model):
     def __unicode__(self):
         return str(self.user)
 
+class UserAddresses(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    address_name = models.CharField(max_length=64)
+    address_type = models.CharField(max_length=64)
+    user_name = models.CharField(max_length=64)
+    mobile_number = models.CharField(max_length=32)
+    pincode = models.CharField(max_length=10)
+    address = models.CharField(max_length=256, default='', blank=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'USER_ADDRESSES'
 
 class UserAccessTokens(models.Model):
     id = BigAutoField(primary_key=True)

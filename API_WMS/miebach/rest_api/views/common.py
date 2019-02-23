@@ -4132,10 +4132,10 @@ def get_size_names(requst, user=""):
 def get_sellers_list(request, user=''):
     sellers = SellerMaster.objects.filter(user=user.id).order_by('seller_id')
     raise_po_terms_conditions = get_misc_value('raisepo_terms_conditions', user.id)
+    ship_address_details = []
+    ship_address_names = []
     user_ship_address = UserAddresses.objects.filter(user_id=user.id)
     if user_ship_address:
-        ship_address_details = []
-        ship_address_names = []
         shipment_names = list(user_ship_address.values_list('address_name', flat=True))
         ship_address_names.extend(shipment_names)
         for data in user_ship_address:

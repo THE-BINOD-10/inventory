@@ -45,6 +45,7 @@ function Profile($scope, Session, Service, $modal) {
     }
   });
   vm.reload_shipment_address= function() {
+    vm.model_shipment_data = {}
     Service.apiCall('get_user_profile_shipment_addresses/').then(function(data){
       if(data.message) {
         angular.copy(data.data, vm.model_shipment_data);

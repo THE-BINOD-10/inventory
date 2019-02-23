@@ -47,12 +47,7 @@ function Profile($scope, Session, Service, $modal) {
   vm.reload_shipment_address= function() {
     Service.apiCall('get_user_profile_shipment_addresses/').then(function(data){
       if(data.message) {
-        if (data.data == 'null') {
-          vm.model_data.empty_div = true
-        } else {
-          vm.model_data.empty_div = false
-          angular.copy(data.data, vm.model_shipment_data);
-        }
+        angular.copy(data.data, vm.model_shipment_data);
       }
     });
   }

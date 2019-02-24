@@ -214,6 +214,7 @@ function view_orders() {
     }
 
     vm.increament = function (record) {
+      record.scan = record.scan.toUpperCase()
       record.picked_quantity = parseInt(record.picked_quantity) + 1;
       vm.record_serial_data.shift()
       if(vm.collect_imei_data.hasOwnProperty(vm.get_id)) {

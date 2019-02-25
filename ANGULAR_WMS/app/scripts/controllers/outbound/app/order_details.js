@@ -164,9 +164,9 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
               if(isConfirm){
                   elem['enq_status'] = 'confirm_order'
               }else{
-                  elem['enq_status'] = 'hold_order'
-                  // elem['status'] = 'stock_blocked'
+                   return false;
               }
+
               elem['po_number'] = vm.po_number_header;
               // var formData = new FormData();
               // var el = $("#file");
@@ -184,6 +184,8 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
                    if(isConfirm) {
                      vm.upload_po(vm.po_number_header, vm.client_name_header);
                      Service.showNoty('Order Confirmed Successfully');
+                     vm.po_number_header = '';
+                     vm.client_name_header = '';
                    } else {
                      Service.showNoty('Placed Enquiry Order Successfully');
                    }

@@ -2107,6 +2107,8 @@ def picklist_confirmation(request, user=''):
                             stock_transfer = st_order[0].stock_transfer
                             stock_transfer.status = 2
                             stock_transfer.save()
+                            if user_profile.industry_type == 'FMCG':
+                                update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked)
                         if pick_loc:
                             update_picklist_locations(pick_loc, picklist, update_picked)
                         else:

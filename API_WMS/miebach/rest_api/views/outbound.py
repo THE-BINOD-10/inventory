@@ -11194,6 +11194,7 @@ def generate_customer_invoice(request, user=''):
     admin_user = get_priceband_admin_user(user)
     try:
         seller_summary_dat = data_dict.get('seller_summary_id', '')
+        delivery_challan_pickid = data_dict.get('picklist_id', '')
         seller_summary_dat = seller_summary_dat[0]
         sor_id = ''
         sell_ids = {}
@@ -11227,7 +11228,7 @@ def generate_customer_invoice(request, user=''):
             sell_ids['pick_number__in'].append(splitted_data[1])
             pick_number = splitted_data[1]
         generate_delivery_challan =  get_misc_value('generate_delivery_challan_before_pullConfiramation', user.id)
-        if generate_delivery_challan:
+        if generate_delivery_challan and delivery_challan_pickid:
             seller_summary = OrderDetail.objects.filter(order_id=splitted_data[0], user=user.id)
             order_ids = list(seller_summary.values_list('id', flat=True))
             order_ids = map(lambda x: str(x), order_ids)
@@ -11242,11 +11243,9 @@ def generate_customer_invoice(request, user=''):
             summary_details = seller_summary.values(field_mapping['sku_code']).distinct().annotate(
                 total_quantity=Sum('quantity'))
         for detail in summary_details:
-            if generate_delivery_challan:
-                if not detail['sku_code'] in merge_data.keys():
-                    merge_data[detail['sku_code']] = detail['total_quantity']
-                else:
-                    merge_data[detail['sku_code']] += detail['total_quantity']
+            if generate_delivery_challan and delivery_challan_pickid:
+                data, sku_total_quantities, courier_name = get_picklist_data(delivery_challan_pickid[0], user.id)
+                merge_data = sku_total_quantities
             else:
                 if not detail[field_mapping['sku_code']] in merge_data.keys():
                     merge_data[detail[field_mapping['sku_code']]] = detail['total_quantity']

@@ -1625,6 +1625,10 @@ var app = angular.module('urbanApp')
             url: '/DeliveryChallan',
             templateUrl: 'views/outbound/print/empty_invoice_main.html'
          })
+         .state('app.outbound.ViewOrders.DeliveryChallan', {
+            url: '/DeliveryChallan',
+            templateUrl: 'views/outbound/print/empty_invoice_main.html'
+         })
          .state('app.outbound.CustomerInvoicesMain.InvoiceM', {
             url: '/InvoiceM',
             templateUrl: 'views/outbound/print/customer_inv_main.html'

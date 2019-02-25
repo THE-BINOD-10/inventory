@@ -714,7 +714,8 @@ function pull_confirmation() {
   }
   */
   vm.deliveryChallan = function(text, click_type){
-    let send = {'seller_summary_id': String(text[0].order_no+':1'), 'delivery_challan': true}
+    let pickid = String(text[0].picklist_number)
+    let send = {'seller_summary_id': String(text[0].order_no+':1'), 'delivery_challan': true, 'picklist_id': pickid }
     console.log(send)
     vm.bt_disable = true;
     vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
@@ -722,7 +723,11 @@ function pull_confirmation() {
         if(click_type == 'generate') {
           vm.pdf_data = data.data;
           if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
-            $state.go("app.outbound.PullConfirmation.DeliveryChallan");
+            if ($state.$current.templateUrl == "views/outbound/view_orders.html") {
+              $state.go("app.outbound.ViewOrders.DeliveryChallan");
+            } else {
+              $state.go("app.outbound.PullConfirmation.DeliveryChallan");
+            }
             $timeout(function () {
               vm.ok();
               $(".modal-body:visible").html(vm.pdf_data)

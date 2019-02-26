@@ -3450,6 +3450,11 @@ def get_order_summary_data(search_params, user, sub_user):
     if 'order_id' in search_params:
         order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])
         search_parameters['id__in'] = order_detail.values_list('id', flat=True)
+    if 'invoice_number' in search_params :
+        search_parameters['sellerordersummary__invoice_number'] = search_params['invoice_number']
+    if 'invoice_date' in search_params:
+        search_parameters['sellerordersummary__creation_date__icontains'] = search_params['invoice_date']
+
 
     status_search = search_params.get('order_report_status', "")
 
@@ -3457,26 +3462,20 @@ def get_order_summary_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
 
     search_parameters['quantity__gt'] = 0
-    central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
-    if central_order_reassigning == 'true' :
-        if 'sister_warehouse' in search_params:
-            sister_warehouse_name = search_params['sister_warehouse']
-            user = User.objects.get(username=sister_warehouse_name)
-            user = user
-            sub_user = user
-        else:
-            pass
+    #central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
+    #if central_order_reassigning == 'true':
+    if 'sister_warehouse' in search_params and search_params['sister_warehouse']:
+        sister_warehouse_name = search_params['sister_warehouse']
+        user = User.objects.get(username=sister_warehouse_name)
+        user = user
+        sub_user = user
+    else:
+        pass
 
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters['user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
-    if 'invoice_number' in search_params :
-        orders = OrderDetail.objects.filter(sellerordersummary__invoice_number = search_params['invoice_number'])
-
-    elif 'invoice_date' in search_params:
-        orders = OrderDetail.objects.filter(sellerordersummary__creation_date__icontains = search_params['invoice_date'])
-    else:
-        orders = OrderDetail.objects.filter(**search_parameters)
+    orders = OrderDetail.objects.filter(**search_parameters)
     pick_filters = {}
     for key, value in search_parameters.iteritems():
         pick_filters['order__%s' % key] = value

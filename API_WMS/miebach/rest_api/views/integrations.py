@@ -2335,13 +2335,15 @@ def update_order_dicts_skip_errors(orders, failed_status, user='', company_name=
         else:
             try:
                 order_detail = OrderDetail.objects.create(**order['order_details'])
+                order_detail.creation_date = order['order_details']['creation_date']
+                order_detail.save()
                 order_created = True
             except Exception as e:
                 import traceback
                 log.info(str(order['order_details']))
                 log.debug(traceback.format_exc())
 
-        if order.get('order_summary_dict', {}) and not order_obj and order_created:
+        if order.get('order_summary_dict', {}) and order_created:
             order['order_summary_dict']['order_id'] = order_detail.id
 
             #if order['order_summary_dict']['invoice_date']:

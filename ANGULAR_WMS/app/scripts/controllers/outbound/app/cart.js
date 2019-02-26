@@ -169,6 +169,7 @@ vm.update_cartdata_for_approval = function() {
     vm.delete_customer_cart_data(vm.model_data.data[index]);
     vm.model_data.data.splice(index,1);
     delete vm.sku_group_data[deleted_sku_id];
+    vm.unique_levels = {}
 
     if (vm.model_data.data) {
 
@@ -177,6 +178,12 @@ vm.update_cartdata_for_approval = function() {
         vm.update_sku_levels(vm.model_data.data, vm.model_data.data[i]);
         break;
       }
+
+      angular.forEach(vm.model_data.data, function(sku){
+      if (!vm.unique_levels[sku.warehouse_level]) {
+          vm.unique_levels[sku.warehouse_level] = sku.level_name;
+        }
+      })
     }
 
     vm.cal_total();

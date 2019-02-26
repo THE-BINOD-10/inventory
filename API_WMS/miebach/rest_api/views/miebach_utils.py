@@ -877,7 +877,7 @@ BULK_TO_RETAIL_REPORT_DICT = {
         {'label': 'Destination SKU Code', 'name': 'destination_sku_code', 'type': 'destination_sku_search'},
         {'label': 'Destination SKU Category', 'name': 'destination_sku_category', 'type': 'input'},
     ],
-    'dt_headers': ['Date', 'Seller ID', 'Seller Name', 'Source SKU Code', 'Source SKU Description',
+    'dt_headers': ['Transaction ID', 'Date', 'Seller ID', 'Seller Name', 'Source SKU Code', 'Source SKU Description',
                    'Source SKU Category', 'Source Location',
                    'Source Weight', 'Source MRP', 'Source Quantity', 'Destination SKU Code',
                    'Destination SKU Description', 'Destination SKU Category', 'Destination Location',
@@ -6612,7 +6612,7 @@ def get_bulk_to_retail_report_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
-    lis = ['date_only', 'seller__seller_id', 'seller__name', 'source_sku_code__sku_code',
+    lis = ['transact_number', 'date_only', 'seller__seller_id', 'seller__name', 'source_sku_code__sku_code',
            'source_sku_code__sku_desc', 'source_sku_code__sku_category', 'source_location',
            'source_batch__weight', 'source_batch__mrp','source_quantity', 'destination_sku_code__sku_code',
            'destination_sku_code__sku_desc', 'destination_sku_code__sku_category', 'destination_location',
@@ -6650,6 +6650,7 @@ def get_bulk_to_retail_report_data(search_params, user, sub_user):
     search_parameters['source_sku_code__id__in'] = sku_master_ids
     search_parameters['seller__isnull'] = False
     search_parameters['source_sku_code__user'] = user.id
+    search_parameters['summary_type'] = 'substitute'
     master_data = SubstitutionSummary.objects.filter(**search_parameters).\
                                             values('seller__seller_id', 'seller__name', 'source_sku_code__sku_code',
                                                    'source_sku_code__sku_desc', 'source_sku_code__sku_category',
@@ -6658,7 +6659,7 @@ def get_bulk_to_retail_report_data(search_params, user, sub_user):
                                                    'destination_sku_code__sku_desc',
                                                    'destination_sku_code__sku_category',
                                                    'destination_location', 'dest_batch__weight', 'dest_batch__mrp',
-                                                   'destination_quantity').\
+                                                   'destination_quantity', 'transact_number').\
                                             annotate(date_only=Cast('creation_date', DateField())).\
                                             order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
@@ -6674,8 +6675,9 @@ def get_bulk_to_retail_report_data(search_params, user, sub_user):
         if sku_data['dest_batch__weight']:
             source_weight = sku_data['dest_batch__weight']
         if sku_data['dest_batch__mrp']:
-            source_mrp = sku_data['dest_batch__mrp']
-        temp_data['aaData'].append(OrderedDict((('Date', str(sku_data['date_only'])),
+            dest_mrp = sku_data['dest_batch__mrp']
+        temp_data['aaData'].append(OrderedDict((('Transaction ID', sku_data['transact_number']),
+                                                ('Date', str(sku_data['date_only'])),
                                                 ('Seller ID', sku_data['seller__seller_id']),
                                                 ('Seller Name', sku_data['seller__name']),
                                                 ('Source SKU Code', sku_data['source_sku_code__sku_code']),

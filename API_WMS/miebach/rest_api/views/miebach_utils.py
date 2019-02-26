@@ -934,7 +934,7 @@ SKU_HEADERS = ['WMS Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU 
                'MRP Price', 'Sequence', 'Image Url',
                'Threshold Quantity', 'Measurment Type', 'Sale Through', 'Color', 'EAN Number',
                'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Hot Release',
-               'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Status']
+               'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Combo Flag', 'Status']
 
 MARKET_USER_SKU_HEADERS = ['WMS Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)',
                            'SKU Category',
@@ -1277,7 +1277,7 @@ SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 
                              ('measurement_type', 19),
                              ('sale_through', 20), ('color', 21), ('ean_number', 22), ('load_unit_handle', 23),
                              ('hsn_code', 24),
-                             ('sub_category', 25), ('hot_release', 26), ('mix_sku', 27), ('status', 28)
+                             ('sub_category', 25), ('hot_release', 26), ('mix_sku', 27), ('combo_flag', 28), ('status', 29)
                              ))
 
 MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(

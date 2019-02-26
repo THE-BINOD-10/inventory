@@ -12671,7 +12671,7 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
         else:
             em_qs = ManualEnquiry.objects.filter(**data_filters).order_by(order_data)
         if request.user.username == 'sm_purchase_admin':
-            status = 'ArtWork Submitted'
+            status = 'Purchase Pending'
         elif request.user.username == 'sm_design_admin':
             status = 'Design Pending'
         elif request.user.username == 'sm_finance_admin':

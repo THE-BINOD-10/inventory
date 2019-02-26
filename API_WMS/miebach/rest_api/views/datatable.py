@@ -422,7 +422,7 @@ def results_data(request, user=''):
             whs = map(lambda x: x.replace('-Total', ''), [i for i in headers.keys() if '-Total' in i])
             for wh in whs:
                 headers[wh+'-NK'] = wh+'-NK'
-        excel_data = print_excel(request, temp_data, headers, excel_name=request_data.get('datatable'))
+        #excel_data = print_excel(request, temp_data, headers, excel_name=request_data.get('datatable'))
         file_type = 'xls'
         if len(temp_data['aaData']) > 65535:
             file_type = 'csv'

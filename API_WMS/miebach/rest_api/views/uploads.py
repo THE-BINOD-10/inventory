@@ -1439,10 +1439,6 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Sequence should be in number')
 
-    master_sku = SKUMaster.objects.filter(user=user.id)
-    master_sku = [data.sku_code for data in master_sku]
-    missing_data = set(sku_data) - set(master_sku)
-
     if not index_status:
         return 'Success'
 
@@ -1516,7 +1512,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 wms_code = cell_data
                 data_dict[key] = wms_code
                 if wms_code:
-                    sku_data = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
+                    sku_data = SKUMaster.objects.filter(user=user.id, sku_code=wms_code)
                     if sku_data:
                         sku_data = sku_data[0]
 
@@ -1662,8 +1658,10 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def sku_upload(request, user=''):
     try:
+        reversion.set_user(request.user)
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
         if ex_status:
@@ -2454,12 +2452,12 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  purchase_mapping)
     if not set(['po_name', 'po_date', 'po_delivery_date', 'supplier_id', 'wms_code', 'quantity', 'price', 'mrp',
-                'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax', 'ship_to']).issubset(excel_mapping.keys()):
+                'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax', 'apmc_tax', 'ship_to']).issubset(excel_mapping.keys()):
         return 'Invalid File', []
     mapping_fields = {'po_date': 'PO Date', 'po_delivery_date': 'PO Delivery Date', 'mrp': 'MRP',
                       'cgst_tax': 'CGST Tax', 'sgst_tax': 'SGST Tax', 'igst_tax': 'IGST Tax', 'utgst_tax': 'UTGST Tax',
-                      'cess_tax': 'CESS Tax'}
-    number_fields = ['mrp', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax', 'cess_tax']
+                      'cess_tax': 'CESS Tax', 'apmc_tax': 'APMC Tax'}
+    number_fields = ['mrp', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax', 'cess_tax', 'apmc_tax']
     user_profile = user.userprofile
     for row_idx in range(1, no_of_rows):
         data_dict = {}
@@ -2565,12 +2563,42 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
 
 
 def purchase_order_excel_upload(request, user, data_list, demo_data=False):
+    from inbound import write_and_mail_pdf
     order_ids = {}
     data_req = {}
     mail_result_data = ""
     user_profile = user.userprofile
     creation_date = datetime.datetime.now()
     po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+    show_cess_tax = False
+    show_apmc_tax = False
+    ean_flag = False
+    total_qty = 0
+    wms_codes_list = list(set(map(lambda d: d['sku'].wms_code, data_list)))
+    ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
+                                        wms_code__in=wms_codes_list, user=user.id)
+    if ean_data.exists():
+        ean_flag = True
+    for final_dict1 in data_list:
+        if final_dict1.get('cess_tax', 0):
+            show_cess_tax = True
+        if final_dict1.get('apmc_tax', 0):
+            show_apmc_tax = True
+        if show_cess_tax and show_apmc_tax and ean_flag:
+            break
+    if user_profile.industry_type == 'FMCG':
+        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
+                         'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+    else:
+        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
+                         'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+    if ean_flag:
+        table_headers.insert(1, 'EAN')
+    if show_cess_tax:
+        table_headers.insert(table_headers.index('UTGST (%)'), 'CESS (%)')
+    if show_apmc_tax:
+        table_headers.insert(table_headers.index('UTGST (%)'), 'APMC (%)')
+    po_data = []
     for final_dict in data_list:
         order_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
         data = copy.deepcopy(PO_DATA)
@@ -2585,6 +2613,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         order_data['igst_tax'] = final_dict.get('igst_tax', 0)
         order_data['utgst_tax'] = final_dict.get('utgst_tax', 0)
         order_data['cess_tax'] = final_dict.get('cess_tax', 0)
+        order_data['apmc_tax'] = final_dict.get('apmc_tax', 0)
         order_data['measurement_unit'] = final_dict['sku'].measurement_type
         order_data['creation_date'] = creation_date
         if final_dict.get('po_delivery_date', ''):
@@ -2604,7 +2633,6 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         else:
             po_id = order_ids[group_key]
         ids_dict = {}
-        po_data = []
         total = 0
         order_data['status'] = 0
         data1 = OpenPO(**order_data)
@@ -2627,9 +2655,114 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         order.save()
         order.po_date = data['po_date']
         order.save()
-        mail_result_data = purchase_order_dict(data1, data_req, purchase_order, user, order)
-    if mail_result_data and get_misc_value('raise_po', user.id) == 'true':
-        mail_status = purchase_upload_mail(request, mail_result_data, user)
+        amount = data1.order_quantity * data1.price
+        total_qty += data1.order_quantity
+        total_tax_amt = (data1.utgst_tax + data1.sgst_tax + data1.cgst_tax + data1.igst_tax + data1.cess_tax + data1.apmc_tax + data1.utgst_tax) * (
+                                    amount / 100)
+        total_sku_amt = total_tax_amt + amount
+        if user_profile.industry_type == 'FMCG':
+            po_temp_data = [data1.sku.wms_code, data1.supplier_code, data1.sku.sku_desc,
+                            data1.order_quantity,
+                            data1.measurement_unit,
+                            data1.price, data1.mrp, amount, data1.sgst_tax,
+                            data1.cgst_tax,
+                            data1.igst_tax,
+                            data1.utgst_tax,
+                            total_sku_amt
+                            ]
+        else:
+            po_temp_data = [data1.sku.wms_code, data1.supplier_code, data1.sku.sku_desc,
+                            data1.order_quantity,
+                            data1.measurement_unit,
+                            data1.price, amount, data1.sgst_tax, data1.cgst_tax,
+                            data1.igst_tax,
+                            data1.utgst_tax,
+                            total_sku_amt
+                            ]
+        if ean_flag:
+            ean_number = 0
+            eans = get_sku_ean_list(data1.sku)
+            if eans:
+                ean_number = eans[0]
+            po_temp_data.insert(1, ean_number)
+        if show_cess_tax:
+            po_temp_data.insert(table_headers.index('CESS (%)'), data1.cess_tax)
+        if show_apmc_tax:
+            po_temp_data.insert(table_headers.index('APMC (%)'), data1.apmc_tax)
+        po_data.append(po_temp_data)
+
+        #mail_result_data = purchase_order_dict(data1, data_req, purchase_order, user, order)
+    try:
+        purchase_order = data1
+        address = purchase_order.supplier.address
+        address = '\n'.join(address.split(','))
+        if purchase_order.ship_to:
+            ship_to_address = purchase_order.ship_to
+            company_address = user.userprofile.address
+        else:
+            ship_to_address, company_address = get_purchase_company_address(user.userprofile)
+        wh_telephone = user.userprofile.wh_phone_number
+        ship_to_address = '\n'.join(ship_to_address.split(','))
+        vendor_name = ''
+        vendor_address = ''
+        vendor_telephone = ''
+        if purchase_order.order_type == 'VR':
+            vendor_address = purchase_order.vendor.address
+            vendor_address = '\n'.join(vendor_address.split(','))
+            vendor_name = purchase_order.vendor.name
+            vendor_telephone = purchase_order.vendor.phone_number
+        telephone = purchase_order.supplier.phone_number
+        name = purchase_order.supplier.name
+        order_id = ids_dict[supplier]
+        supplier_email = purchase_order.supplier.email_id
+        phone_no = purchase_order.supplier.phone_number
+        gstin_no = purchase_order.supplier.tin_number
+        po_exp_duration = purchase_order.supplier.po_exp_duration
+        order_date = get_local_date(request.user, order.creation_date)
+        if po_exp_duration:
+            expiry_date = order.creation_date + datetime.timedelta(days=po_exp_duration)
+        else:
+            expiry_date = ''
+        po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+        profile = UserProfile.objects.get(user=user.id)
+        company_name = profile.company_name
+        title = 'Purchase Order'
+        receipt_type = request.GET.get('receipt_type', '')
+        if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
+            company_name = 'SHPROC Procurement Pvt. Ltd.'
+            title = 'Purchase Order'
+        total_amt_in_words = number_in_words(round(total)) + ' ONLY'
+        round_value = float(round(total) - float(total))
+        company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
+        iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
+        left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO, request)
+        data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address.encode('ascii', 'ignore'),
+                     'order_id': order_id,
+                     'telephone': str(telephone), 'ship_to_address': ship_to_address.encode('ascii', 'ignore'),
+                     'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,
+                     'user_name': request.user.username, 'total_amt_in_words': total_amt_in_words,
+                     'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
+                     'w_address': ship_to_address.encode('ascii', 'ignore'),
+                     'vendor_name': vendor_name, 'vendor_address': vendor_address.encode('ascii', 'ignore'),
+                     'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
+                     'gstin_no': gstin_no, 'industry_type': user_profile.industry_type, 'expiry_date': expiry_date,
+                     'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number, 'wh_pan': profile.pan_number,
+                     'terms_condition': '',
+                     'company_address': company_address.encode('ascii', 'ignore'),
+                     'company_logo': company_logo, 'iso_company_logo': iso_company_logo,
+                     'left_side_logo': left_side_logo}
+        if round_value:
+            data_dict['round_total'] = "%.2f" % round_value
+        t = loader.get_template('templates/toggle/po_download.html')
+        rendered = t.render(data_dict)
+        if get_misc_value('raise_po', user.id) == 'true':
+            write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
+                               str(order_date).split(' ')[0], ean_flag=ean_flag)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Purchase Order send mail failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
     for key, value in order_ids.iteritems():
         if value:
             check_purchase_order_created(user, value)
@@ -5104,6 +5237,7 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                         else:
                             data_dict[key] = seller_master[0].seller_id
                             data_dict['seller_master_id'] = seller_master[0].id
+                            prev_data_dict = {}
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid Seller ID')
                 elif prev_data_dict:
@@ -5223,12 +5357,14 @@ def sku_substitution_upload(request, user=''):
         if data_dict.get('seller_master_id', 0):
             dest_filter['sellerstock__seller_id'] = data_dict['seller_master_id']
             mrp_dict['mrp'] = data_dict['dest_mrp']
+        if not data_dict['source_updated']:
+            transact_number = get_max_substitute_allocation_id(user)
         dest_stocks = StockDetail.objects.filter(**dest_filter)
         update_substitution_data(data_dict['src_stocks'], dest_stocks, data_dict['source_sku_code_obj'],
                                  data_dict['source_location_obj'], data_dict['source_quantity'],
                                  data_dict['dest_sku_code_obj'], data_dict['dest_location_obj'],
                                  data_dict['dest_quantity'],user, data_dict.get('seller_master_id', ''),
-                                 data_dict['source_updated'], mrp_dict)
+                                 data_dict['source_updated'], mrp_dict, transact_number)
     return HttpResponse('Success')
 
 
@@ -5250,9 +5386,6 @@ def central_order_form(request, user=''):
 @login_required
 @get_admin_user
 def stock_transfer_order_form(request, user=''):
-    central_order_file = request.GET['download-file']
-    if central_order_file:
-        return error_file_download(central_order_file)
     wb, ws = get_work_sheet('stock_transfer_order_form', STOCK_TRANSFER_ORDER_MAPPING.keys())
     return xls_to_response(wb, '%s.stock_transfer_order_form.xls' % str(user.id))
 
@@ -5880,44 +6013,42 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                     wms_code = str(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'quantity':
                  quantity = int(get_cell_data(row_idx, value, reader, file_type))
-
             elif key == 'price':
                  price = int(get_cell_data(row_idx, value, reader, file_type))
+            elif key == 'cgst_tax':
+                try:
+                    cgst_tax = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                except:
+                    cgst_tax = str(get_cell_data(row_idx, value, reader, file_type))
+                if cgst_tax == '':
+                    cgst_tax = 0
+            elif key == 'sgst_tax':
+                try:
+                    sgst_tax = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                except:
+                    sgst_tax = str(get_cell_data(row_idx, value, reader, file_type))
+                if sgst_tax == '':
+                    sgst_tax = 0
+            elif key == 'igst_tax':
+                try:
+                    igst_tax = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                except:
+                    igst_tax = str(get_cell_data(row_idx, value, reader, file_type))
+                if igst_tax == '':
+                    igst_tax = 0
+
         cond = (user.username)
         all_data.setdefault(cond, [])
-        all_data[cond].append([wms_code, quantity, price, 0])
+        all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax, 0])
         warehouse = User.objects.get(username=warehouse)
         f_name = 'stock_transfer_' + warehouse_name + '_'
-        all_data = insert_st(all_data, warehouse)
-        status = confirm_stock_transfer(all_data, warehouse, user.username, request)
+        all_data = insert_st_gst(all_data, warehouse)
+        status = confirm_stock_transfer_gst(all_data, warehouse, user.username)
 
     if status.status_code == 200:
         return 'Success'
     else:
         return 'Failed'
-
-
-def insert_st(all_data, user):
-    for key, value in all_data.iteritems():
-        for val in value:
-            if val[3]:
-                open_st = OpenST.objects.get(id=val[3])
-                open_st.warehouse_id = User.objects.get(username__iexact=key).id
-                open_st.sku_id = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
-                open_st.price = float(val[2])
-                open_st.order_quantity = float(val[1])
-                open_st.save()
-                continue
-            stock_dict = copy.deepcopy(OPEN_ST_FIELDS)
-            stock_dict['warehouse_id'] = User.objects.get(username__iexact=key).id
-            stock_dict['sku_id'] = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
-            stock_dict['order_quantity'] = float(val[1])
-            stock_dict['price'] = float(val[2])
-            stock_transfer = OpenST(**stock_dict)
-            stock_transfer.save()
-            all_data[key][all_data[key].index(val)][3] = stock_transfer.id
-    return all_data
-
 
 @csrf_exempt
 @login_required

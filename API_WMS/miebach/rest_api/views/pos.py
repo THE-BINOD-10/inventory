@@ -115,7 +115,7 @@ def search_product_data(request, user=''):
         sku_obj = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
                                                                   Q(sku_desc__icontains=search_key) |
                                                                   Q(style_name__icontains=search_key),
-                                                                  user=user.id)
+                                                                  status = 1,user=user.id)
         style = sku_obj[0].style_name if sku_obj else ''
         master_data = SKUMaster.objects.exclude(sku_type='RM').filter(style_name=style, user=user.id)\
                       if style else []
@@ -125,10 +125,10 @@ def search_product_data(request, user=''):
                                                                           Q(sku_desc__icontains=search_key) |
                                                                           Q(ean_number=int(search_key)) |
                                                                           Q(eannumbers__ean_number=int(search_key)),
-                                                                          user=user.id)
+                                                                          status = 1, user=user.id)
         except:
             master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
-                                                                      Q(sku_desc__icontains=search_key), user=user.id)
+                                                                      Q(sku_desc__icontains=search_key),status = 1,user=user.id)
     filt_master_ids = list(master_data.values_list('id', flat=True)[:30])
     stock_dict = dict(StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE') \
         .filter(sku__user=user.id, quantity__gt=0, sku_id__in=filt_master_ids).values_list('sku_id').distinct().\
@@ -584,7 +584,7 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
     if parent_user:
         order_detail = OrderDetail.objects.filter(original_order_id__icontains=order_id, \
                                               user=parent_user.id, quantity__gt=0)
-    
+
     for order in order_detail:
         discount = 0
         sku = SKUMaster.objects.get(id=order.sku_id)
@@ -618,7 +618,7 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
         gst_based[tax_master['cgst_tax']]['taxable_amt'] += order.invoice_amount - \
                                   order_summary[0].discount -\
                                   (float(order.invoice_amount) * tax_master["sgst_tax"] / 100) - \
-                                  (float(order.invoice_amount) * tax_master["cgst_tax"] / 100) 
+                                  (float(order.invoice_amount) * tax_master["cgst_tax"] / 100)
         gst_based[tax_master['cgst_tax']]['sgst'] += order.invoice_amount * tax_master["sgst_tax"] / 100
         gst_based[tax_master['cgst_tax']]['cgst'] += order.invoice_amount * tax_master["cgst_tax"] / 100
 

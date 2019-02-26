@@ -12537,12 +12537,12 @@ def save_manual_enquiry_data(request, user=''):
         admin_remarks = request.POST.get('admin_remarks', '')
         if not enquiry_id or not user_id:
             return HttpResponse("Give information insufficient")
-        smd_price = request.POST.get('sm_d_price', '')
-        rc_price = request.POST.get('r_c_price', '')
+        smd_price = request.POST.get('sm_d_price', 0)
+        rc_price = request.POST.get('r_c_price', 0)
         SMD_PRICE_EXCLUDE_STATUSES = ['reseller_pending', 'pending_approval', 'purchase_pending']
         if request.user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and enq_status not in SMD_PRICE_EXCLUDE_STATUSES:
-            if not smd_price and not rc_price:
-                return HttpResponse('SM-D and R-C prices are missing')
+            if not smd_price:
+                return HttpResponse('SM-D price is missing')
             smd_price = float(smd_price)
             rc_price = float(rc_price)
         filters = {'enquiry_id': float(enquiry_id), 'user': user_id}
@@ -12729,6 +12729,26 @@ def get_manual_enquiry_detail(request, user=''):
         else:
             dr_price = ''
         manual_eq_dict['dr_price'] = dr_price
+        smd_price = PriceMaster.objects.filter(sku__user=admin_user.id, sku__sku_code=manual_enq[0].sku.sku_code,
+                                              price_type='SM-D').filter(min_unit_range__lte=manual_enq[0].quantity,
+                                                                       max_unit_range__gte=manual_enq[0].quantity)
+        if smd_price:
+            smd_price = smd_price[0].price
+        else:
+            smd_price = ''
+        manual_eq_dict['smd_price'] = smd_price
+        emiza_order_ids = []
+        if manual_enq[0].status == 'order_placed':
+            po_number = manual_enq[0].po_number
+            client_name = manual_enq[0].customer_name
+            gen_qs = GenericOrderDetailMapping.objects.filter(client_name=client_name, po_number=po_number).values_list(
+                'orderdetail__original_order_id', 'cust_wh_id')
+            for ord_id, wh_id in gen_qs:
+                emiza_ord_prefix = UserProfile.objects.get(user_id=wh_id).order_prefix
+                emiza_ord_id = '%s%s' %(emiza_ord_prefix, ord_id)
+                if emiza_ord_id:
+                    emiza_order_ids.append(emiza_ord_id)
+        manual_eq_dict['EmizaOrderIds'] = ', '.join(emiza_order_ids)
         enquiry_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id, image_type='res_images').values_list('image', flat=True))
         art_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id, image_type='art_work').values_list('image', flat=True))
         style_dict = {'sku_code': manual_enq[0].sku.sku_code, 'style_name':  manual_enq[0].sku.sku_class,
@@ -12930,8 +12950,8 @@ def request_manual_enquiry_approval(request, user=''):
     if not enquiry_id or not user_id or not status:
         resp['msg'] = "Given information insufficient"
         return HttpResponse(json.dumps(resp))
-    smd_price = request.POST.get('sm_d_price', '')
-    rc_price = request.POST.get('r_c_price', '')
+    smd_price = request.POST.get('sm_d_price', 0)
+    rc_price = request.POST.get('r_c_price', 0)
     if request.user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and status != 'pending_approval':
         if not smd_price and not rc_price:
             return HttpResponse('SM-D and R-C prices are missing')
@@ -13194,7 +13214,7 @@ def convert_customorder_to_actualorder(request, user=''):
             CustomerOrderSummary.objects.create(order=ord_obj, sgst_tax=taxes['sgst_tax'], cgst_tax=taxes['cgst_tax'],
                                                 igst_tax=taxes['igst_tax'], tax_type=customer_master.tax_type)
             generic_orders = GenericOrderDetailMapping.objects.filter(generic_order_id=generic_order_id,
-                                                                      customer_id=cm_id). \
+                                                                      customer_id=cm_id, cust_wh_id=usr). \
                 values('orderdetail__original_order_id', 'orderdetail__user').distinct()
             for generic_order in generic_orders:
                 original_order_id = generic_order['orderdetail__original_order_id']

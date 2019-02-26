@@ -257,9 +257,9 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
       } else if (!vm.model_data.sm_d_price) {
         Service.showNoty('Please Fill SM-D Price', 'warning');
         return false;
-      } else if (!vm.model_data.r_c_price) {
+      /*} else if (!vm.model_data.r_c_price) {
         Service.showNoty('Please Fill R-C Price', 'warning');
-        return false;
+        return false;*/
       } else if (vm.model_data.quantity == "0") {
         Service.showNoty('Quantity should not be 0', 'warning');
         return false;
@@ -301,9 +301,9 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
       } else if (!vm.model_data.sm_d_price) {
         Service.showNoty('Please Fill SM-D Price', 'warning');
         return false;
-      } else if (!vm.model_data.r_c_price) {
+      /*} else if (!vm.model_data.r_c_price) {
         Service.showNoty('Please Fill R-C Price', 'warning');
-        return false;
+        return false;*/
       }
     }
     angular.copy(vm.model_data, data);
@@ -315,7 +315,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
         if (data.data == 'Success') {
           $modalInstance.close();
         }
-        Service.showNoty(data.data.msg);
+        Service.showNoty(data.data);
       } else {
         Service.showNoty('Something went wrong');
       }

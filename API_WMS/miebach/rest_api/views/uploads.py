@@ -1439,10 +1439,6 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Sequence should be in number')
 
-    master_sku = SKUMaster.objects.filter(user=user.id)
-    master_sku = [data.sku_code for data in master_sku]
-    missing_data = set(sku_data) - set(master_sku)
-
     if not index_status:
         return 'Success'
 
@@ -1516,7 +1512,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 wms_code = cell_data
                 data_dict[key] = wms_code
                 if wms_code:
-                    sku_data = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
+                    sku_data = SKUMaster.objects.filter(user=user.id, sku_code=wms_code)
                     if sku_data:
                         sku_data = sku_data[0]
 
@@ -1662,8 +1658,10 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def sku_upload(request, user=''):
     try:
+        reversion.set_user(request.user)
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
         if ex_status:
@@ -5239,6 +5237,7 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                         else:
                             data_dict[key] = seller_master[0].seller_id
                             data_dict['seller_master_id'] = seller_master[0].id
+                            prev_data_dict = {}
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid Seller ID')
                 elif prev_data_dict:
@@ -5358,12 +5357,14 @@ def sku_substitution_upload(request, user=''):
         if data_dict.get('seller_master_id', 0):
             dest_filter['sellerstock__seller_id'] = data_dict['seller_master_id']
             mrp_dict['mrp'] = data_dict['dest_mrp']
+        if not data_dict['source_updated']:
+            transact_number = get_max_substitute_allocation_id(user)
         dest_stocks = StockDetail.objects.filter(**dest_filter)
         update_substitution_data(data_dict['src_stocks'], dest_stocks, data_dict['source_sku_code_obj'],
                                  data_dict['source_location_obj'], data_dict['source_quantity'],
                                  data_dict['dest_sku_code_obj'], data_dict['dest_location_obj'],
                                  data_dict['dest_quantity'],user, data_dict.get('seller_master_id', ''),
-                                 data_dict['source_updated'], mrp_dict)
+                                 data_dict['source_updated'], mrp_dict, transact_number)
     return HttpResponse('Success')
 
 
@@ -6191,6 +6192,7 @@ def block_stock_download(request, user=''):
 
 @csrf_exempt
 def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_type=''):
+    from stock_locator import get_quantity_data
     index_status = {}
     blockstock_file_mapping = copy.deepcopy(BLOCK_STOCK_DEF_EXCEL)
     if not blockstock_file_mapping:
@@ -6228,6 +6230,21 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                 else:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Invalid Quantity Amount')
+                    else:
+                        sku_code = get_cell_data(row_idx, blockstock_file_mapping['sku_code'], reader, file_type)
+                        wh_name = get_cell_data(row_idx, blockstock_file_mapping['warehouse'], reader, file_type)
+                        level = get_cell_data(row_idx, blockstock_file_mapping['level'], reader, file_type)
+                        usr_obj = User.objects.filter(username=wh_name).values_list('id', flat=True)
+                        ret_list = get_quantity_data(usr_obj, [sku_code], asn_true=False)
+                        if ret_list:
+                            avail_stock = ret_list[0]['available']
+                            if level == 1:
+                                if avail_stock < cell_data:
+                                    index_status.setdefault(row_idx, set()).add('Stock Outage.Pls check stock in WH')
+                            elif level == 3:
+                                asn_avail_stock = ret_list[0]['asn']
+                                if asn_avail_stock < cell_data:
+                                    index_status.setdefault(row_idx, set()).add('Stock Outage.Pls check stock in WH')
             elif key == 'reseller_name':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add("Reseller Name is missing")

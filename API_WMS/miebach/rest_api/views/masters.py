@@ -63,7 +63,7 @@ def save_image_file(image_file, data, user, extra_image='', saved_file_path='', 
 def get_sku_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['wms_code', 'ean_number', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone',
-           'creation_date', 'updation_date', 'status']
+           'creation_date', 'updation_date', 'relation_type', 'status']
     order_data = SKU_MASTER_HEADERS.values()[col_num]
     search_params1, search_params2 = get_filtered_params_search(filters, lis)
     if 'status__icontains' in search_params2.keys():
@@ -73,15 +73,22 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
         elif (str(search_params2['status__icontains']).lower() in "inactive"):
             search_params1["status__icontains"] = 0
             search_params2["status__icontains"] = 0
-        # else:
-        #     search_params1["status__icontains"] = "none"
+    if 'relation_type__icontains' in search_params2.keys():
+        if (str(search_params2['relation_type__icontains']).lower() in "yes"):
+            search_params1["relation_type__icontains"] = 'combo'
+            search_params2["relation_type__icontains"] = 'combo'
+        elif (str(search_params2['relation_type__icontains']).lower() in "no"):
+            search_params1["relation_type"] = ''
+            search_params2["relation_type"] = ''
+            del(search_params1['relation_type__istartswith'])
+            del(search_params2['relation_type__icontains'])
     if order_term == 'desc':
         order_data = '-%s' % order_data
     master_data = []
     ids = []
     if search_term:
-
         status_dict = {'active': 1, 'inactive': 0}
+        combo_flag_dict = {'yes': 'combo', 'no': ''}
         if search_term.lower() in status_dict:
             search_terms = status_dict[search_term.lower()]
             if search_params1:
@@ -92,6 +99,16 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
                     master_data.extend(list(master_data1))
             else:
                 master_data1 = sku_master.filter(status=search_terms, user=user.id).order_by(order_data)
+        elif search_term.lower() in combo_flag_dict:
+            search_terms = combo_flag_dict[search_term.lower()]
+            if search_params1:
+                for item in [search_params1, search_params2]:
+                    master_data1 = sku_master.exclude(id__in=ids).filter(relation_type=search_terms, user=user.id,
+                                                                         **item).order_by(order_data)
+                    ids.extend(master_data1.values_list('id', flat=True))
+                    master_data.extend(list(master_data1))
+            else:
+                master_data = sku_master.filter(relation_type=search_terms, user=user.id).order_by(order_data)
         else:
             list1 = []
             if search_params1:
@@ -180,13 +197,18 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
         zone = ''
         if data.zone_id:
             zone = data.zone.zone
+        if data.relation_type == 'combo':
+            combo_flag = 'Yes'
+        else:
+            combo_flag = 'No'
         temp_data['aaData'].append(OrderedDict(
             (('WMS SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
              ('SKU Type', data.sku_type), ('SKU Category', data.sku_category), ('DT_RowClass', 'results'),
              ('Zone', zone), ('SKU Class', data.sku_class), ('Status', status), ('DT_RowAttr', {'data-id': data.id}),
-             ('Color', data.color), ('EAN Number', str(data.ean_number)),
+             ('Color', data.color), ('EAN Number', str(data.ean_number)), ('Combo Flag', combo_flag),
              ('Creation Date', creation_date),
-             ('Updation Date', updation_date))))
+             ('Updation Date', updation_date)))
+        )
 
 
 @csrf_exempt
@@ -961,9 +983,10 @@ def check_update_hot_release(data, value):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def update_sku(request, user=''):
     """ Update SKU Details"""
-
+    reversion.set_user(request.user)
     log.info('Update SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     try:
@@ -2300,9 +2323,11 @@ def get_zones_list(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def insert_sku(request, user=''):
     """ Insert New SKU Details """
     log.info('Insert SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    reversion.set_user(request.user)
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     try:
         wms = request.POST['wms_code']

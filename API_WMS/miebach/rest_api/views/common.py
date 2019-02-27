@@ -282,8 +282,8 @@ def add_user_permissions(request, response_data, user=''):
         user_type = 'sm_purchase_admin'
     elif request_user_profile.warehouse_type == 'SM_DESIGN_ADMIN':
         user_type = 'sm_design_admin'
-    # elif user_profile.warehouse_type == 'CENTRAL_ADMIN':
-    #     user_type = 'default'
+    elif request_user_profile.warehouse_type == 'SM_FINANCE_ADMIN':
+        user_type = 'sm_finance_admin'
     else:
         user_type = request_user_profile.user_type
     response_data['data']['roles']['permissions']['user_type'] = user_type
@@ -464,7 +464,7 @@ def get_search_params(request, user=''):
                     'aging_period': 'aging_period', 'source_sku_code': 'source_sku_code',
                     'destination_sku_code': 'destination_sku_code',
                     'destination_sku_category': 'destination_sku_category',
-                    'source_sku_category': 'source_sku_category'}
+                    'source_sku_category': 'source_sku_category', 'level': 'level'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -1565,7 +1565,7 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
 def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id='',
                        dest_seller_id='', source_updated=False, mrp_dict=None, dest_updated=False):
     batch_obj = ''
-
+    dest_batch = ''
     if not source_updated:
         for stock in stocks:
             batch_obj = stock.batch_detail
@@ -1594,9 +1594,12 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                            'location_id': dest[0].id, 'sku_id': sku_id}
             if mrp_dict:
                 mrp_dict['creation_date'] = datetime.datetime.now()
-                dict_values['batch_detail_id'] = BatchDetail.objects.create(**mrp_dict).id
+                new_batch = BatchDetail.objects.create(**mrp_dict)
+                dict_values['batch_detail_id'] = new_batch.id
+                dest_batch = new_batch
             elif batch_obj:
                 dict_values['batch_detail'] = batch_obj
+                dest_batch = batch_obj
             if batch_obj:
                 batch_stock_filter = {'sku_id': sku_id, 'location_id': dest[0].id, 'batch_detail_id': batch_obj.id}
                 if dest_seller_id:
@@ -1620,8 +1623,9 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
             dest_stocks.quantity += float(quantity)
             dest_stocks.save()
             change_seller_stock(dest_seller_id, dest_stocks, user, quantity, 'inc')
-
-    return batch_obj
+            if dest_stocks.batch_detail:
+                dest_batch = dest_stocks.batch_detail
+    return dest_batch
 
 def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp=''):
     # sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
@@ -3833,15 +3837,18 @@ def build_style_search_data(to_data, from_data, limit):
 @fn_timer
 def insert_update_brands(user):
     request = {}
-    # user = User.objects.get(id=sku.user)
     sku_master = list(
         SKUMaster.objects.filter(user=user.id).exclude(sku_brand='').values_list('sku_brand', flat=True).distinct())
     if not 'All' in sku_master:
         sku_master.append('All')
-    for brand in sku_master:
-        brand_instance = Brands.objects.filter(brand_name=brand, user_id=user.id)
-        if not brand_instance:
-            Brands.objects.create(brand_name=brand, user_id=user.id)
+    brand_instance = Brands.objects.filter(user_id=user.id)
+    brands_list = list(brand_instance.values_list('brand_name', flat=True))
+    brand_creation_list = set(sku_master) - set(brands_list)
+    all_brand_objs = []
+    for brand in brand_creation_list:
+        all_brand_objs.append(Brands(**{'user_id': user.id, 'brand_name': brand}))
+    if all_brand_objs:
+        Brands.objects.bulk_create(all_brand_objs)
     deleted_brands = Brands.objects.filter(user_id=user.id).exclude(brand_name__in=sku_master).delete()
 
 
@@ -6806,7 +6813,8 @@ def open_orders_allocate_stock(request, user, sku_combos, sku_open_orders, all_s
                                stock_objs, picklist_order_mapping):
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
-                   'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
+                   'no_stock_switch': get_misc_value('no_stock_switch', user.id),
+                   'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
     remarks = 'Auto-generated Picklist'
     consumed_qty = 0
     for open_order in sku_open_orders:
@@ -7518,6 +7526,18 @@ def get_max_seller_transfer_id(user):
     return trans_id
 
 
+def get_max_combo_allocation_id(user):
+    ''' Returns Max ID for Combo Allocation for Substitute Summary table'''
+    trans_id = get_incremental(user, 'combo_allocation')
+    return trans_id
+
+
+def get_max_substitute_allocation_id(user):
+    ''' Returns Max ID for Substitute Allocation for Substitute Summary table'''
+    trans_id = get_incremental(user, 'substitute_allocation')
+    return trans_id
+
+
 def write_excel(ws, data_count, ind, val, file_type='xls'):
     if file_type == 'xls':
         ws.write(data_count, ind, val)
@@ -8037,13 +8057,13 @@ def create_seller_order_transfer(seller_order, seller_id, trans_mapping):
 
 
 def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty, dest_sku, dest_loc, dest_qty, user,
-                             seller_id, source_updated, mrp_dict):
+                             seller_id, source_updated, mrp_dict, transact_number):
     desc_batch_obj = update_stocks_data(src_stocks, float(src_qty), dest_stocks, float(dest_qty), user, [dest_loc], dest_sku.id,
                        src_seller_id=seller_id, dest_seller_id=seller_id, source_updated=source_updated,
                        mrp_dict=mrp_dict)
     sub_data = {'source_sku_code_id': src_sku.id, 'source_location': src_loc.location, 'source_quantity': src_qty,
                 'destination_sku_code_id': dest_sku.id, 'destination_location': dest_loc.location,
-                'destination_quantity': dest_qty}
+                'destination_quantity': dest_qty, 'transact_number': transact_number}
     if src_stocks and src_stocks[0].batch_detail:
         sub_data['source_batch_id'] = src_stocks[0].batch_detail_id
     if desc_batch_obj:
@@ -8335,7 +8355,11 @@ def get_sku_ean_list(sku, order_by_val=''):
 
 
 def get_exclude_zones(user):
-    exclude_zones = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
+    exclude_zones = ['DAMAGED_ZONE', 'QC_ZONE']
+    if user.userprofile.industry_type == 'FMCG':
+        non_sellable_zones = list(ZoneMaster.objects.filter(user=user.id, segregation='non_sellable').values_list('zone',
+                                                                                                             flat=True))
+        exclude_zones.extend(non_sellable_zones)
     sub_zones = SubZoneMapping.objects.filter(zone__zone__in=exclude_zones, zone__user=user.id).\
         values_list('sub_zone__zone', flat=True)
     if sub_zones:
@@ -8900,3 +8924,49 @@ def get_all_sellable_zones(user):
     if sellable_zones:
         sellable_zones = get_all_zones(user, zones=sellable_zones)
     return sellable_zones
+
+
+def cancel_emiza_order(gen_ord_id, cm_id):
+    customer_qs = CustomerUserMapping.objects.filter(customer_id=cm_id)
+    if customer_qs:
+        customer_user = customer_qs[0]
+    gen_qs = GenericOrderDetailMapping.objects.filter(generic_order_id=gen_ord_id, customer_id=cm_id)
+    generic_orders = gen_qs.values('orderdetail__original_order_id', 'orderdetail__user').distinct()
+    for generic_order in generic_orders:
+        original_order_id = generic_order['orderdetail__original_order_id']
+        order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
+        resp = order_push(original_order_id, order_detail_user, "CANCEL")
+        log.info('Cancel Order Push Status: %s' % (str(resp)))
+    uploaded_po_details = gen_qs.values('po_number', 'client_name').distinct()
+    if uploaded_po_details.count() == 1:
+        po_number = uploaded_po_details[0]['po_number']
+        client_name = uploaded_po_details[0]['client_name']
+        ord_upload_qs = OrderUploads.objects.filter(uploaded_user=customer_user.id,
+                                                    po_number=po_number, customer_name=client_name)
+        ord_upload_qs.delete()
+    order_det_ids = gen_qs.values_list('orderdetail_id', flat=True)
+    ord_det_qs = OrderDetail.objects.filter(id__in=order_det_ids)
+    for order_det in ord_det_qs:
+        if order_det.status == 1:
+            order_det.status = 3
+            order_det.save()
+        else:
+            picklists = Picklist.objects.filter(order_id=order_det.id)
+            for picklist in picklists:
+                if picklist.picked_quantity <= 0:
+                    picklist.delete()
+                elif picklist.stock:
+                    cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id)
+                    if not cancel_location:
+                        CancelledLocation.objects.create(picklist_id=picklist.id,
+                                                         quantity=picklist.picked_quantity,
+                                                         location_id=picklist.stock.location_id,
+                                                         creation_date=datetime.datetime.now(), status=1)
+                        picklist.status = 'cancelled'
+                        picklist.save()
+                else:
+                    picklist.status = 'cancelled'
+                    picklist.save()
+            order_det.status = 3
+            order_det.save()
+    gen_qs.delete()

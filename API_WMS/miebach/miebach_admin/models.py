@@ -86,6 +86,7 @@ class VendorMaster(models.Model):
         return str(self.name)
 
 
+@reversion.register()
 class SKUMaster(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
@@ -1042,6 +1043,7 @@ class SellerMaster(models.Model):
 
 
 class SubstitutionSummary(models.Model):
+    transact_number = models.CharField(max_length=32, default='')
     source_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='source_sku')
     destination_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='destination_sku')
     source_location = models.CharField(max_length=64, default='')

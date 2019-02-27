@@ -71,7 +71,7 @@
                     </td>
 
                     <td>
-                      <input type="number" min=0 d-perm="true" name="quantity" ng-model="data.quantity" ng-change="bundleObj.change_quantity(data)" class="form-control number" ng-class="service.get_decimal_perm()" ng-show="$first">
+                      <input type="text" d-perm="true" name="quantity" ng-model="data.quantity" class="form-control number" ng-class="service.get_decimal_perm()" ng-show="$first" ng-keyup="bundleObj.change_child_quantity(data)">
                     </td>
 
                     <td>
@@ -95,7 +95,8 @@
                     </td>
 
                     <td>
-                      <input type="number" name="child_quantity" min=0 ng-model="item.child_sku_qty" ng-change="bundleObj.change_quantity(data)" class="form-control number" ng-class="service.get_decimal_perm()">
+                      <input type="text" name="child_quantity" min=0 ng-model="item.child_qty" class="form-control number" ng-class="service.get_decimal_perm()">
+                      <input type="number" min=0 ng-model="item.child_sku_qty" class="form-control number" disabled="true" ng-hide="true">
                     </td>
 
 		                <td>

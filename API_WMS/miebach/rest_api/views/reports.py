@@ -60,9 +60,10 @@ def get_report_data(request, user=''):
         if 'sister_warehouse' in filter_keys :
             sister_wh = get_sister_warehouse(user)
             data_index = data['filters'].index(filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
-            data['filters'][data_index]['values'] = list(
+            sister_warehouses = [user.username]
+            sister_warehouses1 = list(
                 UserGroups.objects.filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',flat=True).distinct())
-            data['filters'][data_index]['values'].append('')
+            data['filters'][data_index]['values'] = list(chain(sister_warehouses, sister_warehouses1))
         if 'order_report_status' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])

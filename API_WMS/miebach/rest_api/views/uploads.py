@@ -6192,6 +6192,7 @@ def block_stock_download(request, user=''):
 
 @csrf_exempt
 def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_type=''):
+    from stock_locator import get_quantity_data
     index_status = {}
     blockstock_file_mapping = copy.deepcopy(BLOCK_STOCK_DEF_EXCEL)
     if not blockstock_file_mapping:
@@ -6229,6 +6230,21 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                 else:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Invalid Quantity Amount')
+                    else:
+                        sku_code = get_cell_data(row_idx, blockstock_file_mapping['sku_code'], reader, file_type)
+                        wh_name = get_cell_data(row_idx, blockstock_file_mapping['warehouse'], reader, file_type)
+                        level = get_cell_data(row_idx, blockstock_file_mapping['level'], reader, file_type)
+                        usr_obj = User.objects.filter(username=wh_name).values_list('id', flat=True)
+                        ret_list = get_quantity_data(usr_obj, [sku_code], asn_true=False)
+                        if ret_list:
+                            avail_stock = ret_list[0]['available']
+                            if level == 1:
+                                if avail_stock < cell_data:
+                                    index_status.setdefault(row_idx, set()).add('Stock Outage.Pls check stock in WH')
+                            elif level == 3:
+                                asn_avail_stock = ret_list[0]['asn']
+                                if asn_avail_stock < cell_data:
+                                    index_status.setdefault(row_idx, set()).add('Stock Outage.Pls check stock in WH')
             elif key == 'reseller_name':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add("Reseller Name is missing")

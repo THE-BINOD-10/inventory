@@ -1508,6 +1508,10 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail,
 
     # order_ids = list(set(map(lambda d: d['order_id'], picklists_send_mail[0])))
     order_ids = picklists_send_mail.keys()
+    if not misc_detail:
+        return
+    elif misc_detail[0].misc_value != 'true':
+        return
     if picklist.order:
         for order_id in order_ids:
             all_picked_items = picks_all.filter(order__order_id=order_id, picked_quantity__gt=0)

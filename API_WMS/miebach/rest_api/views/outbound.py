@@ -6076,7 +6076,7 @@ def app_shipment_info_data(request, user=''):
         returned = False
         loan_proposal_id = str(orders.order.original_order_id)
         order_return_obj = OrderReturns.objects.filter(order__original_order_id = orders.order.original_order_id,sku__wms_code = orders.order.sku.sku_code)
-        if order_return_obj :
+        if order_return_obj.exists() :
             returned = True
         from firebase import firebase
         firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)

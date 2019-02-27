@@ -806,15 +806,16 @@ ENQUIRY_STATUS_REPORT = {
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'Enquiry No', 'name': 'enquiry_number', 'type': 'input'},
+        {'label': 'Level', 'name': 'level', 'type': 'input'},
         {'label': 'Aging Period', 'name': 'aging_period', 'type': 'input'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'Enquiry Status', 'name': 'enquiry_status', 'type': 'select'},
     ],
     'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
-                   'Enquiry No', 'Enquiry Aging', 'Enquiry Status'],
+                   'Enquiry No', 'Level', 'Enquiry Aging', 'Enquiry Status'],
     'dt_url': 'get_enquiry_status_report', 'excel_name': 'get_enquiry_status_report',
     'dt_unsort': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
-                   'Enquiry No', 'Enquiry Aging', 'Enquiry Status'],
+                   'Enquiry No', 'Level', 'Enquiry Aging', 'Enquiry Status'],
     'print_url': 'print_enquiry_status_report',
 }
 
@@ -5699,6 +5700,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         zone = dist_obj.userprofile.zone
         sku_code = en_obj.sku.sku_code
         quantity = en_obj.quantity
+        warehouse_level = en_obj.warehouse_level
         if 'Total Qty' not in totals_map:
             totals_map['Total Qty'] = quantity
         else:
@@ -5711,6 +5713,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
                                 ('SKU Code', sku_code),
                                 ('SKU Quantity', quantity),
                                 ('Enquiry No', enq_id),
+                                ('Level', warehouse_level),
                                 ('Enquiry Aging', days_left),
                                 ('Enquiry Status', extend_status)))
         temp_data['aaData'].append(ord_dict)

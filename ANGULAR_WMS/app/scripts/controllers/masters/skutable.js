@@ -51,6 +51,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('Zone').withTitle('Zone'),
         DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
         DTColumnBuilder.newColumn('Updation Date').withTitle('Updation Date'),
+        DTColumnBuilder.newColumn('Combo Flag').withTitle('Combo Flag'),
         DTColumnBuilder.newColumn('Status').withTitle('Status').renderWith(function(data, type, full, meta) {
                           return vm.service.status(data);
                         }).withOption('width', '80px'),

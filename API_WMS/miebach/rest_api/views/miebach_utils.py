@@ -806,15 +806,16 @@ ENQUIRY_STATUS_REPORT = {
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'Enquiry No', 'name': 'enquiry_number', 'type': 'input'},
+        {'label': 'Level', 'name': 'level', 'type': 'input'},
         {'label': 'Aging Period', 'name': 'aging_period', 'type': 'input'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'Enquiry Status', 'name': 'enquiry_status', 'type': 'select'},
     ],
     'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
-                   'Enquiry No', 'Enquiry Aging', 'Enquiry Status'],
+                   'Enquiry No', 'Level', 'Enquiry Aging', 'Enquiry Status'],
     'dt_url': 'get_enquiry_status_report', 'excel_name': 'get_enquiry_status_report',
     'dt_unsort': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
-                   'Enquiry No', 'Enquiry Aging', 'Enquiry Status'],
+                   'Enquiry No', 'Level', 'Enquiry Aging', 'Enquiry Status'],
     'print_url': 'print_enquiry_status_report',
 }
 
@@ -1034,7 +1035,7 @@ SKU_MASTER_HEADERS = OrderedDict(
     [('WMS SKU Code', 'wms_code'), ('EAN Number', 'ean_number'), ('Product Description', 'sku_desc'),
      ('SKU Type', 'sku_type'), ('SKU Category', 'sku_category'), ('SKU Class', 'sku_class'),
      ('Color', 'color'), ('Zone', 'zone_id'), ('Creation Date', 'creation_date'), ('Updation Date', 'updation_date'),
-     ('Status', 'status')])
+     ('Combo Flag', 'relation_type'), ('Status', 'status')])
 
 PRICING_MASTER_HEADER = OrderedDict(
     [('SKU Code', 'sku__sku_code'), ('SKU Description', 'sku__sku_desc'), ('Selling Price Type', 'price_type'),
@@ -3454,6 +3455,11 @@ def get_order_summary_data(search_params, user, sub_user):
     if 'order_id' in search_params:
         order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])
         search_parameters['id__in'] = order_detail.values_list('id', flat=True)
+    if 'invoice_number' in search_params :
+        search_parameters['sellerordersummary__invoice_number'] = search_params['invoice_number']
+    if 'invoice_date' in search_params:
+        search_parameters['sellerordersummary__creation_date__icontains'] = search_params['invoice_date']
+
 
     status_search = search_params.get('order_report_status', "")
 
@@ -3461,26 +3467,20 @@ def get_order_summary_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
 
     search_parameters['quantity__gt'] = 0
-    central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
-    if central_order_reassigning == 'true' :
-        if 'sister_warehouse' in search_params:
-            sister_warehouse_name = search_params['sister_warehouse']
-            user = User.objects.get(username=sister_warehouse_name)
-            user = user
-            sub_user = user
-        else:
-            pass
+    #central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
+    #if central_order_reassigning == 'true':
+    if 'sister_warehouse' in search_params and search_params['sister_warehouse']:
+        sister_warehouse_name = search_params['sister_warehouse']
+        user = User.objects.get(username=sister_warehouse_name)
+        user = user
+        sub_user = user
+    else:
+        pass
 
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters['user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
-    if 'invoice_number' in search_params :
-        orders = OrderDetail.objects.filter(sellerordersummary__invoice_number = search_params['invoice_number'])
-
-    elif 'invoice_date' in search_params:
-        orders = OrderDetail.objects.filter(sellerordersummary__creation_date__icontains = search_params['invoice_date'])
-    else:
-        orders = OrderDetail.objects.filter(**search_parameters)
+    orders = OrderDetail.objects.filter(**search_parameters)
     pick_filters = {}
     for key, value in search_parameters.iteritems():
         pick_filters['order__%s' % key] = value
@@ -5703,6 +5703,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         zone = dist_obj.userprofile.zone
         sku_code = en_obj.sku.sku_code
         quantity = en_obj.quantity
+        warehouse_level = en_obj.warehouse_level
         if 'Total Qty' not in totals_map:
             totals_map['Total Qty'] = quantity
         else:
@@ -5715,6 +5716,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
                                 ('SKU Code', sku_code),
                                 ('SKU Quantity', quantity),
                                 ('Enquiry No', enq_id),
+                                ('Level', warehouse_level),
                                 ('Enquiry Aging', days_left),
                                 ('Enquiry Status', extend_status)))
         temp_data['aaData'].append(ord_dict)

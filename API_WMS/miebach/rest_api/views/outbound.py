@@ -22,6 +22,8 @@ from django.db.models import Max
 from itertools import groupby
 import datetime
 import shutil
+import requests
+import httplib2
 from utils import *
 import os, math
 from rest_api.rista_save_transfer import *
@@ -6133,6 +6135,37 @@ def app_shipment_info_data(request, user=''):
         return HttpResponse("Invalid Manifest Number")
 
 
+def confirm_order_request(request, user=''):
+    confirm_order_number = request.GET['loan_proposal_id']
+    from firebase import firebase
+    firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
+    result = firebase.get('/OrderDetails/'+confirm_order_number, None)
+    if  result and result['pod_status']:
+        delivered_time = time.strftime('%Y-%m-%d', time.localtime(int(result['time'])/1e3))
+        try:
+            send_request = [{
+                "LoanProposalID":result['loan_proposal_id'],
+                "DeliveryStatus":'Delivered',
+                "DeliveryDate": delivered_time,
+                "TypeOfPOD":result['id_type'],
+                "POD":result['id_proof_number'],
+                "pod1":result['id_card'],
+                "pod2":result['signed_invoice_copy']
+            }]
+            h = httplib2.Http(".cache")
+            h.add_credentials('bfil00072', 'c20ed6361a70b18c2265512d5cde8dcc') # Basic authentication
+            resp, content = h.request("https://www.72networks.in/amp/stockone_deliver.php", "POST", body=json.dumps(send_request))
+            if content:
+                return HttpResponse(eval(content)[0].get('Remarks'))
+            else:
+                return HttpResponse("Failed")
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('72_Networks API Integration Server Error')
+            return HttpResponse("Server Not Found")
+    else:
+        return HttpResponse("Invalid loan proposal ID")
 
 @csrf_exempt
 @get_admin_user
@@ -12671,7 +12704,7 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
         else:
             em_qs = ManualEnquiry.objects.filter(**data_filters).order_by(order_data)
         if request.user.username == 'sm_purchase_admin':
-            status = 'ArtWork Submitted'
+            status = 'Purchase Pending'
         elif request.user.username == 'sm_design_admin':
             status = 'Design Pending'
         elif request.user.username == 'sm_finance_admin':

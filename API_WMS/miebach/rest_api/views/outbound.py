@@ -6093,9 +6093,6 @@ def app_shipment_info_data(request, user=''):
             uid = result.get('uid','')
             refusal = result.get('refusal',False)
             refusal_reason = result.get('refusal_reason','')
-        if orders.order.original_order_id == 12012 :
-            returned = True
-
         data.append({'id': orders.id,
                      'customer_name':orders.order.customer_name,
                      'sku_code': orders.order.sku.sku_code,

@@ -3662,7 +3662,7 @@ def get_order_summary_data(search_params, user, sub_user):
         else:
             serial_number = ''
         customer_name = data.customer_name
-        cusotomer_master_obj = CustomerMaster.objects.filter(user = user.id,customer_id = data.customer_id , name  = customer_name)
+        cusotomer_master_obj = CustomerMaster.objects.filter(user = user.id, name  = customer_name)
         gst_number = ''
         if cusotomer_master_obj.exists():
             gst_number = cusotomer_master_obj[0].tin_number

@@ -2504,7 +2504,6 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
         model_data = model_data[start_index:stop_index]
 
     for data in model_data:
-        customer_name = data.order.customer_name if data.order.customer_name else ''
         if customer_view:
             temp_data['aaData'].append(OrderedDict((('Customer ID', data['order__customer_id']),
                                                     ('Customer Name', data['order__customer_name']),
@@ -2515,6 +2514,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                   )))
         else:
             if not serial_view:
+                customer_name = data.order.customer_name if data.order.customer_name else ''
                 if data.stock.batch_detail:
                   batch_number = data.stock.batch_detail.batch_no
                   batchDetail_mrp = data.stock.batch_detail.mrp

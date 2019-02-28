@@ -35,6 +35,7 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
         headers += [attr['attribute_name']]
         attr_count += 1
     status_dict = {'1': 'Active', '0': 'Inactive'}
+    combo_flag_dict = {'combo': 'Yes', '': 'No'}
     # marketplace_list = Marketplaces.objects.filter(user=user.id).values_list('name').distinct()
     marketplace_list = MarketplaceMapping.objects.filter(sku__user=user.id).values_list('sku_type',
                                                                                         flat=True).distinct()
@@ -59,10 +60,15 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
         search_terms["creation_date__iregex"] = search_params.get('search_8', '')
     if search_params.get('search_9', ''):
         search_terms["updation_date__iregex"] = search_params.get('search_9', '')
-    if search_params.get('search_7', ''):
-        if (str(search_params.get('search_10', '')).lower() in "active"):
+    if str(search_params.get('search_10', '')).lower():
+        if (str(search_params.get('search_10', '')).lower() in "yes"):
+            search_terms["relation_type__icontains"] = 'combo'
+        elif (str(search_params.get('search_10', '')).lower() in "no"):
+            search_terms["relation_type"] = ''
+    if search_params.get('search_11', ''):
+        if (str(search_params.get('search_11', '')).lower() in "active"):
             search_terms["status__icontains"] = 1
-        elif (str(search_params.get('search_10', '')).lower() in "inactive"):
+        elif (str(search_params.get('search_11', '')).lower() in "inactive"):
             search_terms["status__icontains"] = 0
         else:
             search_terms["status__icontains"] = "none"
@@ -150,6 +156,7 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
             ws = write_excel(ws, data_count, excel_mapping['sub_category'], data.sub_category, file_type)
         if excel_mapping.has_key('cost_price'):
             ws = write_excel(ws, data_count, excel_mapping['cost_price'], data.cost_price, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['combo_flag'], combo_flag_dict[str(data.relation_type)], file_type)
         ws = write_excel(ws, data_count, excel_mapping['status'], status_dict[str(int(data.status))], file_type)
         '''for attr in attributes:
             attr_val = ''

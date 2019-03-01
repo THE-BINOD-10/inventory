@@ -9,7 +9,7 @@
       background-color: #e4e4e4;
       margin-top: -15px;
       margin-bottom: 5px;
-      display :none;
+      display :block;
   }
 </style>
 <div id="page-pop">
@@ -185,14 +185,28 @@
                   <td ng-if="pop.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" ng-model="record.pallet_code" class="form-control" type="text" ng-blur="pop.checkCapacity($index, data, 'pallet_code', $event);"></td>
                   <td><input name="reserved_quantity_{{data.id}}" ng-model="data.reserved_quantity" class="form-control" type="text" readonly></td>
                   <td><input name="picked_quantity_{{data.id}}" ng-model="record.picked_quantity" class="form-control" type="text" ng-change="pop.count_sku_quantity();pop.cal_quantity(record, data)" ng-class="service.get_decimal_perm()" ng-readonly = "pop.permissions.scan_picklist_option != 'scan_sku_location' && pop.permissions.scan_picklist_option != 'scan_sku' && pop.permissions.scan_picklist_option != 'scan_none'" ng-style="(pop.validate_skus[data.order_id][data.wms_code] == data.wms_code) ? pop.qty_validation : ''"></td>
-                  <td ng-if="pop.permissions.scan_picklist_option == 'scan_serial'"><textarea class="form-control" name="imei_{{data.id}}" rows="1" ng-model="record.scan" ng-keydown="pop.serial_scan($event,record.scan, data, record)"></textarea></td>
-                  <td ng-if="pop.permissions.scan_picklist_option == 'scan_serial'" ng-click="pop.myFunction(data, record)" style="width: 20px;padding-left: 10px;padding-top: 15px;font-size: 25px;cursor: pointer;"><i class="glyphicon glyphicon-download"></i></td>
+                  <td ng-if="pop.permissions.scan_picklist_option == 'scan_serial'">
+                    <textarea class="form-control" name="scan_imei_{{data.id}}" rows="1" ng-model="record.scan" ng-keydown="pop.serial_scan($event,record.scan, data, record)"></textarea>
+                  </td>
+                  <input ng-if="!(pop.permissions.dispatch_qc_check)" type="hidden" class="form-control" name="imei_{{data.id}}" value="[]"/>
+                  <td ng-if="pop.permissions.scan_picklist_option == 'scan_serial' && pop.permissions.dispatch_qc_check" ng-click="pop.myFunction(data, record)" style="width: 20px;padding-left: 10px;padding-top: 15px;font-size: 25px;cursor: pointer;"><i class="glyphicon glyphicon-download"></i></td>
                   <td style="width: 20px;padding-left: 10px;padding-top: 15px;"><i ng-click="pop.update_data($index, data, $last)" ng-class="pop.service.isLast($last)"></i></td>
                 </tr>
+                <tr ng-if="pop.permissions.dispatch_qc_check">
+                  <td class="mb10" colspan="14">
+                    <div class="detail-item border-grey detail-bg-grey">
+                      <div class="row no-margin">
+                        <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" ng-repeat="obj in pop.record_serial_dict[data.wms_code]">
+                          <input ng-model="obj" class="form-control" type="text" readonly style="background-color: #ffffff;opacity: 1;" disabled="disabled">
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  </tr>
               </tbody>
             </table>
           </div>
-            <div id="serial_no" class="mb10">
+            <!--<div id="serial_no" class="mb10">
               <div class="detail-item border-grey detail-bg-grey">
                 <div class="row no-margin">
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" ng-repeat="data in pop.record_serial_data">
@@ -200,7 +214,7 @@
                   </div>
                 </div>
               </div>
-            </div>
+            </div> -->
           <!--<div class="row" ng-if="pop.state_data.page != 'PullConfirmation'">
             <div class="col-md-12">
               <button type="button" class="btn btn-success pull-right" ng-click="pop.print_barcodes(pop.model_data.picklist_id)">Print Barcodes</button>

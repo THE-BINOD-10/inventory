@@ -28,6 +28,7 @@ from utils import *
 import os, math
 from rest_api.rista_save_transfer import *
 log = init_logger('logs/outbound.log')
+picklist_qc_log =  init_logger('logs/picklist_qc_log.log')
 
 
 @csrf_exempt
@@ -821,6 +822,7 @@ def get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_sku
 def get_picklist_data(data_id, user_id):
     courier_name = ''
     sku_total_quantities = {}
+    sku_imeis_map = {}
     is_combo_picklist = False
     manufactured_date =''
     picklist_orders = Picklist.objects.filter(Q(order__sku__user=user_id) | Q(stock__sku__user=user_id),
@@ -911,6 +913,9 @@ def get_picklist_data(data_id, user_id):
                 pallet_code = stock_id.pallet_detail.pallet_code
                 pallet_detail = stock_id.pallet_detail
 
+            sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
+            for sku_code, imei_number in sku_filtered_imei_number:
+                sku_imeis_map.setdefault(sku_code, []).append(imei_number)
             zone = 'NO STOCK'
             st_id = 0
             sequence = 0
@@ -1043,6 +1048,10 @@ def get_picklist_data(data_id, user_id):
             if stock_id and stock_id.pallet_detail:
                 pallet_code = stock_id.pallet_detail.pallet_code
 
+            sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
+            for sku_code, imei_number in sku_filtered_imei_number:
+                sku_imeis_map.setdefault(sku_code, []).append(imei_number)
+
             zone = 'NO STOCK'
             st_id = 0
             sequence = 0
@@ -1099,6 +1108,9 @@ def get_picklist_data(data_id, user_id):
         return data, sku_total_quantities, courier_name
     else:
         courier_name = ''
+        sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
+        for sku_code, imei_number in sku_filtered_imei_number:
+            sku_imeis_map.setdefault(sku_code, []).append(imei_number)
         for order in picklist_orders:
             stock_id = ''
             wms_code = order.order.sku.wms_code
@@ -1174,7 +1186,7 @@ def get_picklist_data(data_id, user_id):
                  'manufactured_date':manufactured_date,
                  'marketplace': marketplace, 'original_order_id' : original_order_id,
                  'mrp':mrp, 'batchno':batch_no, 'is_combo_picklist': is_combo_picklist,
-                 'parent_sku_code':parent_sku_code})
+                 'parent_sku_code':parent_sku_code, 'sku_imei_map': sku_imeis_map})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -1980,7 +1992,19 @@ def picklist_confirmation(request, user=''):
             if len(data[picklist_id]) < index + 1:
                 data[picklist_id].append({})
             data[picklist_id][index][name] = val
-
+    passed_serial_number = request.POST.get('passed_serial_number', {})
+    failed_serial_number = request.POST.get('failed_serial_number', {})
+    imei_qc_details = request.POST.get('imei_qc_details', '')
+    if passed_serial_number:
+        passed_serial_number = eval(passed_serial_number)
+    if failed_serial_number:
+        failed_serial_number = eval(failed_serial_number)
+    if imei_qc_details:
+        imei_qc_details = eval(imei_qc_details)
+    if 'details' in data.keys():
+        del (data['details'])
+    if 'number' in data.keys():
+        del (data['number'])
     rista_picklist_dict = {}
 
     log.info('Request params for ' + user.username + ' is ' + str(data))
@@ -2035,6 +2059,7 @@ def picklist_confirmation(request, user=''):
                     picklist_batch = update_no_stock_to_location(request, user, picklist, val, picks_all,
                                                                  picklist_batch)
                 for picklist in picklist_batch:
+                    save_status = ''
                     if count == 0:
                         continue
 
@@ -2067,6 +2092,25 @@ def picklist_confirmation(request, user=''):
                         insert_order_serial(picklist, val)
                     if 'labels' in val.keys() and val['labels'] and picklist.order:
                         update_order_labels(picklist, val)
+                    order_id = picklist.order
+                    if picklist.order.sku.wms_code in passed_serial_number.keys():
+                        send_imei_qc_details = dict(zip(passed_serial_number[picklist.order.sku.wms_code], [imei_qc_details[k] for k in passed_serial_number[picklist.order.sku.wms_code]]))
+                        save_status = "PASS"
+                        try:
+                            dispatch_qc(user, send_imei_qc_details, order_id, save_status)
+                        except Exception as e:
+                            import traceback
+                            picklist_qc_log.debug(traceback.format_exc())
+                            picklist_qc_log.info("Error in Dispatch QC - On Pass - %s - %s" % (str(user.username),  str(e)))
+                    if picklist.order.sku.wms_code in failed_serial_number.keys():
+                        send_imei_qc_details = dict(zip(failed_serial_number[picklist.order.sku.wms_code], [imei_qc_details[k] for k in failed_serial_number[picklist.order.sku.wms_code]]))
+                        save_status = "FAIL"
+                        try:
+                            dispatch_qc(user, send_imei_qc_details, order_id, save_status)
+                        except Exception as e:
+                            import traceback
+                            picklist_qc_log.debug(traceback.format_exc())
+                            picklist_qc_log.info("Error in Dispatch QC - On Fail - %s - %s" % (str(user.username), str(e)))
                     reserved_quantity1 = picklist.reserved_quantity
                     tot_quan = 0
                     for stock in total_stock:
@@ -8588,6 +8632,10 @@ def order_category_generate_picklist(request, user=''):
             customer_id = ''.join(re.findall('\d+', filters['customer_id']))
             order_filter['customer_id'] = customer_id
             seller_order_filter['order__customer_id'] = customer_id
+
+    qc_items_qs = UserAttributes.objects.filter(user_id=user.id, attribute_model='dispatch_qc', status=1).values_list('attribute_name', flat=True)
+    qc_items = list(qc_items_qs)
+
     data = []
     order_data = []
     stock_status = ''
@@ -8679,7 +8727,7 @@ def order_category_generate_picklist(request, user=''):
                 single_order = str(order_count[0])
     return HttpResponse(json.dumps({'data': data, 'picklist_id': picklist_number + 1, 'stock_status': stock_status,
                                     'order_status': order_status, 'user': request.user.id,
-                                    'sku_total_quantities': sku_total_quantities}))
+                                    'sku_total_quantities': sku_total_quantities, 'qc_items': qc_items}))
 
 
 @csrf_exempt
@@ -14569,6 +14617,83 @@ def do_delegate_orders(request, user=''):
         result_data['output_msg'] = output_msg
         result_data['status'] = True
     return HttpResponse(json.dumps(result_data), content_type='application/json')
+
+
+def dispatch_qc(user, sku_details, order_id, validation_status):
+    user_id = user.id
+    get_po_imei_qs = ''
+    for key, value in sku_details.items():
+        imei_qs = POIMEIMapping.objects.filter(status=1, sku__user=user_id, imei_number__in=[key])
+        if imei_qs:
+            get_po_imei_qs = imei_qs[0]
+        if not get_po_imei_qs:
+            continue
+        if value:
+            value = eval(value[0])
+        if key:
+            for dict_obj in value:
+                for key_obj, value_obj in dict_obj.items():
+                    disp_imei_map = {}
+                    disp_imei_map['order_id'] = order_id
+                    disp_imei_map['po_imei_num'] = get_po_imei_qs
+                    disp_imei_map['qc_name'] = key_obj
+                    dispatch_checklist = DispatchIMEIChecklist.objects.filter(**disp_imei_map)
+                    if value_obj[1] == "false":
+                        value_obj[1] = False
+                    elif value_obj[1] == "true":
+                        value_obj[1] = True
+                    if validation_status == "PASS":
+                        validation_status = True
+                    elif validation_status == "FAIL":
+                        validation_status = False
+                    if not dispatch_checklist:
+                        disp_imei_map['qc_status'] = value_obj[1]
+                        disp_imei_map['final_status'] = validation_status
+                        disp_imei_map['qc_type'] = 'sales_order'
+                        disp_imei_map['remarks'] = value_obj[0]
+                        try:
+                            disp_imei_obj = DispatchIMEIChecklist.objects.create(**disp_imei_map)
+                        except Exception as e:
+                            import traceback
+                            picklist_qc_log.debug(traceback.format_exc())
+                            picklist_qc_log.info("Error Occured in Saving Dispatch IMEI" + str(e))
+                    else:
+                        dispatch_checklist = dispatch_checklist[0]
+                        dispatch_checklist.qc_status = value_obj[1]
+                        dispatch_checklist.final_status = validation_status
+                        dispatch_checklist.remarks = value_obj[0]
+                        dispatch_checklist.qc_type = 'sales_order'
+                        dispatch_checklist.save()
+            try:
+                dest_loc = ''
+                source_loc = ''
+                if len(imei_qs) and validation_status:
+                    sku_id = order_id.sku.id
+                    OrderIMEIMapping.objects.create(**{'order_id':order_id.id, 'sku_id': sku_id,
+                    'po_imei' : imei_qs[0], 'imei_number': get_po_imei_qs.imei_number, 'status':1, 'sor_id': '',
+                    'order_reference': '', 'marketplace': ''})
+                elif not validation_status:
+                    wms_code = order_id.sku.wms_code
+                    quantity = 1
+                    cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+                    if not cycle_count:
+                        cycle_id = 1
+                    else:
+                        cycle_id = cycle_count[0].cycle + 1
+                    sku_stocks = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku__wms_code=wms_code).order_by('creation_date')
+                    if sku_stocks:
+                        source_loc = sku_stocks[0].location.location
+                    from rest_api.views.inbound import *
+                    dest_loc = get_returns_location('DAMAGED_ZONE', '', user)
+                    if dest_loc:
+                        dest_loc = dest_loc[0].location
+                    if source_loc and dest_loc:
+                        move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user)
+                imei_qs.update(status=0)
+            except Exception as e:
+                import traceback
+                picklist_qc_log.debug(traceback.format_exc())
+                picklist_qc_log.info("Error Occured in Saving Dispatch IMEI" + str(e))
 
 
 @login_required

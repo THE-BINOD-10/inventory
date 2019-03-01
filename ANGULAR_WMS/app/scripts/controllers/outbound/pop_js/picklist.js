@@ -169,6 +169,7 @@ function view_orders() {
       }
       return true;
     }
+
     vm.myFunction = function(rowdata, record) {
       var x = document.getElementById("serial_no");
       var record_serial_data = []
@@ -184,12 +185,9 @@ function view_orders() {
           vm.service.showNoty("No Serial Number Present");
         }
       }
-    } else {
-        x.style.display = "none";
     }
-  }
 
-  vm.serial_scan = function(event, scan, data, record) {
+    vm.serial_scan = function(event, scan, data, record) {
       if ( event.keyCode == 13) {
         scan = scan.toUpperCase();
         record.scan = record.scan.toUpperCase();
@@ -222,7 +220,7 @@ function view_orders() {
         }
         if(total < data.reserved_quantity) {
           vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
-          if(data.data.status == "Success") {
+            if(data.data.status == "Success") {
               if(data.data.data.sku_code == record.wms_code) {
                 if (vm.permissions.dispatch_qc_check) {
                   if(vm.record_serial_dict[data.data.data.sku_code][0] == scan_data) {
@@ -267,6 +265,7 @@ function view_orders() {
         vm.collect_imei_data[vm.get_id].push(record.scan)
       }
       $("input[name=imei_"+vm.get_id+"]").prop('value', String(vm.collect_imei_data[vm.get_id]))
+      $("input[name=scan_imei]").trigger('focus').val('')
       record.scan = '';
     }
 
@@ -361,7 +360,7 @@ function view_orders() {
     })
   }
 
-  vm.pdf_data = {};
+    vm.pdf_data = {};
     vm.picklist_confirmation = picklist_confirmation;
     function picklist_confirmation() {
       var elem_dict = {}
@@ -394,6 +393,7 @@ function view_orders() {
             vm.ok("html");
             vm.status_data.data = data.data;
           } else if (data.data.status == 'invoice') {
+
             vm.status_data.data = data.data.data;
             vm.ok("invoice");
           } else {
@@ -481,8 +481,9 @@ function pull_confirmation() {
           var clone = {};
           angular.copy(data.sub_data[index], clone);
           var temp = data.reserved_quantity - total;
-          clone.picked_quantity = (remain < temp)?remain:temp;
+          //clone.picked_quantity = (remain < temp)?remain:temp;
           //clone.picked_quantity = data.reserved_quantity - total;
+          clone.picked_quantity = 0;
           clone.scan = "";
           clone.pallet_code = "";
           clone.location = "";
@@ -1151,7 +1152,6 @@ angular
   vm.pop_data = {};
   vm.status_data = "";
   vm.status_data = [];
-
   vm.getPoData = function(data){
     Service.apiCall(data.url, data.method, data.data, true).then(function(data){
       if(data.message) {
@@ -1161,9 +1161,7 @@ angular
           var key = vm.model_data["qc_items"][i].replace(/[" "]/g, '_').toLowerCase();
           vm.record_qcitems_data.push({[key] : vm.model_data["qc_items"][i]})
           vm.sku_details[vm.model_data["qc_items"][i]] = {'status': true, 'comment': ""}
-      }
-        console.log(vm.sku_details)
-        console.log(vm.record_qcitems_data)
+        }
       }
     });
   }
@@ -1184,6 +1182,7 @@ angular
   vm.passdata = function() {
     vm.checkboxes = false;
     vm.totalData("pass");
+    // vm.service.showNoty("success");
   }
   vm.canceldata = function(keys){
     // if (keys == 'true')
@@ -1236,6 +1235,7 @@ angular
     vm.service.showNoty("success");
     $modalInstance.close(vm.status_data);
   }
+
   vm.ok = function (msg) {
     $modalInstance.close('fail');
   };

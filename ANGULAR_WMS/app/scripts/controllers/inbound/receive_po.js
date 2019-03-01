@@ -217,11 +217,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     }
                     vm.sku_details = {};
                     vm.record_qcitems_data= [];
-                    for(var i=0; i < data.data['qc_items'].length; i++) {
-                      var keyvalue = data.data["qc_items"][i];
-                      var key = data.data["qc_items"][i].replace(/[" "]/g, '_').toLowerCase();
-                      vm.record_qcitems_data.push({[key] : data.data["qc_items"][i]});
-                      vm.sku_details[data.data["qc_items"][i]] = {'status': true, 'comment': ""}
+                    if (vm.permissions.dispatch_qc_check) {
+                      for(var i=0; i < data.data['qc_items'].length; i++) {
+                        var keyvalue = data.data["qc_items"][i];
+                        var key = data.data["qc_items"][i].replace(/[" "]/g, '_').toLowerCase();
+                        vm.record_qcitems_data.push({[key] : data.data["qc_items"][i]});
+                        vm.sku_details[data.data["qc_items"][i]] = {'status': true, 'comment': ""};
+                      }
                     }
                   }
                 });
@@ -1018,6 +1020,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       fb.change_serial(data1, field);
       vm.current_sku = "";
       data1.imei_number = "";
+      $('input[name="imei"]').trigger('focus').val('');
       if(vm.permissions.grn_scan_option == "sku_serial_scan") {
         $('textarea[name="scan_sku"]').trigger('focus').val('');
       }
@@ -1043,24 +1046,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.imei_list = [];
     vm.model_data1 = {};
     vm.po_qc_imei_scan = function(data1, index) {
-
-      //vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number}).then(function(data){
-      //  if(data.message) {
-      //    if (data.data == "") {
-            data1.sku_details[0].fields = data1.sku_details[0].fields.toUpperCase();
-            vm.current_index = index;
-            vm.model_data1["sku_data"] = data1.sku_details[0].fields;
-            vm.imei_list.push(data1.imei_number);
-            vm.accept_qc(data1, data1.imei_number);
-            qc_details();
-            data1.imei_number = "";
-            vm.current_sku = "";
-      //    } else {
-      //      Service.showNoty(data.data);
-      //    }
-      //    data1.imei_number = "";
-      //  }
-      //})
+      data1.sku_details[0].fields = data1.sku_details[0].fields.toUpperCase();
+      vm.current_index = index;
+      vm.model_data1["sku_data"] = data1.sku_details[0].fields;
+      vm.imei_list.push(data1.imei_number);
+      vm.accept_qc(data1, data1.imei_number);
+      qc_details();
+      data1.imei_number = "";
+      $('input[name="imei"]').trigger('focus').val('');
+      vm.current_sku = "";
     }
 
     vm.from_qc_scan = function(event, field) {
@@ -1207,12 +1201,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           Service.showNoty("IMEI Already Scanned");
           data1.imei_number = "";
           data1.scan = '';
+          $('input[name="imei"]').trigger('focus').val('');
           return false;
         }
         if (vm.fb.poData.serials.indexOf(data1.imei_number) != -1){
 
           Service.showNoty("Serial Number already Exist");
           data1.imei_number = "";
+          $('input[name="imei"]').trigger('focus').val('');
           //if(vm.permissions.barcode_generate_opt != "sku_serial") {
           //  $('textarea[name="scan_sku"]').trigger('focus').val('');
           //}
@@ -1226,6 +1222,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             if (resp.status) {
               Service.showNoty("Serial Number already Exist in other PO: "+resp.data.po);
               data1.imei_number = "";
+              $('input[name="imei"]').trigger('focus').val('');
               //if(vm.permissions.barcode_generate_opt != "sku_serial") {
               //  $('textarea[name="scan_sku"]').trigger('focus').val('');
               //}
@@ -1248,8 +1245,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         }
                       }
                     } else {
-                      Service.showNoty(data.data);
+                      Service.showNoty(data.data.message);
                       data1.imei_number = "";
+                      $('input[name="imei"]').trigger('focus').val('');
                     }
                   }
                   data1["disable"] = false;
@@ -1263,6 +1261,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       if (data1.wms_code != sku_code) {
                         Service.showNoty("Scanned label belongs to "+sku_code);
                         data1.imei_number = "";
+                        $('input[name="imei"]').trigger('focus').val('');
                         return false;
                       }
                       if(vm.po_qc) {
@@ -2461,8 +2460,6 @@ function receive_qcitems($scope, $http, $state, $timeout, Session, colFilters, S
         }
       }
     }
-    console.log(vm.sku_details[values].status);
-    console.log(vm.sku_details);
   }
 
   vm.passdata = function() {

@@ -2948,7 +2948,6 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
             for dict_obj in value:
                 for key_obj, value_obj in dict_obj.items():
                     disp_imei_map = {}
-                    #disp_imei_map['order_id'] = order_id
                     disp_imei_map['po_imei_num'] = get_po_imei_qs
                     disp_imei_map['qc_name'] = key_obj
                     dispatch_checklist = DispatchIMEIChecklist.objects.filter(**disp_imei_map)

@@ -27,7 +27,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'auto_raise_stock_transfer': false, 'inbound_supplier_invoice': false, 'customer_dc': false,
                     'mark_as_delivered': false, 'order_exceed_stock': false, 'receive_po_mandatory_fields': false,
                     'sku_pack_config': false, 'central_order_reassigning':false, 'po_sub_user_prefix': false,
-                    'combo_allocate_stock': false, 'sno_in_invoice':false
+                    'combo_allocate_stock': false, 'sno_in_invoice':false, 'dispatch_qc_check':false
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -820,28 +820,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     vm.service.showLoader();
     var order_management;
     $.ajax({
-  url: Session.url+'order_management_toggle?order_manage='+data,
-        method: 'GET',
-        xhrFields: {
-          withCredentials: true
-        },
-        'success': function(response) {
-    if (data){
-        $('#channel_component').removeClass('ng-hide').css('display', 'block');
-        order_management = "Order Management Enabled"
-        localStorage.setItem("order_management", String(data));
-    } else {
-        $('#channel_component').addClass('ng-hide').css('display', 'none');
-        order_management = "Order Management Disabled"
-        localStorage.setItem("order_management", String(data));
-    }
-    vm.service.showNoty(order_management, 'success', 'topRight');
-    vm.service.hideLoader();
-        },
-  'error': function(response) {
-    console.log(response);
-    vm.service.hideLoader();
+      url: Session.url+'order_management_toggle?order_manage='+data,
+      method: 'GET',
+      xhrFields: {
+        withCredentials: true
+      },
+      'success': function(response) {
+        if (data){
+            $('#channel_component').removeClass('ng-hide').css('display', 'block');
+            order_management = "Order Management Enabled"
+            localStorage.setItem("order_management", String(data));
+        } else {
+            $('#channel_component').addClass('ng-hide').css('display', 'none');
+            order_management = "Order Management Disabled"
+            localStorage.setItem("order_management", String(data));
         }
+        vm.service.showNoty(order_management, 'success', 'topRight');
+        vm.service.hideLoader();
+      },
+      'error': function(response) {
+        console.log(response);
+        vm.service.hideLoader();
+      }
     });
   };
 

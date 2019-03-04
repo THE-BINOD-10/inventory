@@ -481,7 +481,7 @@ function pull_confirmation() {
           var clone = {};
           angular.copy(data.sub_data[index], clone);
           var temp = data.reserved_quantity - total;
-          //clone.picked_quantity = (remain < temp)?remain:temp;
+          clone.picked_quantity = (remain < temp)?remain:temp;
           //clone.picked_quantity = data.reserved_quantity - total;
           clone.picked_quantity = 0;
           clone.scan = "";
@@ -1182,10 +1182,8 @@ angular
   vm.passdata = function() {
     vm.checkboxes = false;
     vm.totalData("pass");
-    // vm.service.showNoty("success");
   }
   vm.canceldata = function(keys){
-    // if (keys == 'true')
     vm.checkboxes = true;
     if(keys == 'true') {
       vm.totalData("fail");  
@@ -1204,7 +1202,6 @@ angular
   vm.totalData("")
 
   vm.submitData = function() {
-    //$modalInstance.close(vm.sku_details['validation_status'].status);
     var submit_data = []
     var validation_status = ''
     angular.forEach(vm.sku_details, function(key, obj) {
@@ -1227,14 +1224,6 @@ angular
     }
     $rootScope.collect_imei_details[vm.state_data.serial_number_scanned] = [JSON.stringify(submit_data), validation_status]
     vm.state_data.collect_imei_details = $rootScope.collect_imei_details
-    //status = vm.state_data['collect_imei_details'][vm.state_data['serial_number_scanned']][1]
-    /*
-    vm.service.apiCall('dispatch_qc/', 'POST', elem, true).then(function(data) {
-      if (data.message) {
-        console.log(data.message)
-      }
-    })
-    */
     vm.service.showNoty("success");
     $modalInstance.close(vm.status_data);
   }

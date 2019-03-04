@@ -52,7 +52,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.getPoData = function(data) {
       Service.apiCall('view_picklist/', "GET", data.data, true).then(function(data){
-      //Service.apiCall(data.url, data.method, data.data, true).then(function(data){
         if(data.message) {
           angular.copy(data.data, vm.model_data);
           for(var i=0; i < vm.model_data["qc_items"].length; i++) {
@@ -1063,17 +1062,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (event.keyCode == 13 && field.length > 0) {
         field = field.toUpperCase();
         if (!vm.current_sku && (vm.permissions.grn_scan_option == "sku_serial_scan")) {
-
           focus('focusSKU');
           Service.showNoty("Scan SKU first before scaning IMEI");
         } else if (vm.imei_list.indexOf(field) > -1) {
-
           Service.showNoty("IMEI Already Scanned");
         } else if(vm.model_data.data[vm.current_index][0].po_quantity == vm.model_data.data[vm.current_index][0].value && (vm.permissions.barcode_generate_opt != 'sku_serial')) {
-
           Service.showNoty("PO quanity already equal to Receive Quantity for with SKU Code");
         } else {
-
           fb.check_imei(field).then(function(resp) {
             if (resp.status) {
               Service.showNoty("Serial Number already Exist in other PO: "+resp.data.po);
@@ -1205,13 +1200,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           return false;
         }
         if (vm.fb.poData.serials.indexOf(data1.imei_number) != -1){
-
           Service.showNoty("Serial Number already Exist");
           data1.imei_number = "";
           $('input[name="imei"]').trigger('focus').val('');
-          //if(vm.permissions.barcode_generate_opt != "sku_serial") {
-          //  $('textarea[name="scan_sku"]').trigger('focus').val('');
-          //}
           if(vm.permissions.grn_scan_option == "sku_serial_scan") {
             $('textarea[name="scan_sku"]').trigger('focus').val('');
           }
@@ -1223,9 +1214,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               Service.showNoty("Serial Number already Exist in other PO: "+resp.data.po);
               data1.imei_number = "";
               $('input[name="imei"]').trigger('focus').val('');
-              //if(vm.permissions.barcode_generate_opt != "sku_serial") {
-              //  $('textarea[name="scan_sku"]').trigger('focus').val('');
-              //}
               if(vm.permissions.grn_scan_option == "sku_serial_scan") {
                 $('textarea[name="scan_sku"]').trigger('focus').val('');
               }
@@ -2481,7 +2469,6 @@ function receive_qcitems($scope, $http, $state, $timeout, Session, colFilters, S
   }
 
   vm.submitData = function() {
-    //$modalInstance.close(vm.sku_details['validation_status'].status);
     var submit_data = []
     var validation_status = ''
     angular.forEach(vm.sku_details, function(key, obj) {
@@ -2506,15 +2493,6 @@ function receive_qcitems($scope, $http, $state, $timeout, Session, colFilters, S
 
     $rootScope.collect_imei_details[vm.state_data.serial_number_scanned] = [JSON.stringify(submit_data), validation_status]
     vm.state_data.collect_imei_details = $rootScope.collect_imei_details;
-    //status = vm.state_data['collect_imei_details'][vm.state_data['serial_number_scanned']][1]
-    /*
-    vm.service.apiCall('dispatch_qc/', 'POST', elem, true).then(function(data) {
-      if (data.message) {
-        console.log(data.message)
-      }
-    })
-    */
-    //vm.po_imei_scan(data1, data1.imei_number);
     vm.service.showNoty("success");
     $modalInstance.close(validation_status);
   }

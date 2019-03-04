@@ -4512,6 +4512,7 @@ def create_order_from_intermediate_order(request, user):
                         customer_master = CustomerMaster.objects.filter(user=user.id, customer_id=interm_obj.customer_id)
                         if customer_master:
                             order_dict['customer_id'] = customer_master[0].customer_id
+                            order_dict['customer_name'] = customer_master[0].name
                             order_dict['email_id'] = customer_master[0].email_id
                             order_dict['telephone'] = customer_master[0].phone_number
                             order_dict['address'] = customer_master[0].address

@@ -1190,22 +1190,22 @@ def get_mp_inventory(request):
         except:
             return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}), status=400)
         if not seller_id:
-            return HttpResponse(json.dumps({'status': 207, 'message': 'Seller ID is Mandatory'}), status=207)
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Seller ID is Mandatory'}), status=400)
         if not warehouse:
-            return HttpResponse(json.dumps({'status': 207, 'message': 'Warehouse Name is Mandatory'}), status=207)
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Warehouse Name is Mandatory'}), status=400)
         token_user = user
         sister_whs = list(get_sister_warehouse(user).values_list('user__username', flat=True))
         sister_whs.append(token_user.username)
         if warehouse in sister_whs:
             user = User.objects.get(username=warehouse)
         else:
-            return HttpResponse(json.dumps({'status': 207, 'message': 'Invalid Warehouse Name'}), status=207)
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Warehouse Name'}), status=400)
         try:
             seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
             if not seller_master:
-                return HttpResponse(json.dumps({'status': 207, 'message': 'Invalid Seller ID'}), status=207)
+                return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Seller ID'}), status=400)
         except:
-            return HttpResponse(json.dumps({'status': 207, 'message': 'Invalid Seller ID'}), status=207)
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Seller ID'}), status=400)
         seller_master_id = seller_master[0].id
         sku_records = SKUMaster.objects.filter(**filter_params).values('sku_code')
         error_skus = set(skus) - set(sku_records.values_list('sku_code', flat=True))

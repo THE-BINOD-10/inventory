@@ -3111,3 +3111,20 @@ class TempJson(models.Model):
     class Meta:
         db_table = 'TEMP_JSON'
         index_together = ('model_id', 'model_name')
+
+
+class DispatchIMEIChecklist(models.Model):
+    id = BigAutoField(primary_key=True)
+    order_id = models.CharField(max_length=128, default='')
+    po_imei_num = models.ForeignKey(POIMEIMapping)
+    qc_name = models.CharField(max_length=128, default='')
+    qc_status = models.BooleanField(default=True)
+    final_status = models.BooleanField(default=True)
+    remarks = models.CharField(max_length=64, default='')
+    qc_type = models.CharField(max_length=32, default='sales_order')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ORDER_IMEI_CHECKLIST'
+        unique_together = ('order_id', 'po_imei_num', 'qc_name')

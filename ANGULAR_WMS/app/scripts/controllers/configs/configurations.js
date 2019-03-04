@@ -27,7 +27,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'auto_raise_stock_transfer': false, 'inbound_supplier_invoice': false, 'customer_dc': false,
                     'mark_as_delivered': false, 'order_exceed_stock': false, 'receive_po_mandatory_fields': false,
                     'sku_pack_config': false, 'central_order_reassigning':false, 'po_sub_user_prefix': false,
-                    'combo_allocate_stock': false, 'sno_in_invoice':false, 'returnable_work_order' :false,
+                    'combo_allocate_stock': false, 'sno_in_invoice':false
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -50,7 +50,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      68: 'mark_as_delivered', 69: 'receive_po_mandatory_fields', 70: 'central_order_mgmt',
                      71: 'order_exceed_stock',72:'invoice_declaration',73:'central_order_reassigning',
                      74: 'sku_pack_config', 75: 'po_sub_user_prefix', 76: 'combo_allocate_stock', 77:'sno_in_invoice',
-                     78:'returnable_work_order', 79: 'dispatch_qc_check'}
+                     79: 'dispatch_qc_check'}
 
   vm.check_box_data = [
     {
@@ -423,13 +423,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       param_no: 75,
       class_name: "fa fa-server",
       display: true
-   },
-   {
-     name: "Enable Returnable Work Order",
-     model_name: "returnable_work_order",
-     param_no: 78,
-     class_name: "fa fa-server",
-     display: true
    },
    {
       name: "Allocate Stock for Combo Products",

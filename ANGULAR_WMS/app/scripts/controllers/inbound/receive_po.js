@@ -2493,6 +2493,7 @@ function receive_qcitems($scope, $http, $state, $timeout, Session, colFilters, S
         submit_data.push(dict)
       }
     })
+
     if (!validation_status) {
       vm.service.showNoty("Choose Pass/Fail");
       return false;
@@ -2517,6 +2518,8 @@ function receive_qcitems($scope, $http, $state, $timeout, Session, colFilters, S
     vm.service.showNoty("success");
     $modalInstance.close(validation_status);
   }
+  
+  vm.totalData("")
 
   vm.ok = function (msg) {
     vm.totalData("");

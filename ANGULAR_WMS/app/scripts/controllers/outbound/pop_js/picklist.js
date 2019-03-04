@@ -1200,6 +1200,9 @@ angular
       vm.sku_details['validation_status'] = {'status': key}
     }
   }
+
+  vm.totalData("")
+
   vm.submitData = function() {
     //$modalInstance.close(vm.sku_details['validation_status'].status);
     var submit_data = []

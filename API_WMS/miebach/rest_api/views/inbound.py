@@ -2922,13 +2922,24 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
     return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id
 
 
-def purchase_order_qc(user, sku_details, order_id, validation_status):
+def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='', data=''):
     user_id = user.id
     get_po_imei_qs = ''
+    sku_master = SKUMaster.objects.filter(**{'wms_code': wms_code, 'status' : 1})
+    if sku_master:
+        sku_id = sku_master[0].id
     for key, value in sku_details.items():
-        imei_qs = POIMEIMapping.objects.filter(status=1, sku__user=user_id, imei_number__in=[key])
-        if imei_qs:
-            get_po_imei_qs = imei_qs[0]
+        if wms_code:
+            imei_mapping = {'purchase_order_id': data.id, 'imei_number': key, 'status': 0, 'sku_id': sku_id,
+            'creation_date': datetime.datetime.now(), 'updation_date': datetime.datetime.now()}
+            po_imei = POIMEIMapping(**imei_mapping)
+            po_imei.save()
+            if po_imei:
+                get_po_imei_qs = po_imei
+        else:
+            po_imei = POIMEIMapping.objects.filter(status=1, sku__user=user_id, imei_number__in=[key])
+            if po_imei:
+                get_po_imei_qs = po_imei[0]
         if not get_po_imei_qs:
             continue
         if value:
@@ -3055,7 +3066,6 @@ def confirm_grn(request, confirm_returns='', user=''):
     try:
         po_data, status_msg, all_data, order_quantity_dict, \
         purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user)
-
         for key, value in all_data.iteritems():
             entry_price = float(key[3]) * float(value)
             if key[10]:
@@ -3069,7 +3079,6 @@ def confirm_grn(request, confirm_returns='', user=''):
             total_received_qty += value
             total_price += entry_price
             total_tax += (key[4] + key[5] + key[6] + key[7] + key[9] + key[11])
-
             if key[1] in passed_serial_number.keys():
                 send_imei_qc_details = dict(zip(passed_serial_number[key[1]], [imei_qc_details[k] for k in passed_serial_number[key[1]]]))
                 save_status = "PASS"
@@ -3084,7 +3093,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                     send_imei_qc_details = dict(zip(failed_serial_number[key[1]], [imei_qc_details[k] for k in failed_serial_number[key[1]]]))
                     save_status = "FAIL"
                     try:
-                        purchase_order_qc(user, send_imei_qc_details, '', save_status)
+                        purchase_order_qc(user, send_imei_qc_details, '', save_status, key[1], data)
                     except Exception as e:
                         import traceback
                         receive_po_qc_log.debug(traceback.format_exc())

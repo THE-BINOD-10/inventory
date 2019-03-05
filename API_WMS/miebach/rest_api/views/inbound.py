@@ -3786,7 +3786,7 @@ def validate_putaway(all_data, user):
             collect_dict_form = {}
             collect_all_sellable_location = list(LocationMaster.objects.filter(zone__segregation='sellable',  zone__user=user.id, status=1).values_list('location', flat=True))
             if key[1] in collect_all_sellable_location:
-                sku_mrp_map = StockDetail.objects.filter(sku__user=user.id, location__location=key[1]).filter(~Q(batch_detail__mrp=None)).values_list('sku__wms_code', 'batch_detail__mrp').distinct()
+                sku_mrp_map = StockDetail.objects.filter(sku__user=user.id, location__location=key[1], quantity__gt=0).filter(~Q(batch_detail__mrp=None)).values_list('sku__wms_code', 'batch_detail__mrp').distinct()
                 collect_sku_mrp_map = ['<#>'.join([str(one), str(two)]) for one, two in sku_mrp_map]
                 for one, two in sku_mrp_map:
                     sku_code = str(one)

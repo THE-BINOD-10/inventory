@@ -2228,6 +2228,18 @@ var app = angular.module('urbanApp')
             title: 'Enquiry Status Report',
           }
         })
+        .state('app.reports.StockTransferReport', {
+          url: '/StockTransferReport',
+          templateUrl: 'views/reports/stock_transfer_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/stock_transfer_report.js');
+              }]
+          },
+          data: {
+            title: 'Stock Transfer Report',
+          }
+        })
 
         .state('app.reports.RTVReport', {
           url: '/RTVReport',

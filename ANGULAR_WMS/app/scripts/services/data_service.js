@@ -34,14 +34,14 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                          stock_2d: false,
                          view: 'StockSummary',
                          tb_headers: {'StockSummary': ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Available Quantity',
-                                                       'Reserved Quantity', 'Total Quantity', 'Unit of Measurement', 'Stock Value'],
+                                                       'Reserved Quantity', 'Total Quantity', 'Open Order Quantity', 'Unit of Measurement', 'Stock Value'],
                                       'StockSummaryAlt':['SKU Class', 'Style Name', 'Brand', 'SKU Category']},
                          size_type: 'DEFAULT'
                        }
   //WareHouse stock
 
   self.stock_view = {
-                      views: ['Available', 'Available+Intransit', 'Available+ASN', 'Total'],
+                      views: ['Available', 'Available+Intransit', 'Total'],
                       view: 'Available',
                       levels: [1,2],
                       level: 1

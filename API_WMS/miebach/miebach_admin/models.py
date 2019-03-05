@@ -86,6 +86,7 @@ class VendorMaster(models.Model):
         return str(self.name)
 
 
+@reversion.register()
 class SKUMaster(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
@@ -130,7 +131,7 @@ class SKUMaster(models.Model):
     class Meta:
         db_table = 'SKU_MASTER'
         unique_together = ('user', 'sku_code', 'wms_code')
-        index_together = ('user', 'sku_code', 'wms_code')
+        index_together = (('user', 'sku_code', 'wms_code'), ('user', 'sku_code'))
 
     def __unicode__(self):
         return str(self.sku_code)
@@ -157,6 +158,7 @@ class EANNumbers(models.Model):
     class Meta:
         db_table = 'EAN_NUMBERS'
         unique_together = ('ean_number', 'sku')
+        index_together = (('sku', 'ean_number'), ('sku',))
 
 
 class SKUJson(models.Model):
@@ -1041,15 +1043,17 @@ class SellerMaster(models.Model):
 
 
 class SubstitutionSummary(models.Model):
+    transact_number = models.CharField(max_length=32, default='')
     source_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='source_sku')
     destination_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='destination_sku')
-    source_location = models.CharField(max_length=64)
-    destination_location = models.CharField(max_length=64)
+    source_location = models.CharField(max_length=64, default='')
+    destination_location = models.CharField(max_length=64, default='')
     source_quantity = models.FloatField(default=0)
     destination_quantity = models.FloatField(default=0)
     source_batch = models.ForeignKey(BatchDetail, blank=True, null=True)
     dest_batch = models.ForeignKey(BatchDetail, blank=True, null=True, related_name='dest_batch')
     seller = models.ForeignKey(SellerMaster, blank=True, null=True)
+    summary_type = models.CharField(max_length=32, default='substitute')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1222,7 +1226,7 @@ class SKURelation(models.Model):
     class Meta:
         db_table = 'SKU_RELATION'
         unique_together = ('parent_sku', 'member_sku', 'relation_type')
-        index_together = ('parent_sku', 'member_sku', 'relation_type')
+        index_together = (('parent_sku', 'member_sku', 'relation_type'), ('parent_sku', 'member_sku'))
 
     def __unicode__(self):
         return '%s: %s || %s' % (self.relation_type, self.parent_sku, self.member_sku)
@@ -1395,6 +1399,9 @@ class OpenST(models.Model):
     sku = models.ForeignKey(SKUMaster)
     order_quantity = models.FloatField(default=0)
     price = models.FloatField()
+    cgst_tax = models.FloatField(default=0)
+    sgst_tax = models.FloatField(default=0)
+    igst_tax = models.FloatField(default=0)
     status = models.CharField(max_length=32)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -2033,7 +2040,7 @@ class SellerOrder(models.Model):
     class Meta:
         db_table = 'SELLER_ORDER'
         unique_together = ('sor_id', 'order')
-        index_together = ('sor_id', 'order')
+        index_together = (('sor_id', 'order'), ('order', 'status'))
 
     def __unicode__(self):
         return str(self.sor_id)

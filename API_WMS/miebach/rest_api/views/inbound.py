@@ -1011,8 +1011,10 @@ def switches(request, user=''):
                        'receive_po_mandatory_fields': 'receive_po_mandatory_fields',
                        'sku_pack_config': 'sku_pack_config',
                        'central_order_reassigning':'central_order_reassigning',
+                       'sno_in_invoice':'sno_in_invoice',
                        'po_sub_user_prefix': 'po_sub_user_prefix',
-                       'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation',
+                       'combo_allocate_stock': 'combo_allocate_stock',
+                       'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation'
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -3339,9 +3341,9 @@ def create_return_order(data, user):
         return "", status, seller_order_ids
 
 
-def create_default_zones(user, zone, location, sequence):
+def create_default_zones(user, zone, location, sequence, segregation='sellable'):
     try:
-        new_zone, created = ZoneMaster.objects.get_or_create(user=user.id, zone=zone,
+        new_zone, created = ZoneMaster.objects.get_or_create(user=user.id, zone=zone, segregation=segregation,
                                                              creation_date=datetime.datetime.now())
         locations, loc_created = LocationMaster.objects.get_or_create(location=location, max_capacity=100000,
                                                                       fill_sequence=sequence,
@@ -3366,7 +3368,7 @@ def get_return_segregation_locations(order_returns, batch_dict, data, user):
     if stock_objs and get_misc_value('sellable_segregation', user.id) == 'true':
         put_zone = ZoneMaster.objects.filter(zone='Non Sellable Zone', user=order_returns.sku.user)
         if not put_zone:
-            create_default_zones(user, 'Non Sellable Zone', 'Non-Sellable1', 10001)
+            create_default_zones(user, 'Non Sellable Zone', 'Non-Sellable1', 10001, segregation='non_sellable')
             put_zone = ZoneMaster.objects.filter(zone='Non Sellable Zone', user=order_returns.sku.user)[0]
         else:
             put_zone = put_zone[0]
@@ -6782,7 +6784,7 @@ def confirm_primary_segregation(request, user=''):
             if non_sellable:
                 put_zone = ZoneMaster.objects.filter(zone='Non Sellable Zone', user=user.id)
                 if not put_zone:
-                    create_default_zones(user, 'Non Sellable Zone', 'Non-Sellable1', 10001)
+                    create_default_zones(user, 'Non Sellable Zone', 'Non-Sellable1', 10001, segregation='non_sellable')
                     put_zone = ZoneMaster.objects.filter(zone='Non Sellable Zone', user=user.id)[0]
                 else:
                     put_zone = put_zone[0]

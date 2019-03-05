@@ -1439,10 +1439,6 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Sequence should be in number')
 
-    master_sku = SKUMaster.objects.filter(user=user.id)
-    master_sku = [data.sku_code for data in master_sku]
-    missing_data = set(sku_data) - set(master_sku)
-
     if not index_status:
         return 'Success'
 
@@ -1516,7 +1512,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 wms_code = cell_data
                 data_dict[key] = wms_code
                 if wms_code:
-                    sku_data = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
+                    sku_data = SKUMaster.objects.filter(user=user.id, sku_code=wms_code)
                     if sku_data:
                         sku_data = sku_data[0]
 
@@ -1662,8 +1658,10 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def sku_upload(request, user=''):
     try:
+        reversion.set_user(request.user)
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
         if ex_status:
@@ -5239,6 +5237,7 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                         else:
                             data_dict[key] = seller_master[0].seller_id
                             data_dict['seller_master_id'] = seller_master[0].id
+                            prev_data_dict = {}
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid Seller ID')
                 elif prev_data_dict:
@@ -5358,12 +5357,14 @@ def sku_substitution_upload(request, user=''):
         if data_dict.get('seller_master_id', 0):
             dest_filter['sellerstock__seller_id'] = data_dict['seller_master_id']
             mrp_dict['mrp'] = data_dict['dest_mrp']
+        if not data_dict['source_updated']:
+            transact_number = get_max_substitute_allocation_id(user)
         dest_stocks = StockDetail.objects.filter(**dest_filter)
         update_substitution_data(data_dict['src_stocks'], dest_stocks, data_dict['source_sku_code_obj'],
                                  data_dict['source_location_obj'], data_dict['source_quantity'],
                                  data_dict['dest_sku_code_obj'], data_dict['dest_location_obj'],
                                  data_dict['dest_quantity'],user, data_dict.get('seller_master_id', ''),
-                                 data_dict['source_updated'], mrp_dict)
+                                 data_dict['source_updated'], mrp_dict, transact_number)
     return HttpResponse('Success')
 
 
@@ -5385,9 +5386,6 @@ def central_order_form(request, user=''):
 @login_required
 @get_admin_user
 def stock_transfer_order_form(request, user=''):
-    central_order_file = request.GET['download-file']
-    if central_order_file:
-        return error_file_download(central_order_file)
     wb, ws = get_work_sheet('stock_transfer_order_form', STOCK_TRANSFER_ORDER_MAPPING.keys())
     return xls_to_response(wb, '%s.stock_transfer_order_form.xls' % str(user.id))
 
@@ -6015,44 +6013,42 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                     wms_code = str(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'quantity':
                  quantity = int(get_cell_data(row_idx, value, reader, file_type))
-
             elif key == 'price':
                  price = int(get_cell_data(row_idx, value, reader, file_type))
+            elif key == 'cgst_tax':
+                try:
+                    cgst_tax = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                except:
+                    cgst_tax = str(get_cell_data(row_idx, value, reader, file_type))
+                if cgst_tax == '':
+                    cgst_tax = 0
+            elif key == 'sgst_tax':
+                try:
+                    sgst_tax = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                except:
+                    sgst_tax = str(get_cell_data(row_idx, value, reader, file_type))
+                if sgst_tax == '':
+                    sgst_tax = 0
+            elif key == 'igst_tax':
+                try:
+                    igst_tax = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                except:
+                    igst_tax = str(get_cell_data(row_idx, value, reader, file_type))
+                if igst_tax == '':
+                    igst_tax = 0
+
         cond = (user.username)
         all_data.setdefault(cond, [])
-        all_data[cond].append([wms_code, quantity, price, 0])
+        all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax, 0])
         warehouse = User.objects.get(username=warehouse)
         f_name = 'stock_transfer_' + warehouse_name + '_'
-        all_data = insert_st(all_data, warehouse)
-        status = confirm_stock_transfer(all_data, warehouse, user.username, request)
+        all_data = insert_st_gst(all_data, warehouse)
+        status = confirm_stock_transfer_gst(all_data, warehouse, user.username)
 
     if status.status_code == 200:
         return 'Success'
     else:
         return 'Failed'
-
-
-def insert_st(all_data, user):
-    for key, value in all_data.iteritems():
-        for val in value:
-            if val[3]:
-                open_st = OpenST.objects.get(id=val[3])
-                open_st.warehouse_id = User.objects.get(username__iexact=key).id
-                open_st.sku_id = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
-                open_st.price = float(val[2])
-                open_st.order_quantity = float(val[1])
-                open_st.save()
-                continue
-            stock_dict = copy.deepcopy(OPEN_ST_FIELDS)
-            stock_dict['warehouse_id'] = User.objects.get(username__iexact=key).id
-            stock_dict['sku_id'] = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
-            stock_dict['order_quantity'] = float(val[1])
-            stock_dict['price'] = float(val[2])
-            stock_transfer = OpenST(**stock_dict)
-            stock_transfer.save()
-            all_data[key][all_data[key].index(val)][3] = stock_transfer.id
-    return all_data
-
 
 @csrf_exempt
 @login_required
@@ -6196,6 +6192,7 @@ def block_stock_download(request, user=''):
 
 @csrf_exempt
 def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_type=''):
+    from stock_locator import get_quantity_data
     index_status = {}
     blockstock_file_mapping = copy.deepcopy(BLOCK_STOCK_DEF_EXCEL)
     if not blockstock_file_mapping:
@@ -6233,6 +6230,21 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                 else:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Invalid Quantity Amount')
+                    else:
+                        sku_code = get_cell_data(row_idx, blockstock_file_mapping['sku_code'], reader, file_type)
+                        wh_name = get_cell_data(row_idx, blockstock_file_mapping['warehouse'], reader, file_type)
+                        level = get_cell_data(row_idx, blockstock_file_mapping['level'], reader, file_type)
+                        usr_obj = User.objects.filter(username=wh_name).values_list('id', flat=True)
+                        ret_list = get_quantity_data(usr_obj, [sku_code], asn_true=False)
+                        if ret_list:
+                            avail_stock = ret_list[0]['available']
+                            if level == 1:
+                                if avail_stock < cell_data:
+                                    index_status.setdefault(row_idx, set()).add('Stock Outage.Pls check stock in WH')
+                            elif level == 3:
+                                asn_avail_stock = ret_list[0]['asn']
+                                if asn_avail_stock < cell_data:
+                                    index_status.setdefault(row_idx, set()).add('Stock Outage.Pls check stock in WH')
             elif key == 'reseller_name':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add("Reseller Name is missing")

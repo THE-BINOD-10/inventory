@@ -60,9 +60,10 @@ def get_report_data(request, user=''):
         if 'sister_warehouse' in filter_keys :
             sister_wh = get_sister_warehouse(user)
             data_index = data['filters'].index(filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
-            data['filters'][data_index]['values'] = list(
+            sister_warehouses = [user.username]
+            sister_warehouses1 = list(
                 UserGroups.objects.filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',flat=True).distinct())
-            data['filters'][data_index]['values'].append('')
+            data['filters'][data_index]['values'] = list(chain(sister_warehouses, sister_warehouses1))
         if 'order_report_status' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])
@@ -1256,6 +1257,13 @@ def get_enquiry_status_report(request, user=''):
     temp_data = get_enquiry_status_report_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_stock_transfer_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_stock_transfer_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt
 @login_required
@@ -1452,6 +1460,8 @@ def print_purchase_order_form(request, user=''):
     company_name = profile.company_name
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
+    left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO , request)
+
     # if receipt_type == 'Hosted Warehouse':
     #if request.POST.get('seller_id', ''):
     #    title = 'Stock Transfer Note'
@@ -1483,6 +1493,7 @@ def print_purchase_order_form(request, user=''):
                  'location': profile.location,
                  'po_reference': po_reference,
                  'industry_type': profile.industry_type,
+                 'left_side_logo':left_side_logo,
                  'company_address': company_address
                 }
     if round_value:

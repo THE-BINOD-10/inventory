@@ -806,15 +806,16 @@ ENQUIRY_STATUS_REPORT = {
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'Enquiry No', 'name': 'enquiry_number', 'type': 'input'},
+        {'label': 'Level', 'name': 'level', 'type': 'input'},
         {'label': 'Aging Period', 'name': 'aging_period', 'type': 'input'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'Enquiry Status', 'name': 'enquiry_status', 'type': 'select'},
     ],
     'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
-                   'Enquiry No', 'Enquiry Aging', 'Enquiry Status'],
+                   'Enquiry No', 'Level', 'Enquiry Aging', 'Enquiry Status'],
     'dt_url': 'get_enquiry_status_report', 'excel_name': 'get_enquiry_status_report',
     'dt_unsort': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
-                   'Enquiry No', 'Enquiry Aging', 'Enquiry Status'],
+                   'Enquiry No', 'Level', 'Enquiry Aging', 'Enquiry Status'],
     'print_url': 'print_enquiry_status_report',
 }
 
@@ -830,6 +831,16 @@ RETURN_TO_VENDOR_REPORT = {
     'dt_headers': ['RTV Number', 'Supplier ID', 'Supplier Name', 'Order ID', 'Invoice Number', 'Return Date'],
     'dt_url': 'get_rtv_report', 'excel_name': 'get_rtv_report',
     'print_url': 'print_rtv_report',
+}
+STOCK_TRANSFER_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'Sku Code', 'name': 'sku_code', 'type': 'input'},
+    ],
+    'dt_headers': ['Date', 'Invoice Number', 'Source Location', 'Destination', 'SKU Code', 'SKU Description','Quantity','Price','Net Value','CGST','SGST','IGST','Total Value','Status'],
+    'dt_url': 'get_stock_transfer_report', 'excel_name': 'get_stock_transfer_report',
+    'print_url': 'print_stock_transfer_report',
 }
 
 CURRENT_STOCK_REPORT_DICT = {
@@ -867,7 +878,7 @@ BULK_TO_RETAIL_REPORT_DICT = {
         {'label': 'Destination SKU Code', 'name': 'destination_sku_code', 'type': 'destination_sku_search'},
         {'label': 'Destination SKU Category', 'name': 'destination_sku_category', 'type': 'input'},
     ],
-    'dt_headers': ['Date', 'Seller ID', 'Seller Name', 'Source SKU Code', 'Source SKU Description',
+    'dt_headers': ['Transaction ID', 'Date', 'Seller ID', 'Seller Name', 'Source SKU Code', 'Source SKU Description',
                    'Source SKU Category', 'Source Location',
                    'Source Weight', 'Source MRP', 'Source Quantity', 'Destination SKU Code',
                    'Destination SKU Description', 'Destination SKU Category', 'Destination Location',
@@ -924,7 +935,7 @@ SKU_HEADERS = ['WMS Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU 
                'MRP Price', 'Sequence', 'Image Url',
                'Threshold Quantity', 'Measurment Type', 'Sale Through', 'Color', 'EAN Number',
                'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Hot Release',
-               'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Status']
+               'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Combo Flag', 'Status']
 
 MARKET_USER_SKU_HEADERS = ['WMS Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)',
                            'SKU Category',
@@ -1024,7 +1035,7 @@ SKU_MASTER_HEADERS = OrderedDict(
     [('WMS SKU Code', 'wms_code'), ('EAN Number', 'ean_number'), ('Product Description', 'sku_desc'),
      ('SKU Type', 'sku_type'), ('SKU Category', 'sku_category'), ('SKU Class', 'sku_class'),
      ('Color', 'color'), ('Zone', 'zone_id'), ('Creation Date', 'creation_date'), ('Updation Date', 'updation_date'),
-     ('Status', 'status')])
+     ('Combo Flag', 'relation_type'), ('Status', 'status')])
 
 PRICING_MASTER_HEADER = OrderedDict(
     [('SKU Code', 'sku__sku_code'), ('SKU Description', 'sku__sku_desc'), ('Selling Price Type', 'price_type'),
@@ -1267,7 +1278,7 @@ SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 
                              ('measurement_type', 19),
                              ('sale_through', 20), ('color', 21), ('ean_number', 22), ('load_unit_handle', 23),
                              ('hsn_code', 24),
-                             ('sub_category', 25), ('hot_release', 26), ('mix_sku', 27), ('status', 28)
+                             ('sub_category', 25), ('hot_release', 26), ('mix_sku', 27), ('combo_flag', 28), ('status', 29)
                              ))
 
 MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(
@@ -1410,7 +1421,7 @@ CENTRAL_ORDER_EXCEL_ONE_ASSIST = OrderedDict((
                           ))
 STOCK_TRANSFER_ORDER_EXCEL = OrderedDict((
                             ('warehouse_name', 0), ('wms_code', 1), ('quantity', 2),
-                            ('price', 3)))
+                            ('price', 3),('cgst_tax',4),('sgst_tax',5),('igst_tax',6)))
 
 CENTRAL_ORDER_XLS_UPLOAD = {'interm_order_id': '', 'sku': '', 'quantity': 1,
               'unit_price': 0, 'tax': 0, 'inter_state': 0, 'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0,
@@ -2021,7 +2032,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'receive_po_invoice_check': 'receive_po_invoice_check', 'mark_as_delivered': 'mark_as_delivered',
                         'order_exceed_stock': 'order_exceed_stock', 'sku_pack_config': 'sku_pack_config',
                         'central_order_reassigning':'central_order_reassigning',
-                        'po_sub_user_prefix': 'po_sub_user_prefix',
+                        'po_sub_user_prefix': 'po_sub_user_prefix', 'combo_allocate_stock': 'combo_allocate_stock',
                         'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation',
                         }
 
@@ -2077,7 +2088,7 @@ CENTRAL_ORDER_MAPPING = OrderedDict((
                                    ))
 STOCK_TRANSFER_ORDER_MAPPING = OrderedDict((
                                       ('Warehouse Name', 'warehouse_name'), ('WMS Code', 'wms_code'),
-                                      ('Quantity', 'quantity'), ('Price', 'price')
+                                      ('Quantity', 'quantity'), ('Price', 'price'),('Cgst(%)','cgst_tax'),('Sgst(%)','sgst_tax'),('Igst(%)','igst_tax')
                                    ))
 
 CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((
@@ -3441,6 +3452,11 @@ def get_order_summary_data(search_params, user, sub_user):
     if 'order_id' in search_params:
         order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])
         search_parameters['id__in'] = order_detail.values_list('id', flat=True)
+    if 'invoice_number' in search_params :
+        search_parameters['sellerordersummary__invoice_number'] = search_params['invoice_number']
+    if 'invoice_date' in search_params:
+        search_parameters['sellerordersummary__creation_date__icontains'] = search_params['invoice_date']
+
 
     status_search = search_params.get('order_report_status', "")
 
@@ -3448,26 +3464,20 @@ def get_order_summary_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
 
     search_parameters['quantity__gt'] = 0
-    central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
-    if central_order_reassigning == 'true' :
-        if 'sister_warehouse' in search_params:
-            sister_warehouse_name = search_params['sister_warehouse']
-            user = User.objects.get(username=sister_warehouse_name)
-            user = user
-            sub_user = user
-        else:
-            pass
+    #central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
+    #if central_order_reassigning == 'true':
+    if 'sister_warehouse' in search_params and search_params['sister_warehouse']:
+        sister_warehouse_name = search_params['sister_warehouse']
+        user = User.objects.get(username=sister_warehouse_name)
+        user = user
+        sub_user = user
+    else:
+        pass
 
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters['user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
-    if 'invoice_number' in search_params :
-        orders = OrderDetail.objects.filter(sellerordersummary__invoice_number = search_params['invoice_number'])
-
-    elif 'invoice_date' in search_params:
-        orders = OrderDetail.objects.filter(sellerordersummary__creation_date__icontains = search_params['invoice_date'])
-    else:
-        orders = OrderDetail.objects.filter(**search_parameters)
+    orders = OrderDetail.objects.filter(**search_parameters)
     pick_filters = {}
     for key, value in search_parameters.iteritems():
         pick_filters['order__%s' % key] = value
@@ -3648,7 +3658,7 @@ def get_order_summary_data(search_params, user, sub_user):
             serial_number = OrderIMEIMapping.objects.filter(order__id=data.id)
         except:
             serial_number =''
-        if serial_number :
+        if serial_number and serial_number[0].po_imei:
             serial_number = serial_number[0].po_imei.imei_number
         else:
             serial_number = ''
@@ -5690,6 +5700,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         zone = dist_obj.userprofile.zone
         sku_code = en_obj.sku.sku_code
         quantity = en_obj.quantity
+        warehouse_level = en_obj.warehouse_level
         if 'Total Qty' not in totals_map:
             totals_map['Total Qty'] = quantity
         else:
@@ -5702,6 +5713,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
                                 ('SKU Code', sku_code),
                                 ('SKU Quantity', quantity),
                                 ('Enquiry No', enq_id),
+                                ('Level', warehouse_level),
                                 ('Enquiry Aging', days_left),
                                 ('Enquiry Status', extend_status)))
         temp_data['aaData'].append(ord_dict)
@@ -5776,6 +5788,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
 
     admin_user = get_admin(user)
     result = ''
+    seventytwo_networks = False
     for data in model_data:
         order_id = data['order__original_order_id']
         if not order_id:
@@ -5785,6 +5798,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
         shipment_status = ship_status.get(data['id'], '')
 
         if admin_user.get_username().lower() == '72Networks'.lower() :
+            seventytwo_networks = True
             try:
                 from firebase import firebase
                 firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
@@ -5797,41 +5811,31 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                 str(user.username),str(e)))
         delivered_time =''
         if result :
-            try:
-                signed_invoice_copy = result['signed_invoice_copy']
-            except:
-                signed_invoice_copy = ''
-            try :
-                id_type = result['id_type']
-            except:
-                id_type = ''
-            try :
-                id_card = result['id_card']
-            except :
-                id_card = ''
-            try :
-                id_proof_number = result['id_proof_number']
-            except:
-                id_proof_number = ''
-            try :
-                pod_status = result['pod_status']
-            except:
-                pod_status = False
-            try :
-                delivered_time = result['time']
-            except:
-                delivered_time = ''
+           signed_invoice_copy = result.get('signed_invoice_copy','')
+           id_type = result.get('id_type','')
+           id_card = result.get('id_card','')
+           id_proof_number = result.get('id_proof_number','')
+           try :
+               pod_status = result['pod_status']
+           except:
+               pod_status = False
+           delivered_time = result.get('time','')
+           refusal =  result.get('refusal',False)
+           refusal_reason = result.get('refusal_reason','')
         else:
             signed_invoice_copy =''
             id_type =''
             id_card =''
             id_proof_number = ''
             pod_status = False
-
+            refusal = False
+            refusal_reason =''
+        if seventytwo_networks :
+            shipment_status = 'Dispatched'
         if pod_status :
             shipment_status = 'Delivered'
-        else:
-            shipment_status = shipment_status
+        if refusal :
+            shipment_status =  'Refused'
         order_return_obj = OrderReturns.objects.filter(order__original_order_id = order_id,sku__wms_code = data['order__sku__sku_code'],sku__user=user.id)
         if order_return_obj and central_order_reassigning == 'true' :
             shipment_status = 'Returned'
@@ -5844,7 +5848,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
 
         if delivered_time :
             delivered_time = int(delivered_time)
-            delivered_time = time.strftime('%d %b %Y', time.localtime(delivered_time))
+            delivered_time = time.strftime('%d %b %Y', time.localtime(delivered_time/1e3))
 
         manifest_number = int(data['order_shipment__manifest_number'])
 
@@ -5865,6 +5869,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                                 ('Shipment Status',shipment_status ),
                                                 ('Dispatched Date',dispatched_date),
                                                 ('Delivered Date', delivered_time),
+                                                ('Refusal Reason',refusal_reason),
                                                 ('Courier Name', data['order_shipment__courier_name']),
                                                 ('Payment Status', data['order__customerordersummary__payment_status']),
                                                 ('Pack Reference', data['order_packaging__package_reference']))))
@@ -6400,6 +6405,13 @@ def print_sku_wise_data(search_params, user, sub_user):
                                                 ('Total Quantity', total_quantity))))
     return temp_data
 
+def get_stock_transfer_report_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date
+    temp_data = copy.deepcopy(AJAX_DATA)
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    lis = ['creation_date','st_po__open_st__sku__user','st_po__open_st__sku__user','st_po__open_st__sku__user','sku__sku_code','sku__sku_desc',\
+           'quantity', 'st_po__open_st__price','st_po__open_st__sku__user','st_po__open_st__cgst_tax','st_po__open_st__sgst_tax','st_po__open_st__igst_tax','st_po__open_st__price','status']
+    status_map = ['Pick List Generated','Pending','Accepted']
 
 def get_current_stock_report_data(search_params, user, sub_user):
     from miebach_admin.models import *
@@ -6533,6 +6545,7 @@ def get_inventory_value_report_data(search_params, user, sub_user):
                                                  'stock__batch_detail__weight', 'stock__batch_detail__batch_no',
                                                  'stock__batch_detail__ean_number',
                                                  'stock__batch_detail__manufactured_date',
+                                                 'stock__batch_detail__expiry_date',
                                                  'stock__batch_detail__mrp',
                                                  'stock__batch_detail__buy_price',
                                                  'stock__sku__sku_desc',
@@ -6568,7 +6581,7 @@ def get_inventory_value_report_data(search_params, user, sub_user):
         ean_number = ''
         if sku_data['stock__batch_detail__manufactured_date']:
             manufactured_date = str(sku_data['stock__batch_detail__manufactured_date'])
-        if sku_data['stock__batch_detail__manufactured_date']:
+        if sku_data['stock__batch_detail__expiry_date']:
             expiry_date = str(sku_data['stock__batch_detail__expiry_date'])
         if sku_data['stock__batch_detail__weight']:
             weight = sku_data['stock__batch_detail__weight']
@@ -6598,7 +6611,7 @@ def get_bulk_to_retail_report_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
-    lis = ['date_only', 'seller__seller_id', 'seller__name', 'source_sku_code__sku_code',
+    lis = ['transact_number', 'date_only', 'seller__seller_id', 'seller__name', 'source_sku_code__sku_code',
            'source_sku_code__sku_desc', 'source_sku_code__sku_category', 'source_location',
            'source_batch__weight', 'source_batch__mrp','source_quantity', 'destination_sku_code__sku_code',
            'destination_sku_code__sku_desc', 'destination_sku_code__sku_category', 'destination_location',
@@ -6636,6 +6649,7 @@ def get_bulk_to_retail_report_data(search_params, user, sub_user):
     search_parameters['source_sku_code__id__in'] = sku_master_ids
     search_parameters['seller__isnull'] = False
     search_parameters['source_sku_code__user'] = user.id
+    search_parameters['summary_type'] = 'substitute'
     master_data = SubstitutionSummary.objects.filter(**search_parameters).\
                                             values('seller__seller_id', 'seller__name', 'source_sku_code__sku_code',
                                                    'source_sku_code__sku_desc', 'source_sku_code__sku_category',
@@ -6644,7 +6658,7 @@ def get_bulk_to_retail_report_data(search_params, user, sub_user):
                                                    'destination_sku_code__sku_desc',
                                                    'destination_sku_code__sku_category',
                                                    'destination_location', 'dest_batch__weight', 'dest_batch__mrp',
-                                                   'destination_quantity').\
+                                                   'destination_quantity', 'transact_number').\
                                             annotate(date_only=Cast('creation_date', DateField())).\
                                             order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
@@ -6660,8 +6674,9 @@ def get_bulk_to_retail_report_data(search_params, user, sub_user):
         if sku_data['dest_batch__weight']:
             source_weight = sku_data['dest_batch__weight']
         if sku_data['dest_batch__mrp']:
-            source_mrp = sku_data['dest_batch__mrp']
-        temp_data['aaData'].append(OrderedDict((('Date', str(sku_data['date_only'])),
+            dest_mrp = sku_data['dest_batch__mrp']
+        temp_data['aaData'].append(OrderedDict((('Transaction ID', sku_data['transact_number']),
+                                                ('Date', str(sku_data['date_only'])),
                                                 ('Seller ID', sku_data['seller__seller_id']),
                                                 ('Seller Name', sku_data['seller__name']),
                                                 ('Source SKU Code', sku_data['source_sku_code__sku_code']),

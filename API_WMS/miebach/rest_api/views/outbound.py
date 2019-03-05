@@ -698,9 +698,12 @@ def generate_picklist(request, user=''):
             if order_count_len == 1:
                 single_order = str(order_count[0])
 
+    qc_items_qs = UserAttributes.objects.filter(user_id=user.id, attribute_model='dispatch_qc', status=1).values_list('attribute_name', flat=True)
+    qc_items = list(qc_items_qs)
+
     return HttpResponse(json.dumps({'data': data, 'picklist_id': picklist_number + 1, 'stock_status': stock_status,
                                     'order_status': order_status, 'single_order': single_order,
-                                    'sku_total_quantities': sku_total_quantities}))
+                                    'sku_total_quantities': sku_total_quantities, 'qc_items': qc_items}))
 
 
 @csrf_exempt

@@ -5840,6 +5840,7 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
     for row_idx in range(1, no_of_rows):
         order_data = copy.deepcopy(CENTRAL_ORDER_XLS_UPLOAD)
         order_data['user'] = user
+        order_data['status'] = 2
         customer_info = {}
         for key, value in order_mapping.iteritems():
             order_fields_data = {}

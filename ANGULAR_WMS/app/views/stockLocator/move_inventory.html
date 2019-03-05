@@ -14,17 +14,16 @@
 		  <div class="panel">
   			<div class="panel-header">
           <div class="row">
-            <div class="col-md-5 col-sm-4 col-xs-6 mb10"></div>
-            <div class="col-md-7 col-sm-4 col-xs-6 mb10">
+            <div class="col-md-2 col-sm-2 col-xs-2 mb10"></div>
+            <div class="col-md-10 col-sm-10 col-xs-10 mb10">
               <div class="row">
                 <div class="col-md-1"></div>
                 <div class="col-md-11">
-                  <button type="button" class="btn btn-success" ng-click="showCase.move_location_inventory()">
-                    Move Location Inventory
-                  </button>
+                  <button type="button" class="btn btn-success" ng-click="showCase.move_location_inventory()">Move Location Inventory</button>
                   <button type="button" class="btn btn-success" ng-click="showCase.add()">New Move Inventory</button>
-                  <button type="button" class="btn btn-success" ng-click="showCase.move_imei()">Status Swap</button>
+                  <button type="button" class="btn btn-success" ng-click="showCase.move_imei()">Status</button>
                   <button type="button" class="btn btn-success" ng-click="showCase.add_sku_substitute()">Add SKU Substitute</button>
+		              <button ng-show="user.roles.permissions.combo_allocate_stock && user.user_profile.industry_type == 'FMCG' && user.user_profile.user_type == 'marketplace_user'" type="button" class="btn btn-success" ng-click="showCase.combo_allocate_stock()">Combo Allocate Stock</button>
                 </div>
               </div>
             </div>

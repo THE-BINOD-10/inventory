@@ -2221,6 +2221,18 @@ var app = angular.module('urbanApp')
             title: 'Enquiry Status Report',
           }
         })
+        .state('app.reports.StockTransferReport', {
+          url: '/StockTransferReport',
+          templateUrl: 'views/reports/stock_transfer_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/stock_transfer_report.js');
+              }]
+          },
+          data: {
+            title: 'Stock Transfer Report',
+          }
+        })
 
         .state('app.reports.RTVReport', {
           url: '/RTVReport',
@@ -2237,6 +2249,42 @@ var app = angular.module('urbanApp')
         .state('app.reports.RTVReport.DebitNotePrint', {
            url: '/DebitNotePrint',
            templateUrl: 'views/reports/toggles/purchase_order.html',
+        })
+        .state('app.reports.CurrentStockReport', {
+          url: '/CurrentStockReport',
+          templateUrl: 'views/reports/current_stock_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/current_stock_report.js');
+              }]
+          },
+          data: {
+            title: 'Current Stock Report',
+          }
+        })
+        .state('app.reports.InventoryValueReport', {
+          url: '/InventoryValueReport',
+          templateUrl: 'views/reports/inventory_value_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/inventory_value_report.js');
+              }]
+          },
+          data: {
+            title: 'Inventory Value Report',
+          }
+        })
+        .state('app.reports.BulkToRetailReport', {
+          url: '/BulkToRetailReport',
+          templateUrl: 'views/reports/bulk_to_retail_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/bulk_to_retail_report.js');
+              }]
+          },
+          data: {
+            title: 'Bulk to Retail Report',
+          }
         })
 
 

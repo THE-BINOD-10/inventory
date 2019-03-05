@@ -246,6 +246,8 @@ urlpatterns = [
     url(r'^auto_sellable_confirm/$', auto_sellable_confirm),
     url(r'^update_sellable_suggestions/$', update_sellable_suggestions),
     url(r'^get_style_level_stock/$', get_style_level_stock),
+    url(r'^get_combo_sku_codes/$', get_combo_sku_codes),
+    url(r'^confirm_combo_allocation/$', confirm_combo_allocation),
 
     # OutBound
     url(r'^batch_generate_picklist/$', batch_generate_picklist),
@@ -369,6 +371,7 @@ urlpatterns = [
     url(r'^insert_st_shipment_info/$', insert_st_shipment_info),
     url(r'^do_delegate_orders/$', do_delegate_orders),
     url(r'^app_shipment_info_data/$', app_shipment_info_data),
+    url(r'^confirm_order_request/$', confirm_order_request),
     url(r'^send_order_back/$', send_order_back),
     url(r'^invoice_print_manifest/$', invoice_print_manifest),
     url(r'^shipment_pack_ref/$', shipment_pack_ref),
@@ -461,6 +464,13 @@ urlpatterns = [
     url(r'^get_sku_categories_list/$', get_sku_categories_list),
     url(r'^get_sku_wise_rtv_filter/$', get_sku_wise_rtv_filter),
     url(r'^download_grn_invoice_mapping/$', download_grn_invoice_mapping),
+    url(r'^get_stock_transfer_report/$', get_stock_transfer_report),
+    url(r'^get_current_stock_report/$', get_current_stock_report),
+    url(r'^print_current_stock_report/$', print_current_stock_report),
+    url(r'^get_inventory_value_report/$', get_inventory_value_report),
+    url(r'^print_inventory_value_report/$', print_inventory_value_report),
+    url(r'^get_bulk_to_retail_report/$', get_bulk_to_retail_report),
+    url(r'^print_bulk_to_retail_report/$', print_bulk_to_retail_report),
 
 ]
 

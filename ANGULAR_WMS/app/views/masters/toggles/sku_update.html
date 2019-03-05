@@ -305,16 +305,20 @@
             <div class="col-md-12"><hr></div>
           </div>
           <div class="row" ng-if="showCase.combo && showCase.update">
-            <div class="col-md-6">
+            <div class="col-md-4">
               <center><b> Combo SKU </b></center>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-5">
               <center><b> Combo Description </b></center>
+            </div>
+            <div class="col-md-3">
+              <center><b> Combo Quantity </b></center>
             </div>
           </div>
           <div ng-if="showCase.combo && showCase.update" class="row field" ng-repeat= "combo in showCase.model_data.combo_data">
-            <div class="col-md-6"><input type="text" name="combo_sku" class="form-control" ng-model="combo.combo_sku" disabled></div>
-            <div class="col-md-6"><input type="text" name="combo_desc" class="form-control" ng-model="combo.combo_desc" disabled></div>
+            <div class="col-md-4"><input type="text" name="combo_sku" class="form-control" ng-model="combo.combo_sku" disabled></div>
+            <div class="col-md-5"><input type="text" name="combo_desc" class="form-control" ng-model="combo.combo_desc" disabled></div>
+            <div class="col-md-3"><input type="text" name="combo_quantity" class="form-control" ng-model="combo.combo_quantity" disabled></div>
           </div>
           <div class="row">
             <div class="col-md-12"><hr></div>

@@ -128,9 +128,9 @@ def get_uploaded_pos_by_customers(start_index, stop_index, temp_data, search_ter
                                               Q(po_number__icontains=search_term) |
                                               Q(customer_name__icontains=search_term) |
                                               Q(verification_flag__icontains=search_term), **filter_params
-                                              ).order_by('id')
+                                              ).order_by('-id')
     else:
-        results = OrderUploads.objects.filter(**filter_params)
+        results = OrderUploads.objects.filter(**filter_params).order_by('-id')
     for result in results:
         generic_id = ''
         distributor = ''
@@ -167,10 +167,10 @@ def get_uploaded_pos_by_customers(start_index, stop_index, temp_data, search_ter
              'emizaids': emiza_order_ids})
     sort_col = lis[col_num]
 
-    if order_term == 'asc':
-        temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col))
-    else:
-        temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col), reverse=True)
+    # if order_term == 'asc':
+    #     temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col))
+    # else:
+    #     temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col), reverse=True)
     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
 
 

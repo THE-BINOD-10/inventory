@@ -74,7 +74,7 @@
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.mk_user">
               <div class="form-group">
                 <label class="control-label"> IMEI Scan </label>
-                <input type="text" ng-model="showCase.imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, showCase.imei_number)" auto-focus>
+                <input type="text" id="scan_imei_input" ng-model="showCase.imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, showCase.imei_number)" ng-readonly="showCase.scan_imei_readonly==true" auto-focus>
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.permissions.shipment_sku_scan">

@@ -1180,6 +1180,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.imei_list.push(record.imei_number);
         record.imei_number = '';
         record.scan = '';
+        record.value += 1;
       } else {
         record.imei_number = '';
         record.scan = '';
@@ -1233,7 +1234,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         }
                       }
                     } else {
-                      Service.showNoty(data.data.message);
+                      if (data.data.message != undefined) {
+                        Service.showNoty(data.data.message);
+                      } else {
+                        Service.showNoty(data.data);
+                      }
                       data1.imei_number = "";
                       $('input[name="imei"]').trigger('focus').val('');
                     }

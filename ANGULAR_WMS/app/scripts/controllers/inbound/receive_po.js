@@ -1019,7 +1019,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       fb.change_serial(data1, field);
       vm.current_sku = "";
       data1.imei_number = "";
-      $('input[name="imei"]').trigger('focus').val('');
+      $("input[attr-name='imei_"+data1.wms_code+"']").trigger('focus');
       if(vm.permissions.grn_scan_option == "sku_serial_scan") {
         $('textarea[name="scan_sku"]').trigger('focus').val('');
       }
@@ -1052,7 +1052,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.accept_qc(data1, data1.imei_number);
       qc_details();
       data1.imei_number = "";
-      $('input[name="imei"]').trigger('focus').val('');
+      $("input[attr-name='imei_"+data1.wms_code+"']").trigger('focus');
       vm.current_sku = "";
     }
 
@@ -1185,6 +1185,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         record.imei_number = '';
         record.scan = '';
       }
+      $("input[attr-name='imei_"+record.wms_code+"']").trigger('focus');
     }
 
 
@@ -1197,24 +1198,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           Service.showNoty("IMEI Already Scanned");
           data1.imei_number = "";
           data1.scan = '';
-          $('input[name="imei"]').trigger('focus').val('');
+          $("input[attr-name='imei_"+data1.wms_code+"']").trigger('focus');
           return false;
         }
-        if (vm.fb.poData.serials.indexOf(data1.imei_number) != -1){
+        if (vm.fb.poData.serials.indexOf(data1.imei_number) != -1) {
           Service.showNoty("Serial Number already Exist");
           data1.imei_number = "";
-          $('input[name="imei"]').trigger('focus').val('');
+          $("input[attr-name='imei_"+data1.wms_code+"']").trigger('focus');
           if(vm.permissions.grn_scan_option == "sku_serial_scan") {
             $('textarea[name="scan_sku"]').trigger('focus').val('');
           }
         } else {
-
           data1["disable"] = true;
           fb.check_imei(data1.imei_number).then(function(resp) {
             if (resp.status) {
               Service.showNoty("Serial Number already Exist in other PO: "+resp.data.po);
               data1.imei_number = "";
-              $('input[name="imei"]').trigger('focus').val('');
+              $("input[attr-name='imei_"+data1.wms_code+"']").trigger('focus');
               if(vm.permissions.grn_scan_option == "sku_serial_scan") {
                 $('textarea[name="scan_sku"]').trigger('focus').val('');
               }
@@ -1240,7 +1240,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         Service.showNoty(data.data);
                       }
                       data1.imei_number = "";
-                      $('input[name="imei"]').trigger('focus').val('');
+                      $("input[attr-name='imei_"+data1.wms_code+"']").trigger('focus');
                     }
                   }
                   data1["disable"] = false;
@@ -1254,7 +1254,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       if (data1.wms_code != sku_code) {
                         Service.showNoty("Scanned label belongs to "+sku_code);
                         data1.imei_number = "";
-                        $('input[name="imei"]').trigger('focus').val('');
+                        $("input[attr-name='imei_"+data1.wms_code+"']").trigger('focus');
                         return false;
                       }
                       if(vm.po_qc) {

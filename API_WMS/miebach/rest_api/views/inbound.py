@@ -2936,6 +2936,29 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
             po_imei.save()
             if po_imei:
                 get_po_imei_qs = po_imei
+            try:
+                dest_loc = ''
+                source_loc = 'DFLT'
+                get_default_loc = LocationMaster.objects.filter(zone__user=user.id, zone__zone="DEFAULT")
+                if get_default_loc:
+                    source_loc = get_default_loc[0].location
+                wms_code = get_po_imei_qs.sku.wms_code
+                quantity = 1
+                cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+                if not cycle_count:
+                    cycle_id = 1
+                else:
+                    cycle_id = cycle_count[0].cycle + 1
+                from rest_api.views.inbound import *
+                dest_loc = get_returns_location('DAMAGED_ZONE', '', user)
+                if dest_loc:
+                    dest_loc = dest_loc[0].location
+                if source_loc and dest_loc:
+                    move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user)
+            except Exception as e:
+                import traceback
+                receive_po_qc_log.debug(traceback.format_exc())
+                receive_po_qc_log.info("Error Occured in Move to Damage Location" + str(e))
         else:
             po_imei = POIMEIMapping.objects.filter(status=1, sku__user=user_id, imei_number__in=[key])
             if po_imei:
@@ -2977,36 +3000,7 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
                         dispatch_checklist.remarks = value_obj[0]
                         dispatch_checklist.qc_type = 'purchase_order'
                         dispatch_checklist.save()
-            """
-            try:
-                dest_loc = ''
-                source_loc = ''
-                if len(imei_qs) and validation_status:
-                    sku_id = order_id.sku.id
-                    OrderIMEIMapping.objects.create(**{'order_id':order_id.id, 'sku_id': sku_id,
-                    'po_imei' : imei_qs[0], 'imei_number': get_po_imei_qs.imei_number, 'status':1, 'sor_id': '',
-                    'order_reference': '', 'marketplace': ''})
-                elif not validation_status:
-                    wms_code = order_id.sku.wms_code
-                    quantity = 1
-                    cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-                    if not cycle_count:
-                        cycle_id = 1
-                    else:
-                        cycle_id = cycle_count[0].cycle + 1
-                    sku_stocks = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku__wms_code=wms_code).order_by('creation_date')
-                    if sku_stocks:
-                        source_loc = sku_stocks[0].location.location
-                    from rest_api.views.inbound import *
-                    dest_loc = get_returns_location('DAMAGED_ZONE', '', user)
-                    if dest_loc:
-                        dest_loc = dest_loc[0].location
-                    if source_loc and dest_loc:
-                        move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user)
-                imei_qs.update(status=0)
-            except:
-                print "Error occured on creating record"
-            """
+
 
 @csrf_exempt
 @login_required

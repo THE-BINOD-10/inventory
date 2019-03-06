@@ -8523,12 +8523,21 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
             status = status_map.get(status)
         else:
             status = 'Pending'
+        if user.username == 'one_assist':
+            ord_val = OrderFields.objects.filter(order_type='intermediate_order', name='original_order_id',
+                                                 original_order_id=dat['interm_order_id'])
+            if ord_val:
+                loan_proposal_id = ord_val[0].value
+            else:
+                loan_proposal_id = 'NO SR NUMBER'
+        else:
+            loan_proposal_id = dat['order__original_order_id']
         temp_data['aaData'].append(
             OrderedDict((('Order ID', int(dat['interm_order_id'])), ('SKU Code', dat['sku__sku_code']), ('SKU Desc', dat['sku__sku_desc']),
                          ('Product Quantity', dat['quantity']), ('Shipment Date', shipment_date), ('data_id', dat['id']),
                          ('Project Name', dat['project_name']), ('Remarks', dat['remarks']),
                          ('Warehouse', dat['order_assigned_wh__username']), ('Status', status), ('Order Date',order_date),
-                         ('Loan Proposal ID', dat['order__original_order_id']), ('id', index), ('DT_RowClass', 'results'))))
+                         ('Loan Proposal ID', loan_proposal_id), ('id', index), ('DT_RowClass', 'results'))))
         index += 1
 
     col_headers = ['Order ID', 'SKU Code', 'SKU Desc', 'Product Quantity', 'Shipment Date', 'Project Name', 'Remarks',

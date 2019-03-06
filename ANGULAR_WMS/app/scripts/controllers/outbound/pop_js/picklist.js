@@ -6,13 +6,13 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
   vm.state_data = items;
   vm.service = Service;
   vm.permissions = Session.roles.permissions;
-  vm.industry_type = Session.user_profile.industry_type;
   vm.user_type=Session.user_profile.user_type;
   vm.model_data = {};
   vm.record_serial_data = [];
   vm.record_qcitems_data = [];
   vm.status_data = {message:"cancel", data:{}}
   vm.qty_validation = {};
+  vm.industry_type = Session.user_profile.industry_type;
 
   vm.getPoData = function(data){
     Service.apiCall(data.url, data.method, data.data, true).then(function(data){

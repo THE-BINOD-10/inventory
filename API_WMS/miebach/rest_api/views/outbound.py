@@ -964,7 +964,7 @@ def get_picklist_data(data_id, user_id):
                                                'order_no': order_id, 'remarks': remarks,
                                                'load_unit_handle': load_unit_handle, 'category': category,
                                                'original_order_id': original_order_id, 'mrp':mrp,
-                                               'batchno':batch_no, 'is_combo_picklist': is_combo_picklist}
+                                               'batchno':batch_no, 'is_combo_picklist': is_combo_picklist, 'sku_imeis_map': sku_imeis_map}
             else:
                 batch_data[match_condition]['reserved_quantity'] += order.reserved_quantity
                 batch_data[match_condition]['picked_quantity'] += order.reserved_quantity
@@ -1174,7 +1174,7 @@ def get_picklist_data(data_id, user_id):
                  'manufactured_date':manufactured_date,
                  'marketplace': marketplace, 'original_order_id' : original_order_id,
                  'mrp':mrp, 'batchno':batch_no, 'is_combo_picklist': is_combo_picklist,
-                 'parent_sku_code':parent_sku_code})
+                 'parent_sku_code':parent_sku_code, 'sku_imeis_map': sku_imeis_map})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)

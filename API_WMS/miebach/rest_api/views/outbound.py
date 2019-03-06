@@ -4541,6 +4541,14 @@ def create_order_from_intermediate_order(request, user):
                     order_dict['shipment_date'] = interm_obj.shipment_date
                     order_dict['order_id'] = get_order_id(wh_id)
                     order_dict['original_order_id'] = order_dict['order_code'] + str(order_dict['order_id'])
+                    if user.username == 'one_assist':
+                        org_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id),
+                                                             order_type='intermediate_order', user=user.id,
+                                                             name='original_order_id')
+                        if org_obj:
+                            order_dict['original_order_id'] = org_obj[0].value
+                            order_dict['order_id'] = org_obj[0].value
+                            order_dict['order_code'] = ''
                     order_dict['status'] = 1
                     order_dict['remarks'] = interm_obj.remarks
                     ord_obj = OrderDetail(**order_dict)

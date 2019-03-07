@@ -5777,9 +5777,17 @@ def insert_shipment_info(request, user=''):
             'Shipment info saving is failed for params ' + str(request.POST.dict()) + ' error statement is ' + str(e))
     admin_user = get_admin(user)
     if admin_user.username in ['one_assist']:
+        if order_detail:
+            product_make = order_detail.sku.sku_brand
+            product_model = order_detail.sku.sku_code
+            imei = order_detail.orderimeimapping_set.values_list('po_imei_id__imei_number', flat=True)
+            if imei:
+                imei = imei[0]
+            else:
+                imei = '---------------'
         create_order_pos(user, created_order_objs, admin_user=admin_user)
-        final_data = {'customer_name': customers_name, 'product_make': ' ',
-                     'product_model': ' ', 'imei': ' ', 'date': ' '}
+        final_data = {'customer_name': customers_name, 'product_make': product_make,
+                     'product_model': product_model, 'imei': imei, 'date': ' '}
         if final_data:
             return render(request, 'templates/toggle/order_shipment_confirmation_form.html', final_data)
     return HttpResponse(json.dumps({'status': True, 'message': 'Shipment Created Successfully'}))
@@ -8573,7 +8581,7 @@ def get_central_order_detail(request, user=''):
         wh_name = ''
     already_picked = False
     if order_id or wh_name:
-        already_assigned = True
+        #already_assigned = True
         picked_qs = Picklist.objects.filter(order_id=order_id)
         if picked_qs:
             picked_qty = picked_qs[0].picked_quantity
@@ -14740,6 +14748,7 @@ def send_order_back(request, user=''):
     try:
         order_id_list =request.POST.getlist('order_id')
         remarks_list = request.POST.getlist('remarks')
+        alt_sku_list = request.POST.getlist('sku_id')
         for i in range(len(order_id_list)) :
             ord_obj = OrderDetail.objects.get(original_order_id=order_id_list[i], user=user.id)
             interm_obj = IntermediateOrders.objects.filter(order_id=ord_obj.id)
@@ -14754,6 +14763,9 @@ def send_order_back(request, user=''):
                     log.info('%s orderid is  assigned' % (str(order_id_list[i],)))
                     interm_obj.status = 0
                     interm_obj.remarks=remarks_list[i]
+                    if alt_sku_list:
+                        sku_obj = SKUMaster.objects.filter(user=user.id, sku_code=alt_sku_list[i])
+                        interm_obj.alt_sku = sku_obj[0]
                     PushNotifications.objects.create(user_id=interm_obj.user_id, message=ord_obj.original_order_id+"  "+"order got rejected from"+"  "+interm_obj.order_assigned_wh.username+" "+"with central order id"+" "+str(interm_obj.interm_order_id))
                     interm_obj.save()
                     order_det_reassigned_orderid.append(ord_obj.original_order_id)

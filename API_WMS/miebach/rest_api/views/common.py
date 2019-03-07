@@ -2291,15 +2291,17 @@ def search_batches(request, user=''):
         for stock in stock_data:
             try:
                 manufactured_date = datetime.datetime.strftime(stock.batch_detail.manufactured_date, "%d/%m/%Y")
-            except:
-                manufactured_date = ''
-            try:
                 batchno =  stock.batch_detail.batch_no
             except:
+                manufactured_date = ''
                 batchno  = ''
-
-            total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
-
+            try:
+                if stock.batch_detail.batch_no:
+                    present_date = datetime.datetime.now().date()
+                    if stock.batch_detail.expiry_date and stock.batch_detail.expiry_date >= present_date:
+                        total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
+            except:
+                total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
     return HttpResponse(json.dumps(total_data))
 
 

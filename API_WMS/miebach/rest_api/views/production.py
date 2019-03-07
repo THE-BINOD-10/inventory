@@ -3444,13 +3444,17 @@ def save_replaced_serials(request , user):
             for i in range(len(replacement_dict)):
                 if (replacement_dict[i]['sku_id'] == order_imei.sku_id):
                     order_imei.po_imei_id = replacement_dict[i]['po_id']
-                    print(order_imei.id)
                     order_imei.save()
+                    po_imei_obj = POIMEIMapping.objects.filter(id =replacement_dict[i]['po_id'],sku__user=user.id)
+                    po_imei_obj= po_imei_obj[0]
+                    po_imei_obj.status = 0
+                    po_imei_obj.save()
                     replacement_dict.pop(i)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info("Saving replacement serial number  and error statement is " + str(e))
+        return HttpResponse("Some thing Went wrong")
     return HttpResponse("Success")
 
 @login_required

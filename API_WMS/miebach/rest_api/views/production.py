@@ -3402,6 +3402,7 @@ def rwo_data(request,user):
                 'job_code': picklist.jo_material.job_order.job_code,
                 'picked_quantity': picklist.picked_quantity,
                 'id': location.id,
+                'location_name':location_name,
                 'title': location.material_picklist.jo_material.material_code.sku_desc,
                 'image': picklist.jo_material.material_code.image_url,
                 'measurement_type': picklist.jo_material.unit_measurement_type,
@@ -3484,11 +3485,19 @@ def save_replaced_locations(request , user):
                 if return_stocks :
                    return_stocks[0].quantity += float(return_quantity)
                    return_stocks[0].save()
+                material_picklist = MaterialPicklist.objects.filter(jo_material__job_order__job_code=data_dict['job_id'][i],
+                                                                jo_material__job_order__product_code__user=user.id,jo_material__material_code__wms_code = wms_code)
+                if material_picklist.exists():
+                    material_picklist = material_picklist[0]
+                    material_picklist.picked_quantity -= float(return_quantity)
+                    material_picklist.save()
+
             if source:
                 stock_dict = {"sku_id": sku_id,
                               "location_id": source[0].id,
                               "sku__user": user.id}
                 stocks = StockDetail.objects.filter(**stock_dict)
+
                 if not stocks:
                     return  HttpResponse('No Stocks Found')
                 stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']

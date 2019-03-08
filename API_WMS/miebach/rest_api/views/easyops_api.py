@@ -394,3 +394,15 @@ class EasyopsAPI:
         json_response = self.get_response(url, data)
         return json_response
 
+    def storehippo_fulfill_orders(self, to_fulfill, user=''):
+	import pdb;pdb.set_trace()
+        if user:
+            self.user = user
+            self.get_user_token(user)
+	payload_data = {"data" : to_fulfill}
+	url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'fulfillments_url', ''))
+	headers =  { 'access-key': LOAD_CONFIG.get(self.company_name, 'access_key', ''), 'content-type': 'application/json'}
+	response = requests.request("POST", url, data=json.dumps(payload_data), headers=headers)
+	return response.json()
+        
+

@@ -1,0 +1,29 @@
+<div id="page-pop" style="overflow-y: visible;">
+  <form name="myForm" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine" novalidate="novalidate">
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="bundleObj.close()">
+        <span aria-hidden="true">×</span>
+      </button>
+      <h4 class="modal-title" id="modal-title">Combo Allocate Stock</h4>
+    </div>
+    <div class="modal-body lebel-error-hide" id="modal-body">
+      <div class="row">
+	<div class="col-md-6 col-sm-5 col-xs-12">
+	  <label class="control-label"></label>
+	  <input type="text" autocomplete="off" name="src_sku_code" class="form-control" placeholder="Search SKU Code &sol; Desc" typeahead="address.wms_code+' : '+address.sku_desc for address in bundleObj.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="bundleObj.model_data.src_sku_code"  ng-blur="bundleObj.empty_sku(); bundleObj.get_sku_batches(bundleObj.model_data.src_sku_code)">
+	</div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn pop pop-normal" ng-click="$ctrl.close()">Close</button>
+      <button class="btn pop pop-green" value="Print Barcodes" type="button" ng-disabled="showCase.bt_disable" ng-click="$ctrl.print_barcodes(form)">Print Barcodes</button>
+      <button type="button" class="btn pop pop-green" ng-click="$ctrl.submit(myForm)" ng-disabled="myForm.$invalid; $ctrl.disabled_button">Save
+        <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="$ctrl.success_resp"></span>
+      </button>
+    </div>
+
+
+  </form>
+</div>
+

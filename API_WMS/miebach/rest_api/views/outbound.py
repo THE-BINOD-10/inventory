@@ -1974,6 +1974,8 @@ def picklist_confirmation(request, user=''):
     try:
 	rista_order_id_list = []
 	rista_order_dict = {}
+	storehippo_order_dict = {}
+	
         data = OrderedDict(sorted(data.items(), reverse=True))
         error_string = ''
         picklist_number = request.POST['picklist_number']
@@ -2003,6 +2005,9 @@ def picklist_confirmation(request, user=''):
         if combo_status:
             return HttpResponse(json.dumps({'message': 'Combo Quantities are not matching',
                                             'sku_codes': combo_status, 'status': 0}))
+
+	import pdb;pdb.set_trace()
+
         for picklist_dict in final_data_list:
             picklist = picklist_dict['picklist']
             picklist_batch = picklist_dict['picklist_batch']
@@ -2055,7 +2060,7 @@ def picklist_confirmation(request, user=''):
                     if 'labels' in val.keys() and val['labels'] and picklist.order:
                         update_order_labels(picklist, val)
                     reserved_quantity1 = picklist.reserved_quantity
-                    tot_quan = 0
+		    tot_quan = 0
                     for stock in total_stock:
                         tot_quan += float(stock.quantity)
                         # if tot_quan < reserved_quantity1:
@@ -2149,6 +2154,23 @@ def picklist_confirmation(request, user=''):
                                 rista_order_dict[original_order_id_str] = []
                                 rista_order_dict[original_order_id_str].append(sku_code_dict)
 
+
+		    #StoreHippo COnfirm Picklist
+		    #int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
+                    if picklist.order:
+                        original_order_id_str = str(picklist.order.order_reference)
+                        picking_count1 = int(picking_count1)
+                        if picking_count1:
+                            sku_code_str = picklist.order.sku.sku_code
+                            sku_code_dict = {}
+                            sku_code_dict[sku_code_str] = picking_count1
+                            if original_order_id_str in storehippo_order_dict.keys():
+                                storehippo_order_dict[original_order_id_str].append(sku_code_dict)
+                            else:
+                                storehippo_order_dict[original_order_id_str] = []
+                                storehippo_order_dict[original_order_id_str].append(sku_code_dict)
+
+
                     picklist.save()
                     if user_profile.user_type == 'marketplace_user' and picklist.order:
                         create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,
@@ -2195,9 +2217,24 @@ def picklist_confirmation(request, user=''):
 	    rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
 
         #Check StoreHippo User
-        #check_store_hippo = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
-        #if check_store_hippo:
-        #    store_hippo_fulfillments = store_hippo_fulfillments(rista_order_dict, user)
+        check_store_hippo = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
+	#if len(check_store_hippo):
+	import pdb;pdb.set_trace()
+	#    print storehippo_order_dict
+	to_fulfill = {}
+	for key, value in storehippo_order_dict.iteritems():
+	    items_list = []
+	    for obj in value:
+		sku = obj.keys()[0]
+		quantity = obj.values()[0]
+		items_list.append({'sku':sku, 'quantity':quantity})
+	    to_fulfill = {'order_id': key, 'items': items_list}
+
+        from rest_api.views.easyops_api import *
+	for integrate in check_store_hippo:
+	    obj = eval(integrate.api_instance)(company_name=integrate.name, user=user.id)
+	    storehippo_response = obj.storehippo_fulfill_orders(to_fulfill, user)
+	print "StoreHippo Response " + storehippo_response
 
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)

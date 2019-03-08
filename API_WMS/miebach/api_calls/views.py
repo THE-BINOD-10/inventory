@@ -19,10 +19,12 @@ import datetime
 from django.db.models import Q, F
 from django.core.serializers.json import DjangoJSONEncoder
 from rest_api.views.utils import *
-log = init_logger('logs/integrations.log')
-storehippo_log = init_logger('logs/storehippo.log')
-create_order_storehippo_log = init_logger('logs/create_order_storehippo_log.log')
-create_update_sku_storehippo_log = init_logger('logs/create_update_sku_storehippo_log.log')
+
+today = datetime.datetime.now().strftime("%Y%m%d")
+log = init_logger('logs/integrations_' + today + '.log')
+storehippo_log = init_logger('logs/storehippo_' + today + '.log')
+create_order_storehippo_log = init_logger('logs/create_order_storehippo_log_' + today + '.log')
+create_update_sku_storehippo_log = init_logger('logs/create_update_sku_storehippo_log_' + today + '.log')
 
 # Create your views here.
 
@@ -1450,6 +1452,7 @@ def create_order_storehippo(store_hippo_data, user_obj):
     create_order['fulfillmentStatus'] = store_hippo_data.get('fulfillment_status', '')
     create_order['custom_shipping_applied'] = store_hippo_data.get('custom_shipping_applied', 0)
     create_order['order_reference'] = store_hippo_data.get('_id', '')
+    import pdb;pdb.set_trace()
     admin_discounts = store_hippo_data.get('discounts', [])
     if admin_discounts:
         admin_discounts = admin_discounts[0].get('saved_amount',0)
@@ -1494,7 +1497,6 @@ def create_update_sku_storehippo(store_hippo_data, user_obj):
             image = image[0]['tempSrc']
         desc = store_hippo_data.get('description', '')
         if desc:
-            desc = desc[0]['description']
             desc = desc.replace('<p>', '')
             desc = desc.replace('</p>', '')
         stockone_data['sku_code'] = sku_code
@@ -1582,5 +1584,5 @@ def store_hippo(request):
     delta = b - a
     time_taken = str(delta.total_seconds())
     storehippo_log.info('------------End Time Taken in Seconds --- ' + time_taken + '-----')
-    return HttpResponse(json.dumps(status_resp))
+    return HttpResponse(json.dumps(status_resp.sku_code))
 

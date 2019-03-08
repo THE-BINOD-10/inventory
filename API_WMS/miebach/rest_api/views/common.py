@@ -2296,10 +2296,14 @@ def search_batches(request, user=''):
                 manufactured_date = ''
                 batchno  = ''
             try:
-                if stock.batch_detail.batch_no:
+                expiry_batches_picklist = get_misc_value('block_expired_batches_picklist', user.id)
+                print expiry_batches_picklist
+                if stock.batch_detail.batch_no and expiry_batches_picklist:
                     present_date = datetime.datetime.now().date()
                     if stock.batch_detail.expiry_date and stock.batch_detail.expiry_date >= present_date:
                         total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
+                else:
+                    total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
             except:
                 total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
     return HttpResponse(json.dumps(total_data))

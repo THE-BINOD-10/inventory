@@ -2033,6 +2033,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'order_exceed_stock': 'order_exceed_stock', 'sku_pack_config': 'sku_pack_config',
                         'central_order_reassigning':'central_order_reassigning',
                         'po_sub_user_prefix': 'po_sub_user_prefix', 'combo_allocate_stock': 'combo_allocate_stock',
+                        'block_expired_batches_picklist': 'block_expired_batches_picklist'
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

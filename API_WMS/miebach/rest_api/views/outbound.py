@@ -26,7 +26,8 @@ from utils import *
 import os, math
 from rest_api.rista_save_transfer import *
 log = init_logger('logs/outbound.log')
-
+today = datetime.datetime.now().strftime("%Y%m%d")
+storehippo_fulfillments_log = init_logger('logs/storehippo_fulfillments_log_' + today + '.log')
 
 @csrf_exempt
 def get_batch_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters,
@@ -2218,23 +2219,29 @@ def picklist_confirmation(request, user=''):
 
         #Check StoreHippo User
         check_store_hippo = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
-	#if len(check_store_hippo):
-	import pdb;pdb.set_trace()
-	#    print storehippo_order_dict
-	to_fulfill = {}
-	for key, value in storehippo_order_dict.iteritems():
-	    items_list = []
-	    for obj in value:
-		sku = obj.keys()[0]
-		quantity = obj.values()[0]
-		items_list.append({'sku':sku, 'quantity':quantity})
-	    to_fulfill = {'order_id': key, 'items': items_list}
+	if len(check_store_hippo):
+	    import pdb;pdb.set_trace()
+	    to_fulfill = {}
+	    alert_message_for_email = LOAD_CONFIG.get('storehippo', 'alert_message_for_email', '')
+	    send_alert_msg_to = eval(LOAD_CONFIG.get('storehippo', 'send_alert_msg_to', ''))
+	    body_of_alert_email = LOAD_CONFIG.get('storehippo', 'body_of_alert_email', '')
+	    for key, value in storehippo_order_dict.iteritems():
+		items_list = []
+		for obj in value:
+		    sku = obj.keys()[0]
+		    quantity = obj.values()[0]
+		    items_list.append({'sku':sku, 'quantity':quantity})
+		to_fulfill = {'order_id': key, 'items': items_list}
+	    from rest_api.views.easyops_api import *
+	    for integrate in check_store_hippo:
+		obj = eval(integrate.api_instance)(company_name=integrate.name, user=user.id)
+		storehippo_response = obj.storehippo_fulfill_orders(to_fulfill, user)
+		if storehippo_response['status']:
+		    storehippo_fulfillments_log.info('For User: ' + str(user.username) + ', Storehippo Order Confirm Response - ' + str(storehippo_response))
+		else:
+		    storehippo_fulfillments_log.info('For User : ' + str(user.username) + ' ,' + str(alert_message_for_email) + str(to_fulfill.get('order_id', '')) + ', Response - ' + str(storehippo_response))
+		    send_mail(send_alert_msg_to, body_of_alert_email, 'For User : ' + str(user.username) + ' , ' + str(alert_message_for_email) + str(to_fulfill.get('order_id', '')) + ', Response - ' + str(storehippo_response))
 
-        from rest_api.views.easyops_api import *
-	for integrate in check_store_hippo:
-	    obj = eval(integrate.api_instance)(company_name=integrate.name, user=user.id)
-	    storehippo_response = obj.storehippo_fulfill_orders(to_fulfill, user)
-	print "StoreHippo Response " + storehippo_response
 
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)

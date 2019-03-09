@@ -23,8 +23,8 @@ from rest_api.views.utils import *
 today = datetime.datetime.now().strftime("%Y%m%d")
 log = init_logger('logs/integrations_' + today + '.log')
 storehippo_log = init_logger('logs/storehippo_' + today + '.log')
-create_order_storehippo_log = init_logger('logs/create_order_storehippo_log_' + today + '.log')
-create_update_sku_storehippo_log = init_logger('logs/create_update_sku_storehippo_log_' + today + '.log')
+create_order_storehippo_log = init_logger('logs/storehippo_create_order_log_' + today + '.log')
+create_update_sku_storehippo_log = init_logger('logs/storehippo_create_update_log_' + today + '.log')
 
 # Create your views here.
 
@@ -1452,7 +1452,6 @@ def create_order_storehippo(store_hippo_data, user_obj):
     create_order['fulfillmentStatus'] = store_hippo_data.get('fulfillment_status', '')
     create_order['custom_shipping_applied'] = store_hippo_data.get('custom_shipping_applied', 0)
     create_order['order_reference'] = store_hippo_data.get('_id', '')
-    import pdb;pdb.set_trace()
     admin_discounts = store_hippo_data.get('discounts', [])
     if admin_discounts:
         admin_discounts = admin_discounts[0].get('saved_amount',0)

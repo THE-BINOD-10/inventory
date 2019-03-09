@@ -2007,8 +2007,6 @@ def picklist_confirmation(request, user=''):
             return HttpResponse(json.dumps({'message': 'Combo Quantities are not matching',
                                             'sku_codes': combo_status, 'status': 0}))
 
-	import pdb;pdb.set_trace()
-
         for picklist_dict in final_data_list:
             picklist = picklist_dict['picklist']
             picklist_batch = picklist_dict['picklist_batch']
@@ -2220,7 +2218,6 @@ def picklist_confirmation(request, user=''):
         #Check StoreHippo User
         check_store_hippo = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
 	if len(check_store_hippo):
-	    import pdb;pdb.set_trace()
 	    to_fulfill = {}
 	    alert_message_for_email = LOAD_CONFIG.get('storehippo', 'alert_message_for_email', '')
 	    send_alert_msg_to = eval(LOAD_CONFIG.get('storehippo', 'send_alert_msg_to', ''))

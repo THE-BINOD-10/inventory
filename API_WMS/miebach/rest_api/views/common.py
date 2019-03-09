@@ -5946,9 +5946,14 @@ def update_order_dicts(orders, user='', company_name=''):
     trans_mapping = {}
     status = {'status': 0, 'messages': ['Something went wrong']}
     for order_key, order in orders.iteritems():
+        if company_name == "storehippo":
+            customer_name = order['order_details']['customer_name']
+            for ord_obj in order.get('extra', ''):
+                OrderCharges.objects.create(**ord_obj)
         if not order.get('order_details', {}):
             continue
         order_det_dict = order['order_details']
+        original_order_id = order_det_dict['original_order_id']
         if not order.get('order_detail_obj', None):
             order_obj = OrderDetail.objects.filter(original_order_id=order_det_dict['original_order_id'],
                                                    order_id=order_det_dict['order_id'],
@@ -5961,9 +5966,14 @@ def update_order_dicts(orders, user='', company_name=''):
             order_obj = order_obj[0]
             order_obj.quantity = float(order_obj.quantity) + float(order_det_dict.get('quantity', 0))
             order_obj.invoice_amount = float(order_obj.invoice_amount) + float(order_det_dict.get('invoice_amount', 0))
+            if company_name == "storehippo":
+                order_obj.sku_code = str(order_det_dict.get('line_item_id', ''))
             order_obj.save()
             order_detail = order_obj
         else:
+            if company_name == "storehippo":
+                del(order['order_details']['customer_code'])
+                order['order_details']['customer_name'] = customer_name
             order_detail = OrderDetail.objects.create(**order['order_details'])
         if order.get('order_summary_dict', {}) and not order_obj:
             order['order_summary_dict']['order_id'] = order_detail.id
@@ -5973,6 +5983,9 @@ def update_order_dicts(orders, user='', company_name=''):
                                                       order.get('swx_mappings', []), trans_mapping=trans_mapping)
         order_sku = {}
         sku_obj = SKUMaster.objects.filter(id=order_det_dict['sku_id'])
+
+        if 'measurement_type' in order_det_dict.keys() and company_name == "storehippo":
+            sku_obj.update(measurement_type=order_det_dict['measurement_type'])
         if sku_obj:
             sku_obj = sku_obj[0]
         else:
@@ -5981,6 +5994,9 @@ def update_order_dicts(orders, user='', company_name=''):
         auto_picklist_signal = get_misc_value('auto_generate_picklist', order_det_dict['user'])
         if auto_picklist_signal == 'true':
             message = check_stocks(order_sku, user, 'false', [order_detail])
+        if company_name == "storehippo":
+            for order_fields in order.get('order_fields_list', ''):
+                OrderFields.objects.create(**order_fields)
         status = {'status': 1, 'messages': 'Success'}
     return status
 
@@ -8780,65 +8796,4 @@ def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
 def update_po_order_prefix(sub_user, po_id):
     po_id = '%s%s' % (str(sub_user.id), str(po_id))
     return int(po_id)
-
-
-def update_order_dicts_storehippo(orders, user='', company_name=''):
-    from outbound import check_stocks
-    trans_mapping = {}
-    collect_order_detail_list = []
-    order_sku = {}
-    status = {'status': 0, 'messages': ['Something went wrong']}
-    for order_key, order in orders.iteritems():
-        customer_name = order['order_details']['customer_name']
-	for ord_obj in order.get('extra', ''):
-            OrderCharges.objects.create(**ord_obj)
-            #if float(order.get('shipping_charges', 0)):
-            #    OrderCharges.objects.create(**{'order_id': order.get('original_order_id', ''), 'user':user, 'charge_name':'Shipping Charges', 'charge_amount': float(order.get('shipping_charges', 0)) })
-	    #if float(order.get('discount', 0)):
-            #    OrderCharges.objects.create(**{'order_id': order.get('original_order_id', ''), 'user':user, 'charge_name':'Discount', 'charge_amount': float(order.get('discount',0)) })
-	    #continue
-        if not order.get('order_details', {}):
-            continue
-        order_det_dict = order['order_details']
-	original_order_id = order_det_dict['original_order_id']
-        if not order.get('order_detail_obj', None):
-            order_obj = OrderDetail.objects.filter(original_order_id=order_det_dict['original_order_id'],
-                                                   order_id=order_det_dict['order_id'],
-                                                   order_code=order_det_dict['order_code'],
-                                                   sku_id=order_det_dict['sku_id'],
-                                                   user=order_det_dict['user'])
-        else:
-            order_obj = [order.get('order_detail_obj', None)]
-        if order_obj:
-            order_obj = order_obj[0]
-            order_obj.quantity = float(order_obj.quantity) + float(order_det_dict.get('quantity', 0))
-            order_obj.invoice_amount = float(order_obj.invoice_amount) + float(order_det_dict.get('invoice_amount', 0))
-            order_obj.sku_code = str(order_det_dict.get('line_item_id', ''))
-            order_obj.save()
-            order_detail = order_obj
-	    collect_order_detail_list.append(order_detail)
-        else:
-            del(order['order_details']['customer_code'])
-            order['order_details']['customer_name'] = customer_name
-            order_detail = OrderDetail.objects.create(**order['order_details'])
-            collect_order_detail_list.append(order_detail)
-        if order.get('order_summary_dict', {}) and not order_obj:
-            order['order_summary_dict']['order_id'] = order_detail.id
-            customer_order_summary = CustomerOrderSummary.objects.create(**order['order_summary_dict'])
-        if order.get('seller_order_dict', {}):
-            trans_mapping = check_create_seller_order(order['seller_order_dict'], order_detail, user,
-                                                      order.get('swx_mappings', []), trans_mapping=trans_mapping)
-        sku_obj = SKUMaster.objects.filter(id=order_det_dict['sku_id'])
-        if 'measurement_type' in order_det_dict.keys():
-            sku_obj.update(measurement_type=order_det_dict['measurement_type'])
-        if sku_obj:
-            sku_obj = sku_obj[0]
-        else:
-            continue
-	order_sku.update({sku_obj: order_det_dict['quantity']})
-        for order_fields in order.get('order_fields_list', ''):
-            OrderFields.objects.create(**order_fields)
-    status = {'status': 1, 'messages': ['Success']}
-    return status
-
 

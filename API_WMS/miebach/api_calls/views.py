@@ -1430,7 +1430,6 @@ def create_order_storehippo(store_hippo_data, user_obj):
     create_order_storehippo_log.info('Create Store Hippo Data' + str(store_hippo_data))
     allOrders = []
     create_order = {}
-    #create_order['extra_key'] = []
     customer_obj = store_hippo_data.get('billing_address', '')
     create_order['source'] = 'store_hippo'
     create_order['original_order_id'] = store_hippo_data.get('order_id', '')
@@ -1456,7 +1455,6 @@ def create_order_storehippo(store_hippo_data, user_obj):
     if admin_discounts:
         admin_discounts = admin_discounts[0].get('saved_amount',0)
     create_order['invoice_amount'] = create_order.get('all_total_items', 0) + create_order.get('all_total_tax', 0) + create_order.get('shipping_charges', 0) - create_order.get('discount', 0)
-    #create_order['extra_key'].append({'shipping_charges':store_hippo_data['shipping_total']})
     allOrders.append(create_order)
     try:
         validation_dict, failed_status, final_data_dict = validate_orders_format_storehippo(allOrders, user=user_obj, company_name='mieone')
@@ -1470,7 +1468,7 @@ def create_order_storehippo(store_hippo_data, user_obj):
                 failed_status.update({'Status': 'Failure'})
             return json.dumps(failed_status)
         create_order_storehippo_log.info('StoreHippo Data Sent to Stockone ' + str(final_data_dict))
-        status = update_order_dicts_storehippo(final_data_dict, user=user_obj, company_name='mieone')
+        status = update_order_dicts(final_data_dict, user=user_obj, company_name='storehippo')
         create_order_storehippo_log.info(status)
         return status
     except Exception as e:

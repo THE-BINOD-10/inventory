@@ -5734,12 +5734,11 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
     lis = ['order_shipment__shipment_number', 'order__original_order_id', 'order__sku__sku_code', 'order__title',
            'order__customer_name',
            'order__quantity', 'shipping_quantity', 'order_shipment__truck_number','creation_date', 'id', 'id',
-           'order__customerordersummary__payment_status', 'order_packaging__package_reference']
+           'order__customerordersummary__payment_status', 'order_packaging__package_reference', 'order__original_order_id','order__original_order_id']
     search_parameters['order__user'] = user.id
     search_parameters['shipping_quantity__gt'] = 0
     search_parameters['order__sku_id__in'] = sku_master_ids
     temp_data = copy.deepcopy(AJAX_DATA)
-
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_parameters['creation_date__gt'] = search_params['from_date']
@@ -5813,6 +5812,13 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                 log.info('Firebase query  failed for %s and params are  and error statement is %s' % (
                 str(user.username),str(e)))
         delivered_time =''
+        invoice_number_obj = SellerOrderSummary.objects.filter(order_id = data['order__id'])
+        if invoice_number_obj :
+            invoice_number = invoice_number_obj[0].invoice_number
+            invoice_date = get_local_date(user,invoice_number_obj[0].creation_date)
+        else:
+            invoice_number = ''
+            invoice_date = ''
         if result :
            signed_invoice_copy = result.get('signed_invoice_copy','')
            id_type = result.get('id_type','')
@@ -5873,6 +5879,8 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                                 ('Dispatched Date',dispatched_date),
                                                 ('Delivered Date', delivered_time),
                                                 ('Refusal Reason',refusal_reason),
+                                                ('Invoice Number',invoice_number),
+                                                ('Invoice Date', invoice_date),
                                                 ('Courier Name', data['order_shipment__courier_name']),
                                                 ('Payment Status', data['order__customerordersummary__payment_status']),
                                                 ('Pack Reference', data['order_packaging__package_reference']))))

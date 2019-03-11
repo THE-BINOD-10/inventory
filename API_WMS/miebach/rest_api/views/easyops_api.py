@@ -17,6 +17,8 @@ LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
 
 log = init_logger('logs/integration_requests.log')
+today = datetime.datetime.now().strftime("%Y%m%d")
+storehippo_fulfillments_log = init_logger('logs/storehippo_fulfillments_log_' + today + '.log')
 
 
 class EasyopsAPI:
@@ -401,14 +403,17 @@ class EasyopsAPI:
         for to_fulfill in to_fulfill_list:
             payload_data = {"data" : to_fulfill}
             url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'fulfillments_url', ''))
-            headers =  { 'access-key': LOAD_CONFIG.get(self.company_name, 'access_key', ''), 'content-type': 'application/json'}
+            headers =  {'access-key': LOAD_CONFIG.get(self.company_name, 'access_key', ''), 'content-type': 'application/json'}
+	    storehippo_fulfillments_log.info('For User : ' + str(user.username) + ' , Input Data to Fulfill Orders - ' + str(json.dumps(payload_data)))
             response = requests.request("POST", url, data=json.dumps(payload_data), headers=headers)
             response_status_code = response.status_code
             if response_status_code == 200:
                 send_response = {'status': True, 'message':str(response.json())}
                 TempJson.objects.create(**{'model_id': user.id, 'model_name': 'storehippo<<>>acecraft<<>>fulfillments<<>>' + to_fulfill.get('order_id', ''), 'model_json': str(response.json())})
+		storehippo_fulfillments_log.info('Success Response on Fulfill - ' + str(response.json()))
             else:
                 send_response = {'status': False, 'message': str(response.json())}
+		storehippo_fulfillments_log.info('Failure Response on Fulfill - ' + str(response.json()))
 	return send_response
         
 

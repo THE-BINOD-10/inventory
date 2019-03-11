@@ -2219,6 +2219,7 @@ def picklist_confirmation(request, user=''):
         check_store_hippo = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
 	if len(check_store_hippo):
 	    to_fulfill = {}
+            to_fulfill_list = []
 	    alert_message_for_email = LOAD_CONFIG.get('storehippo', 'alert_message_for_email', '')
 	    send_alert_msg_to = eval(LOAD_CONFIG.get('storehippo', 'send_alert_msg_to', ''))
 	    body_of_alert_email = LOAD_CONFIG.get('storehippo', 'body_of_alert_email', '')
@@ -2229,15 +2230,16 @@ def picklist_confirmation(request, user=''):
 		    quantity = obj.values()[0]
 		    items_list.append({'sku':sku, 'quantity':quantity})
 		to_fulfill = {'order_id': key, 'items': items_list}
+                to_fulfill_list.append(to_fulfill)
 	    from rest_api.views.easyops_api import *
 	    for integrate in check_store_hippo:
 		obj = eval(integrate.api_instance)(company_name=integrate.name, user=user.id)
-		storehippo_response = obj.storehippo_fulfill_orders(to_fulfill, user)
+		storehippo_response = obj.storehippo_fulfill_orders(to_fulfill_list, user)
 		if storehippo_response['status']:
 		    storehippo_fulfillments_log.info('For User: ' + str(user.username) + ', Storehippo Order Confirm Response - ' + str(storehippo_response))
 		else:
-		    storehippo_fulfillments_log.info('For User : ' + str(user.username) + ' ,' + str(alert_message_for_email) + str(to_fulfill.get('order_id', '')) + ', Response - ' + str(storehippo_response))
-		    send_mail(send_alert_msg_to, body_of_alert_email, 'For User : ' + str(user.username) + ' , ' + str(alert_message_for_email) + str(to_fulfill.get('order_id', '')) + ', Response - ' + str(storehippo_response))
+		    storehippo_fulfillments_log.info('For User : ' + str(user.username) + ' ,' + str(alert_message_for_email) + ', Response - ' + str(storehippo_response))
+		    send_mail(send_alert_msg_to, body_of_alert_email, 'For User : ' + str(user.username) + ' , ' + str(alert_message_for_email) + ', Response - ' + str(storehippo_response))
 
 
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):

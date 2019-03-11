@@ -394,20 +394,21 @@ class EasyopsAPI:
         json_response = self.get_response(url, data)
         return json_response
 
-    def storehippo_fulfill_orders(self, to_fulfill, user=''):
+    def storehippo_fulfill_orders(self, to_fulfill_list, user=''):
         if user:
             self.user = user
             self.get_user_token(user)
-	payload_data = {"data" : to_fulfill}
-	url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'fulfillments_url', ''))
-	headers =  { 'access-key': LOAD_CONFIG.get(self.company_name, 'access_key', ''), 'content-type': 'application/json'}
-	response = requests.request("POST", url, data=json.dumps(payload_data), headers=headers)
-	response_status_code = response.status_code
-	if response_status_code == 200:
-	    send_response = {'status': True, 'message':str(response.json())}
-	    TempJson.objects.create(**{'model_id': user.id, 'model_name': 'storehippo<<>>acecraft<<>>fulfillments<<>>' + to_fulfill['order_id'], 'model_json': str(response.json())})
-	else:
-	    send_response = {'status': False, 'message': str(response.json())}
+        for to_fulfill in to_fulfill_list:
+            payload_data = {"data" : to_fulfill}
+            url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'fulfillments_url', ''))
+            headers =  { 'access-key': LOAD_CONFIG.get(self.company_name, 'access_key', ''), 'content-type': 'application/json'}
+            response = requests.request("POST", url, data=json.dumps(payload_data), headers=headers)
+            response_status_code = response.status_code
+            if response_status_code == 200:
+                send_response = {'status': True, 'message':str(response.json())}
+                TempJson.objects.create(**{'model_id': user.id, 'model_name': 'storehippo<<>>acecraft<<>>fulfillments<<>>' + to_fulfill.get('order_id', ''), 'model_json': str(response.json())})
+            else:
+                send_response = {'status': False, 'message': str(response.json())}
 	return send_response
         
 

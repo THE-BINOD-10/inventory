@@ -14,7 +14,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'back_order': false, 'use_imei': false, 'pallet_switch': false, 'production_switch': false,'stock_sync': false,
                     'pos_switch': false, 'auto_po_switch': false, 'no_stock_switch': false, 'online_percentage': 0,
                     'mail_alerts': 0, 'prefix': '', 'all_groups': '', 'mail_options': [{'id': 1,'name': 'Default'}],
-                    'mail_inputs':[], 'report_freq':'0', 'float_switch': false, 'automate_invoice': false, 'all_stages': '',
+                    'mail_inputs':[], 'report_freq':'0', 'float_switch': false, 'automate_invoice': false, 'all_stages': '','all_order_fields':'',
                     'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,
                     'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': '',
                     'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false,
@@ -592,6 +592,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       }, 500);
       $(".sku_groups").importTags(vm.model_data.all_groups);
       $(".stages").importTags(vm.model_data.all_stages);
+      $(".order_fields").importTags(vm.model_data.all_order_fields);
       $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
       $(".invoice_types").importTags(vm.model_data.invoice_types);
       $(".mode_of_transport").importTags(vm.model_data.mode_of_transport||'');
@@ -697,6 +698,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.update_stages = function() {
     var data = $(".stages").val();
     vm.service.apiCall("save_stages/?stage_names="+data).then(function(data){
+      if(data.message) {
+        msg = data.data;
+        $scope.showNoty();
+        Auth.status();
+      }
+    });
+  }
+
+  vm.update_extra_central_order_fields = function() {
+    var data = $(".order_fields").val();
+    vm.service.apiCall("save_order_extra_fields/?extra_order_fields="+data).then(function(data){
       if(data.message) {
         msg = data.data;
         $scope.showNoty();

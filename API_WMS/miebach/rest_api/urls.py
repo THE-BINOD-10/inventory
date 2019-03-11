@@ -581,6 +581,8 @@ urlpatterns += [
     url(r'get_linked_warehouse_names/$', get_linked_warehouse_names),
     url(r'delete_temp_json/$', delete_temp_json),
     url(r'^search_batches/$', search_batches),
+    url(r'^save_order_extra_fields/$', save_order_extra_fields),
+
 
     # Retailone
     url(r'^get_marketplace_data/$', get_marketplace_data),

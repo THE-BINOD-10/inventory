@@ -2212,7 +2212,17 @@ def save_stages(request, user=''):
                                           status__in=['grn-generated', 'pick_confirm']).values_list('id', flat=True)
         StatusTracking.objects.filter(status_value=stage, status_id__in=job_ids, status_type='JO').delete()
     return HttpResponse("Saved Successfully")
-
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_order_extra_fields(request, user=''):
+    order_extra_fields = request.GET.get('extra_order_fields', '')
+    order_extra_fields = order_extra_fields.split(',')
+    for field in order_extra_fields:
+        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='extra_order_fields',misc_value=field)
+        if not misc_detail.exists():
+             MiscDetail.objects.create(user=user.id,misc_type='extra_order_fields',misc_value=field)
+    return HttpResponse("Saved Successfully")
 
 @csrf_exempt
 @login_required

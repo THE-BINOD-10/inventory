@@ -211,6 +211,7 @@
               <button type="button" class="btn btn-danger pull-right" ng-click="pop.cancel_picklist(pop.model_data.picklist_id)">Cancel Picklist</button>
               <button type="button" class="btn btn-success pull-right mr10" ng-click="pop.update_picklist(pop.model_data.picklist_id)">Update Picklist</button>
               <button type="button" class="btn btn-success pull-right mr10" ng-click="pop.print_barcodes(pop.model_data.picklist_id)">Print Barcodes</button>
+              <button ng-if = 'pop.permissions.generate_delivery_challan_before_pullConfiramation && pop.model_data.data[0].order_no' type="button" class="btn btn-warning pull-right mr10" ng-disabled="pop.bt_disable" ng-click="pop.deliveryChallan(pop.model_data.data, 'generate')" disabled="disabled">Delivery Challan</button>
             </div>
           </div>
           <div class="row insert-status"><h4 align="center">{{pop.message}}</h4></div>

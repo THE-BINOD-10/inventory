@@ -909,6 +909,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'grn_edit': GRN_EDIT_DICT, 'current_stock_report': CURRENT_STOCK_REPORT_DICT,
                      'inventory_value_report':INVENTORY_VALUE_REPORT_DICT,
                      'bulk_to_retail_report': BULK_TO_RETAIL_REPORT_DICT,
+                     'stock_transfer_report':STOCK_TRANSFER_REPORT_DICT,
                      }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -2037,6 +2038,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'order_exceed_stock': 'order_exceed_stock', 'sku_pack_config': 'sku_pack_config',
                         'central_order_reassigning':'central_order_reassigning',
                         'po_sub_user_prefix': 'po_sub_user_prefix', 'combo_allocate_stock': 'combo_allocate_stock',
+                        'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -2044,6 +2046,7 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'data_range': 'report_data_range', 'imei_limit': 'imei_limit',
                      'invoice_remarks': 'invoice_remarks',
                      'invoice_declaration':'invoice_declaration',
+                     'raisepo_terms_conditions':'raisepo_terms_conditions',
                      'invoice_marketplaces': 'invoice_marketplaces', 'serial_limit': 'serial_limit',
                      'extra_view_order_status': 'extra_view_order_status',
                      'invoice_types': 'invoice_types',
@@ -6423,6 +6426,50 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
     lis = ['creation_date','st_po__open_st__sku__user','st_po__open_st__sku__user','st_po__open_st__sku__user','sku__sku_code','sku__sku_desc',\
            'quantity', 'st_po__open_st__price','st_po__open_st__sku__user','st_po__open_st__cgst_tax','st_po__open_st__sgst_tax','st_po__open_st__igst_tax','st_po__open_st__price','status']
     status_map = ['Pick List Generated','Pending','Accepted']
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term', 'asc')
+    start_index = search_params.get('start', 0)
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
+    else:
+        stop_index = None
+    search_parameters = {}
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        if search_params['sku_code']:
+            search_parameters['sku__sku_code'] = search_params['sku_code']
+    search_parameters['sku_id__in'] = sku_master_ids
+    search_parameters['sku__user'] = user.id
+    stock_transfer_data = StockTransfer.objects.filter(**search_parameters).\
+                                            order_by(order_data)
+    temp_data['recordsTotal'] = stock_transfer_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    time = str(datetime.datetime.now())
+    for data in  (stock_transfer_data[start_index:stop_index]):
+        date = get_local_date(user, data.creation_date)
+        destination = User.objects.get(id = data.st_po.open_st.sku.user)
+        status = status_map[data.status]
+        destination = destination.username
+        cgst = data.st_po.open_st.cgst_tax
+        sgst = data.st_po.open_st.sgst_tax
+        igst = data.st_po.open_st.igst_tax
+        price = data.st_po.open_st.price
+        quantity = data.quantity
+        net_value = quantity * price
+        total = (quantity * price) +cgst+sgst+igst
+
+
+        temp_data['aaData'].append(OrderedDict((('Date',date),('SKU Code', data.sku.sku_code), ('SKU Description',data.sku.sku_desc),('Invoice Number',data.order_id),\
+                                                ('Quantity',quantity ),('Status',status),('Net Value',net_value),\
+                                                ('CGST',cgst),('SGST',sgst),('IGST',igst),('Price',price),('Total Value',total),\
+                                                ('Source Location',user.username),('Destination',destination))))
+    return temp_data
 
 def get_current_stock_report_data(search_params, user, sub_user):
     from miebach_admin.models import *

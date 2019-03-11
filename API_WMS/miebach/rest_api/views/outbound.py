@@ -6745,11 +6745,12 @@ def get_sku_variants(request, user=''):
                                                       k == 'WAITONQC']
                                         if wait_on_qc:
                                             if int(wait_on_qc[0]):
+                                                wait_on_qc = int(wait_on_qc[0])*90/100
                                                 log.info("Wait ON QC Value %s for SKU %s" % (actual_sku_id, wait_on_qc))
                                             if sku_id in stock_dict:
-                                                stock_dict[sku_id] += int(wait_on_qc[0])
+                                                stock_dict[sku_id] += int(wait_on_qc)
                                             else:
-                                                stock_dict[sku_id] = int(wait_on_qc[0])
+                                                stock_dict[sku_id] = int(wait_on_qc)
                                     else:
                                         if sku_id in stock_dict:
                                             stock_dict[sku_id] += int(item['FG'])
@@ -6779,7 +6780,7 @@ def get_sku_variants(request, user=''):
                                         po = asn_stock['PO']
                                         arriving_date = datetime.datetime.strptime(asn_stock['By'], '%d-%b-%Y')
                                         quantity = int(asn_stock['Qty'])
-                                        qc_quantity = int(math.floor(quantity*95/100))
+                                        qc_quantity = int(math.floor(quantity*90/100))
                                         asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku[0].id,
                                                                                          asn_po_num=po,
                                                                                          status='open')
@@ -11229,6 +11230,7 @@ def generate_customer_invoice(request, user=''):
     admin_user = get_priceband_admin_user(user)
     try:
         seller_summary_dat = data_dict.get('seller_summary_id', '')
+        delivery_challan_pickid = data_dict.get('picklist_id', '')
         seller_summary_dat = seller_summary_dat[0]
         sor_id = ''
         sell_ids = {}
@@ -11261,18 +11263,30 @@ def generate_customer_invoice(request, user=''):
             sell_ids[field_mapping['order_id_in']].append(splitted_data[0])
             sell_ids['pick_number__in'].append(splitted_data[1])
             pick_number = splitted_data[1]
-        seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
-        order_ids = list(seller_summary.values_list(field_mapping['order_id'], flat=True))
-        order_ids = map(lambda x: str(x), order_ids)
-        order_ids = ','.join(order_ids)
-        summary_details = seller_summary.values(field_mapping['sku_code']).distinct().annotate(
-            total_quantity=Sum('quantity'))
+        generate_delivery_challan =  get_misc_value('generate_delivery_challan_before_pullConfiramation', user.id)
+        if generate_delivery_challan and delivery_challan_pickid:
+            seller_summary = OrderDetail.objects.filter(order_id=splitted_data[0], user=user.id)
+            order_ids = list(seller_summary.values_list('id', flat=True))
+            order_ids = map(lambda x: str(x), order_ids)
+            order_ids = ','.join(order_ids)
+            summary_details = seller_summary.values('sku_code').annotate(
+                total_quantity=Sum('quantity'))
+        else:
+            seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
+            order_ids = list(seller_summary.values_list(field_mapping['order_id'], flat=True))
+            order_ids = map(lambda x: str(x), order_ids)
+            order_ids = ','.join(order_ids)
+            summary_details = seller_summary.values(field_mapping['sku_code']).distinct().annotate(
+                total_quantity=Sum('quantity'))
         for detail in summary_details:
-            if not detail[field_mapping['sku_code']] in merge_data.keys():
-                merge_data[detail[field_mapping['sku_code']]] = detail['total_quantity']
+            if generate_delivery_challan and delivery_challan_pickid:
+                data, sku_total_quantities, courier_name = get_picklist_data(delivery_challan_pickid[0], user.id)
+                merge_data = sku_total_quantities
             else:
-                merge_data[detail[field_mapping['sku_code']]] += detail['total_quantity']
-
+                if not detail[field_mapping['sku_code']] in merge_data.keys():
+                    merge_data[detail[field_mapping['sku_code']]] = detail['total_quantity']
+                else:
+                    merge_data[detail[field_mapping['sku_code']]] += detail['total_quantity']
         invoice_data = get_invoice_data(order_ids, user, merge_data=merge_data, is_seller_order=True, sell_ids=sell_ids)
         edit_invoice = request.GET.get('edit_invoice', '')
         edit_dc = request.GET.get('edit_dc', '')
@@ -11281,7 +11295,7 @@ def generate_customer_invoice(request, user=''):
         ord_ids = order_ids.split(",")
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         invoice_date = datetime.datetime.now()
-        if seller_summary:
+        if seller_summary and generate_delivery_challan == False:
             if seller_summary[0].seller_order:
                 seller = seller_summary[0].seller_order.seller
                 order = seller_summary[0].seller_order.order

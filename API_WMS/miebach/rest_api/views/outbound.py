@@ -14653,6 +14653,6 @@ def invoice_print_manifest(request, user=''):
 @get_admin_user
 def get_order_extra_fields(request , user =''):
     extra_order_fields = []
-    order_field_obj =  MiscDetail.objects.filter(user=user.id,misc_type='extra_order_fields')
-    extra_order_fields = order_field_obj[0].misc_value.split(',')
+    order_field_obj = get_misc_value('extra_order_fields', user.id)
+    extra_order_fields = order_field_obj.split(',')
     return HttpResponse(json.dumps({'data':extra_order_fields }))

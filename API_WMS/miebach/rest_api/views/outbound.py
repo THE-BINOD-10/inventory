@@ -473,7 +473,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
 
 
 @csrf_exempt
-def get_customer_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
+def get_customer_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user): 
     sno = 0
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     gateout = request.POST.get('gateout', '')
@@ -481,7 +481,7 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
         gateout = int(gateout)
     central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
     if central_order_reassigning == 'true':
-        lis = ['Serial Number', 'Shipment Number', 'Customer ID', 'Customer Name', 'Manifest Number', 'Total Quantity', 'Total Quantity']
+        lis = ['Serial Number', 'Manifest Number', 'Total Quantity', 'Manifest Date']
     else:
         lis = ['Shipment Number', 'Customer ID', 'Customer Name', 'Manifest Number', 'Total Quantity', 'Total Orders', 'Serial Number']
     all_data = OrderedDict()
@@ -509,10 +509,12 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
                 shipment_orders_count = ShipmentInfo.objects.filter(order_shipment__shipment_number=result.order_shipment.shipment_number,
                                                   order_shipment__user=user.id)
                 total_orders = shipment_orders_count.count()
-                cond = (result.order_shipment.shipment_number, 0, 0, int(result.order_shipment.manifest_number), total_orders)
+                manifest_date = get_local_date(user,result.order_shipment.creation_date)
+                cond = (result.order_shipment.shipment_number, 0, 0, int(result.order_shipment.manifest_number), total_orders, manifest_date)
         else:
             total_orders = 0
-            cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name, int(result.order_shipment.manifest_number), total_orders)
+            manifest_date = ''
+            cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name, int(result.order_shipment.manifest_number), total_orders, manifest_date)
         all_data.setdefault(cond, 0)
         all_data[cond] += result.shipping_quantity
 
@@ -521,7 +523,7 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
     for key, value in all_data.iteritems():
         sno = sno+1
         temp_data['aaData'].append(
-            {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Serial Number' : sno,
+            {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Manifest Date' : key[5], 'Serial Number' : sno,
              'Total Quantity': value, 'DT_RowClass': 'results'})
     sort_col = lis[col_num]
 
@@ -5891,11 +5893,13 @@ def shipment_info_data(request, user=''):
     driver_phone_number = ''
     driver_name = ''
     manifest_number = ''
+    manifest_date = ''
     if shipment_orders:
         truck_number = shipment_orders[0].order_shipment.truck_number
         driver_name = shipment_orders[0].order_shipment.driver_name
         driver_phone_number = shipment_orders[0].order_shipment.driver_phone_number
         manifest_number = shipment_orders[0].order_shipment.manifest_number
+        manifest_date = get_local_date(user,shipment_orders[0].order_shipment.creation_date)
     for orders in shipment_orders:
         ship_status = copy.deepcopy(SHIPMENT_STATUS)
         status = 'Dispatched'
@@ -6004,7 +6008,7 @@ def shipment_info_data(request, user=''):
             ship_reference = orders.order_packaging.order_shipment.shipment_reference
 
     return HttpResponse(json.dumps({'data': data, 'customer_id': customer_id, 'ship_status': SHIPMENT_STATUS,'shipment_number':shipment_number,'manifest_number':manifest_number,
-                                    'ship_reference': ship_reference, 'truck_number': truck_number, 'driver_phone_number' : driver_phone_number,'driver_name':driver_name},
+                                    'ship_reference': ship_reference, 'truck_number': truck_number, 'driver_phone_number' : driver_phone_number,'driver_name':driver_name, 'manifest_date':manifest_date},
                                    cls=DjangoJSONEncoder))
 
 
@@ -6548,8 +6552,13 @@ def get_sku_catalogs(request, user=''):
         logo_image = ''
         if usr_obj.customer_logo:
             logo_path = usr_obj.customer_logo.url
-            with open(logo_path, "rb") as image_file:
-                logo_image = base64.b64encode(image_file.read())
+            try:
+                with open(logo_path, "rb") as image_file:
+                    logo_image = base64.b64encode(image_file.read())
+            except Exception as e:
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info("Exception Raised in Get SKU Catalogs while reading Images")
         if bank_dets_check:
             bank_details = usr_obj.bank_details
         if addr_dets_check:
@@ -6561,7 +6570,7 @@ def get_sku_catalogs(request, user=''):
         image = get_company_logo(admin, COMPANY_LOGO_PATHS)
         date = get_local_date(user, datetime.datetime.now())
         import math
-        if user_type in ['reseller', 'distributor']:
+        if user_type in ['reseller', 'dist_customer']:
             t = loader.get_template('templates/reseller_search.html')
             pages = math.ceil(float(len(data))/8)
         else:
@@ -6741,11 +6750,14 @@ def get_sku_variants(request, user=''):
                                                       k == 'WAITONQC']
                                         if wait_on_qc:
                                             if int(wait_on_qc[0]):
-                                                log.info("Wait ON QC Value %s for SKU %s" % (actual_sku_id, wait_on_qc))
-                                            if sku_id in stock_dict:
-                                                stock_dict[sku_id] += int(wait_on_qc[0])
+                                                wait_on_qc = int(wait_on_qc[0])*90/100
                                             else:
-                                                stock_dict[sku_id] = int(wait_on_qc[0])
+                                                wait_on_qc = int(wait_on_qc[0])
+                                            log.info("Wait ON QC Value %s for SKU %s" % (actual_sku_id, wait_on_qc))
+                                            if sku_id in stock_dict:
+                                                stock_dict[sku_id] += int(wait_on_qc)
+                                            else:
+                                                stock_dict[sku_id] = int(wait_on_qc)
                                     else:
                                         if sku_id in stock_dict:
                                             stock_dict[sku_id] += int(item['FG'])
@@ -6775,7 +6787,7 @@ def get_sku_variants(request, user=''):
                                         po = asn_stock['PO']
                                         arriving_date = datetime.datetime.strptime(asn_stock['By'], '%d-%b-%Y')
                                         quantity = int(asn_stock['Qty'])
-                                        qc_quantity = int(math.floor(quantity*95/100))
+                                        qc_quantity = int(math.floor(quantity*90/100))
                                         asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku[0].id,
                                                                                          asn_po_num=po,
                                                                                          status='open')
@@ -11225,6 +11237,7 @@ def generate_customer_invoice(request, user=''):
     admin_user = get_priceband_admin_user(user)
     try:
         seller_summary_dat = data_dict.get('seller_summary_id', '')
+        delivery_challan_pickid = data_dict.get('picklist_id', '')
         seller_summary_dat = seller_summary_dat[0]
         sor_id = ''
         sell_ids = {}
@@ -11257,18 +11270,30 @@ def generate_customer_invoice(request, user=''):
             sell_ids[field_mapping['order_id_in']].append(splitted_data[0])
             sell_ids['pick_number__in'].append(splitted_data[1])
             pick_number = splitted_data[1]
-        seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
-        order_ids = list(seller_summary.values_list(field_mapping['order_id'], flat=True))
-        order_ids = map(lambda x: str(x), order_ids)
-        order_ids = ','.join(order_ids)
-        summary_details = seller_summary.values(field_mapping['sku_code']).distinct().annotate(
-            total_quantity=Sum('quantity'))
+        generate_delivery_challan =  get_misc_value('generate_delivery_challan_before_pullConfiramation', user.id)
+        if generate_delivery_challan and delivery_challan_pickid:
+            seller_summary = OrderDetail.objects.filter(order_id=splitted_data[0], user=user.id)
+            order_ids = list(seller_summary.values_list('id', flat=True))
+            order_ids = map(lambda x: str(x), order_ids)
+            order_ids = ','.join(order_ids)
+            summary_details = seller_summary.values('sku_code').annotate(
+                total_quantity=Sum('quantity'))
+        else:
+            seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
+            order_ids = list(seller_summary.values_list(field_mapping['order_id'], flat=True))
+            order_ids = map(lambda x: str(x), order_ids)
+            order_ids = ','.join(order_ids)
+            summary_details = seller_summary.values(field_mapping['sku_code']).distinct().annotate(
+                total_quantity=Sum('quantity'))
         for detail in summary_details:
-            if not detail[field_mapping['sku_code']] in merge_data.keys():
-                merge_data[detail[field_mapping['sku_code']]] = detail['total_quantity']
+            if generate_delivery_challan and delivery_challan_pickid:
+                data, sku_total_quantities, courier_name = get_picklist_data(delivery_challan_pickid[0], user.id)
+                merge_data = sku_total_quantities
             else:
-                merge_data[detail[field_mapping['sku_code']]] += detail['total_quantity']
-
+                if not detail[field_mapping['sku_code']] in merge_data.keys():
+                    merge_data[detail[field_mapping['sku_code']]] = detail['total_quantity']
+                else:
+                    merge_data[detail[field_mapping['sku_code']]] += detail['total_quantity']
         invoice_data = get_invoice_data(order_ids, user, merge_data=merge_data, is_seller_order=True, sell_ids=sell_ids)
         edit_invoice = request.GET.get('edit_invoice', '')
         edit_dc = request.GET.get('edit_dc', '')
@@ -11277,7 +11302,7 @@ def generate_customer_invoice(request, user=''):
         ord_ids = order_ids.split(",")
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         invoice_date = datetime.datetime.now()
-        if seller_summary:
+        if seller_summary and generate_delivery_challan == False:
             if seller_summary[0].seller_order:
                 seller = seller_summary[0].seller_order.seller
                 order = seller_summary[0].seller_order.order
@@ -14629,9 +14654,13 @@ def invoice_print_manifest(request, user=''):
     shipment_number = request.POST.get('shipment_id')
     shipment_orders = ShipmentInfo.objects.filter(order_shipment__shipment_number=int(shipment_number),
                                                   order_shipment__user=user.id)
+    manifest_number = shipment_orders[0].order_shipment.manifest_number
     final_data = ''
     for orders in shipment_orders :
         invoice_data = get_invoice_data(str(orders.order.id),user)
+        central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
+        if central_order_reassigning:
+            invoice_data['manifest_number']= manifest_number
         invoice_data = modify_invoice_data(invoice_data, user)
         if get_misc_value('show_imei_invoice', user.id) == 'true':
             invoice_data = build_marketplace_invoice(invoice_data, user, False)

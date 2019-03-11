@@ -714,37 +714,23 @@ function pull_confirmation() {
   }
   */
   vm.deliveryChallan = function(){
+    vm.bt_disable = true;
     let formdata = angular.element($('form'));
     formdata = formdata[0];
     formdata = $(formdata).serializeArray();
     vm.service.apiCall('generate_picklist_dc/', 'POST', formdata, true).then(function(data){
       if(data.message) {
-        console.log(data.message)
-      }
-    });
-  }
-  vm.deliveryChallans = function(text, click_type){
-    let pickid = String(text[0].picklist_number)
-    let send = {'seller_summary_id': String(text[0].order_no+':1'), 'delivery_challan': true, 'picklist_id': pickid }
-    console.log(send)
-    vm.bt_disable = true;
-    vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
-      if(data.message) {
-        if(click_type == 'generate') {
-          vm.pdf_data = data.data;
-          if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
-            if ($state.$current.templateUrl == "views/outbound/view_orders.html") {
-              $state.go("app.outbound.ViewOrders.DeliveryChallan");
-            } else {
-              $state.go("app.outbound.PullConfirmation.DeliveryChallan");
-            }
-            $timeout(function () {
-              vm.ok();
-              $(".modal-body:visible").html(vm.pdf_data)
-            }, 1000);
+        vm.pdf_data = data.data;
+        if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
+          if ($state.$current.templateUrl == "views/outbound/view_orders.html") {
+            $state.go("app.outbound.ViewOrders.DeliveryChallan");
           } else {
-            console.log('error in delivery_challan')
+            $state.go("app.outbound.PullConfirmation.DeliveryChallan");
           }
+          $timeout(function () {
+            vm.ok();
+            $(".modal-body:visible").html(vm.pdf_data)
+          }, 1000);
         } else {
           console.log('error in delivery_challan')
         }

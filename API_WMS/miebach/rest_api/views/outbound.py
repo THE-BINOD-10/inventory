@@ -14773,6 +14773,17 @@ def generate_picklist_dc(request, user=''):
         if not picklist_batch:
             continue
         picklist_obj = picklist_batch[0]
+        extra_fields ={}
+        extra_order_fields = get_misc_value('extra_order_fields', user.id)
+        if extra_order_fields == 'false' :
+            extra_order_fields = []
+        else:
+            extra_order_fields = extra_order_fields.split(',')
+        for extra in extra_order_fields :
+            order_field_obj = OrderFields.objects.filter(original_order_id=picklist_obj.order.original_order_id,user=user.id ,name = extra)
+            if order_field_obj.exists():
+                extra_fields[order_field_obj[0].name] = order_field_obj[0].value
+
 
         for val in value:
             order = picklist_obj.order
@@ -14821,6 +14832,14 @@ def generate_picklist_dc(request, user=''):
     invoice_data['total_items'] = len(invoice_data['data'])
     invoice_data['data'] = pagination(invoice_data['data'])
     invoice_data['username'] = user.username
+    invoice_data['extra_order_fields'] = extra_fields
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    invoice_data['gstin_no'] = user_profile.gst_number
+    invoice_data['company_name'] = user_profile.company_name
+    invoice_data['company_address'] = user_profile.address
+    invoice_data['company_number'] = user_profile.phone_number
+    invoice_data['order_no'] = picklist_obj.order.order_id
+
     return render(request, 'templates/toggle/delivery_challan_batch_level.html', invoice_data)
 
 

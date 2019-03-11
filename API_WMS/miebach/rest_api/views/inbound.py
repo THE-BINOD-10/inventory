@@ -8660,7 +8660,7 @@ def get_grn_level_data(request, user=''):
     po_data = []
     try:
         po_number = request.GET['po_number']
-        temp = po_number.split('_')[1]
+        temp = po_number.split('_')[-1]
         temp1 = temp.split('/')
         receipt_no = ''
         if len(temp1) > 1:

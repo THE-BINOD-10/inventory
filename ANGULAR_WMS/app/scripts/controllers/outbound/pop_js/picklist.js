@@ -713,7 +713,17 @@ function pull_confirmation() {
     });
   }
   */
-  vm.deliveryChallan = function(text, click_type){
+  vm.deliveryChallan = function(){
+    let formdata = angular.element($('form'));
+    formdata = formdata[0];
+    formdata = $(formdata).serializeArray();
+    vm.service.apiCall('generate_picklist_dc/', 'POST', formdata, true).then(function(data){
+      if(data.message) {
+        console.log(data.message)
+      }
+    });
+  }
+  vm.deliveryChallans = function(text, click_type){
     let pickid = String(text[0].picklist_number)
     let send = {'seller_summary_id': String(text[0].order_no+':1'), 'delivery_challan': true, 'picklist_id': pickid }
     console.log(send)

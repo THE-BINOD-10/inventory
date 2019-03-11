@@ -376,7 +376,7 @@ urlpatterns = [
     url(r'^invoice_print_manifest/$', invoice_print_manifest),
     url(r'^shipment_pack_ref/$', shipment_pack_ref),
     url(r'^shipment_pack_ref_decrease/$', shipment_pack_ref_decrease),
-
+    url(r'^generate_picklist_dc/$', generate_picklist_dc),
 
 
     # Uploaded POs [SWISS MILITARY]

@@ -180,7 +180,10 @@
                         required>
                   </td>
                   <input type="hidden" name="batchno_{{data.id}}" value="{{record.batchno}}">
-		  <td ng-if="pop.industry_type=='FMCG'"><input name="manufactured_date_{{data.id}}" ng-model="data.manufactured_date" class="form-control" size="35" type="text" readonly></td>
+		  <td ng-if="pop.industry_type=='FMCG'">
+            <input name="manufactured_date_{{data.id}}" ng-model="data.manufactured_date" class="form-control" size="35" type="text" readonly>
+            <input name="expiry_date_{{data.id}}" ng-model="data.expiry_date" class="form-control" size="35" value="{{data.expiry_date}}" type="hidden">
+          </td>
 		  <td ng-if="pop.industry_type=='FMCG'"><input name="mrp_{{data.id}}" ng-model="data.mrp" class="form-control" type="text" readonly></td>
                   <td ng-if="pop.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" ng-model="record.pallet_code" class="form-control" type="text" ng-blur="pop.checkCapacity($index, data, 'pallet_code', $event);"></td>
                   <td><input name="reserved_quantity_{{data.id}}" ng-model="data.reserved_quantity" class="form-control" type="text" readonly></td>

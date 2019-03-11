@@ -6548,8 +6548,13 @@ def get_sku_catalogs(request, user=''):
         logo_image = ''
         if usr_obj.customer_logo:
             logo_path = usr_obj.customer_logo.url
-            with open(logo_path, "rb") as image_file:
-                logo_image = base64.b64encode(image_file.read())
+            try:
+                with open(logo_path, "rb") as image_file:
+                    logo_image = base64.b64encode(image_file.read())
+            except Exception as e:
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info("Exception Raised in Get SKU Catalogs while reading Images")
         if bank_dets_check:
             bank_details = usr_obj.bank_details
         if addr_dets_check:
@@ -6561,7 +6566,7 @@ def get_sku_catalogs(request, user=''):
         image = get_company_logo(admin, COMPANY_LOGO_PATHS)
         date = get_local_date(user, datetime.datetime.now())
         import math
-        if user_type in ['reseller', 'distributor']:
+        if user_type in ['reseller', 'dist_customer']:
             t = loader.get_template('templates/reseller_search.html')
             pages = math.ceil(float(len(data))/8)
         else:
@@ -6742,7 +6747,9 @@ def get_sku_variants(request, user=''):
                                         if wait_on_qc:
                                             if int(wait_on_qc[0]):
                                                 wait_on_qc = int(wait_on_qc[0])*90/100
-                                                log.info("Wait ON QC Value %s for SKU %s" % (actual_sku_id, wait_on_qc))
+                                            else:
+                                                wait_on_qc = int(wait_on_qc[0])
+                                            log.info("Wait ON QC Value %s for SKU %s" % (actual_sku_id, wait_on_qc))
                                             if sku_id in stock_dict:
                                                 stock_dict[sku_id] += int(wait_on_qc)
                                             else:

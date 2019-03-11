@@ -103,7 +103,9 @@ def update_inventory(company_name):
                             if wait_on_qc:
                                 if int(wait_on_qc[0]):
                                     wait_on_qc = int(wait_on_qc[0]) * 90/100
-                                    log.info("Wait ON QC Value %s for SKU %s" % (actual_sku_id, wait_on_qc))
+                                else:
+                                    wait_on_qc = int(wait_on_qc[0])
+                                log.info("Wait ON QC Value %s for SKU %s" % (actual_sku_id, wait_on_qc))
                                 if sku_id in stock_dict:
                                     stock_dict[sku_id] += int(wait_on_qc)
                                 else:

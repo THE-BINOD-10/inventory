@@ -839,6 +839,32 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   }
   vm.get_create_order_data();
 
+  vm.order_extra_fields = []
+  vm.extra_fields = false;
+  vm.get_order_extra_fields = function(){
+    vm.service.apiCall("get_order_extra_fields/").then(function(data){
+      if(data.message) {
+        vm.order_extra_fields = data.data.data;
+        if(vm.order_extra_fields[0] == '')
+        {
+          vm.extra_fields = false
+        }
+        else{
+          vm.exta_model ={}
+          vm.extra_fields = true
+           for(var i =0 ; i< vm.order_extra_fields.length; i++)
+           {
+              vm.exta_model[vm.order_extra_fields[i]] = '';
+
+           }
+
+         }
+        }
+      })
+    }
+
+  vm.get_order_extra_fields();
+
   vm.change_tax_type = function() {
 
     var tax_name = vm.model_data.tax_type;

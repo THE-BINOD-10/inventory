@@ -376,6 +376,8 @@ urlpatterns = [
     url(r'^invoice_print_manifest/$', invoice_print_manifest),
     url(r'^shipment_pack_ref/$', shipment_pack_ref),
     url(r'^shipment_pack_ref_decrease/$', shipment_pack_ref_decrease),
+    url(r'^get_order_extra_fields/$', get_order_extra_fields),
+
 
 
 

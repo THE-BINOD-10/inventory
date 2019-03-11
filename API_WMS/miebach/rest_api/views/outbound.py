@@ -473,7 +473,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
 
 
 @csrf_exempt
-def get_customer_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user): 
+def get_customer_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     sno = 0
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     gateout = request.POST.get('gateout', '')
@@ -14648,3 +14648,11 @@ def invoice_print_manifest(request, user=''):
         final_data += invoice_data
 
     return HttpResponse(final_data)
+
+@login_required
+@get_admin_user
+def get_order_extra_fields(request , user =''):
+    extra_order_fields = []
+    order_field_obj =  MiscDetail.objects.filter(user=user.id,misc_type='extra_order_fields')
+    extra_order_fields = order_field_obj[0].misc_value.split(',')
+    return HttpResponse(json.dumps({'data':extra_order_fields }))

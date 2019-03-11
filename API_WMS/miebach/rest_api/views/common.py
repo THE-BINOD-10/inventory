@@ -807,6 +807,9 @@ def configurations(request, user=''):
 
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
     config_dict['all_stages'] = str(','.join(all_stages))
+    order_field_obj =  MiscDetail.objects.filter(user=user.id,misc_type='extra_order_fields')
+    extra_order_fields = order_field_obj[0].misc_value.split(',')
+    config_dict['all_order_fields'] = str(','.join(extra_order_fields))
 
     if config_dict['mail_alerts'] == 'false':
         config_dict['mail_alerts'] = 0
@@ -2217,11 +2220,20 @@ def save_stages(request, user=''):
 @get_admin_user
 def save_order_extra_fields(request, user=''):
     order_extra_fields = request.GET.get('extra_order_fields', '')
-    order_extra_fields = order_extra_fields.split(',')
-    for field in order_extra_fields:
-        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='extra_order_fields',misc_value=field)
+    misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='extra_order_fields')
+    try:
         if not misc_detail.exists():
-             MiscDetail.objects.create(user=user.id,misc_type='extra_order_fields',misc_value=field)
+             MiscDetail.objects.create(user=user.id,misc_type='extra_order_fields',misc_value=order_extra_fields)
+        else:
+            misc_detail_obj = misc_detail[0]
+            misc_detail_obj.misc_value = order_extra_fields
+            misc_detail_obj.save()
+    except:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Issue for ' + request)
+        return HttpResponse("Something Went Wrong")
+
     return HttpResponse("Saved Successfully")
 
 @csrf_exempt

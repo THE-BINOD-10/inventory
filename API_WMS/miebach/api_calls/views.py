@@ -1190,22 +1190,22 @@ def get_mp_inventory(request):
         except:
             return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}), status=400)
         if not seller_id:
-            return HttpResponse(json.dumps({'status': 207, 'message': 'Seller ID is Mandatory'}), status=207)
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Seller ID is Mandatory'}), status=400)
         if not warehouse:
-            return HttpResponse(json.dumps({'status': 207, 'message': 'Warehouse Name is Mandatory'}), status=207)
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Warehouse Name is Mandatory'}), status=400)
         token_user = user
         sister_whs = list(get_sister_warehouse(user).values_list('user__username', flat=True))
         sister_whs.append(token_user.username)
         if warehouse in sister_whs:
             user = User.objects.get(username=warehouse)
         else:
-            return HttpResponse(json.dumps({'status': 207, 'message': 'Invalid Warehouse Name'}), status=207)
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Warehouse Name'}), status=400)
         try:
             seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
             if not seller_master:
-                return HttpResponse(json.dumps({'status': 207, 'message': 'Invalid Seller ID'}), status=207)
+                return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Seller ID'}), status=400)
         except:
-            return HttpResponse(json.dumps({'status': 207, 'message': 'Invalid Seller ID'}), status=207)
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Seller ID'}), status=400)
         seller_master_id = seller_master[0].id
         sku_records = SKUMaster.objects.filter(**filter_params).values('sku_code')
         error_skus = set(skus) - set(sku_records.values_list('sku_code', flat=True))
@@ -1251,11 +1251,26 @@ def get_mp_inventory(request):
             open_orders = dict(OrderDetail.objects.filter(user=user.id, quantity__gt=0, status=1).\
                                 annotate(group_key=Concat('sku__sku_code', Value('<<>>'), F('customerordersummary__mrp'), output_field=CharField())).\
                                 values_list('group_key').distinct().annotate(Sum('quantity')))
+            sku_weight_dict = dict(SKUAttributes.objects.filter(sku__user=user.id, attribute_name='weight').\
+                                   exclude(attribute_value='').values_list('sku__sku_code', 'attribute_value'))
+
+            sku_eans = dict(SKUMaster.objects.filter(user=user.id, ean_number__gt=0, status=1).only('ean_number',
+                                                    'sku_code').annotate(ean_str=Cast('ean_number', output_field=CharField())).values_list('sku_code', 'ean_str'))
+            ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1, ean_number__gt=0).\
+                            only('ean_number', 'sku__sku_code').\
+                            annotate(ean_str=Cast('ean_number', output_field=CharField())).\
+                            values_list('sku__sku_code', 'ean_str').order_by('creation_date'))
+            sku_open_orders_dict = {}
+            for open_order, open_order_qty in open_orders.iteritems():
+                temp_key = open_order.split('<<>>')
+                sku_open_orders_dict.setdefault(temp_key[0], [])
+                sku_open_orders_dict[temp_key[0]].append(open_order)
             for sku in sku_records:
                 group_data = stocks.filter(stock__sku__sku_code=sku['sku_code']).values('group_key', 'stock_sum')
                 group_data1 = unsellable_stock.filter(stock__sku__sku_code=sku['sku_code']).\
                                         exclude(group_key__in=group_data.values_list('group_key', flat=True))
                 mrp_dict = {}
+                sku_open_orders = sku_open_orders_dict.get(str(sku['sku_code']), [])
                 for stock_dat in group_data:
                     splitted_val = stock_dat['group_key'].split('<<>>')
                     sku_code = splitted_val[0]
@@ -1284,11 +1299,14 @@ def get_mp_inventory(request):
                     if not unsellable:
                         unsellable = 0
                     inventory -= reserved
-                    open_qty = open_orders.get('%s<<>>%s' % (str(sku_code), str(mrp)), 0)
+                    open_order_key = '%s<<>>%s' % (str(sku_code), str(mrp))
+                    open_qty = open_orders.get(open_order_key, 0)
+                    if open_order_key in sku_open_orders:
+                        del sku_open_orders[sku_open_orders.index(open_order_key)]
                     inventory -= open_qty
                     reserved += open_qty
-                    if inventory < 0:
-                        inventory = 0
+                    #if inventory < 0:
+                    #    inventory = 0
                     mrp_dict.setdefault(sub_group_key, OrderedDict(( ('mrp', mrp), ('ean', ean), ('weight', weight),
                                                                      ('inventory', OrderedDict((('sellable', 0),
                                                                                                 ('on_hold', 0),
@@ -1317,7 +1335,20 @@ def get_mp_inventory(request):
                                                                                                 ('on_hold', 0),
                                                                                                 ('un_sellable', 0)))))))
                     mrp_dict[sub_group_key]['inventory']['un_sellable'] += int(inventory)
-
+                for sku_open_order in sku_open_orders:
+                    open_sku_code, open_sku_mrp = sku_open_order.split('<<>>')
+                    open_ean = 0
+                    if sku_eans.get(open_sku_code, 0):
+                        open_ean = sku_eans[open_sku_code]
+                    elif ean_list.get(open_sku_code, 0):
+                        open_ean = ean_list[open_sku_code]
+                    open_weight = sku_weight_dict.get(open_sku_code, '')
+                    open_order_grouping_key = '%s<<>>%s<<>>%s' % (str(open_sku_mrp), str(open_ean), '0')
+                    mrp_dict[open_order_grouping_key] = OrderedDict(( ('mrp', open_sku_mrp), ('ean', open_ean),
+                                                                      ('weight', open_weight), ('inventory',
+                                                         OrderedDict((('sellable', -(open_orders[sku_open_order])),
+                                                                    ('on_hold', open_orders[sku_open_order]),
+                                                                    ('un_sellable', 0))))))
                 mrp_list = mrp_dict.values()
                 if not mrp_list:
                     mrp_list = OrderedDict(( ('mrp', 0), ('ean', ''), ('weight', 0),

@@ -924,7 +924,6 @@ def modify_po_update(request, user=''):
 @csrf_exempt
 @get_admin_user
 def switches(request, user=''):
-
     log.info('Request params for ' + user.username + ' on ' + str(
         get_local_date(user, datetime.datetime.now())) + ' is ' + str(request.GET.dict()))
     try:
@@ -972,7 +971,8 @@ def switches(request, user=''):
                        'display_remarks_mail': 'display_remarks_mail',
                        'create_seller_order': 'create_seller_order',
                        'invoice_remarks': 'invoice_remarks',
-                        'invoice_declaration':'invoice_declaration',
+                       'invoice_declaration':'invoice_declaration',
+                       'raisepo_terms_conditions':'raisepo_terms_conditions',
                        'show_disc_invoice': 'show_disc_invoice',
                        'serial_limit': 'serial_limit',
                        'increment_invoice': 'increment_invoice',
@@ -1013,7 +1013,8 @@ def switches(request, user=''):
                        'central_order_reassigning':'central_order_reassigning',
                        'sno_in_invoice':'sno_in_invoice',
                        'po_sub_user_prefix': 'po_sub_user_prefix',
-                       'combo_allocate_stock': 'combo_allocate_stock'
+                       'combo_allocate_stock': 'combo_allocate_stock',
+                       'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation'
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -5016,8 +5017,8 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
     attachments = ''
     if html_data:
         attachments = create_mail_attachments(f_name, html_data)
-    internal_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='Internal Emails')
-    misc_internal_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='internal_mail', misc_value='true')
+    internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='Internal Emails')
+    misc_internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='internal_mail', misc_value='true')
     if misc_internal_mail and internal_mail:
         internal_mail = internal_mail[0].misc_value.split(",")
         receivers.extend(internal_mail)
@@ -8659,7 +8660,7 @@ def get_grn_level_data(request, user=''):
     po_data = []
     try:
         po_number = request.GET['po_number']
-        temp = po_number.split('_')[1]
+        temp = po_number.split('_')[-1]
         temp1 = temp.split('/')
         receipt_no = ''
         if len(temp1) > 1:

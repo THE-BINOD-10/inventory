@@ -14669,3 +14669,52 @@ def invoice_print_manifest(request, user=''):
         final_data += invoice_data
 
     return HttpResponse(final_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def generate_picklist_dc(request, user=''):
+    st_time = datetime.datetime.now()
+    data = {}
+    picklist_number = request.POST['picklist_number']
+    for key, value in request.POST.iterlists():
+        name, picklist_id = key.rsplit('_', 1)
+        data.setdefault(picklist_id, [])
+        for index, val in enumerate(value):
+            if len(data[picklist_id]) < index + 1:
+                data[picklist_id].append({})
+            data[picklist_id][index][name] = val
+    print data
+    picks_all = Picklist.objects.filter(order__sku__user=user.id, picklist_number=picklist_number,
+                                            status__icontains="open")
+    if not picks_all:
+        return HttpResponse("No Orders Found")
+    for key, value in data.iteritems():
+        if key in ('name', 'number', 'order', 'sku', 'invoice'):
+            continue
+        picklist_batch = ''
+        picklist_order_id = value[0]['order_id']
+        if picklist_order_id:
+            picklist = picks_all.get(order__order_id=picklist_order_id,
+                                         order__sku__sku_code=value[0]['wms_code'])
+        elif not key:
+            scan_wms_codes = map(lambda d: d['wms_code'], value)
+            picklist_batch = picks_all.filter(
+                Q(stock__sku__wms_code__in=scan_wms_codes) | Q(order__sku__wms_code=scan_wms_codes),
+                reserved_quantity__gt=0, status__icontains='open')
+        else:
+            picklist_status = ''
+            if value[0].get('picklist_status', ''):
+                picklist_status = value[0]['picklist_status']
+            if picklist_status == 'open':
+                picklist_batch = picks_all.filter(id=key)
+                picklist = picklist_batch[0]
+            else:
+                picklist = picks_all.get(id=key)
+        count = 0
+        if not picklist_batch:
+            picklist_batch = get_picklist_batch(picklist, value, picks_all)
+        import pdb;pdb.set_trace()
+        for val in value:
+            batch_no = val.get('batchno', '')

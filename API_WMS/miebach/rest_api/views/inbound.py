@@ -3781,7 +3781,7 @@ def validate_putaway(all_data, user):
             else:
                 status = 'Enter Valid Location'
 
-        if unique_mrp == 'true' and user.userprofile.warehouse_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             collect_sku_mrp_map = []
             collect_dict_form = {}
             collect_all_sellable_location = list(LocationMaster.objects.filter(zone__segregation='sellable',  zone__user=user.id, status=1).values_list('location', flat=True))

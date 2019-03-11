@@ -1226,8 +1226,7 @@ def get_mp_inventory(request):
                                         Q(stock__receipt_number=0)).only('stock__sku__sku_code',
                                                                         'stock__batch_detail__mrp', 'quantity').\
                           annotate(group_key=Concat('stock__sku__sku_code',Value('<<>>'), 'stock__batch_detail__mrp',
-                                                    Value('<<>>'), 'stock__batch_detail__ean_number', Value('<<>>'),
-                                                    'stock__batch_detail__weight',
+                                                    Value('<<>>'), 'stock__batch_detail__weight',
                                     output_field=CharField())).values('group_key').distinct().\
                           annotate(stock_sum=Sum('quantity'))
             pick_res = dict(PicklistLocation.objects.select_related('seller__sellerstock', 'stock', 'stock__sku').\
@@ -1235,8 +1234,7 @@ def get_mp_inventory(request):
                                     stock__sellerstock__quantity__gt=0, stock__sku__user=user.id, stock__location__zone__zone__in=sellable_zones). \
                             only('stock__sku__sku_code', 'stock__batch_detail__mrp', 'reserved').\
                             annotate(group_key=Concat('stock__sku__sku_code',Value('<<>>'), 'stock__batch_detail__mrp',
-                                                      Value('<<>>'), 'stock__batch_detail__ean_number', Value('<<>>'),
-                                                      'stock__batch_detail__weight',
+                                                      Value('<<>>'), 'stock__batch_detail__weight',
                                               output_field=CharField())).values_list('group_key').distinct(). \
                             annotate(stock_sum=Sum('reserved')))
             unsellable_stock = SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone__zone').\
@@ -1244,8 +1242,7 @@ def get_mp_inventory(request):
                                  stock__location__zone__zone__in=non_sellable_zones). \
                           only('stock__sku__sku_code', 'stock__batch_detail__mrp', 'reserved').\
                           annotate(group_key=Concat('stock__sku__sku_code',Value('<<>>'), 'stock__batch_detail__mrp',
-                                                    Value('<<>>'), 'stock__batch_detail__ean_number', Value('<<>>'),
-                                                    'stock__batch_detail__weight',
+                                                    Value('<<>>'), 'stock__batch_detail__weight',
                                           output_field=CharField())).values('group_key').distinct(). \
                           annotate(stock_sum=Sum('quantity'))
             open_orders = dict(OrderDetail.objects.filter(user=user.id, quantity__gt=0, status=1).\
@@ -1275,13 +1272,13 @@ def get_mp_inventory(request):
                     splitted_val = stock_dat['group_key'].split('<<>>')
                     sku_code = splitted_val[0]
                     mrp = splitted_val[1]
-                    ean = splitted_val[2]
-                    weight = splitted_val[3]
-                    if not ean:
-                        ean = ''
+                    #ean = splitted_val[2]
+                    weight = splitted_val[2]
+                    # if not ean:
+                    #     ean = ''
                     if not weight:
                         weight = 0
-                    sub_group_key = '%s<<>>%s<<>>%s' % (mrp, ean, weight)
+                    sub_group_key = '%s<<>>%s' % (mrp, weight)
                     if not mrp:
                         mrp = 0
                     inventory = stock_dat['stock_sum']
@@ -1307,7 +1304,7 @@ def get_mp_inventory(request):
                     reserved += open_qty
                     #if inventory < 0:
                     #    inventory = 0
-                    mrp_dict.setdefault(sub_group_key, OrderedDict(( ('mrp', mrp), ('ean', ean), ('weight', weight),
+                    mrp_dict.setdefault(sub_group_key, OrderedDict(( ('mrp', mrp), ('weight', weight),
                                                                      ('inventory', OrderedDict((('sellable', 0),
                                                                                                 ('on_hold', 0),
                                                                                                 ('un_sellable', 0)))))))
@@ -1318,40 +1315,40 @@ def get_mp_inventory(request):
                     splitted_val = stock_dat1['group_key'].split('<<>>')
                     sku_code = splitted_val[0]
                     mrp = splitted_val[1]
-                    ean = splitted_val[2]
-                    weight = splitted_val[3]
-                    if not ean:
-                        ean = ''
+                    #ean = splitted_val[2]
+                    weight = splitted_val[2]
+                    # if not ean:
+                    #     ean = ''
                     if not weight:
                         weight = 0
-                    sub_group_key = '%s<<>>%s<<>>%s' % (mrp, ean, weight)
+                    sub_group_key = '%s<<>>%s' % (mrp, weight)
                     if not mrp:
                         mrp = 0
                     inventory = stock_dat1['stock_sum']
                     if not inventory:
                         inventory = 0
-                    mrp_dict.setdefault(sub_group_key, OrderedDict(( ('mrp', mrp), ('ean', ean), ('weight', weight),
+                    mrp_dict.setdefault(sub_group_key, OrderedDict(( ('mrp', mrp), ('weight', weight),
                                                                      ('inventory', OrderedDict((('sellable', 0),
                                                                                                 ('on_hold', 0),
                                                                                                 ('un_sellable', 0)))))))
                     mrp_dict[sub_group_key]['inventory']['un_sellable'] += int(inventory)
                 for sku_open_order in sku_open_orders:
                     open_sku_code, open_sku_mrp = sku_open_order.split('<<>>')
-                    open_ean = 0
-                    if sku_eans.get(open_sku_code, 0):
-                        open_ean = sku_eans[open_sku_code]
-                    elif ean_list.get(open_sku_code, 0):
-                        open_ean = ean_list[open_sku_code]
+                    # open_ean = 0
+                    # if sku_eans.get(open_sku_code, 0):
+                    #     open_ean = sku_eans[open_sku_code]
+                    # elif ean_list.get(open_sku_code, 0):
+                    #     open_ean = ean_list[open_sku_code]
                     open_weight = sku_weight_dict.get(open_sku_code, '')
-                    open_order_grouping_key = '%s<<>>%s<<>>%s' % (str(open_sku_mrp), str(open_ean), '0')
-                    mrp_dict[open_order_grouping_key] = OrderedDict(( ('mrp', open_sku_mrp), ('ean', open_ean),
+                    open_order_grouping_key = '%s<<>>%s' % (str(open_sku_mrp), '0')
+                    mrp_dict[open_order_grouping_key] = OrderedDict(( ('mrp', open_sku_mrp),
                                                                       ('weight', open_weight), ('inventory',
                                                          OrderedDict((('sellable', -(open_orders[sku_open_order])),
                                                                     ('on_hold', open_orders[sku_open_order]),
                                                                     ('un_sellable', 0))))))
                 mrp_list = mrp_dict.values()
                 if not mrp_list:
-                    mrp_list = OrderedDict(( ('mrp', 0), ('ean', ''), ('weight', 0),
+                    mrp_list = OrderedDict(( ('mrp', 0), ('weight', 0),
                                                                      ('inventory', OrderedDict((('sellable', 0),
                                                                                                 ('on_hold', 0),
                                                                                                 ('un_sellable', 0))))))

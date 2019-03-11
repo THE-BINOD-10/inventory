@@ -69,6 +69,17 @@
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="!(user.user_profile.user_type == 'marketplace_user')">
               <div class="form-group">
+                <label class="control-label">Address</label><br>
+                <div class="btn-group mr15" dropdown="">
+                  <button type="button" ng-init = "showCase.model_data.shipment_address_select = 'Select Shipment Address'" ng-model="showCase.model_data.shipment_address_select" class="btn btn-default dropdown-toggle" dropdown-toggle="" aria-haspopup="true" aria-expanded="false" style="width: 300px;">{{showCase.model_data.shipment_address_select}} <span class="caret"></span> </button>
+                  <ul class="dropdown-menu" role="menu">
+                    <li ng-repeat="data in showCase.model_data.ship_addr_names" ng-click= "showCase.ship_addr_change(data)"> <a href="javascript:;">{{data}}</a> </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="!(user.user_profile.user_type == 'marketplace_user')">
+              <div class="form-group">
                 <label class="control-label"> Ship To </label>
                 <input type="text" ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control"> </div>
             </div>

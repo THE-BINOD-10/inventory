@@ -99,7 +99,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       }
     }
 
-    vm.units = ["KGS", "UNITS", "METERS", "INCHES", "CMS", "REAMS", "GRAMS", "GROSS", "ML", "LITRE","FEET"];
+    vm.units = ["KGS", "UNITS", "METERS", "INCHES", "CMS", "REAMS", "GRAMS", "GROSS", "ML", "LITRE","FEET", "SHEETS", "NUMBERS"];
 
     vm.get_report_data = function(name){
       var send = {};
@@ -390,6 +390,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       if(stat) {
         var data1 = ""
         angular.forEach(data,function(v,n){
+	  v = v.replace('&', '');
           data1 = data1 + n + "=" + v + "<>";
         })
         send = $.param(send)+"&"+"serialize_data="+data1.slice(0,-2);

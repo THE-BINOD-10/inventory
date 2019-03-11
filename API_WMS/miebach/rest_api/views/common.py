@@ -4138,6 +4138,15 @@ def get_size_names(requst, user=""):
 @get_admin_user
 def get_sellers_list(request, user=''):
     sellers = SellerMaster.objects.filter(user=user.id).order_by('seller_id')
+    raise_po_terms_conditions = get_misc_value('raisepo_terms_conditions', user.id)
+    ship_address_details = []
+    ship_address_names = []
+    user_ship_address = UserAddresses.objects.filter(user_id=user.id)
+    if user_ship_address:
+        shipment_names = list(user_ship_address.values_list('address_name', flat=True))
+        ship_address_names.extend(shipment_names)
+        for data in user_ship_address:
+            ship_address_details.append({'title':data.address_name,'addr_name':data.user_name,'mobile_number':data.mobile_number,'pincode':data.pincode,'address':data.address})
     seller_list = []
     seller_supplier = {}
     for seller in sellers:
@@ -4145,8 +4154,8 @@ def get_sellers_list(request, user=''):
         if seller.supplier:
             seller_supplier[seller.seller_id] = seller.supplier.id
     user_list = get_all_warehouses(user)
-    return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5, 'receipt_types': PO_RECEIPT_TYPES, \
-                                    'seller_supplier_map': seller_supplier, 'warehouse' : user_list}))
+    return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5, 'receipt_types': PO_RECEIPT_TYPES, 'shipment_add_names':ship_address_names, \
+                                    'seller_supplier_map': seller_supplier, 'warehouse' : user_list, 'raise_po_terms_conditions' : raise_po_terms_conditions, 'shipment_addresses' : ship_address_details}))
 
 
 def update_filled_capacity(locations, user_id):
@@ -6954,6 +6963,18 @@ def get_user_profile_data(request, user=''):
     data['phone_number'] = main_user.phone_number
     return HttpResponse(json.dumps({'msg': 1, 'data': data}))
 
+@login_required
+@get_admin_user
+def get_user_profile_shipment_addresses(request, user=''):
+    ''' return user profile Shipment Addresses '''
+    ship_address_details = []
+    user_ship_address = UserAddresses.objects.filter(user_id=user.id)
+    if user_ship_address:
+        for data in user_ship_address:
+            ship_address_details.append({'title':data.address_name,'addr_name':data.user_name,'mobile_number':data.mobile_number,'pincode':data.pincode,'address':data.address})
+        return HttpResponse(json.dumps({'msg': 1, 'data': ship_address_details}))
+    else:
+        return HttpResponse(json.dumps({'msg': 1, 'data': 'null'}))
 
 @login_required
 @get_admin_user
@@ -7036,6 +7057,26 @@ def update_profile_data(request, user=''):
     user.save()
     return HttpResponse('Success')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_profile_shipment_address(request, user=''):
+    ''' will update profile Shipment Address '''
+    try:
+        shipment_address = {}
+        shipment_address['address_type'] = 'Shipment Address'
+        shipment_address['address_name'] = request.POST.get('address_title', '')
+        shipment_address['user_name'] = request.POST.get('address_name', '')
+        shipment_address['mobile_number'] = request.POST.get('address_mobile_number', '')
+        shipment_address['pincode'] = request.POST.get('address_pincode', '')
+        shipment_address['address'] = request.POST.get('address_shipment', '')
+        shipment_address['user_id'] = user.id
+        UserAddresses.objects.create(**shipment_address)
+        return HttpResponse('Success')
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('updation of user shipment Address Failed %s ' % (str(user.username)))
 
 def get_purchase_company_address(profile):
     """ Returns Company address for purchase order"""

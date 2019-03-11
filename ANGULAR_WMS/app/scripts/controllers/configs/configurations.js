@@ -18,7 +18,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,
                     'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': '',
                     'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false,
-                    'invoice_remarks': '','invoice_declaration':'', 'show_disc_invoice': false, 'serial_limit': '',
+                    'invoice_remarks': '','invoice_declaration':'', 'raisepo_terms_conditions':'', 'show_disc_invoice': false, 'serial_limit': '',
                     'increment_invoice': false, 'create_shipment_type': false, 'auto_allocate_stock': false,
                     'generic_wh_level': false, 'auto_confirm_po': false, 'create_order_po': false, 'shipment_sku_scan': false,
                     'disable_brands_view': false, 'sellable_segregation': false, 'display_styles_price': false,
@@ -28,6 +28,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'mark_as_delivered': false, 'order_exceed_stock': false, 'receive_po_mandatory_fields': false,
                     'sku_pack_config': false, 'central_order_reassigning':false, 'po_sub_user_prefix': false,
                     'combo_allocate_stock': false, 'sno_in_invoice':false,
+                    'generate_delivery_challan_before_pullConfiramation':false
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -49,7 +50,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      65: 'auto_expire_enq_limit', 66: 'invoice_based_payment_tracker', 67: 'receive_po_invoice_check',
                      68: 'mark_as_delivered', 69: 'receive_po_mandatory_fields', 70: 'central_order_mgmt',
                      71: 'order_exceed_stock',72:'invoice_declaration',73:'central_order_reassigning',
-                     74: 'sku_pack_config', 75: 'po_sub_user_prefix', 76: 'combo_allocate_stock', 77:'sno_in_invoice'}
+                     74: 'sku_pack_config', 75: 'po_sub_user_prefix', 76: 'combo_allocate_stock', 77:'sno_in_invoice', 78:'raisepo_terms_conditions',
+                     79: 'generate_delivery_challan_before_pullConfiramation'}
 
   vm.check_box_data = [
     {
@@ -436,6 +438,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
      param_no: 77,
      class_name: "fa fa-server",
      display: true
+   },
+   {
+     name: "Generate Delivery Challan Before PullConfiramation",
+     model_name: "generate_delivery_challan_before_pullConfiramation",
+     param_no: 79,
+     class_name: "fa fa-server",
+     display: true
    }
 ]
 
@@ -602,6 +611,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $('#my-select').multiSelect();
       vm.getRemarks(vm.model_data.invoice_remarks)
       vm.getDeclaration(vm.model_data.invoice_declaration)
+      vm.getRaisePOterms(vm.model_data.raisepo_terms_conditions)
     }
   })
 
@@ -960,6 +970,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     vm.switches(data, 72);
     Auth.status();
   }
+  vm.raise_po_terms_conditions = function(raisepo_terms_conditions) {
+    var data = $("[name='raisepo_terms_conditions']").val().split("\n").join("<<>>");
+    vm.switches(data, 78);
+    Auth.status();
+  }
 
   vm.getRemarks = function(remarks) {
 
@@ -978,6 +993,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $("[name='invoice_declaration']").val( declaration.split("<<>>").join("\n") )
     } else {
       $("[name='invoice_declaration']").val( declaration );
+    }
+    }, 1000);
+  }
+  vm.getRaisePOterms= function(raisepo_terms_conditions) {
+    $timeout(function() {
+    if(raisepo_terms_conditions && raisepo_terms_conditions.split("<<>>").length > 1) {
+      $("[name='raisepo_terms_conditions']").val( raisepo_terms_conditions.split("<<>>").join("\n") )
+    } else {
+      $("[name='raisepo_terms_conditions']").val( raisepo_terms_conditions );
     }
     }, 1000);
   }

@@ -1013,7 +1013,8 @@ def switches(request, user=''):
                        'central_order_reassigning':'central_order_reassigning',
                        'sno_in_invoice':'sno_in_invoice',
                        'po_sub_user_prefix': 'po_sub_user_prefix',
-                       'combo_allocate_stock': 'combo_allocate_stock'
+                       'combo_allocate_stock': 'combo_allocate_stock',
+                       'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation'
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

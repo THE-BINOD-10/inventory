@@ -868,7 +868,7 @@ def get_picklist_data(data_id, user_id):
             original_order_id = ''
             order_id = ''
             order_code = ''
-            mrp = ''
+            mrp = 0
             batch_no = ''
             manufactured_date =''
             courier_name = ''
@@ -895,6 +895,7 @@ def get_picklist_data(data_id, user_id):
                 customer_order_summary = order.order.customerordersummary_set.filter()
                 if customer_order_summary:
                     courier_name = customer_order_summary[0].courier_name
+                    mrp = customer_order_summary[0].mrp
             else:
                 st_order = STOrder.objects.filter(picklist_id=order.id)
                 sku_code = ''
@@ -930,7 +931,7 @@ def get_picklist_data(data_id, user_id):
                 load_unit_handle = stock_id.sku.load_unit_handle
                 category = stock_id.sku.sku_category
                 if stock_id.batch_detail:
-                    mrp = stock_id.batch_detail.mrp
+                    #mrp = stock_id.batch_detail.mrp
                     batch_no = stock_id.batch_detail.batch_no
                     try:
                         manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
@@ -1247,14 +1248,27 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
     if picklist.sellerorderdetail_set.filter(seller_order__isnull=False).exists():
         pic_check_data['sellerstock__seller_id'] = picklist.sellerorderdetail_set.\
                                                     filter(seller_order__isnull=False)[0].seller_order.seller_id
-    if val['location'] != val['orig_loc'] and val.get('batchno', ''):
+    '''if val['location'] != val['orig_loc'] and val.get('batchno', ''):
         pic_check_data['batch_detail__batch_no'] = val['batchno']
     else:
         if picklist.stock and picklist.stock.batch_detail_id:
             pic_check_data['batch_detail__mrp'] = picklist.stock.batch_detail.mrp
-            pic_check_data['batch_detail__batch_no'] = picklist.stock.batch_detail.batch_no
+            pic_check_data['batch_detail__batch_no'] = picklist.stock.batch_detail.batch_no'''
+    mrp = 0
+    if val.get('mrp', ''):
+        try:
+            mrp = float(val['mrp'])
+        except:
+            pass
+    if mrp:
+        pic_check_data['batch_detail__mrp'] = mrp
     if val.get('batchno', ''):
         pic_check_data['batch_detail__batch_no'] = val['batchno']
+    if val.get('manufactured_date', ''):
+        try:
+            pic_check_data['batch_detail__manufactured_date__regex'] = datetime.datetime.strptime(val['manufactured_date'], '%d/%m/%Y').strftime('%Y-%m-%d')
+        except:
+            pass
     pic_check = StockDetail.objects.filter(**pic_check_data)
     if not pic_check:
         if val.get('batchno', ''):
@@ -2115,6 +2129,8 @@ def picklist_confirmation(request, user=''):
                             stock_transfer = st_order[0].stock_transfer
                             stock_transfer.status = 2
                             stock_transfer.save()
+                            if user_profile.industry_type == 'FMCG':
+                                update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked)
                         if pick_loc:
                             update_picklist_locations(pick_loc, picklist, update_picked)
                         else:

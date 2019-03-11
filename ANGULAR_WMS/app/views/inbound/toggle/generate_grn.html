@@ -202,6 +202,7 @@
                       <input type="hidden" name="id" value="{{data.order_id}}" ng-model="data.order_id">
                       <input type="hidden" name="new_sku" value="{{data.is_new}}">
                       <input type="hidden" name="temp_json_id" value="{{data.temp_json_id}}">
+                      <input type="hidden" name="is_stock_transfer" value="{{data.is_stock_transfer}}">
                       <input ng-if="showCase.po_qc" type="hidden" class="form-control" value="{{data.accepted_quantity}}" name="accepted_quantity">
                       <input ng-if="showCase.po_qc" type="hidden" class="form-control" value="{{data.rejected_quantity}}" name="rejected_quantity">
                       <input ng-if="showCase.po_qc" type="hidden" class="form-control" value="{{data.accept_imei.join(',')}}" name="accepted">
@@ -270,6 +271,7 @@
                       <input type="hidden" name="id" value="{{data.order_id}}" ng-model="data.order_id">
                       <input type="hidden" name="new_sku" value="{{data.is_new}}">
                       <input type="hidden" name="temp_json_id" value="{{data.temp_json_id}}">
+                      <input type="hidden" name="is_stock_transfer" value="{{data.is_stock_transfer}}">
                       <input ng-if="showCase.po_qc" type="hidden" class="form-control" value="{{data.accepted_quantity}}" name="accepted_quantity">
                       <input ng-if="showCase.po_qc" type="hidden" class="form-control" value="{{data.rejected_quantity}}" name="rejected_quantity">
                       <input ng-if="showCase.po_qc" type="hidden" class="form-control" value="{{data.accept_imei.join(',')}}" name="accepted">

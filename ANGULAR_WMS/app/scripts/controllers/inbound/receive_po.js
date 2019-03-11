@@ -338,6 +338,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           new_dic.exp_date = "";
           new_dic.total_amt = "";
           new_dic.temp_json_id = "";
+          new_dic.is_stock_transfer = "";
           data.push(new_dic);
         } else {
           if(data[index]['temp_json_id']) {

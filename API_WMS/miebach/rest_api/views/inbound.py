@@ -5016,8 +5016,8 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
     attachments = ''
     if html_data:
         attachments = create_mail_attachments(f_name, html_data)
-    internal_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='Internal Emails')
-    misc_internal_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='internal_mail', misc_value='true')
+    internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='Internal Emails')
+    misc_internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='internal_mail', misc_value='true')
     if misc_internal_mail and internal_mail:
         internal_mail = internal_mail[0].misc_value.split(",")
         receivers.extend(internal_mail)

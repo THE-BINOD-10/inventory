@@ -808,8 +808,11 @@ def configurations(request, user=''):
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
     config_dict['all_stages'] = str(','.join(all_stages))
     order_field_obj =  MiscDetail.objects.filter(user=user.id,misc_type='extra_order_fields')
-    extra_order_fields = order_field_obj[0].misc_value.split(',')
-    config_dict['all_order_fields'] = str(','.join(extra_order_fields))
+    extra_order_fields = get_misc_value('extra_order_fields', user.id)
+    if extra_order_fields == 'false' :
+        config_dict['all_order_fields'] = ''
+    else:
+        config_dict['all_order_fields'] = extra_order_fields
 
     if config_dict['mail_alerts'] == 'false':
         config_dict['mail_alerts'] = 0

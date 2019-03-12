@@ -424,6 +424,7 @@ vm.add_shipment = function(valid) {
   vm.check_imei_exists = function(event, imei) {
     event.stopPropagation();
     if (event.keyCode == 13 && imei.length > 0) {
+      imei = imei.toUpperCase();
       if (vm.serial_numbers.indexOf(imei) != -1){
           vm.service.showNoty("IMEI Number Already Exist");
           vm.imei_number = "";
@@ -456,6 +457,7 @@ vm.add_shipment = function(valid) {
   }
 
   vm.update_imei_data = function(data, imei) {
+    imei = imei.toUpperCase();
     var status = false;
     var sku_status = false;
     for(var i = 0; i < vm.model_data.data.length; i++) {

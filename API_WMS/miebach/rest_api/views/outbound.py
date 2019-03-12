@@ -14810,7 +14810,7 @@ def generate_picklist_dc(request, user=''):
             batch_no = val.get('batchno', '')
             mfd_date = val.get('manufactured_date', '')
             exp_date = val.get('expiry_date', '')
-            batch_grouping_key = '%s:%s:%s' % (batch_no, mfd_date, exp_date)
+            batch_grouping_key = '%s:%s:%s:%s' % (str(sku_code), batch_no, mfd_date, exp_date)
             batch_group_data.setdefault(batch_grouping_key,
                                         {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
                                          'title': title, 'invoice_amount': str(invoice_amount),

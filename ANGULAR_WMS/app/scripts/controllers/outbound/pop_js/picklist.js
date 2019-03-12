@@ -722,21 +722,24 @@ function pull_confirmation() {
     vm.service.apiCall('generate_picklist_dc/', 'POST', formdata, true).then(function(data){
       if(data.message) {
         vm.pdf_data = data.data;
-        if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
-          if ($state.$current.templateUrl == "views/outbound/view_orders.html") {
-            $state.go("app.outbound.ViewOrders.DeliveryChallan");
-          } else {
-            $state.go("app.outbound.PullConfirmation.DeliveryChallan");
-          }
-          $timeout(function () {
-            vm.ok();
-            $(".modal-body:visible").html(vm.pdf_data)
-          }, 1000);
-        } else {
-          console.log('error in delivery_challan')
+        vm.DeliveryChallanPopup(vm.pdf_data)      }
+      vm.bt_disable = false;
+    });
+  }
+  vm.DeliveryChallanPopup = function(pdfdata) {
+    var mod_data = pdfdata
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/toggle/empty_dc_invoice.html',
+      controller: 'deliveryChallanPopUP',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          return mod_data;
         }
       }
-      vm.bt_disable = false;
     });
   }
   vm.update_picklist = function(pick_id) {
@@ -1105,3 +1108,22 @@ angular
 angular
   .module('urbanApp')
   .controller('qcitesms', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$q', '$modalInstance', 'items', qcitesms]);
+
+function deliveryChallanPopUP($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $q, $modalInstance, items) {
+
+  var vm = this;
+  vm.service = Service;
+  vm.pdf_data = items
+  console.log($modalInstance)
+  vm.permissions = Session.roles.permissions;
+    $timeout(function () {
+      $("#dc_pdf").html(vm.pdf_data)
+    },500);
+  vm.ok = function (msg) {
+    $modalInstance.close(vm.status_data);
+  };
+}
+
+angular
+  .module('urbanApp')
+  .controller('deliveryChallanPopUP', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$q', '$modalInstance', 'items', deliveryChallanPopUP]);

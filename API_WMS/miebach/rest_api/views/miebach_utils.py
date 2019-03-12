@@ -2109,6 +2109,14 @@ BLOCK_STOCK_MAPPING = OrderedDict((
 BLOCK_STOCK_DEF_EXCEL = OrderedDict((
     ('sku_code', 0), ('quantity', 1), ('corporate_name', 2), ('reseller_name', 3), ('warehouse', 4), ('level', 5)))
 
+PO_TEMP_JSON_DEF = {"scan_sku": "", "weight": "", "lr_number": "", "display_approval_button": "false",
+                         "remainder_mail": "0", "exp_date": "", "carrier_name": "", "id": "", "unit": "",
+                         "supplier_id": "", "expected_date": "", "discount_percentage": "", "buy_price": "0",
+                         "cess_percent": "0", "price": "0", "sku_index": "0", "invoice_date": "",
+                         "po_quantity": "0", "new_sku": "", "wms_code": "", "remarks": "", "invoice_number": "",
+                         "tax_percent": "0", "invoice_value": "", "mrp": "0", "mfg_date": "", "batch_no": "",
+                         "quantity": "0", "apmc_percent": "0"}
+
 
 #PICKLIST_EXCLUDE_ZONES = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
 

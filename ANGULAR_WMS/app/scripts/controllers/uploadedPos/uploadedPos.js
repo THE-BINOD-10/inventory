@@ -112,6 +112,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
   }
 
+  vm.sm_cancel_order_from_uploaded_pos = function(upload_id) {
+    event.stopPropagation();
+    Service.apiCall("sm_cancel_order_from_uploaded_pos/?upload_id="+upload_id).then(function(data) {
+      if(data.message) {
+        if(data.data == 'Success') {
+          Service.showNoty('Successfully Cancelled the Order');
+          vm.close();
+          reloadData();
+        } else {
+          Service.showNoty(data.data, 'warning');
+        }
+      } else {
+        Service.showNoty('Something Went Wrong', 'warning');
+      }
+    });
+  }
+
   vm.submit = submit;
   function submit(form) {
     vm.model_data.data.verification_flag = form.verification_flag.$viewValue;

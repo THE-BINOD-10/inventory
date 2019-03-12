@@ -384,6 +384,8 @@ urlpatterns = [
     url(r'^get_updated_pos/$', get_updated_pos),
     url(r'^validate_po/$', validate_po),
     url(r'^pending_pos/$', pending_pos),
+    url(r'^sm_cancel_order_from_uploaded_pos/$', sm_cancel_order_from_uploaded_pos),
+
     # Targets [SWISS MILITARY]
     url(r'^get_distributor_targets/$', get_distributor_targets),
     # Reports

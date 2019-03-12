@@ -3466,6 +3466,7 @@ def save_replaced_locations(request , user):
     try:
         for i in range(len(data_dict['sku_code'])):
             wms_code = data_dict['sku_code'][i]
+            current_location = data_dict['current_location'][i]
             source_loc = data_dict['replacement_location'][i]
             return_loc = data_dict['return_location'][i]
             return_quantity = data_dict['return_quantity'][i]
@@ -3485,12 +3486,17 @@ def save_replaced_locations(request , user):
                 if return_stocks :
                    return_stocks[0].quantity += float(return_quantity)
                    return_stocks[0].save()
-                material_picklist = MaterialPicklist.objects.filter(jo_material__job_order__job_code=data_dict['job_id'][i],
-                                                                jo_material__job_order__product_code__user=user.id,jo_material__material_code__wms_code = wms_code)
-                if material_picklist.exists():
-                    material_picklist = material_picklist[0]
-                    material_picklist.picked_quantity -= float(return_quantity)
-                    material_picklist.save()
+                rm_locations =RMLocation.objects.filter(material_picklist__jo_material__job_order__job_code=data_dict['job_id'][i],
+                                                                material_picklist__jo_material__job_order__product_code__user=user.id,material_picklist__jo_material__material_code__wms_code = wms_code)
+                if rm_locations.exists():
+                    for rm in rm_locations:
+                        if current_location == rm.stock.location.location:
+                            if rm.material_picklist.picked_quantity > float(return_quantity) :
+                                material_obj  = rm.material_picklist
+                                material_obj.picked_quantity -= float(return_quantity)
+                                material_obj.save()
+                            else:
+                                return  HttpResponse('Returned Quantity is Greater than Picked Quantity')
 
             if source:
                 stock_dict = {"sku_id": sku_id,

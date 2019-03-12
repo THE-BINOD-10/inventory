@@ -473,7 +473,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
 
 
 @csrf_exempt
-def get_customer_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user): 
+def get_customer_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     sno = 0
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     gateout = request.POST.get('gateout', '')
@@ -4132,6 +4132,7 @@ def split_orders(**order_data):
 
 
 def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, custom_order):
+    extra_order_fields = {}
     continue_list = ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount',
                      'description', 'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id',
                      'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected', 'is_sample',
@@ -4142,6 +4143,9 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
     sku_master = {}
     for key, value in request.POST.iteritems():
         if key in continue_list:
+            continue
+        if 'order_field_' in key:
+            extra_order_fields[key.replace('order_field_', '')] = value
             continue
         if key == 'sku_id':
             if not myDict[key][i]:
@@ -4217,7 +4221,7 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
         else:
             order_data[key] = value
 
-    return order_data, order_summary_dict, sku_master
+    return order_data, order_summary_dict, sku_master, extra_order_fields
 
 
 def get_syncedusers_mapped_sku(wh, sku_id):
@@ -4759,6 +4763,20 @@ def create_backorders(backorder_splitup_map, admin_user, sku_total_qty_map):
                 check_and_raise_po(generic_order_id, cm_id, order_detail.id)
 
 
+def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
+    try:
+        order_field_objs = []
+        for key, value in extra_order_fields.iteritems():
+            order_field_objs.append(OrderFields(**{'user': user.id, 'original_order_id': created_order_id,
+                                                   'name': key, 'value': str(value)[:255]}))
+        if order_field_objs:
+            OrderFields.objects.bulk_create(order_field_objs)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Create order extra fields failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(extra_order_fields), str(e)))
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -4878,7 +4896,7 @@ def insert_order_data(request, user=''):
             exclude_order_items = ['warehouse_level', 'margin_data', 'el_price', 'del_date', 'vehicle_num']
 
             # Written a separate function to make the code simpler
-            order_data, order_summary_dict, sku_master = construct_order_data_dict(
+            order_data, order_summary_dict, sku_master, extra_order_fields = construct_order_data_dict(
                 request, i, order_data, myDict, all_sku_codes, custom_order)
 
             if not order_data['sku_id'] or not order_data['quantity']:
@@ -5091,6 +5109,8 @@ def insert_order_data(request, user=''):
                                                   creation_date=datetime.datetime.now())
         other_charge_amounts = construct_other_charge_amounts_map(created_order_id, myDict,
                                                                     datetime.datetime.now(), other_charge_amounts, user)
+        if extra_order_fields:
+            create_extra_fields_for_order(created_order_id, extra_order_fields, user)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -14802,3 +14822,12 @@ def generate_picklist_dc(request, user=''):
     invoice_data['data'] = pagination(invoice_data['data'])
     invoice_data['username'] = user.username
     return render(request, 'templates/toggle/delivery_challan_batch_level.html', invoice_data)
+
+
+@login_required
+@get_admin_user
+def get_order_extra_fields(request , user =''):
+    extra_order_fields = []
+    order_field_obj = get_misc_value('extra_order_fields', user.id)
+    extra_order_fields = order_field_obj.split(',')
+    return HttpResponse(json.dumps({'data':extra_order_fields }))

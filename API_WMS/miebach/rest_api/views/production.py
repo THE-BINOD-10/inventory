@@ -3387,7 +3387,7 @@ def rwo_data(request,user):
     batch_data = {}
     data_id = request.POST['data_id']
     material_picklist = MaterialPicklist.objects.filter(jo_material__job_order__job_code=data_id,
-                                                    jo_material__job_order__product_code__user=user.id)
+                                                    jo_material__job_order__product_code__user=user.id).exclude(jo_material__job_order__status__in=['location-assigned', 'grn-generated'])
     for picklist in material_picklist:
         picklist_locations = RMLocation.objects.filter(material_picklist_id=picklist.id)
         for location in picklist_locations:

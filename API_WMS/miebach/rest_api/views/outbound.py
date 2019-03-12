@@ -4786,8 +4786,9 @@ def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
     try:
         order_field_objs = []
         for key, value in extra_order_fields.iteritems():
-            order_field_objs.append(OrderFields(**{'user': user.id, 'original_order_id': created_order_id,
-                                                   'name': key, 'value': str(value)[:255]}))
+            if value:
+                order_field_objs.append(OrderFields(**{'user': user.id, 'original_order_id': created_order_id,
+                                                       'name': key, 'value': str(value)[:255]}))
         if order_field_objs:
             OrderFields.objects.bulk_create(order_field_objs)
     except Exception as e:
@@ -14900,5 +14901,6 @@ def generate_picklist_dc(request, user=''):
 def get_order_extra_fields(request , user =''):
     extra_order_fields = []
     order_field_obj = get_misc_value('extra_order_fields', user.id)
-    extra_order_fields = order_field_obj.split(',')
+    if not order_field_obj == 'false':
+        extra_order_fields = order_field_obj.split(',')
     return HttpResponse(json.dumps({'data':extra_order_fields }))

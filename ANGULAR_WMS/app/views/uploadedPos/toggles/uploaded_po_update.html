@@ -66,9 +66,6 @@
                   <center><a class="btn btn btn-success ng-binding" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;" href="{{showCase.model_data.data.file_path}}">Download PO&nbsp;&nbsp;&nbsp;<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i> </a></center>
                 </div>
               </div>
-              <div class="col-md-4" ng-if="showCase.model_data.data.uploaded_file && showCase.user_type=='central_admin'" style="margin-top:1.9em">
-                <center><button type="button" class="btn btn-warning ng-binding ng-click-active" style="position: relative; font-weight: 600;width: 250px;font-size: 15px; margin-top: -20px;" ng-click="showCase.sm_cancel_order_from_uploaded_pos(showCase.model_data.data.id)">Cancel</button></center>
-              </div>
             </div>
 
             <div class="row">
@@ -118,6 +115,7 @@
           <span>Save</span>
           <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process"></span>
         </button>
+        <button type="button" class="btn btn-warning pop pull-left" ng-click="showCase.sm_cancel_order_from_uploaded_pos(showCase.model_data.data.id)">Cancel</button>
       </div>
 
     </div><!-- /.modal-content -->

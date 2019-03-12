@@ -1251,12 +1251,12 @@ def get_mp_inventory(request):
             sku_weight_dict = dict(SKUAttributes.objects.filter(sku__user=user.id, attribute_name='weight').\
                                    exclude(attribute_value='').values_list('sku__sku_code', 'attribute_value'))
 
-            sku_eans = dict(SKUMaster.objects.filter(user=user.id, ean_number__gt=0, status=1).only('ean_number',
-                                                    'sku_code').annotate(ean_str=Cast('ean_number', output_field=CharField())).values_list('sku_code', 'ean_str'))
-            ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1, ean_number__gt=0).\
-                            only('ean_number', 'sku__sku_code').\
-                            annotate(ean_str=Cast('ean_number', output_field=CharField())).\
-                            values_list('sku__sku_code', 'ean_str').order_by('creation_date'))
+            # sku_eans = dict(SKUMaster.objects.filter(user=user.id, ean_number__gt=0, status=1).only('ean_number',
+            #                                         'sku_code').annotate(ean_str=Cast('ean_number', output_field=CharField())).values_list('sku_code', 'ean_str'))
+            # ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1, ean_number__gt=0).\
+            #                 only('ean_number', 'sku__sku_code').\
+            #                 annotate(ean_str=Cast('ean_number', output_field=CharField())).\
+            #                 values_list('sku__sku_code', 'ean_str').order_by('creation_date'))
             sku_open_orders_dict = {}
             for open_order, open_order_qty in open_orders.iteritems():
                 temp_key = open_order.split('<<>>')

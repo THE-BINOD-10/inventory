@@ -35,7 +35,7 @@
                    <th>Title</th>
                    <!--<th>Zone</th>-->
                    <th>Location</th>
-                   <th>Batch No</th>
+                   <th ng-if="showCase.industry_type=='FMCG'">Batch No</th>
                    <th ng-if="showCase.permissions.pallet_switch">Pallet Code</th>
                    <th>Reserved Quantity</th>
                    <th>Picked Quantity</th>
@@ -55,7 +55,7 @@
                    <td><input type="text" name="title_{{data.id}}" class="form-control" ng-readonly="showCase.update" value="{{data.title}}"></td>
                    <!--<td><input type="text" name="zone_{{data.id}}" class="form-control" ng-model="record.zone" required ng-blur="showCase.checkCapacity($index, data, 'zone', $event);"></td>-->
                    <td><input type="text" name="location_{{data.id}}" class="form-control" ng-model="record.location" required ng-blur="showCase.checkCapacity($index, data, 'location', $event);"></td>
-                   <td>
+                   <td ng-if="showCase.industry_type=='FMCG'">
                     <input name="batchno_{{data.id}}" type="text" autocomplete="off"
                     class="form-control" placeholder="Search batchno"
                     typeahead="address.batchno for address in showCase.service.getSearchValues($viewValue, 'search_batches', data)"

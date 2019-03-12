@@ -13,6 +13,8 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
   vm.status_data = {message:"cancel", data:{}}
   vm.qty_validation = {};
   vm.industry_type = Session.user_profile.industry_type;
+  vm.collect_imei_data = {}
+  vm.get_id = ''
 
   vm.getPoData = function(data){
     Service.apiCall(data.url, data.method, data.data, true).then(function(data){
@@ -129,10 +131,18 @@ function view_orders() {
     vm.getrecordSerialnumber = function(rowdata) {
       for(var i=0; i < vm.model_data.data.length; i++) {
         if(vm.model_data.data[i].wms_code == rowdata.wms_code) {
-          angular.copy(vm.model_data.data[i]['sku_imeis_map'][vm.model_data.data[i].wms_code].sort(), vm.record_serial_data);
+          if(!vm.model_data.data[i].hasOwnProperty('sku_imeis_map')) {
+            return false
+          }
+		  if (vm.model_data.data[i]['sku_imeis_map'].hasOwnProperty(vm.model_data.data[i].wms_code)) {
+            angular.copy(vm.model_data.data[i]['sku_imeis_map'][vm.model_data.data[i].wms_code].sort(), vm.record_serial_data);
+		  }
         }
       }
+	  vm.record_serial_data = $.map(vm.record_serial_data, function(n,i){return n.toUpperCase();});
+      return true
     }
+
     vm.myFunction = function(rowdata, record) {
     var x = document.getElementById("serial_no");
     if (x.style.display === "none" || x.style.display === "") {
@@ -140,6 +150,7 @@ function view_orders() {
         if(vm.model_data.data[i].wms_code == rowdata.wms_code) {
           angular.copy(vm.model_data.data[i]['sku_imeis_map'][vm.model_data.data[i].wms_code].sort(), vm.record_serial_data);
           x.style.display = "block";
+		  vm.record_serial_data = $.map(vm.record_serial_data, function(n,i){return n.toUpperCase();});
         }
       }
     } else {
@@ -148,8 +159,23 @@ function view_orders() {
   }
 
   vm.serial_scan = function(event, scan, data, record) {
-    vm.getrecordSerialnumber(data);
-      if ( event.keyCode == 13) {
+      if (event.keyCode == 13) {
+        scan = scan.toUpperCase();
+        record.scan = record.scan.toUpperCase();
+        var resp_data = vm.getrecordSerialnumber(data);
+        if (!resp_data) {
+          vm.service.showNoty("Serial Number Not Available For this SKU");
+          record.scan = '';
+          return false
+        }
+		if(vm.collect_imei_data.hasOwnProperty(data.id)) {
+			if ($.inArray(scan, vm.collect_imei_data[data.id]) != -1) {
+				vm.service.showNoty("Serial Number Already Scanned");
+				record.scan = '';
+				return false
+			}
+		}
+        vm.get_id = data.id
         var id = data.id;
         var total = 0;
         for(var i=0; i < data.sub_data.length; i++) {
@@ -163,13 +189,7 @@ function view_orders() {
           vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
           if(data.data.status == "Success") {
               if(data.data.data.sku_code == record.wms_code) {
-                if(vm.record_serial_data[0] == scan_data) {
-                  vm.qc_items(vm.model_data);
-                  vm.increament(record);
-                } else {
-                  vm.service.showNoty("Please Enter the Correct Serial Number !");
-                  record.scan = '';
-                }
+                vm.increament(record);
               } else {
                 Service.pop_msg(data.data.status);
                 scan_data.splice(length-1,1);
@@ -180,6 +200,7 @@ function view_orders() {
             }
             else{
               Service.pop_msg(data.data.status);
+              record.scan = '';
             }
           });
         } else {
@@ -187,14 +208,22 @@ function view_orders() {
           record.scan = scan_data.join('\n');
           record.scan = record.scan+"\n";
           vm.service.showNoty("picked already equal to reserved quantity !");
-          // Service.pop_msg("picked already equal to reserved quantity");
+          record.scan = '';
         }
       }
     }
 
     vm.increament = function (record) {
+      record.scan = record.scan.toUpperCase()
       record.picked_quantity = parseInt(record.picked_quantity) + 1;
       vm.record_serial_data.shift()
+      if(vm.collect_imei_data.hasOwnProperty(vm.get_id)) {
+        vm.collect_imei_data[vm.get_id].push(record.scan)
+      } else {
+        vm.collect_imei_data[vm.get_id] = []
+        vm.collect_imei_data[vm.get_id].push(record.scan)
+      }
+      $("input[name=imei_"+vm.get_id+"]").prop('value', String(vm.collect_imei_data[vm.get_id]))
       record.scan = '';
     }
 
@@ -381,6 +410,7 @@ function pull_confirmation() {
   vm.get_sku_details = function(record, item, index) {
     record.manufactured_date = item.manufactured_date
     record.mrp = item.mrp
+    record.expiry_date = item.expiry_date
   }
 
   vm.cal_quantity = cal_quantity;
@@ -714,7 +744,34 @@ function pull_confirmation() {
     });
   }
   */
-
+  vm.deliveryChallan = function(){
+    vm.bt_disable = true;
+    let formdata = angular.element($('form'));
+    formdata = formdata[0];
+    formdata = $(formdata).serializeArray();
+    vm.service.apiCall('generate_picklist_dc/', 'POST', formdata, true).then(function(data){
+      if(data.message) {
+        vm.pdf_data = data.data;
+        vm.DeliveryChallanPopup(vm.pdf_data)      }
+      vm.bt_disable = false;
+    });
+  }
+  vm.DeliveryChallanPopup = function(pdfdata) {
+    var mod_data = pdfdata
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/toggle/empty_dc_invoice.html',
+      controller: 'deliveryChallanPopUP',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          return mod_data;
+        }
+      }
+    });
+  }
   vm.update_picklist = function(pick_id) {
     vm.service.apiCall('update_picklist_loc/','GET',{picklist_id: pick_id}, true).then(function(data){
       if (data.message) {
@@ -1081,3 +1138,22 @@ angular
 angular
   .module('urbanApp')
   .controller('qcitesms', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$q', '$modalInstance', 'items', qcitesms]);
+
+function deliveryChallanPopUP($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $q, $modalInstance, items) {
+
+  var vm = this;
+  vm.service = Service;
+  vm.pdf_data = items
+  console.log($modalInstance)
+  vm.permissions = Session.roles.permissions;
+    $timeout(function () {
+      $("#dc_pdf").html(vm.pdf_data)
+    },500);
+  vm.ok = function (msg) {
+    $modalInstance.close(vm.status_data);
+  };
+}
+
+angular
+  .module('urbanApp')
+  .controller('deliveryChallanPopUP', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$q', '$modalInstance', 'items', deliveryChallanPopUP]);

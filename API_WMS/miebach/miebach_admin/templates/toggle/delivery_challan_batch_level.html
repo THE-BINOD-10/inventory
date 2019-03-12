@@ -1,0 +1,183 @@
+      {% load tag_extras %}
+
+<div>
+  <style>
+    {% include 'toggle/page1.css' %}
+  </style>
+  {% for page in data %}
+  <div class="print-invoice2 mb20">
+    <div class="invoice-body">
+      <table class="table table-bordered m0">
+        <tbody>
+          <tr>
+            <td colspan="2">
+              <h3 class="m0" align="center"><b>Delivery Note</b></h3>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2">
+              <h3 class="m0" align="center"><b>{{company_name}}</b></h3>
+              <p class="m0" align="center"> {{company_address}} </p>
+              <p class="m0" align="center">G.S.T No: {{gstin_no}} , Tel: {{company_number}}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="width: 50%" rowspan="2">
+              <div class="row m0" style="height: 100px;overflow: hidden;">
+                <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+                  <div class="col-md-12 p0">
+                    <h4 class="m0"><b>To:</b></h4>
+                  </div>
+                  {% if consignee %}
+                  <div class="col-md-12 p0">
+                    <span class="pre-custom p0">{{consignee}}</span>
+                  </div>
+                  {% elif marketplace|lower != 'offline' %}
+                  <div class="col-md-12 p0">
+                    <span>{{marketplace}}</span>
+                  </div>
+                  {% elif marketplace|lower == 'offline' %}
+                  <div>
+                    {% if customer_details.0.name == '' %}
+                    <p class="fs14 m0" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{marketplace}}</p><br>
+                    {% endif %}
+                    {% if customer_details.0.name %}
+                    <p class="fs14 m0" ng-if="showCase.pdf_data.customer_details[0].name"><br>
+                    {{customer_details.0.name}}</p>
+                    {% endif %}
+                    {% if customer_details.0.address %}
+                    <p class="fs14 p0 m0 pre-custom" ng-if="showCase.pdf_data.customer_details[0].address">{{customer_details.0.address}}</p><br>
+                    {% endif %}
+                    {% if customer_details.0.tin_number %}
+                    <p class="fs14 m0" ng-if="showCase.pdf_data.customer_details[0].tin_number"><br>
+                      <b>GSTIN No: </b>{{customer_details.0.tin_number}}</p>
+                    {% endif %}
+                    {% if customer_details.0.email_id %}
+                    <p class="fs14 m0" m0 ng-if="showCase.pdf_data.customer_details[0].email_id">
+                      <b>Email: </b>{{customer_details.0.email_id}}</p>
+                    {% endif %}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+            <td class="fs14">
+              <div class="row m0">
+                <div class="col-xs-4 text-left">
+                  <strong>Ref No.:</strong>
+                </div>
+                <div class="col-xs-4 text-left">
+                  <strong>Date:</strong> {{inv_date}}
+                </div>
+                <div class="col-xs-4 text-left">
+                  <strong>Time:</strong> {{invoice_time}}
+                </div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="fs14">
+              <div class="row m0">
+                <div class="col-xs-6 text-left">
+                  <strong>Order No :</strong> {{order_no}}
+                </div>
+              </div>
+              <div class="row m0">
+                <div class="col-xs-6 text-left">
+                  <strong>L.R No &nbsp;&nbsp;&nbsp;&nbsp;:  </strong>
+                </div>
+                <div class="col-xs-6 text-left">
+                  <strong>Date :</strong> {{inv_date}}
+                </div>
+              </div>
+              <div class="row m0">
+                <div class="col-xs-6 text-left">
+                  <strong>Carrier &nbsp;&nbsp;&nbsp;&nbsp;:</strong>
+                </div>
+                <div class="col-xs-6 text-left">
+                  <strong>Pkgs:</strong>
+                </div>
+              </div>
+              <div class="row m0">
+                <div class="col-xs-6 text-left">
+                  <strong>Terms.. &nbsp;&nbsp;&nbsp;:</strong> CASH
+                </div>
+                <div class="col-xs-6 text-left">
+                  <strong>Rep.:</strong>
+                </div>
+              </div>
+              <div class="row m0">
+                {% for key , value in extra_order_fields.items %}
+                <div class="col-xs-6 text-left">
+                  <strong>{{key }}</strong>: {{value}}
+                </div>
+                  {% endfor %}
+                <!-- <div class="col-xs-6 text-left">
+                  <strong>Rep.:</strong>
+                </div> -->
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <table class="table table-bordered bl br cal-table m0">
+        <thead>
+          <tr class="fs14">
+            <th class="w5"><center>SL NO</center></th>
+            <th><center>SKU Code</center></th>
+            <th><center>PARTICULARS</center></th>
+            <th class="w9"><center>PKNG</center></th>
+            <th class="w9"><center>BATCH NO</center></th>
+            <th class="w9"><center>MANUFACTURED DATE</center></th>
+            <th class="w9"><center>EXPIRY DATE</center></th>
+            <th class="w9"><center>QTY</center></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for record in page %}
+          <tr class="fs14 rm-border">
+            <td class="text-left">{{record.index}}</td>
+            <td class="text-left">{{record.sku_code}}</td>
+            <td class="text-left"><div class="wrap">{{record.title}}</div></td>
+            <td class="text-right"></td>
+            <td class="text-right">{{record.batch_no}}</td>
+            <td class="text-right">{{record.mfd_date}}</td>
+            <td class="text-right">{{record.exp_date}}</td>
+            <td class="text-right"> {{record.quantity}} </td>
+          </tr>
+          {% endfor %}
+          {% if forloop.last %}
+          <tr style="border-top: 1px solid black;">
+            <td></td>
+            <td class="fs14" colspan="3">
+              <span class=>Tot Items: {{total_items}}</span>
+            </td>
+            <td class="fs14" colspan="4">
+              <span class="pull-right">Tot Qty: {{total_quantity}}</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="fs14" colspan="2">
+              <div class="row m0">
+                <div class="col-xs-12 text-left">
+                  <br><br>
+                  <span>Wish You A Happy Day..</span>
+                </div>
+              </div>
+            </td>
+            <td class="fs14 text-center" colspan="6">
+              {% if username|lower == 'bluestar' %}
+                <h5 class="m0">For BLUE STAR TRADING CORPORATION 2018</h5></br></br>
+              {% else %}
+                <h5 class="m0">{{company_name}}</h5></br></br>
+              {% endif %}
+              <p class="m0" align="center">Signature of Receiver</p>
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+</div>

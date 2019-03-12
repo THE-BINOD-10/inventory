@@ -909,6 +909,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'grn_edit': GRN_EDIT_DICT, 'current_stock_report': CURRENT_STOCK_REPORT_DICT,
                      'inventory_value_report':INVENTORY_VALUE_REPORT_DICT,
                      'bulk_to_retail_report': BULK_TO_RETAIL_REPORT_DICT,
+                     'stock_transfer_report':STOCK_TRANSFER_REPORT_DICT,
                      }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -2034,6 +2035,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'central_order_reassigning':'central_order_reassigning',
                         'po_sub_user_prefix': 'po_sub_user_prefix', 'combo_allocate_stock': 'combo_allocate_stock',
                         'unique_mrp_putaway': 'unique_mrp_putaway'
+                        'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation'
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -2041,6 +2043,7 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'data_range': 'report_data_range', 'imei_limit': 'imei_limit',
                      'invoice_remarks': 'invoice_remarks',
                      'invoice_declaration':'invoice_declaration',
+                     'raisepo_terms_conditions':'raisepo_terms_conditions',
                      'invoice_marketplaces': 'invoice_marketplaces', 'serial_limit': 'serial_limit',
                      'extra_view_order_status': 'extra_view_order_status',
                      'invoice_types': 'invoice_types',
@@ -2106,6 +2109,14 @@ BLOCK_STOCK_MAPPING = OrderedDict((
 
 BLOCK_STOCK_DEF_EXCEL = OrderedDict((
     ('sku_code', 0), ('quantity', 1), ('corporate_name', 2), ('reseller_name', 3), ('warehouse', 4), ('level', 5)))
+
+PO_TEMP_JSON_DEF = {"scan_sku": "", "weight": "", "lr_number": "", "display_approval_button": "false",
+                         "remainder_mail": "0", "exp_date": "", "carrier_name": "", "id": "", "unit": "",
+                         "supplier_id": "", "expected_date": "", "discount_percentage": "", "buy_price": "0",
+                         "cess_percent": "0", "price": "0", "sku_index": "0", "invoice_date": "",
+                         "po_quantity": "0", "new_sku": "", "wms_code": "", "remarks": "", "invoice_number": "",
+                         "tax_percent": "0", "invoice_value": "", "mrp": "0", "mfg_date": "", "batch_no": "",
+                         "quantity": "0", "apmc_percent": "0"}
 
 
 #PICKLIST_EXCLUDE_ZONES = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
@@ -5731,12 +5742,11 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
     lis = ['order_shipment__shipment_number', 'order__original_order_id', 'order__sku__sku_code', 'order__title',
            'order__customer_name',
            'order__quantity', 'shipping_quantity', 'order_shipment__truck_number','creation_date', 'id', 'id',
-           'order__customerordersummary__payment_status', 'order_packaging__package_reference']
+           'order__customerordersummary__payment_status', 'order_packaging__package_reference', 'order__original_order_id','order__original_order_id']
     search_parameters['order__user'] = user.id
     search_parameters['shipping_quantity__gt'] = 0
     search_parameters['order__sku_id__in'] = sku_master_ids
     temp_data = copy.deepcopy(AJAX_DATA)
-
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_parameters['creation_date__gt'] = search_params['from_date']
@@ -5810,6 +5820,13 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                 log.info('Firebase query  failed for %s and params are  and error statement is %s' % (
                 str(user.username),str(e)))
         delivered_time =''
+        invoice_number_obj = SellerOrderSummary.objects.filter(order_id = data['order__id'])
+        if invoice_number_obj :
+            invoice_number = invoice_number_obj[0].invoice_number
+            invoice_date = get_local_date(user,invoice_number_obj[0].creation_date)
+        else:
+            invoice_number = ''
+            invoice_date = ''
         if result :
            signed_invoice_copy = result.get('signed_invoice_copy','')
            id_type = result.get('id_type','')
@@ -5870,6 +5887,8 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                                 ('Dispatched Date',dispatched_date),
                                                 ('Delivered Date', delivered_time),
                                                 ('Refusal Reason',refusal_reason),
+                                                ('Invoice Number',invoice_number),
+                                                ('Invoice Date', invoice_date),
                                                 ('Courier Name', data['order_shipment__courier_name']),
                                                 ('Payment Status', data['order__customerordersummary__payment_status']),
                                                 ('Pack Reference', data['order_packaging__package_reference']))))
@@ -6412,6 +6431,50 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
     lis = ['creation_date','st_po__open_st__sku__user','st_po__open_st__sku__user','st_po__open_st__sku__user','sku__sku_code','sku__sku_desc',\
            'quantity', 'st_po__open_st__price','st_po__open_st__sku__user','st_po__open_st__cgst_tax','st_po__open_st__sgst_tax','st_po__open_st__igst_tax','st_po__open_st__price','status']
     status_map = ['Pick List Generated','Pending','Accepted']
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term', 'asc')
+    start_index = search_params.get('start', 0)
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
+    else:
+        stop_index = None
+    search_parameters = {}
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        if search_params['sku_code']:
+            search_parameters['sku__sku_code'] = search_params['sku_code']
+    search_parameters['sku_id__in'] = sku_master_ids
+    search_parameters['sku__user'] = user.id
+    stock_transfer_data = StockTransfer.objects.filter(**search_parameters).\
+                                            order_by(order_data)
+    temp_data['recordsTotal'] = stock_transfer_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    time = str(datetime.datetime.now())
+    for data in  (stock_transfer_data[start_index:stop_index]):
+        date = get_local_date(user, data.creation_date)
+        destination = User.objects.get(id = data.st_po.open_st.sku.user)
+        status = status_map[data.status]
+        destination = destination.username
+        cgst = data.st_po.open_st.cgst_tax
+        sgst = data.st_po.open_st.sgst_tax
+        igst = data.st_po.open_st.igst_tax
+        price = data.st_po.open_st.price
+        quantity = data.quantity
+        net_value = quantity * price
+        total = (quantity * price) +cgst+sgst+igst
+
+
+        temp_data['aaData'].append(OrderedDict((('Date',date),('SKU Code', data.sku.sku_code), ('SKU Description',data.sku.sku_desc),('Invoice Number',data.order_id),\
+                                                ('Quantity',quantity ),('Status',status),('Net Value',net_value),\
+                                                ('CGST',cgst),('SGST',sgst),('IGST',igst),('Price',price),('Total Value',total),\
+                                                ('Source Location',user.username),('Destination',destination))))
+    return temp_data
 
 def get_current_stock_report_data(search_params, user, sub_user):
     from miebach_admin.models import *

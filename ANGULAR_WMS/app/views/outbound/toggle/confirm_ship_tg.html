@@ -10,28 +10,39 @@
         </div>
         <div class="modal-body">
           <div class="row">
-            <div class="col-md-4 col-ms-4 col-xs-6">
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Customer ID </label>
                 <input type="text" value="{{vm.model_data.customer_id}}" name="customer_id" class="form-control" disabled>
               </div>
             </div>
-            <div class="col-md-4 col-ms-4 col-xs-6">
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Shipment Reference </label>
                 <input type="text" ng-model="vm.model_data.ship_reference" name="ship_reference" class="form-control">
               </div>
             </div>
-            <div class="col-md-4 col-ms-4 col-xs-6">
-                <h6> Manifest Number : {{vm.model_data.manifest_number}} </h6>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Truck Number </label>
                 <input type="text" ng-model="vm.model_data.truck_number" name="truck_number" class="form-control">
               </div>
-                 <h6> Driver Name : {{vm.model_data.driver_name}} </h6>
-                  <h6> Driver Phone number:{{vm.model_data.driver_phone_number }} </h6>
-                  <h6> Opening KM'S </h6>
-                  <h6> Closing KM'S </h6>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6">
+              <label class="control-label"> Manifest Number </label>
+              <input type="text" value="{{vm.model_data.manifest_number}}" name="manifest_number" class="form-control" readonly>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6">
+              <label class="control-label"> Manifest Date </label>
+              <input type="text" value="{{vm.model_data.manifest_date}}" name="manifest_date" class="form-control" readonly>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6">
+              <h6> Driver Name : {{vm.model_data.driver_name}} </h6>
+              <h6> Driver Phone number:{{vm.model_data.driver_phone_number }} </h6>
+              <h6> Opening KM'S </h6>
+              <h6> Closing KM'S </h6>
             </div>
           </div>
           <div class="row">

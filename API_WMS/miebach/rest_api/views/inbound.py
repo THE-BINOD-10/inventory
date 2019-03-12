@@ -2705,7 +2705,7 @@ def update_remarks_put_zone(remarks, user, put_zone, seller_summary_id=''):
     return put_zone
 
 
-def generate_grn(myDict, request, user, is_confirm_receive=False):
+def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=False):
     order_quantity_dict = {}
     all_data = OrderedDict()
     seller_receipt_id = 0
@@ -2735,15 +2735,19 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
     for i in range(len(myDict['id'])):
         temp_dict = {}
-        value = myDict['quantity'][i]
+        if failed_qty_dict:
+            wms_code = myDict['wms_code'][i]
+            failed_qty = len(failed_qty_dict.get(wms_code, 0))
+            value = int(myDict['quantity'][i]) - failed_qty
+            myDict['quantity'][i] = str(value)
+        else:
+            value = myDict['quantity'][i]
         try:
             value = float(value)
         except:
             value = 0
-
         if not value:
             continue
-
         if 'po_quantity' in myDict.keys() and 'price' in myDict.keys() and not myDict['id'][i]:
             if myDict['wms_code'][i] and myDict['quantity'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
@@ -2944,17 +2948,18 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
                     source_loc = get_default_loc[0].location
                 wms_code = get_po_imei_qs.sku.wms_code
                 quantity = 1
-                cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-                if not cycle_count:
-                    cycle_id = 1
-                else:
-                    cycle_id = cycle_count[0].cycle + 1
-                from rest_api.views.inbound import *
-                dest_loc = get_returns_location('DAMAGED_ZONE', '', user)
-                if dest_loc:
-                    dest_loc = dest_loc[0].location
-                if source_loc and dest_loc:
-                    move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user)
+                #cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+                #if not cycle_count:
+                #    cycle_id = 1
+                #else:
+                #    cycle_id = cycle_count[0].cycle + 1
+                #from rest_api.views.inbound import *
+                #import pdb;pdb.set_trace()
+                #dest_loc = get_returns_location('DAMAGED_ZONE', '', user)
+                #if dest_loc:
+                #    dest_loc = dest_loc[0].location
+                #if source_loc and dest_loc:
+                    #move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user)
             except Exception as e:
                 import traceback
                 receive_po_qc_log.debug(traceback.format_exc())
@@ -3005,9 +3010,9 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+#@reversion.create_revision(atomic=False)
 def confirm_grn(request, confirm_returns='', user=''):
-    reversion.set_user(request.user)
+    #reversion.set_user(request.user)
     data_dict = ''
     headers = (
     'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
@@ -3058,7 +3063,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
     try:
         po_data, status_msg, all_data, order_quantity_dict, \
-        purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user)
+        purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user,  failed_serial_number, is_confirm_receive=True)
         for key, value in all_data.iteritems():
             entry_price = float(key[3]) * float(value)
             if key[10]:
@@ -3087,6 +3092,14 @@ def confirm_grn(request, confirm_returns='', user=''):
                     save_status = "FAIL"
                     try:
                         purchase_order_qc(user, send_imei_qc_details, '', save_status, key[1], data)
+                        data = PurchaseOrder.objects.get(id=key[0])
+                        qty = len(failed_serial_number.get(data.open_po.sku.wms_code, []))
+                        if qty:
+                            put_zone = 'DAMAGED_ZONE'
+                            temp_dict = {'received_quantity': qty, 'original_quantity': qty,
+                                'rejected_quantity': qty, 'new_quantity': qty,
+                                'total_check_quantity': qty, 'user': user.id, 'data': data}
+                            save_po_location(put_zone, temp_dict)
                     except Exception as e:
                         import traceback
                         receive_po_qc_log.debug(traceback.format_exc())
@@ -3798,6 +3811,9 @@ def get_received_orders(request, user=''):
             sku_total_quantities[order_data['wms_code']] += float(total_sku_quantity)
         else:
             sku_total_quantities[order_data['wms_code']] = float(total_sku_quantity)
+
+
+
         for location in po_location:
             batch_dict = get_batch_dict(location.id, 'po_loc')
             pallet_number = ''
@@ -4040,9 +4056,9 @@ def create_update_seller_stock(data, value, user, stock_obj, exc_loc, use_value=
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+#@reversion.create_revision(atomic=False)
 def putaway_data(request, user=''):
-    reversion.set_user(request.user)
+    #reversion.set_user(request.user)
     purchase_order_id = ''
     diff_quan = 0
     all_data = {}
@@ -4467,7 +4483,6 @@ def confirm_quality_check(request, user=''):
     total_sum = sum(float(i) for i in myDict['accepted_quantity'] + myDict['rejected_quantity'])
     if total_sum < 1:
         return HttpResponse('Update Quantities')
-
     update_quality_check(myDict, request, user)
 
     use_imei = 'false'
@@ -4817,9 +4832,9 @@ def order_status(request):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+#@reversion.create_revision(atomic=False)
 def confirm_add_po(request, sales_data='', user=''):
-    reversion.set_user(request.user)
+    #reversion.set_user(request.user)
     ean_flag = False
     po_order_id = ''
     status = ''
@@ -6287,7 +6302,7 @@ def confirm_receive_qc(request, user=''):
                 ind].split(',')
             myDict['imei_number'].append(','.join(imeis_list))
         po_data, status_msg, all_data, order_quantity_dict, \
-        purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user, is_confirm_receive=True)
+        purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user, failed_serial_number={}, is_confirm_receive=True)
         for i in range(0, len(myDict['id'])):
             if not myDict['id'][i]:
                 continue

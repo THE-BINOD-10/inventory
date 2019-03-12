@@ -14,6 +14,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   vm.get_id = ''
   vm.record_serial_data = []
   vm.industry_type = Session.user_profile.industry_type;
+  vm.user_type = Session.user_profile.user_type;
 
     function getOS() {
       var userAgent = window.navigator.userAgent,

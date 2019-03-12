@@ -8,6 +8,7 @@ function StockTransferPOP($scope, $http, $state, $timeout, Session, colFilters, 
 
   vm.state_data = items;
   vm.industry_type = Session.user_profile.industry_type;
+  vm.user_type=Session.user_profile.user_type;
 
   vm.pop_data = {};
   var empty_data = {data: [{wms_code: "", order_quantity: "", price: ""}], warehouse_name: ""};

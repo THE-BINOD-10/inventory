@@ -378,8 +378,9 @@ function pull_confirmation() {
     vm.count_sku_quantity();
   }
 
-  vm.get_sku_details = function(record,item, index){
+  vm.get_sku_details = function(record, item, index) {
     record.manufactured_date = item.manufactured_date
+    record.mrp = item.mrp
   }
 
   vm.cal_quantity = cal_quantity;

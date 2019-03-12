@@ -914,6 +914,10 @@ def get_raw_picklist_data(data_id, user):
             stock_id = ''
             if location.stock:
                 location_name = location.stock.location.location
+                try:
+                    batch_no = location.stock.batch_detail.batch_no
+                except:
+                    batch_no = ''
                 pallet_detail = location.stock.pallet_detail
                 zone = location.stock.location.zone.zone
                 sequence = location.stock.location.pick_sequence
@@ -933,7 +937,7 @@ def get_raw_picklist_data(data_id, user):
                     continue
                 batch_data[match_condition] = {
                     'wms_code': location.material_picklist.jo_material.material_code.sku_code,
-                    'zone': zone, 'sequence': sequence, 'location': location_name,
+                    'zone': zone, 'sequence': sequence, 'location': location_name, 'batchno': batch_no,
                     'reserved_quantity': location_reserved,
                     'job_code': picklist.jo_material.job_order.job_code,
                     'stock_id': stock_id, 'picked_quantity': location_reserved,
@@ -1125,6 +1129,7 @@ def insert_jo_material_serial(picklist, val, user):
 @login_required
 @get_admin_user
 def rm_picklist_confirmation(request, user=''):
+    # import pdb;pdb.set_trace()
     try:
         log.info('Request params Confirm RM Picklist for user %s are %s' % (user.username,
                                                                        str(dict(request.POST.iterlists()))))
@@ -1188,7 +1193,9 @@ def rm_picklist_confirmation(request, user=''):
                         return HttpResponse("Invalid Location")
                     if 'imei_numbers' in val.keys():
                         insert_jo_material_serial(picklist, val, user)
-                    stock_dict = {'sku_id': sku.id, 'location_id': location[0].id, 'sku__user': user.id}
+                    batchno = ''
+                    batchno = val['batchno']
+                    stock_dict = {'sku_id': sku.id, 'location_id': location[0].id, 'sku__user': user.id ,'batch_detail__batch_no':batchno}
                     stock_detail = StockDetail.objects.filter(**stock_dict)
                     for stock in stock_detail:
                         if picking_count == 0:

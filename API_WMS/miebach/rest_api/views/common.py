@@ -2322,8 +2322,11 @@ def search_batches(request, user=''):
                 batchno =  stock.batch_detail.batch_no
             except:
                 batchno  = ''
-
-            total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
+            try:
+                expiry_date = datetime.datetime.strftime(stock.batch_detail.expiry_date, "%d/%m/%Y")
+            except:
+                expiry_date = ''
+            total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date ,'expiry_date':expiry_date})
 
     return HttpResponse(json.dumps(total_data))
 

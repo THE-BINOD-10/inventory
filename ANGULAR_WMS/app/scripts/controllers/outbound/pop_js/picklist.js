@@ -380,6 +380,7 @@ function pull_confirmation() {
 
   vm.get_sku_details = function(record,item, index){
     record.manufactured_date = item.manufactured_date
+    record.expiry_date = item.expiry_date
   }
 
   vm.cal_quantity = cal_quantity;

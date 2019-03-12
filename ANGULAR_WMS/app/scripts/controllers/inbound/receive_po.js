@@ -732,6 +732,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           preConfirm: function (text) {
             return new Promise(function (resolve, reject) {
               vm.closed_po.elem.push({name: 'remarks', value: text});
+              if(!text){
+                Service.showNoty("Close PO Reason is Mandatory");
+                reject();
+                return false;
+              }
               vm.service.apiCall('close_po/', 'POST', vm.closed_po.elem, true).then(function(data){
                 if(data.message) {
                   if(data.data == 'Updated Successfully') {

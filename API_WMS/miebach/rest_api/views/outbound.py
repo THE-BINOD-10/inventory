@@ -14783,8 +14783,26 @@ def generate_picklist_dc(request, user=''):
             order_field_obj = OrderFields.objects.filter(original_order_id=picklist_obj.order.original_order_id,user=user.id ,name = extra)
             if order_field_obj.exists():
                 extra_fields[order_field_obj[0].name] = order_field_obj[0].value
-
-
+        customer_address =[]
+        customer_details = []
+        consignee =''
+        customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=picklist_obj.order.customer_id).
+                                values('id', 'customer_id', 'name', 'email_id', 'tin_number', 'address', 'shipping_address',
+                                       'credit_period', 'phone_number'))
+        if customer_details:
+            customer_id = customer_details[0]['id']
+            customer_address = customer_details[0]['name'] + '\n' + customer_details[0]['address']
+            if customer_details[0]['tin_number']:
+                customer_address += ("\nGSTIN No: " + customer_details[0]['tin_number'])
+            if customer_details[0]['phone_number']:
+                customer_address += ("\nCall: " + customer_details[0]['phone_number'])
+            if customer_details[0]['email_id']:
+                customer_address += ("\tEmail: " + customer_details[0]['email_id'])
+            consignee = customer_address
+        else:
+            customer_id = picklist_obj.order.customer_id
+            customer_address = picklist_obj.order.customer_name + '\n' + picklist_obj.order.address + "\nCall: " \
+                               + str(picklist_obj.order.telephone) + "\nEmail: " + str(picklist_obj.order.email_id)
         for val in value:
             order = picklist_obj.order
             sku = order.sku
@@ -14839,6 +14857,9 @@ def generate_picklist_dc(request, user=''):
     invoice_data['company_address'] = user_profile.address
     invoice_data['company_number'] = user_profile.phone_number
     invoice_data['order_no'] = picklist_obj.order.order_id
+    invoice_data['customer_details'] = customer_details
+    invoice_data['customer_address'] = customer_address
+    invoice_data['consignee'] = consignee
 
     return render(request, 'templates/toggle/delivery_challan_batch_level.html', invoice_data)
 

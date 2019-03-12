@@ -3400,7 +3400,7 @@ def rwo_data(request,user):
                 'sku_id':location.material_picklist.jo_material.material_code.id,
                 'sku_desc':location.material_picklist.jo_material.material_code.sku_desc,
                 'job_code': picklist.jo_material.job_order.job_code,
-                'picked_quantity': picklist.picked_quantity,
+                'picked_quantity': location.quantity,
                 'id': location.id,
                 'location_name':location_name,
                 'title': location.material_picklist.jo_material.material_code.sku_desc,
@@ -3491,9 +3491,9 @@ def save_replaced_locations(request , user):
                 if rm_locations.exists():
                     for rm in rm_locations:
                         if current_location == rm.stock.location.location:
-                            if rm.material_picklist.picked_quantity > float(return_quantity) :
-                                material_obj  = rm.material_picklist
-                                material_obj.picked_quantity -= float(return_quantity)
+                            if rm.quantity > float(return_quantity) :
+                                material_obj  = rm
+                                material_obj.quantity -= float(return_quantity)
                                 material_obj.save()
                             else:
                                 return  HttpResponse('Returned Quantity is Greater than Picked Quantity')

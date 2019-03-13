@@ -226,6 +226,13 @@ urlpatterns = [
     url(r'^update_rm_picklist/$', update_rm_picklist),
     url(r'^generate_jo_labels/$', generate_jo_labels),
     url(r'^check_custom_generated_label/$', check_custom_generated_label),
+    url(r'^check_return_imei_scan/$', check_return_imei_scan),
+    url(r'^rwo_data/$', rwo_data),
+    url(r'^check__replace_imei_exists/$', check__replace_imei_exists),
+    url(r'^save_replaced_serials/$', save_replaced_serials),
+    url(r'^save_replaced_locations/$', save_replaced_locations),
+
+
 
     # Stock Locator
     url(r'^insert_move_inventory/$', insert_move_inventory),

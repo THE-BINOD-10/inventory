@@ -107,7 +107,7 @@
                  <td><input name="location_{{data.id}}" ng-model="record.location" class="form-control" type="text"></td>
                  <td ng-if="showCase.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" ng-model="data.pallet_number" class="form-control" type="text" readonly></td>
                  <td><input ng-model="data.reserved_quantity" class="form-control" type="text" readonly></td>
-                 <td><input name="picked_quantity_{{data.id}}" ng-model="record.picked_quantity" ng-change="showCase.count_sku_quantity();showCase.cal_quantity(record, data);" class="form-control" type="text" ng-class="service.get_decimal_perm()"></td>
+                 <td><input name="picked_quantity_{{data.id}}" ng-model="record.picked_quantity" ng-change="showCase.count_sku_quantity();showCase.cal_quantity(record, data);" class="form-control" type="text" ng-class="service.get_decimal_perm()" ng-readonly="showCase.permissions.use_imei && data.show_imei"></td>
                  <td ng-if="showCase.permissions.use_imei"><textarea class="form-control" name="imei_{{data.id}}" rows="1" id="scan_imei" ng-model="record.scan" ng-keydown="showCase.serial_scan($event, record.scan, data, record)"></textarea></td>
                  <td style="width: 20px;padding-left: 10px;" ng-if="!(record.new)"><i ng-click="showCase.update_data($index, data, $last);" ng-class="showCase.isLast($last)"></i></td>
                </tr>

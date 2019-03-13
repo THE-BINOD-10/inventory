@@ -70,7 +70,7 @@
                   <td><input name="location_{{data.id}}" ng-model="record.location" class="form-control" type="text"></td>
                   <td ng-if="showCase.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" ng-model="data.pallet_number" class="form-control" type="text" readonly></td>
                   <td><input name="reserved_quantity_{{data.id}}" ng-model="data.reserved_quantity" class="form-control" type="text" readonly></td>
-                  <td><input name="picked_quantity_{{data.id}}" ng-model="record.picked_quantity" class="form-control" type="text" ng-change="showCase.cal_quantity(record, data)" ng-class="service.get_decimal_perm()"></td>
+                  <td><input name="picked_quantity_{{data.id}}" ng-model="record.picked_quantity" class="form-control" type="text" ng-change="showCase.cal_quantity(record, data)" ng-readonly="showCase.permissions.scan_picklist_option != 'scan_sku_location' && showCase.permissions.scan_picklist_option != 'scan_sku' && showCase.permissions.scan_picklist_option != 'scan_none'" ng-class="service.get_decimal_perm()"></td>
                   <td ng-if="showCase.permissions.use_imei"><textarea class="form-control" name="imei_{{data.id}}" rows="1" ng-model="record.scan" ng-keydown="showCase.serial_scan($event,record.scan, data, record)"></textarea></td>
                   <td style="width: 20px;padding-left: 10px;"><i ng-click="showCase.update_data_order($index, data, $last)" ng-class="showCase.isLast($last)"></i></td>
                 </tr>

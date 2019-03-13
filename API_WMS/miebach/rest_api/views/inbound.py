@@ -3740,6 +3740,16 @@ def validate_putaway(all_data, user):
     status = ''
     back_order = get_misc_value('back_order', user.id)
     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
+    validate_po_id = ''
+    validate_seller_id = ''
+    if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+	get_values = all_data.keys()
+	if get_values:
+	    validate_po_id = get_values[0][2]
+	if validate_po_id:
+	    po_location = POLocation.objects.filter(location__zone__user=user.id, purchase_order_id = validate_po_id)
+	    for pol in po_location:
+	        validate_seller_id = pol.purchase_order.open_po.sellerpo_set.filter()[0].seller_id
     for key, value in all_data.iteritems():
         if not key[1]:
             status = 'Location is Empty, Enter Location'
@@ -3786,18 +3796,19 @@ def validate_putaway(all_data, user):
             collect_dict_form = {}
             collect_all_sellable_location = list(LocationMaster.objects.filter(zone__segregation='sellable',  zone__user=user.id, status=1).values_list('location', flat=True))
             if key[1] in collect_all_sellable_location:
-                sku_mrp_map = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).exclude(batch_detail__mrp=None).values_list('sku__wms_code', 'batch_detail__mrp').distinct()
-                collect_sku_mrp_map = ['<#>'.join([str(one), str(two)]) for one, two in sku_mrp_map]
-                for one, two in sku_mrp_map:
-                    sku_code = str(one)
-                    mrp = str(two)
-                    if sku_code in collect_dict_form.keys():
-                        collect_dict_form[sku_code].append(mrp)
-                    else:
-                        collect_dict_form[sku_code] = [mrp]
-                if key[4] in collect_dict_form.keys():
-                    if not str(float(key[5])) in collect_dict_form[key[4]]:
-                        status = 'For SKU '+ key[4] +', MRPs ' + ','.join(collect_dict_form[key[4]]) + ' are only accepted'
+                sku_mrp_map = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku__wms_code=key[4]).filter(sellerstock__seller_id=validate_seller_id).exclude(batch_detail__mrp=None).values_list('sku__wms_code', 'batch_detail__mrp').distinct()
+                if sku_mrp_map:
+                    collect_sku_mrp_map = ['<#>'.join([str(one), str(two)]) for one, two in sku_mrp_map]
+                    for one, two in sku_mrp_map:
+                        sku_code = str(one)
+                        mrp = str(two)
+                        if sku_code in collect_dict_form.keys():
+                            collect_dict_form[sku_code].append(mrp)
+                        else:
+                            collect_dict_form[sku_code] = [mrp]
+                    if key[4] in collect_dict_form.keys():
+                        if not str(float(key[5])) in collect_dict_form[key[4]]:
+                            status = 'For SKU '+ key[4] +', MRPs ' + ','.join(collect_dict_form[key[4]]) + ' are only accepted'
     return status
 
 

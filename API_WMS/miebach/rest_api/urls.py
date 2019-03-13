@@ -376,7 +376,8 @@ urlpatterns = [
     url(r'^invoice_print_manifest/$', invoice_print_manifest),
     url(r'^shipment_pack_ref/$', shipment_pack_ref),
     url(r'^shipment_pack_ref_decrease/$', shipment_pack_ref_decrease),
-
+    url(r'^generate_picklist_dc/$', generate_picklist_dc),
+    url(r'^get_order_extra_fields/$', get_order_extra_fields),
 
 
     # Uploaded POs [SWISS MILITARY]
@@ -575,12 +576,16 @@ urlpatterns += [
     url(r'check_labels/', check_labels),
     url(r'get_imei_data/', get_imei_data),
     url(r'get_user_profile_data/$', get_user_profile_data),
+    url(r'get_user_profile_shipment_addresses/$', get_user_profile_shipment_addresses),
     url(r'change_user_password/$', change_user_password),
     url(r'update_profile_data/$', update_profile_data),
+    url(r'update_profile_shipment_address/$', update_profile_shipment_address),
     url(r'get_cust_profile_info/$', get_cust_profile_info),
     url(r'get_linked_warehouse_names/$', get_linked_warehouse_names),
     url(r'delete_temp_json/$', delete_temp_json),
     url(r'^search_batches/$', search_batches),
+    url(r'^save_order_extra_fields/$', save_order_extra_fields),
+
 
     # Retailone
     url(r'^get_marketplace_data/$', get_marketplace_data),

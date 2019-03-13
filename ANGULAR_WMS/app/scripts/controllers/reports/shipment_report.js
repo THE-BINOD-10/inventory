@@ -20,6 +20,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       angular.copy(vm.empty_data, vm.model_data);
       vm.dtOptions = data.dtOptions;
       vm.dtColumns = data.dtColumns;
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Number').withTitle('Invoice Number'))
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Date').withTitle('Invoice Date'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('Dispatched Date').withTitle('Dispatched Date'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('Delivered Date').withTitle('Delivered Date'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('Manifest Number').withTitle('Manifest Number'))
@@ -29,7 +31,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       vm.dtColumns.push(DTColumnBuilder.newColumn('ID Card').withTitle('ID Card'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('Signed Invoice Copy').withTitle('Signed Invoice Copy'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('Refusal Reason').withTitle('Refusal Reason'))
-
       vm.datatable = true;
       vm.dtInstance = {};
     })

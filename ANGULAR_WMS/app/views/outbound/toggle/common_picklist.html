@@ -173,20 +173,24 @@
                   <!--<td><input name="zone_{{data.id}}" ng-model="record.zone" class="form-control" type="text"></td>-->
                   <td><input name="location_{{data.id}}" ng-model="record.location" class="form-control" type="text" ng-blur="pop.checkCapacity($index, data, 'location', $event);"></td>
                   <td ng-if="pop.industry_type=='FMCG'">
-                  <input type="text" autocomplete="off"  class="form-control" placeholder="Search batchno" 
+                  <input type="text" autocomplete="off"  class="form-control" placeholder="Search batchno" ng-init="record.batchno=data.batchno"
                         typeahead="address.batchno for address in pop.service.getSearchValues($viewValue, 'search_batches',record)"
                         ng-model="record.batchno" ng-blur="pop.service.checkSearchValue(record,'search_batches', $event, 'batchno', 'batchno')"
                         typeahead-on-select="pop.get_sku_details(data, $item, $index)"
                         required>
                   </td>
                   <input type="hidden" name="batchno_{{data.id}}" value="{{record.batchno}}">
-                  <td ng-if="pop.industry_type=='FMCG'"><input ng-model="data.manufactured_date" class="form-control" size="35" type="text" readonly></td>
-                  <td ng-if="pop.industry_type=='FMCG'"><input ng-model="data.mrp" class="form-control" type="text" readonly></td>
+		  <td ng-if="pop.industry_type=='FMCG'">
+            <input name="manufactured_date_{{data.id}}" ng-model="data.manufactured_date" class="form-control" size="35" type="text" readonly>
+            <input name="expiry_date_{{data.id}}" ng-model="data.expiry_date" class="form-control" size="35" value="{{data.expiry_date}}" type="hidden">
+          </td>
+		  <td ng-if="pop.industry_type=='FMCG'"><input name="mrp_{{data.id}}" ng-model="data.mrp" class="form-control" type="text" readonly></td>
                   <td ng-if="pop.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" ng-model="record.pallet_code" class="form-control" type="text" ng-blur="pop.checkCapacity($index, data, 'pallet_code', $event);"></td>
                   <td><input name="reserved_quantity_{{data.id}}" ng-model="data.reserved_quantity" class="form-control" type="text" readonly></td>
                   <td><input name="picked_quantity_{{data.id}}" ng-model="record.picked_quantity" class="form-control" type="text" ng-change="pop.count_sku_quantity();pop.cal_quantity(record, data)" ng-class="service.get_decimal_perm()" ng-readonly = "pop.permissions.scan_picklist_option != 'scan_sku_location' && pop.permissions.scan_picklist_option != 'scan_sku' && pop.permissions.scan_picklist_option != 'scan_none'" ng-style="(pop.validate_skus[data.order_id][data.wms_code] == data.wms_code) ? pop.qty_validation : ''"></td>
-                  <td ng-if="pop.permissions.scan_picklist_option == 'scan_serial'"><textarea class="form-control" name="imei_{{data.id}}" rows="1" ng-model="record.scan" ng-keydown="pop.serial_scan($event,record.scan, data, record)"></textarea></td>
-                  <td ng-if="pop.permissions.scan_picklist_option == 'scan_serial'" ng-click="pop.myFunction(data, record)" style="width: 20px;padding-left: 10px;padding-top: 15px;font-size: 25px;cursor: pointer;"><i class="glyphicon glyphicon-download"></i></td>
+                  <td ng-if="pop.permissions.scan_picklist_option == 'scan_serial'"><textarea class="form-control" name="scan_imei_{{data.id}}" rows="1" ng-model="record.scan" ng-keydown="pop.serial_scan($event,record.scan, data, record)"></textarea></td>
+                   <input type="hidden" class="form-control" name="imei_{{data.id}}" value="[]"/>
+                  <!--<td ng-if="pop.permissions.scan_picklist_option == 'scan_serial'" ng-click="pop.myFunction(data, record)" style="width: 20px;padding-left: 10px;padding-top: 15px;font-size: 25px;cursor: pointer;"><i class="glyphicon glyphicon-download"></i></td>-->
                   <td style="width: 20px;padding-left: 10px;padding-top: 15px;"><i ng-click="pop.update_data($index, data, $last)" ng-class="pop.service.isLast($last)"></i></td>
                 </tr>
               </tbody>
@@ -211,6 +215,7 @@
               <button type="button" class="btn btn-danger pull-right" ng-click="pop.cancel_picklist(pop.model_data.picklist_id)">Cancel Picklist</button>
               <button type="button" class="btn btn-success pull-right mr10" ng-click="pop.update_picklist(pop.model_data.picklist_id)">Update Picklist</button>
               <button type="button" class="btn btn-success pull-right mr10" ng-click="pop.print_barcodes(pop.model_data.picklist_id)">Print Barcodes</button>
+              <button ng-if = 'pop.permissions.generate_delivery_challan_before_pullConfiramation && pop.model_data.data[0].order_no' type="button" class="btn btn-warning pull-right mr10" ng-disabled="pop.bt_disable" ng-click="pop.deliveryChallan(pop.model_data.data, 'generate')" disabled="disabled">Delivery Challan</button>
             </div>
           </div>
           <div class="row insert-status"><h4 align="center">{{pop.message}}</h4></div>

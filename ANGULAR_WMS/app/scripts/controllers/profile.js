@@ -10,6 +10,7 @@ function Profile($scope, Session, Service, $modal) {
   var vm = this;
   vm.edit_form = false;
   vm.model_data = {};
+  vm.model_shipment_data = {}
 
   vm.changePassword = function() {
 
@@ -43,7 +44,14 @@ function Profile($scope, Session, Service, $modal) {
       angular.copy(data.data.data, vm.orig_model_data);
     }
   });
-
+  vm.reload_shipment_address= function() {
+    vm.model_shipment_data = {}
+    Service.apiCall('get_user_profile_shipment_addresses/').then(function(data){
+      if(data.message) {
+        angular.copy(data.data, vm.model_shipment_data);
+      }
+    });
+  }
   vm.back = function() {
 
     angular.copy(vm.orig_model_data, vm.model_data);
@@ -69,6 +77,25 @@ function Profile($scope, Session, Service, $modal) {
       }
       vm.process = false;
     });
+  }
+  vm.emptyData = function () {
+    vm.model_data.address_title = vm.model_data.address_name = vm.model_data.address_mobile_number = vm.model_data.address_pincode = vm.model_data.address_shipment = '';
+  }
+  vm.updateShipmentAddress = function(form) {
+    if (vm.model_data.address_title && vm.model_data.address_name && vm.model_data.address_mobile_number && vm.model_data.address_pincode && vm.model_data.address_shipment) {
+      Service.apiCall('update_profile_shipment_address/', 'POST', vm.model_data).then(function(data){
+        if(data.message) {
+          if(data.data == 'Success') {
+            vm.emptyData();
+            Service.showNoty('Successfully Updated');
+          } else {
+            Service.showNoty(data.data);
+          }
+        }
+      });
+    } else {
+      Service.showNoty('Please Enter the required Fields');
+    }
   }
 }
 app.controller('changePassword', function($scope, $modalInstance, items, Service, $state, Session){

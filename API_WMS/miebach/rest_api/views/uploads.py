@@ -484,7 +484,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
                 if len(order_obj_list):
                     order_obj_list = list(set(order_obj_list))
         log.info("Order Saving Ended %s" % (datetime.datetime.now()))
-    return sku_ids, order_obj_list
+    return sku_ids, order_obj_list, order_detail
 
 
 def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
@@ -503,6 +503,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
     log.info("Validation Started %s" % datetime.datetime.now())
     exist_created_orders = OrderDetail.objects.filter(user=user.id,
                                                       order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO'])
+    extra_fields_mapping = OrderedDict()
+    extra_fields_data = OrderedDict()
+    for row_idx in range(0, 1):
+        for col_idx in range(0, no_of_cols):
+            excel_header_name = get_cell_data(row_idx, col_idx, reader, file_type)
+            if 'Attribute - ' in excel_header_name:
+                extra_fields_mapping[excel_header_name.replace('Attribute - ', '')] = col_idx
     for row_idx in range(1, no_of_rows):
         if not order_mapping:
             break
@@ -621,6 +628,10 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             continue
         log.info("Order data Processing Started %s" % (datetime.datetime.now()))
         order_amount = 0
+        for extra_key, extra_value in extra_fields_mapping.iteritems():
+            extra_cell_val = get_cell_data(row_idx, extra_value, reader, file_type)
+            if extra_cell_val:
+                extra_fields_data[extra_key] = extra_cell_val
         for key, value in order_mapping.iteritems():
             if key in ['marketplace', 'status', 'split_order_id', 'recreate',
                        'shipment_check'] or key not in order_mapping.keys():
@@ -827,9 +838,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 order_data['telephone'] = str(int(order_data['telephone']))
 
         log.info("Order Saving Started %s" % (datetime.datetime.now()))
-        sku_ids, order_obj_list = check_and_save_order(cell_data, order_data, order_mapping, user_profile, seller_order_dict,
+        sku_ids, order_obj_list, order_detail = check_and_save_order(cell_data, order_data, order_mapping, user_profile, seller_order_dict,
                                        order_summary_dict, sku_ids,
                                        sku_masters_dict, all_sku_decs, exist_created_orders, user)
+        if order_detail:
+            created_order_id = order_detail.original_order_id
+            if extra_fields_data:
+                create_extra_fields_for_order(created_order_id, extra_fields_data, user)
         if len(order_obj_list):
             collect_order_obj_list = collect_order_obj_list + order_obj_list
     if len(collect_order_obj_list):
@@ -874,7 +889,12 @@ def order_form(request, user=''):
     ws = wb.add_sheet('order')
     header_style = easyxf('font: bold on')
     user_profile = UserProfile.objects.get(user_id=user.id)
-    order_headers = USER_ORDER_EXCEL_MAPPING.get(user_profile.user_type, {})
+    order_headers = copy.deepcopy(USER_ORDER_EXCEL_MAPPING.get(user_profile.user_type, {}))
+    order_field_obj = get_misc_value('extra_order_fields', user.id)
+    if not order_field_obj == 'false':
+        extra_order_fields = order_field_obj.split(',')
+        for extra_field in extra_order_fields:
+            order_headers.append('%s - %s' % ('Attribute', str(extra_field)))
     for count, header in enumerate(order_headers):
         ws.write(0, count, header, header_style)
 

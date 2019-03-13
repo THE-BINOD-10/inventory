@@ -6,13 +6,13 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
   vm.state_data = items;
   vm.service = Service;
   vm.permissions = Session.roles.permissions;
-  vm.industry_type = Session.user_profile.industry_type;
   vm.user_type=Session.user_profile.user_type;
   vm.model_data = {};
   vm.record_serial_data = [];
   vm.record_qcitems_data = [];
   vm.status_data = {message:"cancel", data:{}}
   vm.qty_validation = {};
+  vm.industry_type = Session.user_profile.industry_type;
   vm.collect_imei_data = {}
   vm.get_id = ''
 
@@ -407,8 +407,9 @@ function pull_confirmation() {
     vm.count_sku_quantity();
   }
 
-  vm.get_sku_details = function(record,item, index){
+  vm.get_sku_details = function(record, item, index) {
     record.manufactured_date = item.manufactured_date
+    record.mrp = item.mrp
     record.expiry_date = item.expiry_date
   }
 

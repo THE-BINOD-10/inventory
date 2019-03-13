@@ -2289,7 +2289,7 @@ def search_batches(request, user=''):
     data_id = request.GET.get('q', '')
     row_data = json.loads(request.GET.get('type'))
     search_params = {'sku__user': user.id}
-    if row_data['wms_code']:
+    if row_data.get('wms_code', ''):
         search_params['sku__sku_code'] =  row_data['wms_code']
 
     if row_data['location']:
@@ -2298,7 +2298,7 @@ def search_batches(request, user=''):
             return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Location'}))
         search_params['location__location'] = row_data['location']
 
-    if row_data['pallet_code']:
+    if row_data.get('pallet_code', ''):
         search_params['pallet_detail__pallet_code'] = row_data['pallet_code']
         stock_detail = StockDetail.objects.exclude(
             Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \

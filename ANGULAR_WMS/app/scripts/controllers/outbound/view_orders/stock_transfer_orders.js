@@ -10,10 +10,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.selected = {};
     vm.selectAll = false;
     vm.bt_disable = true;
-	vm.collect_imei_data = {}
-	vm.get_id = ''
-	vm.record_serial_data = []
-
+    vm.collect_imei_data = {}
+    vm.get_id = ''
+    vm.record_serial_data = []
+    vm.industry_type = Session.user_profile.industry_type;
+    vm.user_type = Session.user_profile.user_type;
+  
     function getOS() {
       var userAgent = window.navigator.userAgent,
           platform = window.navigator.platform,
@@ -407,7 +409,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     }
 
-	vm.increament = function (record) {
+  vm.increament = function (record) {
       record.scan = record.scan.toUpperCase()
       record.picked_quantity = parseInt(record.picked_quantity) + 1;
       vm.record_serial_data.shift()
@@ -421,7 +423,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       record.scan = '';
     }
 
-	vm.getrecordSerialnumber = function(rowdata) {
+	  vm.getrecordSerialnumber = function(rowdata) {
       for(var i=0; i < vm.model_data.data.length; i++) {
         if(vm.model_data.data[i].wms_code == rowdata.wms_code) {
           if(!vm.model_data.data[i].hasOwnProperty('sku_imeis_map')) {
@@ -445,13 +447,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           record.scan = '';
           return false
         }
-		if(vm.collect_imei_data.hasOwnProperty(data.id)) {
-			if ($.inArray(scan, vm.collect_imei_data[data.id]) != -1) {
-				vm.service.showNoty("Serial Number Already Scanned");
-				record.scan = '';
-				return false
-			}
-		}
+
+      if(vm.collect_imei_data.hasOwnProperty(data.id)) {
+        if ($.inArray(scan, vm.collect_imei_data[data.id]) != -1) {
+          vm.service.showNoty("Serial Number Already Scanned");
+          record.scan = '';
+          return false
+        }
+      }
         vm.get_id = data.id
         var id = data.id;
         var total = 0;
@@ -465,8 +468,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         if(total < data.reserved_quantity) {
           vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
           if(data.data.status == "Success") {
-			vm.increament(record);
-		  } else {
+      			vm.increament(record);
+		      } else {
             Service.pop_msg(data.data.status);
             record.scan = '';
           }

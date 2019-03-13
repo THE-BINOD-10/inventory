@@ -1014,6 +1014,7 @@ def switches(request, user=''):
                        'sno_in_invoice':'sno_in_invoice',
                        'po_sub_user_prefix': 'po_sub_user_prefix',
                        'combo_allocate_stock': 'combo_allocate_stock',
+                       'unique_mrp_putaway': 'unique_mrp_putaway',
                        'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation'
                        }
         toggle_field, selection = "", ""
@@ -3771,11 +3772,18 @@ def get_received_orders(request, user=''):
 
 def validate_putaway(all_data, user):
     status = ''
-    back_order = 'false'
-    misc_data = MiscDetail.objects.filter(user=user.id, misc_type='back_order')
-    if misc_data:
-        back_order = misc_data[0].misc_value
-
+    back_order = get_misc_value('back_order', user.id)
+    unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
+    validate_po_id = ''
+    validate_seller_id = ''
+    if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+	get_values = all_data.keys()
+	if get_values:
+	    validate_po_id = get_values[0][2]
+	if validate_po_id:
+	    po_location = POLocation.objects.filter(location__zone__user=user.id, purchase_order_id = validate_po_id)
+	    for pol in po_location:
+	        validate_seller_id = pol.purchase_order.open_po.sellerpo_set.filter()[0].seller_id
     for key, value in all_data.iteritems():
         if not key[1]:
             status = 'Location is Empty, Enter Location'
@@ -3816,6 +3824,25 @@ def validate_putaway(all_data, user):
 
             else:
                 status = 'Enter Valid Location'
+
+        if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            collect_sku_mrp_map = []
+            collect_dict_form = {}
+            collect_all_sellable_location = list(LocationMaster.objects.filter(zone__segregation='sellable',  zone__user=user.id, status=1).values_list('location', flat=True))
+            if key[1] in collect_all_sellable_location:
+                sku_mrp_map = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku__wms_code=key[4]).filter(sellerstock__seller_id=validate_seller_id).exclude(batch_detail__mrp=None).values_list('sku__wms_code', 'batch_detail__mrp').distinct()
+                if sku_mrp_map:
+                    collect_sku_mrp_map = ['<#>'.join([str(one), str(two)]) for one, two in sku_mrp_map]
+                    for one, two in sku_mrp_map:
+                        sku_code = str(one)
+                        mrp = str(two)
+                        if sku_code in collect_dict_form.keys():
+                            collect_dict_form[sku_code].append(mrp)
+                        else:
+                            collect_dict_form[sku_code] = [mrp]
+                    if key[4] in collect_dict_form.keys():
+                        if not str(float(key[5])) in collect_dict_form[key[4]]:
+                            status = 'For SKU '+ key[4] +', MRPs ' + ','.join(collect_dict_form[key[4]]) + ' are only accepted'
     return status
 
 
@@ -3982,17 +4009,15 @@ def putaway_data(request, user=''):
                 myDict['orig_data'][i] = eval(myDict['orig_data'][i])
                 for orig_data in myDict['orig_data'][i]:
                     cond = (orig_data['orig_id'], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i],
-                            myDict['wms_code'][i])
+                            myDict['wms_code'][i], myDict['mrp'][i])
                     all_data.setdefault(cond, 0)
                     all_data[cond] += float(orig_data['orig_quantity'])
             else:
-                cond = (
-                myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
+                cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i], myDict['mrp'][i])
                 all_data.setdefault(cond, 0)
                 if not myDict['quantity'][i]:
                     myDict['quantity'][i] = 0
                 all_data[cond] += float(myDict['quantity'][i])
-
         all_data = OrderedDict(sorted(all_data.items(), reverse=True))
         status = validate_putaway(all_data, user)
         if status:

@@ -474,6 +474,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
       event.stopPropagation();
       if (event.keyCode == 13 && imei.length > 0 && vm.scan_imei_readonly==false) {
         vm.scan_imei_readonly = true;
+        imei = imei.toUpperCase();
         if (vm.serial_numbers.indexOf(imei) != -1){
             vm.service.showNoty("IMEI Number Already Exist");
             vm.imei_number = "";
@@ -522,15 +523,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                             }
                         }
                }
+               vm.imei_number = "";
                vm.scan_imei_readonly = false;
             }
-
         }
       }
     }
 
     vm.update_imei_data = function(data, imei) {
-
+      imei = imei.toUpperCase();
       var status = false;
       var sku_status = false;
       for(var i = 0; i < vm.model_data.data.length; i++) {

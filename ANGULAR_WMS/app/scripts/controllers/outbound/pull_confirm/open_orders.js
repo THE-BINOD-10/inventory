@@ -319,6 +319,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         for(var i=0; i < data.sub_data.length; i++) {
           total = total + Number(data.sub_data[i].picked_quantity);
         }
+        scan = scan.toUpperCase();
         var scan_data = scan.split("\n");
         var length = scan_data.length;
         var elem = {};

@@ -8,6 +8,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.g_data = Data.receive_jo;
     vm.permissions = Session.roles.permissions;
+    vm.selectAll = false;
+    vm.rwo_view  = false;
+    vm.selected = {};
     vm.sku_view = vm.g_data.sku_view;
     vm.table_name = (vm.g_data.sku_view)? 'ReceiveJOSKU' : 'ReceiveJO';
     vm.filters = {'datatable': vm.table_name};
@@ -32,20 +35,59 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        .withOption('processing', true)
        .withOption('serverSide', true)
        .withPaginationType('full_numbers')
-       .withOption('rowCallback', rowCallback);
+       .withOption('rowCallback', rowCallback)
+       .withOption('drawCallback', function(settings) {
+         vm.service.make_selected(settings, vm.selected);
+       })
+
 
     vm.dtColumns = vm.service.build_colums(vm.g_data.tb_headers[vm.table_name]);
-
+    vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
+      .renderWith(function(data, type, full, meta) {
+        if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
+          vm.selected = {};
+        }
+        vm.selected[meta.row] = vm.selectAll;
+        return vm.service.frontHtml + meta.row + vm.service.endHtml;
+    }))
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        $('td', nRow).unbind('click');
-        $('td', nRow).bind('click', function() {
+      $('td:not(td:first)', nRow).unbind('click');
+      $('td:not(td:first)', nRow).bind('click', function()  {
             $scope.$apply(function() {
+              if (vm.selected[iDisplayIndex]) {
+                vm.selected[iDisplayIndex] = false;
+              } else {
+                vm.selected[iDisplayIndex] = true;
+              }
+              vm.bt_disable = vm.service.toggleOne(vm.selectAll, vm.selected, vm.bt_disable);
+              vm.selectAll = vm.service.select_all(vm.selectAll, vm.selected);
               var data = {};
               if (vm.sku_view) {
                 data['job_id'] = aData.DT_RowAttr['data-id'];
               } else {
                 data['data_id'] = aData.DT_RowAttr['data-id'];
               }
+             if(vm.rwo_view){
+               var elem = {};
+               vm.send_data ={}
+               if (aData.DT_RowAttr.hasOwnProperty('data-id')) {
+                 elem = {'data_id': aData.DT_RowAttr['data-id']}
+               } else {
+                 elem =  {'id': aData.DT_RowAttr['id'],'rwo':true}
+               }
+
+               vm.service.apiCall('rwo_data/', 'POST',elem).then(function(data){
+                 if(data.message) {
+                   angular.copy(data.data, vm.send_data);
+                   vm.send_data['job_creation_date'] = aData["Creation Date"]
+                   vm.send_data['job_code'] = aData["Job Code"]
+                   vm.scanned_return_serials =[];
+                   vm.scanned_replaced_serials =[];
+                   $state.go('app.production.ReveiveJO.Rm');
+                 }
+               });
+            }
+             else{
               vm.service.apiCall('confirmed_jo_data/', 'GET', data).then(function(data){
                 if(data.message) {
                   angular.copy(data.data, vm.model_data);
@@ -73,6 +115,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   $state.go('app.production.ReveiveJO.ReceiveJobOrder');
                 }
               });
+            }
             });
         });
         return nRow;
@@ -80,17 +123,93 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.dtInstance = {};
     vm.reloadData = reloadData;
+    vm.scanned_return_serials =[];
+    vm.scanned_replaced_serials = [];
 
     function reloadData () {
         vm.dtInstance.reloadData();
     };
-
     vm.excel = excel;
     function excel() {
       angular.copy(vm.dtColumns,colFilters.headers);
       angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
       colFilters.download_excel()
     }
+    vm.scan_return__serial = function(event,serial_number){
+      event.stopPropagation();
+
+      if (event.keyCode == 13 )
+      {
+        if (vm.scanned_return_serials.indexOf(serial_number) === -1 )
+        {
+         vm.service.apiCall('check_return_imei_scan/', 'GET', {'serial_number':serial_number}).then(function(data){
+           if (data.data.data)
+             {
+                for(var i =0 ;i< vm.send_data.data.length;i++)
+                {
+                  if (vm.send_data.data[i].wms_code ==  data.data.data)
+                  {
+                    if(vm.send_data.data[i].picked_quantity>0)
+                    {
+                      vm.send_data.data[i].picked_quantity-=1
+                      vm.send_data.data[i].return_quantity +=1
+                      vm.scanned_return_serials.push(serial_number);
+                      vm.send_data.scan_return_serial ='';
+                    }
+                  }
+                }
+               }
+            else{
+              Service.showNoty("Invalid Imei Number");
+            }
+
+          });
+      }
+      else {
+        {
+          Service.showNoty("Serial Already Scanned");
+        }
+      }
+    }
+
+  }
+    vm.scan_replace_serial = function(event ,value){
+      event.stopPropagation();
+      var replace_dict = {}
+      if (event.keyCode == 13) {
+        if (vm.scanned_replaced_serials.indexOf(value.replace_serial) == -1 )
+        {
+        vm.service.apiCall('check__replace_imei_exists/', 'GET',{imei: value.replace_serial, sku_code: value.wms_code}).then(function(data){
+          if(data.message) {
+            if (data.data.status == "Success") {
+              if(vm.scanned_return_serials.length > 0 && value.return_quantity > value.replacement_quntity)
+              {
+               replace_dict['po_id']= data.data.po_id;
+               replace_dict['serial_number'] = value.replace_serial;
+               replace_dict['sku_id'] = value.sku_id;
+              vm.scanned_replaced_serials.push(replace_dict);
+              value.picked_quantity+=1;
+              value.replacement_quntity+=1;
+              focus('focusSKU');
+              value.replace_serial = "";
+              }
+              else{
+                Service.showNoty("Unable to Replace Please Check");
+              }
+            } else {
+              Service.showNoty(data.data.status);
+            }
+          }
+          else{
+            Service.showNoty("Invalid IMEI number");
+          }
+        })
+      }
+      else {
+          Service.showNoty("Imei number already scanned");
+      }
+    }
+  }
 
     vm.model_data = {};
 
@@ -100,7 +219,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.print_enable = false;
       $state.go('app.production.ReveiveJO');
     }
-
+    vm.scanned_return_serials = [];
+    vm.scanned_replaced_serials = [];
     vm.html = "";
     vm.print_enable = false;
     vm.submit = function() {
@@ -152,6 +272,36 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
         }
       });
+    }
+    vm.save_replace = function() {
+      var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      vm.save_repalced_serials();
+      vm.service.apiCall('save_replaced_locations/', 'POST', elem, true).then(function(data){
+        if(data.message) {
+          if (data.data == 'Success') {
+            vm.close();
+            vm.reloadData();
+          } else {
+            pop_msg(data.data);
+          }
+        }
+      });
+    }
+    vm.save_repalced_serials = function()
+    {
+      vm.service.apiCall('save_replaced_serials/', 'POST',{'returned_serials':vm.scanned_return_serials ,'replacement_serials':JSON.stringify(vm.scanned_replaced_serials)} ).then(function(data){
+        if(data.message) {
+          if (data.data == 'Saved Successfully') {
+            vm.close();
+            vm.reloadData();
+          } else {
+            pop_msg(data.data);
+          }
+        }
+      });
+
     }
 
     function pop_msg(msg) {
@@ -210,7 +360,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
   }
-
+  vm.add = function () {
+      vm.bt_disable = true;
+      angular.forEach(vm.selected, function(value, key) {
+        if(value) {
+          var temp = vm.selectedRows[parseInt(key)];
+          data[temp['WMS Code']+":"+$(temp[""]).attr("name")] = temp['Procurement Quantity'];
+        }
+      });
+      var send_data  = {data: data}
+  }
   vm.print = print;
   function print() {
     vm.service.print_data(vm.html);
@@ -227,6 +386,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.check_imei_exists = function(event, data1, index, innerIndex) {
     event.stopPropagation();
     if (event.keyCode == 13 && data1.imei_number.length > 0) {
+            data1.imei_number = data1.imei_number.toUpperCase();
             if(vm.permissions.barcode_generate_opt != "sku_serial") {
               vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number, sku_code: data1.wms_code}).then(function(data){
                 if(data.message) {
@@ -547,11 +707,5 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
   }
 
-/*
-  vm.showOldQty = false;
-  vm.goBack = function() {
-    vm.showOldQty = true;
-    $state.go('app.inbound.ReceiveJO.ReceiveJobOrder');
-  }
-*/
+
 }

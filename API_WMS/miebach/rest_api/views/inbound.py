@@ -6830,6 +6830,7 @@ def confirm_primary_segregation(request, user=''):
                     put_zone = update_remarks_put_zone(seller_received.get('remarks', ''), user, put_zone,
                                                        seller_summary_id=seller_received.get('id', ''))
                     seller_received_dict[seller_index]['put_zone'] = put_zone
+                    seller_summary_dict[seller_index]['put_zone'] = put_zone
                 save_po_location(put_zone, temp_dict, seller_received_list=seller_summary_dict, run_segregation=False,
                                  batch_dict=batch_dict)
             non_sellable_qty = get_decimal_limit(user.id, (float(segregation_obj.non_sellable) + non_sellable))

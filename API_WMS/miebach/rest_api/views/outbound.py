@@ -4763,21 +4763,6 @@ def create_backorders(backorder_splitup_map, admin_user, sku_total_qty_map):
                 check_and_raise_po(generic_order_id, cm_id, order_detail.id)
 
 
-def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
-    try:
-        order_field_objs = []
-        for key, value in extra_order_fields.iteritems():
-            if value:
-                order_field_objs.append(OrderFields(**{'user': user.id, 'original_order_id': created_order_id,
-                                                       'name': key, 'value': str(value)[:255]}))
-        if order_field_objs:
-            OrderFields.objects.bulk_create(order_field_objs)
-    except Exception as e:
-        import traceback
-        log.debug(traceback.format_exc())
-        log.info('Create order extra fields failed for %s and params are %s and error statement is %s' % (
-        str(user.username), str(extra_order_fields), str(e)))
-
 @csrf_exempt
 @login_required
 @get_admin_user

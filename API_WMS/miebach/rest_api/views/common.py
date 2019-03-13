@@ -9085,3 +9085,19 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked):
         log.debug(traceback.format_exc())
         log.info('Adding stock transfer batch detail data failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(stock_transfer.__dict__), str(e)))
+
+
+def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
+    try:
+        order_field_objs = []
+        for key, value in extra_order_fields.iteritems():
+            if value:
+                order_field_objs.append(OrderFields(**{'user': user.id, 'original_order_id': created_order_id,
+                                                       'name': key, 'value': str(value)[:255]}))
+        if order_field_objs:
+            OrderFields.objects.bulk_create(order_field_objs)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Create order extra fields failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(extra_order_fields), str(e)))

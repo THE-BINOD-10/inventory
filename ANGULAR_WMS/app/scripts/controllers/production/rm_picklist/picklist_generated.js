@@ -7,6 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
     var vm = this;
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
+    vm.customertype = Session.user_profile.industry_type
     vm.tb_data = {};
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {

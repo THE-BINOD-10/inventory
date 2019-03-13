@@ -2940,30 +2940,6 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
             po_imei.save()
             if po_imei:
                 get_po_imei_qs = po_imei
-            try:
-                dest_loc = ''
-                source_loc = 'DFLT'
-                get_default_loc = LocationMaster.objects.filter(zone__user=user.id, zone__zone="DEFAULT")
-                if get_default_loc:
-                    source_loc = get_default_loc[0].location
-                wms_code = get_po_imei_qs.sku.wms_code
-                quantity = 1
-                #cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-                #if not cycle_count:
-                #    cycle_id = 1
-                #else:
-                #    cycle_id = cycle_count[0].cycle + 1
-                #from rest_api.views.inbound import *
-                #import pdb;pdb.set_trace()
-                #dest_loc = get_returns_location('DAMAGED_ZONE', '', user)
-                #if dest_loc:
-                #    dest_loc = dest_loc[0].location
-                #if source_loc and dest_loc:
-                    #move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user)
-            except Exception as e:
-                import traceback
-                receive_po_qc_log.debug(traceback.format_exc())
-                receive_po_qc_log.info("Error Occured in Move to Damage Location" + str(e))
         else:
             po_imei = POIMEIMapping.objects.filter(status=1, sku__user=user_id, imei_number__in=[key])
             if po_imei:
@@ -3100,6 +3076,18 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'rejected_quantity': qty, 'new_quantity': qty,
                                 'total_check_quantity': qty, 'user': user.id, 'data': data}
                             save_po_location(put_zone, temp_dict)
+                            get_imeis = failed_serial_number.get(data.open_po.sku.wms_code, [])
+                            for imei in get_imeis:
+                                po_mapping = POIMEIMapping.objects.filter(imei_number=imei, sku__user=user)
+                                if po_mapping:
+                                    qc_serial_dict = copy.deepcopy(QC_SERIAL_FIELDS)
+                                    qc_serial_dict['serial_number_id'] = po_mapping[0].id
+                                    qc_serial_dict['status'] = 'rejected'
+                                    qc_serial_dict['reason'] = 'Receive PO QC Failed'
+                                    qc_serial = QCSerialMapping(**qc_serial_dict)
+                                    qc_serial.save()
+
+
                     except Exception as e:
                         import traceback
                         receive_po_qc_log.debug(traceback.format_exc())
@@ -5433,10 +5421,13 @@ def check_serial_exists(request, user=''):
 def save_qc_serials(key, scan_data, user, qc_id=''):
     try:
         for scan_value in scan_data:
-            scan_value = scan_value.split(',')
-            scan_value = list(filter(None, scan_value))
-            if not scan_value:
-                continue
+            try:
+                scan_value = scan_value.split(',')
+                scan_value = list(filter(None, scan_value))
+                if not scan_value:
+                    continue
+            except:
+                scan_value = scan_data
             for value in scan_value:
                 if qc_id:
                     imei = value

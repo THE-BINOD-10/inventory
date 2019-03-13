@@ -715,11 +715,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
         vm.service.apiCall(url, 'POST', form_data, true, true).then(function(data){
           if(data.message) {
-            vm.passed_serial_number = {}
-            vm.failed_serial_number = {}
-            vm.collect_imei_details = {}
-            $rootScope.collect_imei_details = {}
             if(data.data.search("<div") != -1) {
+              vm.passed_serial_number = {}
+              $rootScope.collect_imei_details = {}
+              vm.failed_serial_number = {}
+              vm.collect_imei_details = {}
               vm.extra_width = {}
               vm.html = $(data.data);
               vm.extra_width = {}

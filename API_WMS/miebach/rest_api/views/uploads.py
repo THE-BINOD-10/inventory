@@ -3290,7 +3290,6 @@ def combo_sku_upload(request, user=''):
     for row_idx in range(1, open_sheet.nrows):
         for col_idx in range(0, len(COMBO_SKU_EXCEL_HEADERS)):
             cell_data = open_sheet.cell(row_idx, col_idx).value
-
             if col_idx in (0, 1):
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
@@ -3300,14 +3299,15 @@ def combo_sku_upload(request, user=''):
                     sku_data = sku_data[0].sku
                 if not sku_data:
                     sku_data = SKUMaster.objects.filter(sku_code=cell_data, user=user.id)[0]
-
             if col_idx == 0:
                 sku_code = sku_data
 
             if col_idx == 1:
                 combo_data = sku_data
+            if col_idx == 2:
+                quantity = float(cell_data)
 
-        relation_data = {'relation_type': 'combo', 'member_sku': combo_data, 'parent_sku': sku_code}
+        relation_data = {'relation_type': 'combo', 'member_sku': combo_data, 'parent_sku': sku_code , 'quantity' :quantity}
         sku_relation = SKURelation.objects.filter(**relation_data)
         if not sku_relation:
             sku_relation = SKURelation(**relation_data)

@@ -1478,7 +1478,7 @@ SHIPMENT_STATUS = ['Dispatched', 'In Transit', 'Out for Delivery', 'Delivered']
 
 RWO_FIELDS = {'vendor_id': '', 'job_order_id': '', 'status': 1}
 
-COMBO_SKU_EXCEL_HEADERS = ['SKU Code', 'Combo SKU']
+COMBO_SKU_EXCEL_HEADERS = ['SKU Code', 'Combo SKU', 'Combo Quantity']
 
 RWO_PURCHASE_FIELDS = {'purchase_order_id': '', 'rwo_id': ''}
 

@@ -3010,9 +3010,9 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
 @csrf_exempt
 @login_required
 @get_admin_user
-#@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False)
 def confirm_grn(request, confirm_returns='', user=''):
-    #reversion.set_user(request.user)
+    reversion.set_user(request.user)
     data_dict = ''
     headers = (
     'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
@@ -4056,9 +4056,9 @@ def create_update_seller_stock(data, value, user, stock_obj, exc_loc, use_value=
 @csrf_exempt
 @login_required
 @get_admin_user
-#@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False)
 def putaway_data(request, user=''):
-    #reversion.set_user(request.user)
+    reversion.set_user(request.user)
     purchase_order_id = ''
     diff_quan = 0
     all_data = {}
@@ -4832,9 +4832,9 @@ def order_status(request):
 @csrf_exempt
 @login_required
 @get_admin_user
-#@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False)
 def confirm_add_po(request, sales_data='', user=''):
-    #reversion.set_user(request.user)
+    reversion.set_user(request.user)
     ean_flag = False
     po_order_id = ''
     status = ''

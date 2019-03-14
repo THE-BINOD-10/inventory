@@ -9,7 +9,7 @@
           <div><div style="width: 100px;display: block;margin: auto;font-size: 20px;padding: 20px 0px;">Loading...</div></div>
         </div>
         <div class="row mt20">
-          <button type="button" class="btn btn-danger btn-block" style="width:100px;margin: auto;margin-bottom: 10px;" ng-click="(pop.delivery_challan)? pop.service.print_data(pop.pdf_data, ''): pop.service.generate_pdf_file2(pop.pdf_data);">
+          <button type="button" class="btn btn-danger btn-block" style="width:100px;margin: auto;margin-bottom: 10px;" ng-click="pop.service.generate_pdf_dc(pop.pdf_data);">
             <i class="ti-printer mr5"></i>Print
           </button>
         </div>

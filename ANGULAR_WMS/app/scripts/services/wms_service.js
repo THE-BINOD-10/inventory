@@ -936,7 +936,11 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
     return true;
   }
-
+  vm.generate_pdf_dc = function(data){
+    var send = {};
+    send = $(data).html()
+   vm.print_invoice_data(send, "");
+ }
   vm.generate_pdf_file2 = function(data){
     var send = {};
     send = $(".modal-body:visible").html()

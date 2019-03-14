@@ -1478,7 +1478,7 @@ SHIPMENT_STATUS = ['Dispatched', 'In Transit', 'Out for Delivery', 'Delivered']
 
 RWO_FIELDS = {'vendor_id': '', 'job_order_id': '', 'status': 1}
 
-COMBO_SKU_EXCEL_HEADERS = ['SKU Code', 'Combo SKU']
+COMBO_SKU_EXCEL_HEADERS = ['SKU Code', 'Combo SKU', 'Combo Quantity']
 
 RWO_PURCHASE_FIELDS = {'purchase_order_id': '', 'rwo_id': ''}
 
@@ -2038,7 +2038,8 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'order_exceed_stock': 'order_exceed_stock', 'sku_pack_config': 'sku_pack_config',
                         'central_order_reassigning':'central_order_reassigning',
                         'po_sub_user_prefix': 'po_sub_user_prefix', 'combo_allocate_stock': 'combo_allocate_stock',
-                        'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation',
+                        'unique_mrp_putaway': 'unique_mrp_putaway',
+                        'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation'
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

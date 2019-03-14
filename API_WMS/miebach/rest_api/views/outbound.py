@@ -1838,7 +1838,7 @@ def validate_picklist_combos(data, all_picklists, picks_all):
                 else:
                     pick_val = count
                 combo_exists = True
-                grouping_key = str(picklist.order_id)
+                grouping_key = '%s<<>>%s<<>>%s' % (str(picklist.order_id), str(picklist.order.sku_id), str(picklist.order.quantity))
                 if picklist.stock:
                     sku_code = picklist.stock.sku.sku_code
                 else:
@@ -1849,8 +1849,14 @@ def validate_picklist_combos(data, all_picklists, picks_all):
                 count -= pick_val
     if combo_exists:
         for key, value in combo_orders_dict.iteritems():
-            if len(set(value.values())) > 1:
-                combo_status.append({str(key): value.keys()})
+            combo_order_id, combo_sku_id, combo_sku_qty = key.split('<<>>')
+            sku_relation_qtys = dict(SKURelation.objects.filter(parent_sku_id=combo_sku_id).\
+                 values_list('member_sku__sku_code', 'quantity'))
+            confirm_qty = []
+            for key1, val in value.iteritems():
+                confirm_qty.append(val/sku_relation_qtys.get(key1, 1))
+            if len(set(confirm_qty)) > 1:
+                combo_status.append({str(combo_order_id): value.keys()})
     return combo_status, final_data_list
 
 
@@ -2107,7 +2113,7 @@ def picklist_confirmation(request, user=''):
                     picking_count1 = 0  # picking_count
                     wms_id = all_skus.exclude(sku_code='').get(wms_code=val['wms_code'], user=user.id)
                     total_stock = StockDetail.objects.filter(**pic_check_data)
-                    if 'imei' in val.keys() and val['imei'] and picklist.order:
+                    if 'imei' in val.keys() and val['imei'] and picklist.order and val['imei'] != '[]':
                         insert_order_serial(picklist, val)
                     if 'labels' in val.keys() and val['labels'] and picklist.order:
                         update_order_labels(picklist, val)
@@ -4781,21 +4787,6 @@ def create_backorders(backorder_splitup_map, admin_user, sku_total_qty_map):
                     log.info('New (Back) Order Push Status: %s' % (str(resp)))
                 check_and_raise_po(generic_order_id, cm_id, order_detail.id)
 
-
-def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
-    try:
-        order_field_objs = []
-        for key, value in extra_order_fields.iteritems():
-            if value:
-                order_field_objs.append(OrderFields(**{'user': user.id, 'original_order_id': created_order_id,
-                                                       'name': key, 'value': str(value)[:255]}))
-        if order_field_objs:
-            OrderFields.objects.bulk_create(order_field_objs)
-    except Exception as e:
-        import traceback
-        log.debug(traceback.format_exc())
-        log.info('Create order extra fields failed for %s and params are %s and error statement is %s' % (
-        str(user.username), str(extra_order_fields), str(e)))
 
 @csrf_exempt
 @login_required
@@ -14837,7 +14828,16 @@ def generate_picklist_dc(request, user=''):
                                + str(picklist_obj.order.telephone) + "\nEmail: " + str(picklist_obj.order.email_id)
         for val in value:
             order = picklist_obj.order
+            is_combo = False
             sku = order.sku
+            parent_sku_code = sku.sku_code
+            parent_sku_desc = sku.sku_desc
+            if picklist_obj.order_type == 'combo':
+                is_combo = True
+                if picklist_obj.stock:
+                    sku = picklist_obj.stock.sku
+                else:
+                    sku = SKUMaster.objects.filter(sku_code=picklist_obj.sku_code, user=user.id)[0]
             sku_code = sku.sku_code
             sku_desc = sku.sku_desc
             sku_class = sku.sku_class
@@ -14860,8 +14860,9 @@ def generate_picklist_dc(request, user=''):
             batch_no = val.get('batchno', '')
             mfd_date = val.get('manufactured_date', '')
             exp_date = val.get('expiry_date', '')
+            batch_group_data.setdefault(parent_sku_code, {})
             batch_grouping_key = '%s:%s:%s:%s' % (str(sku_code), batch_no, mfd_date, exp_date)
-            batch_group_data.setdefault(batch_grouping_key,
+            batch_group_data[parent_sku_code].setdefault(batch_grouping_key,
                                         {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
                                          'title': title, 'invoice_amount': str(invoice_amount),
                                          'quantity': 0, 'tax': "%.2f" % (_tax),
@@ -14875,12 +14876,13 @@ def generate_picklist_dc(request, user=''):
                                          'discount_percentage': 0, 'id': order.id,
                                          'shipment_date': '', 'sno': 0,
                                          'measurement_type': '',
-                                         'batch_no': batch_no, 'mfd_date': mfd_date, 'exp_date': exp_date})
-            batch_group_data[batch_grouping_key]['quantity'] += float(val['reserved_quantity'])
+                                         'batch_no': batch_no, 'mfd_date': mfd_date, 'exp_date': exp_date,
+                                         'is_combo': is_combo, 'parent_sku_code': parent_sku_code,
+                                         'parent_sku_desc': parent_sku_desc})
+            batch_group_data[parent_sku_code][batch_grouping_key]['quantity'] += float(val['reserved_quantity'])
     invoice_data = {}
-    invoice_data['data'] = batch_group_data.values()
+    invoice_data['data'] = batch_group_data
     invoice_data['total_items'] = len(invoice_data['data'])
-    invoice_data['data'] = pagination(invoice_data['data'])
     invoice_data['username'] = user.username
     invoice_data['extra_order_fields'] = extra_fields
     user_profile = UserProfile.objects.get(user_id=user.id)

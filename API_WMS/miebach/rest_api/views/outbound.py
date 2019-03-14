@@ -1833,7 +1833,7 @@ def validate_picklist_combos(data, all_picklists, picks_all):
                 else:
                     pick_val = count
                 combo_exists = True
-                grouping_key = str(picklist.order_id)
+                grouping_key = '%s<<>>%s<<>>%s' % (str(picklist.order_id), str(picklist.order.sku_id), str(picklist.order.quantity))
                 if picklist.stock:
                     sku_code = picklist.stock.sku.sku_code
                 else:
@@ -1844,8 +1844,14 @@ def validate_picklist_combos(data, all_picklists, picks_all):
                 count -= pick_val
     if combo_exists:
         for key, value in combo_orders_dict.iteritems():
-            if len(set(value.values())) > 1:
-                combo_status.append({str(key): value.keys()})
+            combo_order_id, combo_sku_id, combo_sku_qty = key.split('<<>>')
+            sku_relation_qtys = dict(SKURelation.objects.filter(parent_sku_id=combo_sku_id).\
+                 values_list('member_sku__sku_code', 'quantity'))
+            confirm_qty = []
+            for key1, val in value.iteritems():
+                confirm_qty.append(val/sku_relation_qtys.get(key1, 1))
+            if len(set(confirm_qty)) > 1:
+                combo_status.append({str(combo_order_id): value.keys()})
     return combo_status, final_data_list
 
 
@@ -14843,7 +14849,6 @@ def generate_picklist_dc(request, user=''):
                                          'is_combo': is_combo, 'parent_sku_code': parent_sku_code,
                                          'parent_sku_desc': parent_sku_desc})
             batch_group_data[parent_sku_code][batch_grouping_key]['quantity'] += float(val['reserved_quantity'])
-    print batch_group_data
     invoice_data = {}
     invoice_data['data'] = batch_group_data.values()
     invoice_data['total_items'] = len(invoice_data['data'])

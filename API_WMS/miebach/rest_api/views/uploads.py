@@ -3265,21 +3265,27 @@ def validate_combo_sku_form(open_sheet, user):
                     message = 'SKU Code Missing'
                 if col_idx == 1:
                     message = 'Combo SKU Code Missing'
+                if col_idx == 2 :
+                    message = 'Combo Quantity value missing'
                 index_status.setdefault(row_idx, set()).add(message)
                 continue
-            if isinstance(cell_data, (int, float)):
-                cell_data = int(cell_data)
-            cell_data = str(cell_data)
-
-            sku_master = MarketplaceMapping.objects.filter(marketplace_code=cell_data, sku__user=user)
-            if not sku_master:
-                sku_master = SKUMaster.objects.filter(sku_code=cell_data, user=user)
-            if not sku_master:
-                if col_idx == 0:
-                    message = 'Invalid SKU Code'
-                else:
-                    message = 'Invalid Combo SKU'
-                index_status.setdefault(row_idx, set()).add(message)
+            if col_idx == 2 :
+                if not isinstance(cell_data, (int, float)):
+                    message = 'Quantity must be Number'
+                    index_status.setdefault(row_idx, set()).add(message)
+            else:
+                if isinstance(cell_data, (int, float)):
+                    cell_data = int(cell_data)
+                cell_data = str(cell_data)
+                sku_master = MarketplaceMapping.objects.filter(marketplace_code=cell_data, sku__user=user)
+                if not sku_master:
+                    sku_master = SKUMaster.objects.filter(sku_code=cell_data, user=user)
+                if not sku_master:
+                    if col_idx == 0:
+                        message = 'Invalid SKU Code'
+                    else:
+                        message = 'Invalid Combo SKU'
+                    index_status.setdefault(row_idx, set()).add(message)
 
     if not index_status:
         return 'Success'

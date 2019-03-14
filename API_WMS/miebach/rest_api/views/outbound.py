@@ -14791,7 +14791,16 @@ def generate_picklist_dc(request, user=''):
                                + str(picklist_obj.order.telephone) + "\nEmail: " + str(picklist_obj.order.email_id)
         for val in value:
             order = picklist_obj.order
+            is_combo = False
             sku = order.sku
+            parent_sku_code = sku.sku_code
+            parent_sku_desc = sku.sku_desc
+            if picklist_obj.order_type == 'combo':
+                is_combo = True
+                if picklist_obj.stock:
+                    sku = picklist_obj.stock.sku
+                else:
+                    sku = SKUMaster.objects.filter(sku_code=picklist_obj.sku_code, user=user.id)[0]
             sku_code = sku.sku_code
             sku_desc = sku.sku_desc
             sku_class = sku.sku_class
@@ -14829,7 +14838,9 @@ def generate_picklist_dc(request, user=''):
                                          'discount_percentage': 0, 'id': order.id,
                                          'shipment_date': '', 'sno': 0,
                                          'measurement_type': '',
-                                         'batch_no': batch_no, 'mfd_date': mfd_date, 'exp_date': exp_date})
+                                         'batch_no': batch_no, 'mfd_date': mfd_date, 'exp_date': exp_date,
+                                         'is_combo': is_combo, 'parent_sku_code': parent_sku_code,
+                                         'parent_sku_desc': parent_sku_desc})
             batch_group_data[batch_grouping_key]['quantity'] += float(val['reserved_quantity'])
     invoice_data = {}
     invoice_data['data'] = batch_group_data.values()

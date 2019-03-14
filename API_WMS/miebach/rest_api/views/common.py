@@ -6544,7 +6544,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
     add_mrp_filter = False
     if user.userprofile.industry_type == 'FMCG':
         fefo_enabled = True
-        if user.username == 'milkbasket':
+        if user.username in MILKBASKET_USERS:
             add_mrp_filter = True
     if switch_vals['fifo_switch'] == 'true':
         order_by = 'receipt_date'
@@ -6593,28 +6593,29 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         val_dict['pic_res_ids'] = map(lambda d: d['stock__sku_id'], pick_res_locat)
         val_dict['pic_res_quans'] = map(lambda d: d['total'], pick_res_locat)
 
-        members = [order.sku]
+        if not seller_order:
+            order_check_quantity = float(order.quantity)
+        else:
+            order_check_quantity = float(seller_order.quantity)
+        members = {order.sku: order_check_quantity}
         if order.sku.relation_type == 'combo' and not combo_allocate_stock:
             picklist_data['order_type'] = 'combo'
-            members = []
+            members = OrderedDict()
             combo_data = sku_combos.filter(parent_sku_id=order.sku.id)
-            if not seller_order:
-                order_check_quantity = float(order.quantity)
-            else:
-                order_check_quantity = float(seller_order.quantity)
             for combo in combo_data:
-                members.append(combo.member_sku)
+                member_check_quantity = order_check_quantity * combo.quantity
+                members[combo.member_sku] = member_check_quantity
                 stock_detail, stock_quantity, sku_code = get_sku_stock(combo.member_sku, sku_stocks, user,
                                                                        val_dict, sku_id_stocks,
                                                                        add_mrp_filter=add_mrp_filter,
                                                                        needed_mrp_filter=needed_mrp_filter)
-                if stock_quantity < float(order_check_quantity):
+                if stock_quantity < float(member_check_quantity):
                     if not no_stock_switch:
                         stock_status.append(str(combo.member_sku.sku_code))
-                        members = []
+                        members = {}
                         break
 
-        for member in members:
+        for member, member_qty in members.iteritems():
             stock_detail, stock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
                                                                    sku_id_stocks, add_mrp_filter=add_mrp_filter,
                                                                    needed_mrp_filter=needed_mrp_filter)
@@ -6628,10 +6629,12 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                 stock_detail, stock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
                                                                        sku_id_stocks)
 
-            if not seller_order:
-                order_quantity = float(order.quantity)
-            else:
-                order_quantity = float(seller_order.quantity)
+            order_quantity = member_qty
+            # if not seller_order:
+            #     order_quantity = float(order.quantity)
+            # else:
+            #     order_quantity = float(seller_order.quantity)
+
             if stock_quantity < float(order_quantity):
                 if not no_stock_switch:
                     stock_status.append(str(member.sku_code))

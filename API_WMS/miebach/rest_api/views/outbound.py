@@ -14823,8 +14823,9 @@ def generate_picklist_dc(request, user=''):
             batch_no = val.get('batchno', '')
             mfd_date = val.get('manufactured_date', '')
             exp_date = val.get('expiry_date', '')
+            batch_group_data.setdefault(parent_sku_code, {})
             batch_grouping_key = '%s:%s:%s:%s' % (str(sku_code), batch_no, mfd_date, exp_date)
-            batch_group_data.setdefault(batch_grouping_key,
+            batch_group_data[parent_sku_code].setdefault(batch_grouping_key,
                                         {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
                                          'title': title, 'invoice_amount': str(invoice_amount),
                                          'quantity': 0, 'tax': "%.2f" % (_tax),
@@ -14841,7 +14842,8 @@ def generate_picklist_dc(request, user=''):
                                          'batch_no': batch_no, 'mfd_date': mfd_date, 'exp_date': exp_date,
                                          'is_combo': is_combo, 'parent_sku_code': parent_sku_code,
                                          'parent_sku_desc': parent_sku_desc})
-            batch_group_data[batch_grouping_key]['quantity'] += float(val['reserved_quantity'])
+            batch_group_data[parent_sku_code][batch_grouping_key]['quantity'] += float(val['reserved_quantity'])
+    print batch_group_data
     invoice_data = {}
     invoice_data['data'] = batch_group_data.values()
     invoice_data['total_items'] = len(invoice_data['data'])

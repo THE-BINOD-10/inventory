@@ -2101,6 +2101,8 @@ def picklist_confirmation(request, user=''):
                         save_status = "PASS"
                         try:
                             dispatch_qc(user, send_imei_qc_details, order_id, save_status)
+                            val['imei'] = ','.join(passed_serial_number[picklist.order.sku.wms_code])
+                            insert_order_serial(picklist, val)
                         except Exception as e:
                             import traceback
                             picklist_qc_log.debug(traceback.format_exc())

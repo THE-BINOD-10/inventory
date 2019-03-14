@@ -1129,7 +1129,6 @@ def insert_jo_material_serial(picklist, val, user):
 @login_required
 @get_admin_user
 def rm_picklist_confirmation(request, user=''):
-    # import pdb;pdb.set_trace()
     try:
         log.info('Request params Confirm RM Picklist for user %s are %s' % (user.username,
                                                                        str(dict(request.POST.iterlists()))))
@@ -1193,9 +1192,10 @@ def rm_picklist_confirmation(request, user=''):
                         return HttpResponse("Invalid Location")
                     if 'imei_numbers' in val.keys():
                         insert_jo_material_serial(picklist, val, user)
-                    batchno = ''
-                    batchno = val['batchno']
-                    stock_dict = {'sku_id': sku.id, 'location_id': location[0].id, 'sku__user': user.id ,'batch_detail__batch_no':batchno}
+                    batchno = val.get('batchno', '')
+                    stock_dict = {'sku_id': sku.id, 'location_id': location[0].id, 'sku__user': user.id}
+                    if batchno:
+                        stock_dict['batch_detail__batch_no'] = batchno
                     stock_detail = StockDetail.objects.filter(**stock_dict)
                     for stock in stock_detail:
                         if picking_count == 0:
@@ -1303,6 +1303,7 @@ def rm_picklist_confirmation(request, user=''):
                                                                     (str(user.username),
                                                                      str(dict(request.POST.iterlists())),
                                                                     str(e)))
+        return HttpResponse('Picklist Confirmation Failed')
 
 
 def validate_jo_stock(all_data, user, job_code):

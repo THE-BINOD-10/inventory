@@ -27,7 +27,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'auto_raise_stock_transfer': false, 'inbound_supplier_invoice': false, 'customer_dc': false,
                     'mark_as_delivered': false, 'order_exceed_stock': false, 'receive_po_mandatory_fields': false,
                     'sku_pack_config': false, 'central_order_reassigning':false, 'po_sub_user_prefix': false,
-                    'combo_allocate_stock': false, 'sno_in_invoice':false,
+                    'combo_allocate_stock': false, 'sno_in_invoice': false, 'unique_mrp_putaway': false,
                     'generate_delivery_challan_before_pullConfiramation':false
                   };
   vm.all_mails = '';
@@ -51,7 +51,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      68: 'mark_as_delivered', 69: 'receive_po_mandatory_fields', 70: 'central_order_mgmt',
                      71: 'order_exceed_stock',72:'invoice_declaration',73:'central_order_reassigning',
                      74: 'sku_pack_config', 75: 'po_sub_user_prefix', 76: 'combo_allocate_stock', 77:'sno_in_invoice', 78:'raisepo_terms_conditions',
-                     79: 'generate_delivery_challan_before_pullConfiramation'}
+                     79: 'generate_delivery_challan_before_pullConfiramation', 80: 'unique_mrp_putaway'}
 
   vm.check_box_data = [
     {
@@ -436,6 +436,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
      name: "Sno(Sequence Number) in Invoice",
      model_name: "sno_in_invoice",
      param_no: 77,
+     class_name: "fa fa-server",
+     display: true
+   },
+   {
+     name: "Unique MRP in Putaway",
+     model_name: "unique_mrp_putaway",
+     param_no: 80,
      class_name: "fa fa-server",
      display: true
    },

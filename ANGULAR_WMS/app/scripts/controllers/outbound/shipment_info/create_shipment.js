@@ -503,11 +503,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                  vm.update_imei_data(data.data, imei);
                 //vm.check_equal(data2);
                } else {
-		 if (data.data.status) {
                      vm.service.showNoty(data.data.status);
-		 } else {
-		     vm.service.showNoty("Invalid IMEI Number");
-		 }
                }
 	       */
                vm.imei_number = "";

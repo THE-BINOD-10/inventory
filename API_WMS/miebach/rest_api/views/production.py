@@ -912,6 +912,7 @@ def get_raw_picklist_data(data_id, user):
             zone = 'NO STOCK'
             sequence = 0
             stock_id = ''
+            batch_no = ''
             if location.stock:
                 location_name = location.stock.location.location
                 pallet_detail = location.stock.pallet_detail

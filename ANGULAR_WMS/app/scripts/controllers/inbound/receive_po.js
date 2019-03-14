@@ -714,8 +714,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           url = "confirm_receive_qc/"
         }
         vm.service.apiCall(url, 'POST', form_data, true, true).then(function(data){
-          if(data.message) {
-            if(data.data.search("<div") != -1) {
+          if (data.message) {
+            if (data.data.search("<div") != -1) {
               vm.passed_serial_number = {}
               $rootScope.collect_imei_details = {}
               vm.failed_serial_number = {}
@@ -732,6 +732,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 fb.generate = true;
                 fb.remove_po(fb.poData["id"]);
               }
+            } else if(data.data.search("Success") != -1) {
+              vm.passed_serial_number = {}
+              $rootScope.collect_imei_details = {}
+              vm.failed_serial_number = {}
+              vm.collect_imei_details = {}
+              vm.extra_width = {}
+              vm.print_enable = true;
+              vm.service.refresh(vm.dtInstance);
+              vm.close();
             } else {
               pop_msg(data.data)
             }

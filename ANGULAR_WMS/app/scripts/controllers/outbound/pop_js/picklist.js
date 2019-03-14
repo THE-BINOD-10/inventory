@@ -134,21 +134,6 @@ function view_orders() {
 }
 */
 
-  vm.getrecordSerialnumber = function(rowdata) {
-      for(var i=0; i < vm.model_data.data.length; i++) {
-        if(vm.model_data.data[i].wms_code == rowdata.wms_code) {
-          if(!vm.model_data.data[i].hasOwnProperty('sku_imeis_map')) {
-            return false
-          }
-      if (vm.model_data.data[i]['sku_imeis_map'].hasOwnProperty(vm.model_data.data[i].wms_code)) {
-            angular.copy(vm.model_data.data[i]['sku_imeis_map'][vm.model_data.data[i].wms_code].sort(), vm.record_serial_data);
-      }
-        }
-      }
-    vm.record_serial_data = $.map(vm.record_serial_data, function(n,i){return n.toUpperCase();});
-      return true
-    }
-
     vm.getrecordSerialnumber = function(rowdata) {
       var record_serial_data = []
       for(var i=0; i < vm.model_data.data.length; i++) {

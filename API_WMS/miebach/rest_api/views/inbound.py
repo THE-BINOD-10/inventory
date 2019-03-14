@@ -2712,6 +2712,8 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
     po_data = []
     status_msg = ''
     data_dict = ''
+    purchase_data = {}
+    data = {}
     remarks = request.POST.get('remarks', '')
     expected_date = request.POST.get('expected_date', '')
     remainder_mail = request.POST.get('remainder_mail', '')
@@ -2738,7 +2740,10 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
         if failed_qty_dict:
             wms_code = myDict['wms_code'][i]
             failed_qty = len(failed_qty_dict.get(wms_code, 0))
-            value = int(myDict['quantity'][i]) - failed_qty
+            if int(myDict['quantity'][i]):
+                value = int(myDict['quantity'][i]) - failed_qty
+            else:
+                value = 0
             myDict['quantity'][i] = str(value)
         else:
             value = myDict['quantity'][i]

@@ -1161,7 +1161,7 @@ class SkuTypeMapping(models.Model):
 
 class QCSerialMapping(models.Model):
     id = BigAutoField(primary_key=True)
-    quality_check = models.ForeignKey(QualityCheck, default='')
+    quality_check = models.ForeignKey(QualityCheck, blank=True, null=True)
     serial_number = models.ForeignKey(POIMEIMapping)
     status = models.CharField(max_length=32, default='')
     reason = models.CharField(max_length=64, default='')

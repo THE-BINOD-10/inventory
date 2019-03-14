@@ -4,7 +4,7 @@
   <style>
     {% include 'toggle/page1.css' %}
   </style>
-  {% for page in data %}
+  <!-- {% for page in data %} -->
   <div class="print-invoice2 mb20">
     <div class="invoice-body">
       <table class="table table-bordered m0">
@@ -134,18 +134,52 @@
           </tr>
         </thead>
         <tbody>
-          {% for record in page %}
+          {% for key ,value in data.items %}
+           {% with sno=forloop.counter %}
+          {% for ckey ,cvalue in value.items %}
+            {% if  forloop.counter == 1 %}
+              {% if cvalue.is_combo  %}
+            <tr class="fs14 rm-border">
+              <td class="text-left">{{sno}}</td>
+              <td class="text-left"><b>{{cvalue.parent_sku_code}}</b></td>
+              <td class="text-left"><div class="wrap"><b>{{cvalue.parent_sku_desc}}</b></div></td>
+              <td class="text-right"></td>
+              <td class="text-right"></td>
+              <td class="text-right"></td>
+              <td class="text-right"></td>
+              <td class="text-right"></td>
+            </tr>
+            {% else %}
+            <tr class="fs14 rm-border">
+              <td class="text-left">{{sno}}</td>
+              <td class="text-left"><b>{{cvalue.sku_code}}<b></td>
+              <td class="text-left"><b><div class="wrap">{{cvalue.title}}<b></div></td>
+              <td class="text-right"></td>
+              <td class="text-right"><b>{{cvalue.batch_no}}<b></td>
+              <td class="text-right"><b>{{cvalue.mfd_date}}<b></td>
+              <td class="text-right">{{cvalue.exp_date}}</td>
+              <td class="text-right"> {{cvalue.quantity}} </td>
+            </tr>
+          {% endif %}
+            {% endif %}
+            {% if  cvalue.is_combo  %}
           <tr class="fs14 rm-border">
-            <td class="text-left">{{record.index}}</td>
-            <td class="text-left">{{record.sku_code}}</td>
-            <td class="text-left"><div class="wrap">{{record.title}}</div></td>
+            <td class="text-left"></td>
+            <td class="text-left">{{cvalue.sku_code}}</td>
+            <td class="text-left"><div class="wrap">{{cvalue.title}}</div></td>
             <td class="text-right"></td>
-            <td class="text-right">{{record.batch_no}}</td>
-            <td class="text-right">{{record.mfd_date}}</td>
-            <td class="text-right">{{record.exp_date}}</td>
-            <td class="text-right"> {{record.quantity}} </td>
+            <td class="text-right">{{cvalue.batch_no}}</td>
+            <td class="text-right">{{cvalue.mfd_date}}</td>
+            <td class="text-right">{{cvalue.exp_date}}</td>
+            <td class="text-right"> {{cvalue.quantity}} </td>
           </tr>
+          {% endif  %}
           {% endfor %}
+          {% endwith %}
+          {% endfor %}
+
+
+
           {% if forloop.last %}
           <tr style="border-top: 1px solid black;">
             <td></td>
@@ -179,5 +213,5 @@
       </table>
     </div>
   </div>
-  {% endfor %}
+  <!-- {% endfor %} -->
 </div>

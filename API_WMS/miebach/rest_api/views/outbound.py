@@ -14845,9 +14845,8 @@ def generate_picklist_dc(request, user=''):
             batch_group_data[parent_sku_code][batch_grouping_key]['quantity'] += float(val['reserved_quantity'])
     print batch_group_data
     invoice_data = {}
-    invoice_data['data'] = batch_group_data.values()
+    invoice_data['data'] = batch_group_data
     invoice_data['total_items'] = len(invoice_data['data'])
-    invoice_data['data'] = pagination(invoice_data['data'])
     invoice_data['username'] = user.username
     invoice_data['extra_order_fields'] = extra_fields
     user_profile = UserProfile.objects.get(user_id=user.id)

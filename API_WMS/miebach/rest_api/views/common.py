@@ -807,6 +807,12 @@ def configurations(request, user=''):
 
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
     config_dict['all_stages'] = str(','.join(all_stages))
+    order_field_obj =  MiscDetail.objects.filter(user=user.id,misc_type='extra_order_fields')
+    extra_order_fields = get_misc_value('extra_order_fields', user.id)
+    if extra_order_fields == 'false' :
+        config_dict['all_order_fields'] = ''
+    else:
+        config_dict['all_order_fields'] = extra_order_fields
 
     if config_dict['mail_alerts'] == 'false':
         config_dict['mail_alerts'] = 0
@@ -2212,7 +2218,26 @@ def save_stages(request, user=''):
                                           status__in=['grn-generated', 'pick_confirm']).values_list('id', flat=True)
         StatusTracking.objects.filter(status_value=stage, status_id__in=job_ids, status_type='JO').delete()
     return HttpResponse("Saved Successfully")
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_order_extra_fields(request, user=''):
+    order_extra_fields = request.GET.get('extra_order_fields', '')
+    misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='extra_order_fields')
+    try:
+        if not misc_detail.exists():
+             MiscDetail.objects.create(user=user.id,misc_type='extra_order_fields',misc_value=order_extra_fields)
+        else:
+            misc_detail_obj = misc_detail[0]
+            misc_detail_obj.misc_value = order_extra_fields
+            misc_detail_obj.save()
+    except:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Issue for ' + request)
+        return HttpResponse("Something Went Wrong")
 
+    return HttpResponse("Saved Successfully")
 
 @csrf_exempt
 @login_required
@@ -2264,7 +2289,7 @@ def search_batches(request, user=''):
     data_id = request.GET.get('q', '')
     row_data = json.loads(request.GET.get('type'))
     search_params = {'sku__user': user.id}
-    if row_data['wms_code']:
+    if row_data.get('wms_code', ''):
         search_params['sku__sku_code'] =  row_data['wms_code']
 
     if row_data['location']:
@@ -2273,7 +2298,7 @@ def search_batches(request, user=''):
             return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Location'}))
         search_params['location__location'] = row_data['location']
 
-    if row_data['pallet_code']:
+    if row_data.get('pallet_code', ''):
         search_params['pallet_detail__pallet_code'] = row_data['pallet_code']
         stock_detail = StockDetail.objects.exclude(
             Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
@@ -2297,8 +2322,11 @@ def search_batches(request, user=''):
                 batchno =  stock.batch_detail.batch_no
             except:
                 batchno  = ''
-
-            total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
+            try:
+                expiry_date = datetime.datetime.strftime(stock.batch_detail.expiry_date, "%d/%m/%Y")
+            except:
+                expiry_date = ''
+            total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date ,'expiry_date':expiry_date})
 
     return HttpResponse(json.dumps(total_data))
 
@@ -6516,7 +6544,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
     add_mrp_filter = False
     if user.userprofile.industry_type == 'FMCG':
         fefo_enabled = True
-        if user.username == 'milkbasket':
+        if user.username in MILKBASKET_USERS:
             add_mrp_filter = True
     if switch_vals['fifo_switch'] == 'true':
         order_by = 'receipt_date'
@@ -6565,28 +6593,29 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         val_dict['pic_res_ids'] = map(lambda d: d['stock__sku_id'], pick_res_locat)
         val_dict['pic_res_quans'] = map(lambda d: d['total'], pick_res_locat)
 
-        members = [order.sku]
+        if not seller_order:
+            order_check_quantity = float(order.quantity)
+        else:
+            order_check_quantity = float(seller_order.quantity)
+        members = {order.sku: order_check_quantity}
         if order.sku.relation_type == 'combo' and not combo_allocate_stock:
             picklist_data['order_type'] = 'combo'
-            members = []
+            members = OrderedDict()
             combo_data = sku_combos.filter(parent_sku_id=order.sku.id)
-            if not seller_order:
-                order_check_quantity = float(order.quantity)
-            else:
-                order_check_quantity = float(seller_order.quantity)
             for combo in combo_data:
-                members.append(combo.member_sku)
+                member_check_quantity = order_check_quantity * combo.quantity
+                members[combo.member_sku] = member_check_quantity
                 stock_detail, stock_quantity, sku_code = get_sku_stock(combo.member_sku, sku_stocks, user,
                                                                        val_dict, sku_id_stocks,
                                                                        add_mrp_filter=add_mrp_filter,
                                                                        needed_mrp_filter=needed_mrp_filter)
-                if stock_quantity < float(order_check_quantity):
+                if stock_quantity < float(member_check_quantity):
                     if not no_stock_switch:
                         stock_status.append(str(combo.member_sku.sku_code))
-                        members = []
+                        members = {}
                         break
 
-        for member in members:
+        for member, member_qty in members.iteritems():
             stock_detail, stock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
                                                                    sku_id_stocks, add_mrp_filter=add_mrp_filter,
                                                                    needed_mrp_filter=needed_mrp_filter)
@@ -6600,10 +6629,12 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                 stock_detail, stock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
                                                                        sku_id_stocks)
 
-            if not seller_order:
-                order_quantity = float(order.quantity)
-            else:
-                order_quantity = float(seller_order.quantity)
+            order_quantity = member_qty
+            # if not seller_order:
+            #     order_quantity = float(order.quantity)
+            # else:
+            #     order_quantity = float(seller_order.quantity)
+
             if stock_quantity < float(order_quantity):
                 if not no_stock_switch:
                     stock_status.append(str(member.sku_code))
@@ -8740,7 +8771,7 @@ def insert_st_gst(all_data, user):
 def confirm_stock_transfer_gst(all_data, user, warehouse_name):
     warehouse = User.objects.get(username__iexact=warehouse_name)
     for key, value in all_data.iteritems():
-        po_id = get_purchase_order_id(user)
+        po_id = get_purchase_order_id(user) + 1
         stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
         if stock_transfer_obj:
             order_id = int(stock_transfer_obj[0].order_id) + 1
@@ -8755,7 +8786,7 @@ def confirm_stock_transfer_gst(all_data, user, warehouse_name):
                 prefix = user_profile[0].prefix
             po_dict = {'order_id': po_id, 'received_quantity': 0, 'saved_quantity': 0,
                        'po_date': datetime.datetime.now(), 'ship_to': '',
-                       'status': '', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
+                       'status': 'stock-transfer', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
             po_order = PurchaseOrder(**po_dict)
             po_order.save()
             st_purchase_dict = {'po_id': po_order.id, 'open_st_id': open_st.id,
@@ -9011,3 +9042,65 @@ def cancel_emiza_order(gen_ord_id, cm_id):
             order_det.status = 3
             order_det.save()
     gen_qs.delete()
+
+
+def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked):
+    try:
+        st_po = stock_transfer.st_po
+        temp_json = copy.deepcopy(PO_TEMP_JSON_DEF)
+        if st_po:
+            po = st_po.po
+            open_st = st_po.open_st
+            if po and po.status not in ['confirmed-putaway']:
+                if po.status == 'stock-transfer':
+                    po.status = ''
+                    po.save()
+                exist_temp_json_objs = TempJson.objects.filter(model_id=po.id, model_name='PO').\
+                                exclude(model_json__icontains='"is_stock_transfer": "true"')
+                if exist_temp_json_objs.exists():
+                    exist_temp_json_objs.delete()
+                temp_json['id'] = po.id
+                temp_json['unit'] = open_st.sku.measurement_type
+                temp_json['supplier_id'] = open_st.warehouse_id
+                temp_json['buy_price'] = open_st.price
+                temp_json['price'] = open_st.price
+                temp_json['po_quantity'] = open_st.order_quantity
+                temp_json['quantity'] = update_picked
+                temp_json['wms_code'] = open_st.sku.wms_code
+                temp_json['tax_percent'] = open_st.cgst_tax + open_st.sgst_tax + open_st.igst_tax
+                temp_json['mrp'] = 0
+                temp_json['mfg_date'] = ''
+                temp_json['exp_date'] = ''
+                temp_json['weight'] = ''
+                temp_json['is_stock_transfer'] = 'true'
+                if stock.batch_detail:
+                    batch_detail = stock.batch_detail
+                    temp_json['mrp'] = batch_detail.mrp
+                    temp_json['weight'] = batch_detail.weight
+                    temp_json['batch_no'] = batch_detail.batch_no
+                    if batch_detail.manufactured_date:
+                        temp_json['mfg_date'] = batch_detail.manufactured_date.strftime('%m/%d/%Y')
+                    if batch_detail.expiry_date:
+                        temp_json['exp_date'] = batch_detail.expiry_date.strftime('%m/%d/%Y')
+                TempJson.objects.create(model_id=po.id, model_name='PO', model_json=json.dumps(temp_json))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Adding stock transfer batch detail data failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(stock_transfer.__dict__), str(e)))
+
+
+def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
+    try:
+        order_field_objs = []
+        for key, value in extra_order_fields.iteritems():
+            if value:
+                order_field_objs.append(OrderFields(**{'user': user.id, 'original_order_id': created_order_id,
+                                                       'name': key, 'value': str(value)[:255]}))
+        if order_field_objs:
+            OrderFields.objects.bulk_create(order_field_objs)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Create order extra fields failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(extra_order_fields), str(e)))

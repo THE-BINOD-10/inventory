@@ -1014,6 +1014,7 @@ def switches(request, user=''):
                        'sno_in_invoice':'sno_in_invoice',
                        'po_sub_user_prefix': 'po_sub_user_prefix',
                        'combo_allocate_stock': 'combo_allocate_stock',
+                       'unique_mrp_putaway': 'unique_mrp_putaway',
                        'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation'
                        }
         toggle_field, selection = "", ""
@@ -1758,7 +1759,9 @@ def get_supplier_data(request, user=''):
                                     'batch_no': temp_json.get('batch_no', ''),
                                     'mfg_date': temp_json.get('mfg_date', ''),
                                     'exp_date': temp_json.get('exp_date', ''),
-                                    'pallet_number': temp_json.get('pallet_number', '')}])
+                                    'pallet_number': temp_json.get('pallet_number', ''),
+                                    'is_stock_transfer': temp_json.get('is_stock_transfer', ''),
+                                    }])
             else:
                 orders.append([{ 'order_id': order.id, 'wms_code': order_data['wms_code'],
                                 'sku_desc': order_data['sku_desc'], 'weight': weight,
@@ -1780,7 +1783,7 @@ def get_supplier_data(request, user=''):
                                  'tax_percent_copy': tax_percent_copy, 'temp_json_id': '',
                                  'buy_price': order_data['price'],
                                  'discount_percentage': 0, 'batch_no': '', 'mfg_date': '', 'exp_date': '',
-                                 'pallet_number': ''
+                                 'pallet_number': '', 'is_stock_transfer': ''
                                  }])
     supplier_name, order_date, expected_date, remarks = '', '', '', ''
     if purchase_orders:
@@ -2181,7 +2184,8 @@ def save_update_order(location_quantity, location_data, temp_dict, user_check, u
     location_data['creation_date'] = datetime.datetime.now()
     location_data['quantity'] = location_quantity
     if 'qc_data' not in temp_dict.keys():
-        if not po_loc or user_check == 'purchase_order__open_po__sku__user':
+        if not po_loc or user_check in ['purchase_order__open_po__sku__user',
+                                        'purchase_order__stpurchaseorder__open_st__sku__user']:
             location_data['original_quantity'] = location_quantity
             po_loc = POLocation(**location_data)
             po_loc.save()
@@ -2290,6 +2294,8 @@ def save_po_location(put_zone, temp_dict, seller_received_list=[], run_segregati
                 user_check = 'location__zone__user'
                 if data.open_po:
                     user_check = 'purchase_order__open_po__sku__user'
+                if data.stpurchaseorder_set.filter().exists():
+                    user_check = 'purchase_order__stpurchaseorder__open_st__sku__user'
                 po_loc = save_update_order(location_quantity, location_data, temp_dict, user_check, user)
                 #Batch Details Creation
                 batch_dict['transact_type'] = 'po_loc'
@@ -2454,6 +2460,17 @@ def get_seller_receipt_id(purchase_order):
     return receipt_number
 
 
+def get_st_seller_receipt_id(purchase_order):
+    receipt_number = 1
+    open_st = purchase_order.stpurchaseorder_set.filter()[0].open_st
+    summary = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user=open_st.sku.user,
+                                             purchase_order__order_id = purchase_order.order_id).\
+                                        order_by('-creation_date')
+    if summary:
+        receipt_number = int(summary[0].receipt_number) + 1
+    return receipt_number
+
+
 def create_update_primary_segregation(data, quantity, temp_dict, batch_obj=None, sps_id=''):
     if not batch_obj and not 'quality_check' in temp_dict.keys():
         primary_filt_dict = {'purchase_order_id': data.id}
@@ -2493,12 +2510,15 @@ def create_update_primary_segregation(data, quantity, temp_dict, batch_obj=None,
                 segregation_obj = PrimarySegregation.objects.create(**primary_seg_dict)
 
 def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number='', invoice_date=None,
-                     challan_number='', challan_date=None, dc_level_grn='', round_off_total=0, batch_dict=None):
+                     challan_number='', challan_date=None, dc_level_grn='', round_off_total=0,
+                     batch_dict=None, po_type='po'):
     if not receipt_id:
         return
     if not batch_dict:
         batch_dict = {}
-    seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id)
+    seller_pos = []
+    if data.open_po:
+        seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id)
     seller_received_list = []
     #invoice_number = int(invoice_number)
     if not invoice_date and not dc_level_grn:
@@ -2545,7 +2565,7 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
         if offer_applicable == 'true':
             remarks_list.append("offer_applied")
     remarks = ','.join(remarks_list)
-    if user.userprofile.user_type == 'warehouse_user':
+    if user.userprofile.user_type == 'warehouse_user' or po_type == 'st':
         seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,
                                                                            invoice_number=invoice_number,
                                                                            quantity=value,
@@ -2562,9 +2582,17 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                            apmc_tax=apmc_tax,
                                                                            overall_discount=overall_discount,
                                                                            remarks = remarks)
-        seller_received_list.append(
+        temp_seller_rec_dict = {'seller_id': '', 'quantity': value, 'id': seller_po_summary.id,
+                                'remarks': remarks}
+        if po_type == 'st':
+            temp_open_st = data.stpurchaseorder_set.filter()[0].open_st
+            temp_seller_rec_dict['sku_id'] = temp_open_st.sku_id
+        else:
+            temp_seller_rec_dict['sku_id'] = data.open_po.sku_id
+        seller_received_list.append(temp_seller_rec_dict)
+        '''seller_received_list.append(
             {'seller_id': '', 'sku_id': data.open_po.sku_id, 'quantity': value,
-             'id': seller_po_summary.id, 'remarks': remarks})
+             'id': seller_po_summary.id, 'remarks': remarks})'''
     else:
         for sell_po in seller_pos:
             if not value:
@@ -2830,14 +2858,20 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         data.saved_quantity = 0
 
         seller_received_list = []
-        if data.open_po:
+        if data.open_po or data.stpurchaseorder_set.filter():
+            po_type = 'po'
+            if data.stpurchaseorder_set.filter():
+                po_type = 'st'
             if not seller_receipt_id:
-                seller_receipt_id = get_seller_receipt_id(data)
+                if po_type == 'po':
+                    seller_receipt_id = get_seller_receipt_id(data)
+                else:
+                    seller_receipt_id = get_st_seller_receipt_id(data)
             seller_received_list = update_seller_po(data, value, user, myDict, i, receipt_id=seller_receipt_id,
                                                     invoice_number=invoice_number, invoice_date=bill_date,
                                                     challan_number=challan_number, challan_date=challan_date,
                                                     dc_level_grn=dc_level_grn, round_off_total=round_off_total,
-                                                    batch_dict=batch_dict)
+                                                    batch_dict=batch_dict, po_type=po_type)
         if 'wms_code' in myDict.keys():
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
@@ -3738,11 +3772,18 @@ def get_received_orders(request, user=''):
 
 def validate_putaway(all_data, user):
     status = ''
-    back_order = 'false'
-    misc_data = MiscDetail.objects.filter(user=user.id, misc_type='back_order')
-    if misc_data:
-        back_order = misc_data[0].misc_value
-
+    back_order = get_misc_value('back_order', user.id)
+    unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
+    validate_po_id = ''
+    validate_seller_id = ''
+    if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+	get_values = all_data.keys()
+	if get_values:
+	    validate_po_id = get_values[0][2]
+	if validate_po_id:
+	    po_location = POLocation.objects.filter(location__zone__user=user.id, purchase_order_id = validate_po_id)
+	    for pol in po_location:
+	        validate_seller_id = pol.purchase_order.open_po.sellerpo_set.filter()[0].seller_id
     for key, value in all_data.iteritems():
         if not key[1]:
             status = 'Location is Empty, Enter Location'
@@ -3783,6 +3824,25 @@ def validate_putaway(all_data, user):
 
             else:
                 status = 'Enter Valid Location'
+
+        if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            collect_sku_mrp_map = []
+            collect_dict_form = {}
+            collect_all_sellable_location = list(LocationMaster.objects.filter(zone__segregation='sellable',  zone__user=user.id, status=1).values_list('location', flat=True))
+            if key[1] in collect_all_sellable_location:
+                sku_mrp_map = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku__wms_code=key[4]).filter(sellerstock__seller_id=validate_seller_id).exclude(batch_detail__mrp=None).values_list('sku__wms_code', 'batch_detail__mrp').distinct()
+                if sku_mrp_map:
+                    collect_sku_mrp_map = ['<#>'.join([str(one), str(two)]) for one, two in sku_mrp_map]
+                    for one, two in sku_mrp_map:
+                        sku_code = str(one)
+                        mrp = str(two)
+                        if sku_code in collect_dict_form.keys():
+                            collect_dict_form[sku_code].append(mrp)
+                        else:
+                            collect_dict_form[sku_code] = [mrp]
+                    if key[4] in collect_dict_form.keys():
+                        if not str(float(key[5])) in collect_dict_form[key[4]]:
+                            status = 'For SKU '+ key[4] +', MRPs ' + ','.join(collect_dict_form[key[4]]) + ' are only accepted'
     return status
 
 
@@ -3949,17 +4009,15 @@ def putaway_data(request, user=''):
                 myDict['orig_data'][i] = eval(myDict['orig_data'][i])
                 for orig_data in myDict['orig_data'][i]:
                     cond = (orig_data['orig_id'], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i],
-                            myDict['wms_code'][i])
+                            myDict['wms_code'][i], myDict['mrp'][i])
                     all_data.setdefault(cond, 0)
                     all_data[cond] += float(orig_data['orig_quantity'])
             else:
-                cond = (
-                myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
+                cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i], myDict['mrp'][i])
                 all_data.setdefault(cond, 0)
                 if not myDict['quantity'][i]:
                     myDict['quantity'][i] = 0
                 all_data[cond] += float(myDict['quantity'][i])
-
         all_data = OrderedDict(sorted(all_data.items(), reverse=True))
         status = validate_putaway(all_data, user)
         if status:
@@ -5017,8 +5075,8 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
     attachments = ''
     if html_data:
         attachments = create_mail_attachments(f_name, html_data)
-    internal_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='Internal Emails')
-    misc_internal_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='internal_mail', misc_value='true')
+    internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='Internal Emails')
+    misc_internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='internal_mail', misc_value='true')
     if misc_internal_mail and internal_mail:
         internal_mail = internal_mail[0].misc_value.split(",")
         receivers.extend(internal_mail)
@@ -6797,6 +6855,7 @@ def confirm_primary_segregation(request, user=''):
                     put_zone = update_remarks_put_zone(seller_received.get('remarks', ''), user, put_zone,
                                                        seller_summary_id=seller_received.get('id', ''))
                     seller_received_dict[seller_index]['put_zone'] = put_zone
+                    seller_summary_dict[seller_index]['put_zone'] = put_zone
                 save_po_location(put_zone, temp_dict, seller_received_list=seller_summary_dict, run_segregation=False,
                                  batch_dict=batch_dict)
             non_sellable_qty = get_decimal_limit(user.id, (float(segregation_obj.non_sellable) + non_sellable))
@@ -8660,7 +8719,7 @@ def get_grn_level_data(request, user=''):
     po_data = []
     try:
         po_number = request.GET['po_number']
-        temp = po_number.split('_')[1]
+        temp = po_number.split('_')[-1]
         temp1 = temp.split('/')
         receipt_no = ''
         if len(temp1) > 1:

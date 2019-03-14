@@ -7,6 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
     var vm = this;
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
+    vm.customertype = Session.user_profile.industry_type
     vm.tb_data = {};
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -311,12 +312,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
   vm.check_imei_exists = function(event, data1, index, innerIndex) {
     event.stopPropagation();
     if (event.keyCode == 13 && data1.imei_number.length > 0) {
+      data1.imei_number = data1.imei_number.toUpperCase();
       // if(vm.permissions.barcode_generate_opt != "sku_serial") {
       var temp_dict = {'is_rm_picklist': true}
       temp_dict[data1.id] = data1.imei_number
       vm.service.apiCall('check_imei/', 'GET', temp_dict).then(function(data){
         if(data.message) {
-          if (!data.data.status && data1.wms_code == data.data.data.sku_code) {
+          if (data.data.status == 'Success' && data1.wms_code == data.data.data.sku_code) {
             // data1.received_quantity = Number(sku.received_quantity) + 1;
             // data1.imei_number = data.data.data.label;
             let skuWiseQtyTotal = 0;

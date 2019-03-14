@@ -126,6 +126,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.wait_imei = "";
     vm.scan_imei = function(event, field) {
       if ( event.keyCode == 13 && field.length > 0) {
+        field = field.toUpperCase();
         if(vm.imei_list.indexOf(field) == -1) {
           var data = {imei: field, order_id: vm.model_data.order_id};
           vm.service.apiCall('check_imei_qc/', 'GET', data).then(function(data){
@@ -329,6 +330,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.status_imei = "";
     vm.status_scan_imei = function(event, field) {
       if ( event.keyCode == 13 && field.length > 0) {
+        field = field.toUpperCase();
         var data = {imei: field, order_id: vm.model_data.order_id};
         if(vm.imei_list.indexOf(field) != -1) {
           vm.status_move_imei(field);

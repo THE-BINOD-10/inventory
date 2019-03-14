@@ -473,7 +473,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
 
 
 @csrf_exempt
-def get_customer_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user): 
+def get_customer_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     sno = 0
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     gateout = request.POST.get('gateout', '')
@@ -868,9 +868,10 @@ def get_picklist_data(data_id, user_id):
             original_order_id = ''
             order_id = ''
             order_code = ''
-            mrp = ''
+            mrp = 0
             batch_no = ''
             manufactured_date =''
+            expiry_date = ''
             courier_name = ''
             if order.stock:
                 stock_id = pick_stocks.get(id=order.stock_id)
@@ -895,6 +896,7 @@ def get_picklist_data(data_id, user_id):
                 customer_order_summary = order.order.customerordersummary_set.filter()
                 if customer_order_summary:
                     courier_name = customer_order_summary[0].courier_name
+                    mrp = customer_order_summary[0].mrp
             else:
                 st_order = STOrder.objects.filter(picklist_id=order.id)
                 sku_code = ''
@@ -930,12 +932,16 @@ def get_picklist_data(data_id, user_id):
                 load_unit_handle = stock_id.sku.load_unit_handle
                 category = stock_id.sku.sku_category
                 if stock_id.batch_detail:
-                    mrp = stock_id.batch_detail.mrp
+                    #mrp = stock_id.batch_detail.mrp
                     batch_no = stock_id.batch_detail.batch_no
                     try:
                         manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
                     except:
                         manufactured_date =''
+                    try:
+                        expiry_date = datetime.datetime.strftime(stock_id.batch_detail.expiry_date, "%d/%m/%Y")
+                    except:
+                        expiry_date =''
             match_condition = (location, batch_no, manufactured_date,pallet_detail, wms_code, sku_code, title)
             if match_condition not in batch_data:
                 if order.reserved_quantity == 0:
@@ -963,10 +969,11 @@ def get_picklist_data(data_id, user_id):
                                                'customer_name': customer_name, 'customer_address': customer_address,
                                                'marketplace': marketplace,
                                                'manufactured_date':manufactured_date,
+                                               'expiry_date': expiry_date,
                                                'order_no': order_id, 'remarks': remarks,
                                                'load_unit_handle': load_unit_handle, 'category': category,
                                                'original_order_id': original_order_id, 'mrp':mrp,
-                                               'batchno':batch_no, 'is_combo_picklist': is_combo_picklist}
+                                               'batchno':batch_no, 'is_combo_picklist': is_combo_picklist, 'sku_imeis_map': sku_imeis_map}
             else:
                 batch_data[match_condition]['reserved_quantity'] += order.reserved_quantity
                 batch_data[match_condition]['picked_quantity'] += order.reserved_quantity
@@ -998,6 +1005,8 @@ def get_picklist_data(data_id, user_id):
             order_id = ''
             mrp = ''
             batch_no = ''
+            manufactured_date = ''
+            expiry_date = ''
             parent_sku_code = ''
             if order.order_type == 'combo' and order.order:
                 parent_sku_code = order.order.sku.sku_code
@@ -1064,6 +1073,10 @@ def get_picklist_data(data_id, user_id):
                         manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
                     except:
                         manufactured_date = ''
+                    try:
+                        expiry_date = datetime.datetime.strftime(stock_id.batch_detail.expiry_date, "%d/%m/%Y")
+                    except:
+                        expiry_date = ''
             stock_left = get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_skus, stocks,
                                                 reserved_instances)
             last_picked_locs = ''
@@ -1085,6 +1098,7 @@ def get_picklist_data(data_id, user_id):
                  'customer_name': customer_name, 'marketplace': marketplace, 'remarks': remarks,
                  'load_unit_handle': load_unit_handle,
                  'manufactured_date':manufactured_date,
+                 'expiry_date': expiry_date,
                  'category': category, 'customer_address': customer_address,
                  'original_order_id': original_order_id, 'mrp':mrp, 'batchno':batch_no,
                  'is_combo_picklist': is_combo_picklist, 'parent_sku_code': parent_sku_code,
@@ -1111,6 +1125,8 @@ def get_picklist_data(data_id, user_id):
             original_order_id = ''
             mrp = ''
             batch_no = ''
+            expiry_date = ''
+            manufactured_date = ''
             parent_sku_code = ''
             if order.order_type == 'combo' and order.order:
                 parent_sku_code = order.order.sku.sku_code
@@ -1140,6 +1156,10 @@ def get_picklist_data(data_id, user_id):
                         manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
                     except:
                         manufactured_date =''
+                    try:
+                        expiry_date = datetime.datetime.strftime(stock_id.batch_detail.expiry_date, "%d/%m/%Y")
+                    except:
+                        expiry_date =''
             customer_name = ''
             if order.order:
                 customer_name = order.order.customer_name
@@ -1173,10 +1193,10 @@ def get_picklist_data(data_id, user_id):
                  'title': order.order.title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
                  'customer_name': customer_name, 'remarks': remarks, 'load_unit_handle': load_unit_handle,
                  'category': category,
-                 'manufactured_date':manufactured_date,
+                 'manufactured_date':manufactured_date, 'expiry_date': expiry_date,
                  'marketplace': marketplace, 'original_order_id' : original_order_id,
                  'mrp':mrp, 'batchno':batch_no, 'is_combo_picklist': is_combo_picklist,
-                 'parent_sku_code':parent_sku_code})
+                 'parent_sku_code':parent_sku_code, 'sku_imeis_map': sku_imeis_map})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -1247,14 +1267,27 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
     if picklist.sellerorderdetail_set.filter(seller_order__isnull=False).exists():
         pic_check_data['sellerstock__seller_id'] = picklist.sellerorderdetail_set.\
                                                     filter(seller_order__isnull=False)[0].seller_order.seller_id
-    if val['location'] != val['orig_loc'] and val.get('batchno', ''):
+    '''if val['location'] != val['orig_loc'] and val.get('batchno', ''):
         pic_check_data['batch_detail__batch_no'] = val['batchno']
     else:
         if picklist.stock and picklist.stock.batch_detail_id:
             pic_check_data['batch_detail__mrp'] = picklist.stock.batch_detail.mrp
-            pic_check_data['batch_detail__batch_no'] = picklist.stock.batch_detail.batch_no
+            pic_check_data['batch_detail__batch_no'] = picklist.stock.batch_detail.batch_no'''
+    mrp = 0
+    if val.get('mrp', ''):
+        try:
+            mrp = float(val['mrp'])
+        except:
+            pass
+    if mrp:
+        pic_check_data['batch_detail__mrp'] = mrp
     if val.get('batchno', ''):
         pic_check_data['batch_detail__batch_no'] = val['batchno']
+    if val.get('manufactured_date', ''):
+        try:
+            pic_check_data['batch_detail__manufactured_date__regex'] = datetime.datetime.strptime(val['manufactured_date'], '%d/%m/%Y').strftime('%Y-%m-%d')
+        except:
+            pass
     pic_check = StockDetail.objects.filter(**pic_check_data)
     if not pic_check:
         if val.get('batchno', ''):
@@ -1343,6 +1376,11 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
 
 def insert_st_order_serial(picklist, val, order='', shipped_orders_dict={}):
     imei_nos = val['imei']
+    if not isinstance(val['imei'], list):
+        if ',' in val['imei']:
+            imei_nos = list(set(val['imei'].split(',')))
+        else:
+            imei_nos = list(set(val['imei'].split('\r\n')))
     user_id = None
     for imei in imei_nos:
         imei_filter = {}
@@ -1800,7 +1838,7 @@ def validate_picklist_combos(data, all_picklists, picks_all):
                 else:
                     pick_val = count
                 combo_exists = True
-                grouping_key = str(picklist.order_id)
+                grouping_key = '%s<<>>%s<<>>%s' % (str(picklist.order_id), str(picklist.order.sku_id), str(picklist.order.quantity))
                 if picklist.stock:
                     sku_code = picklist.stock.sku.sku_code
                 else:
@@ -1811,8 +1849,14 @@ def validate_picklist_combos(data, all_picklists, picks_all):
                 count -= pick_val
     if combo_exists:
         for key, value in combo_orders_dict.iteritems():
-            if len(set(value.values())) > 1:
-                combo_status.append({str(key): value.keys()})
+            combo_order_id, combo_sku_id, combo_sku_qty = key.split('<<>>')
+            sku_relation_qtys = dict(SKURelation.objects.filter(parent_sku_id=combo_sku_id).\
+                 values_list('member_sku__sku_code', 'quantity'))
+            confirm_qty = []
+            for key1, val in value.iteritems():
+                confirm_qty.append(val/sku_relation_qtys.get(key1, 1))
+            if len(set(confirm_qty)) > 1:
+                combo_status.append({str(combo_order_id): value.keys()})
     return combo_status, final_data_list
 
 
@@ -2069,10 +2113,15 @@ def picklist_confirmation(request, user=''):
                     picking_count1 = 0  # picking_count
                     wms_id = all_skus.exclude(sku_code='').get(wms_code=val['wms_code'], user=user.id)
                     total_stock = StockDetail.objects.filter(**pic_check_data)
-                    if 'imei' in val.keys() and val['imei'] and picklist.order:
+                    if 'imei' in val.keys() and val['imei'] and picklist.order and val['imei'] != '[]':
                         insert_order_serial(picklist, val)
                     if 'labels' in val.keys() and val['labels'] and picklist.order:
                         update_order_labels(picklist, val)
+                    if 'imei' in val.keys() and val['imei'] and not picklist.order:
+                        order = picklist.storder_set.filter()
+                        if order:
+                            order = order[0]
+                            insert_st_order_serial(picklist, val, order=order)
                     reserved_quantity1 = picklist.reserved_quantity
                     tot_quan = 0
                     for stock in total_stock:
@@ -2115,6 +2164,8 @@ def picklist_confirmation(request, user=''):
                             stock_transfer = st_order[0].stock_transfer
                             stock_transfer.status = 2
                             stock_transfer.save()
+                            if user_profile.industry_type == 'FMCG':
+                                update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked)
                         if pick_loc:
                             update_picklist_locations(pick_loc, picklist, update_picked)
                         else:
@@ -3096,6 +3147,7 @@ def check_imei(request, user=''):
     shipping_quantity = 0
     try:
         for key, value in request.GET.iteritems():
+            picklist = ''
             if key in ['is_shipment', 'order_id', 'groupby', 'is_rm_picklist']:
                 continue
             sku_code = ''
@@ -3110,10 +3162,13 @@ def check_imei(request, user=''):
                 else:
                     picklist = Picklist.objects.get(id=key)
                     if not picklist.order:
-                        continue
-                    sku_code = picklist.order.sku.sku_code
-                    order = picklist.order
-
+                        sku_code = picklist.stock.sku.sku_code
+                        order = picklist.storder_set.filter()
+                        if order:
+                            order = order[0]
+                    else:
+                        sku_code = picklist.order.sku.sku_code
+                        order = picklist.order
             po_mapping, status, imei_data = check_get_imei_details(value, sku_code, user.id, check_type='order_mapping',
                                                                    order=order, job_order=job_order)
             if imei_data.get('wms_code', ''):
@@ -3123,7 +3178,6 @@ def check_imei(request, user=''):
                 sku_code = po_mapping[0].sku.sku_code
             if not po_mapping:
                 status = str(value) + ' is invalid Imei number'
-
             order_mapping = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, sku__user=user.id, status=1)
             if order_mapping:
                 if order_mapping[0].order:
@@ -3134,7 +3188,10 @@ def check_imei(request, user=''):
                 elif order_mapping[0].jo_material:
                     status = str(value) + ' is already mapped with this job order ' + \
                             str(order_mapping[0].jo_material.job_order.job_code)
-
+                elif not order_mapping[0].order and picklist:
+                    order = picklist.storder_set.filter()
+		    if order:
+			status = str(value) + ' is already mapped with an order'
             if is_shipment and po_mapping:
                 seller_id = ''
                 if po_mapping[0].seller:
@@ -3169,9 +3226,12 @@ def check_imei(request, user=''):
                         #    shipped_orders_dict.setdefault(int(order.id), {}).setdefault('quantity', 0)
                         #    shipped_orders_dict[int(order.id)]['quantity'] += 1
                         #    shipping_quantity += 1
+                else:
+		    check_st_order_wise = OrderIMEIMapping.objects.filter(sku__user=user.id, stock_transfer__order_id=order_id, status=1, po_imei__imei_number=value)
+		    if not check_st_order_wise:
+			status = 'IMEI not related to this Order'
             if not status:
                 status = 'Success'
-
         if shipped_orders_dict:
             log.info('Order Status update call for user ' + str(user.username) + ' is ' + str(shipped_orders_dict))
             check_and_update_order_status(shipped_orders_dict, user)
@@ -4097,6 +4157,7 @@ def split_orders(**order_data):
 
 
 def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, custom_order):
+    extra_order_fields = {}
     continue_list = ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount',
                      'description', 'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id',
                      'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected', 'is_sample',
@@ -4107,6 +4168,9 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
     sku_master = {}
     for key, value in request.POST.iteritems():
         if key in continue_list:
+            continue
+        if 'order_field_' in key:
+            extra_order_fields[key.replace('order_field_', '')] = value
             continue
         if key == 'sku_id':
             if not myDict[key][i]:
@@ -4182,7 +4246,7 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
         else:
             order_data[key] = value
 
-    return order_data, order_summary_dict, sku_master
+    return order_data, order_summary_dict, sku_master, extra_order_fields
 
 
 def get_syncedusers_mapped_sku(wh, sku_id):
@@ -4843,7 +4907,7 @@ def insert_order_data(request, user=''):
             exclude_order_items = ['warehouse_level', 'margin_data', 'el_price', 'del_date', 'vehicle_num']
 
             # Written a separate function to make the code simpler
-            order_data, order_summary_dict, sku_master = construct_order_data_dict(
+            order_data, order_summary_dict, sku_master, extra_order_fields = construct_order_data_dict(
                 request, i, order_data, myDict, all_sku_codes, custom_order)
 
             if not order_data['sku_id'] or not order_data['quantity']:
@@ -5056,6 +5120,8 @@ def insert_order_data(request, user=''):
                                                   creation_date=datetime.datetime.now())
         other_charge_amounts = construct_other_charge_amounts_map(created_order_id, myDict,
                                                                     datetime.datetime.now(), other_charge_amounts, user)
+        if extra_order_fields:
+            create_extra_fields_for_order(created_order_id, extra_order_fields, user)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -5784,7 +5850,7 @@ def insert_st_shipment_info(request, user=''):
                                             shipped_orders_dict=shipped_orders_dict)
                 # Until Here
                 order_pack_instance = OrderPackaging.objects.filter(order_shipment_id=order_shipment.id,
-                                                                    package_reference=all_sku_data[i]['pack_reference'],
+                                                                    package_reference=all_sku_data[i].get('pack_reference', ''),
                                                                     order_shipment__user=user.id)
                 if not order_pack_instance:
                     data_dict['order_shipment_id'] = order_shipment.id
@@ -6552,8 +6618,13 @@ def get_sku_catalogs(request, user=''):
         logo_image = ''
         if usr_obj.customer_logo:
             logo_path = usr_obj.customer_logo.url
-            with open(logo_path, "rb") as image_file:
-                logo_image = base64.b64encode(image_file.read())
+            try:
+                with open(logo_path, "rb") as image_file:
+                    logo_image = base64.b64encode(image_file.read())
+            except Exception as e:
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info("Exception Raised in Get SKU Catalogs while reading Images")
         if bank_dets_check:
             bank_details = usr_obj.bank_details
         if addr_dets_check:
@@ -6565,7 +6636,7 @@ def get_sku_catalogs(request, user=''):
         image = get_company_logo(admin, COMPANY_LOGO_PATHS)
         date = get_local_date(user, datetime.datetime.now())
         import math
-        if user_type in ['reseller', 'distributor']:
+        if user_type in ['reseller', 'dist_customer']:
             t = loader.get_template('templates/reseller_search.html')
             pages = math.ceil(float(len(data))/8)
         else:
@@ -6745,11 +6816,14 @@ def get_sku_variants(request, user=''):
                                                       k == 'WAITONQC']
                                         if wait_on_qc:
                                             if int(wait_on_qc[0]):
-                                                log.info("Wait ON QC Value %s for SKU %s" % (actual_sku_id, wait_on_qc))
-                                            if sku_id in stock_dict:
-                                                stock_dict[sku_id] += int(wait_on_qc[0])
+                                                wait_on_qc = int(wait_on_qc[0])*90/100
                                             else:
-                                                stock_dict[sku_id] = int(wait_on_qc[0])
+                                                wait_on_qc = int(wait_on_qc[0])
+                                            log.info("Wait ON QC Value %s for SKU %s" % (actual_sku_id, wait_on_qc))
+                                            if sku_id in stock_dict:
+                                                stock_dict[sku_id] += int(wait_on_qc)
+                                            else:
+                                                stock_dict[sku_id] = int(wait_on_qc)
                                     else:
                                         if sku_id in stock_dict:
                                             stock_dict[sku_id] += int(item['FG'])
@@ -6779,7 +6853,7 @@ def get_sku_variants(request, user=''):
                                         po = asn_stock['PO']
                                         arriving_date = datetime.datetime.strptime(asn_stock['By'], '%d-%b-%Y')
                                         quantity = int(asn_stock['Qty'])
-                                        qc_quantity = int(math.floor(quantity*95/100))
+                                        qc_quantity = int(math.floor(quantity*90/100))
                                         asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku[0].id,
                                                                                          asn_po_num=po,
                                                                                          status='open')
@@ -14152,9 +14226,6 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
                                     order_by(sort_data)
     temp_data['recordsTotal'] = stock_transfers.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    picklist_qtys = dict(STOrder.objects.filter(stock_transfer_id__in=stock_transfers.values_list('id', flat=True)).\
-                         values_list('stock_transfer__order_id').annotate(picked_qty=Sum('picklist__picked_quantity',
-                                                                                         distinct=True)))
     for stock_transfer in stock_transfers:
         destination_wh = ''
         order_id = stock_transfer['order_id']
@@ -14162,11 +14233,17 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
         user_profile = User.objects.get(id=user_id)
         if user_profile:
             destination_wh = user_profile.username
+        picked_qty = total_qty = 0
+        picked_total_qty = STOrder.objects.filter(stock_transfer__st_po__open_st__sku__user=user_id, stock_transfer__order_id=order_id).values_list('stock_transfer__order_id').annotate(picked_qty=Sum('picklist__picked_quantity', distinct=True), st_obj=Sum('stock_transfer__quantity', distinct=True))
+        if picked_total_qty:
+            picked_total_qty = picked_total_qty[0]
+            picked_qty = picked_total_qty[2]
+            total_qty = picked_total_qty[1]
         temp_data['aaData'].append(OrderedDict(( ('Stock Transfer ID', order_id),
-                                            ('Picked Quantity', picklist_qtys.get(order_id, 0)),
+                                            ('Picked Quantity', picked_qty),
                                             ('Stock Transfer Date&Time', str(stock_transfer['date_only'])),
                                             ('Destination Warehouse', destination_wh),
-                                            ('Total Quantity', stock_transfer['ordered']))))
+                                            ('Total Quantity', total_qty))))
 
 
 @csrf_exempt
@@ -14199,7 +14276,8 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
     if 'st_order_id' in request_data.keys() and datatable_view == 'StockTransferShipment':
         filter_order_ids = []
         st_order_id = request_data['st_order_id']
-        stock_transfer_obj = StockTransfer.objects.filter(order_id__in = st_order_id, st_po__open_st__warehouse__username = dest_wh_username)
+        dest_user_id = User.objects.get(username=dest_wh_username)
+        stock_transfer_obj = StockTransfer.objects.filter(order_id__in = st_order_id, st_po__open_st__sku__user = dest_user_id.id)
         if len(stock_transfer_obj):
             stock_transfer_obj = stock_transfer_obj.values()
         '''
@@ -14209,6 +14287,7 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
         'id': 24L, 'quantity': 1.0}
         '''
         for obj in stock_transfer_obj:
+            picked_qty = total_qty = 0
             data_dict = obj
             sku_obj = SKUMaster.objects.get(id=data_dict['sku_id'])
             if sku_obj:
@@ -14216,6 +14295,13 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
                 sku_desc = sku_obj.sku_desc
             data_dict['sku_code'] = sku_code
             data_dict['sku_desc'] = sku_desc
+            picked_total_qty = STOrder.objects.filter(stock_transfer__st_po__open_st__sku__user=dest_user_id.id, stock_transfer__order_id=st_order_id[0]).values_list('stock_transfer__order_id').annotate(picked_qty=Sum('picklist__picked_quantity', distinct=True), st_obj=Sum('stock_transfer__quantity', distinct=True))
+            if picked_total_qty:
+                picked_total_qty = picked_total_qty[0]
+                picked_qty = picked_total_qty[1]
+                total_qty = picked_total_qty[2]
+            data_dict['quantity'] = total_qty
+            data_dict['picked_quantity'] = picked_qty
             data.append(data_dict)
         '''
         for order_ids in request_data['stock_transfer_id']:
@@ -14661,3 +14747,162 @@ def invoice_print_manifest(request, user=''):
         final_data += invoice_data
 
     return HttpResponse(final_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def generate_picklist_dc(request, user=''):
+    st_time = datetime.datetime.now()
+    data = {}
+    picklist_number = request.POST['picklist_number']
+    for key, value in request.POST.iterlists():
+        name, picklist_id = key.rsplit('_', 1)
+        data.setdefault(picklist_id, [])
+        for index, val in enumerate(value):
+            if len(data[picklist_id]) < index + 1:
+                data[picklist_id].append({})
+            data[picklist_id][index][name] = val
+    picks_all = Picklist.objects.filter(order__sku__user=user.id, picklist_number=picklist_number,
+                                            status__icontains="open")
+    if not picks_all:
+        return HttpResponse("No Orders Found")
+    batch_group_data = OrderedDict()
+    for key, value in data.iteritems():
+        if key in ('name', 'number', 'order', 'sku', 'invoice'):
+            continue
+        picklist_batch = ''
+        picklist_order_id = value[0]['order_id']
+        if picklist_order_id:
+            picklist = picks_all.get(order__order_id=picklist_order_id,
+                                         order__sku__sku_code=value[0]['wms_code'])
+        elif not key:
+            scan_wms_codes = map(lambda d: d['wms_code'], value)
+            picklist_batch = picks_all.filter(
+                Q(stock__sku__wms_code__in=scan_wms_codes) | Q(order__sku__wms_code=scan_wms_codes),
+                reserved_quantity__gt=0, status__icontains='open')
+        else:
+            picklist_status = ''
+            if value[0].get('picklist_status', ''):
+                picklist_status = value[0]['picklist_status']
+            if picklist_status == 'open':
+                picklist_batch = picks_all.filter(id=key)
+                picklist = picklist_batch[0]
+            else:
+                picklist = picks_all.get(id=key)
+        count = 0
+        if not picklist_batch:
+            picklist_batch = get_picklist_batch(picklist, value, picks_all)
+        if not picklist_batch:
+            continue
+        picklist_obj = picklist_batch[0]
+        extra_fields ={}
+        extra_order_fields = get_misc_value('extra_order_fields', user.id)
+        if extra_order_fields == 'false' :
+            extra_order_fields = []
+        else:
+            extra_order_fields = extra_order_fields.split(',')
+        for extra in extra_order_fields :
+            order_field_obj = OrderFields.objects.filter(original_order_id=picklist_obj.order.original_order_id,user=user.id ,name = extra)
+            if order_field_obj.exists():
+                extra_fields[order_field_obj[0].name] = order_field_obj[0].value
+        customer_address =[]
+        customer_details = []
+        consignee =''
+        customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=picklist_obj.order.customer_id).
+                                values('id', 'customer_id', 'name', 'email_id', 'tin_number', 'address', 'shipping_address',
+                                       'credit_period', 'phone_number'))
+        if customer_details:
+            customer_id = customer_details[0]['id']
+            customer_address = customer_details[0]['name'] + '\n' + customer_details[0]['address']
+            if customer_details[0]['tin_number']:
+                customer_address += ("\nGSTIN No: " + customer_details[0]['tin_number'])
+            if customer_details[0]['phone_number']:
+                customer_address += ("\nCall: " + customer_details[0]['phone_number'])
+            if customer_details[0]['email_id']:
+                customer_address += ("\tEmail: " + customer_details[0]['email_id'])
+            consignee = customer_address
+        else:
+            customer_id = picklist_obj.order.customer_id
+            customer_address = picklist_obj.order.customer_name + '\n' + picklist_obj.order.address + "\nCall: " \
+                               + str(picklist_obj.order.telephone) + "\nEmail: " + str(picklist_obj.order.email_id)
+        for val in value:
+            order = picklist_obj.order
+            is_combo = False
+            sku = order.sku
+            parent_sku_code = sku.sku_code
+            parent_sku_desc = sku.sku_desc
+            if picklist_obj.order_type == 'combo':
+                is_combo = True
+                if picklist_obj.stock:
+                    sku = picklist_obj.stock.sku
+                else:
+                    sku = SKUMaster.objects.filter(sku_code=picklist_obj.sku_code, user=user.id)[0]
+            sku_code = sku.sku_code
+            sku_desc = sku.sku_desc
+            sku_class = sku.sku_class
+            sku_category = sku.sku_category
+            sku_size = sku.sku_size
+            title = order.title
+            order_id = order.original_order_id
+            invoice_amount = 0
+            _tax = 0
+            unit_price = 0
+            tax_type = ''
+            vat = 0
+            mrp_price = 0
+            discount = 0
+            amt = 0
+            base_price = 0
+            taxes_dict = {}
+            if not order_id:
+                order_id = order.order_code + str(order.order_id)
+            batch_no = val.get('batchno', '')
+            mfd_date = val.get('manufactured_date', '')
+            exp_date = val.get('expiry_date', '')
+            batch_group_data.setdefault(parent_sku_code, {})
+            batch_grouping_key = '%s:%s:%s:%s' % (str(sku_code), batch_no, mfd_date, exp_date)
+            batch_group_data[parent_sku_code].setdefault(batch_grouping_key,
+                                        {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
+                                         'title': title, 'invoice_amount': str(invoice_amount),
+                                         'quantity': 0, 'tax': "%.2f" % (_tax),
+                                         'unit_price': unit_price, 'tax_type': tax_type,
+                                         'vat': vat, 'mrp_price': mrp_price, 'discount': discount,
+                                         'sku_class': sku_class,
+                                         'sku_category': sku_category, 'sku_size': sku_size,
+                                         'amt': amt, 'taxes': taxes_dict,
+                                         'base_price': base_price, 'hsn_code': sku.hsn_code,
+                                         'imeis': [],
+                                         'discount_percentage': 0, 'id': order.id,
+                                         'shipment_date': '', 'sno': 0,
+                                         'measurement_type': '',
+                                         'batch_no': batch_no, 'mfd_date': mfd_date, 'exp_date': exp_date,
+                                         'is_combo': is_combo, 'parent_sku_code': parent_sku_code,
+                                         'parent_sku_desc': parent_sku_desc})
+            batch_group_data[parent_sku_code][batch_grouping_key]['quantity'] += float(val['reserved_quantity'])
+    invoice_data = {}
+    invoice_data['data'] = batch_group_data
+    invoice_data['total_items'] = len(invoice_data['data'])
+    invoice_data['username'] = user.username
+    invoice_data['extra_order_fields'] = extra_fields
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    invoice_data['gstin_no'] = user_profile.gst_number
+    invoice_data['company_name'] = user_profile.company_name
+    invoice_data['company_address'] = user_profile.address
+    invoice_data['company_number'] = user_profile.phone_number
+    invoice_data['order_no'] = picklist_obj.order.order_id
+    invoice_data['customer_details'] = customer_details
+    invoice_data['customer_address'] = customer_address
+    invoice_data['consignee'] = consignee
+
+    return render(request, 'templates/toggle/delivery_challan_batch_level.html', invoice_data)
+
+
+@login_required
+@get_admin_user
+def get_order_extra_fields(request , user =''):
+    extra_order_fields = []
+    order_field_obj = get_misc_value('extra_order_fields', user.id)
+    if not order_field_obj == 'false':
+        extra_order_fields = order_field_obj.split(',')
+    return HttpResponse(json.dumps({'data':extra_order_fields }))

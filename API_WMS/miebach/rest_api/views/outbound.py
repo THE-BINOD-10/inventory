@@ -3076,6 +3076,7 @@ def get_customer_sku(request, user=''):
     search_params = {'user': user.id}
     headers = ('', 'SKU Code', 'Order Quantity', 'Shipping Quantity', 'Pack Reference', '')
     request_data = dict(request.GET.iterlists())
+    picked_imeis = []
     if 'order_id' in request_data.keys() and not datatable_view == 'ShipmentPickedAlternative':
         search_params['id__in'] = request_data['order_id']
     elif 'order_id' in request_data.keys() and request_data['order_id']:
@@ -3090,6 +3091,9 @@ def get_customer_sku(request, user=''):
             filter_order_ids = list(chain(filter_order_ids, fil_ids))
         if filter_order_ids:
             search_params['id__in'] = filter_order_ids
+            pi_qs = OrderIMEIMapping.objects.filter(order_id__in=filter_order_ids).values_list('imei_number', flat=True)
+            if pi_qs:
+                picked_imeis = list(pi_qs)
     ship_no = get_shipment_number(user)
     all_orders = OrderDetail.objects.filter(**search_params)
     for obj in all_orders:
@@ -3103,6 +3107,7 @@ def get_customer_sku(request, user=''):
                                         'display_fields': '',
                                         'marketplace': '',
                                         'shipment_number': ship_no,
+                                        'picked_imeis': picked_imeis,
                                         'courier_name': courier_name}, cls=DjangoJSONEncoder))
     return HttpResponse(json.dumps({'status': 'No Orders found'}))
 

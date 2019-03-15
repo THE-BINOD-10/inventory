@@ -2712,6 +2712,8 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
     po_data = []
     status_msg = ''
     data_dict = ''
+    purchase_data = {}
+    data = {}
     remarks = request.POST.get('remarks', '')
     expected_date = request.POST.get('expected_date', '')
     remainder_mail = request.POST.get('remainder_mail', '')
@@ -2738,7 +2740,10 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
         if failed_qty_dict:
             wms_code = myDict['wms_code'][i]
             failed_qty = len(failed_qty_dict.get(wms_code, 0))
-            value = int(myDict['quantity'][i]) - failed_qty
+            if int(myDict['quantity'][i]):
+                value = int(myDict['quantity'][i]) - failed_qty
+            else:
+                value = 0
             myDict['quantity'][i] = str(value)
         else:
             value = myDict['quantity'][i]
@@ -2929,12 +2934,12 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
 def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='', data=''):
     user_id = user.id
     get_po_imei_qs = ''
-    sku_master = SKUMaster.objects.filter(**{'wms_code': wms_code, 'status' : 1})
+    sku_master = SKUMaster.objects.filter(**{'wms_code': wms_code, 'status' : 1, 'user':user.id})
     if sku_master:
         sku_id = sku_master[0].id
     for key, value in sku_details.items():
         if wms_code:
-            imei_mapping = {'purchase_order_id': data.id, 'imei_number': key, 'status': 0, 'sku_id': sku_id,
+            imei_mapping = {'purchase_order_id': data.id, 'imei_number': key, 'status': 1, 'sku_id': sku_id,
             'creation_date': datetime.datetime.now(), 'updation_date': datetime.datetime.now()}
             po_imei = POIMEIMapping(**imei_mapping)
             po_imei.save()
@@ -3078,7 +3083,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                             save_po_location(put_zone, temp_dict)
                             get_imeis = failed_serial_number.get(data.open_po.sku.wms_code, [])
                             for imei in get_imeis:
-                                po_mapping = POIMEIMapping.objects.filter(imei_number=imei, sku__user=user)
+                                po_mapping = POIMEIMapping.objects.filter(imei_number=imei, sku__user=user.id)
                                 if po_mapping:
                                     qc_serial_dict = copy.deepcopy(QC_SERIAL_FIELDS)
                                     qc_serial_dict['serial_number_id'] = po_mapping[0].id
@@ -3086,8 +3091,6 @@ def confirm_grn(request, confirm_returns='', user=''):
                                     qc_serial_dict['reason'] = 'Receive PO QC Failed'
                                     qc_serial = QCSerialMapping(**qc_serial_dict)
                                     qc_serial.save()
-
-
                     except Exception as e:
                         import traceback
                         receive_po_qc_log.debug(traceback.format_exc())

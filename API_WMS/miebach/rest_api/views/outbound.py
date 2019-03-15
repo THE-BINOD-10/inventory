@@ -2101,6 +2101,8 @@ def picklist_confirmation(request, user=''):
                         save_status = "PASS"
                         try:
                             dispatch_qc(user, send_imei_qc_details, order_id, save_status)
+                            val['imei'] = ','.join(passed_serial_number[picklist.order.sku.wms_code])
+                            insert_order_serial(picklist, val)
                         except Exception as e:
                             import traceback
                             picklist_qc_log.debug(traceback.format_exc())
@@ -3074,6 +3076,7 @@ def get_customer_sku(request, user=''):
     search_params = {'user': user.id}
     headers = ('', 'SKU Code', 'Order Quantity', 'Shipping Quantity', 'Pack Reference', '')
     request_data = dict(request.GET.iterlists())
+    picked_imeis = []
     if 'order_id' in request_data.keys() and not datatable_view == 'ShipmentPickedAlternative':
         search_params['id__in'] = request_data['order_id']
     elif 'order_id' in request_data.keys() and request_data['order_id']:
@@ -3088,6 +3091,9 @@ def get_customer_sku(request, user=''):
             filter_order_ids = list(chain(filter_order_ids, fil_ids))
         if filter_order_ids:
             search_params['id__in'] = filter_order_ids
+            pi_qs = OrderIMEIMapping.objects.filter(order_id__in=filter_order_ids).values_list('imei_number', flat=True)
+            if pi_qs:
+                picked_imeis = list(pi_qs)
     ship_no = get_shipment_number(user)
     all_orders = OrderDetail.objects.filter(**search_params)
     for obj in all_orders:
@@ -3101,6 +3107,7 @@ def get_customer_sku(request, user=''):
                                         'display_fields': '',
                                         'marketplace': '',
                                         'shipment_number': ship_no,
+                                        'picked_imeis': picked_imeis,
                                         'courier_name': courier_name}, cls=DjangoJSONEncoder))
     return HttpResponse(json.dumps({'status': 'No Orders found'}))
 

@@ -71,7 +71,7 @@
                 <input name="invoice_number" class="form-control" type="text" ng-model="showCase.model_data.invoice_number">
               </div>
             </div>
-            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.mk_user">
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.mk_user && !showCase.permissions.dispatch_qc_check">
               <div class="form-group">
                 <label class="control-label"> IMEI Scan </label>
                 <input type="text" id="scan_imei_input" ng-model="showCase.imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, showCase.imei_number)" ng-readonly="showCase.scan_imei_readonly==true" auto-focus>
@@ -104,6 +104,23 @@
               <div class="form-group">
                 <label class="control-label">Scan Existing Carton</label>
                 <input type="text" id="scan_carton_exist" name="scan_carton_exist" ng-model="showCase.scan_carton_exist" class="form-control" ng-keydown="showCase.update_sku_carton_exist($event, showCase.scan_carton_exist)">
+              </div>
+            </div>
+          </div>
+          <div class="detail-item border-grey detail-bg-grey" ng-if="showCase.permissions.dispatch_qc_check" style="background: #f0f0f0;padding: 10px 10px 0px 10px;">
+          <div class="row">
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6"></div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6" ng-if="showCase.mk_user && showCase.permissions.dispatch_qc_check">
+              <div class="form-group">
+                <label class="control-label"> IMEI Scan </label>
+                <input type="text" id="scan_imei_input" ng-model="showCase.imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, showCase.imei_number)" ng-readonly="showCase.scan_imei_readonly==true" auto-focus>
+              </div>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6"></div>
+          </div>
+            <div class="row no-margin">
+              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" style="padding: 3px;">
+                <input ng-model="obj" class="form-control" type="text" readonly style="background-color: #ffffff;opacity: 1;" disabled="disabled">
               </div>
             </div>
           </div>

@@ -427,7 +427,7 @@ ORDER_SUMMARY_DICT = {
                 {'label': 'Order ID', 'name': 'order_id', 'type': 'input'}],
     'dt_headers': ['Order Date', 'Order ID', 'Customer Name', 'SKU Brand', 'SKU Category', 'SKU Class', 'SKU Size',
                    'SKU Description', 'SKU Code', 'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Tax', 'Taxable Amount', 'City',
-                   'State', 'Marketplace', 'Invoice Amount', 'Status', 'Order Status', 'Remarks'],
+                   'State', 'Marketplace', 'Invoice Amount', 'Status', 'Order Status', 'Remarks','Customer GST Number'],
     'dt_url': 'get_order_summary_filter', 'excel_name': 'order_summary_report',
     'print_url': 'print_order_summary_report',
     }
@@ -3673,10 +3673,15 @@ def get_order_summary_data(search_params, user, sub_user):
             serial_number = serial_number[0].po_imei.imei_number
         else:
             serial_number = ''
+        customer_name = data.customer_name
+        cusotomer_master_obj = CustomerMaster.objects.filter(user = user.id, name  = customer_name)
+        gst_number = ''
+        if cusotomer_master_obj.exists():
+            gst_number = cusotomer_master_obj[0].tin_number
 
 
         aaData = OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
-                                                ('Customer Name', data.customer_name),
+                                                ('Customer Name', customer_name),
                                                 ('Order Number' ,data.order_reference),
                                                 ('SKU Brand', data.sku.sku_brand),
                                                 ('SKU Category', data.sku.sku_category),
@@ -3691,7 +3696,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                 ('Taxable Amount', float(taxable_amount)), ('Tax', tax),
                                                 ('City', data.city), ('State', data.state), ('Marketplace', data.marketplace),
                                                 ('Invoice Amount', float(invoice_amount)), ('Price', data.sku.price),
-                                                ('Status', status), ('Order Status', order_status),
+                                                ('Status', status), ('Order Status', order_status),('Customer GST Number',gst_number),
                                                 ('Remarks', remarks), ('Order Taken By', order_taken_by),
                                                 ('Invoice Date',invoice_date),
                                                 ('Payment Cash', payment_cash), ('Payment Card', payment_card)))

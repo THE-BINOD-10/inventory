@@ -12700,7 +12700,7 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
             lis = ['enquiry_id', 'customer_name', 'user__username', 'sku__sku_class', 'customization_type', 'creation_date']
         if user.userprofile.warehouse_type != 'CENTRAL_ADMIN':
             data_filters['user'] = user.id
-        elif request.user.userprofile.warehouse_type in ('SM_PURCHASE_ADMIN', 'SM_DESIGN_ADMIN'):
+        elif request.user.userprofile.warehouse_type in ('SM_DESIGN_ADMIN'):
             data_filters['customization_type'] = 'price_product_custom'
         elif request.user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and request.user.userprofile.zone != '': # Sub Admins
             distributors = get_same_level_warehouses(2, user)

@@ -68,7 +68,6 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
 
   $ctrl.selected_style = {};
   $ctrl.select_style = function(style, styles) {
-
     $ctrl.is_skuId_empty = false;
     $ctrl.selected_style = {};
     for(let i=0; i<styles.length; i++) {
@@ -76,9 +75,17 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
         $ctrl.selected_style = styles[i];
       }
     }
-    console.log($ctrl.selected_style);
   }
-
+  $ctrl.change_variant_quantity = function(data, size) {
+    console.log(data)
+    $ctrl.totalQuantity = 0
+    for(let k=0; k<data.length; k++) {
+      if(data[k].quantity){
+        $ctrl.totalQuantity += parseInt(data[k].quantity)
+        $ctrl.model_data.quantity = $ctrl.totalQuantity
+      }else if(data[k].quantity == 'undefined' || data[k].quantity == ''){}
+    }
+  }
   $ctrl.place = function(form) {
     $ctrl.loading = true;
     if(form.$valid) {

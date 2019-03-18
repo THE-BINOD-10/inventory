@@ -256,14 +256,37 @@
             </div>
           </div>
         </div>
-        <div class="col-md-7 col-sm-7 col-xs-7" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.enq_status=='confirm_order'">
+        <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 form-group" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.enq_status=='confirm_order'">
           <div class="row_ detail-item mb5" ng-repeat="(key, data) in order.warehouse_data" style="padding: 1px 10px">
+            <table class="table table-bordered">
+              <thead>
+                <tr>
+                  <th>SKU Code</th>
+                  <th ng-repeat="row in data">{{row.warehouse}}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Sample & Static SKU</td>
+                  <td width="30%" ng-repeat="row in data">
+                    <input type="text" name="quantity" ng-model="row.quantity" ng-change="order.cal_wh_qty(row, data)" class="form-control ng-pristine" placeholder="Quantity" decimal-number>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="form-group">
+              <textarea ng-if="!order.clear_flag" rows="2" class="form-control ng-pristine" cols="27" name="remarks" placeholder="Remarks *" ng-model="order.model_data.remarks" required></textarea>
+            </div>
+          </div>
+        </div>
+        <!-- <div class="col-md-7 col-sm-7 col-xs-7" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.enq_status=='confirm_order'">
+          <div class="row_ detail-item mb5" ng-repeat="(key, data) in order.warehouse_data" style="padding: 1px 10px"> -->
             <!--<h4><b>{{key}}-SM Warehouses</b></h4>-->
-            <table class="table">
+            <!-- <table class="table">
               <tr ng-repeat="row in data">
-                <td><span>Warehouse:</span> {{row.warehouse}}</td>
+                <td><span>Warehouse:</span> {{row.warehouse}}</td> -->
                 <!--<td><span>Stock:</span> {{row.stock}}</td>-->
-                <td width="30%">
+        <!--         <td width="30%">
                   <input type="text" name="quantity" ng-model="row.quantity" ng-change="order.cal_wh_qty(row, data)" class="form-control ng-pristine" placeholder="Quantity" decimal-number>
                 </td>
               </tr>
@@ -281,7 +304,7 @@
               </tr>
             </table>
           </div>
-        </div>
+        </div> -->
         <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.enq_status!='confirm_order' && order.order_details.order.enq_status!='hold_order' && order.order_details.order.enq_status!='order_placed' && order.order_details.order.customization_type!='Price and Product Customization' && order.permissions.user_type != 'sm_purchase_admin'">
           <button type='submit' ng-show="order.permissions.user_type == 'admin_sub_user' && order.order_details.order.customization_type =='Price Customization'" class="btn btn-primary" ng-click="order.notify_to_purchase_admin(form)" ng-disabled="order.disable_btn">Notify to Purchase Admin</button>
           <button type='submit' class="btn btn-primary" ng-click="order.notify_to_sub_dist(form)" ng-disabled="order.disable_btn">Notify to Sub Distributor</button>
@@ -305,6 +328,7 @@
             <table class="table mb0 mw40" ng-repeat="(key, data) in order.warehouse_data">
               <thead>
                 <tr>
+                  <th>Sku Code</th>
                   <th>WH</th>
                   <th>L1 Open</th>
                   <th>L1 Blocked</th>
@@ -314,6 +338,7 @@
               </thead>
               <tbody>
                 <tr ng-repeat="row in data">
+                  <td>{{}}</td>
                   <td>{{row.warehouse}}</td>
                   <td>{{row.wh_open}}</td>
                   <td>{{row.wh_blocked}}</td>

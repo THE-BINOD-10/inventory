@@ -18,7 +18,7 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
   $ctrl.customization_types = {};
   $ctrl.client_logo = Session.parent.logo;
   $ctrl.api_url = Session.host;
-  $ctrl.enable_table = false
+  $ctrl.enable_table = false;
 
 
   $ctrl.style = '';
@@ -91,6 +91,12 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
   }
   $ctrl.place = function(form) {
     $ctrl.loading = true;
+    let sku_quantity = {}
+    for(let j=0; j<$ctrl.selected_style.length; j++) {
+      if($ctrl.selected_style[j].quantity){
+        sku_quantity[$ctrl.selected_style[j].wms_code] = parseInt($ctrl.selected_style[j].quantity)
+      }else if($ctrl.selected_style[j].quantity == 'undefined' || $ctrl.selected_style[j].quantity == ''){}
+    }
     if(form.$valid) {
       var formData = new FormData();
       var el = $("#image-upload");
@@ -127,6 +133,7 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
         }
       })
       formData.append("custom_remarks", remarks);
+      formData.append("sku_quantity_map", sku_quantity);
       $ctrl.uploading = true;
       $.ajax({url: Session.url+'place_manual_order/',
             data: formData,

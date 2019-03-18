@@ -6423,3 +6423,242 @@ def block_stock_upload(request, user=''):
     if not upload_status == 'Success':
         return HttpResponse(upload_status)
     return HttpResponse('Success')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def custom_order_download(request, user=''):
+    returns_file = request.GET['download-file']
+    if returns_file:
+        return error_file_download(returns_file)
+    wb, ws = get_work_sheet('custom_order_form', CUSTOM_ORDER_MAPPING.keys())
+    return xls_to_response(wb, '%s.custom_order_form.xls' % str(user.id))
+
+
+@csrf_exempt
+def validate_custom_order_form(reader, user, no_of_rows, no_of_cols, fname, file_type=''):
+    from stock_locator import get_quantity_data
+    index_status = {}
+    customorder_file_mapping = copy.deepcopy(CUSTOM_ORDER_DEF_EXCEL)
+    if not customorder_file_mapping:
+        return 'Invalid File'
+    cust_types = ['Price Customization', 'Price and Product Customization']
+    warehouse_qs = UserGroups.objects.filter(admin_user=user.id)
+    dist_users = warehouse_qs.filter(user__userprofile__warehouse_level=1).values_list('user_id__username', flat=True)
+    wh_userids = warehouse_qs.values_list('user_id', flat=True)
+    reseller_qs = CustomerUserMapping.objects.filter(customer__user__in=wh_userids)
+    reseller_ids_map = dict(reseller_qs.values_list('user_id__username', 'customer__id'))
+    reseller_ids = reseller_ids_map.values()
+    reseller_users = reseller_ids_map.keys()
+    res_corp_qs = CorpResellerMapping.objects.filter(reseller_id__in=reseller_ids).values_list('reseller_id',
+                                                                                               'corporate_id')
+    sku_codes = SKUMaster.objects.filter(user=user.id).values_list('sku_code', flat=True)
+    res_corp_map = {}
+    res_corp_names_map = {}
+    for res_id, corp_id in res_corp_qs:
+        res_corp_map.setdefault(res_id, []).append(corp_id)
+    for res_id, corp_ids in res_corp_map.items():
+        corp_names = CorporateMaster.objects.filter(id__in=corp_ids).values_list('name', flat=True)
+        res_corp_names_map.setdefault(res_id, []).extend(corp_names)
+
+    for row_idx in range(1, no_of_rows):
+        for key, value in customorder_file_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, customorder_file_mapping[key], reader, file_type)
+            if key == 'reseller_name':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add("Reseller Name is missing")
+                # else:
+                #     if cell_data not in reseller_users:
+                #         index_status.setdefault(row_idx, set()).add("Reseller Name not found")
+            elif key == 'customer_name':
+                res_code = get_cell_data(row_idx, customorder_file_mapping['reseller_name'], reader, file_type)
+                res_id = reseller_ids_map.get(res_code, '')
+                mapped_corp_names = res_corp_names_map.get(res_id, [])
+                if cell_data:
+                   if cell_data not in mapped_corp_names:
+                        index_status.setdefault(row_idx, set()).add('Corporate Name not mapped with Reseller')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Corporate Name Missing')
+            elif key == 'sku_code':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add("SKU Code is missing")
+                else:
+                    if cell_data not in sku_codes:
+                        index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
+            elif key == 'customization_type':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add("Customization Type is missing")
+                else:
+                    if cell_data not in cust_types:
+                        index_status.setdefault(row_idx, set()).add('Invalid Customization Type')
+            elif key == 'ask_price':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add("Ask Price is missing")
+                else:
+                    if not isinstance(cell_data, (int, float)):
+                        index_status.setdefault(row_idx, set()).add('Invalid Ask Price')
+            elif key == 'quantity':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add("Quantity Missing")
+                else:
+                    if not isinstance(cell_data, (int, float)):
+                        index_status.setdefault(row_idx, set()).add('Invalid Quantity Amount')
+            elif key == 'client_po_rate':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Client PO Rate is Missing')
+                else:
+                    if not isinstance(cell_data, (int, float)):
+                        index_status.setdefault(row_idx, set()).add('Invalid Client PO Rate')
+            elif key == 'expected_date':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Approx Delivery Date is Missing')
+                # else:
+                #     try:
+                #         exp_date = xldate_as_tuple(cell_data, 0)
+                #     except:
+                #         index_status.setdefault(row_idx, set()).add('Appx Delivery Date is not proper')
+            elif key == 'remarks':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Remarks field is Missing')
+                # else:
+                #     if not isinstance(cell_data, (int, float)):
+                #         index_status.setdefault(row_idx, set()).add('Invalid Client PO Rate')
+            else:
+                index_status.setdefault(row_idx, set()).add('Invalid Field')
+
+    if not index_status:
+        return 'Success'
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+
+
+def custom_order_xls_upload(request, reader, user, admin_user, no_of_rows, fname, file_type='xls', no_of_cols=0):
+    log.info("Custom Order upload started")
+    custom_order_file_mapping = copy.deepcopy(CUSTOM_ORDER_DEF_EXCEL)
+    #enquiry_id_map = {}
+    custom_maps = {'Price Customization': 'price_custom', 'Price and Product Customization': 'price_product_custom'}
+    try:
+        for row_idx in range(1, no_of_rows):
+            if not custom_order_file_mapping:
+                continue
+            each_row_map = copy.deepcopy(CUSTOM_ORDER_DEF_EXCEL)
+            for key, value in custom_order_file_mapping.iteritems():
+                each_row_map[key] = get_cell_data(row_idx, value, reader, file_type)
+
+            MANUAL_ENQUIRY_DICT = {'customer_name': '', 'sku_id': '', 'customization_type': '', 'quantity': '',
+                                   'client_po_rate': ''}
+            MANUAL_ENQUIRY_DETAILS_DICT = {'ask_price': '', 'expected_date': '', 'remarks': ''}
+            manual_enquiry = copy.deepcopy(MANUAL_ENQUIRY_DICT)
+            manual_enquiry_details = copy.deepcopy(MANUAL_ENQUIRY_DETAILS_DICT)
+            for key, value in MANUAL_ENQUIRY_DICT.iteritems():
+                value = each_row_map.get(key, '')
+                if key == 'sku_id':
+                    value = each_row_map.get('sku_code')
+                    sku_data = SKUMaster.objects.filter(user=user.id, sku_code=value)
+                    if not sku_data:
+                        return HttpResponse("Style Not Found")
+                    value = sku_data[0].id
+                elif key == 'quantity':
+                    value = int(value)
+                elif key == 'customization_type':
+                    value = custom_maps.get(key, '')
+                manual_enquiry[key] = value
+            manual_enquiry['status'] = 'new_order'
+            for key, value in MANUAL_ENQUIRY_DETAILS_DICT.iteritems():
+                value = each_row_map.get(key, '')
+                if key == 'ask_price' and each_row_map['customization_type'] == 'Price and Product Customization':
+                    manual_enquiry_details[key] = 0
+                    continue
+                if key == 'ask_price':
+                    value = float(value)
+                elif key == 'expected_date':
+                    # expected_date = value.split('/')
+                    # value = datetime.date(int(expected_date[0]), int(expected_date[1]), int(expected_date[2]))
+                    value = datetime.datetime.today()
+                manual_enquiry_details[key] = value
+            #manual_enquiry['custom_remarks'] = request.POST.get('custom_remarks', '')
+            # check_enquiry = ManualEnquiry.objects.filter(user=request.user.id, sku=manual_enquiry['sku_id'],
+            #                                              status__in=['', 'approved', 'confirm_order'],
+            #                                              customer_name=manual_enquiry['customer_name'])
+            # if check_enquiry:
+            #     return HttpResponse("Manual Enquiry Already Exists")
+            res_id = User.objects.filter(username=each_row_map.get('reseller_name'))
+            manual_enquiry['user_id'] = res_id[0].id
+            enq_qs = ManualEnquiry.objects.filter(user=res_id).order_by('-enquiry_id')
+            if enq_qs:
+                enq_id = int(enq_qs[0].enquiry_id) + 1
+            else:
+                enq_id = 10001
+            manual_enquiry['enquiry_id'] = enq_id
+            enq_data = ManualEnquiry(**manual_enquiry)
+            enq_data.save()
+            manual_enquiry_details['enquiry_id'] = enq_data.id
+            manual_enquiry_details['user_id'] = res_id[0].id
+            manual_enq_data = ManualEnquiryDetails(**manual_enquiry_details)
+            manual_enq_data.save()
+            # admin_user = get_priceband_admin_user(user)
+            # purchase_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+            #     Q(userprofile__warehouse_type='SM_PURCHASE_ADMIN')).values_list('id', flat=True)
+            # if purchase_admin_user_id:
+            #     purchase_admin_user_id = purchase_admin_user_id[0]
+            # cont_vals = (request.user.username, request.user.first_name, str(enq_data.enquiry_id), str(enq_data.quantity),
+            #              str(enq_data.sku.sku_code), enq_data.customer_name)
+            # contents = {"en": "%s-%s placed a custom order %s of %s Pcs %s for %s" % cont_vals}
+            # users_list = [user.id, admin_user.id, purchase_admin_user_id]
+            # marketing_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+            #     Q(userprofile__zone=user.userprofile.zone)).values_list('id', flat=True)
+            # if marketing_admin_user_id:
+            #     users_list.append(marketing_admin_user_id[0])
+            # send_push_notification(contents, users_list)
+            # if request.FILES.get('po_file', ''):
+            #     save_manual_enquiry_images(request, enq_data)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Custom Order Placement failed. User: %s, Params: %s, Error: %s'
+                 %(user.username, str(request.POST.dict()), str(e)))
+        return HttpResponse("Custom Order Placement failed")
+    return HttpResponse("Success")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def custom_order_upload(request, user=''):
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+        price_band_flag = get_misc_value('priceband_sync', user.id)
+        if price_band_flag == 'true':
+            admin_user = get_admin(user)
+        else:
+            admin_user = user
+        status = validate_custom_order_form(reader, admin_user, no_of_rows, no_of_cols, fname, file_type=file_type)
+        if status != 'Success':
+            return HttpResponse(status)
+        upload_status = custom_order_xls_upload(request, reader, user, admin_user, no_of_rows, fname,
+                                                file_type=file_type, no_of_cols=no_of_cols)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Custom Order form Upload failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Custom Order Upload Failed")
+    if not upload_status == 'Success':
+        return HttpResponse(upload_status)
+    return HttpResponse('Success')

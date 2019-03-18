@@ -293,6 +293,17 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "block_stock_upload/",
                    dparam: "download-file",
                    value: "",
+                   perm: "add_enquirymaster",
+                 },
+                 {
+                   title: "Custom Order Form Download/ Upload",
+                   download: "Custom Order Download Form",
+                   upload: "Custom Order Upload Form",
+                   durl: "custom_order_download/",
+                   uurl: "custom_order_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   perm: "add_enquirymaster",
                  },
                 ]
 

@@ -2110,6 +2110,17 @@ BLOCK_STOCK_DEF_EXCEL = OrderedDict((
     ('sku_code', 0), ('quantity', 1), ('corporate_name', 2), ('reseller_name', 3), ('warehouse', 4), ('level', 5)))
 
 
+CUSTOM_ORDER_MAPPING = OrderedDict((
+    ('Reseller Name', 'reseller_name'), ('Client Name', 'customer_name'), ('Sku Code', 'sku_code'),
+    ('Customization Type', 'customization_type'), ('Ask Price Per Unit', 'ask_price'), ('Quantity', 'quantity'),
+    ('Apprx Client PO Rate', 'client_po_rate'), ('Approximate Delivery Date', 'expected_date'),
+    ('Remarks', 'remarks')
+    ))
+
+CUSTOM_ORDER_DEF_EXCEL = OrderedDict((
+    ('reseller_name', 0), ('customer_name', 1), ('sku_code', 2), ('customization_type', 3), ('ask_price', 4),
+    ('quantity', 5), ('client_po_rate', 6), ('expected_date', 7), ('remarks', 8)))
+
 #PICKLIST_EXCLUDE_ZONES = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
 
 def fn_timer(function):

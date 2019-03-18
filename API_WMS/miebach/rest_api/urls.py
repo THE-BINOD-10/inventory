@@ -540,6 +540,8 @@ urlpatterns += [
     url(r'^skupack_master_upload/$', skupack_master_upload),
     url(r'^block_stock_download/$', block_stock_download),
     url(r'^block_stock_upload/$', block_stock_upload),
+    url(r'^custom_order_download/$', custom_order_download),
+    url(r'^custom_order_upload/$', custom_order_upload),
 
 
     # configurations

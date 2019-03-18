@@ -976,7 +976,6 @@ def update_sku(request, user=''):
         if image_file:
             save_image_file(image_file, data, user)
         setattr(data, 'enable_serial_based', False)
-	import pdb;pdb.set_trace()
         for key, value in request.POST.iteritems():
 
             if 'attr_' in key:
@@ -1023,13 +1022,14 @@ def update_sku(request, user=''):
                 continue
             elif key == 'enable_serial_based':
                 value = 1
-            elif key == 'price' and user.user_profile.industry_type == 'FMCG' and user.user_profile.user_type == 'marketplace_user':
+            elif key == 'price' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+		wms_code = request.POST.get('wms_code', '')
 		check_store_hippo = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
 		if len(check_store_hippo):
 		    from rest_api.views.easyops_api import *
 		    for integrate in check_store_hippo:
 			obj = eval(integrate.api_instance)(company_name=integrate.name, user=user.id)
-			storehippo_response = obj.storehippo_sku_update({'wms_code':sku_code, 'price':value}, user)
+			storehippo_response = obj.storehippo_sku_update({'wms_code':wms_code, 'price':value}, user)
 			if storehippo_response['status']:
 			    storehippo_fulfillments_log.info('For User: ' + str(user.username) + ', Storehippo Product Update - ' + str(storehippo_response))
 			else:

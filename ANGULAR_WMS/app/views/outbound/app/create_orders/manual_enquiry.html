@@ -92,7 +92,8 @@
             <div class="col-md-5 col-sm-5"></div>
             <div class="col-md-7">
               <div class="style col-md-12 col-sm-12 col-xs-12 cart-item">
-                <table class="table table-bordered">
+                <h4 align="center" ng-if="!Enquiry.enable_table" style="color: #b5b5b5">Loading ....</h4>
+                <table class="table table-bordered" ng-if="Enquiry.enable_table">
                   <thead>
                     <tr>
                       <th>Size</th>
@@ -106,16 +107,16 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr ng-repeat="variant in Enquiry.selected_style.variants">
+                    <tr ng-repeat="variant in Enquiry.selected_style">
                       <td>{{variant.wms_code}}</td>
-                      <td>{{variant.pricing_price}}</td>
-                      <td>{{variant.price}}</td>
+                      <td>{{variant.your_price}}</td>
+                      <td>{{variant.price_ranges[0].buy_price}}</td>
                       <td>{{variant.mrp}}</td>
                       <td>{{variant.style_quantity}}</td>
                       <td>{{variant.intransit_quantity}}</td>
-                      <td>{{variant.intransit_quantity}}</td>
+                      <td>{{variant.blocked_quantity}}</td>
                       <td>
-                      <input class="form-control" ng-model="variant.quantity" ng-change="Enquiry.change_variant_quantity(Enquiry.selected_style.variants, variant.wms_code)" style="width: 60px;height: 25px;">
+                      <input class="form-control" ng-model="variant.quantity" ng-change="Enquiry.change_variant_quantity(Enquiry.selected_style, variant.wms_code)" style="width: 60px;height: 25px;">
                       </td>
                     </tr>
                     <tr>

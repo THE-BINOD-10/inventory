@@ -89,6 +89,48 @@
             <i ng-if="Enquiry.styles_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
           </div>
           <div class="form-group" ng-if="Enquiry.model_data.sku_id">
+            <div class="col-md-5 col-sm-5"></div>
+            <div class="col-md-7">
+              <div class="style col-md-12 col-sm-12 col-xs-12 cart-item">
+                <table class="table table-bordered">
+                  <thead>
+                    <tr>
+                      <th>Size</th>
+                      <th>MSP</th>
+                      <th>BuyPrice</th>
+                      <th>MRP</th>
+                      <th>Stock</th>
+                      <th>Intransit</th>
+                      <th>Blocked Qty</th>
+                      <th>Quantity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr ng-repeat="variant in Enquiry.selected_style.variants">
+                      <td>{{variant.wms_code}}</td>
+                      <td>{{variant.pricing_price}}</td>
+                      <td>{{variant.price}}</td>
+                      <td>{{variant.mrp}}</td>
+                      <td>{{variant.style_quantity}}</td>
+                      <td>{{variant.intransit_quantity}}</td>
+                      <td>{{variant.intransit_quantity}}</td>
+                      <td>
+                      <input class="form-control" ng-model="variant.quantity" ng-change="Enquiry.change_variant_quantity(Enquiry.selected_style.variants, variant.wms_code)" style="width: 60px;height: 25px;">
+                      </td>
+                    </tr>
+                    <tr>
+                      <td></td>
+                      <td></td>
+                      <td></td><td></td><td></td><td></td>
+                      <td><b>Total:</b>
+                      <td><b>{{Enquiry.totalQuantity | number}}</b></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <!-- <div class="form-group" ng-if="Enquiry.model_data.sku_id">
             <div class="col-sm-5"></div>
             <div class="col-sm-5 col-xs-12">
               <div class="style col-md-12 col-sm-12 col-xs-12 cart-item">
@@ -129,7 +171,7 @@
                 </div>
               </div>
             </div>
-          </div>
+          </div> -->
           <div class="form-group">
             <label class="col-sm-5 col-xs-5 control-label">Choose Customization Type *</label>
             <div class="col-sm-3 col-xs-5" ng-init="Enquiry.model_data.customization_type = 'price_custom'">
@@ -153,7 +195,7 @@
           <div class="form-group" ng-if="Enquiry.model_data.customization_type != 'product_custom'">
             <label class="col-sm-5 col-xs-5 control-label">Quantity *</label>
             <div class="col-sm-3 col-xs-5">
-              <input type="text" name="quantity" positive-number ng-model="Enquiry.model_data.quantity" class="form-control" ng-required="true">
+              <input type="text" name="quantity" positive-number ng-model="Enquiry.model_data.quantity" class="form-control" ng-required="true" readonly>
             </div>
           </div>
           <div class="form-group">

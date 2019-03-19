@@ -3572,6 +3572,7 @@ def get_order_summary_data(search_params, user, sub_user):
         tmp = field.misc_value.split(',')
         for i in tmp:
             extra_fields.append(str(i))
+    invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     for data in orders.iterator():
         count = count + 1
         is_gst_invoice = False
@@ -3659,6 +3660,12 @@ def get_order_summary_data(search_params, user, sub_user):
             invoice_number = invoice_number_obj[0].invoice_number
             quantity = invoice_number_obj[0].quantity
             invoice_date = get_local_date(user,invoice_number_obj[0].creation_date)
+            if not invoice_no_gen.exists() or (invoice_no_gen and
+                    invoice_no_gen[0].creation_date >= invoice_number_obj[0].creation_date):
+                if invoice_number_obj[0].order:
+                    invoice_number = str(invoice_number_obj[0].order.order_id)
+                else:
+                    invoice_number = str(invoice_number_obj[0].seller_order.order.order_id)
         else:
             invoice_number = 0
             quantity = 0

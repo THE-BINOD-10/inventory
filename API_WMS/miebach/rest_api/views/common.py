@@ -2858,8 +2858,10 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         sor_id = ''
         order_ids = list(set(order_ids.split(',')))
         order_data = OrderDetail.objects.filter(id__in=order_ids).exclude(status=3)
-        seller_summary = SellerOrderSummary.objects.filter(
-            Q(seller_order__order_id__in=order_ids) | Q(order_id__in=order_ids))
+        if user.userprofile.user_type == 'marketplace_user':
+            seller_summary = SellerOrderSummary.objects.filter(seller_order__order_id__in=order_ids)
+        else:
+            seller_summary = SellerOrderSummary.objects.filter(order_id__in=order_ids)
         if seller_summary:
             if seller_summary[0].seller_order:
                 seller = seller_summary[0].seller_order.seller

@@ -8797,3 +8797,18 @@ def update_po_order_prefix(sub_user, po_id):
     po_id = '%s%s' % (str(sub_user.id), str(po_id))
     return int(po_id)
 
+
+def storehippo_sync_price_value(user, update_dict):
+    from rest_api.views.easyops_api import *
+    check_store_hippo = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
+    if len(check_store_hippo):
+	for integrate in check_store_hippo:
+	    obj = eval(integrate.api_instance)(company_name=integrate.name, user=user.id)
+	    storehippo_response = obj.storehippo_sku_update({'wms_code':update_dict.get('wms_code', ''), 'price': update_dict.get('price', '')}, user)
+	    if storehippo_response['status']:
+		storehippo_fulfillments_log.info('For User: ' + str(user.username) + ', Storehippo Product Update - ' + str(storehippo_response))
+	    else:
+		storehippo_fulfillments_log.info('For User : ' + str(user.username) + ' , Response - ' + str(storehippo_response))
+		#send_mail(send_alert_msg_to, body_of_alert_email, 'For User : ' + str(user.username) + ' , ' + str(alert_message_for_email) + ', Response - ' + str(storehippo_response))
+    return storehippo_response
+

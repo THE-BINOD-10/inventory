@@ -1024,17 +1024,7 @@ def update_sku(request, user=''):
                 value = 1
             elif key == 'price' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
 		wms_code = request.POST.get('wms_code', '')
-		check_store_hippo = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
-		if len(check_store_hippo):
-		    from rest_api.views.easyops_api import *
-		    for integrate in check_store_hippo:
-			obj = eval(integrate.api_instance)(company_name=integrate.name, user=user.id)
-			storehippo_response = obj.storehippo_sku_update({'wms_code':wms_code, 'price':value}, user)
-			if storehippo_response['status']:
-			    storehippo_fulfillments_log.info('For User: ' + str(user.username) + ', Storehippo Product Update - ' + str(storehippo_response))
-			else:
-			    storehippo_fulfillments_log.info('For User : ' + str(user.username) + ' , Response - ' + str(storehippo_response))
-			    #send_mail(send_alert_msg_to, body_of_alert_email, 'For User : ' + str(user.username) + ' , ' + str(alert_message_for_email) + ', Response - ' + str(storehippo_response))	
+                storehippo_sync_price_value(user, {'wms_code':wms_code, 'price':value})
             if key in number_fields and not value:
                 value = 0
             setattr(data, key, value)

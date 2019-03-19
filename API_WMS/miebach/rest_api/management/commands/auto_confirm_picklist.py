@@ -19,6 +19,20 @@ from rest_api.views.common import get_exclude_zones, get_misc_value, get_picklis
 from rest_api.views.outbound import get_seller_pick_id
 from rest_api.views.miebach_utils import MILKBASKET_USERS, PICKLIST_FIELDS, ST_ORDER_FIELDS
 
+def init_logger(log_file):
+    log = logging.getLogger(log_file)
+
+    handler = logging.handlers.RotatingFileHandler(log_file, maxBytes=10485760, backupCount=25)
+    formatter = logging.Formatter(
+        '%(asctime)s.%(msecs)d: %(filename)s: %(lineno)d: %(funcName)s: %(levelname)s: %(message)s', "%Y%m%dT%H%M%S")
+    handler.setFormatter(formatter)
+    log.addHandler(handler)
+    log.setLevel(logging.DEBUG)
+
+    return log
+
+
+log = init_logger('logs/auto_process_picklists.log')
 
 def prepare_picklist_val_dict(user, sku_id_stocks,  is_seller_order, add_mrp_filter):
     val_dict = {}
@@ -233,8 +247,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write("Started Updating")
-        users = User.objects.filter(username='milkbasket')
-        print str(datetime.datetime.now())
+        users = User.objects.filter(username='milkbasket_test')
+        log.info(str(datetime.datetime.now()))
         for user in users:
             picklist_exclude_zones = get_exclude_zones(user)
             open_orders = OrderDetail.objects.prefetch_related('sku').\
@@ -275,5 +289,5 @@ class Command(BaseCommand):
                                                      sku_stocks, switch_vals, is_seller_order=False)
             if picklist_number:
                 check_picklist_number_created(user, picklist_number + 1)
-        print str(datetime.datetime.now())
+        log.info(str(datetime.datetime.now()))
         self.stdout.write("Updating Completed")

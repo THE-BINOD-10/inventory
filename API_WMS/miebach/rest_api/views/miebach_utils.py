@@ -5740,6 +5740,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
     from miebach_admin.models import *
     from miebach_admin.views import *
     from common import get_admin
+    from common import get_full_invoice_number
     from rest_api.views.common import get_sku_master, get_order_detail_objs
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
@@ -5826,12 +5827,18 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                 str(user.username),str(e)))
         delivered_time =''
         invoice_number_obj = SellerOrderSummary.objects.filter(order_id = data['order__id'])
-        if invoice_number_obj :
-            invoice_number = invoice_number_obj[0].invoice_number
+        central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
+        if invoice_number_obj and central_order_reassigning == 'true':
+            invoice_order = invoice_number_obj[0].order
             invoice_date = get_local_date(user,invoice_number_obj[0].creation_date)
+            invoice_number = get_full_invoice_number(user, data['order__original_order_id'], invoice_order, invoice_date=invoice_number_obj[0].creation_date)
         else:
-            invoice_number = ''
-            invoice_date = ''
+            if invoice_number_obj:
+                invoice_number = invoice_number_obj[0].invoice_number
+                invoice_date = get_local_date(user,invoice_number_obj[0].creation_date)
+            else:
+                invoice_number = ''
+                invoice_date = ''
         if result :
            signed_invoice_copy = result.get('signed_invoice_copy','')
            id_type = result.get('id_type','')

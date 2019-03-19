@@ -3688,7 +3688,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                 ('SKU Class', data.sku.sku_class),
                                                 ('SKU Size', data.sku.sku_size), ('SKU Description', data.sku.sku_desc),
                                                 ('SKU Code', data.sku.sku_code), ('Order Qty', int(data.quantity)),
-                                                ('MRP', int(data.sku.mrp)), ('Unit Price', float(unit_price_inclusive_tax)),
+                                                ('MRP', mrp_price), ('Unit Price', float(unit_price_inclusive_tax)),
                                                 ('Discount', discount),
                                                 ('Serial Number',serial_number),
                                                 ('Invoice Number',invoice_number),

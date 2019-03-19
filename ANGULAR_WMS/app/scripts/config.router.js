@@ -2244,7 +2244,18 @@ var app = angular.module('urbanApp')
             title: 'Stock Transfer Report',
           }
         })
-
+        .state('app.reports.StockReconciliationReport', {
+          url: '/StockReconciliationReport',
+          templateUrl: 'views/reports/stock_reconciliation_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/stock_reconciliation_report.js');
+              }]
+          },
+          data: {
+            title: 'Stock Reconciliation Report',
+          }
+        })
         .state('app.reports.RTVReport', {
           url: '/RTVReport',
           templateUrl: 'views/reports/rtv_report.html',

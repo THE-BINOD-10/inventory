@@ -4003,7 +4003,7 @@ def putaway_data(request, user=''):
         sku_codes = []
         marketplace_data = []
         mod_locations = []
-	unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
+        unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
         for i in range(0, len(myDict['id'])):
             po_data = ''
             if myDict['orig_data'][i]:
@@ -4016,7 +4016,7 @@ def putaway_data(request, user=''):
                     all_data.setdefault(cond, 0)
                     all_data[cond] += float(orig_data['orig_quantity'])
             else:
-		if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
                     cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i], myDict['mrp'][i])
                 else:
                     cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])

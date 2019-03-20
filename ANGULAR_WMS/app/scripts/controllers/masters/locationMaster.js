@@ -37,6 +37,12 @@ function LocationMasterCtrl($scope, $state, $http, $timeout, Session, Service) {
       }
     })
   }
+  vm.get_zone_details = function(zone)
+  {
+    vm.service.apiCall('get_zone_details/','GET',{'zone':zone}).then(function(zone_data){
+      vm.zone_data = zone_data.data.location_data
+    });
+  }
 
   vm.zone = "";
   vm.marketplaces = [];

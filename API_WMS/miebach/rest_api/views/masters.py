@@ -747,7 +747,6 @@ def location_master(request, user=''):
 
 @get_admin_user
 def get_sku_data(request, user=''):
-    import pdb;pdb.set_trace()
     """ Get SKU Details """
 
     market_data = []

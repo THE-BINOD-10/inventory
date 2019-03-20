@@ -455,7 +455,7 @@ def get_search_params(request, user=''):
                     'order_report_status': 'order_report_status', 'customer_id': 'customer_id',
                     'imei_number': 'imei_number',
                     'order_id': 'order_id', 'job_code': 'job_code', 'job_order_code': 'job_order_code',
-                    'fg_sku_code': 'fg_sku_code',
+                    'fg_sku_code': 'fg_sku_code', 'invoice':'invoice',
                     'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet','invoice_date':'invoice_date',
                     'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number', 'dc_number': 'challan_number',
                     'zone_code': 'zone_code', 'distributor_code': 'distributor_code', 'reseller_code': 'reseller_code',

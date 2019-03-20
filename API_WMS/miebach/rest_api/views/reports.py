@@ -206,7 +206,7 @@ def get_dispatch_filter(request, user=''):
 @get_admin_user
 def get_order_summary_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_order_summary_data(search_params, user, request.user, request)
+    temp_data = get_order_summary_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 

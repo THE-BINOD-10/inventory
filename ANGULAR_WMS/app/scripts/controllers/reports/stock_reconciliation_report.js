@@ -23,7 +23,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.reports = {}
   vm.toggle_rtv_sku_wise = function() {
     var send = {};
-	var name = 'stock_transfer_report';
+	var name = 'stock_reconsiliation_report';
     vm.service.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data) {
 	if(data.message) {
 	  if ($.isEmptyObject(data.data.data)) {

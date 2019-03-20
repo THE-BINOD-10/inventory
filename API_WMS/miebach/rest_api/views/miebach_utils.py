@@ -863,9 +863,11 @@ STOCK_RECONCILIATION_REPORT_DICT = {
       {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
       {'label': 'SKU Code', 'name': 'sku_code', 'type': 'input'},
   ],
-  'dt_headers': ['SKU', 'Vendor Name', 'Brand', 'Category', 'Sub Category', 'Openings Qty', 'Openings Avg. Rate', 'Openings Amount Before Tax'
-  'Openings Tax Rate', 'Openings Cess Rate', 'Openings Amount After Tax', 'Purchases Qty', 'Purchases Avg. Rate', 'Purchases Amount Before Tax'
-  'Purchases Tax Rate', 'Purchases Cess Rate', 'Purchases Amount After Tax'],
+  'dt_headers': ['SKU', 'Vendor Name', 'Brand', 'Category', 'Sub Category', 'Openings Qty', 'Openings Avg. Rate', 'Openings Amount Before Tax',
+  'Openings Tax Rate', 'Openings Cess Rate', 'Openings Amount After Tax', 'Purchases Qty', 'Purchases Avg. Rate', 'Purchases Amount Before Tax',
+  'Purchases Tax Rate', 'Purchases Cess Rate', 'Purchases Amount After Tax',  'Sales Qty', 'Sales Avg. Rate', 'Sales Amount Before Tax',
+  'Sales Tax Rate', 'Sales Cess Rate', 'Sales Amount After Tax',  'Closing Qty', 'Closing Avg. Rate', 'Closing Amount Before Tax',
+  'Closing Tax Rate', 'Closing Cess Rate', 'Closing Amount After Tax'],
   'dt_url': 'get_stock_reconciliation_report', 'excel_name': 'get_stock_reconciliation_report',
   'print_url': 'print_stock_reconciliation_report',
 }
@@ -6795,12 +6797,12 @@ def get_bulk_to_retail_report_data(search_params, user, sub_user):
     return temp_data
 
 
-def get_stock_reconsiliation_report_data(search_params, user, sub_user):
+def get_stock_reconciliation_report_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date
     from django.db.models import Count
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
-    lis = ['order__sku__sku_code', 'vendor_name', 'order__sku__sku_brand', 'order__sku__sku_category', 'order__sku__sub_category', 'quantity', 'weighted_avg_cost', 'weighted_avg_selling_price', 'consolidated_tax', 'brand_discount', 'consolidated_margin']
+    #lis = ['order__sku__sku_code', 'vendor_name', 'order__sku__sku_brand', 'order__sku__sku_category', 'order__sku__sub_category', 'quantity', 'weighted_avg_cost', 'weighted_avg_selling_price', 'consolidated_tax', 'brand_discount', 'consolidated_margin']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)
@@ -6809,9 +6811,9 @@ def get_stock_reconsiliation_report_data(search_params, user, sub_user):
     else:
         stop_index = None
     search_parameters = {}
-    sort_data = lis[col_num]
-    if order_term == 'desc':
-        sort_data = '-%s' % sort_data
+    #sort_data = lis[col_num]
+    #if order_term == 'desc':
+    #    sort_data = '-%s' % sort_data
     if 'sku_code' in search_params:
         if search_params['sku_code']:
             search_parameters['order__sku__sku_code'] = search_params['sku_code']
@@ -6822,16 +6824,24 @@ def get_stock_reconsiliation_report_data(search_params, user, sub_user):
         search_parameters['order__creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
     search_parameters['status__in'] = ['picked', 'batch_picked', 'dispatched']
     search_parameters['order__user'] = user.id
+
+    sales_obj = SKUDetailStats.objects.filter(sku__user = user.id, transact_type = 'picklist')
+    sales_obj.values_list('sku__wms_code').annotate(total_quantity=Sum('quantity', distinct=True))
+    sales_obj.values_list('sku__wms_code').annotate(weighted_cost=Sum(F('quantity') * F('stock_detail__batch_detail__buy_price')))
+
+
     order_data = Picklist.objects.filter(**search_parameters)
     get_all_order_ids = list(order_data.values_list('order__id',flat=True).distinct())
     cust_order_summary = CustomerOrderSummary.objects.filter(order__id__in=get_all_order_ids)
+
     tax_cust_order = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(total_tax=Sum(F('cgst_tax') + F('sgst_tax') + F('igst_tax') + F('utgst_tax') + F('cess_tax'))))
+
     divide_tax = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(count_skus=Count(F('order__sku__sku_code'))))
     collect_discount = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(discount=Sum(F('discount'))))
-    if col_num in [0, 2, 3, 4]:
-        order_data_loop = order_data.order_by(sort_data).values_list('order__sku__sku_code',flat=True).distinct()
-    else:
-        order_data_loop = order_data.values_list('order__sku__sku_code',flat=True).distinct()
+    #if col_num in [0, 2, 3, 4]:
+    #    order_data_loop = order_data.order_by(sort_data).values_list('order__sku__sku_code',flat=True).distinct()
+    #else:
+    order_data_loop = order_data.values_list('order__sku__sku_code',flat=True).distinct()
     qty_data = dict(order_data.values_list('order__sku__sku_code').annotate(total_quantity=Sum('picked_quantity', distinct=True)))
     weighted_avg_cost = dict(order_data.exclude(stock__batch_detail=None).values_list('order__sku__sku_code').annotate(weighted_cost=Sum(F('picked_quantity') * F('stock__batch_detail__buy_price'))))
     weighted_avg_selling_price = dict(order_data.values_list('order__sku__sku_code').annotate(weighted_sell=Sum(F('picked_quantity') * F('order__unit_price'))))

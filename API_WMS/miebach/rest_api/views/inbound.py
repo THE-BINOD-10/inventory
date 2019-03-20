@@ -4100,9 +4100,8 @@ def putaway_data(request, user=''):
                         pallet_detail = pallet_mapping[0].pallet_detail
                         setattr(stock_data, 'pallet_detail_id', pallet_detail.id)
                     stock_data.save()
-
                     # SKU Stats
-                    save_sku_stats(user, stock_data.sku_id, data.id, 'po', float(value))
+                    save_sku_stats(user, stock_data.sku_id, data.id, 'po', float(value), stock_data)
                     update_details = create_update_seller_stock(data, value, user, stock_data, old_loc, use_value=True)
                     if update_details:
                         marketplace_data += update_details
@@ -4129,7 +4128,7 @@ def putaway_data(request, user=''):
                     stock_detail.save()
 
                     # SKU Stats
-                    save_sku_stats(user, stock_detail.sku_id, data.id, 'PO', float(value))
+                    save_sku_stats(user, stock_detail.sku_id, data.id, 'PO', float(value), stock_detail)
                     # Collecting data for auto stock allocation
                     putaway_stock_data.setdefault(stock_detail.sku_id, [])
                     putaway_stock_data[stock_detail.sku_id].append(data.purchase_order_id)
@@ -5508,14 +5507,13 @@ def returns_putaway_data(request, user=''):
             returns_data.quantity = float(returns_data.quantity) - float(quantity)
 
             # Save SKU Level stats
-            save_sku_stats(user, returns_data.returns.sku_id, returns_data.returns.id, 'return', quantity)
+            save_sku_stats(user, returns_data.returns.sku_id, returns_data.returns.id, 'return', quantity, stock_data)
             if returns_data.quantity <= 0:
                 returns_data.status = 0
             if not returns_data.location_id == location_id[0].id:
                 setattr(returns_data, 'location_id', location_id[0].id)
             returns_data.save()
             status = 'Updated Successfully'
-
     return_wms_codes = list(set(return_wms_codes))
     if user_profile.user_type == 'marketplace_user':
         if marketplace_data:

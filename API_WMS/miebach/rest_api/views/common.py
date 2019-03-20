@@ -1778,6 +1778,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         stock_dict['sellerstock__seller_id'] = seller_master_id
 
     total_stock_quantity = 0
+    dest_stocks = ''
     if quantity:
         #quantity = float(quantity)
         stocks = StockDetail.objects.filter(**stock_dict)
@@ -1829,6 +1830,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
             dest_stocks = StockDetail(**stock_dict)
             dest_stocks.save()
             change_seller_stock(seller_master_id, dest_stocks, user, abs(remaining_quantity), 'create')
+
 
     adj_quantity = quantity - total_stock_quantity
     if quantity == 0:
@@ -1884,8 +1886,9 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         dat = InventoryAdjustment(**data)
         dat.save()
     # SKU Stats
-    save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', adj_quantity)
-
+    save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', adj_quantity, stock)
+    if dest_stocks:
+        save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', adj_quantity, dest_stocks)
     return 'Added Successfully'
 
 
@@ -7515,10 +7518,10 @@ def get_price_field(user):
     return price_field
 
 
-def save_sku_stats(user, sku_id, transact_id, transact_type, quantity):
+def save_sku_stats(user, sku_id, transact_id, transact_type, quantity, stock_detail=None):
     try:
         SKUDetailStats.objects.create(sku_id=sku_id, transact_id=transact_id, transact_type=transact_type,
-                                  quantity=quantity, creation_date=datetime.datetime.now())
+                                  quantity=quantity, creation_date=datetime.datetime.now(), stock_detail=stock_detail)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

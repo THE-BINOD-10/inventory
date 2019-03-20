@@ -2681,6 +2681,7 @@ class TANDCMaster(models.Model):
 class SKUDetailStats(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    stock_detail = models.ForeignKey(StockDetail, blank=True, null=True)
     transact_id = models.IntegerField(default=0)
     transact_type = models.CharField(max_length=36, default='')
     quantity = models.FloatField(default=0)
@@ -2690,6 +2691,7 @@ class SKUDetailStats(models.Model):
     class Meta:
         db_table = 'SKU_DETAIL_STATS'
         index_together = (('sku', 'transact_type'), ('sku', 'transact_type', 'transact_id'))
+
 
 class StockStats(models.Model):
     id = BigAutoField(primary_key=True)

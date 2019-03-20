@@ -1234,7 +1234,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   if (data.message) {
                     if (data.data == "") {
                       if (vm.permissions.dispatch_qc_check) {
-                        vm.receive_qcitems(vm, data1, index)
+                        for (let i = 0; i < vm.model_data.returnable_serials.length; i++) {
+                          if(vm.model_data.returnable_serials[i] == data1.imei_number) {
+                            vm.receive_qcitems(vm, data1, index);
+                          } else {
+                            Service.showNoty("Please Verify your Serial Number ! ");
+                            data1.imei_number = "";
+                          }
+                        }
                       } else {
                         if(vm.po_qc) {
                           vm.po_qc_imei_scan(data1, index)

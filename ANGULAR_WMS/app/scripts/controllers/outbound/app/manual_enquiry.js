@@ -133,7 +133,7 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
         }
       })
       formData.append("custom_remarks", remarks);
-      formData.append("sku_quantity_map", sku_quantity);
+      formData.append("sku_quantity_map", JSON.stringify(sku_quantity));
       $ctrl.uploading = true;
       $.ajax({url: Session.url+'place_manual_order/',
             data: formData,

@@ -430,6 +430,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         vm.service.apiCall("insert_shipment_info/", "POST", data, true).then(function(data){
           if(data.message) {
             vm.service.showNoty("Shipment Created Successfully");
+            vm.close();
+            vm.reloadData();
+            vm.awb_no = '';
+            vm.bt_disable = false;
             if (!(data.data.status)) {
               if(data.data.search("<div") != -1) {
                 if(!(data)) {
@@ -520,6 +524,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                       vm.imei_mapping.push(imei)
                       vm.order_imei_mapping[vm.model_data.data[i].order_id] = vm.imei_mapping
                       vm.model_data.picked_imeis.splice(i,1);
+                      vm.imei_number = "";
                     }
                   } else {
                     vm.service.showNoty('Please Scan Correct IMEI Number !');

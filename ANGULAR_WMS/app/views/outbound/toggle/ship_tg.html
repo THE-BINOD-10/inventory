@@ -119,8 +119,8 @@
             <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6"></div>
           </div>
             <div class="row no-margin">
-              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" style="padding: 3px;">
-                <input ng-model="obj" class="form-control" type="text" readonly style="background-color: #ffffff;opacity: 1;" disabled="disabled">
+              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" style="padding-bottom: 8px;" ng-repeat="imei_no in showCase.model_data.picked_imeis">
+                <input ng-model="imei_no" class="form-control" type="text" readonly style="background-color: #ffffff;opacity: 1;" disabled="disabled">
               </div>
             </div>
           </div>

@@ -53,7 +53,8 @@ def get_report_data(request, user=''):
                 extra_order_fields = []
             else:
                 extra_order_fields = extra_order_fields.split(',')
-            data['dt_headers'] = data['dt_headers']+ extra_order_fields
+                if  not set(extra_order_fields).issubset(data['dt_headers']):
+                    data['dt_headers'] = data['dt_headers']+ extra_order_fields
         if 'marketplace' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'marketplace' in person['name'], data['filters'])[0])

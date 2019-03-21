@@ -5833,12 +5833,18 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
             invoice_date = get_local_date(user,invoice_number_obj[0].creation_date)
             invoice_number = get_full_invoice_number(user, data['order__original_order_id'], invoice_order, invoice_date=invoice_number_obj[0].creation_date)
         else:
-            if invoice_number_obj:
+            increment_invoice = get_misc_value('increment_invoice', user.id)
+            if invoice_number_obj and increment_invoice == 'true':
                 invoice_number = invoice_number_obj[0].invoice_number
                 invoice_date = get_local_date(user,invoice_number_obj[0].creation_date)
+            elif increment_invoice == 'false':
+                invoice_number =  int(data['order__order_id'])
+                if invoice_number_obj:
+                  invoice_date = get_local_date(user,invoice_number_obj[0].creation_date)
+                else:
+                    invoice_date = ''
             else:
-                invoice_number = ''
-                invoice_date = ''
+                invoice_number = invoice_date = ''
         if result :
            signed_invoice_copy = result.get('signed_invoice_copy','')
            id_type = result.get('id_type','')

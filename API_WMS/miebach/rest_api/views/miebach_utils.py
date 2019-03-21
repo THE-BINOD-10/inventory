@@ -3688,7 +3688,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                 ('SKU Class', data.sku.sku_class),
                                                 ('SKU Size', data.sku.sku_size), ('SKU Description', data.sku.sku_desc),
                                                 ('SKU Code', data.sku.sku_code), ('Order Qty', int(data.quantity)),
-                                                ('MRP', int(data.sku.mrp)), ('Unit Price', float(unit_price_inclusive_tax)),
+                                                ('MRP', mrp_price), ('Unit Price', float(unit_price_inclusive_tax)),
                                                 ('Discount', discount),
                                                 ('Serial Number',serial_number),
                                                 ('Invoice Number',invoice_number),
@@ -5736,22 +5736,31 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
     temp_data['totals'] = totals_map
     return temp_data
 
-def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
+
+def get_shipment_report_data(search_params, user, sub_user, serial_view=False, firebase_response=None):
     from miebach_admin.models import *
     from miebach_admin.views import *
     from common import get_admin
     from common import get_full_invoice_number
-    from rest_api.views.common import get_sku_master, get_order_detail_objs
-    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    from rest_api.views.common import get_sku_master, get_order_detail_objs, get_linked_user_objs, get_misc_value, \
+        get_local_date
+    #sku_master, sku_master_ids = get_sku_master(user, sub_user)
     central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
     search_parameters = {}
+    sister_whs = [user.id]
+    if user.username == '72Networks':
+        sister_whs = list(User.objects.filter(username__in=get_linked_user_objs(user, user)).values_list('id', flat=True))
+
+    if not firebase_response:
+        firebase_response = {}
+
     lis = ['order_shipment__shipment_number', 'order__original_order_id', 'order__sku__sku_code', 'order__title',
-           'order__customer_name',
-           'order__quantity', 'shipping_quantity', 'order_shipment__truck_number','creation_date', 'id', 'id',
-           'order__customerordersummary__payment_status', 'order_packaging__package_reference', 'order__original_order_id','order__original_order_id']
-    search_parameters['order__user'] = user.id
+           'order__customer_name', 'order__quantity', 'shipping_quantity', 'order_shipment__truck_number', 'creation_date',
+           'id', 'id', 'order__customerordersummary__payment_status', 'order_packaging__package_reference',
+           'order__original_order_id', 'order__original_order_id']
+    search_parameters['order__user__in'] = sister_whs
     search_parameters['shipping_quantity__gt'] = 0
-    search_parameters['order__sku_id__in'] = sku_master_ids
+    #search_parameters['order__sku_id__in'] = sku_master_ids
     temp_data = copy.deepcopy(AJAX_DATA)
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
@@ -5765,7 +5774,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
     if 'customer_id' in search_params:
         search_parameters['order__customer_id'] = search_params['customer_id']
     if 'order_id' in search_params:
-        order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])
+        order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={'user__in': sister_whs}, all_order_objs=[])
         if order_detail:
             search_parameters['order_id__in'] = order_detail.values_list('id', flat=True)
         else:
@@ -5803,10 +5812,14 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
         model_data = model_data[start_index:stop_index]
 
     admin_user = get_admin(user)
-    result = ''
     seventytwo_networks = False
+    ord_det_ids = [i['order__id'] for i in model_data]
+    ord_invoice_map = dict(SellerOrderSummary.objects.filter(order_id__in=ord_det_ids).values_list('order_id', 'invoice_number'))
+    ord_serialnum_map = dict(OrderIMEIMapping.objects.filter(order_id__in=ord_det_ids).values_list('order_id', 'po_imei__imei_number'))
+    ord_inv_dates_map = dict(OrderIMEIMapping.objects.filter(order_id__in=ord_det_ids).values_list('order_id', 'creation_date'))
     for data in model_data:
         order_id = data['order__original_order_id']
+        result = firebase_response.get(order_id, '')
         if not order_id:
             order_id = data['order__order_code'] + str(data['order__order_id'])
         date = get_local_date(user, data['creation_date']).split(' ')
@@ -5815,32 +5828,37 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
 
         if admin_user.get_username().lower() == '72Networks'.lower() :
             seventytwo_networks = True
-            try:
-                from firebase import firebase
-                firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
-                result = firebase.get('/OrderDetails/'+order_id, None)
-            except Exception as e:
-                result = 0
-                import traceback
-                log.debug(traceback.format_exc())
-                log.info('Firebase query  failed for %s and params are  and error statement is %s' % (
-                str(user.username),str(e)))
+            if not firebase_response:
+                try:
+                    from firebase import firebase
+                    firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
+                    result = firebase.get('/OrderDetails/'+order_id, None)
+                except Exception as e:
+                    result = 0
+                    import traceback
+                    log.debug(traceback.format_exc())
+                    log.info('Firebase query  failed for %s and params are  and error statement is %s' % (
+                    str(user.username),str(e)))
         delivered_time =''
-        invoice_number_obj = SellerOrderSummary.objects.filter(order_id = data['order__id'])
         central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
-        if invoice_number_obj and central_order_reassigning == 'true':
+        if ord_invoice_map and central_order_reassigning == 'true':
+            invoice_number_obj = SellerOrderSummary.objects.filter(order_id = data['order__id'])
             invoice_order = invoice_number_obj[0].order
             invoice_date = get_local_date(user,invoice_number_obj[0].creation_date)
             invoice_number = get_full_invoice_number(user, data['order__original_order_id'], invoice_order, invoice_date=invoice_number_obj[0].creation_date)
         else:
             increment_invoice = get_misc_value('increment_invoice', user.id)
-            if invoice_number_obj and increment_invoice == 'true':
-                invoice_number = invoice_number_obj[0].invoice_number
-                invoice_date = get_local_date(user,invoice_number_obj[0].creation_date)
+            if data['order__id'] in ord_invoice_map and increment_invoice == 'true':
+                invoice_number = ord_invoice_map.get(data['order__id'], '')
+                creation_date = ord_inv_dates_map.get(data['order__id'], '')
+                if creation_date:
+                    invoice_date = get_local_date(user, creation_date)
             elif increment_invoice == 'false':
                 invoice_number =  int(data['order__order_id'])
-                if invoice_number_obj:
-                  invoice_date = get_local_date(user,invoice_number_obj[0].creation_date)
+                if data['order__id'] in ord_invoice_map:
+                    creation_date = ord_inv_dates_map.get(data['order__id'], '')
+                    if creation_date:
+                        invoice_date = get_local_date(user, creation_date)
                 else:
                     invoice_date = ''
             else:
@@ -5872,13 +5890,14 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
         if refusal :
             shipment_status =  'Refused'
         order_return_obj = OrderReturns.objects.filter(order__original_order_id = order_id,sku__wms_code = data['order__sku__sku_code'],sku__user=user.id)
-        if order_return_obj and central_order_reassigning == 'true' :
+        if order_return_obj.exists() and central_order_reassigning == 'true' :
             shipment_status = 'Returned'
         serial_number = ''
-        serial_number_qs = OrderIMEIMapping.objects.filter(order_id=data['order__id'])
-        if serial_number_qs:
-            if serial_number_qs[0].po_imei:
-                serial_number = serial_number_qs[0].po_imei.imei_number
+        # serial_number_qs = OrderIMEIMapping.objects.filter(order_id=data['order__id'])
+        # if serial_number_qs:
+        #     if serial_number_qs[0].po_imei:
+        #         serial_number = serial_number_qs[0].po_imei.imei_number
+        serial_number = ord_serialnum_map.get(data['order__id'], '')
         dispatched_date =  data['order_shipment__creation_date'].strftime("%d %b, %Y")
 
         if delivered_time :

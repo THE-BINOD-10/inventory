@@ -18,6 +18,7 @@ log = init_logger('logs/stock_locator.log')
 
 
 @csrf_exempt
+@fn_timer
 def get_stock_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     is_excel = request.POST.get('excel', 'false')
@@ -145,6 +146,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     temp_data['totalAvailableQuantity'] = int(temp_data['totalAvailableQuantity'])
 
     sku_type_qty = dict(OrderDetail.objects.filter(user=user.id, quantity__gt=0, status=1).values_list('sku__sku_code').distinct().annotate(Sum('quantity')))
+    sku_pack_config = get_misc_value('sku_pack_config', user.id)
     for ind, data in enumerate(master_data[start_index:stop_index]):
         total_stock_value = 0
         reserved = 0
@@ -155,7 +157,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                 if len(data) > 4:
                     total = data[4]
 
-        sku = sku_master.get(wms_code=data[0], user=user.id)
+        sku = sku_master.get(user=user.id, sku_code=data[0])
         if data[0] in picklist_reserved.keys():
             reserved += float(picklist_reserved[data[0]])
         if data[0] in raw_reserved.keys():
@@ -165,6 +167,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             quantity = 0
 
         total_stock_value = 0
+        sku_packs = 0
         if quantity:
             wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code = data[0], sku__user=user.id)
             wms_code_obj_unit_price = wms_code_obj.filter(unit_price__gt=0).only('quantity', 'unit_price')
@@ -172,12 +175,10 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
             total_wms_qty_sku_unit_price = sum(wms_code_obj_sku_unit_price.annotate(stock_value=Sum(F('quantity') * F('sku__cost_price'))).values_list('stock_value',flat=True))
             total_stock_value = total_wms_qty_unit_price + total_wms_qty_sku_unit_price
-            
-        try:
-            sku_pack_obj = SKUPackMaster.objects.get(sku__wms_code= data[0],sku__user = user.id)
-            sku_packs = int(quantity / sku_pack_obj.pack_quantity)
-        except:
-            sku_packs = 0
+            if sku_pack_config == 'true':
+                sku_pack_obj = sku.skupackmaster_set.filter().only('pack_quantity')
+                if sku_pack_obj.exists() and sku_pack_obj[0].pack_quantity:
+                    sku_packs = int(quantity / sku_pack_obj[0].pack_quantity)
         open_order_qty = sku_type_qty.get(data[0], 0)
         temp_data['aaData'].append(OrderedDict((('WMS Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),

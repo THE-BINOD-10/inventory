@@ -1,10 +1,10 @@
 'use strict';
 
 function VendorStockTransferCtrl($scope, $http, $state, Session, colFilters, Service) {
-
   $scope.msg = "start";
   var vm = this;
   vm.service = Service;
+  vm.permissions = Session.roles.permissions;
   vm.model_data = {}
   var empty_data = {data: [{wms_code: "", quantity: "", location: ""}], vendor: ""};
   angular.copy(empty_data, vm.model_data);

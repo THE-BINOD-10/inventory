@@ -58,8 +58,8 @@
       			</div>
           </div>
         </tab>
-        <tab ng-controller="VendorStockTransferCtrl as showCase" heading="Vendor Stock Transfer" >
-          <div class="panel">
+        <tab  heading="Vendor Stock Transfer"  ng-controller="VendorStockTransferCtrl as showCase" >
+          <div class="panel" ng-if = "showCase.permissions.production_switch">
             <div class="layout-body" style="overflow: visible">
               <div class="panel">
                 <div class="panel-body">

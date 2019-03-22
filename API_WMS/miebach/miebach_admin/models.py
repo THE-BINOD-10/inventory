@@ -2813,13 +2813,13 @@ class ManualEnquiry(models.Model):
 
     class Meta:
         db_table = 'MANUAL_ENQUIRY'
-        unique_together = ('enquiry_id', 'customer_name', 'user')
+        unique_together = ('enquiry_id', 'customer_name', 'user', 'sku')
 
 
 class ManualEnquiryDetails(models.Model):
     id = BigAutoField(primary_key=True)
     user_id = models.PositiveIntegerField()
-    enquiry = models.ForeignKey(ManualEnquiry)
+    enquiry_id = models.DecimalField(max_digits=50, decimal_places=0)
     ask_price = models.FloatField(default=0)
     expected_date = models.DateField(blank=True, null=True)
     remarks = models.TextField(default='')

@@ -12129,12 +12129,17 @@ def get_manual_enquiry_data(request, user=''):
         start_index = int(index.split(':')[0])
         stop_index = int(index.split(':')[1])
     response_data = {'data': []}
-    em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by('-id')
+    em_qs = ManualEnquiry.objects.filter(user=request.user.id).values_list('enquiry_id', 'customer_name',
+                                                                    'status', 'sku__sku_class', 'creation_date'
+                                                                   ).distinct().annotate(total_qty=Sum('quantity'))
     for enquiry in em_qs[start_index:stop_index]:
-        res_map = {'order_id': enquiry.enquiry_id, 'customer_name': enquiry.customer_name,
-                   'date': get_only_date(request, enquiry.creation_date),
-                   'sku_code': enquiry.sku.sku_code, 'style_name': enquiry.sku.sku_class,
-                   'status': MANUAL_ENQUIRY_STATUS.get(enquiry.status, '')}
+        enquiry_id, cust_name, status, sku_class, total_qty = enquiry
+        #creation_date = get_only_date(request, creation_date)
+        creation_date = ''
+        res_map = {'order_id': enquiry_id, 'customer_name': cust_name,
+                   'date': creation_date,
+                   'style_name': sku_class,
+                   'status': MANUAL_ENQUIRY_STATUS.get(status, '')}
         response_data['data'].append(res_map)
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
@@ -12548,8 +12553,20 @@ def place_manual_order(request, user=''):
             return HttpResponse("Manual Enquiry Already Exists")
         manual_enquiry['user_id'] = request.user.id
         manual_enquiry['enquiry_id'] = get_manual_enquiry_id(request)
-        enq_data = ManualEnquiry(**manual_enquiry)
-        enq_data.save()
+
+        sku_variants = request.POST.get('sku_quantity_map', '')
+        if sku_variants:
+            sku_variants = eval(sku_variants)
+            for each_sku in sku_variants:
+                sku_data = SKUMaster.objects.filter(user=user.id, sku_code=each_sku)
+                if not sku_data:
+                    return HttpResponse("Style Not Found")
+                manual_enquiry['sku_id'] = sku_data[0].id
+                enq_data = ManualEnquiry(**manual_enquiry)
+                enq_data.save()
+        else:
+            enq_data = ManualEnquiry(**manual_enquiry)
+            enq_data.save()
         manual_enquiry_details['enquiry_id'] = enq_data.id
         manual_enquiry_details['user_id'] = request.user.id
         manual_enq_data = ManualEnquiryDetails(**manual_enquiry_details)
@@ -12734,10 +12751,16 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
             status = 'Order Placed'
         else:
             status = 'Remaining Status'
+        uniq_orders = []
         for em_obj in em_qs:
             date = em_obj.creation_date.strftime('%Y-%m-%d')
             customization_types = dict(CUSTOMIZATION_TYPES)
             customization_type = customization_types[em_obj.customization_type]
+            ord_uniq_key = (em_obj.enquiry_id, em_obj.user.username, em_obj.customer_name)
+            if ord_uniq_key not in uniq_orders:
+                uniq_orders.append(ord_uniq_key)
+            else:
+                continue
             if MANUAL_ENQUIRY_STATUS.get(em_obj.status, '') == status or status == 'Remaining Status':
                 temp_data['aaData'].append(OrderedDict((('Enquiry ID', int(em_obj.enquiry_id)), ('Sub Distributor', em_obj.user.username),
                                                         ('Customer Name', em_obj.customer_name), ('Style Name', em_obj.sku.sku_class),
@@ -12766,6 +12789,8 @@ def get_manual_enquiry_detail(request, user=''):
         manual_enq = ManualEnquiry.objects.filter(**filters)
         if not manual_enq:
             return HttpResponse("No Enquiry Data for Id")
+        smd_price = manual_enq[0].smd_price
+        rc_price= manual_enq[0].rc_price
         customization_types = dict(CUSTOMIZATION_TYPES)
         customization_type = customization_types[manual_enq[0].customization_type]
         manual_eq_dict = {'enquiry_id': int(manual_enq[0].enquiry_id), 'customer_name': manual_enq[0].customer_name,
@@ -12811,10 +12836,10 @@ def get_manual_enquiry_detail(request, user=''):
                       'description': manual_enq[0].sku.sku_desc, 'images': enquiry_images,
                       'category': manual_enq[0].sku.sku_category, 'art_images': art_images}
         if request.user.id == long(user_id):
-            enquiry_data = ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id,
+            enquiry_data = ManualEnquiryDetails.objects.filter(enquiry_id=manual_enq[0].id,
                                                                status__in=["", "reseller_pending"])
         else:
-            enquiry_data = ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id)
+            enquiry_data = ManualEnquiryDetails.objects.filter(enquiry_id=manual_enq[0].id)
         enquiry_dict = []
         enq_details = {}
         md_approved_details = {}
@@ -12833,11 +12858,11 @@ def get_manual_enquiry_detail(request, user=''):
 
             enq_dict = {'ask_price': enquiry.ask_price, 'remarks': enquiry.remarks, 'date': date,
                         'expected_date': expected_date, 'username': user.user.username, 'status': enquiry.status,
-                        'sm_d_price': enquiry.enquiry.smd_price, 'r_c_price': enquiry.enquiry.rc_price}
+                        'sm_d_price': smd_price, 'r_c_price': rc_price}
 
             if enquiry.status == 'pending_approved':
-                enq_dict['smd_price'] = enquiry.enquiry.smd_price
-                enq_dict['rc_price'] = enquiry.enquiry.rc_price
+                enq_dict['smd_price'] = smd_price
+                enq_dict['rc_price'] = rc_price
 
             enquiry_dict.append(enq_dict)
         if enq_details:
@@ -12855,8 +12880,8 @@ def get_manual_enquiry_detail(request, user=''):
             else:
                 expected_date = ''
             md_approved_details = {'ask_price': md_approved_details.ask_price, 'remarks': md_approved_details.remarks,
-                                   'expected_date': expected_date, 'smd_price': md_approved_details.enquiry.smd_price,
-                                   'rc_price': md_approved_details.enquiry.rc_price}
+                                   'expected_date': expected_date, 'smd_price': smd_price,
+                                   'rc_price': rc_price}
         far_wh_lt = 0
         cust_obj = CustomerUserMapping.objects.filter(user_id=user_id)
         if cust_obj:

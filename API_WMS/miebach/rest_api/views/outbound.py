@@ -2126,7 +2126,7 @@ def picklist_confirmation(request, user=''):
                             order = order[0]
                             insert_st_order_serial(picklist, val, order=order)
                     reserved_quantity1 = picklist.reserved_quantity
-		    tot_quan = 0
+                    tot_quan = 0
                     for stock in total_stock:
                         tot_quan += float(stock.quantity)
                         # if tot_quan < reserved_quantity1:

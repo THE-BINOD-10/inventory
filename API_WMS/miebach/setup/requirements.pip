@@ -26,7 +26,6 @@ oauthlib==2.0.1
 django-admin-view-permission==1.9
 django-reversion==3.0.2
 reportlab==3.2.0
-lxml==3.3.3
 six==1.12.0
 simplejson==3.16.0
 PyJWT==1.7.1
@@ -34,3 +33,5 @@ pyOpenSSL==18.0.0
 enum34==1.1.6
 ipaddress==1.0.22
 httplib2==0.12.1
+paho-mqtt==1.4.0
+lxml==3.3.3

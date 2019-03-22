@@ -9104,3 +9104,13 @@ def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
         log.debug(traceback.format_exc())
         log.info('Create order extra fields failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(extra_order_fields), str(e)))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_current_weight(request, user=''):
+    from rest_api.views.weighing_machine_api import get_integration_weight_val
+    result_val, is_updated = get_integration_weight_val()
+    result_val = str(result_val).replace('\r\n', '')
+    return HttpResponse(json.dumps({'weight': result_val, 'is_updated': is_updated}))

@@ -338,6 +338,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           new_dic.exp_date = "";
           new_dic.total_amt = "";
           new_dic.temp_json_id = "";
+          new_dic.is_stock_transfer = "";
           data.push(new_dic);
         } else {
           if(data[index]['temp_json_id']) {
@@ -362,16 +363,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
           vm.model_data.data.push([{"wms_code":"", "po_quantity":0, "receive_quantity":"", "price":"", "dis": false,
                                   "order_id": '', "is_new": true, 'mrp': 0, "unit": "",
-                                  "buy_price": "", "cess_percent": "", "tax_percent": "", "total_amt": "",
-                                  "discount_percentage": 0,
+                                  "buy_price": "", "cess_percent": "", "tax_percent": "", "apmc_percent": "",
+                                  "total_amt": "", "discount_percentage": 0,
                                   "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
         } else {
 
           $scope.$apply(function() {
             vm.model_data.data.push([{"wms_code":"", "po_quantity":0, "receive_quantity":"", "price":"", "dis": false,
                                     "order_id": '', "is_new": true, 'mrp': 0, "unit": "",
-                                    "buy_price": "", "cess_percent": "", "tax_percent": "", "total_amt": "",
-                                    "discount_percentage": 0,
+                                    "buy_price": "", "cess_percent": "", "tax_percent": "", "apmc_tax": "",
+                                    "total_amt": "", "discount_percentage": 0,
                                     "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
           });
         }
@@ -392,6 +393,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       data.description = selected.sku_desc;
       data.tax_percent = 0;
       data.cess_percent = 0;
+      data.apmc_percent = 0;
       data.discount_percentage = 0;
 
       data.sku_details[0].fields.load_unit_handle = selected.load_unit_handle;
@@ -446,13 +448,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
        // if(sku_data.fields.price <= sku_data.taxes[i].max_amt && sku_data.fields.price >= sku_data.taxes[i].min_amt) {
 
+         sku_data.cess_percent = sku_data.taxes[i].cess_tax;
+         sku_data.apmc_percent = sku_data.taxes[i].apmc_tax;
          if(sku_data.tax_type == "intra_state") {
 
            tax = sku_data.taxes[i].sgst_tax + sku_data.taxes[i].cgst_tax;
-           sku_data.cess_percent = sku_data.taxes[i].cess_tax;
          } else if (sku_data.tax_type == "inter_state") {
-
-           sku_data.cess_percent = sku_data.taxes[i].cess_tax;
            tax = sku_data.taxes[i].igst_tax;
          }
          break;
@@ -731,6 +732,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           preConfirm: function (text) {
             return new Promise(function (resolve, reject) {
               vm.closed_po.elem.push({name: 'remarks', value: text});
+              if(!text){
+                Service.showNoty("Close PO Reason is Mandatory");
+                reject();
+                return false;
+              }
               vm.service.apiCall('close_po/', 'POST', vm.closed_po.elem, true).then(function(data){
                 if(data.message) {
                   if(data.data == 'Updated Successfully') {
@@ -958,7 +964,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     FUN.scan_sku = vm.scan_sku;
 
     vm.po_imei_scan = function(data1, field) {
-
+      field = field.toUpperCase();
       if(data1["imei_list"].indexOf(field) != -1) {
 
         Service.showNoty("IMEI Already Scanned");
@@ -999,7 +1005,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       //vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number}).then(function(data){
       //  if(data.message) {
       //    if (data.data == "") {
-
+            data1.sku_details[0].fields = data1.sku_details[0].fields.toUpperCase();
             vm.current_index = index;
             vm.model_data1["sku_data"] = data1.sku_details[0].fields;
             vm.imei_list.push(data1.imei_number);
@@ -1016,10 +1022,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.from_qc_scan = function(event, field) {
-
       event.stopPropagation();
       if (event.keyCode == 13 && field.length > 0) {
-
+        field = field.toUpperCase();
         if (!vm.current_sku && (vm.permissions.grn_scan_option == "sku_serial_scan")) {
 
           focus('focusSKU');
@@ -1096,7 +1101,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.serial_numbers = [];
     vm.check_imei_exists = function(event, data1, index) {
       event.stopPropagation();
-      if (event.keyCode == 13 && data1.imei_number.length > 0) {
+      if (event.keyCode == 13 && data1.imei_number.length > 0 && data1["disable"] != true) {
+        data1.imei_number = data1.imei_number.toUpperCase();
         //if(vm.imei_list.indexOf(data1.imei_number) > -1) {
 
         //  Service.showNoty("IMEI Already Scanned");
@@ -1914,7 +1920,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         var field = sku["accept_imei"][index].split("<<>>")[0];
         sku["accept_imei"].splice(index,1);
       } else {
-        field = imei;
+        field = imei.toUpperCase();
       }
       sku.rejected_quantity = Number(sku.rejected_quantity) + 1;
 
@@ -1934,6 +1940,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.status_imei = "";
     vm.status_scan_imei = function(event, field) {
       if ( event.keyCode == 13 && field.length > 0) {
+        field = field.toUpperCase();
         vm.enable_button = true;
         vm.reason_show = false;
         vm.current_sku = "";
@@ -1956,7 +1963,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.status_move_imei = function(field) {
-
+      field = field.toUpperCase();
       for(var i = 0; i < vm.model_data.data.length; i++) {
 
         var data = vm.model_data.data[i][0];
@@ -2115,6 +2122,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if(sku_row_data.cess_percent == ''){
         sku_row_data.cess_percent = 0;
       }
+      if(sku_row_data.apmc_percent == ''){
+        sku_row_data.apmc_percent = 0;
+      }
       if(sku_row_data.discount_percentage == ''){
         sku_row_data.discount_percentage = 0;
       }
@@ -2131,6 +2141,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       vm.singleDecimalVal(sku_row_data.tax_percent, 'tax_percent', index, parent_index);
       vm.singleDecimalVal(sku_row_data.cess_percent, 'cess_percent', index, parent_index);
+      vm.singleDecimalVal(sku_row_data.apmc_percent, 'apmc_percent', index, parent_index);
 
       if (vm.industry_type == 'FMCG') {
         var total_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
@@ -2139,7 +2150,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
 
       var total_amt_dis = Number(total_amt) * Number(sku_row_data.discount_percentage) / 100;
-      var tot_tax = Number(sku_row_data.tax_percent) + Number(sku_row_data.cess_percent);
+      var tot_tax = Number(sku_row_data.tax_percent) + Number(sku_row_data.cess_percent) +
+                    Number(sku_row_data.apmc_percent);
       var wo_tax_amt = Number(total_amt)-Number(total_amt_dis);
       data.data[parent_index][index].total_amt = wo_tax_amt + (wo_tax_amt * (tot_tax/100));
 

@@ -102,11 +102,14 @@ def update_inventory(company_name):
                             wait_on_qc = [v for d in item['OnHoldDetails'] for k, v in d.items() if k == 'WAITONQC']
                             if wait_on_qc:
                                 if int(wait_on_qc[0]):
-                                    log.info("Wait ON QC Value %s for SKU %s" % (actual_sku_id, wait_on_qc))
-                                if sku_id in stock_dict:
-                                    stock_dict[sku_id] += int(wait_on_qc[0])
+                                    wait_on_qc = int(wait_on_qc[0]) * 90/100
                                 else:
-                                    stock_dict[sku_id] = int(wait_on_qc[0])
+                                    wait_on_qc = int(wait_on_qc[0])
+                                log.info("Wait ON QC Value %s for SKU %s" % (actual_sku_id, wait_on_qc))
+                                if sku_id in stock_dict:
+                                    stock_dict[sku_id] += int(wait_on_qc)
+                                else:
+                                    stock_dict[sku_id] = int(wait_on_qc)
                         else:
                             if sku_id not in inventory_values:
                                 inventory_values[sku_id] = {}
@@ -181,7 +184,7 @@ def update_inventory(company_name):
                                     continue
                                 arriving_date = datetime.datetime.strptime(asn_stock['By'], '%d-%b-%Y')
                                 quantity = int(asn_stock['Qty'])
-                                qc_quantity = int(floor(quantity*95/100))
+                                qc_quantity = int(floor(quantity*90/100))
                                 if qc_quantity <= 0:
                                     continue
                                 asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku.id, asn_po_num=po)

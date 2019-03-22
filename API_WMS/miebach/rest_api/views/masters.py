@@ -63,7 +63,7 @@ def save_image_file(image_file, data, user, extra_image='', saved_file_path='', 
 def get_sku_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['wms_code', 'ean_number', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone',
-           'creation_date', 'updation_date', 'status']
+           'creation_date', 'updation_date', 'relation_type', 'status']
     order_data = SKU_MASTER_HEADERS.values()[col_num]
     search_params1, search_params2 = get_filtered_params_search(filters, lis)
     if 'status__icontains' in search_params2.keys():
@@ -73,15 +73,22 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
         elif (str(search_params2['status__icontains']).lower() in "inactive"):
             search_params1["status__icontains"] = 0
             search_params2["status__icontains"] = 0
-        # else:
-        #     search_params1["status__icontains"] = "none"
+    if 'relation_type__icontains' in search_params2.keys():
+        if (str(search_params2['relation_type__icontains']).lower() in "yes"):
+            search_params1["relation_type__icontains"] = 'combo'
+            search_params2["relation_type__icontains"] = 'combo'
+        elif (str(search_params2['relation_type__icontains']).lower() in "no"):
+            search_params1["relation_type"] = ''
+            search_params2["relation_type"] = ''
+            del(search_params1['relation_type__istartswith'])
+            del(search_params2['relation_type__icontains'])
     if order_term == 'desc':
         order_data = '-%s' % order_data
     master_data = []
     ids = []
     if search_term:
-
         status_dict = {'active': 1, 'inactive': 0}
+        combo_flag_dict = {'yes': 'combo', 'no': ''}
         if search_term.lower() in status_dict:
             search_terms = status_dict[search_term.lower()]
             if search_params1:
@@ -92,6 +99,16 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
                     master_data.extend(list(master_data1))
             else:
                 master_data1 = sku_master.filter(status=search_terms, user=user.id).order_by(order_data)
+        elif search_term.lower() in combo_flag_dict:
+            search_terms = combo_flag_dict[search_term.lower()]
+            if search_params1:
+                for item in [search_params1, search_params2]:
+                    master_data1 = sku_master.exclude(id__in=ids).filter(relation_type=search_terms, user=user.id,
+                                                                         **item).order_by(order_data)
+                    ids.extend(master_data1.values_list('id', flat=True))
+                    master_data.extend(list(master_data1))
+            else:
+                master_data = sku_master.filter(relation_type=search_terms, user=user.id).order_by(order_data)
         else:
             list1 = []
             if search_params1:
@@ -171,18 +188,27 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
         if data.status:
             status = 'Active'
 
-        creation_date = get_local_date(user, data.creation_date, send_date=True).strftime('%Y-%m-%d %I:%M %p')
-        updation_date = get_local_date(user, data.updation_date, send_date=True).strftime('%Y-%m-%d %I:%M %p')
+        creation_date = ''
+        updation_date = ''
+        if data.creation_date:
+            creation_date = get_local_date(user, data.creation_date, send_date=True).strftime('%Y-%m-%d %I:%M %p')
+        if data.updation_date:
+            updation_date = get_local_date(user, data.updation_date, send_date=True).strftime('%Y-%m-%d %I:%M %p')
         zone = ''
         if data.zone_id:
             zone = data.zone.zone
+        if data.relation_type == 'combo':
+            combo_flag = 'Yes'
+        else:
+            combo_flag = 'No'
         temp_data['aaData'].append(OrderedDict(
             (('WMS SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
              ('SKU Type', data.sku_type), ('SKU Category', data.sku_category), ('DT_RowClass', 'results'),
              ('Zone', zone), ('SKU Class', data.sku_class), ('Status', status), ('DT_RowAttr', {'data-id': data.id}),
-             ('Color', data.color), ('EAN Number', str(data.ean_number)),
+             ('Color', data.color), ('EAN Number', str(data.ean_number)), ('Combo Flag', combo_flag),
              ('Creation Date', creation_date),
-             ('Updation Date', updation_date))))
+             ('Updation Date', updation_date)))
+        )
 
 
 @csrf_exempt
@@ -657,6 +683,7 @@ def location_master(request, user=''):
     new_loc = []
     location_groups = LocationGroups.objects.filter(location__zone__user=user.id).values('location__location',
                                                                                          'group').distinct()
+    data = []
     for loc_type in distinct_loctype:
         filter_params = {'zone__zone': loc_type.zone, 'zone__user': user.id}
         sub_zone_objs = loc_type.subzonemapping_set.filter()
@@ -670,27 +697,45 @@ def location_master(request, user=''):
         filter_params['zone__zone__in'] = [loc_type.zone]
         if temp_sub_zones:
             filter_params['zone__zone__in'] = list(chain(temp_sub_zones, filter_params['zone__zone__in']))
-        loc = filter_by_values(LocationMaster, filter_params,
-                               ['location', 'max_capacity', 'fill_sequence', 'pick_sequence', 'status',
-                                'pallet_capacity', 'lock_status', 'zone__level', 'zone__zone'])
+        #loc = filter_by_values(LocationMaster, filter_params,
+        #                       ['location', 'max_capacity', 'fill_sequence', 'pick_sequence', 'status',
+        #                        'pallet_capacity', 'lock_status', 'zone__level', 'zone__zone'])
+        loc = LocationMaster.objects.prefetch_related('zone').filter(**filter_params)
+        temp_locs = []
         for loc_location in loc:
-            loc_group_dict = filter(lambda person: str(loc_location['location']) == str(person['location__location']),
-                                    location_groups)
-            loc_groups = map(lambda d: d['group'], loc_group_dict)
-            loc_groups = [str(x).encode('UTF8') for x in loc_groups]
-            loc_location['location_group'] = loc_groups
+            print loc_location
+            #loc_group_dict = filter(lambda person: str(loc_location['location']) == str(person['location__location']),
+            #                        location_groups)
+            #loc_groups = map(lambda d: d['group'], loc_group_dict)
+            #loc_groups = [str(x).encode('UTF8') for x in loc_groups]
+            loc_groups = list(loc_location.locationgroups_set.filter().values_list('group', flat=True))
+            location_data = {}
+            location_data['location'] = loc_location.location
+            location_data['max_capacity'] = loc_location.max_capacity
+            location_data['fill_sequence'] = loc_location.fill_sequence
+            location_data['pick_sequence'] = loc_location.pick_sequence
+            location_data['status'] = loc_location.status
+            location_data['pallet_capacity'] = loc_location.pallet_capacity
+            location_data['lock_status'] = loc_location.lock_status
+            location_data['zone__zone'] = loc_location.zone.zone
+            location_data['zone__level'] = loc_location.zone.level
+            location_data['location_group'] = loc_groups
             sub_zone = ''
-            if loc_location['zone__level'] == 1:
-                sub_zone = loc_location['zone__zone']
-            loc_location['sub_zone'] = sub_zone
-        new_loc.append(loc)
+            if loc_location.zone.level == 1:
+                sub_zone = loc_location.zone.zone
+            location_data['sub_zone'] = sub_zone
+            temp_locs.append(location_data)
+        #new_loc.append(temp_locs)
+        data.append({'zone': loc_type.zone, 'data': temp_locs})
+        #loc_location.values('location', 'max_capacity', 'fill_sequence', 'pick_sequence', 'status', 'pallet_capacity',
+        #                                    'lock_status', 'zone__level', 'zone__zone'))
 
-    data = []
-    modified_zone = zip(distinct_loctype.values('zone'), new_loc)
-    if modified_zone:
-        for loc in modified_zone:
-            zone = loc[0]['zone']
-            data.append({'zone': zone, 'data': list(loc[1])})
+    #data = []
+    #modified_zone = zip(distinct_loctype.values('zone'), new_loc)
+    #if modified_zone:
+    #    for loc in modified_zone:
+    #        zone = loc[0]['zone']
+    #        data.append({'zone': zone, 'data': list(loc[1])})
 
     all_groups = list(SKUGroups.objects.filter(user=user.id).values_list('group', flat=True))
 
@@ -732,7 +777,8 @@ def get_sku_data(request, user=''):
     combo_skus = SKURelation.objects.filter(relation_type='combo', parent_sku_id=data.id)
     for combo in combo_skus:
         combo_data.append(
-            OrderedDict((('combo_sku', combo.member_sku.wms_code), ('combo_desc', combo.member_sku.sku_desc))))
+            OrderedDict((('combo_sku', combo.member_sku.wms_code), ('combo_desc', combo.member_sku.sku_desc),
+                         ('combo_quantity', combo.quantity))))
 
     sku_data = {}
     sku_data['sku_code'] = data.sku_code
@@ -956,9 +1002,10 @@ def check_update_hot_release(data, value):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def update_sku(request, user=''):
     """ Update SKU Details"""
-
+    reversion.set_user(request.user)
     log.info('Update SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     today = datetime.datetime.now().strftime("%Y%m%d")
@@ -2106,6 +2153,11 @@ def update_zone_marketplace_mapping(zone, marketplace_list):
     return resp
 
 
+def update_sub_zone_segregation(zone_obj):
+    sub_zone_ids = SubZoneMapping.objects.filter(zone_id=zone_obj.id).values_list('sub_zone_id', flat=True)
+    ZoneMaster.objects.filter(user=zone_obj.user, id__in=sub_zone_ids).update(segregation=zone_obj.segregation)
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -2117,6 +2169,10 @@ def add_zone(request, user=''):
     update = request.GET.get('update', '')
     marketplace = request.GET.get('marketplaces', '')
     level = request.GET.get('level', 0)
+    segregation = request.GET.get('segregation', '')
+    seg_options = dict(SELLABLE_CHOICES).keys()
+    if segregation and segregation not in seg_options:
+        return HttpResponse("Invalid Segragation Option")
     if level == '':
         level = 0
     if update == 'true':
@@ -2124,6 +2180,11 @@ def add_zone(request, user=''):
             status = 'ZONE not found'
         else:
             update_zone_marketplace_mapping(data[0], marketplace)
+            if segregation:
+                data = data[0]
+                data.segregation = segregation
+                data.save()
+                update_sub_zone_segregation(data)
             status = 'Update Successfully'
     else:
         if not data:
@@ -2131,6 +2192,8 @@ def add_zone(request, user=''):
             location_dict['user'] = user.id
             location_dict['zone'] = zone
             location_dict['level'] = level
+            if segregation:
+                location_dict['segregation'] = segregation
             loc_master = ZoneMaster(**location_dict)
             loc_master.save()
             update_zone_marketplace_mapping(loc_master, marketplace)
@@ -2155,6 +2218,7 @@ def get_zone_data(request, user=''):
                 'marketplace', flat=True))
         resp['marketplaces'] = marketplace_list
         resp['level'] = data[0].level
+        resp['segregation'] = data[0].segregation
         status = 'Success'
     resp['msg'] = status
     return HttpResponse(json.dumps(resp))
@@ -2283,9 +2347,11 @@ def get_zones_list(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def insert_sku(request, user=''):
     """ Insert New SKU Details """
     log.info('Insert SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    reversion.set_user(request.user)
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     try:
         wms = request.POST['wms_code']
@@ -3455,15 +3521,18 @@ def add_or_update_tax(request, user=''):
             taxes = TaxMaster.objects.filter(user=user.id, product_type__exact=product_type)
             if taxes:
                 return HttpResponse('Product Type Already Exist')
-        columns = ['sgst_tax', 'cgst_tax', 'igst_tax', 'cess_tax', 'min_amt', 'max_amt']
+        columns = ['sgst_tax', 'cgst_tax', 'igst_tax', 'cess_tax', 'min_amt', 'max_amt', 'apmc_tax']
         for data in tax_data['data']:
 
             data_dict = {'user_id': user.id}
             if data.get('id', ''):
                 tax_master = get_or_none(TaxMaster, {'id': data['id'], 'user_id': user.id})
                 for key in columns:
-                    if data[key]:
-                        setattr(tax_master, key, float(data[key]))
+                    try:
+                        data_key = float(data[key])
+                    except:
+                        data_key = 0
+                    setattr(tax_master, key, data_key)
                 tax_master.save()
             else:
                 if not data['min_amt'] or not data['max_amt']:
@@ -3575,10 +3644,15 @@ def get_corporates(request, user=''):
     ''' Get Corporates list'''
     message = 0
     checked_corporates = {}
+    price_band_flag = get_misc_value('priceband_sync', user.id)
+    if price_band_flag:
+       admin_user = get_admin(user)
+    else:
+       admin_user = user
     if request.GET['reseller']:
         res = request.GET['reseller']
         checked_corporates = list(CorpResellerMapping.objects.filter(reseller_id=res).exclude(status=0).values('corporate_id', 'status'))
-    corporates = list(CorporateMaster.objects.all().values('corporate_id', 'name').order_by('name'))
+    corporates = list(CorporateMaster.objects.filter(user=admin_user.id).values('corporate_id', 'name').order_by('name'))
     if corporates:
         message = 1
     return HttpResponse(json.dumps({'message': message, 'data': corporates, 'checked_corporates': checked_corporates}))
@@ -4019,7 +4093,10 @@ def add_sub_zone_mapping(request, user=''):
         return HttpResponse('Invalid Sub zone')
     exist_mapping = SubZoneMapping.objects.filter(zone_id=zone_obj[0].id, sub_zone_id=sub_zone_obj[0].id)
     if not exist_mapping:
-        mapping_dict = {'zone_id': zone_obj[0].id, 'sub_zone_id': sub_zone_obj[0].id, 'status': 1,
+        sub_zone_obj = sub_zone_obj[0]
+        sub_zone_obj.segregation = zone_obj[0].segregation
+        sub_zone_obj.save()
+        mapping_dict = {'zone_id': zone_obj[0].id, 'sub_zone_id': sub_zone_obj.id, 'status': 1,
                         'creation_date': datetime.datetime.now()}
         mapping_obj = SubZoneMapping(**mapping_dict)
         mapping_obj.save()

@@ -192,6 +192,13 @@
           </div>
         </div>
       </div>
+      <div class="col-md-4 col-sm-4 col-xs-6" ng-repeat="data in showCase.order_extra_fields track by data" ng-if ="showCase.extra_fields">
+        <div class="form-group">
+          <label class="control-label"><b>{{data}}</b></label>
+          <input type="text" name=order_field_{{data}}  ng-model="showCase.exta_model[data]" class="form-control">
+        </div>
+      </div>
+    </div>
       <div class="row" ng-if="showCase.permissions.create_seller_order"><hr></div>
       <div class="row" ng-if="showCase.permissions.create_seller_order">
         <div class="col-md-4 col-sm-4 col-xs-6">
@@ -203,7 +210,7 @@
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
             <label class="control-label">SOR ID *</label>
-            <input name="sor_id" ng-model="showCase.model_data.sor_id" class="form-control" type="text" maxlength="10" required>
+            <input name="sor_id" ng-model="showCase.model_data.sor_id" class="form-control" type="text" maxlength="15" required>
           </div>
         </div>
       </div>

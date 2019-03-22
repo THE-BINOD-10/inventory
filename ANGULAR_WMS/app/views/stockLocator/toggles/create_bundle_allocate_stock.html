@@ -1,3 +1,15 @@
+<style type="text/css">
+  .modal-lg{
+    width: 1300px
+  }
+  .rotate{
+    -webkit-transform: rotate(-90deg);
+    -moz-transform: rotate(-90deg);
+    -ms-transform: rotate(-90deg);
+    -o-transform: rotate(-90deg);
+  }
+</style>
+
 <div id="page-pop" style="overflow-y: visible;">
   <form name="myForm" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine" novalidate="novalidate">
     <div class="modal-header">
@@ -8,22 +20,109 @@
     </div>
     <div class="modal-body lebel-error-hide" id="modal-body">
       <div class="row">
-	<div class="col-md-6 col-sm-5 col-xs-12">
-	  <label class="control-label"></label>
-	  <input type="text" autocomplete="off" name="src_sku_code" class="form-control" placeholder="Search SKU Code &sol; Desc" typeahead="address.wms_code+' : '+address.sku_desc for address in bundleObj.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="bundleObj.model_data.src_sku_code"  ng-blur="bundleObj.empty_sku(); bundleObj.get_sku_batches(bundleObj.model_data.src_sku_code)">
-	</div>
-      </div>
+      <div class="col-md-12">
+    <div class="col-md-4 col-sm-4 col-xs-6">
+        <div class="form-group">
+      <label class="control-label"> Seller ID </label>
+      <select class="form-control zone" name="seller_id" ng-model="bundleObj.bundle_model_data.seller_type" ng-change="bundleObj.seller_change(bundleObj.bundle_model_data.seller_type)" ng-init="bundleObj.bundle_model_data.seller_type=bundleObj.bundle_model_data.seller_types[0]; bundleObj.seller_change(bundleObj.bundle_model_data.seller_type)" ng-if="bundleObj.bundle_model_data.seller_show">
+        <option ng-repeat="type in bundleObj.bundle_model_data.seller_types" ng-selected="bundleObj.model_data.seller_type==type" value="{{type}}">{{type}}</option>
+      </select>
+        </div>
     </div>
+      </div>
+            <div class="col-md-12">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Combo SKU Code</th>
+                    <th>Combo SKU Desc</th>
+                    <th>Location</th>
+                    <th>Batch</th>
+                    <th>MRP</th>
+                    <th>Qty</th>
+                    <th>Child SKU Code</th>
+                    <th>Child SKU Desc</th>
+                    <th>Child SKU Location</th>
+                    <th>Child SKU Batch</th>
+                    <th>Child SKU MRP</th>
+                    <th>Child SKU Qty</th>
+                  </tr>
+                </thead>
+                <tbody ng-repeat="data in bundleObj.bundle_model_data.results">
+                  <tr ng-repeat="item in data.data">
+                    <td>
+                      <input type="hidden" name="id" value="{{item.id}}">
+                      <input type="text" autocomplete="off" ng-readonly="bundleObj.update && (!(data.new_sku))" ng-show="$first" name="combo_sku_code" class="form-control" placeholder="Search Combo SKU Code" typeahead="address for address in bundleObj.service.getSearchValues($viewValue, 'search_wms_codes?', 'RM')" typeahead-loading="loadingLocations" ng-model="data.combo_sku_code" typeahead-on-select="bundleObj.get_product_data(bundleObj.bundle_model_data, data, $parent.$index)" style="width: 100px;">
+                    </td>
+                    <td>
+                      <input type="text" name="combo_sku_desc" class="form-control" ng-model="data.combo_sku_desc" ng-show="$first">
+                    </td>
 
+        <td>
+                      <input type="text" name="location" class="form-control" ng-model="data.location" ng-show="$first">
+                    </td>
+
+        <td>
+                      <input type="text" name="batch" class="form-control" ng-model="data.batch" ng-show="$first">
+                    </td>
+
+        <td>
+                      <input type="number" name="mrp" min=0 class="form-control" ng-model="data.mrp" ng-show="$first">
+                    </td>
+
+                    <td>
+                      <input type="text" d-perm="true" name="quantity" ng-model="data.quantity" class="form-control number" ng-class="service.get_decimal_perm()" ng-show="$first" ng-keyup="bundleObj.change_child_quantity(data)">
+                    </td>
+
+                    <td>
+                      <input type="text" autocomplete="off" name="child_sku_code" class="form-control" placeholder="Child SKU Code" typeahead="address for address in bundleObj.service.getSearchValues($viewValue, 'search_wms_codes?','RM')" typeahead-loading="loadingLocations" style="width: 100px;" ng-model="item.child_sku_code" readonly>
+                    </td>
+
+                    <td>
+                      <input type="text" placeholder="SKU Desc" name="child_sku_desc" class="form-control" ng-model="item.child_sku_desc" readonly>
+                    </td>
+
+                    <td>
+                      <input type="text" name="child_location" class="form-control" ng-model="item.child_sku_location">
+                    </td>
+
+                    <td>
+                      <input type="text" name="child_batch" class="form-control" ng-model="item.child_sku_batch">
+                    </td>
+
+                    <td>
+                      <input type="number" name="child_mrp" min=0 class="form-control" ng-model="item.child_sku_mrp">
+                    </td>
+
+                    <td>
+                      <input type="text" name="child_quantity" min=0 ng-model="item.child_qty" class="form-control number" ng-class="service.get_decimal_perm()">
+                      <input type="number" min=0 ng-model="item.child_sku_qty" class="form-control number" disabled="true" ng-hide="true">
+                    </td>
+
+                    <td>
+                      <i ng-click="bundleObj.bundle_update_data(data, $index, true, false)" ng-class="bundleObj.onlyPlus($last)"></i>
+                      <i ng-click="bundleObj.bundle_update_data(data, $index, false, true)" ng-class="bundleObj.onlyMinus($last)" ng-show="item.new_sku"></i>
+                      <i ng-click="bundleObj.bundle_update_data(data, $index, $last, $first)" ng-hide="true"></i>
+                      <i ng-click="bundleObj.bundle_update_data(data, $index, $last, $first)" ng-hide="true"></i>
+                    </td>
+
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+      <div class="row">
+    <div class="col-md-12" style="margin-top:10px">
+    <center><button ng-click="bundleObj.add_bundle_product();" type="button" class="btn btn-default">Add New Product SKU Code</button></center>
+            </div>
+          </div>
+          <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
+          </div>
+    </div>
     <div class="modal-footer">
-      <button type="button" class="btn pop pop-normal" ng-click="$ctrl.close()">Close</button>
-      <button class="btn pop pop-green" value="Print Barcodes" type="button" ng-disabled="showCase.bt_disable" ng-click="$ctrl.print_barcodes(form)">Print Barcodes</button>
-      <button type="button" class="btn pop pop-green" ng-click="$ctrl.submit(myForm)" ng-disabled="myForm.$invalid; $ctrl.disabled_button">Save
-        <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="$ctrl.success_resp"></span>
+      <button type="button" class="btn pop pop-normal" ng-click="bundleObj.close()">Close</button>
+      <button type="button" class="btn pop pop-green" ng-click="bundleObj.submit_bundle(myForm)" ng-disabled="bundleObj.$invalid; bundleObj.disabled_button">Confirm
+        <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="bundleObj.success_resp"></span>
       </button>
     </div>
-
-
   </form>
 </div>
-

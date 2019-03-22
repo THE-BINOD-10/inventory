@@ -389,6 +389,17 @@
       <div class="row col-md-12" style="padding-bottom: 15px">
         <div class="col-md-5 col-sm-8 col-xs-12">
           <i class="fa fa-step-forward fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Raise PO / Terms & Conditions  </strong>
+        </div>
+        <div class="col-md-6 col-sm-6 col-xs-8">
+          <textarea name="raisepo_terms_conditions" rows="6" cols="29" ng-keydown="showCase.limitLines(5, $event)"></textarea>
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-2"><i ng-click="showCase.raise_po_terms_conditions(showCase.model_data.raisepo_terms_conditions)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-step-forward fa-15px pull-left" style="line-height: 34px;"></i>
           <strong style="line-height: 34px;" class="pull-left ml20"> Invoice Titles </strong>
         </div>
         <div class="bootstrap-tagsinput col-md-6 col-sm-6 col-xs-8">
@@ -406,6 +417,17 @@
           <input class="stages" type="text" value="{{showCase.model_data.all_stages}}" ui-jq="tagsInput"/>
         </div>
         <div class="col-md-1 col-sm-1 col-xs-2"><i ng-click="showCase.update_stages()" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-step-forward fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Create Order Extra Fields </strong>
+        </div>
+        <div class="bootstrap-tagsinput col-md-6 col-sm-6 col-xs-8">
+          <input class="order_fields" type="text" value="{{showCase.model_data.all_order_fields}}" ui-jq="tagsInput"/>
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-2"><i ng-click="showCase.update_extra_central_order_fields()" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
@@ -501,9 +523,9 @@
             <div class="row col-md-12" style="padding-bottom: 15px">
               <div class="row col-md-12">
                 Once Every: <input id="days_range" type="text" class="form-control" style="width: 100px;display: inline;" ng-model="showCase.model_data.report_freq">
-                <select style="width: 85px;display: inline;" class="form-control time_data">
+                <select style="width: 85px;display: inline;" ng-model="showCase.model_data.data_range" class="form-control time_data">
                   <option>Hours</option>
-                  <option selected>Days</option>
+                  <option>Days</option>
                 </select>
               </div>
             </div>

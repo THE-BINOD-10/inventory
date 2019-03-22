@@ -226,6 +226,13 @@ urlpatterns = [
     url(r'^update_rm_picklist/$', update_rm_picklist),
     url(r'^generate_jo_labels/$', generate_jo_labels),
     url(r'^check_custom_generated_label/$', check_custom_generated_label),
+    url(r'^check_return_imei_scan/$', check_return_imei_scan),
+    url(r'^rwo_data/$', rwo_data),
+    url(r'^check__replace_imei_exists/$', check__replace_imei_exists),
+    url(r'^save_replaced_serials/$', save_replaced_serials),
+    url(r'^save_replaced_locations/$', save_replaced_locations),
+
+
 
     # Stock Locator
     url(r'^insert_move_inventory/$', insert_move_inventory),
@@ -246,6 +253,8 @@ urlpatterns = [
     url(r'^auto_sellable_confirm/$', auto_sellable_confirm),
     url(r'^update_sellable_suggestions/$', update_sellable_suggestions),
     url(r'^get_style_level_stock/$', get_style_level_stock),
+    url(r'^get_combo_sku_codes/$', get_combo_sku_codes),
+    url(r'^confirm_combo_allocation/$', confirm_combo_allocation),
 
     # OutBound
     url(r'^batch_generate_picklist/$', batch_generate_picklist),
@@ -369,11 +378,13 @@ urlpatterns = [
     url(r'^insert_st_shipment_info/$', insert_st_shipment_info),
     url(r'^do_delegate_orders/$', do_delegate_orders),
     url(r'^app_shipment_info_data/$', app_shipment_info_data),
+    url(r'^confirm_order_request/$', confirm_order_request),
     url(r'^send_order_back/$', send_order_back),
     url(r'^invoice_print_manifest/$', invoice_print_manifest),
     url(r'^shipment_pack_ref/$', shipment_pack_ref),
     url(r'^shipment_pack_ref_decrease/$', shipment_pack_ref_decrease),
-
+    url(r'^generate_picklist_dc/$', generate_picklist_dc),
+    url(r'^get_order_extra_fields/$', get_order_extra_fields),
 
 
     # Uploaded POs [SWISS MILITARY]
@@ -461,6 +472,13 @@ urlpatterns = [
     url(r'^get_sku_categories_list/$', get_sku_categories_list),
     url(r'^get_sku_wise_rtv_filter/$', get_sku_wise_rtv_filter),
     url(r'^download_grn_invoice_mapping/$', download_grn_invoice_mapping),
+    url(r'^get_stock_transfer_report/$', get_stock_transfer_report),
+    url(r'^get_current_stock_report/$', get_current_stock_report),
+    url(r'^print_current_stock_report/$', print_current_stock_report),
+    url(r'^get_inventory_value_report/$', get_inventory_value_report),
+    url(r'^print_inventory_value_report/$', print_inventory_value_report),
+    url(r'^get_bulk_to_retail_report/$', get_bulk_to_retail_report),
+    url(r'^print_bulk_to_retail_report/$', print_bulk_to_retail_report),
 
 ]
 
@@ -565,12 +583,16 @@ urlpatterns += [
     url(r'check_labels/', check_labels),
     url(r'get_imei_data/', get_imei_data),
     url(r'get_user_profile_data/$', get_user_profile_data),
+    url(r'get_user_profile_shipment_addresses/$', get_user_profile_shipment_addresses),
     url(r'change_user_password/$', change_user_password),
     url(r'update_profile_data/$', update_profile_data),
+    url(r'update_profile_shipment_address/$', update_profile_shipment_address),
     url(r'get_cust_profile_info/$', get_cust_profile_info),
     url(r'get_linked_warehouse_names/$', get_linked_warehouse_names),
     url(r'delete_temp_json/$', delete_temp_json),
     url(r'^search_batches/$', search_batches),
+    url(r'^save_order_extra_fields/$', save_order_extra_fields),
+
 
     # Retailone
     url(r'^get_marketplace_data/$', get_marketplace_data),

@@ -18,19 +18,20 @@ log = init_logger('logs/stock_locator.log')
 
 
 @csrf_exempt
+@fn_timer
 def get_stock_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     is_excel = request.POST.get('excel', 'false')
-    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'total', 'total',
-           'sku__measurement_type', 'stock_value']
+    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'total', 'total', 'total',
+           'sku__measurement_type', 'stock_value', 'sku__wms_code']
     lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_brand', 'product_code__sku_category',
             'total',
-            'total', 'total', 'product_code__measurement_type', 'stock_value']
+            'total', 'total', 'total', 'product_code__measurement_type', 'stock_value', 'product_code__wms_code']
     sort_cols = ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Quantity', 'Reserved Quantity',
                  'Total Quantity',
                  'Unit of Measurement', 'Stock Value']
     lis2 = ['wms_code', 'sku_desc', 'sku_brand', 'sku_category', 'threshold_quantity', 'threshold_quantity',
-            'threshold_quantity', 'measurement_type', 'measurement_type']
+            'threshold_quantity', 'measurement_type', 'measurement_type', 'wms_code']
     search_params = get_filtered_params(filters, lis)
     search_params1 = get_filtered_params(filters, lis1)
     search_params2 = get_filtered_params(filters, lis2)
@@ -144,11 +145,8 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
 
     temp_data['totalAvailableQuantity'] = int(temp_data['totalAvailableQuantity'])
 
-    #reserveds = map(lambda d: d['stock__sku__wms_code'], reserved_instances)
-    #reserved_quantities = map(lambda d: d['reserved'], reserved_instances)
-    #raw_reserveds = map(lambda d: d['material_picklist__jo_material__material_code__wms_code'], raw_res_instances)
-    #raw_reserved_quantities = map(lambda d: d['rm_reserved'], raw_res_instances)
-    # temp_data['totalQuantity'] = sum([data[4] for data in master_data])
+    sku_type_qty = dict(OrderDetail.objects.filter(user=user.id, quantity__gt=0, status=1).values_list('sku__sku_code').distinct().annotate(Sum('quantity')))
+    sku_pack_config = get_misc_value('sku_pack_config', user.id)
     for ind, data in enumerate(master_data[start_index:stop_index]):
         total_stock_value = 0
         reserved = 0
@@ -159,7 +157,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                 if len(data) > 4:
                     total = data[4]
 
-        sku = sku_master.get(wms_code=data[0], user=user.id)
+        sku = sku_master.get(user=user.id, sku_code=data[0])
         if data[0] in picklist_reserved.keys():
             reserved += float(picklist_reserved[data[0]])
         if data[0] in raw_reserved.keys():
@@ -169,6 +167,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             quantity = 0
 
         total_stock_value = 0
+        sku_packs = 0
         if quantity:
             wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code = data[0], sku__user=user.id)
             wms_code_obj_unit_price = wms_code_obj.filter(unit_price__gt=0).only('quantity', 'unit_price')
@@ -176,17 +175,17 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
             total_wms_qty_sku_unit_price = sum(wms_code_obj_sku_unit_price.annotate(stock_value=Sum(F('quantity') * F('sku__cost_price'))).values_list('stock_value',flat=True))
             total_stock_value = total_wms_qty_unit_price + total_wms_qty_sku_unit_price
-            
-        try:
-            sku_pack_obj = SKUPackMaster.objects.get(sku__wms_code= data[0],sku__user = user.id)
-            sku_packs = int(quantity / sku_pack_obj.pack_quantity)
-        except:
-            sku_packs = 0
+            if sku_pack_config == 'true':
+                sku_pack_obj = sku.skupackmaster_set.filter().only('pack_quantity')
+                if sku_pack_obj.exists() and sku_pack_obj[0].pack_quantity:
+                    sku_packs = int(quantity / sku_pack_obj[0].pack_quantity)
+        open_order_qty = sku_type_qty.get(data[0], 0)
         temp_data['aaData'].append(OrderedDict((('WMS Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),
                                                 ('sku_packs',sku_packs),
                                                 ('Available Quantity', quantity),
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total),
+						 ('Open Order Quantity', open_order_qty),
                                                 ('Unit of Measurement', sku.measurement_type), ('Stock Value', total_stock_value ),
                                                 ('DT_RowId', data[0]) )))
 
@@ -412,23 +411,45 @@ def get_stock_counts(quantity, single_sku):
 def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
     ret_list = []
 
+    stock_user_dict, purch_dict = {}, {}
+    stock_qty_qs = StockDetail.objects.filter(sku__user__in=user_groups).exclude(location__zone__zone='DAMAGED_ZONE').only(
+        'sku__sku_code').values_list('sku__user', 'sku__sku_code').distinct().annotate(total=Sum('quantity'))
+    for user, sku_code, qty in stock_qty_qs:
+        stock_user_dict.setdefault(str(user), {})
+        stock_user_dict[str(user)][sku_code] = qty
+
+    purch_sku_qty_qs = PurchaseOrder.objects.filter(open_po__sku__user__in=user_groups).\
+        exclude(status__in=['location-assigned', 'confirmed-putaway']). \
+        only('open_po__sku__user', 'open_po__sku__sku_code').values('open_po__sku__user', 'open_po__sku__sku_code'). \
+        annotate(total_order=Sum('open_po__order_quantity'), total_received=Sum('received_quantity'))
+    for purch_map in purch_sku_qty_qs:
+        user = purch_map['open_po__sku__user']
+        sku_code = purch_map['open_po__sku__sku_code']
+        total_order = purch_map['total_order']
+        total_received = purch_map['total_received']
+        purch_dict.setdefault(str(user), {})
+        purch_dict[str(user)][sku_code] = {'total_order': total_order, 'total_received': total_received}
+
+    enq_block_stock_map = {}
+    enq_block_stock_qs = EnquiredSku.objects.filter(sku__user__in=user_groups).exclude(warehouse_level=3).filter(
+        ~Q(enquiry__extend_status='rejected')).only('sku_code').values_list('sku__user', 'sku_code').annotate(Sum('quantity'))
+    for user, sku_code, qty in enq_block_stock_qs:
+        enq_block_stock_map.setdefault(str(user), {})
+        enq_block_stock_map[str(user)][sku_code] = qty
+
     for user in user_groups:
         user_sku_codes = SKUMaster.objects.filter(user=user)
         ware = User.objects.filter(id=user).values_list('username', flat=True)[0]
-        stock_user_dict = dict(StockDetail.objects.filter(sku__user=user). \
-                               exclude(location__zone__zone='DAMAGED_ZONE').values_list('sku__sku_code').distinct(). \
-                               annotate(total=Sum('quantity')))
-        purch_dict = PurchaseOrder.objects.filter(open_po__sku__user=user).exclude(status__in=['location-assigned', 'confirmed-putaway']).values(
-            'open_po__sku__sku_code'). \
-            annotate(total_order=Sum('open_po__order_quantity'), total_received=Sum('received_quantity'))
-        pick_reserved_dict = dict(PicklistLocation.objects.filter(stock__sku__user=user, status=1, reserved__gt=0). \
+        pick_reserved_dict = dict(PicklistLocation.objects.filter(stock__sku__user=user, status=1, reserved__gt=0).
+                                only('stock__sku__sku_code').
                                   values_list('stock__sku__sku_code').annotate(Sum('reserved')))
         raw_reserved_dict = dict(
             RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user). \
+            only('material_picklist__jo_material__material_code__wms_code').\
             values_list('material_picklist__jo_material__material_code__wms_code').distinct(). \
             annotate(rm_reserved=Sum('reserved')))
-        enq_block_stock = dict(EnquiredSku.objects.filter(sku__user=user).exclude(warehouse_level=3).filter(
-            ~Q(enquiry__extend_status='rejected')).values_list('sku_code').annotate(Sum('quantity')))
+        # enq_block_stock = dict(EnquiredSku.objects.filter(sku__user=user).exclude(warehouse_level=3).filter(
+        #     ~Q(enquiry__extend_status='rejected')).only('sku_code').values_list('sku_code').annotate(Sum('quantity')))
 
         # ASN Stock Related to SM
         today_filter = datetime.datetime.today()
@@ -440,18 +461,15 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
         asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
         asn_res_100days_qs = asnres_det_qs.filter(orderdetail__isnull=False)  # Reserved Quantity
         asn_res_100days_qty = dict(
-            asn_res_100days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
+            asn_res_100days_qs.only('asnstock__sku__sku_code').values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
         asn_blk_100days_qs = asnres_det_qs.filter(orderdetail__isnull=True)  # Blocked Quantity
         asn_blk_100days_qty = dict(
-            asn_blk_100days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
+            asn_blk_100days_qs.only('asnstock__sku__sku_code').values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
 
         asn_avail_stock = dict(
-            intr_obj_100days_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
-        non_kitted_stock = dict(asn_qs.filter(asn_po_num='NON_KITTED_STOCK', status='open').values_list('sku__sku_code').
+            intr_obj_100days_qs.only('sku__sku_code').values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+        non_kitted_stock = dict(asn_qs.filter(asn_po_num='NON_KITTED_STOCK').only('sku__sku_code').values_list('sku__sku_code').
                                 distinct().annotate(non_kitted_qty=Sum('quantity')))
-        purchases = map(lambda d: d['open_po__sku__sku_code'], purch_dict)
-        total_order_dict = dict(zip(purchases, map(lambda d: d['total_order'], purch_dict)))
-        total_received_dict = dict(zip(purchases, map(lambda d: d['total_received'], purch_dict)))
         for single_sku in sku_codes_list:
             exist = user_sku_codes.filter(sku_code=single_sku)
             asn_stock_qty = asn_avail_stock.get(single_sku, 0)
@@ -466,12 +484,12 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
                                  'asn_blocked': asn_blk_qty, 'non_kitted': 0})
                 continue
             trans_quantity = 0
-            if single_sku in purchases:
-                trans_quantity = total_order_dict[single_sku] - total_received_dict[single_sku]
-            quantity = stock_user_dict.get(single_sku, 0)
+            if single_sku in purch_dict.get(str(user), []):
+                trans_quantity = purch_dict[str(user)][single_sku]['total_order'] - purch_dict[str(user)][single_sku]['total_received']
+            quantity = stock_user_dict.get(str(user), {}).get(single_sku, 0)
             pic_reserved = pick_reserved_dict.get(single_sku, 0)
             raw_reserved = raw_reserved_dict.get(single_sku, 0)
-            enq_reserved = enq_block_stock.get(single_sku, 0)
+            enq_reserved = enq_block_stock_map.get(str(user), {}).get(single_sku, 0)
             if not asn_true:
                 available = quantity - pic_reserved
             else:
@@ -730,21 +748,26 @@ def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_
 def get_aggregate_data(user_groups, sku_list):
     data = []
     users_objs = User.objects.filter(id__in=user_groups)
+    stock_qty_map = dict(StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code__in=sku_list,
+                                                                         sku__user__in=user_groups).only(
+        'quantity').values_list('sku__user').annotate(Sum('quantity')))
+    res_qty_map = dict(PicklistLocation.objects.filter(stock__sku__sku_code__in=sku_list, stock__sku__user__in=user_groups,
+                                                   status=1).only('stock__sku__user').values_list('stock__sku__user').annotate(Sum('reserved')))
+    raw_res_qty_map = dict(RMLocation.objects.filter(status=1, stock__sku__user__in=user_groups).
+                           only('stock__sku__user').values_list('stock__sku__user').annotate(Sum('reserved')))
+    enq_block_stock_map = dict(EnquiredSku.objects.filter(sku__user__in=users_objs, sku__sku_code__in=sku_list).filter(
+        ~Q(enquiry__extend_status='rejected')).only('sku__user').values_list('sku__user').annotate(Sum('quantity')))
 
     for user in users_objs:
         available = 0
-        total = \
-        StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code__in=sku_list, sku__user=user.id).aggregate(
-            Sum('quantity'))['quantity__sum']
-        reserved = PicklistLocation.objects.filter(stock__sku__sku_code__in=sku_list, stock__sku__user=user.id,
-                                                   status=1).aggregate(Sum('reserved'))['reserved__sum']
+        total = stock_qty_map.get(user.id, 0)
+        reserved = res_qty_map.get(user.id, 0)
+        raw_reserved = raw_res_qty_map.get(user.id, 0)
+        enq_block_stock = enq_block_stock_map.get(user.id, 0)
         purch = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(
-            open_po__sku__user=user.id, open_po__sku__sku_code__in=sku_list).values('open_po__sku__sku_code').annotate(
-            total_order=Sum('open_po__order_quantity'), total_received=Sum('received_quantity'))
-        raw_reserved = RMLocation.objects.filter(status=1, stock__sku__user=user.id). \
-            aggregate(Sum('reserved'))['reserved__sum']
-        enq_block_stock = EnquiredSku.objects.filter(sku__user=user.id, sku__sku_code__in=sku_list).filter(
-            ~Q(enquiry__extend_status='rejected')).values_list('sku_code').aggregate(Sum('quantity'))['quantity__sum']
+            open_po__sku__user=user.id, open_po__sku__sku_code__in=sku_list).only('open_po__sku__sku_code').\
+            values('open_po__sku__sku_code').annotate(total_order=Sum('open_po__order_quantity'),
+                                                      total_received=Sum('received_quantity'))
 
         today_filter = datetime.datetime.today()
         hundred_day_filter = today_filter + datetime.timedelta(days=100)
@@ -754,9 +777,9 @@ def get_aggregate_data(user_groups, sku_list):
             arriving_date__lte=hundred_day_filter)
         intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
         asn_res_100days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
-        asn_res_100days_qty = asn_res_100days_qs.values_list('asnstock__sku__sku_code').aggregate(Sum('reserved_qty'))['reserved_qty__sum']
+        asn_res_100days_qty = asn_res_100days_qs.only('asnstock__sku__sku_code').values_list('asnstock__sku__sku_code').aggregate(Sum('reserved_qty'))['reserved_qty__sum']
 
-        asn_total_qty = intr_obj_100days_qs.values_list('sku__sku_code').distinct().aggregate(Sum('quantity'))['quantity__sum']
+        asn_total_qty = intr_obj_100days_qs.only('sku__sku_code').values_list('sku__sku_code').distinct().aggregate(Sum('quantity'))['quantity__sum']
         if not asn_res_100days_qty:
             asn_res_100days_qty = 0
         if not asn_total_qty:
@@ -1301,7 +1324,6 @@ def stock_summary_data(request, user=''):
             elif quantity:
                 production_stages.append(
                     {'job_code': job_code, 'stage_name': head, 'stage_quantity': tracking.get(head, 0)})
-
     return HttpResponse(json.dumps({'zones_data': zones_data.values(), 'production_stages': production_stages,
                                     'load_unit_handle': load_unit_handle}))
 
@@ -1814,7 +1836,7 @@ def confirm_sku_substitution(request, user=''):
     src_qty = request.POST.get('src_quantity', '')
     src_loc = request.POST.get('src_location', '')
     src_batch_no = request.POST.get('src_batch_number', '')
-    src_mrp = request.POST.get('mrp', 0)
+    src_mrp = request.POST.get('src_mrp', 0)
     seller_id = request.POST.get('seller_id', '')
     if user.userprofile.user_type == 'marketplace_user' and not seller_id:
         return HttpResponse('Seller ID is Mandatory')
@@ -1881,14 +1903,17 @@ def confirm_sku_substitution(request, user=''):
             if data_dict['dest_mrp'][ind]:
                 mrp_dict['mrp'] = data_dict['dest_mrp'][ind]
                 dest_filter['batch_detail__mrp'] = data_dict['dest_mrp'][ind]
+        if seller_id:
+            dest_filter['sellerstock__seller_id'] = seller_id
         dest_stocks = StockDetail.objects.filter(**dest_filter)
         dest_list.append({'dest_sku': dest_sku[0], 'dest_loc': dest_loc[0], 'dest_qty': dest_qty,
                           'dest_stocks': dest_stocks, 'mrp_dict': mrp_dict})
     source_updated = False
+    transact_number = get_max_substitute_allocation_id(user)
     for dest_dict in dest_list:
         update_substitution_data(src_stocks, dest_stocks, source_sku, source_location, src_qty, dest_dict['dest_sku'],
                                  dest_dict['dest_loc'], dest_dict['dest_qty'], user, seller_id,
-                                 source_updated, dest_dict['mrp_dict'])
+                                 source_updated, dest_dict['mrp_dict'], transact_number)
         source_updated = True
     return HttpResponse('Successfully Updated')
 
@@ -2570,3 +2595,163 @@ def auto_sellable_confirm(request, user=''):
 def update_sellable_suggestions(request, user=''):
     update_auto_sellable_data(user)
     return HttpResponse("Success")
+
+
+def get_all_sellable_zones(user):
+    sellable_zones = ZoneMaster.objects.filter(user=user.id, segregation='sellable').exclude(zone__in=['DAMAGED_ZONE', 'QC_ZONE']).values_list('zone', flat=True)
+    if sellable_zones:
+        sellable_zones = get_all_zones(user, zones=sellable_zones)
+    return sellable_zones
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_combo_sku_codes(request, user=''):
+    sku_code = request.POST.get('sku_code', '')
+    all_data = []
+    seller_id = request.POST.get('seller_id', '').split(':')[0]
+    seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
+    if not seller_master:
+        return HttpResponse(json.dumps({"status": False, "message":"Invalid Seller ID"}))
+    seller_master_id = seller_master[0].id
+    combo_skus = SKURelation.objects.filter(parent_sku__user=user.id, parent_sku__sku_code=sku_code)
+    if not combo_skus:
+        return HttpResponse(json.dumps({"status": False, "message":"No Data Found"}))
+    sellable_zones = get_all_sellable_zones(user)
+    for combo in combo_skus:
+        cond = (combo.member_sku.sku_code)
+        child_quantity = combo.quantity
+        stock_detail = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sellerstock__seller_id=seller_master_id,
+                                                            sku_id=combo.member_sku_id, location__zone__zone__in=sellable_zones,
+                                                            batch_detail__isnull=False).only('batch_detail__mrp')
+        child_mrp = 0
+        if stock_detail.exists():
+            child_mrp = stock_detail[0].batch_detail.mrp
+        all_data.append({'child_sku_qty': child_quantity, 'child_sku_code': cond, 'child_sku_batch':'', 'child_sku_desc': combo.member_sku.sku_desc,
+                        'child_sku_location': '', 'child_sku_mrp': child_mrp, 'child_qty': child_quantity})
+    parent_data = {'combo_sku_code': combo_skus[0].parent_sku.sku_code, 'combo_sku_desc': combo_skus[0].parent_sku.sku_desc, 'quantity':1}
+    return HttpResponse(json.dumps({"status": True, 'parent': parent_data, 'childs': all_data}), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def confirm_combo_allocation(request, user=''):
+    data_dict = dict(request.POST.iterlists())
+    try:
+        seller_id = request.POST.get('seller_id', '').split(':')[0]
+        if seller_id:
+            seller = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
+            if not seller:
+                return HttpResponse(json.dumps({'status':False, 'message':'Invalid Seller Id'}))
+            else:
+                seller_id = seller[0].id
+        final_data = OrderedDict()
+        for ind in range(0, len(data_dict['combo_sku_code'])):
+            combo_batch_no = data_dict['batch'][ind]
+            combo_mrp = data_dict['mrp'][ind]
+            combo_qty = data_dict['quantity'][ind]
+            child_batch_no = data_dict['child_batch'][ind]
+            child_mrp = data_dict['child_mrp'][ind]
+            child_qty = data_dict['child_quantity'][ind]
+            if not combo_qty:
+                return HttpResponse(json.dumps({'status':False, 'message':'Child Quantity should be number'}))
+            combo_qty = float(combo_qty)
+            if not child_qty:
+                return HttpResponse(json.dumps({'status':False, 'message':'Child Quantity should be number'}))
+            child_qty = float(child_qty)
+            if child_mrp:
+                try:
+                    child_mrp = float(child_mrp)
+                except:
+                    return HttpResponse(json.dumps({'status':False, 'message':'Child MRP should be number'}))
+            else:
+                child_mrp = 0
+            if combo_mrp:
+                try:
+                    combo_mrp = float(combo_mrp)
+                except:
+                    return HttpResponse(json.dumps({'status':False, 'message':'Combo MRP should be number'}))
+            else:
+                combo_mrp = 0
+            combo_sku = SKUMaster.objects.filter(user=user.id, sku_code=data_dict['combo_sku_code'][ind])
+            if not combo_sku:
+                return HttpResponse(json.dumps({'status':False, 'message':'Combo SKU Code Not Found'}))
+            child_sku = SKUMaster.objects.filter(user=user.id, sku_code=data_dict['child_sku_code'][ind])
+            if not child_sku:
+                return HttpResponse(json.dumps({'status':False, 'message':'Child SKU Code Not Found'}))
+            combo_loc = LocationMaster.objects.filter(zone__user=user.id, location=data_dict['location'][ind])
+            if not combo_loc:
+                return HttpResponse(json.dumps({'status':False, 'message':'Combo Location Not Found'}))
+            child_loc = LocationMaster.objects.filter(zone__user=user.id, location=data_dict['child_location'][ind])
+            if not child_loc:
+                return HttpResponse(json.dumps({'status':False, 'message':'Child Location Not Found'}))
+            stock_dict = {"sku_id": child_sku[0].id, "location_id": child_loc[0].id,
+                          "sku__user": user.id, "quantity__gt": 0}
+            if seller_id:
+                stock_dict['sellerstock__seller_id'] = seller_id
+            if child_batch_no:
+                stock_dict['batch_detail__batch_no'] = child_batch_no
+            if child_mrp:
+                stock_dict['batch_detail__mrp'] = child_mrp
+            child_stocks = StockDetail.objects.filter(**stock_dict)
+            child_stock_count = child_stocks.aggregate(Sum('quantity'))['quantity__sum']
+            if not child_stock_count:
+                return HttpResponse(json.dumps({'status':False, 'message':'Child SKU Code Don\'t Have Stock'}))
+            elif child_stock_count < child_qty:
+                return HttpResponse(json.dumps({'status':False, 'message':'Child SKU Code Have Stock, ' + str(child_stock_count) }))
+            combo_filter = {'sku_id': combo_sku[0].id, 'location_id': combo_loc[0].id,
+                           'sku__user': user.id}
+            mrp_dict = {}
+            mrp_dict['batch_no'] = combo_batch_no
+            combo_filter['batch_detail__batch_no'] = combo_batch_no
+            if combo_mrp:
+                mrp_dict['mrp'] = combo_mrp
+                combo_filter['batch_detail__mrp'] = combo_mrp
+            add_ean_weight_to_batch_detail(combo_sku[0], mrp_dict)
+            if seller_id:
+                combo_filter['sellerstock__seller_id'] = seller_id
+            combo_stocks = StockDetail.objects.filter(**combo_filter)
+            group_key = '%s<<>>%s<<>>%s<<>>%s' % (str(combo_sku[0].sku_code), str(combo_loc[0].location),
+                                                  str(combo_batch_no), str(combo_mrp))
+            final_data.setdefault(group_key, {'combo_sku': combo_sku[0], 'combo_loc': combo_loc[0],
+                                              'combo_batch_no': combo_batch_no, 'combo_mrp': combo_mrp,
+                                              'combo_qty': combo_qty, 'combo_mrp_dict': mrp_dict,
+                                              'combo_stocks': combo_stocks,
+                                              'childs': []})
+            final_data[group_key]['childs'].append({'child_sku': child_sku[0], 'child_loc': child_loc[0],
+                                                    'child_batch_no': child_batch_no, 'child_mrp': child_mrp,
+                                                    'child_qty': child_qty, 'child_stocks': child_stocks})
+        final_data = final_data.values()
+        source_updated=False
+
+        for row_data in final_data:
+            transact_number = get_max_combo_allocation_id(user)
+            dest_updated = False
+            for data in row_data['childs']:
+                desc_batch_obj = update_stocks_data(data['child_stocks'], float(data['child_qty']), row_data['combo_stocks'],
+                                                    float(row_data['combo_qty']), user, [row_data['combo_loc']],
+                                                    row_data['combo_sku'].id,
+                                                    src_seller_id=seller_id, dest_seller_id=seller_id,
+                                                    source_updated=source_updated,
+                                                    mrp_dict=row_data['combo_mrp_dict'], dest_updated=dest_updated)
+                sub_data = {'source_sku_code_id': data['child_sku'].id, 'source_location': data['child_loc'].location, 'source_quantity': data['child_qty'],
+                            'destination_sku_code_id': row_data['combo_sku'].id, 'destination_location': row_data['combo_loc'].location,
+                            'destination_quantity': row_data['combo_qty'], 'summary_type': 'combo_allocation'}
+                if data['child_stocks'] and data['child_stocks'][0].batch_detail:
+                    sub_data['source_batch_id'] = data['child_stocks'][0].batch_detail_id
+                if desc_batch_obj:
+                    sub_data['dest_batch_id'] = desc_batch_obj.id
+                if seller_id:
+                    sub_data['seller_id'] = seller_id
+                sub_data['transact_number'] = transact_number
+                SubstitutionSummary.objects.create(**sub_data)
+                dest_updated = True
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Combo allocate stock failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(data_dict), str(e)))
+
+    return HttpResponse(json.dumps({'status':True, 'message' : 'Success'}))

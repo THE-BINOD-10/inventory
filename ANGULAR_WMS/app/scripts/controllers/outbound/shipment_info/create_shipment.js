@@ -12,6 +12,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     vm.permissions = Session.roles.permissions;
     vm.mk_user = (vm.permissions.use_imei == true) ? true: false;
     vm.awb_ship_type = (vm.permissions.create_shipment_type == true) ? true: false;
+    vm.scan_imei_readonly = false;
 
     vm.g_data = Data.create_shipment;
 
@@ -471,10 +472,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     vm.serial_numbers = [];
     vm.check_imei_exists = function(event, imei) {
       event.stopPropagation();
-      if (event.keyCode == 13 && imei.length > 0) {
+      if (event.keyCode == 13 && imei.length > 0 && vm.scan_imei_readonly==false) {
+        vm.scan_imei_readonly = true;
+        imei = imei.toUpperCase();
         if (vm.serial_numbers.indexOf(imei) != -1){
             vm.service.showNoty("IMEI Number Already Exist");
             vm.imei_number = "";
+            vm.scan_imei_readonly = false;
         } else {
           var imei_order_id = ''
           if(vm.model_data.data.length > 0 && vm.model_data.data[0].order_id)
@@ -489,17 +493,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
           }
         if(!vm.model_data.data[0].serial_number.length)
           {
-           var check_imei_dict = {is_shipment: true, imei: imei, order_id: imei_order_id, groupby: vm.group_by}
+	   //var check_imei_dict = {is_shipment: true, imei: imei, order_id: imei_order_id, groupby: vm.group_by}
+	   var check_imei_dict = {is_shipment: true, imei: imei, groupby: vm.group_by}
            vm.service.apiCall('check_imei/', 'GET', check_imei_dict).then(function(data){
              if(data.message) {
+		vm.update_imei_data(data.data, imei);
+	       /*
                if (data.data.status == "Success") {
                  vm.update_imei_data(data.data, imei);
                 //vm.check_equal(data2);
                } else {
-                 vm.service.showNoty(data.data.status);
+                     vm.service.showNoty(data.data.status);
                }
+	       */
                vm.imei_number = "";
              }
+             vm.scan_imei_readonly = false;
            });
           }
         else{
@@ -517,15 +526,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                               }
                             }
                         }
-                  }
+               }
+               vm.imei_number = "";
+               vm.scan_imei_readonly = false;
             }
-
         }
       }
     }
 
     vm.update_imei_data = function(data, imei) {
-
+      imei = imei.toUpperCase();
       var status = false;
       var sku_status = false;
       for(var i = 0; i < vm.model_data.data.length; i++) {
@@ -640,6 +650,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 
     vm.update_sku_quan = function(event, scanned_sku) {
       event.stopPropagation();
+      if(event.keyCode == 13 && vm.mk_user) {
+        $('#scan_imei_input').focus();
+        vm.scan_sku = '';
+        return
+      }
       if (event.keyCode == 13 && scanned_sku.length > 0) {
           console.log(vm);
         vm.service.apiCall("create_orders_check_ean", "GET", {ean: scanned_sku}).then(function(api_data){

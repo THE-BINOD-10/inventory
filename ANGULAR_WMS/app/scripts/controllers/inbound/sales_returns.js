@@ -9,6 +9,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.permissions = Session.roles.permissions;
     vm.industry_type = Session.user_profile.industry_type;
     vm.awb_ship_type = (vm.permissions.create_shipment_type == true) ? true: false;
+    vm.scan_imei_readonly = false;
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -465,6 +466,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.add_new_imei = function(data, field) {
+      field = field.toUpperCase();
       vm.model_data.data.push({'sku_code': data.data.sku_code, 'sku_desc': data.data.sku_desc,
                                'shipping_quantity': data.data.shipping_quantity, 'order_id': data.data.order_id,
                                'return_quantity': 1, 'damaged_quantity': '', 'track_id_enable': false,
@@ -483,6 +485,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.scan_imei = function(event, field) {
       if ( event.keyCode == 13 && field) {
+        field = field.toUpperCase();
+        vm.scan_imei_readonly = true;
         if(vm.scan_imeis.indexOf(field) == -1) {
           vm.service.apiCall('check_return_imei/', 'GET', {imei: field}).then(function(data){
             if(data.message) {
@@ -522,9 +526,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 pop_msg(data.data.status);
               }
             }
+            vm.scan_imei_readonly = false;
           });
         } else {
           pop_msg("Scanned Imei exists");
+          vm.scan_imei_readonly = false;
         }
         vm.model_data.return_imei = '';
       }

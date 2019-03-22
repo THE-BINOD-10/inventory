@@ -3566,15 +3566,17 @@ def create_vendor_stock_transfer(request , user=''):
                 stock = stocks_obj[0]
                 stock.quantity -= float(data_dict['order_quantity'][i])
                 stock.save()
-            receipt_number  = VendorStock.objects.filter(sku__user = user.id).aggregate(Max('receipt_number'))
-            vendor_stock_obj = {}
-            vendor_stock_obj['receipt_number'] = receipt_number['receipt_number__max'] + 1
-            vendor_stock_obj['sku_id'] = sku_id
-            vendor_stock_obj['quantity'] = data_dict['order_quantity'][i]
-            vendor_stock_obj['receipt_date']= datetime.datetime.now()
-            vendor_master = VendorMaster.objects.filter(vendor_id=vendor, user=user.id)
-            vendor_stock_obj['vendor'] = vendor_master[0]
-            VendorStock.objects.create(**vendor_stock_obj)
+                receipt_number  = VendorStock.objects.filter(sku__user = user.id).aggregate(Max('receipt_number'))
+                vendor_stock_obj = {}
+                vendor_stock_obj['receipt_number'] = receipt_number['receipt_number__max'] + 1
+                vendor_stock_obj['sku_id'] = sku_id
+                vendor_stock_obj['quantity'] = data_dict['order_quantity'][i]
+                vendor_stock_obj['receipt_date']= datetime.datetime.now()
+                vendor_master = VendorMaster.objects.filter(vendor_id=vendor, user=user.id)
+                vendor_stock_obj['vendor'] = vendor_master[0]
+                VendorStock.objects.create(**vendor_stock_obj)
+            else:
+                 return HttpResponse("Stock Not Found")
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

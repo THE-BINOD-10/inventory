@@ -25,6 +25,7 @@ log = init_logger('logs/integrations_' + today + '.log')
 storehippo_log = init_logger('logs/storehippo_' + today + '.log')
 create_order_storehippo_log = init_logger('logs/storehippo_create_order_log_' + today + '.log')
 create_update_sku_storehippo_log = init_logger('logs/storehippo_create_update_log_' + today + '.log')
+order_edit_storehippo_log = init_logger('logs/order_edit_storehippo_log_' + today + '.log')
 
 # Create your views here.
 
@@ -1576,7 +1577,7 @@ def create_update_sku_storehippo(store_hippo_data, user_obj):
         stockone_data['youtube_url'] = ''
         stockone_data['user'] = user_obj.id
     except:
-        create_update_sku_storehippo_log.info('Error Occured')
+        create_update_sku_storehippo_log.info('Error Occured in create_update_sku_storehippo function')
         return "Error Occured"
     try:
         sku_obj = SKUMaster.objects.filter(**{'user':user_obj.id, 'sku_code':sku_code})
@@ -1588,17 +1589,20 @@ def create_update_sku_storehippo(store_hippo_data, user_obj):
             create_update_sku_storehippo_log.info('Updated SKU '+ str(stockone_data))
     except:
         sku_query_obj = "Error Occured"
-        create_update_sku_storehippo_log.info('Error Occured')
+        create_update_sku_storehippo_log.info('Error Occured in create_update_sku_storehippo')
     return sku_query_obj
 
 
 def order_edit_storehippo(store_hippo_data, user_obj):
+    order_edit_storehippo_log.info('Input Data - For User '+ user_obj.name + ' , ' + str(store_hippo_data))
     order_id_list = []
     if store_hippo_data['status'] == 'cancelled':
         order_id = store_hippo_data.get('order_id', '')
         order_id_list.append(order_id)
 	ids_of_orders = list(set(OrderDetail.objects.filter(original_order_id__in=order_id_list).values_list('id', flat=True)))
+        order_edit_storehippo_log.info('Input List of Order IDs sent' + str(ids_of_orders))
 	cancel_order = order_cancel_functionality(ids_of_orders)
+        order_edit_storehippo_log.info('Output Response' + str(cancel_order))
     return store_hippo_data
     
 
@@ -1616,8 +1620,6 @@ def store_hippo(request):
         status_resp = create_order_storehippo(store_hippo_data, user_obj)
     if api_type in ['add_sku', 'edit_sku']:
         status_resp = create_update_sku_storehippo(store_hippo_data, user_obj)
-    if api_type == 'order_delete':
-        status_resp = delete_order_storehippo(store_hippo_data, user_obj)
     if api_type == 'order_edit':
         status_resp = order_edit_storehippo(store_hippo_data, user_obj)
     b = datetime.datetime.now()

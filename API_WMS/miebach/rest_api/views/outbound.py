@@ -2279,11 +2279,11 @@ def picklist_confirmation(request, user=''):
                 auto_po(auto_skus, user.id)
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
 
-	#Check DM Rista User
-	int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
-	if int_obj and rista_order_id_list:
-	    rista_order_id = list(set(rista_order_id_list))
-	    rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
+    	#Check DM Rista User
+    	int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
+    	if int_obj and rista_order_id_list:
+    	    rista_order_id = list(set(rista_order_id_list))
+    	    rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
 
         #Check StoreHippo User
         check_store_hippo = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})

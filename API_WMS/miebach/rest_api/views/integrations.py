@@ -2540,4 +2540,3 @@ def update_order_dicts_skip_errors(orders, failed_status, user='', company_name=
             log.info("Order Charges Bulk Creation Failed")
             log.debug(traceback.format_exc())
     return status
-

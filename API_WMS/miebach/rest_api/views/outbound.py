@@ -2222,10 +2222,9 @@ def picklist_confirmation(request, user=''):
                                 rista_order_dict[original_order_id_str] = []
                                 rista_order_dict[original_order_id_str].append(sku_code_dict)
 
-
 		    #StoreHippo COnfirm Picklist
-		    #int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
-                    if picklist.order:
+		    check_storehippo_user = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
+                    if check_storehippo_user and picklist.order:
                         original_order_id_str = str(picklist.order.order_reference)
                         picking_count1 = int(picking_count1)
                         if picking_count1:
@@ -2237,8 +2236,6 @@ def picklist_confirmation(request, user=''):
                             else:
                                 storehippo_order_dict[original_order_id_str] = []
                                 storehippo_order_dict[original_order_id_str].append(sku_code_dict)
-
-
                     picklist.save()
                     if user_profile.user_type == 'marketplace_user' and picklist.order:
                         create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,

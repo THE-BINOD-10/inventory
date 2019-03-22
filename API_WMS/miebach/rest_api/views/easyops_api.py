@@ -19,7 +19,7 @@ LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
 log = init_logger('logs/integration_requests.log')
 today = datetime.datetime.now().strftime("%Y%m%d")
 storehippo_fulfillments_log = init_logger('logs/storehippo_fulfillments_log_' + today + '.log')
-
+storehippo_sku_update_log = init_logger('logs/storehippo_sku_update_log_' + today + '.log')
 
 class EasyopsAPI:
     def __init__(self, company_name='', warehouse='', token='', user=''):
@@ -424,13 +424,14 @@ class EasyopsAPI:
 	    headers =  {'access-key': LOAD_CONFIG.get(self.company_name, 'access_key', ''), 'content-type': 'application/json'}
 	    url = (product_url + str({"sku": str(sku_price['wms_code'])})).replace( "'", '"')
 	    payload_data = {"data":{"price": sku_price['price']}}
+            storehippo_sku_update_log.info('For User : ' + str(user.username) + ' , Input Data to Update SKU Price ' + str(sku_price['wms_code']) + ' - ' + str(payload_data))
 	    response = requests.request("PUT", url, data=json.dumps(payload_data), headers=headers)
             response_status_code = response.status_code
             if response_status_code == 200:
                 send_response = {'status': True, 'message':str(response.json())}
-		storehippo_fulfillments_log.info(sku_price['wms_code'] + ' Updated Successfully - ' + str(response.json()))
+		storehippo_sku_update_log.info(sku_price['wms_code'] + ' Updated Successfully - ' + str(response.json()))
 	    else:
 		send_response = {'status': False, 'message': str(response.json())}
-		storehippo_fulfillments_log.info(sku_price['wms_code'] + ' - Error Occured on Update SKU')
+		storehippo_sku_update_log.info(sku_price['wms_code'] + ' - Error Occured on Update SKU')
 	return send_response
 

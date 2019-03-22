@@ -1540,56 +1540,103 @@ def create_update_sku_storehippo(store_hippo_data, user_obj):
         if desc:
             desc = desc.replace('<p>', '')
             desc = desc.replace('</p>', '')
-        stockone_data['sku_code'] = sku_code
-        stockone_data['wms_code'] = sku_code
-        stockone_data['sku_desc'] = desc
-        stockone_data['sku_group'] = ''
-        stockone_data['sku_type'] = ''
-        stockone_data['sku_category'] = categories
-        stockone_data['sku_class'] = ''
-        stockone_data['threshold_quantity'] = store_hippo_data.get('inventory_low_stock_quantity', 0)
-        stockone_data['online_percentage'] = 0
-        stockone_data['image_url'] = image
-        stockone_data['qc_check'] = 0
-        stockone_data['status'] = store_hippo_data.get('publish', 0)
-        #stockone_data['zone_id'] = 0
-        stockone_data['relation_type'] = ''
-        stockone_data['discount_percentage'] = 0
-        stockone_data['price'] = store_hippo_data.get('price', 0)
-        stockone_data['product_type'] = ''
-        stockone_data['sku_brand'] = store_hippo_data.get('brand', '')
-        stockone_data['sku_size'] = ''
-        stockone_data['style_name'] = ''
-        stockone_data['mrp'] = store_hippo_data.get('price', 0)
-        stockone_data['sequence'] = 0
-        stockone_data['measurement_type'] = ''
-        stockone_data['sale_through'] = ''
-        stockone_data['color'] = ''
-        #stockone_data['ean_number'] = store_hippo_data.get('_id', 0)
-        stockone_data['mix_sku'] = ''
-        stockone_data['load_unit_handle'] = ''
-        stockone_data['hsn_code'] = 0
-        stockone_data['sub_category'] = ''
-        stockone_data['primary_category'] = ''
-        stockone_data['cost_price'] = store_hippo_data.get('price', 0)
-        stockone_data['shelf_life'] = 0
-        stockone_data['enable_serial_based'] = 0
-        stockone_data['youtube_url'] = ''
-        stockone_data['user'] = user_obj.id
+        variants = store_hippo_data.get('variants', [])
+        for var_obj in variants:
+            sku_code = var_obj.get('sku', '')
+            stockone_data['sku_code'] = sku_code
+            stockone_data['wms_code'] = sku_code
+            stockone_data['sku_desc'] = desc
+            stockone_data['sku_group'] = ''
+            stockone_data['sku_type'] = ''
+            stockone_data['sku_category'] = categories
+            stockone_data['sku_class'] = ''
+            stockone_data['threshold_quantity'] = store_hippo_data.get('inventory_low_stock_quantity', 0)
+            stockone_data['online_percentage'] = 0
+            stockone_data['image_url'] = image
+            stockone_data['qc_check'] = 0
+            stockone_data['status'] = store_hippo_data.get('publish', 0)
+            stockone_data['relation_type'] = ''
+            stockone_data['discount_percentage'] = 0
+            stockone_data['price'] = var_obj.get('price', 0)
+            stockone_data['product_type'] = ''
+            stockone_data['sku_brand'] = store_hippo_data.get('brand', '')
+            stockone_data['sku_size'] = ''
+            stockone_data['style_name'] = var_obj.get('variant_id','')
+            stockone_data['mrp'] = var_obj.get('compare_price', 0)
+            stockone_data['sequence'] = 0
+            stockone_data['measurement_type'] = ''
+            stockone_data['sale_through'] = ''
+            stockone_data['color'] = ''
+            stockone_data['mix_sku'] = ''
+            stockone_data['load_unit_handle'] = ''
+            stockone_data['hsn_code'] = 0
+            stockone_data['sub_category'] = ''
+            stockone_data['primary_category'] = ''
+            stockone_data['cost_price'] = var_obj.get('price', 0)
+            stockone_data['shelf_life'] = 0
+            stockone_data['enable_serial_based'] = 0
+            stockone_data['youtube_url'] = ''
+            stockone_data['user'] = user_obj.id
+            try:
+		sku_obj = SKUMaster.objects.filter(**{'user':user_obj.id, 'sku_code':sku_code})
+		if not sku_obj:
+		    sku_query_obj = SKUMaster.objects.create(**stockone_data)
+		    create_update_sku_storehippo_log.info('Created SKU ' + str(stockone_data))
+		else:
+		    sku_query_obj = sku_obj.update(**stockone_data)
+		    create_update_sku_storehippo_log.info('Updated SKU '+ str(stockone_data))
+            except:
+		sku_query_obj = "Error Occured"
+		create_update_sku_storehippo_log.info('Error Occured in create_update_sku_storehippo')
+        else:
+            stockone_data['sku_code'] = sku_code
+            stockone_data['wms_code'] = sku_code
+            stockone_data['sku_desc'] = desc
+            stockone_data['sku_group'] = ''
+            stockone_data['sku_type'] = ''
+            stockone_data['sku_category'] = categories
+            stockone_data['sku_class'] = ''
+            stockone_data['threshold_quantity'] = store_hippo_data.get('inventory_low_stock_quantity', 0)
+            stockone_data['online_percentage'] = 0
+            stockone_data['image_url'] = image
+            stockone_data['qc_check'] = 0
+            stockone_data['status'] = store_hippo_data.get('publish', 0)
+            stockone_data['relation_type'] = ''
+            stockone_data['discount_percentage'] = 0
+            stockone_data['price'] = store_hippo_data.get('price', 0)
+            stockone_data['product_type'] = ''
+            stockone_data['sku_brand'] = store_hippo_data.get('brand', '')
+            stockone_data['sku_size'] = ''
+            stockone_data['style_name'] = ''
+            stockone_data['mrp'] = store_hippo_data.get('compare_price', 0)
+            stockone_data['sequence'] = 0
+            stockone_data['measurement_type'] = ''
+            stockone_data['sale_through'] = ''
+            stockone_data['color'] = ''
+            stockone_data['mix_sku'] = ''
+            stockone_data['load_unit_handle'] = ''
+            stockone_data['hsn_code'] = 0
+            stockone_data['sub_category'] = ''
+            stockone_data['primary_category'] = ''
+            stockone_data['cost_price'] = store_hippo_data.get('price', 0)
+            stockone_data['shelf_life'] = 0
+            stockone_data['enable_serial_based'] = 0
+            stockone_data['youtube_url'] = ''
+            stockone_data['user'] = user_obj.id
+            try:
+		sku_obj = SKUMaster.objects.filter(**{'user':user_obj.id, 'sku_code':sku_code})
+		if not sku_obj:
+		    sku_query_obj = SKUMaster.objects.create(**stockone_data)
+		    create_update_sku_storehippo_log.info('Created SKU ' + str(stockone_data))
+		else:
+		    sku_query_obj = sku_obj.update(**stockone_data)
+		    create_update_sku_storehippo_log.info('Updated SKU '+ str(stockone_data))
+            except:
+		sku_query_obj = "Error Occured"
+		create_update_sku_storehippo_log.info('Error Occured in create_update_sku_storehippo')
     except:
         create_update_sku_storehippo_log.info('Error Occured in create_update_sku_storehippo function')
         return "Error Occured"
-    try:
-        sku_obj = SKUMaster.objects.filter(**{'user':user_obj.id, 'sku_code':sku_code})
-        if not sku_obj:
-            sku_query_obj = SKUMaster.objects.create(**stockone_data)
-            create_update_sku_storehippo_log.info('Created SKU ' + str(stockone_data))
-        else:
-            sku_query_obj = sku_obj.update(**stockone_data)
-            create_update_sku_storehippo_log.info('Updated SKU '+ str(stockone_data))
-    except:
-        sku_query_obj = "Error Occured"
-        create_update_sku_storehippo_log.info('Error Occured in create_update_sku_storehippo')
     return sku_query_obj
 
 

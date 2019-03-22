@@ -2130,9 +2130,9 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
     NOW = datetime.datetime.now()
     insert_status = []
     final_data_dict = OrderedDict()
-    alert_message_for_email = LOAD_CONFIG.get('rista', 'alert_message_for_email', '')
-    send_alert_msg_to = eval(LOAD_CONFIG.get('rista', 'send_alert_msg_to', ''))
-    body_of_alert_email = LOAD_CONFIG.get('rista', 'body_of_alert_email', '')
+    alert_message_for_email = LOAD_CONFIG.get('storehippo', 'alert_message_for_email', '')
+    send_alert_msg_to = eval(LOAD_CONFIG.get('storehippo', 'send_alert_msg_to', ''))
+    body_of_alert_email = LOAD_CONFIG.get('storehippo', 'body_of_alert_email', '')
     try:
         seller_master_dict, valid_order, query_params = {}, {}, {}
         failed_status = OrderedDict()
@@ -2296,6 +2296,9 @@ def validate_orders_format_storehippo(orders, user='', company_name='', is_cance
     try:
         seller_master_dict, valid_order, query_params = {}, {}, {}
         failed_status = OrderedDict()
+        alert_message_for_email = LOAD_CONFIG.get('storehippo', 'alert_message_for_email', '')
+        send_alert_msg_to = eval(LOAD_CONFIG.get('storehippo', 'send_alert_msg_to', ''))
+        body_of_alert_email = LOAD_CONFIG.get('storehippo', 'body_of_alert_email', '')
         if not orders:
             orders = {}
         if isinstance(orders, dict):
@@ -2355,6 +2358,7 @@ def validate_orders_format_storehippo(orders, user='', company_name='', is_cance
                     filter_params['sku_id'] = sku_master[0].id
                     filter_params1['sku_id'] = sku_master[0].id
                 else:
+                    send_mail(send_alert_msg_to, body_of_alert_email, 'For User : ' + str(user.username) + ' , For StoreHippo Order Id ' + str(original_order_id) + ' , ' + str(sku_code) +' - SKU Code Not found in Stockone')
                     continue
                 if sku_master:
                     grouping_key = str(original_order_id) + '<<>>' + str(sku_master[0].sku_code)

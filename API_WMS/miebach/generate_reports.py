@@ -51,13 +51,24 @@ class MailReports:
             #date_difference = (datetime.datetime.now().date() - report_date.date()).days
             #if (frequency_value in (0, 1) or (date_difference % frequency_value) != 0) and not mail_now:
             if ((frequency_value in (0,) or (date_difference % frequency_value) != 0) and not mail_now):
-                log.info("Came to this if condition ::%s ::%s" %(frequency_value, (date_difference % frequency_value)))
+                log.info("Came to this if condition ::%s ::%s" %(frequency_value, date_difference))
                 return
 
         enabled_reports = MiscDetail.objects.filter(misc_type__contains='report', misc_value='true', user=user.id)
         sister_whs = [user]
         append_wh_name = False
+        firebase_response = None
         if user.username == '72Networks':
+            try:
+                from firebase import firebase
+                firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
+                firebase_response = firebase.get('/OrderDetails/', None)
+            except Exception as e:
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info('Firebase query  failed for %s and params are  and error statement is %s' % (
+                    str(user.username), str(e)))
+
             sister_whs = User.objects.filter(username__in=get_linked_user_objs(user, user))
             append_wh_name = True
 
@@ -71,8 +82,10 @@ class MailReports:
             mail_report_data = {}
             for each_wh in sister_whs:
                 try:
-                    wh_report_data = report({}, each_wh, each_wh)
-                except:
+                    wh_report_data = report({}, each_wh, each_wh, serial_view=False, firebase_response=firebase_response)
+                except Exception as e:
+                    import traceback
+                    log.debug(traceback.format_exc())
                     wh_report_data = {}
                 if isinstance(wh_report_data, tuple):
                     wh_report_data = wh_report_data[0]

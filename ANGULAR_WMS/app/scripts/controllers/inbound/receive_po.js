@@ -2260,6 +2260,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     })
   }
 
+  vm.get_current_weight = function(event, data, index, parent_index) {
+    //if(event.keyCode == 13) {
+    if(vm.permissions.weight_integration_name.length > 0) {
+      var sku_row_data = {};
+      angular.copy(data.data[parent_index][index], sku_row_data);
+      vm.service.apiCall('get_current_weight/', 'GET',{}).then(function(res_data){
+        if(res_data.message){
+          console.log("working");
+          if(res_data.data.status && res_data.data.is_updated){
+            data.data[parent_index][index].value = res_data.data.weight;
+          }
+        }
+      });
+    }
+  }
+
   vm.file_size_check = function(event, file_obj) {
     var file_size = ($(".grn-form").find('[name="files"]')[0].files[0].size/1024)/1024;
     if(file_size > 10) {

@@ -226,6 +226,9 @@ def add_user_permissions(request, response_data, user=''):
     response_data['data']['roles']['permissions']['multi_warehouse'] = multi_warehouse
     response_data['data']['roles']['permissions']['show_pull_now'] = show_pull_now
     response_data['data']['roles']['permissions']['order_manage'] = get_misc_value('order_manage', user.id)
+    response_data['data']['roles']['permissions']['weight_integration_name'] = get_misc_value('weight_integration_name', request.user.id)
+    if response_data['data']['roles']['permissions']['weight_integration_name'] == 'false':
+        response_data['data']['roles']['permissions']['weight_integration_name'] = ''
     response_data['data']['user_profile'] = {'first_name': request.user.first_name, 'last_name': request.user.last_name,
                                              'registered_date': get_local_date(request.user,
                                                                                user_profile.creation_date),
@@ -776,8 +779,11 @@ def configurations(request, user=''):
     for key, value in CONFIG_SWITCHES_DICT.iteritems():
         config_dict[key] = get_misc_value(value, user.id)
     for key, value in CONFIG_INPUT_DICT.iteritems():
+        query_user = user
+        if key == 'weight_integration_name':
+            query_user = request.user
         config_dict[key] = ''
-        value = get_misc_value(value, user.id)
+        value = get_misc_value(value, query_user.id)
         if not value == 'false':
             config_dict[key] = value
     all_groups = SKUGroups.objects.filter(user=user.id).values_list('group', flat=True)
@@ -9111,6 +9117,10 @@ def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
 @get_admin_user
 def get_current_weight(request, user=''):
     from rest_api.views.weighing_machine_api import get_integration_weight_val
-    result_val, is_updated = get_integration_weight_val()
-    result_val = str(result_val).replace('\r\n', '')
-    return HttpResponse(json.dumps({'weight': result_val, 'is_updated': is_updated}))
+    weight_topic = get_misc_value('weight_integration_name', request.user.id)
+    if weight_topic != 'false':
+        result_val, is_updated = get_integration_weight_val(weight_topic)
+        result_val = str(result_val).replace('\r\n', '')
+        return HttpResponse(json.dumps({'weight': result_val, 'is_updated': is_updated, 'status': 1}))
+    else:
+        return HttpResponse(json.dumps({'weight': 0 , 'is_updated': False, 'status': 0}))

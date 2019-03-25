@@ -1015,7 +1015,8 @@ def switches(request, user=''):
                        'po_sub_user_prefix': 'po_sub_user_prefix',
                        'combo_allocate_stock': 'combo_allocate_stock',
                        'unique_mrp_putaway': 'unique_mrp_putaway',
-                       'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation'
+                       'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation',
+                       'weight_integration_name': 'weight_integration_name',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -1027,6 +1028,15 @@ def switches(request, user=''):
             if user_profile and selection:
                 setattr(user_profile[0], 'prefix', selection)
                 user_profile[0].save()
+        elif key == 'weight_integration_name':
+            data = MiscDetail.objects.filter(misc_type=toggle_field, user=request.user.id)
+            if not data:
+                misc_detail = MiscDetail(user=request.user.id, misc_type=toggle_field, misc_value=selection,
+                                         creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
+                misc_detail.save()
+            else:
+                setattr(data[0], 'misc_value', selection)
+                data[0].save()
         else:
             if toggle_field == 'tax_details':
                 tax_name = eval(selection)

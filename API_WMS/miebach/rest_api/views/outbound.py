@@ -28,7 +28,8 @@ from utils import *
 import os, math
 from rest_api.rista_save_transfer import *
 log = init_logger('logs/outbound.log')
-
+today = datetime.datetime.now().strftime("%Y%m%d")
+storehippo_fulfillments_log = init_logger('logs/storehippo_fulfillments_log_' + today + '.log')
 
 @csrf_exempt
 def get_batch_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters,
@@ -2035,6 +2036,7 @@ def picklist_confirmation(request, user=''):
 
     log.info('Request params for ' + user.username + ' is ' + str(data))
     try:
+        storehippo_order_dict = {}
         rista_order_id_list = []
         rista_order_dict = {}
         data = OrderedDict(sorted(data.items(), reverse=True))
@@ -2066,6 +2068,7 @@ def picklist_confirmation(request, user=''):
         if combo_status:
             return HttpResponse(json.dumps({'message': 'Combo Quantities are not matching',
                                             'sku_codes': combo_status, 'status': 0}))
+
         for picklist_dict in final_data_list:
             picklist = picklist_dict['picklist']
             picklist_batch = picklist_dict['picklist_batch']
@@ -2219,6 +2222,20 @@ def picklist_confirmation(request, user=''):
                                 rista_order_dict[original_order_id_str] = []
                                 rista_order_dict[original_order_id_str].append(sku_code_dict)
 
+		    #StoreHippo COnfirm Picklist
+		    check_storehippo_user = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
+                    if check_storehippo_user and picklist.order:
+                        original_order_id_str = str(picklist.order.order_reference)
+                        picking_count1 = int(picking_count1)
+                        if picking_count1:
+                            sku_code_str = picklist.order.sku.sku_code
+                            sku_code_dict = {}
+                            sku_code_dict[sku_code_str] = picking_count1
+                            if original_order_id_str in storehippo_order_dict.keys():
+                                storehippo_order_dict[original_order_id_str].append(sku_code_dict)
+                            else:
+                                storehippo_order_dict[original_order_id_str] = []
+                                storehippo_order_dict[original_order_id_str].append(sku_code_dict)
                     picklist.save()
                     if user_profile.user_type == 'marketplace_user' and picklist.order:
                         create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,
@@ -2258,11 +2275,38 @@ def picklist_confirmation(request, user=''):
             else:
                 auto_po(auto_skus, user.id)
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
-        #Check DM Rista User
-        int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
-        if int_obj and rista_order_id_list:
-            rista_order_id = list(set(rista_order_id_list))
-            rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
+
+    	#Check DM Rista User
+    	int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
+    	if int_obj and rista_order_id_list:
+    	    rista_order_id = list(set(rista_order_id_list))
+    	    rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
+
+        #Check StoreHippo User
+        check_store_hippo = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
+    	if len(check_store_hippo):
+            to_fulfill = {}
+            to_fulfill_list = []
+            alert_message_for_email = LOAD_CONFIG.get('storehippo', 'alert_message_for_email', '')
+            send_alert_msg_to = eval(LOAD_CONFIG.get('storehippo', 'send_alert_msg_to', ''))
+            body_of_alert_email = LOAD_CONFIG.get('storehippo', 'body_of_alert_email', '')
+    	    for key, value in storehippo_order_dict.iteritems():
+                items_list = []
+                for obj in value:
+                    sku = obj.keys()[0]
+                    quantity = obj.values()[0]
+                    items_list.append({'sku':sku, 'quantity':quantity})
+                    to_fulfill = {'order_id': key, 'items': items_list}
+                    to_fulfill_list.append(to_fulfill)
+    	    from rest_api.views.easyops_api import *
+    	    for integrate in check_store_hippo:
+                obj = eval(integrate.api_instance)(company_name=integrate.name, user=user.id)
+                storehippo_response = obj.storehippo_fulfill_orders(to_fulfill_list, user)
+                if storehippo_response['status']:
+                    storehippo_fulfillments_log.info('For User: ' + str(user.username) + ', Storehippo Order Confirm Response - ' + str(storehippo_response))
+                else:
+                    storehippo_fulfillments_log.info('For User : ' + str(user.username) + ' ,' + str(alert_message_for_email) + ', Response - ' + str(storehippo_response))
+                    send_mail(send_alert_msg_to, body_of_alert_email, 'For User : ' + str(user.username) + ' , ' + str(alert_message_for_email) + ', Response - ' + str(storehippo_response))
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
         order_ids = picks_all.values_list('order_id', flat=True).distinct()
@@ -14726,6 +14770,7 @@ def send_order_back(request, user=''):
 
     return HttpResponse(json.dumps({'data':order_det_not_reassigned_orderid , 'message': 'Success', 'status':status }))
 
+
 @login_required
 @get_admin_user
 def invoice_print_manifest(request, user=''):
@@ -14906,3 +14951,4 @@ def get_order_extra_fields(request , user =''):
     if not order_field_obj == 'false':
         extra_order_fields = order_field_obj.split(',')
     return HttpResponse(json.dumps({'data':extra_order_fields }))
+

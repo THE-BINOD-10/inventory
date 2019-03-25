@@ -5738,10 +5738,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
 
 
 def get_shipment_report_data(search_params, user, sub_user, serial_view=False, firebase_response=None):
-    from miebach_admin.models import *
-    from miebach_admin.views import *
     from common import get_admin
-    from common import get_full_invoice_number
     from rest_api.views.common import get_sku_master, get_order_detail_objs, get_linked_user_objs, get_misc_value, \
         get_local_date
     #sku_master, sku_master_ids = get_sku_master(user, sub_user)
@@ -5842,10 +5839,10 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
         delivered_time =''
         central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
         if ord_invoice_map and central_order_reassigning == 'true':
-            invoice_number_obj = SellerOrderSummary.objects.filter(order_id = data['order__id'])
-            invoice_order = invoice_number_obj[0].order
-            invoice_date = get_local_date(user,invoice_number_obj[0].creation_date)
-            invoice_number = get_full_invoice_number(user, data['order__original_order_id'], invoice_order, invoice_date=invoice_number_obj[0].creation_date)
+            creation_date = ord_inv_dates_map.get(data['order__id'], '')
+            if creation_date:
+                invoice_date = get_local_date(user, creation_date)
+            invoice_number = 'TI/%s/%s' % (creation_date.strftime('%m%y'), data['order__original_order_id'])
         else:
             increment_invoice = get_misc_value('increment_invoice', user.id)
             if data['order__id'] in ord_invoice_map and increment_invoice == 'true':

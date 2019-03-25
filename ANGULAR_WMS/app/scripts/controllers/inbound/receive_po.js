@@ -2270,6 +2270,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           console.log("working");
           if(res_data.data.status && res_data.data.is_updated){
             data.data[parent_index][index].value = res_data.data.weight;
+            vm.calc_total_amt(event, data, index, parent_index);
           }
         }
       });

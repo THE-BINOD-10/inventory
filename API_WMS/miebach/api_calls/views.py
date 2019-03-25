@@ -1660,8 +1660,9 @@ def store_hippo(request):
     storehippo_log.info('------------API Type -' + api_type + '------------')
     status_resp = ''
     try:
-        user_obj = User.objects.get(username='storehippo')
+        user_obj = User.objects.get(username='acecraft')
     except:
+        storehippo_log.info("User Not Found")
         return HttpResponse("User Not found")
     if api_type == 'add_order':
         status_resp = create_order_storehippo(store_hippo_data, user_obj)

@@ -9012,6 +9012,7 @@ def update_po_order_prefix(sub_user, po_id):
 
 def storehippo_sync_price_value(user, update_dict):
     from rest_api.views.easyops_api import *
+    storehippo_response = {}
     alert_message_for_email = LOAD_CONFIG.get('storehippo', 'alert_message_for_email', '')
     send_alert_msg_to = eval(LOAD_CONFIG.get('storehippo', 'send_alert_msg_to', ''))
     body_of_alert_email = LOAD_CONFIG.get('storehippo', 'body_of_alert_email', '')

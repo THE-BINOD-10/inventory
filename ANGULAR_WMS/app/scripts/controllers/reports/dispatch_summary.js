@@ -42,13 +42,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
   vm.model_data = {};
   angular.copy(vm.empty_data, vm.model_data);
-
   vm.change_datatable = function() {
     Data.dispatch_summary_report.view = vm.choose_view;
     vm.g_data.view = vm.choose_view;
     vm.model_data = {'datatable': vm.g_data.view}
     vm.dtInstance.DataTable.context[0].ajax.data = vm.model_data;
     $state.go($state.current, {}, {reload: true});
+  }
+  vm.temp_view_alternative_toggle = Data.dispatch_summary_report.view
+  vm.change_table_view = function(key) {
+    if (key) {
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Customer Name').withTitle('Customer Name'))
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Batch Number').withTitle('Batch Number'))
+      vm.dtColumns.push(DTColumnBuilder.newColumn('MRP').withTitle('MRP'))
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Manufactured Date').withTitle('Manufactured Date'))
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Expiry Date').withTitle('Expiry Date'))
+    } else {
+      vm.dtColumns.pop(DTColumnBuilder.newColumn('Customer Name').withTitle('Customer Name'))
+      vm.dtColumns.pop(DTColumnBuilder.newColumn('Batch Number').withTitle('Batch Number'))
+      vm.dtColumns.pop(DTColumnBuilder.newColumn('MRP').withTitle('MRP'))
+      vm.dtColumns.pop(DTColumnBuilder.newColumn('Manufactured Date').withTitle('Manufactured Date'))
+      vm.dtColumns.pop(DTColumnBuilder.newColumn('Expiry Date').withTitle('Expiry Date'))
+    }
   }
 
 }

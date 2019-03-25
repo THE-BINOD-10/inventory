@@ -47,6 +47,10 @@ def get_report_data(request, user=''):
                 ['Picked', 'Putaway pending', 'Picklist Generated', 'Created', 'Partially Picked'])
     elif report_name == 'order_summary_report' or report_name == 'po_report' or report_name == 'open_order_report' :
         if report_name == 'order_summary_report' :
+            data['dt_headers'] = []
+            data['dt_headers'] = ['Order Date', 'Order ID', 'Customer Name', 'SKU Brand', 'SKU Category', 'SKU Class', 'SKU Size',
+                                              'SKU Description', 'SKU Code', 'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Tax', 'Taxable Amount', 'City',
+                                              'State', 'Marketplace', 'Invoice Amount', 'Status', 'Order Status', 'Remarks','Customer GST Number']
             from common import get_misc_value
             extra_order_fields = get_misc_value('extra_order_fields', user.id)
             if extra_order_fields == 'false' :

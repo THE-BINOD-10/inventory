@@ -2528,13 +2528,13 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
         else:
             if not serial_view:
                 customer_name = data.order.customer_name if data.order.customer_name else ''
-                if data.stock.batch_detail:
-                  batch_number = data.stock.batch_detail.batch_no
-                  batchDetail_mrp = data.stock.batch_detail.mrp
-                  batchDetail_mfgdate = data.stock.batch_detail.manufactured_date.strftime("%d %b %Y") if data.stock.batch_detail.manufactured_date else ''
-                  batchDetail_expdate = data.stock.batch_detail.expiry_date.strftime("%d %b %Y") if data.stock.batch_detail.expiry_date else ''
+                if data.stock and data.stock.batch_detail:
+                    batch_number = data.stock.batch_detail.batch_no
+                    batchDetail_mrp = data.stock.batch_detail.mrp
+                    batchDetail_mfgdate = data.stock.batch_detail.manufactured_date.strftime("%d %b %Y") if data.stock.batch_detail.manufactured_date else ''
+                    batchDetail_expdate = data.stock.batch_detail.expiry_date.strftime("%d %b %Y") if data.stock.batch_detail.expiry_date else ''
                 else:
-                  batch_number = batchDetail_mrp = batchDetail_mfgdate = batchDetail_expdate = ''
+                    batch_number = batchDetail_mrp = batchDetail_mfgdate = batchDetail_expdate = ''
                 if not data.stock:
                     date = get_local_date(user, data.updation_date).split(' ')
                     order_id = data.order.original_order_id

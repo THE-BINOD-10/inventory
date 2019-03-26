@@ -14583,10 +14583,10 @@ def do_delegate_orders(request, user=''):
                     order_code_value = ''.join(re.findall('\D+', original_order_id))
                     order_dict['order_id'] = order_id_value
                     order_dict['order_code'] = order_code_value
-                    get_existing_order = OrderDetail.objects.filter(**{'status': 1, 'sku_id': sku_id,
-                        'sku_code': interm_obj.sku.sku_code, 'original_order_id': original_order_id,
+                    get_existing_order = OrderDetail.objects.filter(**{'sku_id': sku_id,
+                        'original_order_id': original_order_id,
                         'user': wh_id})
-                    if get_existing_order:
+                    if get_existing_order.exists() and str(get_existing_order[0].status) == '1':
                         #get_existing_order = get_existing_order[0]
                         #get_existing_order.quantity = get_existing_order.quantity + 1
                         #get_existing_order.save()
@@ -14600,8 +14600,13 @@ def do_delegate_orders(request, user=''):
 
                     else:
                         try:
-                            ord_obj = OrderDetail(**order_dict)
-                            ord_obj.save()
+                            if get_existing_order.exists() and str(get_existing_order[0].status) == '3':
+                                ord_obj = get_existing_order[0]
+                                ord_obj.status = 1
+                                ord_obj.save()
+                            else:
+                                ord_obj = OrderDetail(**order_dict)
+                                ord_obj.save()
                             order_fields.update(original_order_id=original_order_id)
                             interm_obj_filter.update(status=1)
                             if central_order_reassigning :
@@ -14611,7 +14616,9 @@ def do_delegate_orders(request, user=''):
 
 
 
-                        except:
+                        except Exception as e:
+                            import traceback
+                            log.debug(traceback.format_exc())
                             resp_dict[str(interm_obj.interm_order_id)] = 'Error in Saving Order ID'
                             created_order_objs.append(resp_dict)
                             resp_str = str(interm_obj.interm_order_id) + ' - Error in Saving Order ID'

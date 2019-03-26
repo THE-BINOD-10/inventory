@@ -3127,3 +3127,29 @@ class ReturnsIMEIMapping(models.Model):
         db_table = 'RETURNS_IMEI_MAPPING'
         unique_together = ('order_imei', 'order_return')
         index_together = ('order_imei', 'order_return')
+
+
+'vendor_name', 'quantity', 'report_type', 'avg_rate', 'amount_before_tax', 'tax_rate', 'cess_rate', 'amount_after_tax'
+
+
+class StockReconciliation(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster)
+    vendor_name = models.CharField(max_length=64, default='')
+    quantity = models.PositiveIntegerField()
+    report_type = models.CharField(max_length=64, default='')
+    avg_rate = models.FloatField(default=0)
+    amount_before_tax = models.FloatField(default=0)
+    tax_rate = models.FloatField(default=0)
+    cess_rate = models.FloatField(default=0)
+    amount_after_tax = models.FloatField(default=0)
+    created_date = models.DateField(blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'STOCK_RECONCILIATION'
+
+        #{'sku_code<<>>date': {'po': {}, 'sales': {}, 'opening_stock': {}, 'closing_stock': {} } }
+
+        #StockReconciliation.objects.filter(**{'report_type':'po', 'sku__user':user.id, 'creation_date__startswith':'2019-03-22'}).values()
+

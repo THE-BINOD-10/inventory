@@ -6816,42 +6816,51 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     #    sort_data = '-%s' % sort_data
     if 'sku_code' in search_params:
         if search_params['sku_code']:
-            search_parameters['order__sku__sku_code'] = search_params['sku_code']
-    search_parameters['order__sku_id__in'] = sku_master_ids
+            search_parameters['sku__sku_code'] = search_params['sku_code']
+    search_parameters['sku_id__in'] = sku_master_ids
     if 'from_date' in search_params:
-        search_parameters['order__creation_date__gt'] = search_params['from_date']
+        search_parameters['creation_date__gt'] = search_params['from_date']
     if 'to_date' in search_params:
-        search_parameters['order__creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
-    search_parameters['status__in'] = ['picked', 'batch_picked', 'dispatched']
-    search_parameters['order__user'] = user.id
+        search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
+    search_parameters['sku__user'] = user.id
 
-    sales_obj = SKUDetailStats.objects.filter(sku__user = user.id, transact_type = 'picklist')
-    sales_obj.values_list('sku__wms_code').annotate(total_quantity=Sum('quantity', distinct=True))
-    sales_obj.values_list('sku__wms_code').annotate(weighted_cost=Sum(F('quantity') * F('stock_detail__batch_detail__buy_price')))
+    import pdb;pdb.set_trace()
+    stock_reconciliation = StockReconciliation.objects.filter(**search_parameters)
+
+    get_all_skus_loop = stock_reconciliation.values_list('sku__wms_code')
+    picklist_stock_reconsiliation = stock_reconciliation.values_list('sku__sku_code').filter(transact_type = 'picklist')
+    po_stock_reconsiliation = stock_reconciliation.values_list('sku__sku_code').filter(transact_type = 'po')
 
 
-    order_data = Picklist.objects.filter(**search_parameters)
-    get_all_order_ids = list(order_data.values_list('order__id',flat=True).distinct())
-    cust_order_summary = CustomerOrderSummary.objects.filter(order__id__in=get_all_order_ids)
+    #creation_date, sku_code, transact_type
 
-    tax_cust_order = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(total_tax=Sum(F('cgst_tax') + F('sgst_tax') + F('igst_tax') + F('utgst_tax') + F('cess_tax'))))
+    #sales_obj = SKUDetailStats.objects.filter(sku__user = user.id, transact_type = 'picklist')
+    #sales_obj.values_list('sku__wms_code').annotate(total_quantity=Sum('quantity', distinct=True))
+    #sales_obj.values_list('sku__wms_code').annotate(weighted_cost=Sum(F('quantity') * F('stock_detail__batch_detail__buy_price')))
 
-    divide_tax = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(count_skus=Count(F('order__sku__sku_code'))))
-    collect_discount = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(discount=Sum(F('discount'))))
+    #purchase_order_obj = SKUDetailStats.objects.filter(sku__user = user.id, transact_type = 'po')
+    #purchase_order_obj.values_list('sku__wms_code').annotate(total_quantity=Sum('quantity', distinct=True))
+    #purchase_order_obj.values_list('sku__wms_code').annotate(weighted_cost=Sum(F('quantity') * F('stock_detail__batch_detail__buy_price')))
+    
+    #order_data = Picklist.objects.filter(**search_parameters)
+    #get_all_order_ids = list(order_data.values_list('order__id',flat=True).distinct())
+    #cust_order_summary = CustomerOrderSummary.objects.filter(order__id__in=get_all_order_ids)
+
+    #tax_cust_order = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(total_tax=Sum(F('cgst_tax') + F('sgst_tax') + F('igst_tax') + F('utgst_tax') + F('cess_tax'))))
+
+    #divide_tax = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(count_skus=Count(F('order__sku__sku_code'))))
+    #collect_discount = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(discount=Sum(F('discount'))))
     #if col_num in [0, 2, 3, 4]:
     #    order_data_loop = order_data.order_by(sort_data).values_list('order__sku__sku_code',flat=True).distinct()
     #else:
-    order_data_loop = order_data.values_list('order__sku__sku_code',flat=True).distinct()
-    qty_data = dict(order_data.values_list('order__sku__sku_code').annotate(total_quantity=Sum('picked_quantity', distinct=True)))
-    weighted_avg_cost = dict(order_data.exclude(stock__batch_detail=None).values_list('order__sku__sku_code').annotate(weighted_cost=Sum(F('picked_quantity') * F('stock__batch_detail__buy_price'))))
-    weighted_avg_selling_price = dict(order_data.values_list('order__sku__sku_code').annotate(weighted_sell=Sum(F('picked_quantity') * F('order__unit_price'))))
+
     temp_data['recordsTotal'] = order_data_loop.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     time = str(datetime.datetime.now())
     weighted_avg_cost_value = 0
     weighted_avg_selling_price_value = 0
     quantity = 0
-    for wms_code in (order_data_loop[start_index:stop_index]):
+    for wms_code in (get_all_skus_loop[start_index:stop_index]):
         consolidated_margin = 0
         collect_sku_data = SKUMaster.objects.get(user=user.id, wms_code=wms_code)
         quantity = qty_data.get(wms_code, 0)

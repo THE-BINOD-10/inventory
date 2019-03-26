@@ -5,6 +5,7 @@ angular.module('urbanApp', ['datatables'])
 
 function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
     var vm = this;
+    vm.cancelPoDisable = false;
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.user_type = Session.roles.permissions.user_type;
@@ -114,17 +115,27 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.sm_cancel_order_from_uploaded_pos = function(upload_id) {
     event.stopPropagation();
-    Service.apiCall("sm_cancel_order_from_uploaded_pos/?upload_id="+upload_id).then(function(data) {
-      if(data.message) {
-        if(data.data == 'Success') {
-          Service.showNoty('Successfully Cancelled the Order');
-          vm.close();
-          reloadData();
-        } else {
-          Service.showNoty(data.data, 'warning');
-        }
+    vm.service.alert_msg("Do you want to cancel Uploaded PO").then(function(msg) {
+      vm.cancelPoDisable = true;
+      if (msg == "true") {
+        Service.apiCall("sm_cancel_order_from_uploaded_pos/?upload_id="+upload_id).then(function(data) {
+          if(data.message) {
+            if(data.data == 'Success') {
+              Service.showNoty('Successfully Cancelled the Order');
+              vm.cancelPoDisable = false;
+              vm.close();
+              reloadData();
+            } else {
+              Service.showNoty(data.data, 'warning');
+              vm.cancelPoDisable = false;
+            }
+          } else {
+            Service.showNoty('Something Went Wrong', 'warning');
+            vm.cancelPoDisable = false;
+          }
+        });
       } else {
-        Service.showNoty('Something Went Wrong', 'warning');
+        vm.cancelPoDisable = false;
       }
     });
   }

@@ -2456,8 +2456,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
             search_parameters['order__user'] = user.id
             search_parameters['order__sku_id__in'] = sku_master_ids
         else:
-            lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__sku_desc', 'stock__location__location',
-                   'picked_quantity', 'picked_quantity', 'updation_date', 'updation_date']
+            lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__sku_desc', 'stock__location__location',
+                   'picked_quantity', 'picked_quantity', 'updation_date', 'updation_date', 'order__customer_name', 'stock__batch_detail__batch_no', 'stock__batch_detail__mrp', 'stock__batch_detail__manufactured_date', 'stock__batch_detail__expiry_date']
             model_obj = Picklist
             param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
             search_parameters['status__in'] = ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched']
@@ -2527,6 +2527,14 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                   )))
         else:
             if not serial_view:
+                customer_name = data.order.customer_name if data.order.customer_name else ''
+                if data.stock and data.stock.batch_detail:
+                    batch_number = data.stock.batch_detail.batch_no
+                    batchDetail_mrp = data.stock.batch_detail.mrp
+                    batchDetail_mfgdate = data.stock.batch_detail.manufactured_date.strftime("%d %b %Y") if data.stock.batch_detail.manufactured_date else ''
+                    batchDetail_expdate = data.stock.batch_detail.expiry_date.strftime("%d %b %Y") if data.stock.batch_detail.expiry_date else ''
+                else:
+                    batch_number = batchDetail_mrp = batchDetail_mfgdate = batchDetail_expdate = ''
                 if not data.stock:
                     date = get_local_date(user, data.updation_date).split(' ')
                     order_id = data.order.original_order_id
@@ -2541,7 +2549,9 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Location', 'NO STOCK'),
                                                             ('Quantity', data.order.quantity),
                                                             ('Picked Quantity', data.picked_quantity),
-                                                            ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])))))
+                                                            ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])), ('Customer Name', customer_name),
+                                                            ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
+                                                            ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate))))
                 pick_locs = data.picklistlocation_set.exclude(reserved=0, quantity=0)
                 for pick_loc in pick_locs:
                     picked_quantity = float(pick_loc.quantity) - float(pick_loc.reserved)
@@ -2561,7 +2571,9 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Location', pick_loc.stock.location.location),
                                                             ('Quantity', data.order.quantity),
                                                             ('Picked Quantity', picked_quantity),
-                                                            ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])))))
+                                                            ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])), ('Customer Name', customer_name),
+                                                            ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
+                                                            ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate))))
             else:
                 order_id = data.order.original_order_id
                 if not order_id:

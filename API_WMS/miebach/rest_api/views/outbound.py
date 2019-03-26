@@ -3277,9 +3277,10 @@ def check_imei(request, user=''):
                         #    shipped_orders_dict[int(order.id)]['quantity'] += 1
                         #    shipping_quantity += 1
                 else:
-		    check_st_order_wise = OrderIMEIMapping.objects.filter(sku__user=user.id, stock_transfer__order_id=order_id, status=1, po_imei__imei_number=value)
-		    if not check_st_order_wise:
-			status = 'IMEI not related to this Order'
+                    if order_id and value:
+                        check_st_order_wise = OrderIMEIMapping.objects.filter(sku__user=user.id, stock_transfer__order_id=order_id, status=1, po_imei__imei_number=value)
+                        if not check_st_order_wise:
+                            status = 'IMEI not related to this Order'
             if not status:
                 status = 'Success'
         if shipped_orders_dict:

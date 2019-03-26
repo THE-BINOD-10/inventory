@@ -2045,7 +2045,9 @@ def picklist_confirmation(request, user=''):
         single_order = request.POST.get('single_order', '')
         enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
         user_profile = UserProfile.objects.get(user_id=user.id)
-
+        decimal_limit = get_decimal_value(user.id)
+        if not decimal_limit:
+            decimal_limit = 1
         all_picklists = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id),
                                                 picklist_number=picklist_number,
                                                 status__icontains="open")
@@ -2152,9 +2154,13 @@ def picklist_confirmation(request, user=''):
                             picklist.reserved_quantity -= picking_count
                             picking_count = 0
 
+                        update_picked = truncate_float(update_picked, decimal_limit)
+                        picklist.reserved_quantity = truncate_float(picklist.reserved_quantity, decimal_limit)
+                        stock.quantity = truncate_float(stock.quantity, decimal_limit)
                         if float(stock.location.filled_capacity) - update_picked >= 0:
-                            setattr(stock.location, 'filled_capacity',
-                                    (float(stock.location.filled_capacity) - update_picked))
+                            location_fill_capacity = (float(stock.location.filled_capacity) - update_picked)
+                            location_fill_capacity = truncate_float(location_fill_capacity, decimal_limit)
+                            setattr(stock.location, 'filled_capacity', location_fill_capacity)
                             stock.location.save()
 
                         # SKU Stats

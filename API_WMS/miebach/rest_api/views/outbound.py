@@ -12557,11 +12557,12 @@ def place_manual_order(request, user=''):
         sku_variants = request.POST.get('sku_quantity_map', '')
         if sku_variants:
             sku_variants = eval(sku_variants)
-            for each_sku in sku_variants:
+            for each_sku, qty in sku_variants.items():
                 sku_data = SKUMaster.objects.filter(user=user.id, sku_code=each_sku)
                 if not sku_data:
                     return HttpResponse("Style Not Found")
                 manual_enquiry['sku_id'] = sku_data[0].id
+                manual_enquiry['quantity'] = int(qty)
                 enq_data = ManualEnquiry(**manual_enquiry)
                 enq_data.save()
         else:

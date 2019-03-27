@@ -7298,7 +7298,6 @@ def generate_supplier_invoice(request, user=''):
             result_data["total_amt"], result_data["total_invoice_amount"], result_data["rounded_invoice_amount"],\
             result_data["total_quantity"], result_data["total_tax"] = [0]*5
             tot_cgst, tot_sgst, tot_igst, tot_utgst = [0]*4
-            import pdb;pdb.set_trace()
             sku_grouping_dict = OrderedDict()
             for req_data in request_data:
                 #sell_summary_param['purchase_order__order_id'] = req_data.get('purchase_order__order_id', '')
@@ -7414,8 +7413,8 @@ def generate_supplier_invoice(request, user=''):
                                     "shipment_date": '',
                                     "taxes": taxes
                                     }
+
                         grouping_key = '%s:%s:%s' % (str(sku.sku_code), str(unit_price), str(mrp))
-                        print grouping_key
                         sku_grouping_dict.setdefault(grouping_key, {"id": sku.id,
                                     "seller_summary_id": seller_sum.id,
                                     "open_po_id": open_po.id,
@@ -7423,14 +7422,26 @@ def generate_supplier_invoice(request, user=''):
                                     "title": sku.sku_desc,
                                     "unit_price": unit_price,
                                     "tax_type": open_po.tax_type,
-                                    "invoice_amount": invoice_amt,
+                                    "invoice_amount": 0,
                                     "hsn_code": '',
-                                    "amt": amt,
+                                    "amt": 0,
                                     "quantity": 0,
                                     "shipment_date": '',
-                                    "taxes": taxes
+                                    #"taxes": taxes,
+                                    "mrp": mrp
                                     })
+                        sku_grouping_dict[grouping_key].setdefault('taxes',
+                                 {"cgst_tax": cgst_tax, "sgst_tax": sgst_tax,
+                                 "igst_tax": igst_tax, "utgst_tax": utgst_tax,
+                                 "cgst_amt": 0, "sgst_amt": 0,
+                                 "igst_amt": 0, "utgst_amt": 0})
                         sku_grouping_dict[grouping_key]['quantity'] += qty
+                        sku_grouping_dict[grouping_key]['amt'] += amt
+                        sku_grouping_dict[grouping_key]['invoice_amount'] += invoice_amt
+                        sku_grouping_dict[grouping_key]['taxes']['cgst_amt'] += cgst_amt
+                        sku_grouping_dict[grouping_key]['taxes']['sgst_amt'] += sgst_amt
+                        sku_grouping_dict[grouping_key]['taxes']['igst_amt'] += igst_amt
+                        sku_grouping_dict[grouping_key]['taxes']['utgst_amt'] += utgst_amt
                         result_data["data"].append(sku_data)
                         result_data["sequence_number"] = sku.sequence
                     if seller_summary and seller_summary[0].overall_discount:

@@ -5831,7 +5831,12 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
         result = firebase_response.get(order_id, '')
         if not order_id:
             order_id = data['order__order_code'] + str(data['order__order_id'])
-        date = get_local_date(user, data['creation_date']).split(' ')
+        try:
+            date = get_local_date(user, data['creation_date']).split(' ')
+        except Exception as e:
+            import traceback
+            log.info('Error in Get Local Date:%s:%s' %(order_id, data['creation_date']))
+            log.info(traceback.format_exc())
 
         shipment_status = ship_status.get(data['id'], '')
 
@@ -5854,7 +5859,13 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
             #invoice_number = invoice_number_obj[0].invoice_number
             invoice_number = ord_invoice_map.get(data['order__id'], '')
             creation_date = ord_inv_dates_map.get(data['order__id'], '')
-            invoice_date = get_local_date(user, creation_date)
+            try:
+                invoice_date = get_local_date(user, creation_date)
+            except Exception as e:
+                invoice_date = ''
+                import traceback
+                log.info('Error in Get Local Date1:%s:%s' %(order_id, creation_date))
+                log.info(traceback.format_exc())
         else:
             invoice_number = ''
             invoice_date = ''

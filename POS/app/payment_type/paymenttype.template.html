@@ -11,11 +11,26 @@
       <tbody>
         <tr ng-repeat="market in $ctrl.paymentTypeInput">
           <td style="width: 70px;padding-top: 10px;text-transform: capitalize;">
-            {{ market.type_name }} :
+            {{ market.type_name }}:
           </td>
           <td style="width: 160px;">
+            Amount:
             <input type="number" name="type_value" class="ng-pristine ng-valid" ng-model="market.type_value" min=0 style="padding-left: 0px;" ng-change="$ctrl.payment_valid(market, $index)" ng-blur="$ctrl.remove_null(market, $index)">
           </td>
+          <td style="width: 160px;" ng-if = "market.type_name == 'Paytm'|| market.type_name == 'PhonePe' ||market.type_name == 'GooglePay' ">
+            Reference Number :
+            <input type="text" name="type_value" class="ng-pristine ng-valid" ng-model="$ctrl.reference_number" min=0 style="padding-left: 0px;" ng-blur="$ctrl.reference_number_save()">
+          </td>
+          <td ng-if = "market.type_name == 'card'">
+            Select Card Name:
+          <select ng-model="$ctrl.card_name" ng-options="card_name.key for card_name in $ctrl.card_name_list" ng-selected = "$ctrl.show_card_value()" >
+          </select>
+          </td>
+          <td ng-if = "$ctrl.show_card == 'true' && market.type_name == 'card'">
+            Enter Last Four Digits:
+            <input type="text" name="type_value" class="ng-pristine ng-valid" ng-model="$ctrl.card_digits" min=0 style="padding-left: 0px;"  ng-blur="$ctrl.save_card_value()">
+          </td>
+
           <td style="text-align: center;padding-top: 5px;">
             <i class="glyphicon glyphicon-minus" ng-click="$ctrl.remove_payment_type($index)" style="padding-top: 5px;cursor: pointer;color: #666666;"></i>
           </td>

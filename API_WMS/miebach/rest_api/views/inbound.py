@@ -972,6 +972,7 @@ def switches(request, user=''):
                        'create_seller_order': 'create_seller_order',
                        'invoice_remarks': 'invoice_remarks',
                        'invoice_declaration':'invoice_declaration',
+                       'pos_remarks':'pos_remarks',
                        'raisepo_terms_conditions':'raisepo_terms_conditions',
                        'show_disc_invoice': 'show_disc_invoice',
                        'serial_limit': 'serial_limit',
@@ -5108,6 +5109,9 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
     if report_type == 'Save PO':
         email_body = 'Saved PO Data'
         email_subject = po_data
+    if report_type == 'posform' :
+        email_body = 'pls find the attachment'
+        email_subject = 'pos order'
     if supplier_email or internal or internal_mail:
         send_mail_attachment(receivers, email_subject, email_body, files=attachments)
     if phone_no:

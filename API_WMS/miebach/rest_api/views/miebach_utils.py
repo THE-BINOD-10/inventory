@@ -427,7 +427,7 @@ ORDER_SUMMARY_DICT = {
                 {'label': 'Order ID', 'name': 'order_id', 'type': 'input'}],
     'dt_headers': ['Order Date', 'Order ID', 'Customer Name', 'SKU Brand', 'SKU Category', 'SKU Class', 'SKU Size',
                    'SKU Description', 'SKU Code', 'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Tax', 'Taxable Amount', 'City',
-                   'State', 'Marketplace', 'Invoice Amount', 'Status', 'Order Status', 'Remarks','Customer GST Number'],
+                   'State', 'Marketplace', 'Invoice Amount', 'Status', 'Order Status', 'Remarks','Customer GST Number','Payment Type','Reference Number'],
     'dt_url': 'get_order_summary_filter', 'excel_name': 'order_summary_report',
     'print_url': 'print_order_summary_report',
     }
@@ -2043,6 +2043,7 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'data_range': 'report_data_range', 'imei_limit': 'imei_limit',
                      'invoice_remarks': 'invoice_remarks',
                      'invoice_declaration':'invoice_declaration',
+                     'pos_remarks':'pos_remarks',
                      'raisepo_terms_conditions':'raisepo_terms_conditions',
                      'invoice_marketplaces': 'invoice_marketplaces', 'serial_limit': 'serial_limit',
                      'extra_view_order_status': 'extra_view_order_status',
@@ -3431,7 +3432,7 @@ def get_order_summary_data(search_params, user, sub_user):
     from miebach_admin.views import *
 
     from rest_api.views.common import get_sku_master, get_order_detail_objs, get_local_date
-    lis = ['creation_date', 'order_id', 'customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
+    lis = ['creation_date', 'order_id', 'cust omer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
            'sku__sku_size', 'sku__sku_desc', 'sku_code', 'quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
            'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id','order_id','order_id','order_id','invoice_number','quantity','creation_date'];
     # lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
@@ -3582,6 +3583,21 @@ def get_order_summary_data(search_params, user, sub_user):
         order_id = str(data.order_code) + str(data.order_id)
         if data.original_order_id:
             order_id = data.original_order_id
+        payment_type = ''
+        reference_number = ''
+        if  'DC'  in data.order_code or 'PRE' in data.order_code:
+            payment_obj = OrderFields.objects.filter(original_order_id=data.original_order_id, \
+                                   name__contains='payment', user=user.id)
+            if payment_obj.exists():
+                payment_obj = payment_obj[0]
+                payment_type = payment_obj.name.replace("payment_","")
+            reference_obj = OrderFields.objects.filter(original_order_id=data.original_order_id, \
+                                   name='reference_number', user=user.id)
+            if reference_obj.exists():
+                reference_obj = reference_obj[0]
+                reference_number = reference_obj.value
+
+
 
         # ['Open', 'Picklist generated', 'Partial Picklist generated', 'Picked', 'Partially picked']
         if not _status:
@@ -3679,7 +3695,6 @@ def get_order_summary_data(search_params, user, sub_user):
         if cusotomer_master_obj.exists():
             gst_number = cusotomer_master_obj[0].tin_number
 
-
         aaData = OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                 ('Customer Name', customer_name),
                                                 ('Order Number' ,data.order_reference),
@@ -3693,6 +3708,8 @@ def get_order_summary_data(search_params, user, sub_user):
                                                 ('Serial Number',serial_number),
                                                 ('Invoice Number',invoice_number),
                                                 ('Quantity',quantity),
+                                                ('Payment Type' ,payment_type),
+                                                ('Reference Number',reference_number),
                                                 ('Taxable Amount', float(taxable_amount)), ('Tax', tax),
                                                 ('City', data.city), ('State', data.state), ('Marketplace', data.marketplace),
                                                 ('Invoice Amount', float(invoice_amount)), ('Price', data.sku.price),

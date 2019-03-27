@@ -7,7 +7,28 @@
   function ($http, $scope, urlService, manageData) {
     var self = this;
     self.paymentTypeInput = [];
+    self.show_card = false;
+    self.reference_number = '';
+    self.card_digits = '';
     urlService.current_order.summary.paymenttype_values = self.paymentTypeInput;
+    self.card_name_list = [
+      {
+          "key": "Master",
+          "value": "Master"
+      },
+      {
+          "key": "Visa",
+          "value": "Visa"
+      },
+      {
+          "key": "AmericanExpress",
+          "value": "AmericanExpress"
+      },
+      {
+          "key": "RuPay",
+          "value": "RuPay"
+      }
+    ]
     self.paymenttypes = [
       {
           "key": "cash",
@@ -16,6 +37,18 @@
       {
           "key": "card",
           "value": "Card"
+      },
+      {
+          "key": "Paytm",
+          "value": "Paytm"
+      },
+      {
+          "key": "PhonePe",
+          "value": "PhonePe"
+      },
+      {
+          "key": "GooglePay",
+          "value": "GooglePay"
       }
     ];
     self.paymenttype_value = "cash";
@@ -42,9 +75,21 @@
             }
         })
     }
+    self.show_card_value  = function(){
+      self.show_card = 'true';
+      urlService.current_order.card_name = self.card_name
+    }
+    self.reference_number_save = function(){
+      urlService.current_order.reference_number = self.reference_number;
+    }
+    self.save_card_value = function (){
+      urlService.current_order.reference_number = self.card_digits;
+    }
     self.payment_valid = payment_valid;
     function payment_valid (name_value, index) {
       urlService.current_order.summary.paymenttype_values = self.paymentTypeInput;
+      urlService.current_order.payment_mode = self.paymentTypeInput[0].type_name;
+
       var temp = 0;
       angular.forEach(self.paymentTypeInput, function (index_value, index) {
         temp += index_value['type_value'];
@@ -55,7 +100,7 @@
 						   - urlService.current_order.summary.total_discount;
         }
         if (self.paymentTypeInput.length == 2) {
-          var check = (urlService.current_order.summary.total_amount - urlService.current_order.summary.total_discount) 
+          var check = (urlService.current_order.summary.total_amount - urlService.current_order.summary.total_discount)
 		      - self.paymentTypeInput[0]['type_value'];
           if (check < 0) {
             self.paymentTypeInput[0]['type_value'] = urlService.current_order.summary.total_amount

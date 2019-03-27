@@ -388,6 +388,7 @@ def customer_order(request):
         order_code = order_codes[order['summary']['issue_type']] + str(request.user.id)
         original_order_id = order_code + str(order_id)
         order_ids.append(order_id)
+
         picklist_number = get_picklist_number(user) + 1
         if customer_data:
             customer_id = customer_data[0].id
@@ -544,6 +545,7 @@ def customer_order(request):
                         location=sku_stocks_.location, \
                         returns=order_return)
             if order_created:
+
                 #send mail and sms for pre order
                 if order["summary"]["issue_type"] == "Pre Order" and customer_data:
                     email_id, phone_number = customer_data[0].email_id, customer_data[0].phone_number
@@ -562,9 +564,16 @@ def customer_order(request):
                 for field, val in order["summary"].get("payment", {}).iteritems():
                     OrderFields.objects.create(original_order_id=original_order_id, name="payment_" + field, value=val,
                                                user=user.id)
+                    reference_number = order.get('reference_number' ,'')
+                    if field != 'Cash':
+                        OrderFields.objects.create(original_order_id=order_detail.original_order_id, \
+                                               name='reference_number', value=reference_number, user=user.id)
                 for field, val in order["customer_data"].get("extra_fields", {}).iteritems():
                     OrderFields.objects.create(original_order_id=order_detail.original_order_id, \
                                                name=field, value=val, user=user.id)
+
+
+
     if only_return: order_ids = ['return']
     return HttpResponse(json.dumps({'order_ids': order_ids}))
 
@@ -581,6 +590,20 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
     #check where discount is saved
     order_detail = OrderDetail.objects.filter(original_order_id__icontains=order_id, \
                                               user=user_id, quantity__gt=0)
+    payment_type = ''
+    reference_number = ''
+    if  'DC'  in order_detail[0].order_code or 'PRE' in order_detail[0].order_code:
+        payment_obj = OrderFields.objects.filter(original_order_id=order_id, \
+                               name__contains='payment', user=user_id)
+        if payment_obj.exists():
+            payment_obj = payment_obj[0]
+            payment_type = payment_obj.name.replace("payment_","")
+        reference_obj = OrderFields.objects.filter(original_order_id=order_id, \
+                               name='reference_number', user=user_id)
+        if reference_obj.exists():
+            reference_obj = reference_obj[0]
+            reference_number = reference_obj.value
+
     if parent_user:
         order_detail = OrderDetail.objects.filter(original_order_id__icontains=order_id, \
                                               user=parent_user.id, quantity__gt=0)
@@ -681,6 +704,8 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
             json_data = {'data':{'customer_data': customer_data, 'summary': summary,
                                  'sku_data': sku_data, 'order_id': order_id,
                                  'order_date': order_date,
+                                 'payment_mode':payment_type,
+                                 'reference_number':reference_number,
                                  'customer_extra': extra_fields},
                         'status': status
                         }
@@ -921,3 +946,31 @@ def pos_extra_fields(request, user=''):
     except:
         status = 'Fail'
     return HttpResponse(status)
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def pos_send_mail(request , user =''):
+    from inbound import write_and_mail_pdf
+    # data_dict = json.loads(request.POST)
+    for obj in request.POST.iteritems():
+        data_dict = json.loads(obj[0])
+        data = data_dict['data']
+        for item in data['sku_data']:
+            rate = item['unit_price'] + item['sgst'] + item['cgst'] + (item['selling_price']*item['discount']/100)
+            amount = item['unit_price'] + item['sgst'] + item['cgst'] + (item['selling_price']*item['discount']/100)
+            item['rate'] = rate
+            item['amount'] = amount
+        data['summary_total_amount']  = data['summary']['subtotal'] + data['summary']['sgst']+ data['summary']['igst'] + data['summary']['utgst'] + data['summary']['cgst']
+        data['summary_discount'] = data['summary_total_amount'] - data['summary']['total_discount']
+        data['summary_total'] = data['summary']['subtotal'] - data['summary']['total_discount']
+        data_dict['data']= data
+        # user = data_dict['user']
+        try:
+            t = loader.get_template('templates/toggle/pos_print.html')
+            rendered = t.render(data_dict)
+            write_and_mail_pdf('posorder', rendered, request, user,
+                               data['customer_data']['Email'], data['customer_data']['Number'],"POS ORDER",
+                               '',False,False,'posform')
+        except Exception as e:
+            pass

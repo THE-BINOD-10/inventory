@@ -863,11 +863,11 @@ STOCK_RECONCILIATION_REPORT_DICT = {
       {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
       {'label': 'SKU Code', 'name': 'sku_code', 'type': 'input'},
   ],
-  'dt_headers': ['SKU', 'Vendor Name', 'Brand', 'Category', 'Sub Category', 'Openings Qty', 'Openings Avg. Rate', 'Openings Amount Before Tax',
-  'Openings Tax Rate', 'Openings Cess Rate', 'Openings Amount After Tax', 'Purchases Qty', 'Purchases Avg. Rate', 'Purchases Amount Before Tax',
-  'Purchases Tax Rate', 'Purchases Cess Rate', 'Purchases Amount After Tax',  'Sales Qty', 'Sales Avg. Rate', 'Sales Amount Before Tax',
+  'dt_headers': ['SKU', 'Vendor Name', 'Brand', 'Category', 'Sub Category', 'Opening Qty', 'Opening Avg Rate', 'Opening Amount Before Tax',
+  'Opening Tax Rate', 'Opening Cess Rate', 'Opening Amount After Tax', 'Purchases Qty', 'Purchases Avg Rate', 'Purchases Amount Before Tax',
+  'Purchases Tax Rate', 'Purchases Cess Rate', 'Purchases Amount After Tax',  'Sales Qty', 'Sales Avg Rate', 'Sales Amount Before Tax',
   'Sales Tax Rate', 'Sales Cess Rate', 'Sales Amount After Tax',  'Closing Qty', 'Closing Avg. Rate', 'Closing Amount Before Tax',
-  'Closing Tax Rate', 'Closing Cess Rate', 'Closing Amount After Tax'],
+  'Closing Tax Rate', 'Closing Cess Rate', 'Closing Amount After Tax', 'Created Date'],
   'dt_url': 'get_stock_reconciliation_report', 'excel_name': 'get_stock_reconciliation_report',
   'print_url': 'print_stock_reconciliation_report',
 }
@@ -6823,60 +6823,63 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     if 'to_date' in search_params:
         search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
     search_parameters['sku__user'] = user.id
-
-    import pdb;pdb.set_trace()
+    create_data_dict = {}
     stock_reconciliation = StockReconciliation.objects.filter(**search_parameters)
+    po_stock_reconsiliation = stock_reconciliation.values_list('sku__sku_code').filter(report_type = 'po')
+    picklist_stock_reconsiliation = stock_reconciliation.values_list('sku__sku_code').filter(report_type = 'picklist')
+    closing_stock_reconsiliation = stock_reconciliation.values_list('sku__sku_code').filter(report_type = 'closing_stock')
+    for obj in stock_reconciliation:
+        report_type = obj.report_type
+        #if str(obj.sku.sku_code) + '<<>>' + str(obj.created_date) in create_data_dict.keys():
+        #    create_data_dict[str(obj.sku.sku_code) + '<<>>' + str(obj.created_date)]['sku_details'].update({'sku': str(obj.sku.sku_code), 'vendor_name': '', 'brand':str(obj.sku.sku_brand), 'category': str(obj.sku.sku_category), 'sub_category': str(obj.sku.sub_category) })
+        #    create_data_dict[str(obj.sku.sku_code) + '<<>>' + str(obj.created_date)][report_type].update({'quantity' : obj.quantity, 'report_type': obj.report_type, 'avg_rate': obj.avg_rate, 'amount_before_tax': obj.amount_before_tax, 'tax_rate': obj.tax_rate, 'cess_rate': obj.cess_rate, 'amount_after_tax': obj.amount_after_tax })
+        #else:
+        empty_sub_dict = {}
+        empty_sub_dict['quantity'] = 0
+        empty_sub_dict['avg_rate'] = 0
+        empty_sub_dict['amount_before_tax'] = 0
+        empty_sub_dict['tax_rate'] = 0
+        empty_sub_dict['cess_rate'] = 0
+        empty_sub_dict['amount_after_tax'] = 0
 
-    get_all_skus_loop = stock_reconciliation.values_list('sku__wms_code')
-    picklist_stock_reconsiliation = stock_reconciliation.values_list('sku__sku_code').filter(transact_type = 'picklist')
-    po_stock_reconsiliation = stock_reconciliation.values_list('sku__sku_code').filter(transact_type = 'po')
+        sub_dict = {}
+        sub_dict['quantity'] = obj.quantity
+        sub_dict['avg_rate'] = obj.avg_rate
+        sub_dict['amount_before_tax'] = obj.amount_before_tax
+        sub_dict['tax_rate'] = obj.tax_rate
+        sub_dict['cess_rate'] = obj.cess_rate
+        sub_dict['amount_after_tax'] = obj.amount_after_tax
+        sku_det_dict = {}
+        sku_det_dict['sku'] = str(obj.sku.sku_code)
+        sku_det_dict['vendor_name'] = ''
+        sku_det_dict['brand'] = str(obj.sku.sku_brand)
+        sku_det_dict['category'] = str(obj.sku.sku_category)
+        sku_det_dict['sub_category'] = str(obj.sku.sub_category)
 
+        dict_formation = {}
+        dict_formation = {'po': empty_sub_dict, 'sales': empty_sub_dict, 'opening_stock': empty_sub_dict, 'closing_stock': empty_sub_dict}
+        dict_formation.update({'sku_details':sku_det_dict})
+        dict_formation[report_type] = sub_dict
 
-    #creation_date, sku_code, transact_type
+        create_data_dict[str(obj.sku.sku_code) + '<<>>' + str(obj.created_date)] = dict_formation
 
-    #sales_obj = SKUDetailStats.objects.filter(sku__user = user.id, transact_type = 'picklist')
-    #sales_obj.values_list('sku__wms_code').annotate(total_quantity=Sum('quantity', distinct=True))
-    #sales_obj.values_list('sku__wms_code').annotate(weighted_cost=Sum(F('quantity') * F('stock_detail__batch_detail__buy_price')))
-
-    #purchase_order_obj = SKUDetailStats.objects.filter(sku__user = user.id, transact_type = 'po')
-    #purchase_order_obj.values_list('sku__wms_code').annotate(total_quantity=Sum('quantity', distinct=True))
-    #purchase_order_obj.values_list('sku__wms_code').annotate(weighted_cost=Sum(F('quantity') * F('stock_detail__batch_detail__buy_price')))
-    
-    #order_data = Picklist.objects.filter(**search_parameters)
-    #get_all_order_ids = list(order_data.values_list('order__id',flat=True).distinct())
-    #cust_order_summary = CustomerOrderSummary.objects.filter(order__id__in=get_all_order_ids)
-
-    #tax_cust_order = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(total_tax=Sum(F('cgst_tax') + F('sgst_tax') + F('igst_tax') + F('utgst_tax') + F('cess_tax'))))
-
-    #divide_tax = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(count_skus=Count(F('order__sku__sku_code'))))
-    #collect_discount = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(discount=Sum(F('discount'))))
-    #if col_num in [0, 2, 3, 4]:
-    #    order_data_loop = order_data.order_by(sort_data).values_list('order__sku__sku_code',flat=True).distinct()
-    #else:
-
-    temp_data['recordsTotal'] = order_data_loop.count()
-    temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    time = str(datetime.datetime.now())
-    weighted_avg_cost_value = 0
-    weighted_avg_selling_price_value = 0
-    quantity = 0
-    for wms_code in (get_all_skus_loop[start_index:stop_index]):
-        consolidated_margin = 0
-        collect_sku_data = SKUMaster.objects.get(user=user.id, wms_code=wms_code)
-        quantity = qty_data.get(wms_code, 0)
-        weighted_avg_cost_value = float(weighted_avg_cost.get(wms_code, 0)/quantity)
-        weighted_avg_selling_price_value = float(weighted_avg_selling_price.get(wms_code, 0)/quantity)
-        consolidated_tax = float(tax_cust_order.get(wms_code,0)/divide_tax.get(wms_code,0))
-        brand_discount = float(collect_discount.get(wms_code,0)/divide_tax.get(wms_code,0))
-        if weighted_avg_cost_value:
-            consolidated_margin = float(((weighted_avg_selling_price_value - weighted_avg_cost_value + brand_discount)/weighted_avg_cost_value))
+        temp_data['recordsTotal'] = len(create_data_dict)
+        temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for key, value in create_data_dict.iteritems():
+        wms_code, creation_date = key.split('<<>>')
         temp_data['aaData'].append(OrderedDict((
-                                                 ('SKU Code', wms_code), ('Vendor Name', ''), 
-                                                 ('Brand', collect_sku_data.sku_brand), ('Category', collect_sku_data.sku_category),
-                                                 ('Sub Category', collect_sku_data.sub_category), ('QTY', quantity),
-                                                 ('Weighted Avg Cost', "%.2f" % weighted_avg_cost_value), ('Weighted Avg Selling Price', "%.2f" % weighted_avg_selling_price_value),
-                                                 ('Consolidated Tax %', "%.2f" % consolidated_tax), ('Brand Discount', "%.2f" % brand_discount),
-                                                 ('Consolidated Margin', "%.2f" % consolidated_margin)
+                                                 ('SKU', wms_code), ('Vendor Name', ''),
+                                                 ('Brand', value['sku_details']['brand']), ('Category', value['sku_details']['category']),
+                                                 ('Sub Category', value['sku_details']['sub_category'] ), ('Opening Qty',  value['opening_stock']['quantity']),
+                                                 ('Opening Avg Rate', "%.2f" % value['opening_stock']['avg_rate']), ('Opening Amount Before Tax', "%.2f" % value['opening_stock']['avg_rate']), ('Opening Tax Rate', "%.2f" % value['opening_stock']['tax_rate']),
+                                                 ('Opening Cess Rate', "%.2f" % value['opening_stock']['cess_rate']), ('Opening Amount After Tax', "%.2f" % value['opening_stock']['amount_after_tax']),
+                                                 ('Purchases Qty',  value['po']['quantity']), ('Purchases Avg Rate', "%.2f" % value['po']['avg_rate']), ('Purchases Tax Rate', "%.2f" % value['po']['tax_rate']),
+                                                 ('Purchases Cess Rate', "%.2f" % value['po']['cess_rate']), ('Purchases Amount After Tax', "%.2f" % value['po']['amount_after_tax']),
+                                                 ('Sales Qty',  value['sales']['quantity']), ('Sales Avg Rate', "%.2f" % value['sales']['avg_rate']), ('Sales Tax Rate', "%.2f" % value['sales']['tax_rate']),
+                                                 ('Sales Cess Rate', "%.2f" % value['sales']['cess_rate']), ('Sales Amount After Tax', "%.2f" % value['sales']['amount_after_tax']),
+                                                 ('Closing Qty',  value['closing_stock']['quantity']), ('Closing Avg Rate', "%.2f" % value['closing_stock']['avg_rate']), ('Closing Amount Before Tax', "%.2f" % value['closing_stock']['tax_rate']),
+                                                 ('Closing Cess Rate', "%.2f" % value['closing_stock']['cess_rate']), ('Closing Amount After Tax', "%.2f" % value['closing_stock']['amount_after_tax']),
+                                                 ('Creation Date', creation_date)
                                               ))
                                   )
     return temp_data

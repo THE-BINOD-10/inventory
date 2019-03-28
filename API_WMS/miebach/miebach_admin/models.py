@@ -3149,7 +3149,7 @@ class StockReconciliation(models.Model):
     class Meta:
         db_table = 'STOCK_RECONCILIATION'
 
-        #{'sku_code<<>>date': {'po': {}, 'sales': {}, 'opening_stock': {}, 'closing_stock': {} } }
+        
 
         #StockReconciliation.objects.filter(**{'report_type':'po', 'sku__user':user.id, 'creation_date__startswith':'2019-03-22'}).values()
 

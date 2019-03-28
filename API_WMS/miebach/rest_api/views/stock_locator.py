@@ -605,8 +605,6 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
     for i in da:
         if i['available'] is None:
             i['available'] = 0
-        # if i['asn'] is None:
-        #     i['asn'] = 0
         list_da[i['ware']] = i['available']
 
     temp_data['ware_list'] = list_da
@@ -636,29 +634,19 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
                 if net_amt < 0:
                     net_amt = 0
                 var[wh_name + '-Open'] = net_amt
-                if 'WH Net Open' in var:
-                    var['WH Net Open'] += net_amt
-                else:
-                    var['WH Net Open'] = net_amt
+                wh_level_stock_map = {'WH Net Open': net_amt, 'Total WH': single['available'],
+                                      'Total WH Res': single['reserved'], 'Total WH Blocked': single['blocked'],
+                                      'ASN Total': single['asn'], 'ASN Res': single['asn_res'],
+                                      'ASN Blocked': single['asn_blocked'], 'NON_KITTED': single['non_kitted']}
 
-                if 'ASN Total' in var:
-                    var['ASN Total'] += single['asn']
-                else:
-                    var['ASN Total'] = single['asn']
-                if 'ASN Res' in var:
-                    var['ASN Res'] += single['asn_res']
-                else:
-                    var['ASN Res'] = single['asn_res']
-                if 'ASN Blocked' in var:
-                    var['ASN Blocked'] += single['asn_blocked']
-                else:
-                    var['ASN Blocked'] = single['asn_blocked']
+                for header, val in wh_level_stock_map.items():
+                    if header in var:
+                        var[header] += val
+                    else:
+                        var[header] = val
+
                 asn_open = var['ASN Total'] - var['ASN Res'] - var['ASN Blocked']
                 var['ASN Open'] = asn_open
-                if 'NON_KITTED' in var:
-                    var['NON_KITTED'] += single['non_kitted']
-                else:
-                    var['NON_KITTED'] = single['non_kitted']
         var['Net Open'] = var['WH Net Open'] + var['ASN Open']
 
         temp_data['aaData'].append(var)
@@ -1521,6 +1509,8 @@ def warehouse_headers(request, user=''):
             wh_list = []
             for wh in ware_list:
                 wh_list.extend(list(map(lambda x: wh+'-'+x, warehouse_suffixes)))
+            total_wh_dets = ['Total WH', 'Total WH Res', 'Total WH Blocked']
+            wh_list.extend(total_wh_dets)
             wh_list.append('WH Net Open')
             intr_headers = ['ASN Total', 'ASN Res', 'ASN Blocked', 'ASN Open', 'Net Open']
             wh_list.extend(intr_headers)

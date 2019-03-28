@@ -425,7 +425,7 @@ ORDER_SUMMARY_DICT = {
                 {'label': 'SKU Size', 'name': 'sku_size', 'type': 'input'},
                 {'label': 'Status', 'name': 'order_report_status', 'type': 'select'},
                 {'label': 'Order ID', 'name': 'order_id', 'type': 'input'}],
-    'dt_headers': ['Order Date', 'Order ID', 'Customer Name', 'SKU Brand', 'SKU Category', 'SKU Class', 'SKU Size',
+    'dt_headers': ['Order Date','Order ID', 'Customer Name', 'SKU Brand', 'SKU Category', 'SKU Class', 'SKU Size',
                    'SKU Description', 'SKU Code', 'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Tax', 'Taxable Amount', 'City',
                    'State', 'Marketplace', 'Invoice Amount', 'Status', 'Order Status', 'Remarks','Customer GST Number','Payment Type','Reference Number'],
     'dt_url': 'get_order_summary_filter', 'excel_name': 'order_summary_report',
@@ -2457,8 +2457,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
             search_parameters['order__user'] = user.id
             search_parameters['order__sku_id__in'] = sku_master_ids
         else:
-            lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__sku_desc', 'stock__location__location',
-                   'picked_quantity', 'picked_quantity', 'updation_date', 'updation_date']
+            lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__sku_desc', 'stock__location__location',
+                   'picked_quantity', 'picked_quantity', 'updation_date', 'updation_date', 'order__customer_name', 'stock__batch_detail__batch_no', 'stock__batch_detail__mrp', 'stock__batch_detail__manufactured_date', 'stock__batch_detail__expiry_date']
             model_obj = Picklist
             param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
             search_parameters['status__in'] = ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched']
@@ -2528,6 +2528,14 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                   )))
         else:
             if not serial_view:
+                customer_name = data.order.customer_name if data.order.customer_name else ''
+                if data.stock and data.stock.batch_detail:
+                    batch_number = data.stock.batch_detail.batch_no
+                    batchDetail_mrp = data.stock.batch_detail.mrp
+                    batchDetail_mfgdate = data.stock.batch_detail.manufactured_date.strftime("%d %b %Y") if data.stock.batch_detail.manufactured_date else ''
+                    batchDetail_expdate = data.stock.batch_detail.expiry_date.strftime("%d %b %Y") if data.stock.batch_detail.expiry_date else ''
+                else:
+                    batch_number = batchDetail_mrp = batchDetail_mfgdate = batchDetail_expdate = ''
                 if not data.stock:
                     date = get_local_date(user, data.updation_date).split(' ')
                     order_id = data.order.original_order_id
@@ -2542,7 +2550,9 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Location', 'NO STOCK'),
                                                             ('Quantity', data.order.quantity),
                                                             ('Picked Quantity', data.picked_quantity),
-                                                            ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])))))
+                                                            ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])), ('Customer Name', customer_name),
+                                                            ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
+                                                            ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate))))
                 pick_locs = data.picklistlocation_set.exclude(reserved=0, quantity=0)
                 for pick_loc in pick_locs:
                     picked_quantity = float(pick_loc.quantity) - float(pick_loc.reserved)
@@ -2562,7 +2572,9 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Location', pick_loc.stock.location.location),
                                                             ('Quantity', data.order.quantity),
                                                             ('Picked Quantity', picked_quantity),
-                                                            ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])))))
+                                                            ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])), ('Customer Name', customer_name),
+                                                            ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
+                                                            ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate))))
             else:
                 order_id = data.order.original_order_id
                 if not order_id:
@@ -3430,9 +3442,8 @@ def get_openjo_details(search_params, user, sub_user):
 def get_order_summary_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
-
     from rest_api.views.common import get_sku_master, get_order_detail_objs, get_local_date
-    lis = ['creation_date', 'order_id', 'cust omer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
+    lis = ['creation_date', 'order_id', 'customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
            'sku__sku_size', 'sku__sku_desc', 'sku_code', 'quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
            'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id','order_id','order_id','order_id','invoice_number','quantity','creation_date'];
     # lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
@@ -3489,7 +3500,19 @@ def get_order_summary_data(search_params, user, sub_user):
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters['user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
-    orders = OrderDetail.objects.filter(**search_parameters)
+    if search_params.get('invoice','') == 'true':
+        orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
+                                                                    'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
+                                                                    'sku__sku_desc','sku__price','sellerordersummary__invoice_number','sellerordersummary__quantity',
+                                                                    'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
+                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace',
+                                                                    'sellerordersummary__creation_date')
+    else:
+        orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
+                                                                    'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size',
+                                                                    'sku__sku_desc','sku__price','order_code',
+                                                                    'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
+                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace',)
     pick_filters = {}
     for key, value in search_parameters.iteritems():
         pick_filters['order__%s' % key] = value
@@ -3573,47 +3596,57 @@ def get_order_summary_data(search_params, user, sub_user):
         tmp = field.misc_value.split(',')
         for i in tmp:
             extra_fields.append(str(i))
+    invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
+    total_row = {}
+    total_row = OrderedDict((('Order Date', ''), ('Order ID', ""),('Customer Name', ""),('Order Number' ,""),
+    ('SKU Brand', ""),('SKU Category', ''),('SKU Class', ''),('SKU Size', ''), ('SKU Description', ''),
+    ('SKU Code', 'TotalQuantity='), ('Order Qty',temp_data['totalOrderQuantity']),('MRP', ''), ('Unit Price',''),('Discount', ''),
+    ('Serial Number',''),('Invoice Number',''),('Quantity',''),('Payment Type' ,''),('Reference Number',''),
+    ('Taxable Amount',''), ('Tax', ''),('City', ''), ('State', ''), ('Marketplace', 'TotalInvoiceAmount='),('Invoice Amount', temp_data['totalSellingPrice']),
+    ('Price', ''),('Status', ''), ('Order Status', ''),('Customer GST Number',''),('Remarks', ''), ('Order Taken By', ''),
+    ('Invoice Date',''),('Payment Cash', ''), ('Payment Card', '')))
+
+    temp_data['aaData'].append(total_row)
+
     for data in orders.iterator():
         count = count + 1
         is_gst_invoice = False
-        invoice_date = get_local_date(user, data.creation_date, send_date='true')
+        invoice_date = get_local_date(user, data['creation_date'], send_date='true')
         if datetime.datetime.strptime('2017-07-01', '%Y-%m-%d').date() <= invoice_date.date():
             is_gst_invoice = True
-        date = get_local_date(user, data.creation_date).split(' ')
-        order_id = str(data.order_code) + str(data.order_id)
-        if data.original_order_id:
-            order_id = data.original_order_id
+        date = get_local_date(user, data['creation_date']).split(' ')
+        order_id = str(data['order_code']) + str(data['order_id'])
+        if data['original_order_id']:
+            order_id = data['original_order_id']
         payment_type = ''
         reference_number = ''
-        if  'DC'  in data.order_code or 'PRE' in data.order_code:
-            payment_obj = OrderFields.objects.filter(original_order_id=data.original_order_id, \
+        if  'DC'  in data['order_code'] or 'PRE' in data['order_code']:
+            payment_obj = OrderFields.objects.filter(original_order_id=data['original_order_id'], \
                                    name__contains='payment', user=user.id)
             if payment_obj.exists():
                 payment_obj = payment_obj[0]
                 payment_type = payment_obj.name.replace("payment_","")
-            reference_obj = OrderFields.objects.filter(original_order_id=data.original_order_id, \
+            reference_obj = OrderFields.objects.filter(original_order_id=data['original_order_id'], \
                                    name='reference_number', user=user.id)
             if reference_obj.exists():
                 reference_obj = reference_obj[0]
                 reference_number = reference_obj.value
 
-
-
         # ['Open', 'Picklist generated', 'Partial Picklist generated', 'Picked', 'Partially picked']
         if not _status:
-            if order_id_status.get(data.id, '') == '1':
+            if order_id_status.get(data['id'], '') == '1':
                 status = ORDER_SUMMARY_REPORT_STATUS[0]
-            elif data.id in picklist_generated:
+            elif data['id'] in picklist_generated:
                 status = ORDER_SUMMARY_REPORT_STATUS[1]
-            elif data.id in partially_picked:
+            elif data['id'] in partially_picked:
                 status = ORDER_SUMMARY_REPORT_STATUS[2]
-            elif data.id in picked_orders:
+            elif data['id'] in picked_orders:
                 status = ORDER_SUMMARY_REPORT_STATUS[3]
-            elif data.id in partial_generated:
+            elif data['id'] in partial_generated:
                 status = ORDER_SUMMARY_REPORT_STATUS[4]
-            if order_id_status.get(data.id, '') == '2':
+            if order_id_status.get(data['id'], '') == '2':
                 status = ORDER_DETAIL_STATES.get(2, '')
-            if order_id_status.get(data.id, '') == '5':
+            if order_id_status.get(data['id'], '') == '5':
                 status = ORDER_DETAIL_STATES.get(5, '')
         else:
             status = _status
@@ -3621,13 +3654,13 @@ def get_order_summary_data(search_params, user, sub_user):
         tax = 0
         vat = 5.5
         discount = 0
-        mrp_price = data.sku.mrp
+        mrp_price = data['sku__mrp']
         order_status = ''
         remarks = ''
         order_taken_by = ''
         payment_card, payment_cash = 0, 0
-        order_summary = data.customerordersummary_set.filter()#CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data.id)
-        unit_price, unit_price_inclusive_tax = [data.unit_price] * 2
+        order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data['id'])
+        unit_price, unit_price_inclusive_tax = [data['unit_price']] * 2
         if order_summary:
             mrp_price = order_summary[0].mrp
             discount = order_summary[0].discount
@@ -3640,7 +3673,7 @@ def get_order_summary_data(search_params, user, sub_user):
                 vat = order_summary[0].vat
                 #if not unit_price:
             else:
-                amt = unit_price_inclusive_tax * float(data.quantity)
+                amt = unit_price_inclusive_tax * float(data['quantity'])
                 cgst_amt = float(order_summary[0].cgst_tax) * (float(amt) / 100)
                 sgst_amt = float(order_summary[0].sgst_tax) * (float(amt) / 100)
                 igst_amt = float(order_summary[0].igst_tax) * (float(amt) / 100)
@@ -3648,75 +3681,83 @@ def get_order_summary_data(search_params, user, sub_user):
                 tax = cgst_amt + sgst_amt + igst_amt + utgst_amt
             #unit_price = unit_price_inclusive_tax - (tax / float(data.quantity))
         else:
-            tax = float(float(data.invoice_amount) / 100) * vat
+            tax = float(float(data['invoice_amount']) / 100) * vat
         if order_status == 'None':
             order_status = ''
-        invoice_amount = "%.2f" % ((float(unit_price) * float(data.quantity)) + tax - discount)
+        invoice_amount = "%.2f" % ((float(unit_price) * float(data['quantity'])) + tax - discount)
         taxable_amount = "%.2f" % abs(float(invoice_amount) - float(tax))
         unit_price = "%.2f" % unit_price
 
         #payment mode
         payment_obj = OrderFields.objects.filter(user=user.id, name__icontains="payment_",\
-                                      original_order_id=data.original_order_id).values_list('name', 'value')
+                                      original_order_id=data['original_order_id']).values_list('name', 'value')
         if payment_obj:
             for pay in payment_obj:
                 exec("%s = %s" % (pay[0],pay[1]))
         #pos extra fields
         pos_extra = {}
         extra_vals = OrderFields.objects.filter(user=user.id,\
-                       original_order_id=data.original_order_id).values('name', 'value')
+                       original_order_id=data['original_order_id']).values('name', 'value')
         for field in extra_fields:
             pos_extra[field] = ''
             for val in extra_vals:
                 if field == val['name']:
                     pos_extra[str(val['name'])] = str(val['value'])
-        invoice_number_obj = SellerOrderSummary.objects.filter(order_id = data.id)
-        if invoice_number_obj :
-            invoice_number = invoice_number_obj[0].invoice_number
-            quantity = invoice_number_obj[0].quantity
-            invoice_date = get_local_date(user,invoice_number_obj[0].creation_date)
-        else:
-            invoice_number = 0
-            quantity = 0
-            invoice_date = 0
 
+        if search_params.get('invoice','') == 'true':
+            invoice_number = data['sellerordersummary__invoice_number']
+
+            if data['sellerordersummary__creation_date'] :
+                invoice_date = get_local_date(user,data['sellerordersummary__creation_date'])
+            else:
+                invoice_date =''
+            user_profile = UserProfile.objects.get(user_id=user.id)
+            if user_profile.user_type == 'marketplace_user':
+                quantity = SellerOrderSummary.objects.filter(seller_order__order_id=data['id'], invoice_number=data['sellerordersummary__invoice_number']).aggregate(Sum('quantity'))['quantity__sum']
+            else:
+                quantity = SellerOrderSummary.objects.filter(order_id=data['id'], invoice_number=data['sellerordersummary__invoice_number']).aggregate(Sum('quantity'))['quantity__sum']
+
+        else:
+            invoice_number = ''
+            invoice_date = ''
+            quantity = ''
         try:
             #serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data.sku.sku_code,order__original_order_id=order_id,po_imei__sku__user=user.id)
-            serial_number = OrderIMEIMapping.objects.filter(order__id=data.id)
+            serial_number = OrderIMEIMapping.objects.filter(order__id=data['id'])
         except:
             serial_number =''
         if serial_number and serial_number[0].po_imei:
             serial_number = serial_number[0].po_imei.imei_number
         else:
             serial_number = ''
-        customer_name = data.customer_name
+        customer_name = data['customer_name']
         cusotomer_master_obj = CustomerMaster.objects.filter(user = user.id, name  = customer_name)
         gst_number = ''
         if cusotomer_master_obj.exists():
             gst_number = cusotomer_master_obj[0].tin_number
 
         aaData = OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
-                                                ('Customer Name', customer_name),
-                                                ('Order Number' ,data.order_reference),
-                                                ('SKU Brand', data.sku.sku_brand),
-                                                ('SKU Category', data.sku.sku_category),
-                                                ('SKU Class', data.sku.sku_class),
-                                                ('SKU Size', data.sku.sku_size), ('SKU Description', data.sku.sku_desc),
-                                                ('SKU Code', data.sku.sku_code), ('Order Qty', int(data.quantity)),
-                                                ('MRP', mrp_price), ('Unit Price', float(unit_price_inclusive_tax)),
-                                                ('Discount', discount),
-                                                ('Serial Number',serial_number),
-                                                ('Invoice Number',invoice_number),
-                                                ('Quantity',quantity),
-                                                ('Payment Type' ,payment_type),
-                                                ('Reference Number',reference_number),
-                                                ('Taxable Amount', float(taxable_amount)), ('Tax', tax),
-                                                ('City', data.city), ('State', data.state), ('Marketplace', data.marketplace),
-                                                ('Invoice Amount', float(invoice_amount)), ('Price', data.sku.price),
-                                                ('Status', status), ('Order Status', order_status),('Customer GST Number',gst_number),
-                                                ('Remarks', remarks), ('Order Taken By', order_taken_by),
-                                                ('Invoice Date',invoice_date),
-                                                ('Payment Cash', payment_cash), ('Payment Card', payment_card)))
+                                                    ('Customer Name', customer_name),
+                                                    ('Order Number' ,data['order_reference']),
+                                                    ('SKU Brand', data['sku__sku_brand']),
+                                                    ('SKU Category', data['sku__sku_category']),
+                                                    ('SKU Class', data['sku__sku_class']),
+                                                    ('SKU Size', data['sku__sku_size']), ('SKU Description', data['sku__sku_desc']),
+                                                    ('SKU Code', data['sku__sku_code']), ('Order Qty', int(data['quantity'])),
+                                                    ('MRP', int(data['sku__mrp'])), ('Unit Price', float(unit_price_inclusive_tax)),
+                                                    ('Discount', discount),
+                                                    ('Serial Number',serial_number),
+                                                    ('Invoice Number',invoice_number),
+                                                    ('Quantity',quantity),
+                                                    ('Payment Type' ,payment_type),
+                                                    ('Reference Number',reference_number),
+                                                    ('Taxable Amount', float(taxable_amount)), ('Tax', tax),
+                                                    ('City', data['city']), ('State', data['state']), ('Marketplace', data['marketplace']),
+                                                    ('Invoice Amount', float(invoice_amount)), ('Price', data['sku__price']),
+                                                    ('Status', status), ('Order Status', order_status),('Customer GST Number',gst_number),
+                                                    ('Remarks', remarks), ('Order Taken By', order_taken_by),
+                                                    ('Invoice Date',invoice_date),
+                                                    ('Payment Cash', payment_cash), ('Payment Card', payment_card)))
         aaData.update(OrderedDict(pos_extra))
         temp_data['aaData'].append(aaData)
     return temp_data
@@ -5836,7 +5877,12 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
         result = firebase_response.get(order_id, '')
         if not order_id:
             order_id = data['order__order_code'] + str(data['order__order_id'])
-        date = get_local_date(user, data['creation_date']).split(' ')
+        try:
+            date = get_local_date(user, data['creation_date']).split(' ')
+        except Exception as e:
+            import traceback
+            log.info('Error in Get Local Date:%s:%s' %(order_id, data['creation_date']))
+            log.info(traceback.format_exc())
 
         shipment_status = ship_status.get(data['id'], '')
 
@@ -5854,15 +5900,29 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
                     log.info('Firebase query  failed for %s and params are  and error statement is %s' % (
                     str(user.username),str(e)))
         delivered_time =''
-        #invoice_number_obj = SellerOrderSummary.objects.filter(order_id = data['order__id'])
-        if data['order__id'] in ord_invoice_map:
-            #invoice_number = invoice_number_obj[0].invoice_number
-            invoice_number = ord_invoice_map.get(data['order__id'], '')
+        central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
+        if ord_invoice_map and central_order_reassigning == 'true':
             creation_date = ord_inv_dates_map.get(data['order__id'], '')
-            invoice_date = get_local_date(user, creation_date)
+            if creation_date:
+                invoice_date = get_local_date(user, creation_date)
+            invoice_number = 'TI/%s/%s' % (creation_date.strftime('%m%y'), data['order__original_order_id'])
         else:
-            invoice_number = ''
-            invoice_date = ''
+            increment_invoice = get_misc_value('increment_invoice', user.id)
+            if data['order__id'] in ord_invoice_map and increment_invoice == 'true':
+                invoice_number = ord_invoice_map.get(data['order__id'], '')
+                creation_date = ord_inv_dates_map.get(data['order__id'], '')
+                if creation_date:
+                    invoice_date = get_local_date(user, creation_date)
+            elif increment_invoice == 'false':
+                invoice_number =  int(data['order__order_id'])
+                if data['order__id'] in ord_invoice_map:
+                    creation_date = ord_inv_dates_map.get(data['order__id'], '')
+                    if creation_date:
+                        invoice_date = get_local_date(user, creation_date)
+                else:
+                    invoice_date = ''
+            else:
+                invoice_number = invoice_date = ''
         if result :
            signed_invoice_copy = result.get('signed_invoice_copy','')
            id_type = result.get('id_type','')

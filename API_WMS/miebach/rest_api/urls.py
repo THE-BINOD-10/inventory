@@ -231,6 +231,8 @@ urlpatterns = [
     url(r'^check__replace_imei_exists/$', check__replace_imei_exists),
     url(r'^save_replaced_serials/$', save_replaced_serials),
     url(r'^save_replaced_locations/$', save_replaced_locations),
+    url(r'^get_vendor_list/$', get_vendor_list),
+    url(r'^create_vendor_stock_transfer/$', create_vendor_stock_transfer),
 
 
 

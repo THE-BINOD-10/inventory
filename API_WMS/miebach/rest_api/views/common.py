@@ -460,7 +460,7 @@ def get_search_params(request, user=''):
                     'order_report_status': 'order_report_status', 'customer_id': 'customer_id',
                     'imei_number': 'imei_number',
                     'order_id': 'order_id', 'job_code': 'job_code', 'job_order_code': 'job_order_code',
-                    'fg_sku_code': 'fg_sku_code',
+                    'fg_sku_code': 'fg_sku_code', 'invoice':'invoice',
                     'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet','invoice_date':'invoice_date',
                     'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number', 'dc_number': 'challan_number',
                     'zone_code': 'zone_code', 'distributor_code': 'distributor_code', 'reseller_code': 'reseller_code',
@@ -2863,8 +2863,10 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         sor_id = ''
         order_ids = list(set(order_ids.split(',')))
         order_data = OrderDetail.objects.filter(id__in=order_ids).exclude(status=3)
-        seller_summary = SellerOrderSummary.objects.filter(
-            Q(seller_order__order_id__in=order_ids) | Q(order_id__in=order_ids))
+        if user.userprofile.user_type == 'marketplace_user':
+            seller_summary = SellerOrderSummary.objects.filter(seller_order__order_id__in=order_ids)
+        else:
+            seller_summary = SellerOrderSummary.objects.filter(order_id__in=order_ids)
         if seller_summary:
             if seller_summary[0].seller_order:
                 seller = seller_summary[0].seller_order.seller

@@ -974,3 +974,6 @@ def pos_send_mail(request , user =''):
                                '',False,False,'posform')
         except Exception as e:
             pass
+
+
+    return HttpResponse("Succes")

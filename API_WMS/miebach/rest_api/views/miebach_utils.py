@@ -5876,21 +5876,29 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
                     log.info('Firebase query  failed for %s and params are  and error statement is %s' % (
                     str(user.username),str(e)))
         delivered_time =''
-        #invoice_number_obj = SellerOrderSummary.objects.filter(order_id = data['order__id'])
-        if data['order__id'] in ord_invoice_map:
-            #invoice_number = invoice_number_obj[0].invoice_number
-            invoice_number = ord_invoice_map.get(data['order__id'], '')
+        central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
+        if ord_invoice_map and central_order_reassigning == 'true':
             creation_date = ord_inv_dates_map.get(data['order__id'], '')
-            try:
+            if creation_date:
                 invoice_date = get_local_date(user, creation_date)
-            except Exception as e:
-                invoice_date = ''
-                import traceback
-                log.info('Error in Get Local Date1:%s:%s' %(order_id, creation_date))
-                log.info(traceback.format_exc())
+            invoice_number = 'TI/%s/%s' % (creation_date.strftime('%m%y'), data['order__original_order_id'])
         else:
-            invoice_number = ''
-            invoice_date = ''
+            increment_invoice = get_misc_value('increment_invoice', user.id)
+            if data['order__id'] in ord_invoice_map and increment_invoice == 'true':
+                invoice_number = ord_invoice_map.get(data['order__id'], '')
+                creation_date = ord_inv_dates_map.get(data['order__id'], '')
+                if creation_date:
+                    invoice_date = get_local_date(user, creation_date)
+            elif increment_invoice == 'false':
+                invoice_number =  int(data['order__order_id'])
+                if data['order__id'] in ord_invoice_map:
+                    creation_date = ord_inv_dates_map.get(data['order__id'], '')
+                    if creation_date:
+                        invoice_date = get_local_date(user, creation_date)
+                else:
+                    invoice_date = ''
+            else:
+                invoice_number = invoice_date = ''
         if result :
            signed_invoice_copy = result.get('signed_invoice_copy','')
            id_type = result.get('id_type','')

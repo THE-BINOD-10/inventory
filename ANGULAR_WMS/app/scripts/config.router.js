@@ -1203,6 +1203,9 @@ var app = angular.module('urbanApp')
                 ]).then(function() {
                     return $ocLazyLoad.load(['scripts/controllers/stockLocator/auto_sellable.js'
                   ])
+                }).then(function() {
+                    return $ocLazyLoad.load(['scripts/controllers/stockLocator/vendor_stock_transfer.js'
+                  ])
                 });
               }]
           },

@@ -866,7 +866,7 @@ STOCK_RECONCILIATION_REPORT_DICT = {
   'dt_headers': ['SKU', 'Vendor Name', 'Brand', 'Category', 'Sub Category', 'Opening Qty', 'Opening Avg Rate', 'Opening Amount Before Tax',
   'Opening Tax Rate', 'Opening Cess Rate', 'Opening Amount After Tax', 'Purchases Qty', 'Purchases Avg Rate', 'Purchases Amount Before Tax',
   'Purchases Tax Rate', 'Purchases Cess Rate', 'Purchases Amount After Tax',  'Sales Qty', 'Sales Avg Rate', 'Sales Amount Before Tax',
-  'Sales Tax Rate', 'Sales Cess Rate', 'Sales Amount After Tax',  'Closing Qty', 'Closing Avg. Rate', 'Closing Amount Before Tax',
+  'Sales Tax Rate', 'Sales Cess Rate', 'Sales Amount After Tax',  'Closing Qty', 'Closing Avg Rate', 'Closing Amount Before Tax',
   'Closing Tax Rate', 'Closing Cess Rate', 'Closing Amount After Tax', 'Created Date'],
   'dt_url': 'get_stock_reconciliation_report', 'excel_name': 'get_stock_reconciliation_report',
   'print_url': 'print_stock_reconciliation_report',
@@ -6802,18 +6802,19 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     from django.db.models import Count
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
-    #lis = ['order__sku__sku_code', 'vendor_name', 'order__sku__sku_brand', 'order__sku__sku_category', 'order__sku__sub_category', 'quantity', 'weighted_avg_cost', 'weighted_avg_selling_price', 'consolidated_tax', 'brand_discount', 'consolidated_margin']
+    lis = ['sku__sku_code', 'vendor_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sub_category', 'quantity', 'weighted_avg_cost', 'weighted_avg_selling_price', 'consolidated_tax', 'brand_discount', 'consolidated_margin']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)
+    import pdb;pdb.set_trace()
     if search_params.get('length', 0):
         stop_index = start_index + search_params.get('length', 0)
     else:
         stop_index = None
     search_parameters = {}
-    #sort_data = lis[col_num]
-    #if order_term == 'desc':
-    #    sort_data = '-%s' % sort_data
+    sort_data = lis[col_num]
+    if order_term == 'desc':
+        sort_data = '-%s' % sort_data
     if 'sku_code' in search_params:
         if search_params['sku_code']:
             search_parameters['sku__sku_code'] = search_params['sku_code']
@@ -6825,10 +6826,13 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     search_parameters['sku__user'] = user.id
     create_data_dict = {}
     stock_reconciliation = StockReconciliation.objects.filter(**search_parameters)
-    po_stock_reconsiliation = stock_reconciliation.values_list('sku__sku_code').filter(report_type = 'po')
-    picklist_stock_reconsiliation = stock_reconciliation.values_list('sku__sku_code').filter(report_type = 'picklist')
-    closing_stock_reconsiliation = stock_reconciliation.values_list('sku__sku_code').filter(report_type = 'closing_stock')
-    for obj in stock_reconciliation:
+    if stock_reconciliation:
+        po_stock_reconsiliation = stock_reconciliation.values_list('sku__sku_code').filter(report_type = 'po')
+        picklist_stock_reconsiliation = stock_reconciliation.values_list('sku__sku_code').filter(report_type = 'picklist')
+        closing_stock_reconsiliation = stock_reconciliation.values_list('sku__sku_code').filter(report_type = 'closing_stock')
+    temp_data['recordsTotal'] = len(stock_reconciliation)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for obj in stock_reconciliation[start_index:stop_index]:
         report_type = obj.report_type
         #if str(obj.sku.sku_code) + '<<>>' + str(obj.created_date) in create_data_dict.keys():
         #    create_data_dict[str(obj.sku.sku_code) + '<<>>' + str(obj.created_date)]['sku_details'].update({'sku': str(obj.sku.sku_code), 'vendor_name': '', 'brand':str(obj.sku.sku_brand), 'category': str(obj.sku.sku_category), 'sub_category': str(obj.sku.sub_category) })
@@ -6841,7 +6845,6 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
         empty_sub_dict['tax_rate'] = 0
         empty_sub_dict['cess_rate'] = 0
         empty_sub_dict['amount_after_tax'] = 0
-
         sub_dict = {}
         sub_dict['quantity'] = obj.quantity
         sub_dict['avg_rate'] = obj.avg_rate
@@ -6855,16 +6858,11 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
         sku_det_dict['brand'] = str(obj.sku.sku_brand)
         sku_det_dict['category'] = str(obj.sku.sku_category)
         sku_det_dict['sub_category'] = str(obj.sku.sub_category)
-
         dict_formation = {}
         dict_formation = {'po': empty_sub_dict, 'sales': empty_sub_dict, 'opening_stock': empty_sub_dict, 'closing_stock': empty_sub_dict}
         dict_formation.update({'sku_details':sku_det_dict})
         dict_formation[report_type] = sub_dict
-
         create_data_dict[str(obj.sku.sku_code) + '<<>>' + str(obj.created_date)] = dict_formation
-
-        temp_data['recordsTotal'] = len(create_data_dict)
-        temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for key, value in create_data_dict.iteritems():
         wms_code, creation_date = key.split('<<>>')
         temp_data['aaData'].append(OrderedDict((
@@ -6873,13 +6871,14 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
                                                  ('Sub Category', value['sku_details']['sub_category'] ), ('Opening Qty',  value['opening_stock']['quantity']),
                                                  ('Opening Avg Rate', "%.2f" % value['opening_stock']['avg_rate']), ('Opening Amount Before Tax', "%.2f" % value['opening_stock']['avg_rate']), ('Opening Tax Rate', "%.2f" % value['opening_stock']['tax_rate']),
                                                  ('Opening Cess Rate', "%.2f" % value['opening_stock']['cess_rate']), ('Opening Amount After Tax', "%.2f" % value['opening_stock']['amount_after_tax']),
-                                                 ('Purchases Qty',  value['po']['quantity']), ('Purchases Avg Rate', "%.2f" % value['po']['avg_rate']), ('Purchases Tax Rate', "%.2f" % value['po']['tax_rate']),
+                                                 ('Purchases Qty',  value['po']['quantity']), ('Purchases Avg Rate', "%.2f" % value['po']['avg_rate']), ('Purchases Amount Before Tax', "%.2f" % value['po']['amount_before_tax']), ('Purchases Tax Rate', "%.2f" % value['po']['tax_rate']),
                                                  ('Purchases Cess Rate', "%.2f" % value['po']['cess_rate']), ('Purchases Amount After Tax', "%.2f" % value['po']['amount_after_tax']),
-                                                 ('Sales Qty',  value['sales']['quantity']), ('Sales Avg Rate', "%.2f" % value['sales']['avg_rate']), ('Sales Tax Rate', "%.2f" % value['sales']['tax_rate']),
+                                                 ('Sales Qty',  value['sales']['quantity']), ('Sales Avg Rate', "%.2f" % value['sales']['avg_rate']), ('Sales Amount Before Tax', "%.2f" % value['sales']['amount_before_tax']), ('Sales Tax Rate', "%.2f" % value['sales']['tax_rate']),
                                                  ('Sales Cess Rate', "%.2f" % value['sales']['cess_rate']), ('Sales Amount After Tax', "%.2f" % value['sales']['amount_after_tax']),
-                                                 ('Closing Qty',  value['closing_stock']['quantity']), ('Closing Avg Rate', "%.2f" % value['closing_stock']['avg_rate']), ('Closing Amount Before Tax', "%.2f" % value['closing_stock']['tax_rate']),
+                                                 ('Closing Qty',  value['closing_stock']['quantity']), ('Closing Avg Rate', "%.2f" % value['closing_stock']['avg_rate']), ('Closing Amount Before Tax', "%.2f" % value['closing_stock']['avg_rate']),
+                                                 ('Closing Tax Rate', "%.2f" % value['closing_stock']['tax_rate']),
                                                  ('Closing Cess Rate', "%.2f" % value['closing_stock']['cess_rate']), ('Closing Amount After Tax', "%.2f" % value['closing_stock']['amount_after_tax']),
-                                                 ('Creation Date', creation_date)
+                                                 ('Created Date', creation_date)
                                               ))
                                   )
     return temp_data

@@ -8,6 +8,7 @@
     var self = this;
     self.paymentTypeInput = [];
     self.show_card = false;
+    self.payment_mode = '';
     self.reference_number = '';
     self.card_digits = '';
     urlService.current_order.summary.paymenttype_values = self.paymentTypeInput;
@@ -53,6 +54,10 @@
     ];
     self.paymenttype_value = "cash";
     self.add_payment_type = function() {
+      self.payment_mode = "";
+      self.card_name = '';
+      self.reference_number='';
+      self.card_digits = '';
       var add = 1;
       angular.forEach(self.paymentTypeInput, function (index_value, index) {
         if (self.paymenttype_value == index_value['type_name']) {

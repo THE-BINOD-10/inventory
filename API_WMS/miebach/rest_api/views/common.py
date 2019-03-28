@@ -8149,7 +8149,33 @@ def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty,
     SubstitutionSummary.objects.create(**sub_data)
     log.info("Substitution Done For " + str(json.dumps(sub_data)))
 
+
 def update_stock_detail(stocks, quantity, user):
+    data = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+    if not data:
+        cycle_id = 1
+    else:
+        cycle_id = data[0].cycle + 1
+    data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
+    data_dict['cycle'] = cycle_id
+    data_dict['sku_id'] = sku_id
+    data_dict['location_id'] = location[0].id
+    data_dict['quantity'] = quantity
+    data_dict['seen_quantity'] = quantity
+    data_dict['status'] = 0
+    data_dict['creation_date'] = now
+    data_dict['updation_date'] = now
+    cycle_obj = CycleCount.objects.filter(cycle=cycle_id, sku_id=sku_id, location_id=data_dict['location_id'])
+    if cycle_obj:
+        cycle_obj = cycle_obj[0]
+        cycle_obj.seen_quantity += quantity
+        cycle_obj.save()
+        dat = cycle_obj
+    else:
+        dat = CycleCount(**data_dict)
+        dat.save()
+
+    
     for stock in stocks:
         if stock.quantity > quantity:
             stock.quantity -= quantity
@@ -8159,6 +8185,7 @@ def update_stock_detail(stocks, quantity, user):
             quantity = 0
             if stock.quantity < 0:
                 stock.quantity = 0
+            save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', stock.quantity, stock)
             stock.save()
         elif stock.quantity <= quantity:
             quantity -= stock.quantity
@@ -8166,6 +8193,7 @@ def update_stock_detail(stocks, quantity, user):
             if seller_stock.exists():
                 change_seller_stock(seller_stock[0].seller_id, stock, user, stock.quantity, 'dec')
             stock.quantity = 0
+            save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', stock.quantity, stock)
             stock.save()
         if quantity == 0:
             break

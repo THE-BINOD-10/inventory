@@ -42,10 +42,7 @@ class Command(BaseCommand):
             filterStats = {}
             today = datetime.datetime.now().date()
             filterStats['sku__user'] = user.id
-            if report_type == "sales":
-                filterStats['transact_type'] = "picklist"
-            else:
-                filterStats['transact_type'] = report_type
+            filterStats['transact_type'] = report_type
             filterStats['creation_date__startswith'] = today
             sku_detail_stats = SKUDetailStats.objects.filter(**filterStats)
             if sku_detail_stats:
@@ -91,7 +88,7 @@ class Command(BaseCommand):
 
         users = User.objects.filter(username='milkbasket')
         log.info(str(datetime.datetime.now()))
-        report_types = ['po', 'sales']
+        report_types = ['po', 'picklist']
         for user in users:
             for report in report_types:
                 stock_reconciliation(report, user)

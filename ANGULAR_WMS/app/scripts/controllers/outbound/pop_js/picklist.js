@@ -14,7 +14,8 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
   vm.qty_validation = {};
   vm.industry_type = Session.user_profile.industry_type;
   vm.collect_imei_data = {}
-  vm.get_id = ''
+  vm.get_id = '';
+  vm.decimal_limit = (vm.permissions.decimal_limit)?Number(vm.permissions.decimal_limit):1;
 
   vm.getPoData = function(data){
     Service.apiCall(data.url, data.method, data.data, true).then(function(data){
@@ -55,6 +56,20 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
     }
     $modalInstance.close(vm.status_data);
   };
+
+  function update_decimal_val(field) {
+
+    var temp_pick_qty = field.toString();
+    if(temp_pick_qty.indexOf('.') != -1 ) {
+      var temp_pick_qty = String(field).split('.');
+      if(temp_pick_qty[1].length > vm.decimal_limit) {
+        field = temp_pick_qty[0]+"."+temp_pick_qty[1].slice(0,vm.decimal_limit);
+      }
+    }
+    return field;
+  }
+
+
 
   vm.getPoData(vm.state_data);
 
@@ -384,6 +399,7 @@ function pull_confirmation() {
           var clone = {};
           angular.copy(data.sub_data[index], clone);
           var temp = data.reserved_quantity - total;
+          temp = update_decimal_val(temp);
           clone.picked_quantity = (remain < temp)?remain:temp;
           //clone.picked_quantity = data.reserved_quantity - total;
           clone.scan = "";
@@ -450,6 +466,7 @@ function pull_confirmation() {
   }
 
   vm.change_quantity = function(sku, remain, sku_qty){
+    console.log(vm);
     console.log(remain);
     var temp = sku.picked_quantity;
     if(remain == 0) {
@@ -461,6 +478,11 @@ function pull_confirmation() {
     if(Number(temp) < sku.picked_quantity) {
       sku.picked_quantity = temp;
     }
+    sku.picked_quantity = update_decimal_val(sku.picked_quantity);
+//    var temp_pick_qty = String(sku.picked_quantity).split('.');
+//    if(temp_pick_qty[1].length > vm.decimal_limit) {
+//      sku.picked_quantity = temp_pick_qty[0]+"."+temp_pick_qty[1].slice(0,vm.decimal_limit);
+//    }
   }
 
   vm.check_location = function(event, field) {
@@ -1006,6 +1028,7 @@ function pull_confirmation() {
       }
     });
   }
+
 }
 
 angular

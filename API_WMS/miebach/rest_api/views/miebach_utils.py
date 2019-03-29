@@ -6811,12 +6811,12 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     else:
         stop_index = None
     search_parameters = {}
-    try:
-        sort_data = lis[col_num]
-        if order_term == 'desc':
-            sort_data = '-%s' % sort_data
-    except:
-        sort_data = 'created_date'
+    #try:
+    #    sort_data = lis[col_num]
+    #    if order_term == 'desc':
+    #        sort_data = '-%s' % sort_data
+    #except:
+    #    sort_data = 'created_date'
     if 'sku_code' in search_params:
         if search_params['sku_code']:
             search_parameters['sku__sku_code'] = search_params['sku_code']
@@ -6827,7 +6827,7 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
         search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
     search_parameters['sku__user'] = user.id
     create_data_dict = {}
-    stock_reconciliation = StockReconciliation.objects.filter(**search_parameters).order_by(sort_data)
+    stock_reconciliation = StockReconciliation.objects.filter(**search_parameters)
     temp_data['recordsTotal'] = len(stock_reconciliation)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     empty_sub_dict = {}
@@ -6839,7 +6839,7 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     empty_sub_dict['amount_after_tax'] = 0
     dict_formation = {}
     dict_formation = {'po': empty_sub_dict, 'picklist': empty_sub_dict, 'opening_stock': empty_sub_dict, 'closing_stock': empty_sub_dict}
-    for obj in stock_reconciliation[start_index:stop_index]:
+    for obj in stock_reconciliation:
         report_type = obj.report_type
         if not str(obj.sku.sku_code) + '<<>>' + str(obj.created_date) in create_data_dict.keys():
             dict_formation = {}
@@ -6894,4 +6894,13 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
                                                  ('Created Date', creation_date)
                                               ))
                                   )
+
+    lis = ['Created Date', 'SKU', 'Vendor Name', 'Brand', 'Category', 'Sub Category', 'Opening Qty', 'Opening Avg Rate', 'Opening Amount Before Tax', 'Opening Tax Rate', 'Opening Cess Rate', 'Opening Amount After Tax', 'Purchases Qty', 'Purchases Avg Rate', 'Purchases Amount Before Tax', 'Purchases Tax Rate', 'Purchases Cess Rate', 'Purchases Amount After Tax', 'Sales Qty', 'Sales Avg Rate', 'Sales Amount Before Tax', 'Sales Tax Rate', 'Sales Cess Rate', 'Sales Amount After Tax', 'Closing Qty', 'Closing Avg Rate', 'Closing Amount Before Tax', 'Closing Tax Rate', 'Closing Cess Rate', 'Closing Amount After Tax']
+    sort_col = lis[col_num]
+    if order_term == 'asc':
+        temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col))
+    else:
+        temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col), reverse=True)
+    if stop_index:
+        temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data

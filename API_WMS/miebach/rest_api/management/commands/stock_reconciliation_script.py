@@ -6,7 +6,6 @@ from django.core.management import BaseCommand
 from django.db.models import Q, Sum, F
 import os
 import logging
-import datetime
 import copy
 import django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "miebach.settings")
@@ -41,7 +40,7 @@ class Command(BaseCommand):
         
         def stock_reconciliation_for_po_picklist(report_type, user):
             filterStats = {}
-            today = datetime.datetime.now().date()
+            today = datetime.now().date()
             filterStats['sku__user'] = user.id
             filterStats['transact_type'] = report_type
             filterStats['creation_date__startswith'] = today
@@ -58,13 +57,13 @@ class Command(BaseCommand):
                 seller_po_query = {}
                 seller_po_query['purchase_order__open_po__sku__id__in'] = loop_po_skus
                 seller_po_query['purchase_order__open_po__sku__user'] = user.id
-                seller_po_query['purchase_order__open_po__creation_date__startswith'] = datetime.datetime.now().date()
+                seller_po_query['purchase_order__open_po__creation_date__startswith'] = datetime.now().date()
                 seller_po = dict(SellerPOSummary.objects.filter(**seller_po_query).values_list('purchase_order__open_po__sku__id').distinct().annotate(quantity=Sum(F('cess_tax') * F('purchase_order__open_po__price') * F('purchase_order__open_po__order_quantity') / 100)))
                 for sku in loop_po_skus:
                     data_dict = {}
                     data_dict['sku_id'] = str(sku)
                     data_dict['report_type'] = report_type
-                    data_dict['created_date'] = str(datetime.datetime.now().date())
+                    data_dict['created_date'] = str(datetime.now().date())
                     stock_recon = StockReconciliation.objects.filter(**data_dict)
                     if stock_recon:
                         stock_recon = stock_recon[0]
@@ -74,7 +73,7 @@ class Command(BaseCommand):
                         stock_recon.tax_rate = tax_rate.get(sku, 0) / po_count_qty.get(sku, 0)
                         stock_recon.cess_rate =  seller_po.get(sku, 0) / po_count_qty.get(sku, 0)
                         stock_recon.amount_after_tax = stock_recon.amount_before_tax + stock_recon.tax_rate + stock_recon.cess_rate
-                        management_stock_reconciliation_log.info('')
+                        
                         stock_recon.save()
                     else:
                         data_dict['vendor_name'] = ''
@@ -84,13 +83,13 @@ class Command(BaseCommand):
                         data_dict['tax_rate'] = tax_rate.get(sku, 0) / po_count_qty.get(sku, 0)
                         data_dict['cess_rate'] = seller_po.get(sku, 0) / po_count_qty.get(sku, 0)
                         data_dict['amount_after_tax'] = data_dict['amount_before_tax'] + data_dict['tax_rate'] + data_dict['cess_rate']
-                        data_dict['created_date'] = str(datetime.datetime.now().date())
-                        data_dict['creation_date'] = str(datetime.datetime.now())
-                        management_stock_reconciliation_log.info('')
+                        data_dict['created_date'] = str(datetime.now().date())
+                        data_dict['creation_date'] = str(datetime.now())
+                        
                         StockReconciliation.objects.create(**data_dict)
 
         users = User.objects.filter(username='milkbasket')
-        log.info(str(datetime.datetime.now()))
+        management_stock_reconciliation_log.info('')
         report_types = ['po', 'picklist']
         for user in users:
             for report in report_types:
@@ -150,7 +149,7 @@ class Command(BaseCommand):
                 data_dict = {}
                 data_dict['sku_id'] = str(wms_code)
                 data_dict['report_type'] = "closing_stock"
-                data_dict['created_date'] = str(datetime.datetime.now().date())
+                data_dict['created_date'] = str(datetime.now().date())
                 stock_recon = StockReconciliation.objects.filter(**data_dict)
                 if stock_recon:
                     stock_recon = stock_recon[0]
@@ -169,7 +168,7 @@ class Command(BaseCommand):
                     data_dict['tax_rate'] = tax_total / po_count.get(wms_code, 0)
                     data_dict['cess_rate'] = get_cess_tax.get(wms_code, 0) / po_count.get(wms_code, 0)
                     data_dict['amount_after_tax'] = data_dict['amount_before_tax'] + data_dict['tax_rate'] + data_dict['cess_rate']
-                    data_dict['creation_date'] = str(datetime.datetime.now())
+                    data_dict['creation_date'] = str(datetime.now())
                     StockReconciliation.objects.create(**data_dict)
 
 
@@ -180,7 +179,7 @@ class Command(BaseCommand):
             opening_stock_obj = StockReconciliation.objects.filter(**query_opening_stock)
             for obj in opening_stock_obj:
                 data_dict['vendor_name'] = ''
-                data_dict['sku__id'] = obj.sku.id
+                data_dict['sku_id'] = obj.sku.id
                 data_dict['report_type'] = 'opening_stock'
                 data_dict['quantity'] = obj.quantity
                 data_dict['avg_rate'] = obj.avg_rate
@@ -188,6 +187,21 @@ class Command(BaseCommand):
                 data_dict['tax_rate'] = obj.tax_rate
                 data_dict['cess_rate'] = obj.cess_rate
                 data_dict['amount_after_tax'] = obj.amount_after_tax
-                data_dict['creation_date'] = str(datetime.datetime.now())
-                StockReconciliation.objects.create(**data_dict)
-
+                data_dict['creation_date'] = str(datetime.now())
+                opening_stock_check = {}
+                opening_stock_check['report_type'] = 'opening_stock'
+                opening_stock_check['created_date'] = str(date.today())
+                opening_stock_check['sku_id'] = obj.sku.id
+                opening_stock_check = StockReconciliation.objects.filter(**opening_stock_check)
+                if opening_stock_check:
+                    opening_stock_check = opening_stock_check[0]
+                    opening_stock_check.quantity = obj.quantity
+                    opening_stock_check.avg_rate = obj.avg_rate
+                    opening_stock_check.amount_before_tax = obj.amount_before_tax
+                    opening_stock_check.tax_rate = obj.tax_rate
+                    opening_stock_check.cess_rate = obj.cess_rate
+                    opening_stock_check.amount_after_tax = obj.amount_after_tax
+                    opening_stock_check.created_date = str(datetime.now().date())
+                    opening_stock_check.save()
+                else:
+                    StockReconciliation.objects.create(**data_dict)

@@ -964,8 +964,12 @@ def pos_send_mail(request , user =''):
         data['summary_total_amount']  = float(data['summary']['subtotal']) + float(data['summary']['sgst'])+float(data['summary']['igst']) + float(data['summary']['utgst'])+ float(data['summary']['cgst'])
         data['summary_discount'] = float(data['summary_total_amount'])- float(data['summary']['total_discount'])
         data['summary_total'] = float(data['summary']['subtotal']) - float(data['summary']['total_discount'])
+        pos_remarks = get_misc_value('pos_remarks', user.id)
+        if pos_remarks :
+            data['pos_remarks'] = pos_remarks
+        else:
+            data['pos_remarks'] = ''
         data_dict['data']= data
-        # user = data_dict['user']
         try:
             t = loader.get_template('templates/toggle/pos_print.html')
             rendered = t.render(data_dict)

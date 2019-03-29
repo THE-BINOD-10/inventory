@@ -115,6 +115,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       var toggle = DTColumnBuilder.newColumn('PO No').withTitle(' ').notSortable().notVisible();
     }
+    if(vm.permissions.dispatch_qc_check) {
+      vm.dtColumns.push(DTColumnBuilder.newColumn('SR Number').withTitle('Courtesy SR Number'))
+    }else {
+      vm.dtColumns.pop(DTColumnBuilder.newColumn('SR Number').withTitle('Courtesy SR Number'))
+    }
     vm.dtColumns.unshift(toggle);
     vm.dtInstance = {};
     vm.poDataNotFound = function() {

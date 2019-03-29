@@ -290,12 +290,13 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
     # sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['PO No', 'PO No', 'PO Reference', 'Customer Name', 'Order Date', 'Expected Date',
            'Total Qty', 'Receivable Qty', 'Received Qty',
-           'Remarks', 'Supplier ID/Name', 'Order Type', 'Receive Status']
+           'Remarks', 'Supplier ID/Name', 'Order Type', 'Receive Status', 'SR Number']
     data_list = []
     data = []
     supplier_data = {}
     col_num1 = 0
     po_reference_no = ''
+    sr_number = ''
     supplier_status, supplier_user, supplier, supplier_parent = get_supplier_info(request)
     if supplier_status:
         request.user.id = supplier.user
@@ -319,7 +320,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
 
     temp_data['recordsTotal'] = len(data)
     temp_data['recordsFiltered'] = len(data)
-
+    oneassist_condition = get_misc_value('dispatch_qc_check', user.id)
     for supplier in data:
         order_type = 'Purchase Order'
         receive_status = 'Yet To Receive'
@@ -356,6 +357,16 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                 customer_name = supplier_parent.username
         if supplier.open_po:
             po_reference_no = supplier.open_po.po_name
+        if customer_data and oneassist_condition == 'true':
+            admin_user = get_admin(user)
+            interorder_data = IntermediateOrders.objects.filter(order_id=customer_data[0].order_id, user_id=admin_user.id)
+            if interorder_data:
+                inter_order_id  = interorder_data[0].interm_order_id
+                courtesy_sr_number = OrderFields.objects.filter(original_order_id = inter_order_id, user = admin_user.id, name = 'original_order_id')
+                if courtesy_sr_number:
+                    sr_number = courtesy_sr_number[0].value
+                else:
+                    sr_number = ''
         data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference),
                                       ('PO Reference', po_reference_no), ('Order Date', _date),
                                       ('Supplier ID/Name', supplier_id_name), ('Total Qty', total_order_qty),
@@ -363,7 +374,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                                       ('Received Qty', total_received_qty), ('Expected Date', expected_date),
                                       ('Remarks', supplier.remarks), ('Order Type', order_type),
                                       ('Receive Status', receive_status), ('Customer Name', customer_name),
-                                      ('Style Name', '')
+                                      ('Style Name', ''), ('SR Number', sr_number)
                                       )))
     sort_col = lis[col_num]
 

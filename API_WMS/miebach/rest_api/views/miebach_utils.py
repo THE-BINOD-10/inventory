@@ -863,11 +863,11 @@ STOCK_RECONCILIATION_REPORT_DICT = {
       {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
       {'label': 'SKU Code', 'name': 'sku_code', 'type': 'input'},
   ],
-  'dt_headers': ['SKU', 'Vendor Name', 'Brand', 'Category', 'Sub Category', 'Opening Qty', 'Opening Avg Rate', 'Opening Amount Before Tax',
+  'dt_headers': ['Created Date', 'SKU', 'Vendor Name', 'Brand', 'Category', 'Sub Category', 'Opening Qty', 'Opening Avg Rate', 'Opening Amount Before Tax',
   'Opening Tax Rate', 'Opening Cess Rate', 'Opening Amount After Tax', 'Purchases Qty', 'Purchases Avg Rate', 'Purchases Amount Before Tax',
   'Purchases Tax Rate', 'Purchases Cess Rate', 'Purchases Amount After Tax',  'Sales Qty', 'Sales Avg Rate', 'Sales Amount Before Tax',
   'Sales Tax Rate', 'Sales Cess Rate', 'Sales Amount After Tax',  'Closing Qty', 'Closing Avg Rate', 'Closing Amount Before Tax',
-  'Closing Tax Rate', 'Closing Cess Rate', 'Closing Amount After Tax', 'Created Date'],
+  'Closing Tax Rate', 'Closing Cess Rate', 'Closing Amount After Tax'],
   'dt_url': 'get_stock_reconciliation_report', 'excel_name': 'get_stock_reconciliation_report',
   'print_url': 'print_stock_reconciliation_report',
 }
@@ -6802,7 +6802,7 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     from django.db.models import Count
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
-    lis = ['sku__sku_code', 'sku__sku_code', 'sku__sku_brand', 'sku__sku_category', 'sku__sub_category']
+    lis = ['created_date', 'sku__sku_code', 'sku__sku_code', 'sku__sku_brand', 'sku__sku_category', 'sku__sub_category']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)
@@ -6811,12 +6811,13 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     else:
         stop_index = None
     search_parameters = {}
+
     try:
         sort_data = lis[col_num]
         if order_term == 'desc':
             sort_data = '-%s' % sort_data
     except:
-        sort_data = 'sku__sku_code'
+        sort_data = 'created_date'
     if 'sku_code' in search_params:
         if search_params['sku_code']:
             search_parameters['sku__sku_code'] = search_params['sku_code']
@@ -6827,11 +6828,9 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
         search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
     search_parameters['sku__user'] = user.id
     create_data_dict = {}
+    import pdb;pdb.set_trace()
     stock_reconciliation = StockReconciliation.objects.filter(**search_parameters).order_by(sort_data)
-    if stock_reconciliation:
-        po_stock_reconsiliation = stock_reconciliation.values_list('sku__sku_code').filter(report_type = 'po')
-        picklist_stock_reconsiliation = stock_reconciliation.values_list('sku__sku_code').filter(report_type = 'picklist')
-        closing_stock_reconsiliation = stock_reconciliation.values_list('sku__sku_code').filter(report_type = 'closing_stock')
+
     temp_data['recordsTotal'] = len(stock_reconciliation)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
@@ -6845,6 +6844,9 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     dict_formation = {}
     dict_formation = {'po': empty_sub_dict, 'picklist': empty_sub_dict, 'opening_stock': empty_sub_dict, 'closing_stock': empty_sub_dict}
     for obj in stock_reconciliation[start_index:stop_index]:
+        if not str(obj.sku.sku_code) + '<<>>' + str(obj.created_date) in create_data_dict.keys():
+            dict_formation = {}
+            dict_formation = {'po': empty_sub_dict, 'picklist': empty_sub_dict, 'opening_stock': empty_sub_dict, 'closing_stock': empty_sub_dict}
         report_type = obj.report_type
         #if str(obj.sku.sku_code) + '<<>>' + str(obj.created_date) in create_data_dict.keys():
         #    create_data_dict[str(obj.sku.sku_code) + '<<>>' + str(obj.created_date)]['sku_details'].update({'sku': str(obj.sku.sku_code), 'vendor_name': '', 'brand':str(obj.sku.sku_brand), 'category': str(obj.sku.sku_category), 'sub_category': str(obj.sku.sub_category) })
@@ -6865,6 +6867,7 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
         sku_det_dict['sub_category'] = str(obj.sku.sub_category)
         dict_formation.update({'sku_details':sku_det_dict})
         dict_formation[report_type] = sub_dict
+
         create_data_dict[str(obj.sku.sku_code) + '<<>>' + str(obj.created_date)] = dict_formation
     for key, value in create_data_dict.iteritems():
         wms_code, creation_date = key.split('<<>>')

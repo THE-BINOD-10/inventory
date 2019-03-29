@@ -25,10 +25,10 @@
             Select Card Name:
           <select ng-model="$ctrl.card_name" ng-options="card_name.key for card_name in $ctrl.card_name_list" ng-selected = "$ctrl.show_card_value()" >
           </select>
-          </td>
-          <td ng-if = "$ctrl.show_card == 'true' && market.type_name == 'Card'">
+          <span style = "padding-left:15px;">
             Enter Last Four Digits:
             <input type="text" name="type_value" class="ng-pristine ng-valid" ng-model="$ctrl.card_digits" min=0 style="padding-left: 0px;"  ng-blur="$ctrl.save_card_value()">
+          </span>
           </td>
 
           <td style="text-align: center;padding-top: 5px;">

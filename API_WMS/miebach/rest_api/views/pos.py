@@ -63,6 +63,11 @@ def get_pos_user_data(request, user=''):
     if user:
         user = user[0]
         vat = '14.5'
+        pos_remarks = get_misc_value('pos_remarks', user.user.id)
+        if pos_remarks :
+            response_data['pos_remarks'] = pos_remarks
+        else:
+            response_data['pos_remarks'] = ''
         response_data['status'] = 'Success'
         response_data['VAT'] = vat
         response_data['parent_id'] = user.user.id

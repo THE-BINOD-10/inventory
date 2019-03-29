@@ -155,12 +155,14 @@
   <hr>
   <div class="vat-cal table-pro col-md-12">
       <span class="pull-left">  {{ data.payment_mode }} </span>
-      <div ng-if = "data.payment_mode == 'Paytm'|| data.payment_mode == 'PhonePe' ||data.payment_mode == 'GooglePay'||data.payment_mode == 'Card'">
-      <span class="pull-right">  {{data.reference_number }} </span>
-      </div>
+      <span class="pull-right" ng-if = "data.payment_mode == 'Paytm'|| data.payment_mode == 'PhonePe' ||data.payment_mode == 'GooglePay'||data.payment_mode == 'Card'">  {{data.reference_number }} </span>
       <div ng-if = "data.payment_mode == 'Card'" >
       <span class="pull-right">  {{data.card_name["key"] }} </span>
       </div>
+  </div>
+  <hr>
+  <div class="vat-cal table-pro col-md-12">
+      <span class="pull-left">  {{ user.pos_remarks }} </span>
   </div>
   <!--
   <div class="total">

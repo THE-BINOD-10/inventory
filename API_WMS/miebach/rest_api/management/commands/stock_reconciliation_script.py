@@ -175,7 +175,6 @@ class Command(BaseCommand):
             query_opening_stock = {}
             query_opening_stock['report_type'] = 'closing_stock'
             query_opening_stock['created_date'] = str(date.today() - timedelta(days=int(1)))
-            import pdb;pdb.set_trace()
             opening_stock_obj = StockReconciliation.objects.filter(**query_opening_stock)
             for obj in opening_stock_obj:
                 data_dict['vendor_name'] = ''
@@ -205,3 +204,80 @@ class Command(BaseCommand):
                     opening_stock_check.save()
                 else:
                     StockReconciliation.objects.create(**data_dict)
+            else:
+                today = str(datetime.now().date())
+                from django.db.models import Value, CharField
+                from django.db.models.functions import Concat
+                all_sku_stats = SKUDetailStats.objects.filter(sku__user=user.id, creation_date__startswith = today)
+                sku_codes = all_sku_stats.values_list('sku_id', flat=True).distinct()
+                stock_objs = dict(StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values_list('sku_id').distinct().annotate(quantity=Concat('quantity', Value('<<>>'), 'batch_detail__buy_price', Value('<<>>'), 'batch_detail__tax_percent', output_field=CharField())))
+                putaway_objs = dict(all_sku_stats.filter(transact_type='po', quantity__gt=0).values_list('sku_id').distinct().annotate(quantity=Concat('quantity', Value('<<>>'), 'stock_detail__batch_detail__buy_price', Value('<<>>'), 'stock_detail__batch_detail__tax_percent', output_field=CharField())))
+                stock_uploaded_objs = dict(all_sku_stats.filter(transact_type='inventory-upload', quantity__gt=0).values_list('sku_id').distinct().annotate(quantity=Concat('quantity', Value('<<>>'), 'stock_detail__batch_detail__buy_price', Value('<<>>'), 'stock_detail__batch_detail__tax_percent', output_field=CharField())))
+                picklist_objs = dict(all_sku_stats.filter(transact_type='picklist', quantity__gt=0).values_list('sku_id').distinct().annotate(quantity=Concat('quantity', Value('<<>>'), 'stock_detail__batch_detail__buy_price', Value('<<>>'), 'stock_detail__batch_detail__tax_percent', output_field=CharField())))
+                inv_adjust_objs = dict(all_sku_stats.filter(transact_type='inventory-adjustment', quantity__gt=0).values_list('sku_id').distinct().annotate(quantity=Concat('quantity', Value('<<>>'), 'stock_detail__batch_detail__buy_price', Value('<<>>'), 'stock_detail__batch_detail__tax_percent', output_field=CharField())))
+                return_objs = dict(all_sku_stats.filter(transact_type='return', quantity__gt=0).values_list('sku_id').distinct().annotate(quantity=Concat('quantity', Value('<<>>'), 'stock_detail__batch_detail__buy_price', Value('<<>>'), 'stock_detail__batch_detail__tax_percent', output_field=CharField())))
+                jo_putaway_objs = dict(all_sku_stats.filter(transact_type='jo', quantity__gt=0).values_list('sku_id').distinct().annotate(quantity=Concat('quantity', Value('<<>>'), 'stock_detail__batch_detail__buy_price', Value('<<>>'), 'stock_detail__batch_detail__tax_percent', output_field=CharField())))
+                rm_picklist_objs = dict(all_sku_stats.filter(transact_type='rm_picklist', quantity__gt=0).values_list('sku_id').distinct().annotate(quantity=Concat('quantity', Value('<<>>'), 'stock_detail__batch_detail__buy_price', Value('<<>>'), 'stock_detail__batch_detail__tax_percent', output_field=CharField())))
+
+                seller_po_query = {}
+                seller_po_query['purchase_order__open_po__sku__id__in'] = sku_codes
+                seller_po_query['purchase_order__open_po__sku__user'] = user.id
+                seller_po_query['purchase_order__open_po__creation_date__startswith'] = datetime.now().date()
+                seller_po = dict(SellerPOSummary.objects.filter(**seller_po_query).values_list('purchase_order__open_po__sku__id').distinct().annotate(quantity=Sum(F('cess_tax') * F('purchase_order__open_po__price') * F('purchase_order__open_po__order_quantity') / 100)))
+
+                for sku in sku_codes:
+                    stock_upload_qty, stock_upload_buy_price, stock_upload_tax_percent = 0, 0, 0
+                    picklist_qty, picklist_buy_price, picklist_tax_percent = 0, 0, 0
+                    inv_adjust_qty, inv_adjust_buy_price, inv_adjust_tax_percent = 0, 0, 0
+                    return_qty, return_buy_price, return_tax_percent = 0, 0, 0
+                    jo_qty, jo_buy_price, jo_tax_percent = 0, 0, 0
+                    rm_qty, rm_buy_price, rm_tax_percent = 0, 0, 0
+
+                    stock_qty, stock_buy_price, stock_tax_percent = stock_objs[sku].split('<<>>')
+                    if not stock_tax_percent:
+                        stock_tax_percent=0
+                    if not stock_buy_price:
+                        stock_buy_price=0
+                    if not stock_qty:
+                        stock_qty=0
+                    putaway_qty, putaway_buy_price, putaway_tax_percent = putaway_objs[sku].split('<<>>')
+                    if stock_uploaded_objs.get(sku, 0):
+                        stock_upload_qty, stock_upload_buy_price, stock_upload_tax_percent = stock_uploaded_objs[sku].split('<<>>')
+                    if picklist_objs.get(sku, 0):
+                        picklist_qty, picklist_buy_price, picklist_tax_percent = picklist_objs[sku].split('<<>>')
+                    if inv_adjust_objs.get(sku, 0):
+                        inv_adjust_qty, inv_adjust_buy_price, inv_adjust_tax_percent = inv_adjust_objs[sku].split('<<>>')
+                    if return_objs.get(sku, 0):
+                        return_qty, return_buy_price, return_tax_percent = return_objs[sku].split('<<>>')
+                    if jo_putaway_objs.get(sku, 0):
+                        jo_qty, jo_buy_price, jo_tax_percent = jo_putaway_objs[sku].split('<<>>')
+                    if rm_picklist_objs.get(sku, 0):
+                        rm_qty, rm_buy_price, rm_tax_percent = rm_picklist_objs[sku].split('<<>>')
+
+                    opening_stock = int(stock_qty) - (int(putaway_qty) + int(stock_upload_qty) + int(picklist_qty) + int(inv_adjust_qty) + int(return_qty) + int(jo_qty) + int(rm_qty))
+
+                    opening_stock_dict = {}
+                    opening_stock_dict['sku_id'] = sku
+                    opening_stock_dict['created_date'] = str(date.today())
+                    opening_stock_dict['report_type'] = 'opening_stock'
+                    
+                    opening_stock_check = StockReconciliation.objects.filter(**opening_stock_dict)
+                    if opening_stock_check:
+                        opening_stock_check = opening_stock_check[0]
+                        opening_stock_check.quantity = opening_stock * stock_buy_price
+                        opening_stock_check.avg_rate = opening_stock * stock_buy_price
+                        opening_stock_check.amount_before_tax = opening_stock * stock_buy_price
+                        opening_stock_check.tax_rate = (float(stock_tax_percent) * int(opening_stock_check.quantity) * float(stock_buy_price))/100
+                        opening_stock_check.cess_rate = seller_po.get(sku, 0)
+                        opening_stock_check.amount_after_tax = seller_po.get(sku, 0) + opening_stock_check.cess_rate + opening_stock_check.tax_rate
+                        opening_stock_check.created_date = str(datetime.now().date())
+                        opening_stock_check.save()
+                    else:
+                        opening_stock_dict['quantity'] = opening_stock * stock_buy_price
+                        opening_stock_dict['avg_rate'] = opening_stock * stock_buy_price
+                        opening_stock_dict['amount_before_tax'] = opening_stock * stock_buy_price
+                        opening_stock_dict['tax_rate'] = (stock_tax_percent * opening_stock_check.quantity * stock_buy_price)/100
+                        opening_stock_dict['cess_rate'] = seller_po.get(sku, 0)
+                        opening_stock_dict['amount_after_tax'] = seller_po.get(sku, 0) + opening_stock_check.cess_rate + opening_stock_check.tax_rate
+                        opening_stock_dict['created_date'] = str(datetime.now().date())
+                        StockReconciliation.objects.create(**opening_stock_dict)

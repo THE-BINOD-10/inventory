@@ -1069,7 +1069,7 @@ def update_sku(request, user=''):
                 continue
             elif key == 'enable_serial_based':
                 value = 1
-            elif key == 'price' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            elif key == 'price':
                 wms_code = request.POST.get('wms_code', '')
                 storehippo_sync_price_value(user, {'wms_code':wms_code, 'price':value})
             if key in number_fields and not value:

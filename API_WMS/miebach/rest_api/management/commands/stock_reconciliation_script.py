@@ -209,7 +209,7 @@ class Command(BaseCommand):
                 from django.db.models import Value, CharField
                 from django.db.models.functions import Concat
                 all_sku_stats = SKUDetailStats.objects.filter(sku__user=user.id, creation_date__startswith = today)
-                sku_codes = all_sku_stats.values_list('sku_id', flat=True).distinct()
+                sku_codes = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values_list('sku_id', flat=True).distinct()
                 stock_objs = dict(StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values_list('sku_id').distinct().annotate(quantity=Concat('quantity', Value('<<>>'), 'batch_detail__buy_price', Value('<<>>'), 'batch_detail__tax_percent', output_field=CharField())))
                 putaway_objs = dict(all_sku_stats.filter(transact_type='po', quantity__gt=0).values_list('sku_id').distinct().annotate(quantity=Concat('quantity', Value('<<>>'), 'stock_detail__batch_detail__buy_price', Value('<<>>'), 'stock_detail__batch_detail__tax_percent', output_field=CharField())))
                 stock_uploaded_objs = dict(all_sku_stats.filter(transact_type='inventory-upload', quantity__gt=0).values_list('sku_id').distinct().annotate(quantity=Concat('quantity', Value('<<>>'), 'stock_detail__batch_detail__buy_price', Value('<<>>'), 'stock_detail__batch_detail__tax_percent', output_field=CharField())))
@@ -232,29 +232,33 @@ class Command(BaseCommand):
                     return_qty, return_buy_price, return_tax_percent = 0, 0, 0
                     jo_qty, jo_buy_price, jo_tax_percent = 0, 0, 0
                     rm_qty, rm_buy_price, rm_tax_percent = 0, 0, 0
-
-                    stock_qty, stock_buy_price, stock_tax_percent = stock_objs[sku].split('<<>>')
-                    if not stock_tax_percent:
-                        stock_tax_percent=0
-                    if not stock_buy_price:
-                        stock_buy_price=0
-                    if not stock_qty:
-                        stock_qty=0
-                    putaway_qty, putaway_buy_price, putaway_tax_percent = putaway_objs[sku].split('<<>>')
+                    putaway_qty, putaway_buy_price, putaway_tax_percent = 0, 0, 0
+                    stock_qty, stock_buy_price, stock_tax_percent = 0, 0, 0
+                    if stock_objs.get(sku, 0):
+                        stock_qty, stock_buy_price, stock_tax_percent = stock_objs.get(sku, '').split('<<>>')
+                    if putaway_objs.get(sku, 0):
+                        putaway_qty, putaway_buy_price, putaway_tax_percent = putaway_objs.get(sku, '').split('<<>>')
                     if stock_uploaded_objs.get(sku, 0):
-                        stock_upload_qty, stock_upload_buy_price, stock_upload_tax_percent = stock_uploaded_objs[sku].split('<<>>')
+                        stock_upload_qty, stock_upload_buy_price, stock_upload_tax_percent = stock_uploaded_objs.get(sku, '').split('<<>>')
                     if picklist_objs.get(sku, 0):
-                        picklist_qty, picklist_buy_price, picklist_tax_percent = picklist_objs[sku].split('<<>>')
+                        picklist_qty, picklist_buy_price, picklist_tax_percent = picklist_objs.get(sku, '').split('<<>>')
                     if inv_adjust_objs.get(sku, 0):
-                        inv_adjust_qty, inv_adjust_buy_price, inv_adjust_tax_percent = inv_adjust_objs[sku].split('<<>>')
+                        inv_adjust_qty, inv_adjust_buy_price, inv_adjust_tax_percent = inv_adjust_objs.get(sku, '').split('<<>>')
                     if return_objs.get(sku, 0):
-                        return_qty, return_buy_price, return_tax_percent = return_objs[sku].split('<<>>')
+                        return_qty, return_buy_price, return_tax_percent = return_objs.get(sku, '').split('<<>>')
                     if jo_putaway_objs.get(sku, 0):
-                        jo_qty, jo_buy_price, jo_tax_percent = jo_putaway_objs[sku].split('<<>>')
+                        jo_qty, jo_buy_price, jo_tax_percent = jo_putaway_objs.get(sku, '').split('<<>>')
                     if rm_picklist_objs.get(sku, 0):
-                        rm_qty, rm_buy_price, rm_tax_percent = rm_picklist_objs[sku].split('<<>>')
+                        rm_qty, rm_buy_price, rm_tax_percent = rm_picklist_objs.get(sku, '').split('<<>>')
 
                     opening_stock = int(stock_qty) - (int(putaway_qty) + int(stock_upload_qty) + int(picklist_qty) + int(inv_adjust_qty) + int(return_qty) + int(jo_qty) + int(rm_qty))
+
+                    if not stock_buy_price:
+                        stock_buy_price = 0
+                    if not stock_tax_percent:
+                        stock_tax_percent = 0
+                    if not stock_qty:
+                        stock_qty = 0
 
                     opening_stock_dict = {}
                     opening_stock_dict['sku_id'] = sku
@@ -276,8 +280,9 @@ class Command(BaseCommand):
                         opening_stock_dict['quantity'] = opening_stock * stock_buy_price
                         opening_stock_dict['avg_rate'] = opening_stock * stock_buy_price
                         opening_stock_dict['amount_before_tax'] = opening_stock * stock_buy_price
-                        opening_stock_dict['tax_rate'] = (stock_tax_percent * opening_stock_check.quantity * stock_buy_price)/100
+                        opening_stock_dict['tax_rate'] = (stock_tax_percent * opening_stock_dict['quantity'])/100
                         opening_stock_dict['cess_rate'] = seller_po.get(sku, 0)
-                        opening_stock_dict['amount_after_tax'] = seller_po.get(sku, 0) + opening_stock_check.cess_rate + opening_stock_check.tax_rate
+                        opening_stock_dict['amount_after_tax'] = seller_po.get(sku, 0) + opening_stock_dict['cess_rate'] + opening_stock_dict['tax_rate']
                         opening_stock_dict['created_date'] = str(datetime.now().date())
                         StockReconciliation.objects.create(**opening_stock_dict)
+

@@ -884,7 +884,7 @@ def get_extra_data(excel_headers, result_data, user):
     data = []
     if 'Product SKU Code' in excel_headers and 'Product Description' in excel_headers:
         excel_headers = ['Product SKU Code', 'Product SKU Description', 'Material SKU Code', 'Material SKU Description',
-                         'Material Quantity',
+                         'Material Quantity', 'Wastage Percentage',
                          'Unit of Measurement']
         for i in result_data:
             data_id = i['DT_RowAttr']['data-id']
@@ -895,6 +895,7 @@ def get_extra_data(excel_headers, result_data, user):
                                          ('Material SKU Code', bom.material_sku.wms_code),
                                          ('Material SKU Description', bom.material_sku.sku_desc),
                                          ('Material Quantity', bom.material_quantity),
+                                         ('Wastage Percentage', bom.wastage_percent),
                                          ('Unit of Measurement', bom.unit_of_measurement))))
     elif 'WMS SKU Code' in excel_headers and excel_headers.index('WMS SKU Code') == 0:
         excel_headers = excel_headers + ['Market Place', 'Market Place SKU', 'Market Place Description']

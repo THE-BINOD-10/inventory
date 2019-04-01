@@ -272,8 +272,12 @@ class Command(BaseCommand):
                         opening_stock_check.avg_rate = opening_stock * stock_buy_price
                         opening_stock_check.amount_before_tax = opening_stock * stock_buy_price
                         opening_stock_check.tax_rate = (float(stock_tax_percent) * int(opening_stock_check.quantity) * float(stock_buy_price))/100
-                        opening_stock_check.cess_rate = seller_po.get(sku, 0)
-                        opening_stock_check.amount_after_tax = opening_stock_check.amount_before_tax + opening_stock_check.cess_rate + opening_stock_check.tax_rate
+                        if opening_stock_check.quantity:
+                            opening_stock_check.cess_rate = seller_po.get(sku, 0)
+                            opening_stock_check.amount_after_tax = opening_stock_check.amount_before_tax + opening_stock_check.cess_rate + opening_stock_check.tax_rate
+                        else:
+                            opening_stock_check.cess_rate = 0
+                            opening_stock_check.amount_after_tax = 0
                         opening_stock_check.created_date = str(datetime.now().date())
                         opening_stock_check.save()
                     else:
@@ -281,8 +285,12 @@ class Command(BaseCommand):
                         opening_stock_dict['avg_rate'] = opening_stock * stock_buy_price
                         opening_stock_dict['amount_before_tax'] = opening_stock * stock_buy_price
                         opening_stock_dict['tax_rate'] = (stock_tax_percent * opening_stock_dict['quantity'])/100
-                        opening_stock_dict['cess_rate'] = seller_po.get(sku, 0)
-                        opening_stock_dict['amount_after_tax'] = opening_stock_dict['amount_before_tax'] + opening_stock_dict['cess_rate'] + opening_stock_dict['tax_rate']
+                        if opening_stock_dict['quantity']:
+                            opening_stock_dict['cess_rate'] = seller_po.get(sku, 0)
+                            opening_stock_dict['amount_after_tax'] = opening_stock_dict['amount_before_tax'] + opening_stock_dict['cess_rate'] + opening_stock_dict['tax_rate']
+                        else:
+                            opening_stock_dict['cess_rate'] = 0
+                            opening_stock_dict['amount_after_tax'] = 0
                         opening_stock_dict['created_date'] = str(datetime.now().date())
                         StockReconciliation.objects.create(**opening_stock_dict)
 

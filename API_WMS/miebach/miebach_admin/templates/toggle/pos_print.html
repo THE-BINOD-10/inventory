@@ -99,8 +99,8 @@
         <tr>
           <td> {{item.name}} </td>
           <td> {{item.quantity}} </td>
-          <td> {{item.rate}} </td>
-          <td> {{item.amount}}</td>
+          <td> {{item.rate |floatformat:2 }} </td>
+          <td> {{item.amount |floatformat:2 }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -110,19 +110,27 @@
     <div class="product-total">
       <span>Tot Items: {{data.sku_data.length}}</span>
       <span>Tot Qty: {{data.summary.total_quantity}} </span>
-      <span ng-if="data.summary.issue_type=='Delivery Challan'">
-        Amt: {{ data.summary_total_amount }}
+      {% if data.summary.issue_type == "Delivery Challan" %}
+      <span>
+        Amt: {{ data.summary_total_amount |floatformat:2}}
       </span>
-      <span ng-if="data.summary.issue_type=='Pre Order'">
-        Amt: {{ data.summary.subtotal }}
+      {% endif %}
+      {% if data.summary.issue_type == "Pre Order" %}
+      <span>
+        Amt: {{ data.summary.subtotal|floatformat:2 }}
       </span>
-      <span style="width: 40%;">Discount: {{data.summary.total_discount }}</span><br>
-      <span style="width: 100%;text-align:center;font-size: 10px;font-weight:bold" ng-if="data.summary.issue_type=='Delivery Challan'">
-        Total: {{ data.summary_discount }}
+      {% endif %}
+      <span style="width: 40%;">Discount: {{data.summary.total_discount|floatformat:2}}</span><br>
+      {% if data.summary.issue_type == "Delivery Challan" %}
+      <span style="width: 100%;text-align:center;font-size: 10px;font-weight:bold">
+        Total: {{ data.summary_discount|floatformat:2 }}
       </span>
-      <span style="width: 100%;text-align:center;font-size: 10px;font-weight:bold" ng-if="data.summary.issue_type=='Pre Order'">
-        Total: {{ data.summary_total }}
+      {% endif %}
+      {% if data.summary.issue_type == "Pre Order" %}
+      <span style="width: 100%;text-align:center;font-size: 10px;font-weight:bold">
+        Total: {{ data.summary_total|floatformat:2 }}
       </span>
+        {% endif %}
     </div>
   <hr>
     <p align="center">TAX Details</p>
@@ -139,13 +147,13 @@
         </tr>
       </thead>
       <tbody>
-        {% for item in  data.summary.gst_based %}
+        {% for key,value  in  data.summary.gst_based.items %}
         <tr>
-            <td>{{item.taxable_amt }}</td>
-            <td>{{item.cgst_percent }}</td>
-            <td>{{item.cgst}}</td>
-            <td>{{item.sgst_percent }}</td>
-            <td>{{item.sgst}}</td>
+            <td>{{value.taxable_amt }}</td>
+            <td>{{value.cgst_percent }}</td>
+            <td>{{value.cgst}}</td>
+            <td>{{value.sgst_percent }}</td>
+            <td>{{value.sgst}}</td>
         </tr>
         {% endfor %}
       </tbody>

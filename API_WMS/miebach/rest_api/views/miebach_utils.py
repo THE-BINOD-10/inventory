@@ -3604,7 +3604,7 @@ def get_order_summary_data(search_params, user, sub_user):
     ('Serial Number',''),('Invoice Number',''),('Quantity',''),('Payment Type' ,''),('Reference Number',''),
     ('Taxable Amount',''), ('Tax', ''),('City', ''), ('State', ''), ('Marketplace', 'TotalInvoiceAmount='),('Invoice Amount', temp_data['totalSellingPrice']),
     ('Price', ''),('Status', ''), ('Order Status', ''),('Customer GST Number',''),('Remarks', ''), ('Order Taken By', ''),
-    ('Invoice Date',''),('Payment Cash', ''), ('Payment Card', '')))
+    ('Invoice Date',''),('Payment Cash', ''),('Payment Card', ''),('Payment PhonePe',''),('Payment GooglePay',''),('Payment Paytm','')))
 
     temp_data['aaData'].append(total_row)
 
@@ -3658,7 +3658,7 @@ def get_order_summary_data(search_params, user, sub_user):
         order_status = ''
         remarks = ''
         order_taken_by = ''
-        payment_card, payment_cash = 0, 0
+        payment_card, payment_cash ,payment_PhonePe,payment_Paytm,payment_GooglePay = 0, 0,0,0,0
         order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data['id'])
         unit_price, unit_price_inclusive_tax = [data['unit_price']] * 2
         if order_summary:
@@ -3757,7 +3757,8 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('Status', status), ('Order Status', order_status),('Customer GST Number',gst_number),
                                                     ('Remarks', remarks), ('Order Taken By', order_taken_by),
                                                     ('Invoice Date',invoice_date),
-                                                    ('Payment Cash', payment_cash), ('Payment Card', payment_card)))
+                                                    ('Payment Cash', payment_cash), ('Payment Card', payment_card),('Payment PhonePe', payment_PhonePe),
+                                                    ('Payment Paytm', payment_Paytm),('Payment GooglePay', payment_GooglePay)))
         aaData.update(OrderedDict(pos_extra))
         temp_data['aaData'].append(aaData)
     return temp_data

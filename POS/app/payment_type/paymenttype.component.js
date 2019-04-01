@@ -32,11 +32,11 @@
     ]
     self.paymenttypes = [
       {
-          "key": "Cash",
+          "key": "cash",
           "value": "Cash"
       },
       {
-          "key": "Card",
+          "key": "card",
           "value": "Card"
       },
       {

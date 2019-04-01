@@ -9097,34 +9097,35 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked):
                 if po.status == 'stock-transfer':
                     po.status = ''
                     po.save()
-                exist_temp_json_objs = TempJson.objects.filter(model_id=po.id, model_name='PO').\
-                                exclude(model_json__icontains='"is_stock_transfer": "true"')
-                if exist_temp_json_objs.exists():
-                    exist_temp_json_objs.delete()
-                temp_json['id'] = po.id
-                temp_json['unit'] = open_st.sku.measurement_type
-                temp_json['supplier_id'] = open_st.warehouse_id
-                temp_json['buy_price'] = open_st.price
-                temp_json['price'] = open_st.price
-                temp_json['po_quantity'] = open_st.order_quantity
-                temp_json['quantity'] = update_picked
-                temp_json['wms_code'] = open_st.sku.wms_code
-                temp_json['tax_percent'] = open_st.cgst_tax + open_st.sgst_tax + open_st.igst_tax
-                temp_json['mrp'] = 0
-                temp_json['mfg_date'] = ''
-                temp_json['exp_date'] = ''
-                temp_json['weight'] = ''
-                temp_json['is_stock_transfer'] = 'true'
-                if stock.batch_detail:
-                    batch_detail = stock.batch_detail
-                    temp_json['mrp'] = batch_detail.mrp
-                    temp_json['weight'] = batch_detail.weight
-                    temp_json['batch_no'] = batch_detail.batch_no
-                    if batch_detail.manufactured_date:
-                        temp_json['mfg_date'] = batch_detail.manufactured_date.strftime('%m/%d/%Y')
-                    if batch_detail.expiry_date:
-                        temp_json['exp_date'] = batch_detail.expiry_date.strftime('%m/%d/%Y')
-                TempJson.objects.create(model_id=po.id, model_name='PO', model_json=json.dumps(temp_json))
+                if user.userprofile.industry_type == 'FMCG':
+                    exist_temp_json_objs = TempJson.objects.filter(model_id=po.id, model_name='PO').\
+                                    exclude(model_json__icontains='"is_stock_transfer": "true"')
+                    if exist_temp_json_objs.exists():
+                        exist_temp_json_objs.delete()
+                    temp_json['id'] = po.id
+                    temp_json['unit'] = open_st.sku.measurement_type
+                    temp_json['supplier_id'] = open_st.warehouse_id
+                    temp_json['buy_price'] = open_st.price
+                    temp_json['price'] = open_st.price
+                    temp_json['po_quantity'] = open_st.order_quantity
+                    temp_json['quantity'] = update_picked
+                    temp_json['wms_code'] = open_st.sku.wms_code
+                    temp_json['tax_percent'] = open_st.cgst_tax + open_st.sgst_tax + open_st.igst_tax
+                    temp_json['mrp'] = 0
+                    temp_json['mfg_date'] = ''
+                    temp_json['exp_date'] = ''
+                    temp_json['weight'] = ''
+                    temp_json['is_stock_transfer'] = 'true'
+                    if stock.batch_detail:
+                        batch_detail = stock.batch_detail
+                        temp_json['mrp'] = batch_detail.mrp
+                        temp_json['weight'] = batch_detail.weight
+                        temp_json['batch_no'] = batch_detail.batch_no
+                        if batch_detail.manufactured_date:
+                            temp_json['mfg_date'] = batch_detail.manufactured_date.strftime('%m/%d/%Y')
+                        if batch_detail.expiry_date:
+                            temp_json['exp_date'] = batch_detail.expiry_date.strftime('%m/%d/%Y')
+                    TempJson.objects.create(model_id=po.id, model_name='PO', model_json=json.dumps(temp_json))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

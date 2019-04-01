@@ -199,6 +199,7 @@ urlpatterns = [
     url(r'^save_jo/$', save_jo),
     url(r'^delete_jo/$', delete_jo),
     url(r'^confirm_jo/$', confirm_jo),
+    url(r'^close_jo/$', close_jo),
     url(r'^get_material_codes/$', get_material_codes),
     url('^jo_generate_picklist/$', jo_generate_picklist),
     url(r'^view_rm_picklist/$', view_rm_picklist),

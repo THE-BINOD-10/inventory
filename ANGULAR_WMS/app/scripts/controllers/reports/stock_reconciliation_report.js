@@ -12,6 +12,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.empty_data = {};
   vm.model_data = {};
   vm.report_data = {};
+  vm.report_data.from_date = new Date().toLocaleDateString();
+  vm.report_data.to_date = new Date().toLocaleDateString();
 
   vm.toggle_sku_wise = false;
 

@@ -52,19 +52,19 @@ def get_po_suggestions(start_index, stop_index, temp_data, search_term, order_te
     search_params['sku_id__in'] = sku_master_ids
 
     if search_term:
-        results = OpenPO.objects.exclude(status=0).values('supplier_id', 'supplier__name', 'supplier__tax_type',
+        results = OpenPO.objects.filter(status__in=['', 'Manual', 'Automated']).values('supplier_id', 'supplier__name', 'supplier__tax_type',
                                                           'order_type').distinct().annotate(
             total=Sum('order_quantity')). \
             filter(Q(supplier__id__icontains=search_term) | Q(supplier__name__icontains=search_term) |
                    Q(total__icontains=search_term), sku__user=user.id, **search_params).order_by(order_data)
 
     elif order_term:
-        results = OpenPO.objects.exclude(status=0).values('supplier_id', 'supplier__name', 'supplier__tax_type',
+        results = OpenPO.objects.filter(status__in=['', 'Manual', 'Automated']).values('supplier_id', 'supplier__name', 'supplier__tax_type',
                                                           'order_type').distinct().annotate(
             total=Sum('order_quantity')). \
             filter(sku__user=user.id, **search_params).order_by(order_data)
     else:
-        results = OpenPO.objects.exclude(status=0).values('supplier_id', 'supplier__name', 'supplier__tax_type',
+        results = OpenPO.objects.filter(status__in=['', 'Manual', 'Automated']).values('supplier_id', 'supplier__name', 'supplier__tax_type',
                                                           'order_type').distinct().annotate(
             total=Sum('order_quantity')). \
             filter(sku__user=user.id, **search_params)
@@ -699,8 +699,7 @@ def generated_po_data(request, user=''):
     #    rev_receipt_types = dict(zip(PO_RECEIPT_TYPES.values(), PO_RECEIPT_TYPES.keys()))
     #    order_type_val = rev_receipt_types.get(order_type_val, '')
     order_type = rev_order_types.get(order_type_val, '')
-    record = OpenPO.objects.filter(
-        Q(supplier_id=generated_id, status='Manual') | Q(supplier_id=generated_id, status='Automated'),
+    record = OpenPO.objects.filter(supplier_id=generated_id, status__in=['Manual', 'Automated', ''],
         sku__user=user.id, order_type=order_type, sku_id__in=sku_master_ids)
 
     total_data = []
@@ -1015,7 +1014,8 @@ def switches(request, user=''):
                        'po_sub_user_prefix': 'po_sub_user_prefix',
                        'combo_allocate_stock': 'combo_allocate_stock',
                        'unique_mrp_putaway': 'unique_mrp_putaway',
-                       'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation'
+                       'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation',
+                       'rtv_prefix_code': 'rtv_prefix_code',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -8328,6 +8328,9 @@ def create_rtv(request, user=''):
     reversion.set_user(request.user)
     request_data = dict(request.POST.iterlists())
     enable_dc_returns = request.POST.get('enable_dc_returns', '')
+    rtv_prefix_code = get_misc_value('rtv_prefix_code', user.id)
+    if not rtv_prefix_code or rtv_prefix_code == 'false':
+        rtv_prefix_code = 'RTV'
     if enable_dc_returns == 'true':
         return_type = 'DC'
     else:
@@ -8340,8 +8343,10 @@ def create_rtv(request, user=''):
         if data_list:
             data_list = save_update_rtv(data_list)
             rtv_no = get_incremental(user, 'rtv')
-            date_val = datetime.datetime.now().strftime('%Y%m%d')
-            rtv_number = '%s-%s-%s' % ('RTV', date_val, rtv_no)
+            #date_val = datetime.datetime.now().strftime('%Y%m%d')
+            date_val = get_financial_year(datetime.datetime.now())
+            date_val = date_val.replace('-', '')
+            rtv_number = '%s%s-%s' % (rtv_prefix_code, date_val, rtv_no)
             for final_dict in data_list:
                 update_stock_detail(final_dict['stocks'], float(final_dict['quantity']), user)
                 #ReturnToVendor.objects.create(rtv_number=rtv_number, seller_po_summary_id=final_dict['summary_id'],

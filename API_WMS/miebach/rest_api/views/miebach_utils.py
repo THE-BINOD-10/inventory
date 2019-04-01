@@ -37,7 +37,7 @@ NOW = datetime.datetime.now()
 
 SKU_GROUP_FIELDS = {'group': '', 'user': ''}
 
-MILKBASKET_USERS = ['milkbasket', 'milkbasket_noida', 'milkbasket_test', 'milkbasket_bangalore']
+MILKBASKET_USERS = ['milkbasket', 'milkbasket_noida', 'milkbasket_test', 'milkbasket_bangalore', 'milkbasket_hyderabad']
 
 #ADJUST_INVENTORY_EXCEL_HEADERS = ['WMS Code', 'Location', 'Physical Quantity', 'Reason']
 
@@ -2055,6 +2055,7 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'shelf_life_ratio': 'shelf_life_ratio',
                      'auto_expire_enq_limit': 'auto_expire_enq_limit',
                      'sales_return_reasons': 'sales_return_reasons',
+                     'rtv_prefix_code': 'rtv_prefix_code',
                      }
 
 CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS),

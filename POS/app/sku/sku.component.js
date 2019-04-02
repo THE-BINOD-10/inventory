@@ -320,7 +320,7 @@
           urlService.current_order.summary.total_quantity += self.skus[i].quantity;
           var discount = (((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100);
           discount = (urlService.current_order.summary.total_discount/self.skus.length);
-          var agg = (self.skus[i].price + (self.skus[i].cgst*self.skus[i].quantity) + (self.skus[i].sgst*self.skus[i].quantity));
+          var agg = (self.skus[i].price + (self.skus[i].cgst) + (self.skus[i].sgst));
           var tax_amt = agg - (self.skus[i].cgst_percent *(agg/100)) - (self.skus[i].sgst_percent *(agg/100)) - discount;
           if(Object.keys(urlService.current_order.summary.gst_based).includes(self.skus[i].cgst_percent.toString())) {
               if (self.tax_inclusive) {

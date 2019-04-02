@@ -204,7 +204,7 @@ class Command(BaseCommand):
                     opening_stock_check.save()
                 else:
                     StockReconciliation.objects.create(**data_dict)
-            else:
+            if not opening_stock_obj:
                 today = str(datetime.now().date())
                 from django.db.models import Value, CharField
                 from django.db.models.functions import Concat

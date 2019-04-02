@@ -37,7 +37,7 @@ NOW = datetime.datetime.now()
 
 SKU_GROUP_FIELDS = {'group': '', 'user': ''}
 
-MILKBASKET_USERS = ['milkbasket', 'milkbasket_noida', 'milkbasket_test', 'milkbasket_bangalore']
+MILKBASKET_USERS = ['milkbasket', 'milkbasket_noida', 'milkbasket_test', 'milkbasket_bangalore', 'milkbasket_hyderabad']
 
 #ADJUST_INVENTORY_EXCEL_HEADERS = ['WMS Code', 'Location', 'Physical Quantity', 'Reason']
 
@@ -2052,6 +2052,7 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'shelf_life_ratio': 'shelf_life_ratio',
                      'auto_expire_enq_limit': 'auto_expire_enq_limit',
                      'sales_return_reasons': 'sales_return_reasons',
+                     'rtv_prefix_code': 'rtv_prefix_code',
                      }
 
 CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS),
@@ -5906,7 +5907,9 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
             creation_date = ord_inv_dates_map.get(data['order__id'], '')
             if creation_date:
                 invoice_date = get_local_date(user, creation_date)
-            invoice_number = 'TI/%s/%s' % (creation_date.strftime('%m%y'), data['order__original_order_id'])
+            	invoice_number = 'TI/%s/%s' % (creation_date.strftime('%m%y'), data['order__original_order_id'])
+            else:
+                invoice_number = 'TI/%s' % data['order__original_order_id']
         else:
             increment_invoice = get_misc_value('increment_invoice', user.id)
             if data['order__id'] in ord_invoice_map and increment_invoice == 'true':

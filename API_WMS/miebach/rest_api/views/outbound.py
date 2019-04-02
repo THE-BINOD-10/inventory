@@ -2122,7 +2122,7 @@ def picklist_confirmation(request, user=''):
                         insert_order_serial(picklist, val)
                     if 'labels' in val.keys() and val['labels'] and picklist.order:
                         update_order_labels(picklist, val)
-                    if 'imei' in val.keys() and val['imei'] and not picklist.order:
+                    if 'imei' in val.keys() and val['imei'] and not picklist.order and val['imei'] != '[]':
                         order = picklist.storder_set.filter()
                         if order:
                             order = order[0]
@@ -2173,8 +2173,8 @@ def picklist_confirmation(request, user=''):
                             stock_transfer = st_order[0].stock_transfer
                             stock_transfer.status = 2
                             stock_transfer.save()
-                            if user_profile.industry_type == 'FMCG':
-                                update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked)
+                            #if user_profile.industry_type == 'FMCG':
+                            update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked)
                         if pick_loc:
                             update_picklist_locations(pick_loc, picklist, update_picked)
                         else:
@@ -12817,7 +12817,7 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
             lis = ['enquiry_id', 'customer_name', 'user__username', 'sku__sku_class', 'customization_type', 'creation_date']
         if user.userprofile.warehouse_type != 'CENTRAL_ADMIN':
             data_filters['user'] = user.id
-        elif request.user.userprofile.warehouse_type in ('SM_PURCHASE_ADMIN', 'SM_DESIGN_ADMIN'):
+        elif request.user.userprofile.warehouse_type in ('SM_DESIGN_ADMIN'):
             data_filters['customization_type'] = 'price_product_custom'
         elif request.user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and request.user.userprofile.zone != '': # Sub Admins
             distributors = get_same_level_warehouses(2, user)

@@ -149,11 +149,11 @@
       <tbody>
         {% for key,value  in  data.summary.gst_based.items %}
         <tr>
-            <td>{{value.taxable_amt }}</td>
-            <td>{{value.cgst_percent }}</td>
-            <td>{{value.cgst}}</td>
-            <td>{{value.sgst_percent }}</td>
-            <td>{{value.sgst}}</td>
+            <td>{{value.taxable_amt|floatformat:2 }}</td>
+            <td>{{value.cgst_percent |floatformat:2}}</td>
+            <td>{{value.cgst|floatformat:2}}</td>
+            <td>{{value.sgst_percent|floatformat:2 }}</td>
+            <td>{{value.sgst|floatformat:2}}</td>
         </tr>
         {% endfor %}
       </tbody>

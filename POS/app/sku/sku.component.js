@@ -430,7 +430,7 @@
         }
       }
       else{
-          urlService.show_toast("Please Fill the Customer Number and Customer Name");
+          alert("Please Fill the Customer Number and Customer Name");
       }
       }
 

@@ -1594,6 +1594,7 @@ def create_seller_order_summary(picklist, picked_count, pick_number, picks_all, 
     # seller_orders = SellerOrder.objects.filter(order_id=picklist.order_id, order__user=picklist.order.user, status=1)
     seller_order_details = SellerOrderDetail.objects.filter(picklist_id=picklist.id,
                                                             picklist__order__user=picklist.order.user)
+    financial_year = get_financial_year(datetime.datetime.now())
     for seller_detail in seller_order_details:
         insert_quan = 0
         if not picked_count:
@@ -1611,7 +1612,8 @@ def create_seller_order_summary(picklist, picked_count, pick_number, picks_all, 
         if not picklist.order_type == 'combo':
             SellerOrderSummary.objects.create(picklist_id=picklist.id, pick_number=pick_number, quantity=insert_quan,
                                               seller_order_id=seller_detail.seller_order.id,
-                                              creation_date=datetime.datetime.now())
+                                              creation_date=datetime.datetime.now(),
+                                              financial_year=financial_year)
         else:
             combo_picks = picks_all.filter(order_id=picklist.order.id, order_type='combo').values(
                 'order__sku__sku_code', 'order_id',
@@ -1634,7 +1636,8 @@ def create_seller_order_summary(picklist, picked_count, pick_number, picks_all, 
                     SellerOrderSummary.objects.create(picklist_id=picklist.id, pick_number=pick_number,
                                                       quantity=insert_picked,
                                                       seller_order_id=seller_detail.seller_order.id,
-                                                      creation_date=datetime.datetime.now())
+                                                      creation_date=datetime.datetime.now(),
+                                                      financial_year=financial_year)
 
         for stock in stocks:
             seller_stocks = SellerStock.objects.filter(seller_id=seller_detail.seller_order.seller_id,
@@ -1658,6 +1661,7 @@ def create_order_summary(picklist, picked_count, pick_number, picks_all):
     order = picklist.order
     if not order or not picked_count:
         return
+    financial_year = get_financial_year(datetime.datetime.now())
     insert_quan = 0
     if order.quantity > picked_count:
         insert_quan = picked_count
@@ -1667,7 +1671,8 @@ def create_order_summary(picklist, picked_count, pick_number, picks_all):
         picked_count = picked_count - int(order.quantity)
     if not picklist.order_type == 'combo':
         SellerOrderSummary.objects.create(picklist_id=picklist.id, pick_number=pick_number, quantity=insert_quan,
-                                          order_id=order.id, creation_date=datetime.datetime.now())
+                                          order_id=order.id, creation_date=datetime.datetime.now(),
+                                          financial_year=financial_year)
     else:
         combo_picks = picks_all.filter(order_id=picklist.order.id, order_type='combo').values('order__sku__sku_code',
                                                                                               'order_id',
@@ -1691,7 +1696,8 @@ def create_order_summary(picklist, picked_count, pick_number, picks_all):
             if insert_picked:
                 SellerOrderSummary.objects.create(picklist_id=picklist.id, pick_number=pick_number,
                                                   quantity=insert_picked,
-                                                  order_id=order.id, creation_date=datetime.datetime.now())
+                                                  order_id=order.id, creation_date=datetime.datetime.now(),
+                                                  financial_year=financial_year)
 
 @fn_timer
 def get_seller_pick_id(picklist, user):
@@ -10505,15 +10511,15 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                    'quantity', 'date_only', 'invoice_number']
             user_filter = {'seller_order__seller__user': user.id, 'order_status_flag': 'customer_invoices'}
             result_values = ['invoice_number', 'seller_order__seller__name',
-                             'seller_order__sor_id']
+                             'seller_order__sor_id', 'financial_year', 'seller_order__order__customer_name']
             field_mapping = {'order_quantity_field': 'seller_order__quantity',
                              'date_only': 'seller_order__order__creation_date'}
             is_marketplace = True
         else:
-            lis = ['invoice_number', 'order__customer_name', 'invoice_number', 'invoice_number',
+            lis = ['invoice_number', 'financial_year', 'order__customer_name', 'invoice_number', 'invoice_number',
                    'invoice_number', 'invoice_number', 'invoice_number']
             user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
-            result_values = ['invoice_number', 'order__original_order_id']
+            result_values = ['invoice_number', 'order__original_order_id', 'financial_year', 'order__customer_name']
             field_mapping = {'order_quantity_field': 'order__quantity', 'date_only': 'order__creation_date'}
             is_marketplace = False
 
@@ -10580,7 +10586,8 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                                                         #sor_id=data['seller_order__sor_id']).aggregate(Sum('quantity'))[
                     #'quantity__sum']
                 total_quantity = data['total_quantity']
-                picked_amount = order_summaries.filter(invoice_number=data['invoice_number'])\
+                picked_amount = order_summaries.filter(invoice_number=data['invoice_number'],
+                                                       financial_year=data['financial_year'])\
                                                .values('seller_order__order__sku_id',
                                                        'seller_order__order__invoice_amount',
                                                        'seller_order__order__quantity').distinct()\
@@ -10589,7 +10596,8 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                                                .aggregate(Sum('cur_amt'))['cur_amt__sum']
                 data['ordered_quantity'] = seller_orders.get(data['seller_order__sor_id'], 0)
             else:
-                seller_order_summaries = order_summaries.filter(invoice_number=data['invoice_number'])
+                seller_order_summaries = order_summaries.filter(invoice_number=data['invoice_number'],
+                                                                financial_year=data['financial_year'])
                 order_ids = seller_order_summaries.values_list('order__id', flat= True)
                 order = seller_order_summaries[0].order
                 invoice_date = CustomerOrderSummary.objects.filter(order_id__in=order_ids)\
@@ -10624,14 +10632,17 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                 data_dict = OrderedDict((("Invoice ID", data['invoice_number']), ('UOR ID', order_id), ('SOR ID', summary.seller_order.sor_id),
                                          ('Seller ID', summary.seller_order.seller.seller_id),
                                          ('id', str(data['invoice_number']) + \
-                                          ":" + str(data.get('pick_number', '')) + ":" + data['seller_order__seller__name']),
+                                          ":" + str(data.get('pick_number', '')) + ":" + data['seller_order__seller__name'] + \
+                                           ':' + data['financial_year']),
                                          ('check_field', 'SOR ID')
                                          ))
+                customer_name = data['seller_order__order__customer__name']
             else:
                 data_dict = OrderedDict((("Invoice ID", data['invoice_number']), ('Order ID', order_id),
-                                         ('id', str(data['invoice_number']) + ":" + str(data.get('pick_number', ''))),
+                                         ('id', str(data['invoice_number']) + ":" + str(data.get('pick_number', '')) + ':' + data['financial_year']),
                                          ('check_field', 'Order ID')))
-            data_dict.update(OrderedDict((('Customer Name', order.customer_name),
+                customer_name = data['order__customer_name']
+            data_dict.update(OrderedDict((('Financial Year', data['financial_year']), ('Customer Name', customer_name),
                                           ('Order Quantity', data['ordered_quantity']), ('Picked Quantity', data['total_quantity']),
                                           ('Total Amount', "%.2f" %picked_amount),
                                           ('Order Date&Time', invoice_date), ('Invoice Number', '')
@@ -11170,8 +11181,10 @@ def generate_customer_invoice_tab(request, user=''):
         for data_id in seller_summary_dat:
             splitted_data = data_id.split(':')
             sell_ids.setdefault(field_mapping['invoice_number_in'], [])
+            sell_ids.setdefault('financial_year__in', [])
             #sell_ids.setdefault('pick_number__in', [])
             sell_ids[field_mapping['invoice_number_in']].append(splitted_data[0])
+            sell_ids['financial_year__in'].append(splitted_data[2])
             #sell_ids['pick_number__in'].append(splitted_data[1])
             pick_number = splitted_data[1]
         seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
@@ -11838,6 +11851,7 @@ def customer_invoice_data(request, user=''):
         else:
             headers = WH_CUSTOMER_INVOICE_HEADERS
     return HttpResponse(json.dumps({'headers': headers}))
+
 
 @csrf_exempt
 @login_required

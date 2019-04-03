@@ -6301,7 +6301,7 @@ def confirm_receive_qc(request, user=''):
             dc_level_grn = request.POST.get('dc_level_grn', '')
             if dc_level_grn == 'on':
                 bill_no = request.POST.get('dc_number', '')
-                bill_date = challan_date
+                #bill_date = bill_date
             else:
                 bill_no = request.POST.get('invoice_number', '')
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
@@ -7362,6 +7362,7 @@ def generate_supplier_invoice(request, user=''):
             result_data["total_amt"], result_data["total_invoice_amount"], result_data["rounded_invoice_amount"],\
             result_data["total_quantity"], result_data["total_tax"] = [0]*5
             tot_cgst, tot_sgst, tot_igst, tot_utgst = [0]*4
+            sku_grouping_dict = OrderedDict()
             for req_data in request_data:
                 #sell_summary_param['purchase_order__order_id'] = req_data.get('purchase_order__order_id', '')
                 #sell_summary_param['receipt_number'] = req_data.get('receipt_number', '')
@@ -7421,6 +7422,7 @@ def generate_supplier_invoice(request, user=''):
                         sku = open_po.sku
                         unit_price = open_po.price
                         qty = rem_quantity
+                        mrp = open_po.mrp
                         cgst_tax = open_po.cgst_tax
                         sgst_tax = open_po.sgst_tax
                         igst_tax = open_po.igst_tax
@@ -7428,6 +7430,7 @@ def generate_supplier_invoice(request, user=''):
                         if seller_sum.batch_detail:
                             unit_price = seller_sum.batch_detail.buy_price
                             temp_tax_percent = seller_sum.batch_detail.tax_percent
+                            mrp = seller_sum.batch_detail.mrp
                             if open_po.supplier.tax_type == 'intra_state':
                                 temp_tax_percent = temp_tax_percent / 2
                                 cgst_tax = truncate_float(temp_tax_percent, 1)
@@ -7474,6 +7477,35 @@ def generate_supplier_invoice(request, user=''):
                                     "shipment_date": '',
                                     "taxes": taxes
                                     }
+
+                        grouping_key = '%s:%s:%s' % (str(sku.sku_code), str(unit_price), str(mrp))
+                        sku_grouping_dict.setdefault(grouping_key, {"id": sku.id,
+                                    "seller_summary_id": seller_sum.id,
+                                    "open_po_id": open_po.id,
+                                    "sku_code": sku.wms_code,
+                                    "title": sku.sku_desc,
+                                    "unit_price": unit_price,
+                                    "tax_type": open_po.tax_type,
+                                    "invoice_amount": 0,
+                                    "hsn_code": '',
+                                    "amt": 0,
+                                    "quantity": 0,
+                                    "shipment_date": '',
+                                    #"taxes": taxes,
+                                    "mrp": mrp
+                                    })
+                        sku_grouping_dict[grouping_key].setdefault('taxes',
+                                 {"cgst_tax": cgst_tax, "sgst_tax": sgst_tax,
+                                 "igst_tax": igst_tax, "utgst_tax": utgst_tax,
+                                 "cgst_amt": 0, "sgst_amt": 0,
+                                 "igst_amt": 0, "utgst_amt": 0})
+                        sku_grouping_dict[grouping_key]['quantity'] += qty
+                        sku_grouping_dict[grouping_key]['amt'] += amt
+                        sku_grouping_dict[grouping_key]['invoice_amount'] += invoice_amt
+                        sku_grouping_dict[grouping_key]['taxes']['cgst_amt'] += cgst_amt
+                        sku_grouping_dict[grouping_key]['taxes']['sgst_amt'] += sgst_amt
+                        sku_grouping_dict[grouping_key]['taxes']['igst_amt'] += igst_amt
+                        sku_grouping_dict[grouping_key]['taxes']['utgst_amt'] += utgst_amt
                         result_data["data"].append(sku_data)
                         result_data["sequence_number"] = sku.sequence
                     if seller_summary and seller_summary[0].overall_discount:
@@ -7485,7 +7517,7 @@ def generate_supplier_invoice(request, user=''):
                     result_data["total_tax"] += tot_tax
                     result_data["total_taxes"] = {"cgst_amt": tot_cgst, "igst_amt": tot_igst,
                                                   "sgst_amt": tot_sgst, "utgst_amt": tot_utgst}
-
+        result_data['data'] = sku_grouping_dict.values()
 
     except Exception as e:
         import traceback

@@ -2311,8 +2311,18 @@ var app = angular.module('urbanApp')
             title: 'Bulk to Retail Report',
           }
         })
-
-
+        .state('app.reports.MarginReport', {
+          url: '/MarginReport',
+          templateUrl: 'views/reports/margin_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/margin_report.js');
+              }]
+          },
+          data: {
+            title: 'Margin Report',
+          }
+        })
       // configuration route
       .state('app.configurations', {
           url: '/configurations',

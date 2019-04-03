@@ -432,6 +432,7 @@ urlpatterns = [
     url(r'^print_daily_production_report/$', print_daily_production_report),
     url(r'^print_order_summary_report/$', print_order_summary_report),
     url(r'^print_stock_reconciliation_report/$', print_stock_reconciliation_report),
+    url(r'^print_margin_report/$', print_margin_report),
     url(r'^get_marketplaces_list_reports/$', get_marketplaces_list_reports),
     url(r'^get_seller_invoices_filter/$', get_seller_invoices_filter),
     url(r'^print_seller_invoice_report/$', print_seller_invoice_report),
@@ -477,13 +478,13 @@ urlpatterns = [
     url(r'^download_grn_invoice_mapping/$', download_grn_invoice_mapping),
     url(r'^get_stock_transfer_report/$', get_stock_transfer_report),
     url(r'^get_stock_reconciliation_report/$', get_stock_reconciliation_report),
+    url(r'^get_margin_report/$', get_margin_report),
     url(r'^get_current_stock_report/$', get_current_stock_report),
     url(r'^print_current_stock_report/$', print_current_stock_report),
     url(r'^get_inventory_value_report/$', get_inventory_value_report),
     url(r'^print_inventory_value_report/$', print_inventory_value_report),
     url(r'^get_bulk_to_retail_report/$', get_bulk_to_retail_report),
     url(r'^print_bulk_to_retail_report/$', print_bulk_to_retail_report),
-
 ]
 
 # urlpatterns += patterns('rest_api.views',

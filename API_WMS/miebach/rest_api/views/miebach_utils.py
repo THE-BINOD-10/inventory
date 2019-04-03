@@ -844,6 +844,17 @@ STOCK_TRANSFER_REPORT_DICT = {
     'print_url': 'print_stock_transfer_report',
 }
 
+MARGIN_REPORT_DICT = {
+  'filters': [
+      {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+      {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+      {'label': 'SKU Code', 'name': 'sku_code', 'type': 'input'},
+  ],
+  'dt_headers': ['SKU Code', 'Vendor Name', 'Brand', 'Category', 'Sub Category', 'QTY', 'Weighted Avg Cost', 'Weighted Avg Selling Price', 'Consolidated Tax %', 'Brand Discount', 'Consolidated Margin'],
+  'dt_url': 'get_margin_report', 'excel_name': 'get_margin_report',
+  'print_url': 'print_margin_report',
+}
+
 CURRENT_STOCK_REPORT_DICT = {
     'filters': [
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
@@ -927,7 +938,8 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'bulk_to_retail_report': BULK_TO_RETAIL_REPORT_DICT,
                      'stock_transfer_report':STOCK_TRANSFER_REPORT_DICT,
                      'stock_reconsiliation_report':STOCK_RECONCILIATION_REPORT_DICT,
-                     }
+                     'margin_report':MARGIN_REPORT_DICT
+                    }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
 ['SKU Code', 'WMS Code', 'Product Description', 'SKU Category', 'Total Quantity'], (
@@ -1489,6 +1501,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_inventory_value_report':'get_inventory_value_report_data',
                         'get_bulk_to_retail_report':'get_bulk_to_retail_report_data',
                         'get_stock_reconciliation_report': 'get_stock_reconciliation_report_data'
+                        'get_margin_report':'get_margin_report_data'
                         }
 # End of Download Excel Report Mapping
 
@@ -6853,6 +6866,74 @@ def get_bulk_to_retail_report_data(search_params, user, sub_user):
     return temp_data
 
 
+def get_margin_report_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date
+    from django.db.models import Count
+    temp_data = copy.deepcopy(AJAX_DATA)
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    lis = ['order__sku__sku_code', 'vendor_name', 'order__sku__sku_brand', 'order__sku__sku_category', 'order__sku__sub_category', 'quantity', 'weighted_avg_cost', 'weighted_avg_selling_price', 'consolidated_tax', 'brand_discount', 'consolidated_margin']
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term', 'asc')
+    start_index = search_params.get('start', 0)
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
+    else:
+        stop_index = None
+    search_parameters = {}
+    sort_data = lis[col_num]
+    if order_term == 'desc':
+        sort_data = '-%s' % sort_data
+    if 'sku_code' in search_params:
+        if search_params['sku_code']:
+            search_parameters['order__sku__sku_code'] = search_params['sku_code']
+    search_parameters['order__sku_id__in'] = sku_master_ids
+    if 'from_date' in search_params:
+        search_parameters['order__creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_parameters['order__creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
+    search_parameters['status__in'] = ['picked', 'batch_picked', 'dispatched']
+    search_parameters['order__user'] = user.id
+    order_data = Picklist.objects.filter(**search_parameters)
+    get_all_order_ids = list(order_data.values_list('order__id',flat=True).distinct())
+    cust_order_summary = CustomerOrderSummary.objects.filter(order__id__in=get_all_order_ids)
+    tax_cust_order = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(total_tax=Sum(F('cgst_tax') + F('sgst_tax') + F('igst_tax') + F('utgst_tax') + F('cess_tax'))))
+    divide_tax = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(count_skus=Count(F('order__sku__sku_code'))))
+    collect_discount = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(discount=Sum(F('discount'))))
+    if col_num in [0, 2, 3, 4]:
+        order_data_loop = order_data.order_by(sort_data).values_list('order__sku__sku_code',flat=True).distinct()
+    else:
+        order_data_loop = order_data.values_list('order__sku__sku_code',flat=True).distinct()
+    qty_data = dict(order_data.values_list('order__sku__sku_code').annotate(total_quantity=Sum('picked_quantity', distinct=True)))
+    weighted_avg_cost = dict(order_data.exclude(stock__batch_detail=None).values_list('order__sku__sku_code').annotate(weighted_cost=Sum(F('picked_quantity') * F('stock__batch_detail__buy_price'))))
+    weighted_avg_selling_price = dict(order_data.values_list('order__sku__sku_code').annotate(weighted_sell=Sum(F('picked_quantity') * F('order__unit_price'))))
+    temp_data['recordsTotal'] = order_data_loop.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    time = str(datetime.datetime.now())
+    weighted_avg_cost_value = 0
+    weighted_avg_selling_price_value = 0
+    quantity = 0
+    for wms_code in (order_data_loop[start_index:stop_index]):
+        consolidated_margin = 0
+        collect_sku_data = SKUMaster.objects.get(user=user.id, wms_code=wms_code)
+        quantity = qty_data.get(wms_code, 0)
+        weighted_avg_cost_value = float(weighted_avg_cost.get(wms_code, 0)/quantity)
+        weighted_avg_selling_price_value = float(weighted_avg_selling_price.get(wms_code, 0)/quantity)
+        consolidated_tax = float(tax_cust_order.get(wms_code,0)/divide_tax.get(wms_code,0))
+        brand_discount = float(collect_discount.get(wms_code,0)/divide_tax.get(wms_code,0))
+        if weighted_avg_cost_value:
+            consolidated_margin = float(((weighted_avg_selling_price_value - weighted_avg_cost_value + brand_discount)/weighted_avg_cost_value))
+        temp_data['aaData'].append(OrderedDict((
+                                                 ('SKU Code', wms_code), ('Vendor Name', ''), 
+                                                 ('Brand', collect_sku_data.sku_brand), ('Category', collect_sku_data.sku_category),
+                                                 ('Sub Category', collect_sku_data.sub_category), ('QTY', quantity),
+                                                 ('Weighted Avg Cost', "%.2f" % weighted_avg_cost_value), ('Weighted Avg Selling Price', "%.2f" % weighted_avg_selling_price_value),
+                                                 ('Consolidated Tax %', "%.2f" % consolidated_tax), ('Brand Discount', "%.2f" % brand_discount),
+                                                 ('Consolidated Margin', "%.2f" % consolidated_margin)
+                                              ))
+                                  )
+    return temp_data
+
+
 def get_stock_reconciliation_report_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date
     from django.db.models import Count
@@ -6945,7 +7026,6 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
                                                  ('Created Date', creation_date), ('Warehouse Name', user.username), ('Report Generation Time', time)
                                               ))
                                   )
-
     lis = ['Created Date', 'SKU', 'Vendor Name', 'Brand', 'Category', 'Sub Category', 'Opening Qty', 'Opening Avg Rate', 'Opening Amount Before Tax', 'Opening Tax Rate', 'Opening Cess Rate', 'Opening Amount After Tax', 'Purchases Qty', 'Purchases Avg Rate', 'Purchases Amount Before Tax', 'Purchases Tax Rate', 'Purchases Cess Rate', 'Purchases Amount After Tax', 'Sales Qty', 'Sales Avg Rate', 'Sales Amount Before Tax', 'Sales Tax Rate', 'Sales Cess Rate', 'Sales Amount After Tax', 'Closing Qty', 'Closing Avg Rate', 'Closing Amount Before Tax', 'Closing Tax Rate', 'Closing Cess Rate', 'Closing Amount After Tax', 'Warehouse Name', 'Report Generation Time']
     sort_col = lis[col_num]
     if order_term == 'asc':
@@ -6955,3 +7035,4 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     if stop_index:
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data
+

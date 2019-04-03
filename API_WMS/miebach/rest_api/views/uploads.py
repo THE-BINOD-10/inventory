@@ -5740,9 +5740,9 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 order_dict['customer_name'] = order_data.get('customer_name', '')
             order_dict['original_order_id'] = order_id
             order_code = ''.join(re.findall('\D+', order_id))
-            order_id = ''.join(re.findall('\d+', order_id))
+            ord_id = ''.join(re.findall('\d+', order_id))
             order_dict['order_code'] = order_code
-            order_dict['order_id'] = order_id
+            order_dict['order_id'] = ord_id
             order_dict['shipment_date'] = datetime.datetime.now() #interm_obj.shipment_date
             order_dict['quantity'] = 1
             order_dict['unit_price'] = unit_price

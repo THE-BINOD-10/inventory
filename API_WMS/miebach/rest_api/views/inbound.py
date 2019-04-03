@@ -4003,7 +4003,7 @@ def putaway_data(request, user=''):
         sku_codes = []
         marketplace_data = []
         mod_locations = []
-	unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
+        unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
         for i in range(0, len(myDict['id'])):
             po_data = ''
             if myDict['orig_data'][i]:
@@ -4016,7 +4016,7 @@ def putaway_data(request, user=''):
                     all_data.setdefault(cond, 0)
                     all_data[cond] += float(orig_data['orig_quantity'])
             else:
-		if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
                     cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i], myDict['mrp'][i])
                 else:
                     cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
@@ -4100,9 +4100,8 @@ def putaway_data(request, user=''):
                         pallet_detail = pallet_mapping[0].pallet_detail
                         setattr(stock_data, 'pallet_detail_id', pallet_detail.id)
                     stock_data.save()
-
                     # SKU Stats
-                    save_sku_stats(user, stock_data.sku_id, data.id, 'po', float(value))
+                    save_sku_stats(user, stock_data.sku_id, data.id, 'po', float(value), stock_data)
                     update_details = create_update_seller_stock(data, value, user, stock_data, old_loc, use_value=True)
                     if update_details:
                         marketplace_data += update_details
@@ -4129,7 +4128,7 @@ def putaway_data(request, user=''):
                     stock_detail.save()
 
                     # SKU Stats
-                    save_sku_stats(user, stock_detail.sku_id, data.id, 'PO', float(value))
+                    save_sku_stats(user, stock_detail.sku_id, data.id, 'PO', float(value), stock_detail)
                     # Collecting data for auto stock allocation
                     putaway_stock_data.setdefault(stock_detail.sku_id, [])
                     putaway_stock_data[stock_detail.sku_id].append(data.purchase_order_id)
@@ -5508,14 +5507,13 @@ def returns_putaway_data(request, user=''):
             returns_data.quantity = float(returns_data.quantity) - float(quantity)
 
             # Save SKU Level stats
-            save_sku_stats(user, returns_data.returns.sku_id, returns_data.returns.id, 'return', quantity)
+            save_sku_stats(user, returns_data.returns.sku_id, returns_data.returns.id, 'return', quantity, stock_data)
             if returns_data.quantity <= 0:
                 returns_data.status = 0
             if not returns_data.location_id == location_id[0].id:
                 setattr(returns_data, 'location_id', location_id[0].id)
             returns_data.save()
             status = 'Updated Successfully'
-
     return_wms_codes = list(set(return_wms_codes))
     if user_profile.user_type == 'marketplace_user':
         if marketplace_data:
@@ -7939,7 +7937,6 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
     search_params['purchase_order__open_po__sku_id__in'] = sku_master_ids
     lis = ['purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
             'purchase_order__order_id', 'purchase_order_date', 'invoice_number', 'invoice_date', 'total', 'total']
-
     headers1, filters, filter_params1 = get_search_params(request)
     enable_dc_returns = request.POST.get("enable_dc_returns", "")
     inv_or_dc_number = 'invoice_number'
@@ -8293,6 +8290,8 @@ def save_update_rtv(data_list, return_type=''):
                                                     creation_date=datetime.datetime.now())
             data_list[ind]['rtv_id'] = rtv_obj.id
     return data_list
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -8358,7 +8357,6 @@ def create_rtv(request, user=''):
                 rtv_obj.save()
             report_data_dict = {}
             show_data_invoice = get_debit_note_data(rtv_number, user)
-
             return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback

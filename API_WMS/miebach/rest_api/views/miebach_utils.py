@@ -832,6 +832,7 @@ RETURN_TO_VENDOR_REPORT = {
     'dt_url': 'get_rtv_report', 'excel_name': 'get_rtv_report',
     'print_url': 'print_rtv_report',
 }
+
 STOCK_TRANSFER_REPORT_DICT = {
     'filters': [
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -854,6 +855,21 @@ CURRENT_STOCK_REPORT_DICT = {
                    'Reserved Quantity', 'Total Quantity','Warehouse Name','Report Generation Time'],
     'dt_url': 'get_current_stock_report', 'excel_name': 'get_current_stock_report',
     'print_url': 'print_current_stock_report',
+}
+
+STOCK_RECONCILIATION_REPORT_DICT = {
+  'filters': [
+      {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+      {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+      {'label': 'SKU Code', 'name': 'sku_code', 'type': 'input'},
+  ],
+  'dt_headers': ['Created Date', 'SKU', 'Vendor Name', 'Brand', 'Category', 'Sub Category', 'Opening Qty', 'Opening Avg Rate', 'Opening Amount Before Tax',
+  'Opening Tax Rate', 'Opening Cess Rate', 'Opening Amount After Tax', 'Purchases Qty', 'Purchases Avg Rate', 'Purchases Amount Before Tax',
+  'Purchases Tax Rate', 'Purchases Cess Rate', 'Purchases Amount After Tax',  'Sales Qty', 'Sales Avg Rate', 'Sales Amount Before Tax',
+  'Sales Tax Rate', 'Sales Cess Rate', 'Sales Amount After Tax',  'Closing Qty', 'Closing Avg Rate', 'Closing Amount Before Tax',
+  'Closing Tax Rate', 'Closing Cess Rate', 'Closing Amount After Tax', 'Warehouse Name', 'Report Generation Time'],
+  'dt_url': 'get_stock_reconciliation_report', 'excel_name': 'get_stock_reconciliation_report',
+  'print_url': 'print_stock_reconciliation_report',
 }
 
 INVENTORY_VALUE_REPORT_DICT = {
@@ -910,6 +926,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'inventory_value_report':INVENTORY_VALUE_REPORT_DICT,
                      'bulk_to_retail_report': BULK_TO_RETAIL_REPORT_DICT,
                      'stock_transfer_report':STOCK_TRANSFER_REPORT_DICT,
+                     'stock_reconsiliation_report':STOCK_RECONCILIATION_REPORT_DICT,
                      }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -1471,6 +1488,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_current_stock_report': 'get_current_stock_report_data',
                         'get_inventory_value_report':'get_inventory_value_report_data',
                         'get_bulk_to_retail_report':'get_bulk_to_retail_report_data',
+                        'get_stock_reconciliation_report': 'get_stock_reconciliation_report_data'
                         }
 # End of Download Excel Report Mapping
 
@@ -6832,4 +6850,108 @@ def get_bulk_to_retail_report_data(search_params, user, sub_user):
                                                 ('Destination Quantity', sku_data['destination_quantity']),
                                                 ('Warehouse Name',user.username),
                                                 ('Report Generation Time', time))))
+    return temp_data
+
+
+def get_stock_reconciliation_report_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date
+    from django.db.models import Count
+    temp_data = copy.deepcopy(AJAX_DATA)
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    lis = ['created_date', 'sku__sku_code', 'sku__sku_code', 'sku__sku_brand', 'sku__sku_category', 'sku__sub_category']
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term', 'asc')
+    start_index = search_params.get('start', 0)
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
+    else:
+        stop_index = None
+    search_parameters = {}
+    if 'sku_code' in search_params:
+        if search_params['sku_code']:
+            search_parameters['sku__sku_code'] = search_params['sku_code']
+    search_parameters['sku_id__in'] = sku_master_ids
+    if 'from_date' in search_params:
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
+    search_parameters['sku__user'] = user.id
+    create_data_dict = {}
+    stock_reconciliation = StockReconciliation.objects.filter(**search_parameters)
+    temp_data['recordsTotal'] = len(stock_reconciliation)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    empty_sub_dict = {}
+    empty_sub_dict['quantity'] = 0
+    empty_sub_dict['avg_rate'] = 0
+    empty_sub_dict['amount_before_tax'] = 0
+    empty_sub_dict['tax_rate'] = 0
+    empty_sub_dict['cess_rate'] = 0
+    empty_sub_dict['amount_after_tax'] = 0
+    time = get_local_date(user, datetime.datetime.now())
+    dict_formation = {}
+    dict_formation = {'po': empty_sub_dict, 'picklist': empty_sub_dict, 'opening_stock': empty_sub_dict, 'closing_stock': empty_sub_dict}
+    for obj in stock_reconciliation:
+        report_type = obj.report_type
+        if not str(obj.sku.sku_code) + '<<>>' + str(obj.created_date) in create_data_dict.keys():
+            dict_formation = {}
+            dict_formation = {'po': empty_sub_dict, 'picklist': empty_sub_dict, 'opening_stock': empty_sub_dict, 'closing_stock': empty_sub_dict}
+            sub_dict = {}
+            sub_dict['quantity'] = obj.quantity
+            sub_dict['avg_rate'] = obj.avg_rate
+            sub_dict['amount_before_tax'] = obj.amount_before_tax
+            sub_dict['tax_rate'] = obj.tax_rate
+            sub_dict['cess_rate'] = obj.cess_rate
+            sub_dict['amount_after_tax'] = obj.amount_after_tax
+            sku_det_dict = {}
+            sku_det_dict['sku'] = str(obj.sku.sku_code)
+            sku_det_dict['vendor_name'] = ''
+            sku_det_dict['brand'] = str(obj.sku.sku_brand)
+            sku_det_dict['category'] = str(obj.sku.sku_category)
+            sku_det_dict['sub_category'] = str(obj.sku.sub_category)
+            dict_formation.update({'sku_details':sku_det_dict})
+            dict_formation[report_type] = sub_dict
+            create_data_dict[str(obj.sku.sku_code) + '<<>>' + str(obj.created_date)] = dict_formation
+        else:
+            sub_dict = {}
+            sub_dict['quantity'] = obj.quantity
+            sub_dict['avg_rate'] = obj.avg_rate
+            sub_dict['amount_before_tax'] = obj.amount_before_tax
+            sub_dict['tax_rate'] = obj.tax_rate
+            sub_dict['cess_rate'] = obj.cess_rate
+            sub_dict['amount_after_tax'] = obj.amount_after_tax
+            sku_det_dict = {}
+            sku_det_dict['sku'] = str(obj.sku.sku_code)
+            sku_det_dict['vendor_name'] = ''
+            sku_det_dict['brand'] = str(obj.sku.sku_brand)
+            sku_det_dict['category'] = str(obj.sku.sku_category)
+            sku_det_dict['sub_category'] = str(obj.sku.sub_category)
+            create_data_dict[str(obj.sku.sku_code) + '<<>>' + str(obj.created_date)].update({'sku_details':sku_det_dict})
+            create_data_dict[str(obj.sku.sku_code) + '<<>>' + str(obj.created_date)].update({report_type:sub_dict})
+    for key, value in create_data_dict.iteritems():
+        wms_code, creation_date = key.split('<<>>')
+        temp_data['aaData'].append(OrderedDict((
+                                                 ('SKU', wms_code), ('Vendor Name', ''),
+                                                 ('Brand', value['sku_details']['brand']), ('Category', value['sku_details']['category']),
+                                                 ('Sub Category', value['sku_details']['sub_category'] ), ('Opening Qty',  value['opening_stock']['quantity']),
+                                                 ('Opening Avg Rate', "%.2f" % value['opening_stock']['avg_rate']), ('Opening Amount Before Tax', "%.2f" % value['opening_stock']['avg_rate']), ('Opening Tax Rate', "%.2f" % value['opening_stock']['tax_rate']),
+                                                 ('Opening Cess Rate', "%.2f" % value['opening_stock']['cess_rate']), ('Opening Amount After Tax', "%.2f" % value['opening_stock']['amount_after_tax']),
+                                                 ('Purchases Qty',  value['po']['quantity']), ('Purchases Avg Rate', "%.2f" % value['po']['avg_rate']), ('Purchases Amount Before Tax', "%.2f" % value['po']['amount_before_tax']), ('Purchases Tax Rate', "%.2f" % value['po']['tax_rate']),
+                                                 ('Purchases Cess Rate', "%.2f" % value['po']['cess_rate']), ('Purchases Amount After Tax', "%.2f" % value['po']['amount_after_tax']),
+                                                 ('Sales Qty',  value['picklist']['quantity']), ('Sales Avg Rate', "%.2f" % value['picklist']['avg_rate']), ('Sales Amount Before Tax', "%.2f" % value['picklist']['amount_before_tax']), ('Sales Tax Rate', "%.2f" % value['picklist']['tax_rate']),
+                                                 ('Sales Cess Rate', "%.2f" % value['picklist']['cess_rate']), ('Sales Amount After Tax', "%.2f" % value['picklist']['amount_after_tax']),
+                                                 ('Closing Qty',  value['closing_stock']['quantity']), ('Closing Avg Rate', "%.2f" % value['closing_stock']['avg_rate']), ('Closing Amount Before Tax', "%.2f" % value['closing_stock']['avg_rate']),
+                                                 ('Closing Tax Rate', "%.2f" % value['closing_stock']['tax_rate']),
+                                                 ('Closing Cess Rate', "%.2f" % value['closing_stock']['cess_rate']), ('Closing Amount After Tax', "%.2f" % value['closing_stock']['amount_after_tax']),
+                                                 ('Created Date', creation_date), ('Warehouse Name', user.username), ('Report Generation Time', time)
+                                              ))
+                                  )
+
+    lis = ['Created Date', 'SKU', 'Vendor Name', 'Brand', 'Category', 'Sub Category', 'Opening Qty', 'Opening Avg Rate', 'Opening Amount Before Tax', 'Opening Tax Rate', 'Opening Cess Rate', 'Opening Amount After Tax', 'Purchases Qty', 'Purchases Avg Rate', 'Purchases Amount Before Tax', 'Purchases Tax Rate', 'Purchases Cess Rate', 'Purchases Amount After Tax', 'Sales Qty', 'Sales Avg Rate', 'Sales Amount Before Tax', 'Sales Tax Rate', 'Sales Cess Rate', 'Sales Amount After Tax', 'Closing Qty', 'Closing Avg Rate', 'Closing Amount Before Tax', 'Closing Tax Rate', 'Closing Cess Rate', 'Closing Amount After Tax', 'Warehouse Name', 'Report Generation Time']
+    sort_col = lis[col_num]
+    if order_term == 'asc':
+        temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col))
+    else:
+        temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col), reverse=True)
+    if stop_index:
+        temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data

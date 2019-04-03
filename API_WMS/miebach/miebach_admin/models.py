@@ -2681,6 +2681,7 @@ class TANDCMaster(models.Model):
 class SKUDetailStats(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    stock_detail = models.ForeignKey(StockDetail, blank=True, null=True)
     transact_id = models.IntegerField(default=0)
     transact_type = models.CharField(max_length=36, default='')
     quantity = models.FloatField(default=0)
@@ -2690,6 +2691,7 @@ class SKUDetailStats(models.Model):
     class Meta:
         db_table = 'SKU_DETAIL_STATS'
         index_together = (('sku', 'transact_type'), ('sku', 'transact_type', 'transact_id'))
+
 
 class StockStats(models.Model):
     id = BigAutoField(primary_key=True)
@@ -3125,3 +3127,22 @@ class ReturnsIMEIMapping(models.Model):
         db_table = 'RETURNS_IMEI_MAPPING'
         unique_together = ('order_imei', 'order_return')
         index_together = ('order_imei', 'order_return')
+
+
+class StockReconciliation(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster)
+    vendor_name = models.CharField(max_length=64, default='')
+    quantity = models.PositiveIntegerField()
+    report_type = models.CharField(max_length=64, default='')
+    avg_rate = models.FloatField(default=0)
+    amount_before_tax = models.FloatField(default=0)
+    tax_rate = models.FloatField(default=0)
+    cess_rate = models.FloatField(default=0)
+    amount_after_tax = models.FloatField(default=0)
+    created_date = models.DateField(blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'STOCK_RECONCILIATION'
+

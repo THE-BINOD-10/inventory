@@ -6301,7 +6301,6 @@ def confirm_receive_qc(request, user=''):
             dc_level_grn = request.POST.get('dc_level_grn', '')
             if dc_level_grn == 'on':
                 bill_no = request.POST.get('dc_number', '')
-                #bill_date = bill_date
             else:
                 bill_no = request.POST.get('invoice_number', '')
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,

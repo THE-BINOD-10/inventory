@@ -959,7 +959,7 @@ def pos_send_mail(request , user =''):
         data_dict = json.loads(obj[0])
         data = data_dict['data']
         for item in data['sku_data']:
-            amount = ((float(item['unit_price']) + float(item['sgst'])/float(item['quantity']) + float(item['cgst'])//float(item['quantity']) + (float(item['selling_price'])*float(item['discount'])/100))* item['quantity'])
+            amount = ((float(item['unit_price']) + float(item['sgst'])/float(item['quantity']) + float(item['cgst'])/float(item['quantity']) + (float(item['selling_price'])*float(item['discount'])/100))* item['quantity'])
             item['amount'] = amount
         data['summary_total_amount']  = float(data['summary']['subtotal']) + float(data['summary']['sgst'])+float(data['summary']['igst']) + float(data['summary']['utgst'])+ float(data['summary']['cgst'])
         data['summary_discount'] = float(data['summary_total_amount'])- float(data['summary']['total_discount'])

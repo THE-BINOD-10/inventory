@@ -1624,6 +1624,7 @@ def print_bulk_to_retail_report(request, user=''):
 def get_stock_reconciliation_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_stock_reconciliation_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 
 def get_margin_report(request, user=''):

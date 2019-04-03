@@ -1500,7 +1500,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_current_stock_report': 'get_current_stock_report_data',
                         'get_inventory_value_report':'get_inventory_value_report_data',
                         'get_bulk_to_retail_report':'get_bulk_to_retail_report_data',
-                        'get_stock_reconciliation_report': 'get_stock_reconciliation_report_data'
+                        'get_stock_reconciliation_report': 'get_stock_reconciliation_report_data',
                         'get_margin_report':'get_margin_report_data'
                         }
 # End of Download Excel Report Mapping

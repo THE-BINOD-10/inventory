@@ -289,7 +289,7 @@
           self.skus[i].sgst = self.skus[i].cgst = self.skus[i].igst = self.skus[i].utgst = 0;
         }
           if (!self.tax_inclusive) {
-            self.skus[i].price = parseFloat((self.skus[i].quantity * self.skus[i].unit_price).toFixed(2));
+            self.skus[i].price = parseFloat((self.skus[i].quantity * Math.abs(self.skus[i].unit_price)).toFixed(2));
             urlService.current_order.summary.total_amount += self.skus[i].price;
             urlService.current_order.summary.subtotal += self.skus[i].price;
             var total_tax_percent =  self.skus[i].sgst_percent + self.skus[i].cgst_percent + self.skus[i].igst_percent + self.skus[i].utgst_percent
@@ -320,7 +320,7 @@
           urlService.current_order.summary.total_quantity += self.skus[i].quantity;
           var discount = (((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100);
           discount = (urlService.current_order.summary.total_discount/self.skus.length);
-          var agg = (self.skus[i].price + (self.skus[i].cgst) + (self.skus[i].sgst));
+          var agg = (self.skus[i].price + (self.skus[i].cgst) + (self.skus[i].sgst*self.skus[i].quantity));
           var tax_amt = agg - (self.skus[i].cgst_percent *(agg/100)) - (self.skus[i].sgst_percent *(agg/100)) - discount;
           if(Object.keys(urlService.current_order.summary.gst_based).includes(self.skus[i].cgst_percent.toString())) {
               if (self.tax_inclusive) {
@@ -372,6 +372,10 @@
           self.payment[index_value['type_name']] = index_value['type_value'];
         })
         if (urlService.current_order.customer_data.Number  && urlService.current_order.customer_data.FirstName) {
+          if(isNaN(urlService.current_order.customer_data.Number)){
+            alert("Please Enter Valid Phone Number")
+          }
+          else{
           delete(urlService.current_order.summary.paymenttype_values);
           $rootScope.$broadcast('empty_payment_values');
           urlService.current_order.summary.payment = self.payment;
@@ -429,6 +433,7 @@
             }
         }
       }
+    }
       else{
           alert("Please Fill the Customer Number and Customer Name");
       }

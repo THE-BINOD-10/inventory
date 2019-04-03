@@ -625,7 +625,7 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
                 if category.discount:
                     discount_percentage = 0#category.discount
         #original_selling_price = sku.price
-        original_selling_price = (order.unit_price * 100)/(100 - discount_percentage)
+        original_selling_price = (order.invoice_amount * 100)/(100 - discount_percentage)
         #discount = original_selling_price - order.unit_price
         selling_price = float(order.invoice_amount) / float(order.quantity)
         order_summary = CustomerOrderSummary.objects.filter(order_id=order.id)
@@ -635,21 +635,18 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
             tax_master = order_summary.values('sgst_tax', 'cgst_tax', 'igst_tax', 'utgst_tax')[0]
         else:
             tax_master = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
-        item_sgst = (order.invoice_amount/float(order.quantity)) * tax_master['sgst_tax']/100
-        item_cgst = (order.invoice_amount/float(order.quantity)) * tax_master['cgst_tax']/100
+        item_sgst = (order.unit_price/float(order.quantity)) * tax_master['sgst_tax']/100
+        item_cgst = (order.unit_price/float(order.quantity)) * tax_master['cgst_tax']/100
         selling_price -= (item_cgst + item_sgst)
         gst_based.setdefault(tax_master['cgst_tax'], {'taxable_amt': 0,
                                                       'cgst_percent': tax_master["cgst_tax"],
                                                       'sgst_percent': tax_master["sgst_tax"],
                                                       'sgst': 0,
                                                       'cgst': 0})
-        gst_based[tax_master['cgst_tax']]['taxable_amt'] += order.invoice_amount - \
-                                  order_summary[0].discount -\
-                                  (float(order.invoice_amount) * tax_master["sgst_tax"] / 100) - \
-                                  (float(order.invoice_amount) * tax_master["cgst_tax"] / 100)
-        gst_based[tax_master['cgst_tax']]['sgst'] += order.invoice_amount * tax_master["sgst_tax"] / 100
-        gst_based[tax_master['cgst_tax']]['cgst'] += order.invoice_amount * tax_master["cgst_tax"] / 100
-
+        gst_based[tax_master['cgst_tax']]['taxable_amt'] += (order.unit_price - \
+                                  order_summary[0].discount)*float(order.quantity)
+        gst_based[tax_master['cgst_tax']]['sgst'] += (order.unit_price * tax_master["sgst_tax"] / 100) * float(order.quantity)
+        gst_based[tax_master['cgst_tax']]['cgst'] += (order.unit_price * tax_master["cgst_tax"] / 100) * float(order.quantity)
         sku_data.append({'name': order.title,
                          'quantity': float(order.quantity),
                          'sku_code': order.sku.sku_code,
@@ -665,8 +662,8 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
         #                 (float(order.invoice_amount) * tax_master["sgst_tax"] / 100) + \
         #                 (float(order.invoice_amount) * tax_master["cgst_tax"] / 100) );
         if order_summary[0].issue_type == "Delivery Challan":
-            sgst_temp = float(order.invoice_amount) * tax_master["sgst_tax"] / 100;
-            cgst_temp = float(order.invoice_amount) * tax_master["cgst_tax"] / 100;
+            sgst_temp = (float(order.unit_price) * tax_master["sgst_tax"] / 100)*order.quantity;
+            cgst_temp = (float(order.unit_price) * tax_master["cgst_tax"] / 100)*order.quantity;
             total_amount += (float(order.invoice_amount) - sgst_temp - cgst_temp)
         else:
             total_amount += (float(order.invoice_amount))

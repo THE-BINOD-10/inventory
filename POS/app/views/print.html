@@ -98,10 +98,10 @@
         <tr ng-repeat="item in data.sku_data">
           <td> {{item.name}} </td>
           <td> {{item.quantity}} </td>
-          <td ng-if = "print_type == 'DUPLICATE'">
+          <!-- <td ng-if = "print_type == 'DUPLICATE'">
             {{ (item.unit_price + item.sgst/item.quantity + item.cgst/item.quantity + (item.selling_price*item.discount/100)) | number:2 }}
-          </td>
-          <td ng-if = "print_type != 'DUPLICATE'">
+          </td> -->
+          <td>
             {{item.selling_price | number:2}}
           </td>
           <td ng-if = "print_type == 'DUPLICATE'">

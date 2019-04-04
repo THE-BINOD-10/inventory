@@ -715,8 +715,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     function close_po(data) {
         var elem = angular.element($('form'));
         vm.closed_po['elem'] = $(elem[0]).serializeArray();
+        var entered_qty = 0;
+        angular.forEach(vm.closed_po.elem, function(fields_data){
+          if(fields_data['name'] == 'quantity'){
+            if(fields_data['value'] != ''){
+              entered_qty += Number(fields_data['value']);
+            }
+          }
+        });
+        var dispay_close_message = 'Do you want to close the PO';
+        if(entered_qty){
+          dispay_close_message = "Quantity entered will be rejected.\n Do you want to close the PO";
+        }
         swal2({
-          title: 'Do you want to close the PO',
+          title: dispay_close_message,
           text: '',
           input: 'text',
           confirmButtonColor: '#d33',
@@ -740,6 +752,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               vm.service.apiCall('close_po/', 'POST', vm.closed_po.elem, true).then(function(data){
                 if(data.message) {
                   if(data.data == 'Updated Successfully') {
+                    if(vm.permissions.use_imei) {
+                      fb.generate = true;
+                      fb.remove_po(fb.poData["id"]);
+                    }
                     vm.close();
                     vm.service.refresh(vm.dtInstance);
                     resolve();

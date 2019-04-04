@@ -10516,7 +10516,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                              'date_only': 'seller_order__order__creation_date'}
             is_marketplace = True
         else:
-            lis = ['invoice_number', 'financial_year', 'order__customer_name', 'invoice_number', 'invoice_number',
+            lis = ['invoice_number', 'invoice_number', 'financial_year', 'order__customer_name', 'invoice_number', 'invoice_number',
                    'invoice_number', 'invoice_number', 'invoice_number']
             user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
             result_values = ['invoice_number', 'order__original_order_id', 'financial_year', 'order__customer_name']

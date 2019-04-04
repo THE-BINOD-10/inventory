@@ -2973,9 +2973,13 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
             reserved_dict = {'stock__sku_id': data_dict['sku_id'], 'stock__sku__user': user.id,
                              'status': 1,
                              'stock__location_id': data_dict['source_id']}
+            raw_reserved_dict = {'stock__sku_id': data_dict['sku_id'], 'stock__sku__user': user.id,
+                             'status': 1,
+                             'stock__location_id': data_dict['source_id']}
             if data_dict.get('batch_no', ''):
                 stock_dict["batch_detail__batch_no"] = data_dict['batch_no']
                 reserved_dict["stock__batch_detail__batch_no"] = data_dict['batch_no']
+                raw_reserved_dict['stock__batch_detail__batch_no'] = data_dict['batch_no']
             if data_dict.get('mrp', ''):
                 try:
                     mrp = data_dict['mrp']
@@ -2983,10 +2987,12 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                     mrp = 0
                 stock_dict["batch_detail__mrp"] = mrp
                 reserved_dict["stock__batch_detail__mrp"] = mrp
+                raw_reserved_dict["stock__batch_detail__mrp"] = mrp
             if data_dict.get('seller_master_id', ''):
                 stock_dict['sellerstock__seller_id'] = data_dict['seller_master_id']
                 stock_dict['sellerstock__quantity__gt'] = 0
                 reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
+                raw_reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
             stocks = StockDetail.objects.filter(**stock_dict)
             if not stocks:
                 index_status.setdefault(row_idx, set()).add('No Stocks Found')
@@ -2994,9 +3000,15 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                 stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
                 reserved_quantity = PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).\
                                         aggregate(Sum('reserved'))['reserved__sum']
-                if reserved_quantity:
-                    if (stock_count - reserved_quantity) < float(data_dict['quantity']):
-                        index_status.setdefault(row_idx, set()).add('Source Quantity reserved for Picklist')
+                raw_reserved_quantity = RMLocation.objects.exclude(stock=None).filter(**raw_reserved_dict).\
+                                        aggregate(Sum('reserved'))['reserved__sum']
+                if not reserved_quantity:
+                    reserved_quantity = 0
+                if not raw_reserved_quantity:
+                    raw_reserved_quantity = 0
+                avail_stock = stock_count - reserved_quantity - raw_reserved_quantity
+                if avail_stock < float(data_dict['quantity']):
+                    index_status.setdefault(row_idx, set()).add('Quantity Exceeding available quantity')
         data_list.append(data_dict)
 
     if not index_status:

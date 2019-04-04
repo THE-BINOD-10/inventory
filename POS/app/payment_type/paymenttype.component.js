@@ -99,24 +99,24 @@
       angular.forEach(self.paymentTypeInput, function (index_value, index) {
         temp += index_value['type_value'];
       })
-      if(temp > (urlService.current_order.summary.total_amount - urlService.current_order.summary.total_discount)) {
-        if (self.paymentTypeInput.length == 1) {
-          self.paymentTypeInput[0]['type_value'] = urlService.current_order.summary.total_amount
-						   - urlService.current_order.summary.total_discount;
-        }
-        if (self.paymentTypeInput.length == 2) {
-          var check = (urlService.current_order.summary.total_amount - urlService.current_order.summary.total_discount)
-		      - self.paymentTypeInput[0]['type_value'];
-          if (check < 0) {
-            self.paymentTypeInput[0]['type_value'] = urlService.current_order.summary.total_amount
-						     - urlService.current_order.summary.total_discount;
-          }
-          self.paymentTypeInput[1]['type_value'] = Math.max(0, check);
-          if(urlService.current_order.summary.total_amount == 0) {
-            self.paymentTypeInput[0]['type_value'] = 0;
-          }
-        }
-      }
+      // if(temp > (urlService.current_order.summary.total_amount - urlService.current_order.summary.total_discount)) {
+      //   if (self.paymentTypeInput.length == 1) {
+      //     self.paymentTypeInput[0]['type_value'] = urlService.current_order.summary.total_amount
+			// 			   - urlService.current_order.summary.total_discount;
+      //   }
+      //   if (self.paymentTypeInput.length == 2) {
+      //     var check = (urlService.current_order.summary.total_amount - urlService.current_order.summary.total_discount)
+		  //     - self.paymentTypeInput[0]['type_value'];
+      //     if (check < 0) {
+      //       self.paymentTypeInput[0]['type_value'] = urlService.current_order.summary.total_amount
+			// 			     - urlService.current_order.summary.total_discount;
+      //     }
+      //     self.paymentTypeInput[1]['type_value'] = Math.max(0, check);
+      //     if(urlService.current_order.summary.total_amount == 0) {
+      //       self.paymentTypeInput[0]['type_value'] = 0;
+      //     }
+      //   }
+      // }
       urlService.current_order.summary.paymenttype_values = self.paymentTypeInput;
     }
 

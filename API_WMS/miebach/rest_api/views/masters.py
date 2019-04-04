@@ -683,6 +683,7 @@ def location_master(request, user=''):
     new_loc = []
     location_groups = LocationGroups.objects.filter(location__zone__user=user.id).values('location__location',
                                                                                          'group').distinct()
+    data = []
     for loc_type in distinct_loctype:
         filter_params = {'zone__zone': loc_type.zone, 'zone__user': user.id}
         sub_zone_objs = loc_type.subzonemapping_set.filter()
@@ -696,27 +697,45 @@ def location_master(request, user=''):
         filter_params['zone__zone__in'] = [loc_type.zone]
         if temp_sub_zones:
             filter_params['zone__zone__in'] = list(chain(temp_sub_zones, filter_params['zone__zone__in']))
-        loc = filter_by_values(LocationMaster, filter_params,
-                               ['location', 'max_capacity', 'fill_sequence', 'pick_sequence', 'status',
-                                'pallet_capacity', 'lock_status', 'zone__level', 'zone__zone'])
+        #loc = filter_by_values(LocationMaster, filter_params,
+        #                       ['location', 'max_capacity', 'fill_sequence', 'pick_sequence', 'status',
+        #                        'pallet_capacity', 'lock_status', 'zone__level', 'zone__zone'])
+        loc = LocationMaster.objects.prefetch_related('zone').filter(**filter_params)
+        temp_locs = []
         for loc_location in loc:
-            loc_group_dict = filter(lambda person: str(loc_location['location']) == str(person['location__location']),
-                                    location_groups)
-            loc_groups = map(lambda d: d['group'], loc_group_dict)
-            loc_groups = [str(x).encode('UTF8') for x in loc_groups]
-            loc_location['location_group'] = loc_groups
+            print loc_location
+            #loc_group_dict = filter(lambda person: str(loc_location['location']) == str(person['location__location']),
+            #                        location_groups)
+            #loc_groups = map(lambda d: d['group'], loc_group_dict)
+            #loc_groups = [str(x).encode('UTF8') for x in loc_groups]
+            loc_groups = list(loc_location.locationgroups_set.filter().values_list('group', flat=True))
+            location_data = {}
+            location_data['location'] = loc_location.location
+            location_data['max_capacity'] = loc_location.max_capacity
+            location_data['fill_sequence'] = loc_location.fill_sequence
+            location_data['pick_sequence'] = loc_location.pick_sequence
+            location_data['status'] = loc_location.status
+            location_data['pallet_capacity'] = loc_location.pallet_capacity
+            location_data['lock_status'] = loc_location.lock_status
+            location_data['zone__zone'] = loc_location.zone.zone
+            location_data['zone__level'] = loc_location.zone.level
+            location_data['location_group'] = loc_groups
             sub_zone = ''
-            if loc_location['zone__level'] == 1:
-                sub_zone = loc_location['zone__zone']
-            loc_location['sub_zone'] = sub_zone
-        new_loc.append(loc)
+            if loc_location.zone.level == 1:
+                sub_zone = loc_location.zone.zone
+            location_data['sub_zone'] = sub_zone
+            temp_locs.append(location_data)
+        #new_loc.append(temp_locs)
+        data.append({'zone': loc_type.zone, 'data': temp_locs})
+        #loc_location.values('location', 'max_capacity', 'fill_sequence', 'pick_sequence', 'status', 'pallet_capacity',
+        #                                    'lock_status', 'zone__level', 'zone__zone'))
 
-    data = []
-    modified_zone = zip(distinct_loctype.values('zone'), new_loc)
-    if modified_zone:
-        for loc in modified_zone:
-            zone = loc[0]['zone']
-            data.append({'zone': zone, 'data': list(loc[1])})
+    #data = []
+    #modified_zone = zip(distinct_loctype.values('zone'), new_loc)
+    #if modified_zone:
+    #    for loc in modified_zone:
+    #        zone = loc[0]['zone']
+    #        data.append({'zone': zone, 'data': list(loc[1])})
 
     all_groups = list(SKUGroups.objects.filter(user=user.id).values_list('group', flat=True))
 
@@ -989,6 +1008,8 @@ def update_sku(request, user=''):
     reversion.set_user(request.user)
     log.info('Update SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
+    today = datetime.datetime.now().strftime("%Y%m%d")
+    storehippo_fulfillments_log = init_logger('logs/storehippo_fulfillments_log_' + today + '.log')
     try:
         number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'ean_number',
                          'hsn_code', 'shelf_life']
@@ -1048,6 +1069,9 @@ def update_sku(request, user=''):
                 continue
             elif key == 'enable_serial_based':
                 value = 1
+            elif key == 'price':
+                wms_code = request.POST.get('wms_code', '')
+                storehippo_sync_price_value(user, {'wms_code':wms_code, 'price':value})
             if key in number_fields and not value:
                 value = 0
             setattr(data, key, value)

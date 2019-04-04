@@ -22,6 +22,17 @@
                     </label>
                     <label style="padding: 5px;" class="control-label pull-right"><b>SKU View : </b></label>
                   </div>
+                  <div class="col-md-2 col-sm-4 col-xs-6" style="height: 34px;float: right;text-align: -webkit-auto;">
+                    <label class="switch switch-sm square pull-right mr30 mt5">
+                    <div>
+                        <input type="checkbox" ng-model="showCase.rwo_view" ng-change="showCase.change_rwo_view(showCase.rwo_view)" class="ng-pristine ng-valid">
+                        <span>
+                        <i class="handle"></i>
+                        </span>
+                    </div>
+                    </label>
+                    <label style="padding: 5px;" class="control-label pull-right"><b>RWO View : </b></label>
+                  </div>
                   <span class="widget-subtitle">AGGREGATED QUANTITY</span>
                   <span class="widget-title bold ng-binding">{{ showCase.tb_data.totalReceivedQuantity }}</span>
                 </div>
@@ -31,10 +42,12 @@
         </div>
         <div class="panel-body">
           <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable"></table>
-
           <div ui-view></div>
+          <div class="col-md-12">
+          </div>
         </div>
       </div>
+
     </div>
   </div>
 </div>

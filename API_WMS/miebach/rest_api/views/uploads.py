@@ -484,7 +484,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
                 if len(order_obj_list):
                     order_obj_list = list(set(order_obj_list))
         log.info("Order Saving Ended %s" % (datetime.datetime.now()))
-    return sku_ids, order_obj_list
+    return sku_ids, order_obj_list, order_detail
 
 
 def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
@@ -503,6 +503,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
     log.info("Validation Started %s" % datetime.datetime.now())
     exist_created_orders = OrderDetail.objects.filter(user=user.id,
                                                       order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO'])
+    extra_fields_mapping = OrderedDict()
+    extra_fields_data = OrderedDict()
+    for row_idx in range(0, 1):
+        for col_idx in range(0, no_of_cols):
+            excel_header_name = get_cell_data(row_idx, col_idx, reader, file_type)
+            if 'Attribute - ' in excel_header_name:
+                extra_fields_mapping[excel_header_name.replace('Attribute - ', '')] = col_idx
     for row_idx in range(1, no_of_rows):
         if not order_mapping:
             break
@@ -621,6 +628,10 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             continue
         log.info("Order data Processing Started %s" % (datetime.datetime.now()))
         order_amount = 0
+        for extra_key, extra_value in extra_fields_mapping.iteritems():
+            extra_cell_val = get_cell_data(row_idx, extra_value, reader, file_type)
+            if extra_cell_val:
+                extra_fields_data[extra_key] = extra_cell_val
         for key, value in order_mapping.iteritems():
             if key in ['marketplace', 'status', 'split_order_id', 'recreate',
                        'shipment_check'] or key not in order_mapping.keys():
@@ -653,7 +664,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     order_data['order_code'] = 'MN'
 
             elif key == 'quantity':
-                order_data[key] = int(get_cell_data(row_idx, value, reader, file_type))
+                order_data[key] = float(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'unit_price':
                 order_data[key] = float(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'invoice_amount':
@@ -827,9 +838,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 order_data['telephone'] = str(int(order_data['telephone']))
 
         log.info("Order Saving Started %s" % (datetime.datetime.now()))
-        sku_ids, order_obj_list = check_and_save_order(cell_data, order_data, order_mapping, user_profile, seller_order_dict,
+        sku_ids, order_obj_list, order_detail = check_and_save_order(cell_data, order_data, order_mapping, user_profile, seller_order_dict,
                                        order_summary_dict, sku_ids,
                                        sku_masters_dict, all_sku_decs, exist_created_orders, user)
+        if order_detail:
+            created_order_id = order_detail.original_order_id
+            if extra_fields_data:
+                create_extra_fields_for_order(created_order_id, extra_fields_data, user)
         if len(order_obj_list):
             collect_order_obj_list = collect_order_obj_list + order_obj_list
     if len(collect_order_obj_list):
@@ -874,7 +889,12 @@ def order_form(request, user=''):
     ws = wb.add_sheet('order')
     header_style = easyxf('font: bold on')
     user_profile = UserProfile.objects.get(user_id=user.id)
-    order_headers = USER_ORDER_EXCEL_MAPPING.get(user_profile.user_type, {})
+    order_headers = copy.deepcopy(USER_ORDER_EXCEL_MAPPING.get(user_profile.user_type, {}))
+    order_field_obj = get_misc_value('extra_order_fields', user.id)
+    if not order_field_obj == 'false':
+        extra_order_fields = order_field_obj.split(',')
+        for extra_field in extra_order_fields:
+            order_headers.append('%s - %s' % ('Attribute', str(extra_field)))
     for count, header in enumerate(order_headers):
         ws.write(0, count, header, header_style)
 
@@ -1623,9 +1643,9 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
         if sku_data:
+	    storehippo_sync_price_value(user, {'wms_code':sku_data.wms_code, 'price':sku_data.price})
             sku_data.save()
             all_sku_masters.append(sku_data)
-
         if not sku_data:
             data_dict['sku_code'] = data_dict['wms_code']
             sku_master = SKUMaster(**data_dict)
@@ -2953,9 +2973,13 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
             reserved_dict = {'stock__sku_id': data_dict['sku_id'], 'stock__sku__user': user.id,
                              'status': 1,
                              'stock__location_id': data_dict['source_id']}
+            raw_reserved_dict = {'stock__sku_id': data_dict['sku_id'], 'stock__sku__user': user.id,
+                             'status': 1,
+                             'stock__location_id': data_dict['source_id']}
             if data_dict.get('batch_no', ''):
                 stock_dict["batch_detail__batch_no"] = data_dict['batch_no']
                 reserved_dict["stock__batch_detail__batch_no"] = data_dict['batch_no']
+                raw_reserved_dict['stock__batch_detail__batch_no'] = data_dict['batch_no']
             if data_dict.get('mrp', ''):
                 try:
                     mrp = data_dict['mrp']
@@ -2963,10 +2987,12 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                     mrp = 0
                 stock_dict["batch_detail__mrp"] = mrp
                 reserved_dict["stock__batch_detail__mrp"] = mrp
+                raw_reserved_dict["stock__batch_detail__mrp"] = mrp
             if data_dict.get('seller_master_id', ''):
                 stock_dict['sellerstock__seller_id'] = data_dict['seller_master_id']
                 stock_dict['sellerstock__quantity__gt'] = 0
                 reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
+                raw_reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
             stocks = StockDetail.objects.filter(**stock_dict)
             if not stocks:
                 index_status.setdefault(row_idx, set()).add('No Stocks Found')
@@ -2974,9 +3000,15 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                 stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
                 reserved_quantity = PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).\
                                         aggregate(Sum('reserved'))['reserved__sum']
-                if reserved_quantity:
-                    if (stock_count - reserved_quantity) < float(data_dict['quantity']):
-                        index_status.setdefault(row_idx, set()).add('Source Quantity reserved for Picklist')
+                raw_reserved_quantity = RMLocation.objects.exclude(stock=None).filter(**raw_reserved_dict).\
+                                        aggregate(Sum('reserved'))['reserved__sum']
+                if not reserved_quantity:
+                    reserved_quantity = 0
+                if not raw_reserved_quantity:
+                    raw_reserved_quantity = 0
+                avail_stock = stock_count - reserved_quantity - raw_reserved_quantity
+                if avail_stock < float(data_dict['quantity']):
+                    index_status.setdefault(row_idx, set()).add('Quantity Exceeding available quantity')
         data_list.append(data_dict)
 
     if not index_status:
@@ -3245,21 +3277,27 @@ def validate_combo_sku_form(open_sheet, user):
                     message = 'SKU Code Missing'
                 if col_idx == 1:
                     message = 'Combo SKU Code Missing'
+                if col_idx == 2 :
+                    message = 'Combo Quantity value missing'
                 index_status.setdefault(row_idx, set()).add(message)
                 continue
-            if isinstance(cell_data, (int, float)):
-                cell_data = int(cell_data)
-            cell_data = str(cell_data)
-
-            sku_master = MarketplaceMapping.objects.filter(marketplace_code=cell_data, sku__user=user)
-            if not sku_master:
-                sku_master = SKUMaster.objects.filter(sku_code=cell_data, user=user)
-            if not sku_master:
-                if col_idx == 0:
-                    message = 'Invalid SKU Code'
-                else:
-                    message = 'Invalid Combo SKU'
-                index_status.setdefault(row_idx, set()).add(message)
+            if col_idx == 2 :
+                if not isinstance(cell_data, (int, float)):
+                    message = 'Quantity must be Number'
+                    index_status.setdefault(row_idx, set()).add(message)
+            else:
+                if isinstance(cell_data, (int, float)):
+                    cell_data = int(cell_data)
+                cell_data = str(cell_data)
+                sku_master = MarketplaceMapping.objects.filter(marketplace_code=cell_data, sku__user=user)
+                if not sku_master:
+                    sku_master = SKUMaster.objects.filter(sku_code=cell_data, user=user)
+                if not sku_master:
+                    if col_idx == 0:
+                        message = 'Invalid SKU Code'
+                    else:
+                        message = 'Invalid Combo SKU'
+                    index_status.setdefault(row_idx, set()).add(message)
 
     if not index_status:
         return 'Success'
@@ -3290,7 +3328,6 @@ def combo_sku_upload(request, user=''):
     for row_idx in range(1, open_sheet.nrows):
         for col_idx in range(0, len(COMBO_SKU_EXCEL_HEADERS)):
             cell_data = open_sheet.cell(row_idx, col_idx).value
-
             if col_idx in (0, 1):
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
@@ -3300,14 +3337,15 @@ def combo_sku_upload(request, user=''):
                     sku_data = sku_data[0].sku
                 if not sku_data:
                     sku_data = SKUMaster.objects.filter(sku_code=cell_data, user=user.id)[0]
-
             if col_idx == 0:
                 sku_code = sku_data
 
             if col_idx == 1:
                 combo_data = sku_data
+            if col_idx == 2:
+                quantity = float(cell_data)
 
-        relation_data = {'relation_type': 'combo', 'member_sku': combo_data, 'parent_sku': sku_code}
+        relation_data = {'relation_type': 'combo', 'member_sku': combo_data, 'parent_sku': sku_code , 'quantity' :quantity}
         sku_relation = SKURelation.objects.filter(**relation_data)
         if not sku_relation:
             sku_relation = SKURelation(**relation_data)
@@ -5714,9 +5752,9 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 order_dict['customer_name'] = order_data.get('customer_name', '')
             order_dict['original_order_id'] = order_id
             order_code = ''.join(re.findall('\D+', order_id))
-            order_id = ''.join(re.findall('\d+', order_id))
+            ord_id = ''.join(re.findall('\d+', order_id))
             order_dict['order_code'] = order_code
-            order_dict['order_id'] = order_id
+            order_dict['order_id'] = ord_id
             order_dict['shipment_date'] = datetime.datetime.now() #interm_obj.shipment_date
             order_dict['quantity'] = 1
             order_dict['unit_price'] = unit_price

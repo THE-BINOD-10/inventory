@@ -319,6 +319,16 @@
         </div>
         <div class="col-md-1 col-sm-1 col-xs-1"><i ng-click="showCase.switches(showCase.model_data.serial_limit, 45)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
       </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-shopping-cart fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> RTV Prefix </strong>
+        </div>
+        <div class="col-md-1 col-sm-2 col-xs-3">
+            <input type="text" class="form-control" id="rtv_prefix_code" ng-model="showCase.model_data.rtv_prefix_code">
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-1"><i ng-click="showCase.switches(showCase.model_data.rtv_prefix_code, 81)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
+      </div>
       <div class="row col-md-12" style="padding-bottom: 15px" ng-init="showCase.online_enable_save = false">
         <div class="col-md-5 col-sm-8 col-xs-12">
           <i class="fa fa-shopping-cart fa-15px pull-left" style="line-height: 34px;"></i>
@@ -417,6 +427,17 @@
           <input class="stages" type="text" value="{{showCase.model_data.all_stages}}" ui-jq="tagsInput"/>
         </div>
         <div class="col-md-1 col-sm-1 col-xs-2"><i ng-click="showCase.update_stages()" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-step-forward fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Create Order Extra Fields </strong>
+        </div>
+        <div class="bootstrap-tagsinput col-md-6 col-sm-6 col-xs-8">
+          <input class="order_fields" type="text" value="{{showCase.model_data.all_order_fields}}" ui-jq="tagsInput"/>
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-2"><i ng-click="showCase.update_extra_central_order_fields()" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">

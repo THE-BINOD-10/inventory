@@ -19,7 +19,14 @@ import datetime
 from django.db.models import Q, F
 from django.core.serializers.json import DjangoJSONEncoder
 from rest_api.views.utils import *
-log = init_logger('logs/integrations.log')
+
+today = datetime.datetime.now().strftime("%Y%m%d")
+log = init_logger('logs/integrations_' + today + '.log')
+storehippo_log = init_logger('logs/storehippo_' + today + '.log')
+create_order_storehippo_log = init_logger('logs/storehippo_create_order_log_' + today + '.log')
+create_update_sku_storehippo_log = init_logger('logs/storehippo_create_update_log_' + today + '.log')
+order_edit_storehippo_log = init_logger('logs/order_edit_storehippo_log_' + today + '.log')
+
 # Create your views here.
 
 NOW = datetime.datetime.now()
@@ -1220,14 +1227,13 @@ def get_mp_inventory(request):
             non_sellable_zones = ZoneMaster.objects.filter(user=user.id, segregation='non_sellable').values_list('zone', flat=True)
             if non_sellable_zones:
                 non_sellable_zones = get_all_zones(user, zones=non_sellable_zones)
-            stocks = SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone').\
+            stocks = SellerStock.objects.prefetch_related('seller', 'stock', 'stock__location__zone').\
                           filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0, stock__location__zone__zone__in=sellable_zones).\
                                 exclude(Q(stock__location__zone__zone__in=picklist_exclude_zones) |
                                         Q(stock__receipt_number=0)).only('stock__sku__sku_code',
                                                                         'stock__batch_detail__mrp', 'quantity').\
                           annotate(group_key=Concat('stock__sku__sku_code',Value('<<>>'), 'stock__batch_detail__mrp',
-                                                    Value('<<>>'), 'stock__batch_detail__ean_number', Value('<<>>'),
-                                                    'stock__batch_detail__weight',
+                                                    Value('<<>>'), 'stock__batch_detail__weight',
                                     output_field=CharField())).values('group_key').distinct().\
                           annotate(stock_sum=Sum('quantity'))
             pick_res = dict(PicklistLocation.objects.select_related('seller__sellerstock', 'stock', 'stock__sku').\
@@ -1235,8 +1241,7 @@ def get_mp_inventory(request):
                                     stock__sellerstock__quantity__gt=0, stock__sku__user=user.id, stock__location__zone__zone__in=sellable_zones). \
                             only('stock__sku__sku_code', 'stock__batch_detail__mrp', 'reserved').\
                             annotate(group_key=Concat('stock__sku__sku_code',Value('<<>>'), 'stock__batch_detail__mrp',
-                                                      Value('<<>>'), 'stock__batch_detail__ean_number', Value('<<>>'),
-                                                      'stock__batch_detail__weight',
+                                                      Value('<<>>'), 'stock__batch_detail__weight',
                                               output_field=CharField())).values_list('group_key').distinct(). \
                             annotate(stock_sum=Sum('reserved')))
             unsellable_stock = SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone__zone').\
@@ -1244,8 +1249,7 @@ def get_mp_inventory(request):
                                  stock__location__zone__zone__in=non_sellable_zones). \
                           only('stock__sku__sku_code', 'stock__batch_detail__mrp', 'reserved').\
                           annotate(group_key=Concat('stock__sku__sku_code',Value('<<>>'), 'stock__batch_detail__mrp',
-                                                    Value('<<>>'), 'stock__batch_detail__ean_number', Value('<<>>'),
-                                                    'stock__batch_detail__weight',
+                                                    Value('<<>>'), 'stock__batch_detail__weight',
                                           output_field=CharField())).values('group_key').distinct(). \
                           annotate(stock_sum=Sum('quantity'))
             open_orders = dict(OrderDetail.objects.filter(user=user.id, quantity__gt=0, status=1).\
@@ -1254,12 +1258,12 @@ def get_mp_inventory(request):
             sku_weight_dict = dict(SKUAttributes.objects.filter(sku__user=user.id, attribute_name='weight').\
                                    exclude(attribute_value='').values_list('sku__sku_code', 'attribute_value'))
 
-            sku_eans = dict(SKUMaster.objects.filter(user=user.id, ean_number__gt=0, status=1).only('ean_number',
-                                                    'sku_code').annotate(ean_str=Cast('ean_number', output_field=CharField())).values_list('sku_code', 'ean_str'))
-            ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1, ean_number__gt=0).\
-                            only('ean_number', 'sku__sku_code').\
-                            annotate(ean_str=Cast('ean_number', output_field=CharField())).\
-                            values_list('sku__sku_code', 'ean_str').order_by('creation_date'))
+            # sku_eans = dict(SKUMaster.objects.filter(user=user.id, ean_number__gt=0, status=1).only('ean_number',
+            #                                         'sku_code').annotate(ean_str=Cast('ean_number', output_field=CharField())).values_list('sku_code', 'ean_str'))
+            # ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1, ean_number__gt=0).\
+            #                 only('ean_number', 'sku__sku_code').\
+            #                 annotate(ean_str=Cast('ean_number', output_field=CharField())).\
+            #                 values_list('sku__sku_code', 'ean_str').order_by('creation_date'))
             sku_open_orders_dict = {}
             for open_order, open_order_qty in open_orders.iteritems():
                 temp_key = open_order.split('<<>>')
@@ -1275,15 +1279,15 @@ def get_mp_inventory(request):
                     splitted_val = stock_dat['group_key'].split('<<>>')
                     sku_code = splitted_val[0]
                     mrp = splitted_val[1]
-                    ean = splitted_val[2]
-                    weight = splitted_val[3]
-                    if not ean:
-                        ean = ''
+                    #ean = splitted_val[2]
+                    weight = splitted_val[2]
+                    # if not ean:
+                    #     ean = ''
                     if not weight:
                         weight = 0
-                    sub_group_key = '%s<<>>%s<<>>%s' % (mrp, ean, weight)
                     if not mrp:
                         mrp = 0
+                    sub_group_key = '%s<<>>%s' % (str(mrp), str(weight))
                     inventory = stock_dat['stock_sum']
                     if not inventory:
                         inventory = 0
@@ -1292,7 +1296,7 @@ def get_mp_inventory(request):
                         pick_filter['stock__batch_detail__mrp'] = mrp
                     reserved = pick_res.get(stock_dat['group_key'], 0)
                     sell_filter = {'stock__sku__sku_code': sku_code}
-                    if mrp:
+                    if mrp or mrp == 0:
                         sell_filter['stock__batch_detail__mrp'] = mrp
                     unsellable = unsellable_stock.filter(**sell_filter).\
                                                 aggregate(Sum('quantity'))['quantity__sum']
@@ -1307,51 +1311,57 @@ def get_mp_inventory(request):
                     reserved += open_qty
                     #if inventory < 0:
                     #    inventory = 0
-                    mrp_dict.setdefault(sub_group_key, OrderedDict(( ('mrp', mrp), ('ean', ean), ('weight', weight),
+                    mrp_dict.setdefault(sub_group_key, OrderedDict(( ('mrp', mrp), ('weight', weight),
                                                                      ('inventory', OrderedDict((('sellable', 0),
                                                                                                 ('on_hold', 0),
                                                                                                 ('un_sellable', 0)))))))
                     mrp_dict[sub_group_key]['inventory']['sellable'] += int(inventory)
                     mrp_dict[sub_group_key]['inventory']['on_hold'] += int(reserved)
-                    mrp_dict[sub_group_key]['inventory']['un_sellable'] += int(unsellable)
+                    #mrp_dict[sub_group_key]['inventory']['un_sellable'] += int(unsellable)
                 for stock_dat1 in group_data1:
                     splitted_val = stock_dat1['group_key'].split('<<>>')
                     sku_code = splitted_val[0]
                     mrp = splitted_val[1]
-                    ean = splitted_val[2]
-                    weight = splitted_val[3]
-                    if not ean:
-                        ean = ''
+                    #ean = splitted_val[2]
+                    weight = splitted_val[2]
+                    # if not ean:
+                    #     ean = ''
                     if not weight:
                         weight = 0
-                    sub_group_key = '%s<<>>%s<<>>%s' % (mrp, ean, weight)
+                    if not mrp:
+                        mrp = 0
+                    sub_group_key = '%s<<>>%s' % (str(mrp), weight)
                     if not mrp:
                         mrp = 0
                     inventory = stock_dat1['stock_sum']
                     if not inventory:
                         inventory = 0
-                    mrp_dict.setdefault(sub_group_key, OrderedDict(( ('mrp', mrp), ('ean', ean), ('weight', weight),
+                    mrp_dict.setdefault(sub_group_key, OrderedDict(( ('mrp', mrp), ('weight', weight),
                                                                      ('inventory', OrderedDict((('sellable', 0),
                                                                                                 ('on_hold', 0),
                                                                                                 ('un_sellable', 0)))))))
                     mrp_dict[sub_group_key]['inventory']['un_sellable'] += int(inventory)
                 for sku_open_order in sku_open_orders:
                     open_sku_code, open_sku_mrp = sku_open_order.split('<<>>')
-                    open_ean = 0
-                    if sku_eans.get(open_sku_code, 0):
-                        open_ean = sku_eans[open_sku_code]
-                    elif ean_list.get(open_sku_code, 0):
-                        open_ean = ean_list[open_sku_code]
+                    # open_ean = 0
+                    # if sku_eans.get(open_sku_code, 0):
+                    #     open_ean = sku_eans[open_sku_code]
+                    # elif ean_list.get(open_sku_code, 0):
+                    #     open_ean = ean_list[open_sku_code]
                     open_weight = sku_weight_dict.get(open_sku_code, '')
-                    open_order_grouping_key = '%s<<>>%s<<>>%s' % (str(open_sku_mrp), str(open_ean), '0')
-                    mrp_dict[open_order_grouping_key] = OrderedDict(( ('mrp', open_sku_mrp), ('ean', open_ean),
+                    if not open_weight:
+                        open_weight = 0
+                    open_order_grouping_key = '%s<<>>%s' % (str(open_sku_mrp), str(open_weight))
+                    mrp_dict.setdefault(open_order_grouping_key, OrderedDict(( ('mrp', open_sku_mrp),
                                                                       ('weight', open_weight), ('inventory',
-                                                         OrderedDict((('sellable', -(open_orders[sku_open_order])),
+                                                         OrderedDict((('sellable', 0),
                                                                     ('on_hold', open_orders[sku_open_order]),
-                                                                    ('un_sellable', 0))))))
+                                                                    ('un_sellable', 0)))))))
+                    mrp_dict[open_order_grouping_key]['inventory']['sellable'] -= open_orders[sku_open_order]
+                    mrp_dict[open_order_grouping_key]['inventory']['on_hold'] += open_orders[sku_open_order]
                 mrp_list = mrp_dict.values()
                 if not mrp_list:
-                    mrp_list = OrderedDict(( ('mrp', 0), ('ean', ''), ('weight', 0),
+                    mrp_list = OrderedDict(( ('mrp', 0), ('weight', 0),
                                                                      ('inventory', OrderedDict((('sellable', 0),
                                                                                                 ('on_hold', 0),
                                                                                                 ('un_sellable', 0))))))
@@ -1427,3 +1437,242 @@ def rista_update_orders(request):
         log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'messages': 'Internal Server Error', 'status': 0}
     return HttpResponse(json.dumps(status))
+
+
+def store_hippo_line_items(line_items):
+    itemsArr = []
+    for Item in line_items:
+        cgst_percent = 0
+        sgst_percent = 0
+        igst_percent = 0
+        for ind in Item['taxes']:
+            if ind['name'] == "IGST":
+                igst_percent += ind['rate']
+            if ind['name'] == "SGST":
+                sgst_percent += ind['rate']
+            if ind['name'] == "CGST":
+                cgst_percent += ind['rate']
+        obj = {
+            "line_item_id": Item.get('_id',None),
+            "sku": Item.get('sku',None),
+            "name": Item.get('name',None),
+            "quantity": Item.get('quantity',None),
+            "unit_price": Item.get('price',None),
+            "shipping_charge": Item.get('shipping_total',None),
+            "discount_amount": 0,
+            "tax_percent": {
+                "CGST": cgst_percent,
+                "SGST": sgst_percent,
+                "IGST": igst_percent
+            }
+        }
+        itemsArr.append(obj)
+    return itemsArr
+
+
+def create_order_storehippo(store_hippo_data, user_obj):
+    create_order_storehippo_log.info('Create Store Hippo Data' + str(store_hippo_data))
+    allOrders = []
+    create_order = {}
+    customer_obj = store_hippo_data.get('billing_address', '')
+    create_order['source'] = 'store_hippo'
+    create_order['original_order_id'] = store_hippo_data.get('order_id', '')
+    create_order['order_id'] = create_order.get('original_order_id', '')
+    create_order['order_code'] = ''
+    create_order['order_date'] = store_hippo_data['created_on'][0:10] + " " + store_hippo_data['created_on'][11:19]
+    create_order['order_status'] = 'NEW'
+    create_order['billing_address'] = customer_obj
+    create_order['shipping_address'] = store_hippo_data.get('shipping_address', '')
+    create_order['items'] = store_hippo_line_items(store_hippo_data.get('items', ''))
+    create_order['discount'] = store_hippo_data.get('discounts_total', 0)
+    create_order['shipping_charges'] = store_hippo_data.get('shipping_total', 0)
+    create_order['customer_name'] = customer_obj.get('full_name', '')
+    create_order['customer_code'] = ''
+    create_order['item_count'] = store_hippo_data.get('item_count', 0)
+    create_order['all_total_items'] = store_hippo_data.get('sub_total', 0)
+    create_order['all_total_tax'] = store_hippo_data.get('taxes_total', 0)
+    create_order['status'] = store_hippo_data.get('status', 0)
+    create_order['fulfillmentStatus'] = store_hippo_data.get('fulfillment_status', '')
+    create_order['custom_shipping_applied'] = store_hippo_data.get('custom_shipping_applied', 0)
+    create_order['order_reference'] = store_hippo_data.get('_id', '')
+    admin_discounts = store_hippo_data.get('discounts', [])
+    if admin_discounts:
+        admin_discounts = admin_discounts[0].get('saved_amount',0)
+    create_order['invoice_amount'] = create_order.get('all_total_items', 0) + create_order.get('all_total_tax', 0) + create_order.get('shipping_charges', 0) - create_order.get('discount', 0)
+    allOrders.append(create_order)
+    try:
+        validation_dict, failed_status, final_data_dict = validate_orders_format_storehippo(allOrders, user=user_obj, company_name='mieone')
+        if validation_dict:
+            return json.dumps({'messages': validation_dict, 'status': 0})
+        if failed_status:
+            if type(failed_status) == dict:
+                failed_status.update({'Status': 'Failure'})
+            if type(failed_status) == list:
+                failed_status = failed_status[0]
+                failed_status.update({'Status': 'Failure'})
+            return json.dumps(failed_status)
+        create_order_storehippo_log.info('StoreHippo Data Sent to Stockone ' + str(final_data_dict))
+        status = update_order_dicts(final_data_dict, user=user_obj, company_name='storehippo')
+        create_order_storehippo_log.info(status)
+        return status
+    except Exception as e:
+        import traceback
+        create_order_storehippo_log.debug(traceback.format_exc())
+        create_order_storehippo_log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(user_obj.username), str(request.body), str(e)))
+        status = {'messages': 'Internal Server Error', 'status': 0}
+        return status
+
+
+def create_update_sku_storehippo(store_hippo_data, user_obj):
+    create_update_sku_storehippo_log.info('StoreHippo Data ' + str(store_hippo_data))
+    try:
+        stockone_data = {}
+        sku_code = store_hippo_data.get('uniquesku', '')
+        if sku_code:
+            sku_code = sku_code[0]
+        categories = store_hippo_data.get('categories', '')
+        if categories:
+            categories = categories[0]
+        image = store_hippo_data.get('images','')
+        if image:
+            image = image[0]['tempSrc']
+        desc = store_hippo_data.get('description', '')
+        if desc:
+            desc = desc.replace('<p>', '')
+            desc = desc.replace('</p>', '')
+        variants = store_hippo_data.get('variants', [])
+        for var_obj in variants:
+            sku_code = var_obj.get('sku', '')
+            stockone_data['sku_code'] = sku_code
+            stockone_data['wms_code'] = sku_code
+            stockone_data['sku_desc'] = desc
+            stockone_data['sku_group'] = ''
+            stockone_data['sku_type'] = ''
+            stockone_data['sku_category'] = categories
+            stockone_data['sku_class'] = ''
+            stockone_data['threshold_quantity'] = store_hippo_data.get('inventory_low_stock_quantity', 0)
+            stockone_data['online_percentage'] = 0
+            stockone_data['image_url'] = image
+            stockone_data['qc_check'] = 0
+            stockone_data['status'] = store_hippo_data.get('publish', 0)
+            stockone_data['relation_type'] = ''
+            stockone_data['discount_percentage'] = 0
+            stockone_data['price'] = var_obj.get('price', 0)
+            stockone_data['product_type'] = ''
+            stockone_data['sku_brand'] = store_hippo_data.get('brand', '')
+            stockone_data['sku_size'] = ''
+            stockone_data['style_name'] = var_obj.get('variant_id','')
+            stockone_data['mrp'] = var_obj.get('compare_price', 0)
+            stockone_data['sequence'] = 0
+            stockone_data['measurement_type'] = ''
+            stockone_data['sale_through'] = ''
+            stockone_data['color'] = ''
+            stockone_data['mix_sku'] = ''
+            stockone_data['load_unit_handle'] = ''
+            stockone_data['hsn_code'] = 0
+            stockone_data['sub_category'] = ''
+            stockone_data['primary_category'] = ''
+            stockone_data['cost_price'] = var_obj.get('price', 0)
+            stockone_data['shelf_life'] = 0
+            stockone_data['enable_serial_based'] = 0
+            stockone_data['youtube_url'] = ''
+            stockone_data['user'] = user_obj.id
+            try:
+		sku_obj = SKUMaster.objects.filter(**{'user':user_obj.id, 'sku_code':sku_code})
+		if not sku_obj:
+		    sku_query_obj = SKUMaster.objects.create(**stockone_data)
+		    create_update_sku_storehippo_log.info('Created SKU ' + str(stockone_data))
+		else:
+		    sku_query_obj = sku_obj.update(**stockone_data)
+		    create_update_sku_storehippo_log.info('Updated SKU '+ str(stockone_data))
+            except:
+		sku_query_obj = "Error Occured"
+		create_update_sku_storehippo_log.info('Error Occured in create_update_sku_storehippo')
+        else:
+            stockone_data['sku_code'] = sku_code
+            stockone_data['wms_code'] = sku_code
+            stockone_data['sku_desc'] = desc
+            stockone_data['sku_group'] = ''
+            stockone_data['sku_type'] = ''
+            stockone_data['sku_category'] = categories
+            stockone_data['sku_class'] = ''
+            stockone_data['threshold_quantity'] = store_hippo_data.get('inventory_low_stock_quantity', 0)
+            stockone_data['online_percentage'] = 0
+            stockone_data['image_url'] = image
+            stockone_data['qc_check'] = 0
+            stockone_data['status'] = store_hippo_data.get('publish', 0)
+            stockone_data['relation_type'] = ''
+            stockone_data['discount_percentage'] = 0
+            stockone_data['price'] = store_hippo_data.get('price', 0)
+            stockone_data['product_type'] = ''
+            stockone_data['sku_brand'] = store_hippo_data.get('brand', '')
+            stockone_data['sku_size'] = ''
+            stockone_data['style_name'] = ''
+            stockone_data['mrp'] = store_hippo_data.get('compare_price', 0)
+            stockone_data['sequence'] = 0
+            stockone_data['measurement_type'] = ''
+            stockone_data['sale_through'] = ''
+            stockone_data['color'] = ''
+            stockone_data['mix_sku'] = ''
+            stockone_data['load_unit_handle'] = ''
+            stockone_data['hsn_code'] = 0
+            stockone_data['sub_category'] = ''
+            stockone_data['primary_category'] = ''
+            stockone_data['cost_price'] = store_hippo_data.get('price', 0)
+            stockone_data['shelf_life'] = 0
+            stockone_data['enable_serial_based'] = 0
+            stockone_data['youtube_url'] = ''
+            stockone_data['user'] = user_obj.id
+            try:
+		sku_obj = SKUMaster.objects.filter(**{'user':user_obj.id, 'sku_code':sku_code})
+		if not sku_obj:
+		    sku_query_obj = SKUMaster.objects.create(**stockone_data)
+		    create_update_sku_storehippo_log.info('Created SKU ' + str(stockone_data))
+		else:
+		    sku_query_obj = sku_obj.update(**stockone_data)
+		    create_update_sku_storehippo_log.info('Updated SKU '+ str(stockone_data))
+            except:
+		sku_query_obj = "Error Occured"
+		create_update_sku_storehippo_log.info('Error Occured in create_update_sku_storehippo')
+    except:
+        create_update_sku_storehippo_log.info('Error Occured in create_update_sku_storehippo function')
+        return "Error Occured"
+    return sku_query_obj
+
+
+def order_edit_storehippo(store_hippo_data, user_obj):
+    order_edit_storehippo_log.info('Input Data - For User '+ user_obj.name + ' , ' + str(store_hippo_data))
+    order_id_list = []
+    if store_hippo_data['status'] == 'cancelled':
+        order_id = store_hippo_data.get('order_id', '')
+        order_id_list.append(order_id)
+	ids_of_orders = list(set(OrderDetail.objects.filter(original_order_id__in=order_id_list).values_list('id', flat=True)))
+        order_edit_storehippo_log.info('Input List of Order IDs sent' + str(ids_of_orders))
+	cancel_order = order_cancel_functionality(ids_of_orders)
+        order_edit_storehippo_log.info('Output Response' + str(cancel_order))
+    return store_hippo_data
+    
+
+def store_hippo(request):
+    a = datetime.datetime.now()
+    api_type = request.META['HTTP_TYPE']
+    store_hippo_data = json.loads(request.body)
+    storehippo_log.info('------------API Type -' + api_type + '------------')
+    status_resp = ''
+    try:
+        user_obj = User.objects.get(username='acecraft')
+    except:
+        storehippo_log.info("User Not Found")
+        return HttpResponse("User Not found")
+    if api_type == 'add_order':
+        status_resp = create_order_storehippo(store_hippo_data, user_obj)
+    if api_type in ['add_sku', 'edit_sku']:
+        status_resp = create_update_sku_storehippo(store_hippo_data, user_obj)
+    if api_type == 'order_edit':
+        status_resp = order_edit_storehippo(store_hippo_data, user_obj)
+    b = datetime.datetime.now()
+    delta = b - a
+    time_taken = str(delta.total_seconds())
+    storehippo_log.info('------------End Time Taken in Seconds --- ' + time_taken + '-----')
+    return HttpResponse(json.dumps(status_resp.sku_code))
+

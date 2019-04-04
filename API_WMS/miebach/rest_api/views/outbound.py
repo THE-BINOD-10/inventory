@@ -12129,13 +12129,12 @@ def get_manual_enquiry_data(request, user=''):
         start_index = int(index.split(':')[0])
         stop_index = int(index.split(':')[1])
     response_data = {'data': []}
-    em_qs = ManualEnquiry.objects.filter(user=request.user.id).values_list('enquiry_id', 'customer_name',
-                                                                    'status', 'sku__sku_class', 'creation_date'
-                                                                   ).distinct().annotate(total_qty=Sum('quantity'))
+    manual_qs = ManualEnquiry.objects.filter(user=request.user.id)
+    em_qs = manual_qs.values_list('enquiry_id', 'customer_name', 'status', 'sku__sku_class').distinct().annotate(total_qty=Sum('quantity'), date_only=Cast('creation_date', DateField()))
     for enquiry in em_qs[start_index:stop_index]:
-        enquiry_id, cust_name, status, sku_class, total_qty = enquiry
+        enquiry_id, cust_name, status, sku_class, creation_date, total_qty = enquiry
         #creation_date = get_only_date(request, creation_date)
-        creation_date = ''
+        #creation_date = ''
         res_map = {'order_id': enquiry_id, 'customer_name': cust_name,
                    'date': creation_date,
                    'style_name': sku_class,
@@ -12568,8 +12567,9 @@ def place_manual_order(request, user=''):
         else:
             enq_data = ManualEnquiry(**manual_enquiry)
             enq_data.save()
-        manual_enquiry_details['enquiry_id'] = enq_data.id
-        manual_enquiry_details['user_id'] = request.user.id
+        manual_enquiry_details['enquiry_id'] = enq_data.enquiry_id
+        manual_enquiry_details['order_user_id'] = request.user.id
+        manual_enquiry_details['remarks_user_id'] = request.user.id  #Remarks mentioned while placing order will be considered here.
         manual_enq_data = ManualEnquiryDetails(**manual_enquiry_details)
         manual_enq_data.save()
         admin_user = get_priceband_admin_user(user)
@@ -12624,10 +12624,9 @@ def save_manual_enquiry_data(request, user=''):
         if not manual_enq:
             return HttpResponse("No Enquiry Data for Id")
         MANUAL_ENQUIRY_DETAILS_DICT = {'ask_price': 0, 'expected_date': '', 'remarks': ''}
-        manual_enq = manual_enq[0]
         if enq_status:
-            manual_enq.status = enq_status
-            manual_enq.save()
+            manual_enq.update(status=enq_status)
+        manual_enq = manual_enq[0]
         if smd_price or rc_price:
             manual_enq.smd_price = smd_price
             manual_enq.rc_price = rc_price
@@ -12647,10 +12646,9 @@ def save_manual_enquiry_data(request, user=''):
             return HttpResponse("Please Fill Price")
         else:
             ask_price = float(ask_price)
-        enquiry_data = {'enquiry_id': manual_enq.id, 'user_id': request.user.id}
-        enquiry_data['ask_price'] = float(ask_price)
-        enquiry_data['remarks'] = remarks
-        enquiry_data['status'] = status
+        enquiry_data = {'enquiry_id': manual_enq.enquiry_id, 'remarks_user_id': request.user.id,
+                        'order_user_id': manual_enq.user_id, 'ask_price': float(ask_price), 'remarks': remarks,
+                        'status': status}
         if expected_date:
             expected_date = expected_date.split('/')
             expected_date = datetime.date(int(expected_date[2]), int(expected_date[1]), int(expected_date[0]))
@@ -12693,7 +12691,7 @@ def save_manual_enquiry_data(request, user=''):
                 log.info(traceback.format_exc())
                 log.info('Users List exception raised')
         custom_message = "%s updated status" % (request.user.first_name)
-        message_content = prepare_notification_message(manual_enq_data.enquiry, custom_message)
+        message_content = prepare_notification_message(manual_enq, custom_message)
         contents = {"en": message_content}
         send_push_notification(contents, list(set(users_list)))
     except Exception as e:
@@ -12794,9 +12792,11 @@ def get_manual_enquiry_detail(request, user=''):
         rc_price= manual_enq[0].rc_price
         customization_types = dict(CUSTOMIZATION_TYPES)
         customization_type = customization_types[manual_enq[0].customization_type]
+        total_qty = manual_enq.aggregate(Sum('quantity'))
+        ordered_qty = total_qty.get('quantity__sum', 0)
         manual_eq_dict = {'enquiry_id': int(manual_enq[0].enquiry_id), 'customer_name': manual_enq[0].customer_name,
                           'date': manual_enq[0].creation_date.strftime('%Y-%m-%d'), 'customization_type': customization_type,
-                          'quantity': manual_enq[0].quantity, 'custom_remarks': manual_enq[0].custom_remarks.split("<<>>"),
+                          'quantity': ordered_qty, 'custom_remarks': manual_enq[0].custom_remarks.split("<<>>"),
                           'enq_status': manual_enq[0].status, 'enq_det_id': int(manual_enq[0].id),
                           'client_po_rate': manual_enq[0].client_po_rate}
         if request.user.userprofile.warehouse_type in ('CENTRAL_ADMIN', 'SM_DESIGN_ADMIN', 'SM_PURCHASE_ADMIN', 'SM_FINANCE_ADMIN'):
@@ -12804,16 +12804,16 @@ def get_manual_enquiry_detail(request, user=''):
         else:
             admin_user = get_priceband_admin_user(user)
         dr_price = PriceMaster.objects.filter(sku__user=admin_user.id, sku__sku_code=manual_enq[0].sku.sku_code,
-                                              price_type='D-R').filter(min_unit_range__lte=manual_enq[0].quantity,
-                                                                       max_unit_range__gte=manual_enq[0].quantity)
+                                              price_type='D-R').filter(min_unit_range__lte=ordered_qty,
+                                                                       max_unit_range__gte=ordered_qty)
         if dr_price:
             dr_price = dr_price[0].price
         else:
             dr_price = ''
         manual_eq_dict['dr_price'] = dr_price
         smd_price = PriceMaster.objects.filter(sku__user=admin_user.id, sku__sku_code=manual_enq[0].sku.sku_code,
-                                              price_type='SM-D').filter(min_unit_range__lte=manual_enq[0].quantity,
-                                                                       max_unit_range__gte=manual_enq[0].quantity)
+                                              price_type='SM-D').filter(min_unit_range__lte=ordered_qty,
+                                                                       max_unit_range__gte=ordered_qty)
         if smd_price:
             smd_price = smd_price[0].price
         else:
@@ -12831,16 +12831,15 @@ def get_manual_enquiry_detail(request, user=''):
                 if emiza_ord_id:
                     emiza_order_ids.append(emiza_ord_id)
         manual_eq_dict['EmizaOrderIds'] = ', '.join(emiza_order_ids)
+        variants_qty_map = dict(manual_enq.values_list('sku__sku_code', 'quantity'))
         enquiry_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id, image_type='res_images').values_list('image', flat=True))
         art_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id, image_type='art_work').values_list('image', flat=True))
         style_dict = {'sku_code': manual_enq[0].sku.sku_code, 'style_name':  manual_enq[0].sku.sku_class,
                       'description': manual_enq[0].sku.sku_desc, 'images': enquiry_images,
-                      'category': manual_enq[0].sku.sku_category, 'art_images': art_images}
+                      'category': manual_enq[0].sku.sku_category, 'art_images': art_images, 'variants_qty': variants_qty_map}
+        enquiry_data = ManualEnquiryDetails.objects.filter(enquiry_id=manual_enq[0].enquiry_id, order_user_id=user_id)
         if request.user.id == long(user_id):
-            enquiry_data = ManualEnquiryDetails.objects.filter(enquiry_id=manual_enq[0].id,
-                                                               status__in=["", "reseller_pending"])
-        else:
-            enquiry_data = ManualEnquiryDetails.objects.filter(enquiry_id=manual_enq[0].id)
+            enquiry_data = enquiry_data.filter(status__in=["", "reseller_pending"])
         enquiry_dict = []
         enq_details = {}
         md_approved_details = {}
@@ -12850,7 +12849,7 @@ def get_manual_enquiry_detail(request, user=''):
                 expected_date = enquiry.expected_date.strftime('%Y-%m-%d')
             else:
                 expected_date = ''
-            user = UserProfile.objects.get(user=enquiry.user_id)
+            user = UserProfile.objects.get(user=enquiry.remarks_user_id)
             if user.user_type != 'customer':
                 if enquiry.status != 'approved' or enquiry.status == 'pending_approved':
                     enq_details = enquiry
@@ -12900,20 +12899,22 @@ def get_manual_enquiry_detail(request, user=''):
         wh_stock_list = []
         l1_users = wh_users.filter(userprofile__warehouse_level=1)
         for l1_user in l1_users:
-            wh_stock = get_quantity_data([l1_user.id], [manual_enq[0].sku.sku_code], True)
+            sku_variants = list(manual_enq.values_list('sku__sku_code', flat=True))
+            wh_stock = get_quantity_data([l1_user.id], sku_variants, True)
             if wh_stock:
-                wh_total = wh_stock[0]['available']
-                wh_res = wh_stock[0]['reserved']
-                if wh_total == 'No SKU':
-                    wh_total = 0
-                wh_open = wh_total - wh_res
-                if wh_open < 0:
-                    wh_open = 0
-                wh_blocked = wh_stock[0]['blocked']
-                intr_open = wh_stock[0]['asn']
-                intr_blocked = wh_stock[0]['asn_blocked']
-                wh_stock_list.append({'warehouse': l1_user.username, 'quantity': 0,
-                                      'wh_open': wh_open, 'wh_blocked': wh_blocked,
+                for x in wh_stock:
+                    wh_total = x['available']
+                    wh_res = x['reserved']
+                    if wh_total == 'No SKU':
+                        wh_total = 0
+                    wh_open = wh_total - wh_res
+                    if wh_open < 0:
+                        wh_open = 0
+                    wh_blocked = x['blocked']
+                    intr_open = x['asn']
+                    intr_blocked = x['asn_blocked']
+                    wh_stock_list.append({'warehouse': l1_user.username, 'quantity': 0,
+                                          'wh_open': wh_open, 'wh_blocked': wh_blocked,
                                       'intr_open': intr_open, 'intr_blocked': intr_blocked})
             else:
                 wh_stock_list.append({'warehouse': l1_user.username, 'quantity': 0,

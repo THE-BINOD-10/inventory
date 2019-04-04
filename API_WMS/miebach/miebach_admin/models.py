@@ -2818,7 +2818,8 @@ class ManualEnquiry(models.Model):
 
 class ManualEnquiryDetails(models.Model):
     id = BigAutoField(primary_key=True)
-    user_id = models.PositiveIntegerField()
+    remarks_user_id = models.PositiveIntegerField()
+    order_user_id = models.PositiveIntegerField()
     enquiry_id = models.DecimalField(max_digits=50, decimal_places=0)
     ask_price = models.FloatField(default=0)
     expected_date = models.DateField(blank=True, null=True)

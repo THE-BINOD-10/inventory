@@ -1,6 +1,6 @@
 <div class="mb10">
   <!-- <div class="detail-list" ng-init="order.labels = {'category': 'Category', 'sku_code': 'SKU Code', 'style_name': 'Style Name'}"> -->
-  <div class="detail-list" ng-init="order.labels = {'category': 'Category', 'style_name': 'Style Name'}">
+  <div class="detail-list" ng-init="order.labels = {'category': 'Category', 'style_name': 'Style Name', 'variants_qty': 'Variants-Qty'}">
     <div class="detail-item border-grey detail-bg-grey mb5">
       <h4><b>Order Details: #{{order.order_details.order.enquiry_id}}</b></h4>
       <div class="row no-margin">
@@ -12,7 +12,7 @@
         </div>
       </div>
       <!-- <div class="row no-margin" ng-repeat="name in ['style_name', 'sku_code', 'category']"> -->
-      <div class="row no-margin" ng-repeat="name in ['style_name', 'category']">
+      <div class="row no-margin" ng-repeat="name in ['style_name', 'category', 'variants_qty']">
         <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
           <span>{{order.labels[name]}}</span>
         </div>

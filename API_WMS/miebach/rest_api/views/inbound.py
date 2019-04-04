@@ -1938,30 +1938,30 @@ def close_po(request, user=''):
         user.username, str(request.POST.dict())))
     for i in range(0, len(myDict['id'])):
         if myDict['id'][i]:
-            if myDict['new_sku'][i] == 'true':
-                sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
-                if not sku_master or not myDict['id'][0]:
-                    continue
-                po_order = PurchaseOrder.objects.filter(id=myDict['id'][0])
-                if po_order:
-                    po_order_id = po_order[0].order_id
-                new_data = {'supplier_id': [myDict['supplier_id'][i]], 'wms_code': [myDict['wms_code'][i]],
-                            'order_quantity': [myDict['po_quantity'][i]], 'price': [myDict['price'][i]],
-                            'po_order_id': po_order_id}
-                if po_order.open_po:
-                    get_data = confirm_add_po(request, new_data)
-                    get_data = get_data.content
-                    myDict['id'][i] = get_data.split(',')[0]
-            if myDict['quantity'][i] and myDict['id'][i]:
-                status = confirm_grn(request, {'id': [myDict['id'][i]], 'quantity': [myDict['quantity'][i]]})
-                status = status.content
-            if 'Invalid' not in status:
-                status = ''
-                po = PurchaseOrder.objects.get(id=myDict['id'][i])
-                setattr(po, 'status', 'location-assigned')
-                if reason:
-                    po.reason = reason
-                po.save()
+            # if myDict['new_sku'][i] == 'true':
+            #     sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
+            #     if not sku_master or not myDict['id'][0]:
+            #         continue
+            #     po_order = PurchaseOrder.objects.filter(id=myDict['id'][0])
+            #     if po_order:
+            #         po_order_id = po_order[0].order_id
+            #     new_data = {'supplier_id': [myDict['supplier_id'][i]], 'wms_code': [myDict['wms_code'][i]],
+            #                 'order_quantity': [myDict['po_quantity'][i]], 'price': [myDict['price'][i]],
+            #                 'po_order_id': po_order_id}
+                #if po_order.open_po:
+                #    get_data = confirm_add_po(request, new_data)
+                #    get_data = get_data.content
+                #    myDict['id'][i] = get_data.split(',')[0]
+            #if myDict['quantity'][i] and myDict['id'][i]:
+            #    status = confirm_grn(request, {'id': [myDict['id'][i]], 'quantity': [myDict['quantity'][i]]})
+            #    status = status.content
+            # if 'Invalid' not in status:
+            status = ''
+            po = PurchaseOrder.objects.get(id=myDict['id'][i])
+            setattr(po, 'status', 'location-assigned')
+            if reason:
+                po.reason = reason
+            po.save()
 
     if status:
         return HttpResponse(status)

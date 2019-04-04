@@ -2314,7 +2314,7 @@ def picklist_confirmation(request, user=''):
     	    for integrate in check_store_hippo:
                 obj = eval(integrate.api_instance)(company_name=integrate.name, user=user.id)
                 storehippo_response = obj.storehippo_fulfill_orders(to_fulfill_list, user)
-                if storehippo_response['status']:
+                if storehippo_response.get('status', False):
                     storehippo_fulfillments_log.info('For User: ' + str(user.username) + ', Storehippo Order Confirm Response - ' + str(storehippo_response))
                 else:
                     storehippo_fulfillments_log.info('For User : ' + str(user.username) + ' ,' + str(alert_message_for_email) + ', Response - ' + str(storehippo_response))

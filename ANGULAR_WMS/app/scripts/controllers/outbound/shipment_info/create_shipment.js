@@ -474,6 +474,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
       event.stopPropagation();
       if (event.keyCode == 13 && imei.length > 0 && vm.scan_imei_readonly==false) {
         vm.scan_imei_readonly = true;
+        imei = imei.toUpperCase();
         if (vm.serial_numbers.indexOf(imei) != -1){
             vm.service.showNoty("IMEI Number Already Exist");
             vm.imei_number = "";
@@ -492,15 +493,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
           }
         if(!vm.model_data.data[0].serial_number.length)
           {
-           var check_imei_dict = {is_shipment: true, imei: imei, order_id: imei_order_id, groupby: vm.group_by}
+	   //var check_imei_dict = {is_shipment: true, imei: imei, order_id: imei_order_id, groupby: vm.group_by}
+	   var check_imei_dict = {is_shipment: true, imei: imei, groupby: vm.group_by}
            vm.service.apiCall('check_imei/', 'GET', check_imei_dict).then(function(data){
              if(data.message) {
+		vm.update_imei_data(data.data, imei);
+	       /*
                if (data.data.status == "Success") {
                  vm.update_imei_data(data.data, imei);
                 //vm.check_equal(data2);
                } else {
-                 vm.service.showNoty(data.data.status);
+                     vm.service.showNoty(data.data.status);
                }
+	       */
                vm.imei_number = "";
              }
              vm.scan_imei_readonly = false;
@@ -522,37 +527,40 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                             }
                         }
                }
+               vm.imei_number = "";
                vm.scan_imei_readonly = false;
             }
-
         }
       }
     }
 
     vm.update_imei_data = function(data, imei) {
-
+      imei = imei.toUpperCase();
       var status = false;
       var sku_status = false;
-      for(var i = 0; i < vm.model_data.data.length; i++) {
+      if (data.status != "Success") {
+        service.showNoty(data.status);
+	return false;
+      } else {
+        for(var i = 0; i < vm.model_data.data.length; i++) {
 
-        if(vm.model_data.data[i].sku__sku_code == data.data.sku_code) {
+          if(vm.model_data.data[i].sku__sku_code == data.data.sku_code) {
 
-          sku_status = true;
-          if(vm.model_data.data[i].picked > vm.model_data.data[i]['sub_data'][0].shipping_quantity) {
-            vm.model_data.data[i]['sub_data'][0].shipping_quantity += 1;
-            vm.model_data.data[i]['sub_data'][0].imei_list.push(imei);
-            vm.serial_numbers.push(imei);
-            status = true;
-            break;
+            sku_status = true;
+            if(vm.model_data.data[i].picked > vm.model_data.data[i]['sub_data'][0].shipping_quantity) {
+              vm.model_data.data[i]['sub_data'][0].shipping_quantity += 1;
+              vm.model_data.data[i]['sub_data'][0].imei_list.push(imei);
+              vm.serial_numbers.push(imei);
+              status = true;
+              break;
+            }
           }
         }
-      }
-      if(sku_status && (!status)) {
-
-        service.showNoty(data.data.sku_code+" SKU picked quantity equal shipped quantity");
-      } else if(!status) {
-
-        service.showNoty("Entered Imei Number Not Matched With Any SKU's");
+        if(sku_status && (!status)) {
+          service.showNoty(data.data.sku_code+" SKU picked quantity equal shipped quantity");
+        } else if(!status) {
+          service.showNoty("Entered Imei Number Not Matched With Any SKU's");
+        }
       }
     }
 

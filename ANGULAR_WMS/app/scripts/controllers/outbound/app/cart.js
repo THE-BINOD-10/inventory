@@ -220,7 +220,15 @@ vm.update_cartdata_for_approval = function() {
       } else {
         vm.order_data_insertion(data_dict);
       }
-    } else {
+    }else if(data_dict && data_dict.is_central_order){
+      if (!(vm.model_data.client_name_header)){
+        vm.service.showNoty("Project Name is mandatory")
+      } else if (!(vm.model_data.shipment_date)) {
+        vm.service.showNoty("The Shipment Date is Required. Please Select", "success", "bottomRight");
+      } else {
+        vm.order_data_insertion(data_dict);
+      }
+    }else {
       if (!(vm.model_data.shipment_date)) {
 
         vm.service.showNoty("The Shipment Date is Required. Please Select", "success", "bottomRight");

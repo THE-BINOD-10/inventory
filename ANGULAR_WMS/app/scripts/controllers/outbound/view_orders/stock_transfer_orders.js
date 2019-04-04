@@ -10,7 +10,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.selected = {};
     vm.selectAll = false;
     vm.bt_disable = true;
-
+    vm.collect_imei_data = {}
+    vm.get_id = ''
+    vm.record_serial_data = []
+    vm.industry_type = Session.user_profile.industry_type;
+    vm.user_type = Session.user_profile.user_type;
+  
     function getOS() {
       var userAgent = window.navigator.userAgent,
           platform = window.navigator.platform,
@@ -404,8 +409,53 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     }
 
+  vm.increament = function (record) {
+      record.scan = record.scan.toUpperCase()
+      record.picked_quantity = parseInt(record.picked_quantity) + 1;
+      vm.record_serial_data.shift()
+      if(vm.collect_imei_data.hasOwnProperty(vm.get_id)) {
+        vm.collect_imei_data[vm.get_id].push(record.scan)
+      } else {
+        vm.collect_imei_data[vm.get_id] = []
+        vm.collect_imei_data[vm.get_id].push(record.scan)
+      }
+      $("input[name=imei_"+vm.get_id+"]").prop('value', String(vm.collect_imei_data[vm.get_id]))
+      record.scan = '';
+    }
+
+	  vm.getrecordSerialnumber = function(rowdata) {
+      for(var i=0; i < vm.model_data.data.length; i++) {
+        if(vm.model_data.data[i].wms_code == rowdata.wms_code) {
+          if(!vm.model_data.data[i].hasOwnProperty('sku_imeis_map')) {
+            return false
+          }
+          if (vm.model_data.data[i]['sku_imeis_map'].hasOwnProperty(vm.model_data.data[i].wms_code)) {
+            angular.copy(vm.model_data.data[i]['sku_imeis_map'][vm.model_data.data[i].wms_code].sort(), vm.record_serial_data);
+          }
+        }
+      }
+      vm.record_serial_data = $.map(vm.record_serial_data, function(n,i){return n.toUpperCase();});
+      return true
+    }
+
     vm.serial_scan = function(event, scan, data, record) {
-      if ( event.keyCode == 13) {
+      if (event.keyCode == 13) {
+        scan = scan.toUpperCase();
+        var resp_data = vm.getrecordSerialnumber(data);
+        if (!resp_data) {
+          vm.service.showNoty("Serial Number Not Available For this SKU");
+          record.scan = '';
+          return false
+        }
+
+      if(vm.collect_imei_data.hasOwnProperty(data.id)) {
+        if ($.inArray(scan, vm.collect_imei_data[data.id]) != -1) {
+          vm.service.showNoty("Serial Number Already Scanned");
+          record.scan = '';
+          return false
+        }
+      }
+        vm.get_id = data.id
         var id = data.id;
         var total = 0;
         for(var i=0; i < data.sub_data.length; i++) {
@@ -417,22 +467,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         elem[id]= scan_data[length-1]
         if(total < data.reserved_quantity) {
           vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
-            if(data.message) {
-              if(data.data == "") {
-                record.picked_quantity = parseInt(record.picked_quantity) + 1;
-              } else {
-                pop_msg(data.data);
-                scan_data.splice(length-1,1);
-                record.scan = scan_data.join('\n');
-                record.scan = record.scan+"\n";
-              }
-            }
+          if(data.data.status == "Success") {
+      			vm.increament(record);
+		      } else {
+            Service.pop_msg(data.data.status);
+            record.scan = '';
+          }
           });
         } else {
           scan_data.splice(length-1,1);
           record.scan = scan_data.join('\n');
           record.scan = record.scan+"\n";
-          pop_msg("picked already equal to reserved quantity");
+          vm.service.showNoty("picked already equal to reserved quantity !");
+          record.scan = '';
         }
       }
     }

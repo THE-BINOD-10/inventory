@@ -1049,6 +1049,10 @@ var app = angular.module('urbanApp')
             url: '/ReceiveJobOrder',
             templateUrl: 'views/production/toggle/receive_job_order.html'
           })
+          .state('app.production.ReveiveJO.Rm', {
+            url: '/Rm',
+            templateUrl: 'views/production/toggle/rm_detail.html'
+          })
           .state('app.production.ReveiveJO.Print', {
             url: '/Print',
             templateUrl: 'views/production/print/job_order_sheet.html'
@@ -1198,6 +1202,9 @@ var app = angular.module('urbanApp')
                 return $ocLazyLoad.load(['scripts/controllers/stockLocator/move_inventory.js'
                 ]).then(function() {
                     return $ocLazyLoad.load(['scripts/controllers/stockLocator/auto_sellable.js'
+                  ])
+                }).then(function() {
+                    return $ocLazyLoad.load(['scripts/controllers/stockLocator/vendor_stock_transfer.js'
                   ])
                 });
               }]

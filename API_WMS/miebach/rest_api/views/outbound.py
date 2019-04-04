@@ -504,6 +504,7 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
         else:
             if tracking and tracking[0] in ['Delivered', 'Out for Delivery']:
                 continue
+        one_assist_qc_check = get_misc_value('dispatch_qc_check', user.id)
         central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
         if central_order_reassigning == 'true':
             if result.order_shipment.shipment_number:
@@ -514,6 +515,17 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
         else:
             total_orders = 0
             cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name, int(result.order_shipment.manifest_number), total_orders)
+        signed_copy = ''
+        if one_assist_qc_check == 'true':
+            order_detail = result.order
+            if order_detail:
+                pdf_obj = MasterDocs.objects.filter(master_id = order_detail.id)
+                if pdf_obj:
+                    signed_copy = '<label class="icon-check" style="font-size: 22px;color: #1fa21f;"></label>'
+                    cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name, int(result.order_shipment.manifest_number), total_orders, signed_copy)
+                else:
+                    signed_copy = '<label class="icon-cloud-upload" style="font-size: 22px;cursor: pointer;"><input type = "file" name="files" id="file-upload" style="display:none" file-uploadd single ng-click= "vm.uploaded_file_data('+"'"+str(result.id)+"'"+', '+"'"+'table'+"'"+');"/></label>'
+                    cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name, int(result.order_shipment.manifest_number), total_orders, signed_copy)
         all_data.setdefault(cond, 0)
         all_data[cond] += result.shipping_quantity
 
@@ -522,7 +534,7 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
     for key, value in all_data.iteritems():
         sno = sno+1
         temp_data['aaData'].append(
-            {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Serial Number' : sno,
+            {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Signed Invoice' : key[5], 'Serial Number' : sno,
              'Total Quantity': value, 'DT_RowClass': 'results'})
     sort_col = lis[col_num]
 
@@ -5660,7 +5672,63 @@ def random_number_check(manifest_number, user):
         random_number_check(manifest_number,user)
     return manifest_number
 
+@csrf_exempt
+@get_admin_user
+def get_under_taking_form(request, user=''):
+    id = request.POST.get('id', '')
+    original_order_id = request.POST.get('order_id', '')
+    imei = request.POST.get('serial_number', '')
+    shipment_detail = ShipmentInfo.objects.get(id=id)
+    order_detail = shipment_detail.order
+    admin_user = get_admin(user)
+    if admin_user.username in ['one_assist']:
+        if order_detail:
+            product_make = order_detail.sku.sku_brand
+            product_model = order_detail.sku.sku_code
+            customer_name = order_detail.customer_name
+        final_data = {'customer_name': customer_name, 'product_make': product_make,
+                     'product_model': product_model, 'imei': imei, 'date': ' '}
+        if final_data:
+            return render(request, 'templates/toggle/order_shipment_confirmation_form.html', final_data)
 
+def upload_signed_under_taking_form(request, user=''):
+    from masters import upload_master_file
+    user = request.user
+    shipment_id = request.POST.get('id', '')
+    pdf_file = request.FILES.get('pdf_file', '')
+    if not shipment_id and pdf_file:
+        return HttpResponse('Fields are missing.')
+    try:
+        shipment_detail = ShipmentInfo.objects.get(id=shipment_id)
+        order_detail = shipment_detail.order
+        if order_detail:
+            order_obj_id = order_detail.id
+            response = upload_master_file(request, user, order_obj_id, 'OneAssistSignedCopies', master_file=pdf_file)
+    except Exception as e:
+        log.info('Upload PDF is failed for user %s and params are %s and error statement is %s' % (
+            str(request.user.username), str(request.POST.dict()), str(e)))
+    if response == 'Uploaded Successfully':
+        return HttpResponse('Uploaded Successfully')
+
+def get_signed_oneassist_form(request, user=''):
+    shipment_id = request.POST.get('shipment_id', '')
+    if not shipment_id:
+        return HttpResponse('Fields are missing.')
+    try:
+        one_assist_pdf = []
+        shipment_detail = ShipmentInfo.objects.get(id=shipment_id)
+        order_detail = shipment_detail.order
+        if order_detail:
+            pdf_obj = MasterDocs.objects.filter(master_id = order_detail.id)
+            if pdf_obj:
+                images = list(pdf_obj.values_list('uploaded_file', flat=True))
+                one_assist_pdf.extend(images)
+            else:
+                return HttpResponse('Please Upload Signed Invoice Copy')
+    except Exception as e:
+        log.info('PDF is not Available for user %s and params are %s and error statement is %s' % (
+            str(request.user.username), str(request.POST.dict()), str(e)))
+    return HttpResponse(json.dumps({'data_dict': one_assist_pdf}))
 
 @csrf_exempt
 @get_admin_user

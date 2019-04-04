@@ -362,7 +362,6 @@
     <!-- This Division is enable for all login except one_assist -->
     <div class="row" style="padding-bottom:2%;" ng-if="!showCase.permissions.dispatch_qc_check" >
       <div class="col-md-6">
-        <h1>working..</h1>
         <input type="hidden" class="form-control" name="tax_type" value="{{showCase.model_data.tax_type}}" disabled>
         <button type="button" class="btn btn-primary" ng-if="!showCase.input_status" style="margin: auto;display: block;"
         ng-click="showCase.send_order_data(form)">Update </button>

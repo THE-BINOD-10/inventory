@@ -1668,15 +1668,20 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
                   "sku__user": user.id}
     reserved_dict = {'stock__sku_id': sku_id, 'stock__sku__user': user.id, 'status': 1,
                      'stock__location_id': source[0].id}
+    raw_reserved_dict = {'stock__sku_id': sku_id, 'stock__sku__user': user.id, 'status': 1,
+                         'stock__location_id': source[0].id}
     if batch_no:
         stock_dict["batch_detail__batch_no"] =  batch_no
         reserved_dict["stock__batch_detail__batch_no"] =  batch_no
+        raw_reserved_dict["stock__batch_detail__batch_no"] = batch_no
     if mrp:
         stock_dict["batch_detail__mrp"] = mrp
         reserved_dict["stock__batch_detail__mrp"] = mrp
+        raw_reserved_dict["stock__batch_detail__mrp"] = mrp
     if seller_id:
         stock_dict['sellerstock__seller_id'] = seller_id
         reserved_dict["stock__sellerstock__seller_id"] = seller_id
+        raw_reserved_dict["stock__sellerstock__seller_id"] = seller_id
     stocks = StockDetail.objects.filter(**stock_dict)
     if not stocks:
         return 'No Stocks Found'
@@ -1691,9 +1696,18 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
     reserved_quantity = \
     PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).aggregate(Sum('reserved'))[
         'reserved__sum']
-    if reserved_quantity:
-        if (stock_count - reserved_quantity) < float(quantity):
-            return 'Source Quantity reserved for Picklist'
+    raw_reserved_quantity = RMLocation.objects.exclude(stock=None).filter(**raw_reserved_dict). \
+        aggregate(Sum('reserved'))['reserved__sum']
+    if not reserved_quantity:
+        reserved_quantity = 0
+    if not raw_reserved_quantity:
+        raw_reserved_quantity = 0
+    avail_stock = stock_count - reserved_quantity - raw_reserved_quantity
+    if avail_stock < float(quantity):
+        return 'Quantity Exceeding available quantity'
+    # if reserved_quantity:
+    #     if (stock_count - reserved_quantity) < float(quantity):
+    #         return 'Source Quantity reserved for Picklist'
 
     stock_dict['location_id'] = dest[0].id
     dest_stocks = StockDetail.objects.filter(**stock_dict)

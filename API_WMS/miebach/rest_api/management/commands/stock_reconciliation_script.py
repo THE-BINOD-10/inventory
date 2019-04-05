@@ -252,10 +252,14 @@ class Command(BaseCommand):
 
                     #opening_stock = int(stock_qty) - (int(putaway_qty) + int(stock_upload_qty) + int(return_qty) + int(jo_qty) + int(picklist_qty) + int(rm_qty)) - int(inv_adjust_qty)
 
-		    opening_stock = int(stock_qty.get(sku, 0)) - (int(putaway_qty.get(sku, 0)) + int(stock_uploaded_qty.get(sku, 0)) + int(return_qty.get(sku, 0)) + int(jo_putaway_qty.get(sku, 0)) + int(picklist_qty.get(sku, 0)) + int(rm_picklist_qty.get(sku, 0))) - int(inv_adjust_qty.get(sku, 0)) + int(rtv_qty.get(sku, 0))
+		    opening_stock = int(stock_qty.get(sku, 0)) - (int(putaway_qty.get(sku, 0)) + int(stock_uploaded_qty.get(sku, 0)) + int(return_qty.get(sku, 0)) + int(jo_putaway_qty.get(sku, 0))) + int(picklist_qty.get(sku, 0) + int(rm_picklist_qty.get(sku, 0))) - int(inv_adjust_qty.get(sku, 0)) + int(rtv_qty.get(sku, 0))
                     import pdb;pdb.set_trace()
-		    stock_buy_price = float(stock_price.get(sku, ''))/float(stock_sku_count.get(sku, ''))
-		    stock_tax_value = float(stock_tax.get(sku, ''))/float(stock_sku_count.get(sku, ''))
+		    if opening_stock:
+		    	stock_buy_price = float(stock_price.get(sku, ''))/float(stock_sku_count.get(sku, ''))
+		    	stock_tax_value = float(stock_tax.get(sku, ''))/float(stock_sku_count.get(sku, ''))
+		    else:
+			stock_buy_price = 0
+			stock_tax_value = 0
 
                     if not stock_buy_price:
                         stock_buy_price = 0

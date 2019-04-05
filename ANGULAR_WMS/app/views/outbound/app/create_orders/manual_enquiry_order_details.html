@@ -267,7 +267,7 @@
               </thead>
               <tbody>
                 <tr>
-                  <td>Sample & Static SKU</td>
+                  <td ng-repeat="row in order.temp_sku_check">{{row}}</td>
                   <td width="30%" ng-repeat="row in data">
                     <input type="text" name="quantity" ng-model="row.quantity" ng-change="order.cal_wh_qty(row, data)" class="form-control ng-pristine" placeholder="Quantity" decimal-number>
                   </td>

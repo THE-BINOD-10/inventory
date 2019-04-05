@@ -332,6 +332,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
         if (data.data.status) {
           vm.order_details = data.data;
           vm.warehouse_data = vm.order_details.wh_stock_dict;
+          vm.calculate_warehouse_data(vm.warehouse_data)
           vm.tot_quantity = vm.order_details.order.quantity;
           if(vm.order_details.order.enq_status == "confirm_order" || vm.order_details.order.enq_status == 'hold_order'){
               vm.model_data.confirmed_price = vm.order_details.data[vm.order_details.data.length - 1].ask_price;
@@ -363,7 +364,22 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
 
     $modalInstance.close();
   }
-
+  vm.calculate_warehouse_data = function(data) {
+    angular.forEach(Object.keys(data), function(record){
+      vm.temp_sku_check = []
+      for (var i = 0; i < data[record].length; i++) {
+        if(i==0){
+          vm.temp_sku_check.push(data[record][i].sku_code)
+        } else {
+          for (var j = 0; j < vm.temp_sku_check.length; j++) {
+            if(data[record][i].sku_code != vm.temp_sku_check[j]){
+              vm.temp_sku_check.push(data[record][i].sku_code)
+            }
+          }
+        }
+      }
+    })
+  }
   vm.cal_wh_qty = function(wh_data, data){
     if (vm.tot_quantity) {
       var tem_total_qty = 0;

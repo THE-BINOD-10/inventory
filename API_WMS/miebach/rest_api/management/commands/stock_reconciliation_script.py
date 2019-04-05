@@ -97,6 +97,7 @@ class Command(BaseCommand):
         
             search_params = {}
             search_params['sku__user'] = user.id
+            search_params['quantity__gt'] = 0
             stock_data = StockDetail.objects.exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).filter(**search_params)
             stock_buy_price = dict(stock_data.values_list('sku__id').exclude(batch_detail=None).annotate(buy_price=Sum(F('batch_detail__buy_price'))))
             batch_detail_tax = dict(stock_data.values_list('sku__id').exclude(batch_detail=None).annotate(tax=Sum(F('batch_detail__tax_percent') * F('quantity') * F('batch_detail__buy_price') / 100)))
@@ -111,39 +112,9 @@ class Command(BaseCommand):
             industry_type = user.userprofile.industry_type
             for wms_code in get_all_skus:
                 sku_stock_obj = stock_data.filter(sku__id=wms_code)
-                for stock in sku_stock_obj:
-                    res_qty = PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id).aggregate(Sum('reserved'))['reserved__sum']
-                    raw_reserved = RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user.id, stock_id=stock.id).aggregate(Sum('reserved'))['reserved__sum']
-                    if not res_qty:
-                        res_qty = 0
-                    if raw_reserved:
-                        res_qty = float(res_qty) + float(raw_reserved)
-                    location = stock.location.location
-                    zone = stock.location.zone.zone
-                    pallet_number, batch, mrp, ean, weight = ['']*5
-                    buy_price = 0
-                    tax_percent = 0
-                    if industry_type == "FMCG" and stock.batch_detail:
-                        batch_detail = stock.batch_detail
-                        batch = batch_detail.batch_no
-                        mrp = batch_detail.mrp
-                        
-                        weight = batch_detail.weight
-                        if batch_detail.ean_number:
-                            ean = int(batch_detail.ean_number)
-                        buy_price = batch_detail.buy_price
-                        tax_percent = batch_detail.tax_percent
-
-                    cond = str((zone, location, pallet_number, batch, mrp, ean, weight))
-                    zones_data.setdefault(cond,
-                                          {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0,
-                                           'reserved_quantity': 0, 'batch': batch, 'mrp': mrp, 'ean': ean,
-                                           'weight': weight})
-                    zones_data[cond]['total_quantity'] += stock.quantity
-                    zones_data[cond]['reserved_quantity'] += res_qty
-                    available_quantity.setdefault(location, 0)
-                    available_quantity[location] += (stock.quantity - res_qty)
-                avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
+                avail_qty = sku_stock_obj.aggregate(Sum('quantity'))['quantity__sum']
+                if not avail_qty:
+                    avail_qty = 0
                 buy_price = stock_buy_price.get(wms_code, 0) * avail_qty
                 tax_total = batch_detail_tax.get(wms_code, 0)
                 data_dict = {}
@@ -268,7 +239,7 @@ class Command(BaseCommand):
                     opening_stock_check = StockReconciliation.objects.filter(**opening_stock_dict)
                     if opening_stock_check:
                         opening_stock_check = opening_stock_check[0]
-                        opening_stock_check.quantity = float(opening_stock) * float(stock_buy_price)
+                        opening_stock_check.quantity = float(opening_stock)
                         opening_stock_check.avg_rate = float(opening_stock) * float(stock_buy_price)
                         opening_stock_check.amount_before_tax = float(opening_stock) * float(stock_buy_price)
                         opening_stock_check.tax_rate = (float(stock_tax_percent) * int(opening_stock_check.quantity))/100
@@ -281,7 +252,7 @@ class Command(BaseCommand):
                         opening_stock_check.created_date = str(datetime.now().date())
                         opening_stock_check.save()
                     else:
-                        opening_stock_dict['quantity'] = float(opening_stock) * float(stock_buy_price)
+                        opening_stock_dict['quantity'] = float(opening_stock)
                         opening_stock_dict['avg_rate'] = float(opening_stock) * float(stock_buy_price)
                         opening_stock_dict['amount_before_tax'] = float(opening_stock) * float(stock_buy_price)
                         opening_stock_dict['tax_rate'] = (float(stock_tax_percent) * int(opening_stock_dict['quantity']))/100

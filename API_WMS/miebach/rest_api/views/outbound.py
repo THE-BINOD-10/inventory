@@ -13292,23 +13292,28 @@ def convert_customorder_to_actualorder(request, user=''):
         sku_id = enq_obj.sku.id
         sku_code = enq_obj.sku.sku_code
         title = enq_obj.sku.sku_desc
-        quantity = enq_obj.quantity
-        req_stock = quantity
+        #quantity = enq_obj.quantity
+        quantity = en_qs.aggregate(tot_qty=Sum('quantity'))
+        if quantity:
+            req_stock = quantity['tot_qty']
         corp_name = enq_obj.customer_name
         smd_price = enq_obj.smd_price
         if not smd_price:
             resp['msg'] = 'Fail'
             return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
-        ask_price_qs = enq_obj.manualenquirydetails_set.values_list('ask_price', flat=True).order_by('-id')
-        if ask_price_qs:
-            ask_price = ask_price_qs[0]
-        exp_date_qs = enq_obj.manualenquirydetails_set.values_list('expected_date', flat=True).order_by('-id')
-        if not exp_date_qs:
-            return HttpResponse("Some thing went wrong, please check with team")
-        else:
-            exp_date = exp_date_qs[0]
-            if exp_date < datetime.date.today():
-                exp_date = datetime.date.today()
+        #ask_price_qs = enq_obj.manualenquirydetails_set.values_list('ask_price', flat=True).order_by('-id')
+        man_det_qs = ManualEnquiryDetails.objects.filter(enquiry_id=enq_obj.enquiry_id, order_user_id=enq_obj.user.id)
+        if man_det_qs:
+            ask_price_qs = man_det_qs.values_list('ask_price', flat=True).order_by('-id')
+            if ask_price_qs:
+                ask_price = ask_price_qs[0]
+            exp_date_qs = man_det_qs.values_list('expected_date', flat=True).order_by('-id')
+            if not exp_date_qs:
+                return HttpResponse("Some thing went wrong, please check with team")
+            else:
+                exp_date = exp_date_qs[0]
+                if exp_date < datetime.date.today():
+                    exp_date = datetime.date.today()
 
         cust_qs = CustomerUserMapping.objects.filter(user_id=enq_obj.user)
         if not cust_qs:
@@ -13320,38 +13325,6 @@ def convert_customorder_to_actualorder(request, user=''):
         customer_name = cust_obj.customer.name
         dist_user_id = cust_obj.customer.user
         admin_user = get_priceband_admin_user(dist_user_id)
-
-        # source_whs = list(NetworkMaster.objects.filter(dest_location_code_id=dist_user_id).filter(
-        #     source_location_code__username__in=['DL01', 'MH01', 'KA02']).values_list(
-        #     'source_location_code_id', flat=True).order_by('lead_time', 'priority'))
-        # pick_filter_map = {'picklist__order__user__in': source_whs, 'picklist__order__sku__wms_code': sku_code}
-        # res_qtys = dict(PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(status=1).filter(
-        #     **pick_filter_map).values_list('stock__sku__user').annotate(total=Sum('reserved')))
-        # blocked_qtys = dict(EnquiredSku.objects.filter(sku__user__in=source_whs, sku_code=sku_code).filter(
-        #     ~Q(enquiry__extend_status='rejected')).values_list('sku__user', 'quantity'))
-        # stk_dtl_obj = dict(StockDetail.objects.filter(
-        #     sku__user__in=source_whs, sku__wms_code=sku_code, quantity__gt=0).values_list(
-        #     'sku__user').distinct().annotate(in_stock=Sum('quantity')))
-        # for source_wh in source_whs:
-        #     avail_stock = stk_dtl_obj.get(source_wh, 0)
-        #     res_stock = res_qtys.get(source_wh, 0)
-        #     blocked_stock = blocked_qtys.get(source_wh, 0)
-        #     if not res_stock:
-        #         res_stock = 0
-        #     if not blocked_stock:
-        #         blocked_stock = 0
-        #     avail_stock = avail_stock - res_stock - blocked_stock
-        #     if avail_stock <= 0:
-        #         continue
-        #     req_qty = req_stock - avail_stock
-        #     if req_qty < avail_stock and req_qty < 0:
-        #         stock_wh_map[source_wh] = avail_stock - abs(req_qty)
-        #         break
-        #     if req_qty >= 0:
-        #         stock_wh_map[source_wh] = avail_stock
-        #     else:
-        #         break
-        #     req_stock = req_qty
 
         dist_order_copy = {}
         customer_obj = CustomerMaster.objects.filter(id=cm_id)

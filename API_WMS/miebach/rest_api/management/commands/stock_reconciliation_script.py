@@ -215,7 +215,6 @@ class Command(BaseCommand):
 		rtv_count = dict(all_sku_stats.filter(transact_type='rtv').values_list('sku_id').distinct().annotate(quantity=Count('sku_id')))
 		
                 #rm_picklist_objs = dict(all_sku_stats.filter(transact_type='rm_picklist', quantity__gt=0).values_list('sku_id').distinct().annotate(quantity=Concat('quantity', Value('<<>>'), 'stock_detail__batch_detail__buy_price', Value('<<>>'), 'stock_detail__batch_detail__tax_percent', output_field=CharField())))
-		import pdb;pdb.set_trace()
                 seller_po_query = {}
                 seller_po_query['purchase_order__open_po__sku__id__in'] = sku_codes
                 seller_po_query['purchase_order__open_po__sku__user'] = user.id
@@ -253,7 +252,6 @@ class Command(BaseCommand):
                     #opening_stock = int(stock_qty) - (int(putaway_qty) + int(stock_upload_qty) + int(return_qty) + int(jo_qty) + int(picklist_qty) + int(rm_qty)) - int(inv_adjust_qty)
 
 		    opening_stock = int(stock_qty.get(sku, 0)) - (int(putaway_qty.get(sku, 0)) + int(stock_uploaded_qty.get(sku, 0)) + int(return_qty.get(sku, 0)) + int(jo_putaway_qty.get(sku, 0))) + int(picklist_qty.get(sku, 0) + int(rm_picklist_qty.get(sku, 0))) - int(inv_adjust_qty.get(sku, 0)) + int(rtv_qty.get(sku, 0))
-                    import pdb;pdb.set_trace()
 		    if opening_stock:
 		    	stock_buy_price = float(stock_price.get(sku, ''))/float(stock_sku_count.get(sku, ''))
 		    	stock_tax_value = float(stock_tax.get(sku, ''))/float(stock_sku_count.get(sku, ''))

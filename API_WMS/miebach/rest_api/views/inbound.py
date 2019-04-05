@@ -8378,7 +8378,8 @@ def create_rtv(request, user=''):
             date_val = date_val.replace('-', '')
             rtv_number = '%s%s-%s' % (rtv_prefix_code, date_val, rtv_no)
             for final_dict in data_list:
-                update_stock_detail(final_dict['stocks'], float(final_dict['quantity']), user)
+                import pdb;pdb.set_trace()
+                update_stock_detail(final_dict['stocks'], float(final_dict['quantity']), user, final_dict['rtv_id'])
                 #ReturnToVendor.objects.create(rtv_number=rtv_number, seller_po_summary_id=final_dict['summary_id'],
                 #                              quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
                 rtv_obj = ReturnToVendor.objects.get(id=final_dict['rtv_id'])

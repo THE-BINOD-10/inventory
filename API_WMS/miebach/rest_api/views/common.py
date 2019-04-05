@@ -8171,8 +8171,10 @@ def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty,
     log.info("Substitution Done For " + str(json.dumps(sub_data)))
 
 
-def update_stock_detail(stocks, quantity, user):
+def update_stock_detail(stocks, quantity, user, rtv_id):
+    import pdb;pdb.set_trace()
     for stock in stocks:
+        save_sku_stats(user, stock.sku.id, rtv_id, 'rtv', quantity, stock)
         if stock.quantity > quantity:
             stock.quantity -= quantity
             seller_stock = stock.sellerstock_set.filter()
@@ -8181,7 +8183,6 @@ def update_stock_detail(stocks, quantity, user):
             quantity = 0
             if stock.quantity < 0:
                 stock.quantity = 0
-            save_sku_stats(user, stock.sku.id, final_dict['rtv_id'], 'rtv', stock.quantity, stock)
             stock.save()
         elif stock.quantity <= quantity:
             quantity -= stock.quantity
@@ -8189,7 +8190,6 @@ def update_stock_detail(stocks, quantity, user):
             if seller_stock.exists():
                 change_seller_stock(seller_stock[0].seller_id, stock, user, stock.quantity, 'dec')
             stock.quantity = 0
-            save_sku_stats(user, stock.sku.id, final_dict['rtv_id'], 'rtv', stock.quantity, stock)
             stock.save()
         if quantity == 0:
             break

@@ -8172,7 +8172,6 @@ def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty,
 
 
 def update_stock_detail(stocks, quantity, user, rtv_id):
-    import pdb;pdb.set_trace()
     for stock in stocks:
         save_sku_stats(user, stock.sku.id, rtv_id, 'rtv', quantity, stock)
         if stock.quantity > quantity:

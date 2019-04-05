@@ -211,11 +211,11 @@ class Command(BaseCommand):
 		rm_picklist_count = dict(all_sku_stats.filter(transact_type='rm_picklist', quantity__gt=0).values_list('sku_id').distinct().annotate(quantity=Count('sku_id')))
                 rm_picklist_qty = dict(all_sku_stats.filter(transact_type='rm_picklist', quantity__gt=0).values_list('sku_id').distinct().annotate(quantity=Count('quantity')))
 
-		rtv_qty = dict(all_sku_stats.filter(transact_type='rtv', quantity__gt=0).values_list('sku_id').distinct().annotate(quantity=Count('quantity')))
-		rtv_count = dict(all_sku_stats.filter(transact_type='rtv', quantity__gt=0).values_list('sku_id').distinct().annotate(quantity=Count('sku_id')))
+		rtv_qty = dict(all_sku_stats.filter(transact_type='rtv').values_list('sku_id').distinct().annotate(quantity=Count('quantity')))
+		rtv_count = dict(all_sku_stats.filter(transact_type='rtv').values_list('sku_id').distinct().annotate(quantity=Count('sku_id')))
 		
                 #rm_picklist_objs = dict(all_sku_stats.filter(transact_type='rm_picklist', quantity__gt=0).values_list('sku_id').distinct().annotate(quantity=Concat('quantity', Value('<<>>'), 'stock_detail__batch_detail__buy_price', Value('<<>>'), 'stock_detail__batch_detail__tax_percent', output_field=CharField())))
-
+		import pdb;pdb.set_trace()
                 seller_po_query = {}
                 seller_po_query['purchase_order__open_po__sku__id__in'] = sku_codes
                 seller_po_query['purchase_order__open_po__sku__user'] = user.id

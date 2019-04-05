@@ -3711,19 +3711,19 @@ def get_order_summary_data(search_params, user, sub_user):
             serial_number = ''
         customer_name = data['customer_name']
         billing_address = shipping_address =  ''
+        if order_summary.exists():
+            shipping_address = order_summary[0].consignee
         customer_master_obj = CustomerMaster.objects.filter(user = user.id, name  = customer_name)
         gst_number = ''
         if customer_master_obj.exists():
             gst_number = customer_master_obj[0].tin_number
             billing_address = customer_master_obj[0].address
-            shipping_address = customer_master_obj[0].shipping_address
+            if not shipping_address :
+                shipping_address = customer_master_obj[0].shipping_address
         if not billing_address :
             billing_address = data['address']
-        if not shipping_address and order_summary.exists() :
-            shipping_address = order_summary[0].consignee
         if not shipping_address :
             shipping_address = billing_address
-
         aaData = OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                 ('Customer Name', customer_name),
                                                 ('Order Number' ,data['order_reference']),

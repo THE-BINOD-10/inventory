@@ -262,14 +262,14 @@
               <thead>
                 <tr>
                   <th>SKU Code</th>
-                  <th ng-repeat="row in data">{{row.warehouse}}</th>
+                  <th ng-repeat="row in order.unique_warehouses">{{row}}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td ng-repeat="row in order.temp_sku_check">{{row}}</td>
-                  <td width="30%" ng-repeat="row in data">
-                    <input type="text" name="quantity" ng-model="row.quantity" ng-change="order.cal_wh_qty(row, data)" class="form-control ng-pristine" placeholder="Quantity" decimal-number>
+                <tr ng-repeat="row in order.unique_warehouse_skucodes">
+                  <td>{{row}}</td>
+                  <td width="30%" ng-repeat="map in data" ng-if= "map.sku_code == row">
+                    <input type="text" name="quantity" ng-model="map.quantity" ng-change="order.cal_wh_qty(map, data)" class="form-control ng-pristine" placeholder="Quantity" decimal-number>
                   </td>
                 </tr>
               </tbody>

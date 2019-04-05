@@ -367,18 +367,17 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
   vm.calculate_warehouse_data = function(data) {
     angular.forEach(Object.keys(data), function(record){
       vm.temp_sku_check = []
+      vm.temp_warehouses=[]
       for (var i = 0; i < data[record].length; i++) {
-        if(i==0){
-          vm.temp_sku_check.push(data[record][i].sku_code)
-        } else {
-          for (var j = 0; j < vm.temp_sku_check.length; j++) {
-            if(data[record][i].sku_code != vm.temp_sku_check[j]){
-              vm.temp_sku_check.push(data[record][i].sku_code)
-            }
-          }
-        }
+        vm.temp_sku_check.push(data[record][i].sku_code)
+        vm.temp_warehouses.push(data[record][i].warehouse)
       }
     })
+    vm.unique_warehouse_skucodes = vm.temp_sku_check.filter( onlyUnique );
+    vm.unique_warehouses = vm.temp_warehouses.filter(onlyUnique);
+  }
+  function onlyUnique(value, index, self) { 
+    return self.indexOf(value) === index;
   }
   vm.cal_wh_qty = function(wh_data, data){
     if (vm.tot_quantity) {

@@ -12261,11 +12261,15 @@ def get_manual_enquiry_data(request, user=''):
         stop_index = int(index.split(':')[1])
     response_data = {'data': []}
     manual_qs = ManualEnquiry.objects.filter(user=request.user.id)
-    em_qs = manual_qs.values_list('enquiry_id', 'customer_name', 'status', 'sku__sku_class').distinct().annotate(total_qty=Sum('quantity'), date_only=Cast('creation_date', DateField()))
-    for enquiry in em_qs[start_index:stop_index]:
+    em_qs = manual_qs.values_list('enquiry_id', 'customer_name', 'status', 'sku__sku_class').distinct().\
+        annotate(total_qty=Sum('quantity'), date_only=Cast('creation_date', DateField())).order_by('-creation_date')
+    em_model_map = OrderedDict()
+    for enquiry in em_qs:
         enquiry_id, cust_name, status, sku_class, creation_date, total_qty = enquiry
-        #creation_date = get_only_date(request, creation_date)
-        #creation_date = ''
+        cond = (enquiry_id, cust_name, status, sku_class, creation_date)
+        em_model_map[cond] = total_qty
+    for k, v in em_model_map.items()[start_index:stop_index]:
+        enquiry_id, cust_name, status, sku_class, creation_date = k
         res_map = {'order_id': enquiry_id, 'customer_name': cust_name,
                    'date': creation_date,
                    'style_name': sku_class,

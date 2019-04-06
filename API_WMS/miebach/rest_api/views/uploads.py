@@ -6586,8 +6586,8 @@ def validate_custom_order_form(reader, user, no_of_rows, no_of_cols, fname, file
 def custom_order_xls_upload(request, reader, user, admin_user, no_of_rows, fname, file_type='xls', no_of_cols=0):
     log.info("Custom Order upload started")
     custom_order_file_mapping = copy.deepcopy(CUSTOM_ORDER_DEF_EXCEL)
-    #enquiry_id_map = {}
     custom_maps = {'Price Customization': 'price_custom', 'Price and Product Customization': 'price_product_custom'}
+    user_enq_map = dict(ManualEnquiry.objects.values_list('user', 'enquiry_id'))
     try:
         for row_idx in range(1, no_of_rows):
             if not custom_order_file_mapping:
@@ -6612,7 +6612,7 @@ def custom_order_xls_upload(request, reader, user, admin_user, no_of_rows, fname
                 elif key == 'quantity':
                     value = int(value)
                 elif key == 'customization_type':
-                    value = custom_maps.get(key, '')
+                    value = custom_maps.get(value, '')
                 manual_enquiry[key] = value
             manual_enquiry['status'] = 'new_order'
             for key, value in MANUAL_ENQUIRY_DETAILS_DICT.iteritems():
@@ -6635,16 +6635,19 @@ def custom_order_xls_upload(request, reader, user, admin_user, no_of_rows, fname
             #     return HttpResponse("Manual Enquiry Already Exists")
             res_id = User.objects.filter(username=each_row_map.get('reseller_name'))
             manual_enquiry['user_id'] = res_id[0].id
-            enq_qs = ManualEnquiry.objects.filter(user=res_id).order_by('-enquiry_id')
-            if enq_qs:
-                enq_id = int(enq_qs[0].enquiry_id) + 1
+            #enq_qs = ManualEnquiry.objects.filter(user=res_id).order_by('-enquiry_id')
+            enq_id = user_enq_map.get(res_id[0].id)
+            if enq_id:
+                enq_id = int(enq_id) + 1
             else:
                 enq_id = 10001
             manual_enquiry['enquiry_id'] = enq_id
             enq_data = ManualEnquiry(**manual_enquiry)
             enq_data.save()
-            manual_enquiry_details['enquiry_id'] = enq_data.id
-            manual_enquiry_details['user_id'] = res_id[0].id
+            manual_enquiry_details['enquiry_id'] = enq_id
+            #manual_enquiry_details['user_id'] = res_id[0].id
+            manual_enquiry_details['order_user_id'] = res_id[0].id
+            manual_enquiry_details['remarks_user_id'] = res_id[0].id  # Remarks mentioned by user in order placement
             manual_enq_data = ManualEnquiryDetails(**manual_enquiry_details)
             manual_enq_data.save()
             # admin_user = get_priceband_admin_user(user)

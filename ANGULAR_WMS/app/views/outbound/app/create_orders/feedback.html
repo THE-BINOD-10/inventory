@@ -1,0 +1,156 @@
+<style>
+  div.dyn_imgs {
+    float: left;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    width: 210px;
+    height: 150px;
+    max-width: 200px;
+    overflow: hidden;
+  }
+  .dyn_imgs img {
+    cursor: pointer;
+    min-height: 100%;
+  }
+</style>
+<div class="clearfix render-items" ng-controller="feedBackForm as feedback" style="padding-top: 20px;">
+  <div class="row style-menu" style="height: 60px;position: absolute;top:0px;width:100%;z-index:100">
+    <div class="col-md-4 col-sm-4 col-xs-4">
+      <div class="menu-left" style="line-height: 60px" ng-if="!(showCase.is_portal_lite)">
+        <span ng-click="$state.go('user.App.Brands');showCase.showFilter = false;"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
+        <span ng-click="showCase.change_brand(showCase.brand)" title="Go to Brand Page">Back</span>
+      </div>
+      <div class="menu-left" style="line-height: 60px" ng-if="showCase.is_portal_lite">
+        <span ng-click="$state.go('user.App.newStyle');showCase.showFilter = false;"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
+        <span ng-click="$state.go('user.App.newStyle')" title="Go to Styles Page">Back</span>
+      </div>
+    </div>
+    <div class="col-md-4 col-sm-4 col-xs-4 brand-title">
+      <img ng-src="images/brands/{{showCase.brands_logos[showCase.brand]}}" ng-if="showCase.brands_logos[showCase.brand]" style="height: 60px;"/>
+      <h3 style="margin-top:10px;overflow: hidden;text-overflow: ellipsis;white-space: nowrap;" ng-if="!(showCase.brands_logos[showCase.brand])">{{showCase.brand}}</h3>
+    </div>
+    <div class="col-md-4 col-sm-4 col-xs-4">
+      <div class="btn-group pull-right" role="group">
+        <a class="" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <i class="fa fa-user fa-2x" style="color:#fff;padding-right: 10px;padding-top: 10px;"></i>
+        </a>
+        <ul class="dropdown-menu">
+          <li><a ng-click="$state.go('user.App.MyOrders');showCase.get_orders();">Your Orders</a></li>
+          <li><a ng-click="$state.go('user.App.Profile')">Profile</a></li>
+          <li ng-if="!(showCase.is_portal_lite)"><a ng-click="$state.go('user.App.ManualEnquiry');">Create Custom Order</a></li>
+          <li ng-if="showCase.permissions.display_sku_cust_mapping && showCase.is_portal_lite"><a ng-click="$state.go('user.App.PendingOrder');">Pending Orders</a></li>
+          <li><a ng-click="showCase.logout()">Logout</a></li>
+        </ul>
+      </div>
+      <a ng-if="!(showCase.is_portal_lite)" class="hide fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 10px;" ng-click="showCase.logout()"></a>
+      <a ng-if="!(showCase.is_portal_lite)" href="" class="pull-right" ng-click="$state.go('user.App.Cart')">
+        <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 10px;" title="Go To Cart Page"></i>
+      </a>
+    </div>
+  </div>
+  <div class="app_body" scrolly="showCase.scroll(e)" style="position: relative">
+    <div class="row search-items mt15 search-box">
+      <div class="col-md-4 col-md-offset-4">
+        <div class="row" style="background: linear-gradient(60deg,#9ec53f,#0a3a0c)!important;border-radius: 100px;">
+          <div align="center"><b><h4 style="color: aliceblue;">FeedBack Form</h4></b></div>
+        </div>
+        <form name="form" role="form" id="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+          <div class="row mt20">
+
+            <div class="row">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label class="control-label"> Select FeedBack Type *</label>
+                  <select ng-model="feedback.model_data.feedbackType" class="form-control" name="feedbackType" ng-required="true">
+                    <option ng-selected="feedback.feedBackType == ''" value="">None</option>
+                    <option ng-repeat="type in feedback.feedBackType" value="{{type}}">{{type}}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="row" ng-if="feedback.model_data.feedbackType == 'Product Complaint'">
+              <div class="col-md-12">
+                <label class="control-label">Choose SKU * </label><i ng-if="feedback.styles_loading" class="fa fa-spinner fa-spin fa-1x fa-fw mt5" style="background-color: white;color: #087508;"></i>
+              </div>
+              <div class="col-md-12">
+                <div class="form-group">
+                  <select ui-select2 class="form-control sku-id-select"
+                       name="choose_stype"
+                       ng-model="feedback.model_data.sku_id"
+                       ng-required="true">
+                      <option ng-selected="feedback.style == ''" value="">None</option>
+                      <option ng-repeat="style in feedback.styles" ng-selected="feedback.model_data.sku_id == style.sku_class" value="{{style.sku_class}}">{{style.sku_class}}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="row" ng-if="feedback.model_data.feedbackType == 'Product Suggestion'">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label class="control-label">SKU </label>
+                  <input type="text" name="sku" class="form-control namevalid" ng-model="feedback.model_data.sku">
+                </div>
+              </div>
+            </div>
+
+            <div class="row" ng-if="feedback.model_data.feedbackType == 'Product Feedback'">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label class="control-label">SKU * </label>
+                  <input type="text" name="sku" class="form-control namevalid" ng-model="feedback.model_data.sku" ng-required="true">
+                </div>
+              </div>
+            </div>
+
+            <div class="row" ng-if="feedback.model_data.feedbackType == 'Technical Support'">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label class="control-label">URL Name </label>
+                  <input type="text" name="sku" class="form-control namevalid" ng-model="feedback.model_data.url">
+                </div>
+              </div>
+            </div>
+
+            <div class="row" ng-if="feedback.model_data.feedbackType == 'Product Complaint' || feedback.model_data.feedbackType == 'Product Suggestion' || feedback.model_data.feedbackType == 'Technical Support' || feedback.model_data.feedbackType == 'Product Feedback' || feedback.model_data.feedbackType == 'Others'">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label ng-if="feedback.model_data.feedbackType == 'Product Complaint'" class="control-label">Complaint * </label>
+                  <label ng-if="feedback.model_data.feedbackType == 'Product Suggestion'" class="control-label">Suggestion * </label>
+                  <label ng-if="feedback.model_data.feedbackType == 'Technical Support'" class="control-label"> Issue Description * </label>
+                  <label ng-if="feedback.model_data.feedbackType == 'Product Feedback'" class="control-label"> Feedback * </label>
+                  <label ng-if="feedback.model_data.feedbackType == 'Others'" class="control-label"> Remarks * </label>
+                  <textarea rows="3" class="form-control" cols="27" ng-model="feedback.model_data.remarks" name="remarks" ng-required="true"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group" ng-show="feedback.model_data.feedbackType == 'Product Complaint' || feedback.model_data.feedbackType == 'Product Suggestion'">
+              <!-- <label class="col-sm-5 col-xs-5 control-label">Choose Images </label> -->
+              <div class="col-sm-3 col-xs-5">
+                <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 250px;">Choose File
+                  <input type="file" style="position: absolute; top: 0; right: 0; min-width: 100%; min-height: 100%; font-size: 100px; text-align: right; filter: alpha(opacity=0); opacity: 0; outline: none; background: white; cursor: inherit; display: block" class="btn btn-primary" type = "file" name="files" id="image-upload" multi-image-upload multiple/>
+                </span>
+              </div>
+            </div>
+            <div class="row form-group">
+              <div class="col-lg-2 col-md-2"></div>
+              <div class="col-lg-8 col-md-8 col-sm-12 col-xs-12 multi_imgs_display" style="margin-top: 30px;"></div>
+              <div class="col-lg-2 col-md-2"></div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-12 mt10">
+                <div class="form-group pull-right">
+                  <button type="submit" class="btn btn-danger" ng-click="feedback.clearFiles()">CANCEL</button>
+                  <button type="submit" class="btn btn-success" ng-click="feedback.submit(form)">SUBMIT </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

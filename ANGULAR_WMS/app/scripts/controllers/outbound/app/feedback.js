@@ -21,7 +21,6 @@ function feedBackForm($scope, $http, $q, Session, colFilters, Service, $state, $
   });
 
   vm.base = function(){
-    // vm.feedBackType()
     var send = {'user_id':vm.user_id};
     Service.apiCall("get_cust_profile_info/", "POST", send).then(function(data){
       if(data.message) {
@@ -40,9 +39,6 @@ function feedBackForm($scope, $http, $q, Session, colFilters, Service, $state, $
     vm.feedBackType = ['Product Complaint', 'Product Suggestion', 'Technical Support', 'Product Feedback', 'Others']
   }
   vm.base();
-  // vm.feedBackType = function(){
-  //   console.log('ok')
-  // }
   vm.logo_loading = false;
   vm.submit = function(form){
     vm.temp_images_files =[]
@@ -117,7 +113,6 @@ function feedBackForm($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.upload_name = [];
   $scope.$on("fileSelected", function (event, args) {
     $scope.$apply(function () {
-      // readURL(this);
       vm.upload_name = [];
       if (args.msg == 'success') {
         angular.forEach(args.file, function(data){

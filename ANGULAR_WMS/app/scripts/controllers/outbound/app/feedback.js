@@ -51,14 +51,15 @@ function feedBackForm($scope, $http, $q, Session, colFilters, Service, $state, $
       if (el.length) {
         var files = el[0].files;
       }
-
       $.each(files, function(i, file) {
-        vm.temp_images_files.push(file)
+        formData.append('files-' + i, file);
       });
-      elem.push({name:'uploaded_images', value:vm.temp_images_files})
+      $.each(elem, function(i, val) {
+          formData.append(val.name, val.value);
+      });
       $.ajax({url:Session.url+"update_feedback_form/",
                method:"POST",
-               data:elem,
+               data:formData,
                processData : false,
                contentType : false,
                xhrFields: {

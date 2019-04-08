@@ -76,7 +76,7 @@
               <div class="col-md-12">
                 <div class="form-group">
                   <select ui-select2 class="form-control sku-id-select"
-                       name="choose_stype"
+                       name="SKU"
                        ng-model="feedback.model_data.sku_id"
                        ng-required="true">
                       <option ng-selected="feedback.style == ''" value="">None</option>
@@ -88,18 +88,33 @@
 
             <div class="row" ng-if="feedback.model_data.feedbackType == 'Product Suggestion'">
               <div class="col-md-12">
+                <label class="control-label">Choose SKU</label><i ng-if="feedback.styles_loading" class="fa fa-spinner fa-spin fa-1x fa-fw mt5" style="background-color: white;color: #087508;"></i>
+              </div>
+              <div class="col-md-12">
                 <div class="form-group">
-                  <label class="control-label">SKU </label>
-                  <input type="text" name="sku" class="form-control namevalid" ng-model="feedback.model_data.sku">
+                  <select ui-select2 class="form-control  sku-id-select"
+                       name="SKU"
+                       ng-model="feedback.model_data.sku_id">
+                      <option ng-selected="feedback.style == ''" value="">None</option>
+                      <option ng-repeat="style in feedback.styles" ng-selected="feedback.model_data.sku_id == style.sku_class" value="{{style.sku_class}}">{{style.sku_class}}</option>
+                  </select>
                 </div>
               </div>
             </div>
 
             <div class="row" ng-if="feedback.model_data.feedbackType == 'Product Feedback'">
               <div class="col-md-12">
+                <label class="control-label">Choose SKU * </label><i ng-if="feedback.styles_loading" class="fa fa-spinner fa-spin fa-1x fa-fw mt5" style="background-color: white;color: #087508;"></i>
+              </div>
+              <div class="col-md-12">
                 <div class="form-group">
-                  <label class="control-label">SKU * </label>
-                  <input type="text" name="sku" class="form-control namevalid" ng-model="feedback.model_data.sku" ng-required="true">
+                  <select ui-select2 class="form-control sku-id-select"
+                       name="SKU"
+                       ng-model="feedback.model_data.sku_id"
+                       ng-required="true">
+                      <option ng-selected="feedback.style == ''" value="">None</option>
+                      <option ng-repeat="style in feedback.styles" ng-selected="feedback.model_data.sku_id == style.sku_class" value="{{style.sku_class}}">{{style.sku_class}}</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -130,7 +145,7 @@
               <!-- <label class="col-sm-5 col-xs-5 control-label">Choose Images </label> -->
               <div class="col-sm-3 col-xs-5">
                 <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 250px;">Choose File
-                  <input type="file" style="position: absolute; top: 0; right: 0; min-width: 100%; min-height: 100%; font-size: 100px; text-align: right; filter: alpha(opacity=0); opacity: 0; outline: none; background: white; cursor: inherit; display: block" class="btn btn-primary" type = "file" name="files" id="image-upload" multi-image-upload multiple/>
+                  <input type="file" style="position: absolute; top: 0; right: 0; min-width: 100%; min-height: 100%; font-size: 100px; text-align: right; filter: alpha(opacity=0); opacity: 0; outline: none; background: white; cursor: inherit; display: block" class="btn btn-primary" type = "file" name="files" id="image-upload" multi-image-upload single/>
                 </span>
               </div>
             </div>

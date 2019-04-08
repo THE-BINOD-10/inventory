@@ -446,7 +446,7 @@ def get_search_params(request, user=''):
     search_params = {}
     filter_params = {}
     headers = []
-    date_fields = ['from_date', 'to_date','invoice_date']
+    date_fields = ['from_date', 'to_date','invoice_date','creation_date']
     data_mapping = {'start': 'start', 'length': 'length', 'draw': 'draw', 'search[value]': 'search_term',
                     'order[0][dir]': 'order_term',
                     'order[0][column]': 'order_index', 'from_date': 'from_date', 'to_date': 'to_date',
@@ -458,7 +458,7 @@ def get_search_params(request, user=''):
                     'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage', 'jo_code': 'jo_code',
                     'sku_class': 'sku_class', 'sku_size': 'sku_size',
                     'order_report_status': 'order_report_status', 'customer_id': 'customer_id',
-                    'imei_number': 'imei_number',
+                    'imei_number': 'imei_number','creation_date':'creation_date',
                     'order_id': 'order_id', 'job_code': 'job_code', 'job_order_code': 'job_order_code',
                     'fg_sku_code': 'fg_sku_code', 'invoice':'invoice',
                     'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet','invoice_date':'invoice_date',
@@ -498,7 +498,7 @@ def get_search_params(request, user=''):
             search_params[data_mapping[key]] = value
     #pos extra headers
     if user:
-        headers.extend(["Order Taken By", "Payment Cash", "Payment Card"])
+        headers.extend(["Order Taken By", "Payment Cash", "Payment Card","Payment PhonePe","Payment GooglePay","Payment Paytm"])
         extra_fields_obj = MiscDetail.objects.filter(user=user.id, misc_type__icontains="pos_extra_fields")
         for field in extra_fields_obj:
             tmp = field.misc_value.split(',')
@@ -1668,15 +1668,20 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
                   "sku__user": user.id}
     reserved_dict = {'stock__sku_id': sku_id, 'stock__sku__user': user.id, 'status': 1,
                      'stock__location_id': source[0].id}
+    raw_reserved_dict = {'stock__sku_id': sku_id, 'stock__sku__user': user.id, 'status': 1,
+                         'stock__location_id': source[0].id}
     if batch_no:
         stock_dict["batch_detail__batch_no"] =  batch_no
         reserved_dict["stock__batch_detail__batch_no"] =  batch_no
+        raw_reserved_dict["stock__batch_detail__batch_no"] = batch_no
     if mrp:
         stock_dict["batch_detail__mrp"] = mrp
         reserved_dict["stock__batch_detail__mrp"] = mrp
+        raw_reserved_dict["stock__batch_detail__mrp"] = mrp
     if seller_id:
         stock_dict['sellerstock__seller_id'] = seller_id
         reserved_dict["stock__sellerstock__seller_id"] = seller_id
+        raw_reserved_dict["stock__sellerstock__seller_id"] = seller_id
     stocks = StockDetail.objects.filter(**stock_dict)
     if not stocks:
         return 'No Stocks Found'
@@ -1691,9 +1696,18 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
     reserved_quantity = \
     PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).aggregate(Sum('reserved'))[
         'reserved__sum']
-    if reserved_quantity:
-        if (stock_count - reserved_quantity) < float(quantity):
-            return 'Source Quantity reserved for Picklist'
+    raw_reserved_quantity = RMLocation.objects.exclude(stock=None).filter(**raw_reserved_dict). \
+        aggregate(Sum('reserved'))['reserved__sum']
+    if not reserved_quantity:
+        reserved_quantity = 0
+    if not raw_reserved_quantity:
+        raw_reserved_quantity = 0
+    avail_stock = stock_count - reserved_quantity - raw_reserved_quantity
+    if avail_stock < float(quantity):
+        return 'Quantity Exceeding available quantity'
+    # if reserved_quantity:
+    #     if (stock_count - reserved_quantity) < float(quantity):
+    #         return 'Source Quantity reserved for Picklist'
 
     stock_dict['location_id'] = dest[0].id
     dest_stocks = StockDetail.objects.filter(**stock_dict)
@@ -9147,4 +9161,3 @@ def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
         log.debug(traceback.format_exc())
         log.info('Create order extra fields failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(extra_order_fields), str(e)))
-

@@ -28,7 +28,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'mark_as_delivered': false, 'order_exceed_stock': false, 'receive_po_mandatory_fields': false,
                     'sku_pack_config': false, 'central_order_reassigning':false, 'po_sub_user_prefix': false,
                     'combo_allocate_stock': false, 'sno_in_invoice': false, 'unique_mrp_putaway': false,
-                    'generate_delivery_challan_before_pullConfiramation':false,
+                    'generate_delivery_challan_before_pullConfiramation':false,'pos_remarks' :'',
                     'rtv_prefix_code': false
                   };
   vm.all_mails = '';
@@ -53,7 +53,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      71: 'order_exceed_stock',72:'invoice_declaration',73:'central_order_reassigning',
                      74: 'sku_pack_config', 75: 'po_sub_user_prefix', 76: 'combo_allocate_stock', 77:'sno_in_invoice', 78:'raisepo_terms_conditions',
                      79: 'generate_delivery_challan_before_pullConfiramation', 80: 'unique_mrp_putaway',
-                     81: 'rtv_prefix_code'}
+                     81: 'rtv_prefix_code',82:'pos_remarks'}
 
   vm.check_box_data = [
     {
@@ -621,6 +621,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $('#my-select').multiSelect();
       vm.getRemarks(vm.model_data.invoice_remarks)
       vm.getDeclaration(vm.model_data.invoice_declaration)
+      vm.getPosremarks(vm.model_data.pos_remarks)
       vm.getRaisePOterms(vm.model_data.raisepo_terms_conditions)
     }
   })
@@ -991,6 +992,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     vm.switches(data, 72);
     Auth.status();
   }
+  vm.update_pos_remarks= function(pos_remarks) {
+
+    var data = $("[name='pos_remarks']").val().split("\n").join("<<>>");
+    vm.switches(data, 82);
+    Auth.status();
+  }
   vm.raise_po_terms_conditions = function(raisepo_terms_conditions) {
     var data = $("[name='raisepo_terms_conditions']").val().split("\n").join("<<>>");
     vm.switches(data, 78);
@@ -1014,6 +1021,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $("[name='invoice_declaration']").val( declaration.split("<<>>").join("\n") )
     } else {
       $("[name='invoice_declaration']").val( declaration );
+    }
+    }, 1000);
+  }
+  vm.getPosremarks= function(pos_remarks) {
+
+    $timeout(function() {
+    if(pos_remarks && pos_remarks.split("<<>>").length > 1) {
+      $("[name='pos_remarks']").val( pos_remarks.split("<<>>").join("\n") )
+    } else {
+      $("[name='pos_remarks']").val( pos_remarks );
     }
     }, 1000);
   }

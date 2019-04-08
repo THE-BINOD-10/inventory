@@ -109,6 +109,7 @@ function feedBackForm($scope, $http, $q, Session, colFilters, Service, $state, $
     vm.model_data.sku = '';
     vm.model_data.url = '';
     vm.model_data.remarks = ''
+    vm.model_data.sku_id = ''
   }
 
   vm.upload_name = [];

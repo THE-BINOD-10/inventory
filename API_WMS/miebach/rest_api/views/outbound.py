@@ -14545,7 +14545,7 @@ def do_delegate_orders(request, user=''):
                             order_dict['address'] = customer_user[0].customer.address
 
                     #Order Detail Save Block
-                    original_order_id, address1, address2, client_code, village, state, pincode = '', '', '', '', '', '', ''
+                    original_order_id, address1, address2, client_code, village, state,marketplace, pincode = '','', '', '', '', '', '', ''
                     central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)#for 72 networks
 
                     if central_order_reassigning :
@@ -14569,6 +14569,8 @@ def do_delegate_orders(request, user=''):
                             state = obj['value']
                         if obj['name'] == "pincode":
                             pincode = obj['value']
+                        if obj['name'] == 'marketplace':
+                            marketplace = obj['value']
                     order_dict['customer_id'] = interm_obj.customer_id
                     order_dict['customer_name'] = interm_obj.customer_name
                     order_dict['email_id'] = ''
@@ -14577,11 +14579,11 @@ def do_delegate_orders(request, user=''):
                     order_dict['quantity'] = 1
                     order_dict['invoice_amount'] = inv_amt
                     order_dict['shipment_date'] = datetime.datetime.now()
-                    order_dict['marketplace'] = ''
                     order_dict['vat_percentage'] = 0
                     order_dict['status'] = 0
                     order_dict['city'] = village[:59]
                     order_dict['state'] = state
+                    order_dict['marketplace'] = marketplace
                     try:
                         order_dict['pin_code'] = int(pincode)
                     except:
@@ -14979,4 +14981,3 @@ def get_order_extra_fields(request , user =''):
     if not order_field_obj == 'false':
         extra_order_fields = order_field_obj.split(',')
     return HttpResponse(json.dumps({'data':extra_order_fields }))
-

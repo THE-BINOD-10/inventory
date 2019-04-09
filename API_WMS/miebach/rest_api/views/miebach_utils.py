@@ -809,10 +809,11 @@ ENQUIRY_STATUS_REPORT = {
         {'label': 'Level', 'name': 'level', 'type': 'input'},
         {'label': 'Aging Period', 'name': 'aging_period', 'type': 'input'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label': 'Warehouse Level', 'name': 'warehouse_level', 'type': 'input'},
         {'label': 'Enquiry Status', 'name': 'enquiry_status', 'type': 'select'},
     ],
     'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
-                   'Enquiry No', 'Level', 'Enquiry Aging', 'Enquiry Status'],
+                   'Level','Enquiry No', 'Enquiry Aging', 'Enquiry Status'],
     'dt_url': 'get_enquiry_status_report', 'excel_name': 'get_enquiry_status_report',
     'dt_unsort': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
                    'Enquiry No', 'Level', 'Enquiry Aging', 'Enquiry Status'],
@@ -5728,6 +5729,8 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         search_parameters['enquiry__enquiry_id__contains'] = search_params['enquiry_number']
     if 'sku_code' in search_params:
         search_parameters['sku__sku_code'] = search_params['sku_code']
+    if 'warehouse_level' in search_params:
+        search_parameters['warehouse_level'] = search_params['warehouse_level']
     if 'aging_period' in search_params:
         try:
             aging_period = int(search_params['aging_period'])
@@ -5774,6 +5777,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
                                 ('Product Category', prod_catg),
                                 ('SKU Code', sku_code),
                                 ('SKU Quantity', quantity),
+                                ('Warehouse Level',warehouse_level),
                                 ('Enquiry No', enq_id),
                                 ('Level', warehouse_level),
                                 ('Enquiry Aging', days_left),

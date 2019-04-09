@@ -541,7 +541,7 @@ data_datatable = {  # masters
     'CustomerInvoicesTab': 'get_customer_invoice_tab_data', 'SellerOrderView': 'get_seller_order_view', \
     'StockTransferInvoice' : 'get_stock_transfer_invoice_data', \
     'MyOrdersTbl' : 'get_customer_orders',\
-    'MarketEnqTbl': 'get_enquiry_data',\
+    'MarketEnqTbl': 'get_enquiry_data', 'CustomOrdersTbl': 'get_manual_enquiry_data',\
     'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
     # retail one
     'channels_list': 'get_marketplace_data',

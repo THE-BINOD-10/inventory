@@ -11096,7 +11096,7 @@ def insert_enquiry_data(request, user=''):
     return HttpResponse(message)
 
 
-#@get_admin_user
+# @get_admin_user
 def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     # index = request.GET.get('index', '')
     #import pdb;pdb.set_trace()
@@ -11151,25 +11151,33 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
         temp_data['aaData'].append(OrderedDict(
             (('Enquiry ID', enq_id),('Date',get_only_date(request, em_qs.filter(enquiry_id=enq_id)[0].creation_date)),
             ('Quantity',total_qty[enq_id]), ('Amount',each_total_inv_amt), ('Days Left', days_left),('Corporate Name',corp_name))))
+        temp_data['recordsTotal'] = em_vals.count()
+        temp_data['recordsFiltered'] = temp_data['recordsTotal']
         #response_data['data'].append(res_map)
     #return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))'''
 
-@get_admin_user
+# @get_admin_user
 def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-     #import pdb;pdb.set_trace()
-    # index = request.GET.get('index', '')
-    # start_index, stop_index = 0, 20
-    # if index:
-    #     start_index = int(index.split(':')[0])
-    #     stop_index = int(index.split(':')[1])
+    lis = ['enquiry_id','creation_date','customer_name','sku__sku_class','sku__sku_code']
+    search_params = get_filtered_params(filters, lis)
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
     response_data = {'data': []}
-    em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by('-id')
+    if search_term:
+        em_qs = ManualEnquiry.objects.filter(Q(enquiry_id__icontains=search_term)| Q(creation_date__regex=search_term)| Q(customer_name__icontains=search_term)
+            | Q(sku__sku_class__icontains=search_term) | Q(sku__sku_code__icontains=search_term)).order_by(order_data)
+    else:    
+        em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by(order_data)
     for enquiry in em_qs[start_index:stop_index]:
         res_map = {'order_id': enquiry.enquiry_id, 'customer_name': enquiry.customer_name,
                    'date': get_only_date(request, enquiry.creation_date),
                    'sku_code': enquiry.sku.sku_code, 'style_name': enquiry.sku.sku_class}
-        response_data['data'].append(res_map)
-    return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
+        temp_data['aaData'].append(OrderedDict(
+            (('Enquiry ID', float(enquiry.enquiry_id)), ('Enquiry Date', get_only_date(request, enquiry.creation_date)),
+              ('Customer Name', enquiry.customer_name), ('Style Name', enquiry.sku.sku_class), ('SKU Code', enquiry.sku.sku_code))))
+        temp_data['recordsTotal'] = em_qs.count()
+        temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
 @get_admin_user
 def get_customer_enquiry_detail(request, user=''):

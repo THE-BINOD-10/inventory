@@ -1,8 +1,8 @@
-<div class="panel" ng-controller="CustomOrdersTbl as showCase">
+<div class="panel" ng-controller="CustomOrdersTbl as order">
     <div class="panel-body">
-        <div ng-if="showCase.display">
-        <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns"
-               class="table custom-table table-condensed datatable no_click_tb" dt-instance="showCase.dtInstance"></table>
+        <div ng-if="order.display">
+        <table datatable="" dt-options="order.dtOptions" dt-columns="order.dtColumns"
+               class="table custom-table table-condensed datatable no_click_tb" dt-instance="order.dtInstance"></table>
         <div ui-view></div>
       </div>
     </div>

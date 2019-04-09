@@ -9,6 +9,8 @@ stockone.controller('CustomOrdersTbl',['$scope', '$http', '$state', '$timeout', 
 
 function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, SweetAlert, focus, $modal, $compile, Data) {
     var vm = this;
+    vm.order_id = "";
+    vm.status = "";
     vm.permissions = Session.roles.permissions;
     vm.apply_filters = colFilters;
     vm.service = Service;
@@ -60,7 +62,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ['Enquiry ID', 'Enquiry Date', 'Customer Name', 'Style Name'];
+    var columns = ['Enquiry ID', 'Enquiry Date', 'Customer Name', 'Style Name', 'SKU Code'];
     vm.dtColumns = vm.service.build_colums(columns);
 
     var row_click_bind = 'td';
@@ -83,101 +85,177 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        $(row_click_bind, nRow).unbind('click');
-        $(row_click_bind, nRow).bind('click', function() {
-            $scope.$apply(function() {
-                vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
-                  if(data.message) {
-                    angular.copy(data.data, vm.model_data);
-                    vm.title = "Customer orders";
-                    $state.go('app.inbound.RevceivePo.GRN');
-                  }
-                });
-            });
-        });
-        return nRow;
-    }
-
-    vm.submit = submit;
-    function submit(form) {
-      var data = [];
-
-      for(var i=0; i<vm.model_data.data.length; i++)  {
-        var temp = vm.model_data.data[i][0];
-        if(!temp.is_new) {
-          data.push({name: temp.order_id, value: temp.value});
-        }
-      }
-      data.push({name: 'remarks', value: vm.model_data.remarks});
-      data.push({name: 'expected_date', value: vm.model_data.expected_date});
-      data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail});
-      vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
-        if(data.message) {
-          if(data.data == 'Updated Successfully') {
-            vm.close();
-            vm.service.refresh(vm.dtInstance);
-          } else {
-            pop_msg(data.data);
-          }
-        }
-      });
-    }
-
-    vm.html = "";
-    vm.confirm_grn = function(form) {
-      // var data = [];
-      // data.push({name: 'batch_no', value: form.batch_no.$viewValue});
-      // data.push({name: 'mrp', value: form.mrp.$viewValue});
-      // data.push({name: 'manf_date', value: form.manf_date.$viewValue});
-      // data.push({name: 'exp_date', value: form.exp_date.$viewValue});
-      // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
-      // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
-
-     if(check_receive()){
-      var that = vm;
-      var elem = angular.element($('form'));
-      elem = elem[0];
-      elem = $(elem).serializeArray();
-      var url = "confirm_grn/"
-      if(vm.po_qc) {
-        url = "confirm_receive_qc/"
-      }
-      vm.service.apiCall(url, 'POST', elem, true).then(function(data){
-        if(data.message) {
-          if(data.data.search("<div") != -1) {
-            vm.extra_width = {}
-            vm.html = $(data.data);
-            vm.extra_width = {}
-            //var html = $(vm.html).closest("form").clone();
-            //angular.element(".modal-body").html($(html).find(".modal-body"));
-            angular.element(".modal-body").html($(data.data));
-            vm.print_enable = true;
-            vm.service.refresh(vm.dtInstance);
-            if(vm.permissions.use_imei) {
-              fb.generate = true;
-              fb.remove_po(fb.poData["id"]);
+      $(row_click_bind, nRow).unbind('click');
+      $(row_click_bind, nRow).bind('click', function() {
+        $scope.$apply(function() {
+          let url = "get_manual_enquiry_detail/?user_id="+Session.userId+"&enquiry_id=";
+          vm.service.apiCall(url+aData['Enquiry ID']).then(function(data){
+            if(data.message) {
+              vm.order_details = data.data;
+              vm.order_id = vm.order_details.order.enquiry_id;
+              vm.status = 'manual_enquiry';
+              vm.title = "Custom Order";
+              $state.go('user.App.MyOrders.CustomOrder');
             }
-          } else {
-            pop_msg(data.data)
-          }
-        }
+          });
+        });
       });
-     }
+      return nRow;
     }
-}
 
-stockone.directive('dtPoData', function() {
-  return {
-    restrict: 'E',
-    scope: {
-      po_data: '=data',
-      preview: '=preview'
-    },
-    templateUrl: 'views/inbound/toggle/po_data_html.html',
-    link: function(scope, element, attributes, $http){
-      console.log(scope);
+    vm.close = function() {
+      $state.go('user.App.MyOrders', {'state': 'orders'})
     }
-  };
-});
+      vm.moment = moment();
+  vm.date = new Date()
+  vm.disable_btn = false;
+  vm.edit = function(form){
+    if(form.$invalid) {
+      Service.showNoty('Please fill required fields');
+      return false;
+    }
+    vm.disable_btn = true;
+    vm.model_data['user_id'] = Session.userId;
+    vm.model_data['enquiry_id'] = vm.order_details.order.enquiry_id;
+    Service.apiCall('save_manual_enquiry_data/', 'POST', vm.model_data).then(function(data) {
+      if (data.message) {
+        if (data.data == 'Success') {
+          var temp = {};
+          angular.copy(vm.model_data, temp);
+          temp['username'] = Session.userName;
+          temp['date'] =  vm.moment.format("YYYY-MM-DD");
+          vm.order_details.data.push(temp)
+          vm.model_data.ask_price = '';
+          vm.model_data.extended_date = '';
+          vm.model_data.remarks = '';
+        }
+        Service.showNoty(data.data);
+      } else {
+        Service.showNoty('Something went wrong');
+      }
+      vm.disable_btn = false;
+    });
+  }
+  vm.clear_flag = false;
+  vm.clear = function(){
+    vm.clear_flag = true;
+    vm.edit_enable = false;
+  }
 
+  vm.accept_or_hold = function(){
+    swal({
+        title: "Confirm the Order or Hold the Stock!",
+        text: "Custom Order Text",
+        type: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Confirm Order",
+        cancelButtonText: "Block Stock",
+        closeOnConfirm: true
+        },
+        function(isConfirm){
+          var elem = {'order_id': vm.order_id};
+          if(isConfirm){
+              elem['status'] = 'confirm_order'
+          }else{
+              elem['status'] = 'hold_order'
+          }
+          vm.service.apiCall('confirm_or_hold_custom_order/', 'POST', elem).then(function(data){
+                if(data.data.msg == 'Success') {
+                   if(isConfirm){
+                     Service.showNoty('Order Confirmed Successfully');
+                   }else{
+                     Service.showNoty('Placed Enquiry Order Successfully');
+                   }
+                }else{
+                    Service.showNoty(data.data, 'warning');
+                }
+          })
+        }
+      );
+    }
+
+  vm.image_loding = {};
+  vm.remove_image = function(index) {
+
+    var image = vm.order_details.style.images[index];
+    var data = {'user_id': Session.userId, 'enquiry_id': vm.order_details.order.enquiry_id, 'image': image};
+    vm.image_loding[index] = true;
+    Service.apiCall('remove_manual_enquiry_image/', 'POST', data).then(function(data) {
+      if (data.message) {
+        if (data.data == 'Success') {
+          Service.showNoty('Image Deleted Successfully');
+          vm.order_details.style.images.splice(index, 1);
+        } else {
+          Service.showNoty(data.data, 'warning');
+        }
+      } else {
+        Service.showNoty('Something went wrong', 'danger');
+      }
+      vm.image_loding[index] = false;
+    });
+  }
+
+  vm.upload_name = [];
+  $scope.$on("fileSelected", function (event, args) {
+    $scope.$apply(function () {
+      vm.upload_name = [];
+      if (args.msg == 'success') {
+        angular.forEach(args.file, function(data){vm.upload_name.push(data.name)});
+        vm.upload_image();
+      } else {
+        Service.showNoty(args.msg, 'warning');
+      }
+    });
+  });
+
+  vm.uploading = false;
+  vm.upload_image = function() {
+
+    var formData = new FormData();
+    var el = $("#image-upload");
+    var files = el[0].files;
+
+    $.each(files, function(i, file) {
+      formData.append('po_file', file);
+    });
+
+    var data = {'user_id': Session.userId, 'enquiry_id': vm.order_details.order.enquiry_id}
+    $.each(data, function(key, value) {
+      formData.append(key, value);
+    });
+    vm.uploading = true;
+    $.ajax({url: Session.url+'save_manual_enquiry_image/',
+          data: formData,
+          method: 'POST',
+          processData : false,
+          contentType : false,
+          xhrFields: {
+              withCredentials: true
+          },
+          'success': function(response) {
+            response = JSON.parse(response);
+            if(response.msg == 'Success') {
+
+              Service.showNoty(response.msg);
+              $scope.$apply(function() {
+                vm.upload_name = [];
+                vm.uploading = false;
+                angular.forEach(response.data, function(url) {
+                  vm.order_details.style.images.push(url);
+                })
+              });
+              $("input[type='file']").val('');
+            } else {
+              Service.showNoty(response.msg, 'warning');
+              $scope.$apply(function() { vm.uploading = false; })
+            }
+          },
+          'error': function(response) {
+            console.log('fail');
+            Service.showNoty('Something Went Wrong', 'warning');
+            $scope.$apply(function() { vm.uploading = false; })
+          }
+    });
+  }
+  }
 })();

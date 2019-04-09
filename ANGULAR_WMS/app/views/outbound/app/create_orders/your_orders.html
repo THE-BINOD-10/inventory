@@ -15,7 +15,6 @@
       </div>
     </div>
     <div class="col-md-4 col-sm-4 hidden-xs" align="center">
-      <!-- <h4 align="center">MY ORDERS</h4> -->
       <img ng-src="{{showCase.api_url}}static/company_logos/{{showCase.client_logo}}" ng-if="showCase.client_logo" style="height: 43px;"/>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-6">
@@ -46,21 +45,30 @@
     </div>
   </div>
 
-  <div class="clearfix app_body" scrolly="orders.scroll(e)" style="padding-top: 40px; padding-bottom:20px;">
-    <div class="row" ng-if="permissions.user_type == 'reseller'" ng-init="(orders.margin_cls = (orders.your_orders=='manual_enquiry') ? 2 : 3);(orders.main_cls = (orders.your_orders=='manual_enquiry') ? 8 : 6);">
-      <div class="col-md-{{orders.margin_cls}} col-sm-2 col-xs-hidden"></div>
-      <div class="col-md-{{orders.main_cls}} col-sm-8 col-xs-12">
-        <div class="st-c-toggle pull-right">
-          <div class="bt-left bt-common" ng-click="$state.go('user.App.MyOrders', {state: 'orders'})" ng-class="(orders.your_orders=='orders')?'bt-red':'bt-common';">Orders</div>
-          <div class="bt-right bt-common" ng-click="$state.go('user.App.MyOrders', {state: 'enquiry'})" ng-class="(orders.your_orders=='enquiry')?'bt-red':'bt-common';">Marketing Enquiries</div>
-          <div class="bt-right bt-common" ng-click="$state.go('user.App.MyOrders', {state: 'manual_enquiry'})" ng-class="(orders.your_orders=='manual_enquiry')?'bt-red':'bt-common';">Custom Orders</div>
-        </div>
-      </div>
-    </div>
+  <div class="clearfix app_body" scrolly="orders.scroll(e)" style="padding-bottom:20px;">
     <div class="row">
-      <div class="col-md-{{orders.margin_cls}} col-sm-2 col-xs-hidden"></div>
-      <div class="col-md-{{orders.main_cls}} col-sm-8 col-xs-12">
-        <div ng-include="'views/outbound/app/create_orders/orders_template.html'"></div>
+      <div class="col-md-12">
+        <div class="page-layout" ng-controller="MyOrdersTbl as showCase">
+          <div class='layout-header'>
+            <div class="pull-left" ng-include="'views/common/title.html'"></div>
+             <!-- <div ng-include="'views/outbound/app/create_orders/excel.html'"></div> -->
+          </div>
+          <div class="layout-body">
+            <div class="panel">
+              <tabset class="box-tab">
+                <tab heading="Orders">
+                  <div ng-include="'views/outbound/app/create_orders/orders_tab.html'"></div>
+                </tab>
+                <tab heading="Marketing Enquiries">
+                  <div ng-include="'views/outbound/app/create_orders/market_enq_tab.html'"></div>
+                </tab>
+                <tab heading="Custom Orders">
+                  <div ng-include="'views/outbound/app/create_orders/custom_orders_tab.html'"></div>
+                </tab>
+              </tabset>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

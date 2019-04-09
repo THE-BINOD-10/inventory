@@ -34,22 +34,20 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
   }
   vm.loading = true;
   vm.order_details = {}
-  vm.open_order_detail = function(){
-
-    vm.order_details = {}
-    Service.apiCall(url+vm.order_id).then(function(data){
-      if(data.message) {
-
-        console.log(data.data);
-        vm.order_details = {}
-        vm.order_details = data.data;
-        if (data.data.order) {
-          vm.client_name_header = data.data.order.customer_name
-        }
-      }
-      vm.loading = false;
-    })
-  }
+  // vm.open_order_detail = function(){
+  //   console.log("hello")
+  //
+  //   vm.order_details = {}
+  //   Service.apiCall(url+vm.order_id).then(function(data){
+  //     if(data.message) {
+  //
+  //       console.log(data.data);
+  //       vm.order_details = {}
+  //       vm.order_details = data.data;
+  //     }
+  //     vm.loading = false;
+  //   })
+  // }
   vm.open_order_detail();
 
   vm.getStatus = function(order_qty, pick_qty) {

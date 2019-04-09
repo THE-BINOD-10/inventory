@@ -14985,3 +14985,28 @@ def get_order_extra_fields(request , user =''):
         extra_order_fields = order_field_obj.split(',')
     return HttpResponse(json.dumps({'data':extra_order_fields }))
 
+
+@login_required
+@get_admin_user
+def create_feedback_form(request, user=''):
+    resp = {'message': 'success'}
+    fb_type = request.POST.get('feedbackType', '')
+    sku_style = request.POST.get('SKU', '')
+    remarks = request.POST.get('remarks', '')
+    sku_qs = SKUMaster.objects.filter(style_name=sku_style, user=user.id)
+    if not sku_qs:
+        return HttpResponse('No SKU Style Found')
+    sku_id = sku_qs[0].id
+    image_file = request.FILES.get('files-0', '')
+    feedback_map = {'user_id': request.user.id, 'feedback_type': fb_type, 'sku_id': sku_id,
+                    'feedback_remarks': remarks, 'feedback_image': image_file}
+    try:
+        fb_master = FeedbackMaster(**feedback_map)
+        fb_master.save()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Exception raised while creating the feedback form for %s and params are %s and error statement is %s'
+                 % (str(user.username), str(request.POST.dict()), str(e)))
+    return HttpResponse(json.dumps(resp), content_type='application/json')
+

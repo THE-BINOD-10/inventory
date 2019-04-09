@@ -397,6 +397,7 @@ class EasyopsAPI:
         return json_response
 
     def storehippo_fulfill_orders(self, to_fulfill_list, user=''):
+        send_response = {}
         if user:
             self.user = user
             self.get_user_token(user)

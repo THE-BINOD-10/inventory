@@ -425,9 +425,9 @@ ORDER_SUMMARY_DICT = {
                 {'label': 'SKU Size', 'name': 'sku_size', 'type': 'input'},
                 {'label': 'Status', 'name': 'order_report_status', 'type': 'select'},
                 {'label': 'Order ID', 'name': 'order_id', 'type': 'input'}],
-    'dt_headers': ['Order Date', 'Order ID', 'Customer Name', 'SKU Brand', 'SKU Category', 'SKU Class', 'SKU Size',
+    'dt_headers': ['Order Date','Order ID', 'Customer Name', 'SKU Brand', 'SKU Category', 'SKU Class', 'SKU Size',
                    'SKU Description', 'SKU Code', 'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Tax', 'Taxable Amount', 'City',
-                   'State', 'Marketplace', 'Invoice Amount', 'Status', 'Order Status', 'Remarks','Customer GST Number'],
+                   'State', 'Marketplace', 'Invoice Amount', 'Status', 'Order Status', 'Remarks','Customer GST Number','Payment Type','Reference Number'],
     'dt_url': 'get_order_summary_filter', 'excel_name': 'order_summary_report',
     'print_url': 'print_order_summary_report',
     }
@@ -2043,6 +2043,7 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'data_range': 'report_data_range', 'imei_limit': 'imei_limit',
                      'invoice_remarks': 'invoice_remarks',
                      'invoice_declaration':'invoice_declaration',
+                     'pos_remarks':'pos_remarks',
                      'raisepo_terms_conditions':'raisepo_terms_conditions',
                      'invoice_marketplaces': 'invoice_marketplaces', 'serial_limit': 'serial_limit',
                      'extra_view_order_status': 'extra_view_order_status',
@@ -3502,7 +3503,7 @@ def get_order_summary_data(search_params, user, sub_user):
     search_parameters['sku_id__in'] = sku_master_ids
     if search_params.get('invoice','') == 'true':
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
-                                                                    'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size',
+                                                                    'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
                                                                     'sku__sku_desc','sku__price','sellerordersummary__invoice_number','sellerordersummary__quantity','address',
                                                                     'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
                                                                     'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace',
@@ -3510,11 +3511,9 @@ def get_order_summary_data(search_params, user, sub_user):
     else:
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size',
-                                                                    'sku__sku_desc','sku__price','address',
+                                                                    'sku__sku_desc','sku__price','address','order_code',
                                                                     'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
-                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace',
-                                                                    )
-
+                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace',)
     pick_filters = {}
     for key, value in search_parameters.iteritems():
         pick_filters['order__%s' % key] = value
@@ -3599,6 +3598,17 @@ def get_order_summary_data(search_params, user, sub_user):
         for i in tmp:
             extra_fields.append(str(i))
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
+    total_row = {}
+    total_row = OrderedDict((('Order Date', ''), ('Order ID', ""),('Customer Name', ""),('Order Number' ,""),
+    ('SKU Brand', ""),('SKU Category', ''),('SKU Class', ''),('SKU Size', ''), ('SKU Description', ''),
+    ('SKU Code', 'TotalQuantity='), ('Order Qty',temp_data['totalOrderQuantity']),('MRP', ''), ('Unit Price',''),('Discount', ''),
+    ('Serial Number',''),('Invoice Number',''),('Quantity',''),('Payment Type' ,''),('Reference Number',''),
+    ('Taxable Amount',''), ('Tax', ''),('City', ''), ('State', ''), ('Marketplace', 'TotalInvoiceAmount='),('Invoice Amount', temp_data['totalSellingPrice']),
+    ('Price', ''),('Status', ''), ('Order Status', ''),('Customer GST Number',''),('Remarks', ''), ('Order Taken By', ''),
+    ('Invoice Date',''),('Payment Cash', ''),('Payment Card', ''),('Payment PhonePe',''),('Payment GooglePay',''),('Payment Paytm','')))
+
+    temp_data['aaData'].append(total_row)
+
     for data in orders.iterator():
         count = count + 1
         is_gst_invoice = False
@@ -3609,6 +3619,19 @@ def get_order_summary_data(search_params, user, sub_user):
         order_id = str(data['order_code']) + str(data['order_id'])
         if data['original_order_id']:
             order_id = data['original_order_id']
+        payment_type = ''
+        reference_number = ''
+        if  'DC'  in data['order_code'] or 'PRE' in data['order_code']:
+            payment_obj = OrderFields.objects.filter(original_order_id=data['original_order_id'], \
+                                   name__contains='payment', user=user.id)
+            if payment_obj.exists():
+                payment_obj = payment_obj[0]
+                payment_type = payment_obj.name.replace("payment_","")
+            reference_obj = OrderFields.objects.filter(original_order_id=data['original_order_id'], \
+                                   name='reference_number', user=user.id)
+            if reference_obj.exists():
+                reference_obj = reference_obj[0]
+                reference_number = reference_obj.value
 
         # ['Open', 'Picklist generated', 'Partial Picklist generated', 'Picked', 'Partially picked']
         if not _status:
@@ -3636,7 +3659,7 @@ def get_order_summary_data(search_params, user, sub_user):
         order_status = ''
         remarks = ''
         order_taken_by = ''
-        payment_card, payment_cash = 0, 0
+        payment_card, payment_cash ,payment_PhonePe,payment_Paytm,payment_GooglePay = 0, 0,0,0,0
         order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data['id'])
         unit_price, unit_price_inclusive_tax = [data['unit_price']] * 2
         if order_summary.exists():
@@ -3699,7 +3722,6 @@ def get_order_summary_data(search_params, user, sub_user):
             invoice_number = ''
             invoice_date = ''
             quantity = ''
-
         try:
             #serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data.sku.sku_code,order__original_order_id=order_id,po_imei__sku__user=user.id)
             serial_number = OrderIMEIMapping.objects.filter(order__id=data['id'])
@@ -3725,25 +3747,28 @@ def get_order_summary_data(search_params, user, sub_user):
         if not shipping_address :
             shipping_address = billing_address
         aaData = OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
-                                                ('Customer Name', customer_name),
-                                                ('Order Number' ,data['order_reference']),
-                                                ('SKU Brand', data['sku__sku_brand']),
-                                                ('SKU Category', data['sku__sku_category']),
-                                                ('SKU Class', data['sku__sku_class']),
-                                                ('SKU Size', data['sku__sku_size']), ('SKU Description', data['sku__sku_desc']),
-                                                ('SKU Code', data['sku__sku_code']), ('Order Qty', int(data['quantity'])),
-                                                ('MRP', int(data['sku__mrp'])), ('Unit Price', float(unit_price_inclusive_tax)),
-                                                ('Discount', discount),
-                                                ('Serial Number',serial_number),
-                                                ('Invoice Number',invoice_number),
-                                                ('Quantity',quantity),
-                                                ('Taxable Amount', float(taxable_amount)), ('Tax', tax),
-                                                ('City', data['city']), ('State', data['state']), ('Marketplace', data['marketplace']),
-                                                ('Invoice Amount', float(invoice_amount)), ('Price', data['sku__price']),
-                                                ('Status', status), ('Order Status', order_status),('Customer GST Number',gst_number),
-                                                ('Remarks', remarks), ('Order Taken By', order_taken_by),
-                                                ('Invoice Date',invoice_date),("Billing Address",billing_address),("Shipping Address",shipping_address),
-                                                ('Payment Cash', payment_cash), ('Payment Card', payment_card)))
+                                                    ('Customer Name', customer_name),
+                                                    ('Order Number' ,data['order_reference']),
+                                                    ('SKU Brand', data['sku__sku_brand']),
+                                                    ('SKU Category', data['sku__sku_category']),
+                                                    ('SKU Class', data['sku__sku_class']),
+                                                    ('SKU Size', data['sku__sku_size']), ('SKU Description', data['sku__sku_desc']),
+                                                    ('SKU Code', data['sku__sku_code']), ('Order Qty', int(data['quantity'])),
+                                                    ('MRP', int(data['sku__mrp'])), ('Unit Price', float(unit_price_inclusive_tax)),
+                                                    ('Discount', discount),
+                                                    ('Serial Number',serial_number),
+                                                    ('Invoice Number',invoice_number),
+                                                    ('Quantity',quantity),
+                                                    ('Payment Type' ,payment_type),
+                                                    ('Reference Number',reference_number),
+                                                    ('Taxable Amount', float(taxable_amount)), ('Tax', tax),
+                                                    ('City', data['city']), ('State', data['state']), ('Marketplace', data['marketplace']),
+                                                    ('Invoice Amount', float(invoice_amount)), ('Price', data['sku__price']),
+                                                    ('Status', status), ('Order Status', order_status),('Customer GST Number',gst_number),
+                                                    ('Remarks', remarks), ('Order Taken By', order_taken_by),
+                                                    ('Invoice Date',invoice_date),("Billing Address",billing_address),("Shipping Address",shipping_address),
+                                                    ('Payment Cash', payment_cash), ('Payment Card', payment_card),('Payment PhonePe', payment_PhonePe),
+                                                    ('Payment Paytm', payment_Paytm),('Payment GooglePay', payment_GooglePay)))
         aaData.update(OrderedDict(pos_extra))
         temp_data['aaData'].append(aaData)
     return temp_data

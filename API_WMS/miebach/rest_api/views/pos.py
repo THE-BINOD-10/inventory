@@ -63,6 +63,11 @@ def get_pos_user_data(request, user=''):
     if user:
         user = user[0]
         vat = '14.5'
+        pos_remarks = get_misc_value('pos_remarks', user.user.id)
+        if pos_remarks :
+            response_data['pos_remarks'] = pos_remarks
+        else:
+            response_data['pos_remarks'] = ''
         response_data['status'] = 'Success'
         response_data['VAT'] = vat
         response_data['parent_id'] = user.user.id
@@ -388,6 +393,7 @@ def customer_order(request):
         order_code = order_codes[order['summary']['issue_type']] + str(request.user.id)
         original_order_id = order_code + str(order_id)
         order_ids.append(order_id)
+
         picklist_number = get_picklist_number(user) + 1
         if customer_data:
             customer_id = customer_data[0].id
@@ -544,6 +550,7 @@ def customer_order(request):
                         location=sku_stocks_.location, \
                         returns=order_return)
             if order_created:
+
                 #send mail and sms for pre order
                 if order["summary"]["issue_type"] == "Pre Order" and customer_data:
                     email_id, phone_number = customer_data[0].email_id, customer_data[0].phone_number
@@ -562,9 +569,16 @@ def customer_order(request):
                 for field, val in order["summary"].get("payment", {}).iteritems():
                     OrderFields.objects.create(original_order_id=original_order_id, name="payment_" + field, value=val,
                                                user=user.id)
+                    reference_number = order.get('reference_number' ,'')
+                    if field != 'Cash':
+                        OrderFields.objects.create(original_order_id=order_detail.original_order_id, \
+                                               name='reference_number', value=reference_number, user=user.id)
                 for field, val in order["customer_data"].get("extra_fields", {}).iteritems():
                     OrderFields.objects.create(original_order_id=order_detail.original_order_id, \
                                                name=field, value=val, user=user.id)
+
+
+
     if only_return: order_ids = ['return']
     return HttpResponse(json.dumps({'order_ids': order_ids}))
 
@@ -581,6 +595,20 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
     #check where discount is saved
     order_detail = OrderDetail.objects.filter(original_order_id__icontains=order_id, \
                                               user=user_id, quantity__gt=0)
+    payment_type = ''
+    reference_number = ''
+    if  'DC'  in order_detail[0].order_code or 'PRE' in order_detail[0].order_code:
+        payment_obj = OrderFields.objects.filter(original_order_id=order_id, \
+                               name__contains='payment', user=user_id)
+        if payment_obj.exists():
+            payment_obj = payment_obj[0]
+            payment_type = payment_obj.name.replace("payment_","")
+        reference_obj = OrderFields.objects.filter(original_order_id=order_id, \
+                               name='reference_number', user=user_id)
+        if reference_obj.exists():
+            reference_obj = reference_obj[0]
+            reference_number = reference_obj.value
+
     if parent_user:
         order_detail = OrderDetail.objects.filter(original_order_id__icontains=order_id, \
                                               user=parent_user.id, quantity__gt=0)
@@ -597,7 +625,7 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
                 if category.discount:
                     discount_percentage = 0#category.discount
         #original_selling_price = sku.price
-        original_selling_price = (order.unit_price * 100)/(100 - discount_percentage)
+        original_selling_price = (order.invoice_amount * 100)/(100 - discount_percentage)
         #discount = original_selling_price - order.unit_price
         selling_price = float(order.invoice_amount) / float(order.quantity)
         order_summary = CustomerOrderSummary.objects.filter(order_id=order.id)
@@ -607,21 +635,18 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
             tax_master = order_summary.values('sgst_tax', 'cgst_tax', 'igst_tax', 'utgst_tax')[0]
         else:
             tax_master = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
-        item_sgst = (order.invoice_amount/float(order.quantity)) * tax_master['sgst_tax']/100
-        item_cgst = (order.invoice_amount/float(order.quantity)) * tax_master['cgst_tax']/100
+        item_sgst = (order.unit_price/float(order.quantity)) * tax_master['sgst_tax']/100
+        item_cgst = (order.unit_price/float(order.quantity)) * tax_master['cgst_tax']/100
         selling_price -= (item_cgst + item_sgst)
         gst_based.setdefault(tax_master['cgst_tax'], {'taxable_amt': 0,
                                                       'cgst_percent': tax_master["cgst_tax"],
                                                       'sgst_percent': tax_master["sgst_tax"],
                                                       'sgst': 0,
                                                       'cgst': 0})
-        gst_based[tax_master['cgst_tax']]['taxable_amt'] += order.invoice_amount - \
-                                  order_summary[0].discount -\
-                                  (float(order.invoice_amount) * tax_master["sgst_tax"] / 100) - \
-                                  (float(order.invoice_amount) * tax_master["cgst_tax"] / 100)
-        gst_based[tax_master['cgst_tax']]['sgst'] += order.invoice_amount * tax_master["sgst_tax"] / 100
-        gst_based[tax_master['cgst_tax']]['cgst'] += order.invoice_amount * tax_master["cgst_tax"] / 100
-
+        gst_based[tax_master['cgst_tax']]['taxable_amt'] += (order.unit_price - \
+                                  order_summary[0].discount)*float(order.quantity)
+        gst_based[tax_master['cgst_tax']]['sgst'] += (order.unit_price * tax_master["sgst_tax"] / 100) * float(order.quantity)
+        gst_based[tax_master['cgst_tax']]['cgst'] += (order.unit_price * tax_master["cgst_tax"] / 100) * float(order.quantity)
         sku_data.append({'name': order.title,
                          'quantity': float(order.quantity),
                          'sku_code': order.sku.sku_code,
@@ -637,8 +662,8 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
         #                 (float(order.invoice_amount) * tax_master["sgst_tax"] / 100) + \
         #                 (float(order.invoice_amount) * tax_master["cgst_tax"] / 100) );
         if order_summary[0].issue_type == "Delivery Challan":
-            sgst_temp = float(order.invoice_amount) * tax_master["sgst_tax"] / 100;
-            cgst_temp = float(order.invoice_amount) * tax_master["cgst_tax"] / 100;
+            sgst_temp = (float(order.unit_price) * tax_master["sgst_tax"] / 100)*order.quantity;
+            cgst_temp = (float(order.unit_price) * tax_master["cgst_tax"] / 100)*order.quantity;
             total_amount += (float(order.invoice_amount) - sgst_temp - cgst_temp)
         else:
             total_amount += (float(order.invoice_amount))
@@ -681,6 +706,8 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
             json_data = {'data':{'customer_data': customer_data, 'summary': summary,
                                  'sku_data': sku_data, 'order_id': order_id,
                                  'order_date': order_date,
+                                 'payment_mode':payment_type,
+                                 'reference_number':reference_number,
                                  'customer_extra': extra_fields},
                         'status': status
                         }
@@ -921,3 +948,36 @@ def pos_extra_fields(request, user=''):
     except:
         status = 'Fail'
     return HttpResponse(status)
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def pos_send_mail(request , user =''):
+    from inbound import write_and_mail_pdf
+    # data_dict = json.loads(request.POST)
+    for obj in request.POST.iteritems():
+        data_dict = json.loads(obj[0])
+        data = data_dict['data']
+        for item in data['sku_data']:
+            amount = ((float(item['unit_price']) + float(item['sgst'])/float(item['quantity']) + float(item['cgst'])/float(item['quantity']) + (float(item['selling_price'])*float(item['discount'])/100))* item['quantity'])
+            item['amount'] = amount
+        data['summary_total_amount']  = float(data['summary']['subtotal']) + float(data['summary']['sgst'])+float(data['summary']['igst']) + float(data['summary']['utgst'])+ float(data['summary']['cgst'])
+        data['summary_discount'] = float(data['summary_total_amount'])- float(data['summary']['total_discount'])
+        data['summary_total'] = float(data['summary']['subtotal']) - float(data['summary']['total_discount'])
+        pos_remarks = get_misc_value('pos_remarks', user.id)
+        if pos_remarks :
+            data['pos_remarks'] = pos_remarks
+        else:
+            data['pos_remarks'] = ''
+        data_dict['data']= data
+        try:
+            t = loader.get_template('templates/toggle/pos_print.html')
+            rendered = t.render(data_dict)
+            write_and_mail_pdf('posorder', rendered, request, user,
+                               data['customer_data']['Email'], data['customer_data']['Number'],"POS ORDER",
+                               '',False,False,'posform')
+        except Exception as e:
+            pass
+
+
+    return HttpResponse("Succes")

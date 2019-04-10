@@ -27,13 +27,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'auto_raise_stock_transfer': false, 'inbound_supplier_invoice': false, 'customer_dc': false,
                     'mark_as_delivered': false, 'order_exceed_stock': false, 'receive_po_mandatory_fields': false,
                     'sku_pack_config': false, 'central_order_reassigning':false, 'po_sub_user_prefix': false,
-<<<<<<< HEAD
-                    'combo_allocate_stock': false, 'sno_in_invoice':false, 'block_expired_batches_picklist':false,
-=======
-                    'combo_allocate_stock': false, 'sno_in_invoice': false, 'unique_mrp_putaway': false,
+                    'combo_allocate_stock': false, 'sno_in_invoice': false, 'unique_mrp_putaway': false,'block_expired_batches_picklist':false,
                     'generate_delivery_challan_before_pullConfiramation':false,'pos_remarks' :'',
                     'rtv_prefix_code': false
->>>>>>> a3f113f3221a9c614e2f541e0035d987343080f9
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',

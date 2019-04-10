@@ -481,10 +481,8 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
     status_dict = {'0': 'Inactive', '1': 'Active'}
     temp_data['draw'] = search_params.get('draw')
     marketplace = ''
-    if 'from_date' in search_params:
-        from_date = search_params['from_date'].split('/')
-        search_parameters['creation_date__startswith'] = datetime.date(int(from_date[2]), int(from_date[0]),
-                                                                       int(from_date[1]))
+    if 'creation_date' in search_params:
+        search_parameters['creation_date__gt'] = search_params['creation_date']
     if 'sku_code' in search_params:
         search_parameters['sku__sku_code'] = search_params['sku_code'].upper()
     if 'wms_code' in search_params:

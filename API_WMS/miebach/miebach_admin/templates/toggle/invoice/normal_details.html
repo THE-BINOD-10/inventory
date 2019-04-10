@@ -69,6 +69,9 @@
                                {{order_date}} 
                              {% endif %}
                            <br>
+                           {% if manifest_number %}
+                            <strong>Manifest Number:</strong>{{manifest_number}}<br>
+                           {% endif %}
                            <strong>Mode of Transport:</strong>
                              {{ mode_of_transport }}
                            <br>

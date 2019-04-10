@@ -912,8 +912,13 @@ def get_raw_picklist_data(data_id, user):
             zone = 'NO STOCK'
             sequence = 0
             stock_id = ''
+            batch_no = ''
             if location.stock:
                 location_name = location.stock.location.location
+                try:
+                    batch_no = location.stock.batch_detail.batch_no
+                except:
+                    batch_no = ''
                 pallet_detail = location.stock.pallet_detail
                 zone = location.stock.location.zone.zone
                 sequence = location.stock.location.pick_sequence
@@ -933,7 +938,7 @@ def get_raw_picklist_data(data_id, user):
                     continue
                 batch_data[match_condition] = {
                     'wms_code': location.material_picklist.jo_material.material_code.sku_code,
-                    'zone': zone, 'sequence': sequence, 'location': location_name,
+                    'zone': zone, 'sequence': sequence, 'location': location_name, 'batchno': batch_no,
                     'reserved_quantity': location_reserved,
                     'job_code': picklist.jo_material.job_order.job_code,
                     'stock_id': stock_id, 'picked_quantity': location_reserved,
@@ -1188,7 +1193,10 @@ def rm_picklist_confirmation(request, user=''):
                         return HttpResponse("Invalid Location")
                     if 'imei_numbers' in val.keys():
                         insert_jo_material_serial(picklist, val, user)
+                    batchno = val.get('batchno', '')
                     stock_dict = {'sku_id': sku.id, 'location_id': location[0].id, 'sku__user': user.id}
+                    if batchno:
+                        stock_dict['batch_detail__batch_no'] = batchno
                     stock_detail = StockDetail.objects.filter(**stock_dict)
                     for stock in stock_detail:
                         if picking_count == 0:
@@ -1296,6 +1304,7 @@ def rm_picklist_confirmation(request, user=''):
                                                                     (str(user.username),
                                                                      str(dict(request.POST.iterlists())),
                                                                     str(e)))
+        return HttpResponse('Picklist Confirmation Failed')
 
 
 def validate_jo_stock(all_data, user, job_code):
@@ -3370,3 +3379,209 @@ def generate_jo_labels(request, user=''):
         log.debug(traceback.format_exc())
         log.info("Generating Labels failed for params " + str(data_dict) + " and error statement is " + str(e))
         return HttpResponse("Generate Labels Failed")
+@login_required
+@get_admin_user
+def check_return_imei_scan(request, user):
+    sku_code =''
+    value = request.GET['serial_number']
+    order_imei = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, sku__user=user.id, status=1)
+    if order_imei:
+       sku_master = SKUMaster.objects.get(id =order_imei[0].sku_id)
+       sku_code = sku_master.wms_code
+    return HttpResponse(json.dumps({'data': sku_code}))
+
+@login_required
+@get_admin_user
+def rwo_data(request,user):
+    batch_data = {}
+    data_id = request.POST['data_id']
+    material_picklist = MaterialPicklist.objects.filter(jo_material__job_order__job_code=data_id,
+                                                    jo_material__job_order__product_code__user=user.id).exclude(jo_material__job_order__status__in=['location-assigned', 'grn-generated'])
+    for picklist in material_picklist:
+        picklist_locations = RMLocation.objects.filter(material_picklist_id=picklist.id)
+        for location in picklist_locations:
+            location_name = 'NO STOCK'
+            if location.stock:
+                location_name = location.stock.location.location
+            match_condition = (location_name,picklist.jo_material.material_code.sku_code)
+            batch_data[match_condition] = {
+                'wms_code': location.material_picklist.jo_material.material_code.sku_code,
+                'sku_id':location.material_picklist.jo_material.material_code.id,
+                'sku_desc':location.material_picklist.jo_material.material_code.sku_desc,
+                'job_code': picklist.jo_material.job_order.job_code,
+                'picked_quantity': location.quantity,
+                'id': location.id,
+                'location_name':location_name,
+                'title': location.material_picklist.jo_material.material_code.sku_desc,
+                'image': picklist.jo_material.material_code.image_url,
+                'measurement_type': picklist.jo_material.unit_measurement_type,
+                'return_quantity':0,
+                'replacement_quntity':0,
+                'show_imei': location.material_picklist.jo_material.material_code.enable_serial_based
+            }
+
+    data = batch_data.values()
+    return HttpResponse(json.dumps({'data': data}))
+@get_admin_user
+def check__replace_imei_exists(request,user):
+    status = ''
+    po_id = 0
+    imei = request.GET.get('imei', '')
+    sku_code = request.GET.get('sku_code', '')
+    order_imei = OrderIMEIMapping.objects.filter(po_imei__imei_number=imei, sku__user=user.id)
+    if order_imei.exists():
+        return HttpResponse(json.dumps({'status': "Imei number number Already Mapped to other JOB Order"}))
+    if imei and sku_code:
+        check_params = {'imei_number': imei, 'sku__user':user.id }
+        po_mapping = POIMEIMapping.objects.get(**check_params)
+        if po_mapping:
+            status = "Success"
+            po_id = po_mapping.id
+        else:
+            status = "Invalid Imei Number"
+    else:
+        status = "Missing Serial or SKU Code"
+
+    return HttpResponse(json.dumps({'status': status,'po_id':po_id}))
+
+@get_admin_user
+def save_replaced_serials(request , user):
+    returned_serials = request.POST.getlist('returned_serials[]')
+    replacement_dict = json.loads(request.POST.get('replacement_serials'))
+    try:
+        for returned_imei in returned_serials:
+            order_imei = OrderIMEIMapping.objects.get(po_imei__imei_number=returned_imei, sku__user=user.id, status=1)
+            for i in range(len(replacement_dict)):
+                if (replacement_dict[i]['sku_id'] == order_imei.sku_id):
+                    order_imei.po_imei_id = replacement_dict[i]['po_id']
+                    order_imei.save()
+                    po_imei_obj = POIMEIMapping.objects.filter(id =replacement_dict[i]['po_id'],sku__user=user.id)
+                    po_imei_obj= po_imei_obj[0]
+                    po_imei_obj.status = 0
+                    po_imei_obj.save()
+                    replacement_dict.pop(i)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Saving replacement serial number  and error statement is " + str(e))
+        return HttpResponse("Some thing Went wrong")
+    return HttpResponse("Success")
+
+@login_required
+@get_admin_user
+def save_replaced_locations(request , user):
+    data_dict = dict(request.POST.iterlists())
+    status =''
+    try:
+        for i in range(len(data_dict['sku_code'])):
+            wms_code = data_dict['sku_code'][i]
+            current_location = data_dict['current_location'][i]
+            source_loc = data_dict['replacement_location'][i]
+            return_loc = data_dict['return_location'][i]
+            return_quantity = data_dict['return_quantity'][i]
+            quantity= float(data_dict['replacement_quntity'][i])
+            source = LocationMaster.objects.filter(location=source_loc, zone__user=user.id)
+            return_location = LocationMaster.objects.filter(location=return_loc, zone__user=user.id)
+            sku = check_and_return_mapping_id(wms_code, "", user, False)
+            if sku:
+                sku_id = sku
+            else:
+                return HttpResponse('Invalid WMS Code')
+            if return_loc and return_quantity > 0:
+                return_dict = {"sku_id": sku_id,
+                              "location_id": return_location[0].id,
+                              "sku__user": user.id}
+                return_stocks = StockDetail.objects.filter(**return_dict)
+                if return_stocks :
+                   return_stocks[0].quantity += float(return_quantity)
+                   return_stocks[0].save()
+                rm_locations =RMLocation.objects.filter(material_picklist__jo_material__job_order__job_code=data_dict['job_id'][i],
+                                                                material_picklist__jo_material__job_order__product_code__user=user.id,material_picklist__jo_material__material_code__wms_code = wms_code)
+                if rm_locations.exists():
+                    for rm in rm_locations:
+                        if current_location == rm.stock.location.location:
+                            if rm.quantity > float(return_quantity) :
+                                material_obj  = rm
+                                material_obj.quantity -= float(return_quantity)
+                                material_obj.save()
+                            else:
+                                return  HttpResponse('Returned Quantity is Greater than Picked Quantity')
+
+            if source:
+                stock_dict = {"sku_id": sku_id,
+                              "location_id": source[0].id,
+                              "sku__user": user.id}
+                stocks = StockDetail.objects.filter(**stock_dict)
+
+                if not stocks:
+                    return  HttpResponse('No Stocks Found')
+                stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
+                reserved_dict = {'stock__sku_id': sku_id, 'stock__sku__user': user.id, 'status': 1,
+                                 'stock__location_id': source[0].id}
+                reserved_quantity = \
+                PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).aggregate(Sum('reserved'))[
+                    'reserved__sum']
+                if reserved_quantity:
+                    if (stock_count - reserved_quantity) < float(quantity):
+                        return HttpResponse('Source Quantity reserved for Picklist')
+                for stock in stocks:
+                    if stock.quantity > quantity:
+                        stock.quantity -= quantity
+                        change_seller_stock('', stock, user, quantity, 'dec')
+                        quantity = 0
+                        if stock.quantity < 0:
+                            stock.quantity = 0
+                        stock.save()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Stock replacement got an error statement is " + str(e))
+    return HttpResponse("Success")
+
+@login_required
+@get_admin_user
+def get_vendor_list(request , user =''):
+    vendor_list = []
+    vendor_obj= VendorMaster.objects.filter(user=user.id).values('vendor_id','name')
+    vendor_list = list(vendor_obj)
+    return HttpResponse(json.dumps(vendor_list))
+
+@login_required
+@get_admin_user
+def create_vendor_stock_transfer(request , user=''):
+    data_dict = dict(request.POST.iterlists())
+    vendor = request.POST.get('vendor', '')
+    try:
+        for i in range(len(data_dict['wms_code'])):
+            if not data_dict['wms_code'][i]:
+                continue
+            if not data_dict['location'][i] :
+                continue
+            sku_id = SKUMaster.objects.get(wms_code__iexact=data_dict['wms_code'][i], user=user.id).id
+            stock_dict = {"sku_id": sku_id,
+                          "location__location": data_dict['location'][i],
+                          "sku__user": user.id}
+            stocks_obj = StockDetail.objects.filter(**stock_dict)
+            if stocks_obj.exists():
+                stock = stocks_obj[0]
+                if stock.quantity >= float(data_dict['order_quantity'][i]):
+                    stock.quantity -= float(data_dict['order_quantity'][i])
+                    stock.save()
+                    receipt_number  = VendorStock.objects.filter(sku__user = user.id).aggregate(Max('receipt_number'))
+                    vendor_stock_obj = {}
+                    vendor_stock_obj['receipt_number'] = receipt_number['receipt_number__max'] + 1
+                    vendor_stock_obj['sku_id'] = sku_id
+                    vendor_stock_obj['quantity'] = data_dict['order_quantity'][i]
+                    vendor_stock_obj['receipt_date']= datetime.datetime.now()
+                    vendor_master = VendorMaster.objects.filter(vendor_id=vendor, user=user.id)
+                    vendor_stock_obj['vendor'] = vendor_master[0]
+                    VendorStock.objects.create(**vendor_stock_obj)
+                else:
+                    return HttpResponse("Stock quantity is Less Please check")
+            else:
+                 return HttpResponse("Stock Not Found")
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        return HttpResponse("Some thing Went Wrong contact ADMIN")
+    return HttpResponse("Success")

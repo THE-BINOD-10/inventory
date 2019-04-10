@@ -686,7 +686,7 @@ def close_jo(request, user=''):
             if job_order:
                 job_order_object = job_order[0]
                 job_order_object.status = 'cancelled'
-                job_order_object.remarks = remarks
+                job_order_object.cancel_reason = remarks
                 job_order_object.save()
         return HttpResponse("Cancelled Successfully")
     except Exception as e:

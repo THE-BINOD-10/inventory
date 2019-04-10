@@ -27,9 +27,14 @@ import httplib2
 from utils import *
 import os, math
 from rest_api.rista_save_transfer import *
+
+
 log = init_logger('logs/outbound.log')
+picklist_qc_log =  init_logger('logs/picklist_qc_log.log')
+
 today = datetime.datetime.now().strftime("%Y%m%d")
 storehippo_fulfillments_log = init_logger('logs/storehippo_fulfillments_log_' + today + '.log')
+
 
 @csrf_exempt
 def get_batch_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters,
@@ -504,6 +509,7 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
         else:
             if tracking and tracking[0] in ['Delivered', 'Out for Delivery']:
                 continue
+        one_assist_qc_check = get_misc_value('dispatch_qc_check', user.id)
         central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
         if central_order_reassigning == 'true':
             if result.order_shipment.shipment_number:
@@ -514,8 +520,18 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
                 cond = (result.order_shipment.shipment_number, 0, 0, int(result.order_shipment.manifest_number), total_orders, manifest_date)
         else:
             total_orders = 0
-            manifest_date = ''
-            cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name, int(result.order_shipment.manifest_number), total_orders, manifest_date)
+            cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name, int(result.order_shipment.manifest_number), total_orders)
+        signed_copy = ''
+        if one_assist_qc_check == 'true':
+            order_detail = result.order
+            if order_detail:
+                pdf_obj = MasterDocs.objects.filter(master_id = order_detail.id)
+                if pdf_obj:
+                    signed_copy = '<label class="icon-check" style="font-size: 22px;color: #1fa21f;"></label>'
+                    cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name, int(result.order_shipment.manifest_number), total_orders, signed_copy)
+                else:
+                    signed_copy = '<label class="icon-cloud-upload" style="font-size: 22px;cursor: pointer;"><input type = "file" name="files" id="file-upload" style="display:none" file-uploadd single ng-click= "vm.uploaded_file_data('+"'"+str(result.id)+"'"+', '+"'"+'table'+"'"+');"/></label>'
+                    cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name, int(result.order_shipment.manifest_number), total_orders, signed_copy)
         all_data.setdefault(cond, 0)
         all_data[cond] += result.shipping_quantity
 
@@ -523,9 +539,11 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for key, value in all_data.iteritems():
         sno = sno+1
-        temp_data['aaData'].append(
-            {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Manifest Date' : key[5], 'Serial Number' : sno,
-             'Total Quantity': value, 'DT_RowClass': 'results'})
+        if one_assist_qc_check == 'true':
+            dt_map = {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Signed Invoice' : key[5], 'Serial Nu      mber' : sno, 'Total Quantity': value, 'DT_RowClass': 'results'}
+        else:
+            dt_map = {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Manifest Date' : key[5], 'Serial Num      ber' : sno, 'Total Quantity': value, 'DT_RowClass': 'results'}
+        temp_data['aaData'].append(dt_map)
     sort_col = lis[col_num]
 
     if order_term == 'asc':
@@ -700,9 +718,12 @@ def generate_picklist(request, user=''):
             if order_count_len == 1:
                 single_order = str(order_count[0])
 
+    qc_items_qs = UserAttributes.objects.filter(user_id=user.id, attribute_model='dispatch_qc', status=1).values_list('attribute_name', flat=True)
+    qc_items = list(qc_items_qs)
+
     return HttpResponse(json.dumps({'data': data, 'picklist_id': picklist_number + 1, 'stock_status': stock_status,
                                     'order_status': order_status, 'single_order': single_order,
-                                    'sku_total_quantities': sku_total_quantities}))
+                                    'sku_total_quantities': sku_total_quantities, 'qc_items': qc_items}))
 
 
 @csrf_exempt
@@ -824,6 +845,7 @@ def get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_sku
 def get_picklist_data(data_id, user_id):
     courier_name = ''
     sku_total_quantities = {}
+    sku_imeis_map = {}
     is_combo_picklist = False
     manufactured_date =''
     picklist_orders = Picklist.objects.filter(Q(order__sku__user=user_id) | Q(stock__sku__user=user_id),
@@ -916,6 +938,9 @@ def get_picklist_data(data_id, user_id):
                 pallet_code = stock_id.pallet_detail.pallet_code
                 pallet_detail = stock_id.pallet_detail
 
+            sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
+            for sku_code, imei_number in sku_filtered_imei_number:
+                sku_imeis_map.setdefault(sku_code, []).append(imei_number)
             zone = 'NO STOCK'
             st_id = 0
             sequence = 0
@@ -1055,6 +1080,10 @@ def get_picklist_data(data_id, user_id):
             if stock_id and stock_id.pallet_detail:
                 pallet_code = stock_id.pallet_detail.pallet_code
 
+            sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
+            for sku_code, imei_number in sku_filtered_imei_number:
+                sku_imeis_map.setdefault(sku_code, []).append(imei_number)
+
             zone = 'NO STOCK'
             st_id = 0
             sequence = 0
@@ -1116,6 +1145,9 @@ def get_picklist_data(data_id, user_id):
         return data, sku_total_quantities, courier_name
     else:
         courier_name = ''
+        sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
+        for sku_code, imei_number in sku_filtered_imei_number:
+            sku_imeis_map.setdefault(sku_code, []).append(imei_number)
         for order in picklist_orders:
             stock_id = ''
             wms_code = order.order.sku.wms_code
@@ -2037,7 +2069,19 @@ def picklist_confirmation(request, user=''):
             if len(data[picklist_id]) < index + 1:
                 data[picklist_id].append({})
             data[picklist_id][index][name] = val
-
+    passed_serial_number = request.POST.get('passed_serial_number', {})
+    failed_serial_number = request.POST.get('failed_serial_number', {})
+    imei_qc_details = request.POST.get('imei_qc_details', '')
+    if passed_serial_number:
+        passed_serial_number = eval(passed_serial_number)
+    if failed_serial_number:
+        failed_serial_number = eval(failed_serial_number)
+    if imei_qc_details:
+        imei_qc_details = eval(imei_qc_details)
+    if 'details' in data.keys():
+        del (data['details'])
+    if 'number' in data.keys():
+        del (data['number'])
     rista_picklist_dict = {}
 
     log.info('Request params for ' + user.username + ' is ' + str(data))
@@ -2096,6 +2140,7 @@ def picklist_confirmation(request, user=''):
                     picklist_batch = update_no_stock_to_location(request, user, picklist, val, picks_all,
                                                                  picklist_batch)
                 for picklist in picklist_batch:
+                    save_status = ''
                     if count == 0:
                         continue
 
@@ -2128,6 +2173,27 @@ def picklist_confirmation(request, user=''):
                         insert_order_serial(picklist, val)
                     if 'labels' in val.keys() and val['labels'] and picklist.order:
                         update_order_labels(picklist, val)
+                    order_id = picklist.order
+                    if picklist.order.sku.wms_code in passed_serial_number.keys():
+                        send_imei_qc_details = dict(zip(passed_serial_number[picklist.order.sku.wms_code], [imei_qc_details[k] for k in passed_serial_number[picklist.order.sku.wms_code]]))
+                        save_status = "PASS"
+                        try:
+                            dispatch_qc(user, send_imei_qc_details, order_id, save_status)
+                            val['imei'] = ','.join(passed_serial_number[picklist.order.sku.wms_code])
+                            insert_order_serial(picklist, val)
+                        except Exception as e:
+                            import traceback
+                            picklist_qc_log.debug(traceback.format_exc())
+                            picklist_qc_log.info("Error in Dispatch QC - On Pass - %s - %s" % (str(user.username),  str(e)))
+                    if picklist.order.sku.wms_code in failed_serial_number.keys():
+                        send_imei_qc_details = dict(zip(failed_serial_number[picklist.order.sku.wms_code], [imei_qc_details[k] for k in failed_serial_number[picklist.order.sku.wms_code]]))
+                        save_status = "FAIL"
+                        try:
+                            dispatch_qc(user, send_imei_qc_details, order_id, save_status)
+                        except Exception as e:
+                            import traceback
+                            picklist_qc_log.debug(traceback.format_exc())
+                            picklist_qc_log.info("Error in Dispatch QC - On Fail - %s - %s" % (str(user.username), str(e)))
                     if 'imei' in val.keys() and val['imei'] and not picklist.order and val['imei'] != '[]':
                         order = picklist.storder_set.filter()
                         if order:
@@ -3140,6 +3206,7 @@ def get_customer_sku(request, user=''):
     search_params = {'user': user.id}
     headers = ('', 'SKU Code', 'Order Quantity', 'Shipping Quantity', 'Pack Reference', '')
     request_data = dict(request.GET.iterlists())
+    picked_imeis = []
     if 'order_id' in request_data.keys() and not datatable_view == 'ShipmentPickedAlternative':
         search_params['id__in'] = request_data['order_id']
     elif 'order_id' in request_data.keys() and request_data['order_id']:
@@ -3154,6 +3221,9 @@ def get_customer_sku(request, user=''):
             filter_order_ids = list(chain(filter_order_ids, fil_ids))
         if filter_order_ids:
             search_params['id__in'] = filter_order_ids
+            pi_qs = OrderIMEIMapping.objects.filter(order_id__in=filter_order_ids).values_list('imei_number', flat=True)
+            if pi_qs:
+                picked_imeis = list(pi_qs)
     ship_no = get_shipment_number(user)
     all_orders = OrderDetail.objects.filter(**search_params)
     for obj in all_orders:
@@ -3167,6 +3237,7 @@ def get_customer_sku(request, user=''):
                                         'display_fields': '',
                                         'marketplace': '',
                                         'shipment_number': ship_no,
+                                        'picked_imeis': picked_imeis,
                                         'courier_name': courier_name}, cls=DjangoJSONEncoder))
     return HttpResponse(json.dumps({'status': 'No Orders found'}))
 
@@ -4595,6 +4666,7 @@ def create_order_from_intermediate_order(request, user):
                         customer_master = CustomerMaster.objects.filter(user=user.id, customer_id=interm_obj.customer_id)
                         if customer_master:
                             order_dict['customer_id'] = customer_master[0].customer_id
+                            order_dict['customer_name'] = customer_master[0].name
                             order_dict['email_id'] = customer_master[0].email_id
                             order_dict['telephone'] = customer_master[0].phone_number
                             order_dict['address'] = customer_master[0].address
@@ -4620,6 +4692,14 @@ def create_order_from_intermediate_order(request, user):
                     order_dict['shipment_date'] = interm_obj.shipment_date
                     order_dict['order_id'] = get_order_id(wh_id)
                     order_dict['original_order_id'] = order_dict['order_code'] + str(order_dict['order_id'])
+                    if user.username == 'one_assist':
+                        org_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id),
+                                                             order_type='intermediate_order', user=user.id,
+                                                             name='original_order_id')
+                        if org_obj:
+                            order_dict['original_order_id'] = org_obj[0].value
+                            order_dict['order_id'] = org_obj[0].value
+                            order_dict['order_code'] = ''
                     order_dict['status'] = 1
                     order_dict['remarks'] = interm_obj.remarks
                     ord_obj = OrderDetail(**order_dict)
@@ -5726,7 +5806,63 @@ def random_number_check(manifest_number, user):
         random_number_check(manifest_number,user)
     return manifest_number
 
+@csrf_exempt
+@get_admin_user
+def get_under_taking_form(request, user=''):
+    id = request.POST.get('id', '')
+    original_order_id = request.POST.get('order_id', '')
+    imei = request.POST.get('serial_number', '')
+    shipment_detail = ShipmentInfo.objects.get(id=id)
+    order_detail = shipment_detail.order
+    admin_user = get_admin(user)
+    if admin_user.username in ['one_assist']:
+        if order_detail:
+            product_make = order_detail.sku.sku_brand
+            product_model = order_detail.sku.sku_code
+            customer_name = order_detail.customer_name
+        final_data = {'customer_name': customer_name, 'product_make': product_make,
+                     'product_model': product_model, 'imei': imei, 'date': ' '}
+        if final_data:
+            return render(request, 'templates/toggle/order_shipment_confirmation_form.html', final_data)
 
+def upload_signed_under_taking_form(request, user=''):
+    from masters import upload_master_file
+    user = request.user
+    shipment_id = request.POST.get('id', '')
+    pdf_file = request.FILES.get('pdf_file', '')
+    if not shipment_id and pdf_file:
+        return HttpResponse('Fields are missing.')
+    try:
+        shipment_detail = ShipmentInfo.objects.get(id=shipment_id)
+        order_detail = shipment_detail.order
+        if order_detail:
+            order_obj_id = order_detail.id
+            response = upload_master_file(request, user, order_obj_id, 'OneAssistSignedCopies', master_file=pdf_file)
+    except Exception as e:
+        log.info('Upload PDF is failed for user %s and params are %s and error statement is %s' % (
+            str(request.user.username), str(request.POST.dict()), str(e)))
+    if response == 'Uploaded Successfully':
+        return HttpResponse('Uploaded Successfully')
+
+def get_signed_oneassist_form(request, user=''):
+    shipment_id = request.POST.get('shipment_id', '')
+    if not shipment_id:
+        return HttpResponse('Fields are missing.')
+    try:
+        one_assist_pdf = []
+        shipment_detail = ShipmentInfo.objects.get(id=shipment_id)
+        order_detail = shipment_detail.order
+        if order_detail:
+            pdf_obj = MasterDocs.objects.filter(master_id = order_detail.id)
+            if pdf_obj:
+                images = list(pdf_obj.values_list('uploaded_file', flat=True))
+                one_assist_pdf.extend(images)
+            else:
+                return HttpResponse('Please Upload Signed Invoice Copy')
+    except Exception as e:
+        log.info('PDF is not Available for user %s and params are %s and error statement is %s' % (
+            str(request.user.username), str(request.POST.dict()), str(e)))
+    return HttpResponse(json.dumps({'data_dict': one_assist_pdf}))
 
 @csrf_exempt
 @get_admin_user
@@ -5850,9 +5986,17 @@ def insert_shipment_info(request, user=''):
             'Shipment info saving is failed for params ' + str(request.POST.dict()) + ' error statement is ' + str(e))
     admin_user = get_admin(user)
     if admin_user.username in ['one_assist']:
+        if order_detail:
+            product_make = order_detail.sku.sku_brand
+            product_model = order_detail.sku.sku_code
+            imei = order_detail.orderimeimapping_set.values_list('po_imei_id__imei_number', flat=True)
+            if imei:
+                imei = imei[0]
+            else:
+                imei = '---------------'
         create_order_pos(user, created_order_objs, admin_user=admin_user)
-        final_data = {'customer_name': customers_name, 'product_make': ' ',
-                     'product_model': ' ', 'imei': ' ', 'date': ' '}
+        final_data = {'customer_name': customers_name, 'product_make': product_make,
+                     'product_model': product_model, 'imei': imei, 'date': ' '}
         if final_data:
             return render(request, 'templates/toggle/order_shipment_confirmation_form.html', final_data)
     return HttpResponse(json.dumps({'status': True, 'message': 'Shipment Created Successfully'}))
@@ -8611,12 +8755,21 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
             status = status_map.get(status)
         else:
             status = 'Pending'
+        if user.username == 'one_assist':
+            ord_val = OrderFields.objects.filter(order_type='intermediate_order', name='original_order_id',
+                                                 original_order_id=dat['interm_order_id'])
+            if ord_val:
+                loan_proposal_id = ord_val[0].value
+            else:
+                loan_proposal_id = 'NO SR NUMBER'
+        else:
+            loan_proposal_id = dat['order__original_order_id']
         temp_data['aaData'].append(
             OrderedDict((('Order ID', int(dat['interm_order_id'])), ('SKU Code', dat['sku__sku_code']), ('SKU Desc', dat['sku__sku_desc']),
                          ('Product Quantity', dat['quantity']), ('Shipment Date', shipment_date), ('data_id', dat['id']),
                          ('Project Name', dat['project_name']), ('Remarks', dat['remarks']),
                          ('Warehouse', dat['order_assigned_wh__username']), ('Status', status), ('Order Date',order_date),
-                         ('Loan Proposal ID', dat['order__original_order_id']), ('id', index), ('DT_RowClass', 'results'))))
+                         ('Loan Proposal ID', loan_proposal_id), ('id', index), ('DT_RowClass', 'results'))))
         index += 1
 
     col_headers = ['Order ID', 'SKU Code', 'SKU Desc', 'Product Quantity', 'Shipment Date', 'Project Name', 'Remarks',
@@ -8641,7 +8794,7 @@ def get_central_order_detail(request, user=''):
         wh_name = ''
     already_picked = False
     if order_id or wh_name:
-        already_assigned = True
+        #already_assigned = True
         picked_qs = Picklist.objects.filter(order_id=order_id)
         if picked_qs:
             picked_qty = picked_qs[0].picked_quantity
@@ -8721,6 +8874,10 @@ def order_category_generate_picklist(request, user=''):
             customer_id = ''.join(re.findall('\d+', filters['customer_id']))
             order_filter['customer_id'] = customer_id
             seller_order_filter['order__customer_id'] = customer_id
+
+    qc_items_qs = UserAttributes.objects.filter(user_id=user.id, attribute_model='dispatch_qc', status=1).values_list('attribute_name', flat=True)
+    qc_items = list(qc_items_qs)
+
     data = []
     order_data = []
     stock_status = ''
@@ -8812,7 +8969,7 @@ def order_category_generate_picklist(request, user=''):
                 single_order = str(order_count[0])
     return HttpResponse(json.dumps({'data': data, 'picklist_id': picklist_number + 1, 'stock_status': stock_status,
                                     'order_status': order_status, 'user': request.user.id,
-                                    'sku_total_quantities': sku_total_quantities}))
+                                    'sku_total_quantities': sku_total_quantities, 'qc_items': qc_items}))
 
 
 @csrf_exempt
@@ -14744,6 +14901,83 @@ def do_delegate_orders(request, user=''):
     return HttpResponse(json.dumps(result_data), content_type='application/json')
 
 
+def dispatch_qc(user, sku_details, order_id, validation_status):
+    user_id = user.id
+    get_po_imei_qs = ''
+    for key, value in sku_details.items():
+        imei_qs = POIMEIMapping.objects.filter(status=1, sku__user=user_id, imei_number__in=[key])
+        if imei_qs:
+            get_po_imei_qs = imei_qs[0]
+        if not get_po_imei_qs:
+            continue
+        if value:
+            value = eval(value[0])
+        if key:
+            for dict_obj in value:
+                for key_obj, value_obj in dict_obj.items():
+                    disp_imei_map = {}
+                    disp_imei_map['order_id'] = order_id
+                    disp_imei_map['po_imei_num'] = get_po_imei_qs
+                    disp_imei_map['qc_name'] = key_obj
+                    dispatch_checklist = DispatchIMEIChecklist.objects.filter(**disp_imei_map)
+                    if value_obj[1] == "false":
+                        value_obj[1] = False
+                    elif value_obj[1] == "true":
+                        value_obj[1] = True
+                    if validation_status == "PASS":
+                        validation_status = True
+                    elif validation_status == "FAIL":
+                        validation_status = False
+                    if not dispatch_checklist:
+                        disp_imei_map['qc_status'] = value_obj[1]
+                        disp_imei_map['final_status'] = validation_status
+                        disp_imei_map['qc_type'] = 'sales_order'
+                        disp_imei_map['remarks'] = value_obj[0]
+                        try:
+                            disp_imei_obj = DispatchIMEIChecklist.objects.create(**disp_imei_map)
+                        except Exception as e:
+                            import traceback
+                            picklist_qc_log.debug(traceback.format_exc())
+                            picklist_qc_log.info("Error Occured in Saving Dispatch IMEI" + str(e))
+                    else:
+                        dispatch_checklist = dispatch_checklist[0]
+                        dispatch_checklist.qc_status = value_obj[1]
+                        dispatch_checklist.final_status = validation_status
+                        dispatch_checklist.remarks = value_obj[0]
+                        dispatch_checklist.qc_type = 'sales_order'
+                        dispatch_checklist.save()
+            try:
+                dest_loc = ''
+                source_loc = ''
+                if len(imei_qs) and validation_status:
+                    sku_id = order_id.sku.id
+                    OrderIMEIMapping.objects.create(**{'order_id':order_id.id, 'sku_id': sku_id,
+                    'po_imei' : imei_qs[0], 'imei_number': get_po_imei_qs.imei_number, 'status':1, 'sor_id': '',
+                    'order_reference': '', 'marketplace': ''})
+                elif not validation_status:
+                    wms_code = order_id.sku.wms_code
+                    quantity = 1
+                    cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+                    if not cycle_count:
+                        cycle_id = 1
+                    else:
+                        cycle_id = cycle_count[0].cycle + 1
+                    sku_stocks = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku__wms_code=wms_code).order_by('creation_date')
+                    if sku_stocks:
+                        source_loc = sku_stocks[0].location.location
+                    from rest_api.views.inbound import *
+                    dest_loc = get_returns_location('DAMAGED_ZONE', '', user)
+                    if dest_loc:
+                        dest_loc = dest_loc[0].location
+                    if source_loc and dest_loc:
+                        move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user)
+                imei_qs.update(status=0)
+            except Exception as e:
+                import traceback
+                picklist_qc_log.debug(traceback.format_exc())
+                picklist_qc_log.info("Error Occured in Saving Dispatch IMEI" + str(e))
+
+
 @login_required
 @get_admin_user
 def print_pdf_shipment_info(request, user=''):
@@ -14767,6 +15001,7 @@ def send_order_back(request, user=''):
     try:
         order_id_list =request.POST.getlist('order_id')
         remarks_list = request.POST.getlist('remarks')
+        alt_sku_list = request.POST.getlist('sku_id')
         for i in range(len(order_id_list)) :
             ord_obj = OrderDetail.objects.get(original_order_id=order_id_list[i], user=user.id)
             interm_obj = IntermediateOrders.objects.filter(order_id=ord_obj.id)
@@ -14781,6 +15016,9 @@ def send_order_back(request, user=''):
                     log.info('%s orderid is  assigned' % (str(order_id_list[i],)))
                     interm_obj.status = 0
                     interm_obj.remarks=remarks_list[i]
+                    if alt_sku_list:
+                        sku_obj = SKUMaster.objects.filter(user=user.id, sku_code=alt_sku_list[i])
+                        interm_obj.alt_sku = sku_obj[0]
                     PushNotifications.objects.create(user_id=interm_obj.user_id, message=ord_obj.original_order_id+"  "+"order got rejected from"+"  "+interm_obj.order_assigned_wh.username+" "+"with central order id"+" "+str(interm_obj.interm_order_id))
                     interm_obj.save()
                     order_det_reassigned_orderid.append(ord_obj.original_order_id)

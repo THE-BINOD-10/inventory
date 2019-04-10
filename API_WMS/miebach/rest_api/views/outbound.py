@@ -10681,7 +10681,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             lis = ['invoice_number', 'invoice_number', 'financial_year', 'order__customer_name', 'invoice_number', 'invoice_number',
                    'invoice_number', 'invoice_number', 'invoice_number']
             user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
-            result_values = ['invoice_number', 'order__original_order_id', 'financial_year', 'order__customer_name']
+            result_values = ['invoice_number', 'financial_year', 'order__customer_name']
             field_mapping = {'order_quantity_field': 'order__quantity', 'date_only': 'order__creation_date'}
             is_marketplace = False
 
@@ -10698,14 +10698,14 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                 master_data = SellerOrderSummary.objects.filter(**user_filter). \
                     values(*result_values).distinct(). \
                     annotate(total_quantity=Sum('quantity'),
-                             ordered_quantity=Sum(field_mapping['order_quantity_field']),
+                             ordered_quantity=Sum(field_mapping['order_quantity_field'], distinct=True),
                              date_only=Cast(field_mapping['date_only'], DateField())).\
                     filter(Q(invoice_number__icontains=search_term)|search_query)
             else:
                 master_data = SellerOrderSummary.objects.filter(**user_filter).values(
                     *result_values).distinct(). \
                     annotate(total_quantity=Sum('quantity'),
-                             ordered_quantity=Sum(field_mapping['order_quantity_field']),
+                             ordered_quantity=Sum(field_mapping['order_quantity_field'], distinct=True),
                              date_only=Cast(field_mapping['date_only'], DateField())).\
                         filter(Q(invoice_number__icontains=search_term)|
                                                                 search_query)
@@ -10714,17 +10714,17 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             if order_term == 'asc' and (col_num or col_num == 0):
                 master_data = SellerOrderSummary.objects.filter(**user_filter).values(*result_values).distinct(). \
                     annotate(total_quantity=Sum('quantity'),\
-                             ordered_quantity=Sum(field_mapping['order_quantity_field']),
+                             ordered_quantity=Sum(field_mapping['order_quantity_field'], distinct=True),
                              date_only=Cast(field_mapping['date_only'], DateField())).order_by(lis[col_num])
             else:
                 master_data = SellerOrderSummary.objects.filter(**user_filter).values(*result_values).distinct(). \
                     annotate(total_quantity=Sum('quantity'),\
-                             ordered_quantity=Sum(field_mapping['order_quantity_field']),
+                             ordered_quantity=Sum(field_mapping['order_quantity_field'], distinct=True),
                              date_only=Cast(field_mapping['date_only'], DateField())).order_by('-%s' % lis[col_num])
         else:
             master_data = SellerOrderSummary.objects.filter(**user_filter).order_by('-%s' % lis[col_num]).values(
                 *result_values).distinct(). \
-                annotate(total_quantity=Sum('quantity'), ordered_quantity=Sum(field_mapping['order_quantity_field']),
+                annotate(total_quantity=Sum('quantity'), ordered_quantity=Sum(field_mapping['order_quantity_field'], distinct=True),
                          date_only=Cast(field_mapping['date_only'], DateField()))
 
         temp_data['recordsTotal'] = master_data.count()
@@ -10735,9 +10735,9 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
         if is_marketplace:
             seller_orders = dict(SellerOrder.objects.filter(id__in=master_data.values_list('seller_order_id', flat=True)).\
                             values_list('sor_id').distinct().annotate(tsum=Sum('quantity')))
-        else:
-            orders = dict(OrderDetail.objects.filter(id__in=master_data.values_list('order_id', flat=True)). \
-                          values_list('original_order_id').distinct().annotate(tsum=Sum('quantity')))
+        #else:
+        #    orders = dict(OrderDetail.objects.filter(id__in=master_data.values_list('order_id', flat=True)). \
+        #                  values_list('original_order_id').distinct().annotate(tsum=Sum('quantity')))
         for data in master_data[start_index:stop_index]:
             invoice_date = ''
             if is_marketplace:
@@ -10766,7 +10766,9 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                                                    .order_by('-invoice_date').values_list('invoice_date', flat=True)[0]
                 if not invoice_date:
                     invoice_date = seller_order_summaries.order_by('-updation_date')[0].updation_date
-                data['ordered_quantity'] = orders.get(data['order__original_order_id'], 0)
+                data['ordered_quantity'] = OrderDetail.objects.filter(id__in=order_ids).only('quantity').aggregate(Sum('quantity'))['quantity__sum']
+                if not data['ordered_quantity']:
+                    data['ordered_quantity'] = 0
                 #order = orders.filter(original_order_id=data['order__original_order_id'])[0]
                 #invoice_number = order.sellerordersummary_set.values_list('invoice_number', flat=True)
                 #if invoice_number:

@@ -410,7 +410,6 @@ DISPATCH_SUMMARY = {
     ('dispatch_summary_form', 'dispatchTable', 'Dispatch Summary', 'dispatch-wise', 13, 14, 'dispatch-report'): (
     ['Order ID', 'WMS Code', 'Description', 'Quantity', 'Date'],
     ((('From Date', 'from_date'), ('To Date', 'to_date')), (('WMS Code', 'wms_code'), ('SKU Code', 'sku_code')))), }
-
 ORDER_SUMMARY_DICT = {
     'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'}, {'label': 'To Date', 'name': 'to_date',
                                                                               'type': 'date'},
@@ -431,6 +430,7 @@ ORDER_SUMMARY_DICT = {
     'dt_url': 'get_order_summary_filter', 'excel_name': 'order_summary_report',
     'print_url': 'print_order_summary_report',
     }
+
 
 OPEN_JO_REP_DICT = {
     'filters': [{'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}, {'label': 'SKU Class', 'name': 'class',
@@ -3447,10 +3447,12 @@ def get_openjo_details(search_params, user, sub_user):
 def get_order_summary_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
+    from common import get_misc_value
+
     from rest_api.views.common import get_sku_master, get_order_detail_objs, get_local_date
     lis = ['creation_date', 'order_id', 'customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
            'sku__sku_size', 'sku__sku_desc', 'sku_code', 'quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
-           'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id','order_id','order_id','order_id','invoice_number','quantity','creation_date'];
+           'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','invoice_number','quantity','creation_date'];
     # lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
@@ -3612,6 +3614,15 @@ def get_order_summary_data(search_params, user, sub_user):
     ('Invoice Date',''),('Payment Cash', ''),('Payment Card', ''),('Payment PhonePe',''),('Payment GooglePay',''),('Payment Paytm','')))
 
     temp_data['aaData'].append(total_row)
+    extra_order_fields = get_misc_value('extra_order_fields', user.id)
+    if extra_order_fields == 'false' :
+        extra_order_fields = []
+    else:
+        extra_order_fields = extra_order_fields.split(',')
+    order_extra_fields ={}
+    for extra in extra_order_fields :
+        order_extra_fields[extra] = ''
+    temp_data['aaData'][0].update(OrderedDict(order_extra_fields))
 
     for data in orders.iterator():
         count = count + 1
@@ -3750,6 +3761,12 @@ def get_order_summary_data(search_params, user, sub_user):
             billing_address = data['address']
         if not shipping_address :
             shipping_address = billing_address
+        order_extra_fields ={}
+        for extra in extra_order_fields :
+            order_field_obj = OrderFields.objects.filter(original_order_id=data['original_order_id'],user=user.id ,name = extra)
+            order_extra_fields[extra] = ''
+            if order_field_obj.exists():
+                order_extra_fields[order_field_obj[0].name] = order_field_obj[0].value
         aaData = OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                     ('Customer Name', customer_name),
                                                     ('Order Number' ,data['order_reference']),
@@ -3774,6 +3791,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('Payment Cash', payment_cash), ('Payment Card', payment_card),('Payment PhonePe', payment_PhonePe),
                                                     ('Payment Paytm', payment_Paytm),('Payment GooglePay', payment_GooglePay)))
         aaData.update(OrderedDict(pos_extra))
+        aaData.update(OrderedDict(order_extra_fields))
         temp_data['aaData'].append(aaData)
     return temp_data
 

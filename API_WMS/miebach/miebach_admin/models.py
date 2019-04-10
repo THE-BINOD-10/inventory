@@ -514,7 +514,7 @@ class JobOrder(models.Model):
     jo_reference = models.PositiveIntegerField(default=0)
     order_type = models.CharField(max_length=32, default='SP')
     status = models.CharField(max_length=32, default='')
-    remarks = models.TextField(default='')
+    cancel_reason = models.TextField(default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

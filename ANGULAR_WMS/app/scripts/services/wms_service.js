@@ -390,6 +390,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       if(stat) {
         var data1 = ""
         angular.forEach(data,function(v,n){
+	  v = v.replace('&', '');
           data1 = data1 + n + "=" + v + "<>";
         })
         send = $.param(send)+"&"+"serialize_data="+data1.slice(0,-2);
@@ -935,7 +936,11 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
     return true;
   }
-
+  vm.generate_pdf_dc = function(data){
+    var send = {};
+    send = $(data).html()
+   vm.print_invoice_data(send, "");
+ }
   vm.generate_pdf_file2 = function(data){
     var send = {};
     send = $(".modal-body:visible").html()

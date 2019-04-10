@@ -20,16 +20,16 @@
     </div>
     <div class="modal-body lebel-error-hide" id="modal-body">
       <div class="row">
-	    <div class="col-md-12">
-		<div class="col-md-4 col-sm-4 col-xs-6">
-		    <div class="form-group">
-			<label class="control-label"> Seller ID </label>
-			<select class="form-control zone" name="seller_id" ng-model="bundleObj.bundle_model_data.seller_type" ng-change="bundleObj.seller_change(bundleObj.bundle_model_data.seller_type)" ng-init="bundleObj.bundle_model_data.seller_type=bundleObj.bundle_model_data.seller_types[0]; bundleObj.seller_change(bundleObj.bundle_model_data.seller_type)" ng-if="bundleObj.bundle_model_data.seller_show">
-			  <option ng-repeat="type in bundleObj.bundle_model_data.seller_types" ng-selected="bundleObj.model_data.seller_type==type" value="{{type}}">{{type}}</option>
-			</select>
-		    </div>
-		</div>
-	    </div>
+      <div class="col-md-12">
+    <div class="col-md-4 col-sm-4 col-xs-6">
+        <div class="form-group">
+      <label class="control-label"> Seller ID </label>
+      <select class="form-control zone" name="seller_id" ng-model="bundleObj.bundle_model_data.seller_type" ng-change="bundleObj.seller_change(bundleObj.bundle_model_data.seller_type)" ng-init="bundleObj.bundle_model_data.seller_type=bundleObj.bundle_model_data.seller_types[0]; bundleObj.seller_change(bundleObj.bundle_model_data.seller_type)" ng-if="bundleObj.bundle_model_data.seller_show">
+        <option ng-repeat="type in bundleObj.bundle_model_data.seller_types" ng-selected="bundleObj.model_data.seller_type==type" value="{{type}}">{{type}}</option>
+      </select>
+        </div>
+    </div>
+      </div>
             <div class="col-md-12">
               <table class="table">
                 <thead>
@@ -40,7 +40,7 @@
                     <th>Batch</th>
                     <th>MRP</th>
                     <th>Qty</th>
-		                <th>Child SKU Code</th>
+                    <th>Child SKU Code</th>
                     <th>Child SKU Desc</th>
                     <th>Child SKU Location</th>
                     <th>Child SKU Batch</th>
@@ -58,15 +58,15 @@
                       <input type="text" name="combo_sku_desc" class="form-control" ng-model="data.combo_sku_desc" ng-show="$first">
                     </td>
 
-		    <td>
+        <td>
                       <input type="text" name="location" class="form-control" ng-model="data.location" ng-show="$first">
                     </td>
 
-		    <td>
+        <td>
                       <input type="text" name="batch" class="form-control" ng-model="data.batch" ng-show="$first">
                     </td>
 
-		    <td>
+        <td>
                       <input type="number" name="mrp" min=0 class="form-control" ng-model="data.mrp" ng-show="$first">
                     </td>
 
@@ -78,7 +78,7 @@
                       <input type="text" autocomplete="off" name="child_sku_code" class="form-control" placeholder="Child SKU Code" typeahead="address for address in bundleObj.service.getSearchValues($viewValue, 'search_wms_codes?','RM')" typeahead-loading="loadingLocations" style="width: 100px;" ng-model="item.child_sku_code" readonly>
                     </td>
 
-		                <td>
+                    <td>
                       <input type="text" placeholder="SKU Desc" name="child_sku_desc" class="form-control" ng-model="item.child_sku_desc" readonly>
                     </td>
 
@@ -99,7 +99,7 @@
                       <input type="number" min=0 ng-model="item.child_sku_qty" class="form-control number" disabled="true" ng-hide="true">
                     </td>
 
-		                <td>
+                    <td>
                       <i ng-click="bundleObj.bundle_update_data(data, $index, true, false)" ng-class="bundleObj.onlyPlus($last)"></i>
                       <i ng-click="bundleObj.bundle_update_data(data, $index, false, true)" ng-class="bundleObj.onlyMinus($last)" ng-show="item.new_sku"></i>
                       <i ng-click="bundleObj.bundle_update_data(data, $index, $last, $first)" ng-hide="true"></i>
@@ -110,9 +110,9 @@
                 </tbody>
               </table>
             </div>
-	    <div class="row">
-		<div class="col-md-12" style="margin-top:10px">
-		<center><button ng-click="bundleObj.add_bundle_product();" type="button" class="btn btn-default">Add New Product SKU Code</button></center>
+      <div class="row">
+    <div class="col-md-12" style="margin-top:10px">
+    <center><button ng-click="bundleObj.add_bundle_product();" type="button" class="btn btn-default">Add New Product SKU Code</button></center>
             </div>
           </div>
           <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
@@ -126,4 +126,3 @@
     </div>
   </form>
 </div>
-

@@ -47,6 +47,9 @@
                   <th> Title </th>
                   <th> Zone </th>
                   <th> Location </th>
+                  <th ng-if="showCase.industry_type=='FMCG' && showCase.user_type=='marketplace_user'"> Batch No </th>
+                  <th ng-if="showCase.industry_type=='FMCG' && showCase.user_type=='marketplace_user'"> Manufactured Date </th>
+                  <th ng-if="showCase.industry_type=='FMCG' && showCase.user_type=='marketplace_user'"> MRP </th>
                   <th ng-if="showCase.permissions.pallet_switch"> Pallet Code </th>
                   <th> Reserved Quantity </th>
                   <th> Picked Quantity </th>
@@ -68,10 +71,23 @@
                   <td><input name="title_{{data.id}}" ng-model="data.title" class="form-control" type="text" readonly></td>
                   <td><input name="zone_{{data.id}}" ng-model="record.zone" class="form-control" type="text"></td>
                   <td><input name="location_{{data.id}}" ng-model="record.location" class="form-control" type="text"></td>
+
+                  <td ng-if="showCase.industry_type=='FMCG' && showCase.user_type=='marketplace_user'">
+                    <input type="text" autocomplete="off"  class="form-control" placeholder="Search batchno" typeahead="address.batchno for address in showCase.service.getSearchValues($viewValue, 'search_batches',record)" ng-model="record.batchno" ng-blur="showCase.service.checkSearchValue(record,'search_batches', $event, 'batchno', 'batchno')" typeahead-on-select="showCase.get_sku_details(data, $item, $index)" required>
+                 </td>
+                 <input type="hidden" name="batchno_{{data.id}}" value="{{record.batchno}}">
+                 <td ng-if="showCase.industry_type=='FMCG' && showCase.user_type=='marketplace_user'">
+                    <input ng-model="data.manufactured_date" class="form-control" size="35" type="text" readonly>
+                 </td>
+                 <td ng-if="showCase.industry_type=='FMCG' && showCase.user_type=='marketplace_user'">
+                    <input ng-model="data.mrp" class="form-control" type="text" readonly>
+                 </td>
+
                   <td ng-if="showCase.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" ng-model="data.pallet_number" class="form-control" type="text" readonly></td>
                   <td><input name="reserved_quantity_{{data.id}}" ng-model="data.reserved_quantity" class="form-control" type="text" readonly></td>
-                  <td><input name="picked_quantity_{{data.id}}" ng-model="record.picked_quantity" class="form-control" type="text" ng-change="showCase.cal_quantity(record, data)" ng-class="service.get_decimal_perm()"></td>
+                  <td><input name="picked_quantity_{{data.id}}" ng-model="record.picked_quantity" class="form-control" type="text" ng-change="showCase.cal_quantity(record, data)" ng-readonly="showCase.permissions.scan_picklist_option != 'scan_sku_location' && showCase.permissions.scan_picklist_option != 'scan_sku' && showCase.permissions.scan_picklist_option != 'scan_none'" ng-class="service.get_decimal_perm()"></td>
                   <td ng-if="showCase.permissions.use_imei"><textarea class="form-control" name="imei_{{data.id}}" rows="1" ng-model="record.scan" ng-keydown="showCase.serial_scan($event,record.scan, data, record)"></textarea></td>
+
                   <td style="width: 20px;padding-left: 10px;"><i ng-click="showCase.update_data_order($index, data, $last)" ng-class="showCase.isLast($last)"></i></td>
                 </tr>
               </tbody>

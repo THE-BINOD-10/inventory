@@ -498,6 +498,7 @@ def get_search_params(request, user=''):
             search_params[data_mapping[key]] = value
     #pos extra headers
     if user:
+        headers.extend(["Billing Address" ,"Shipping Address"])
         headers.extend(["Order Taken By", "Payment Cash", "Payment Card","Payment PhonePe","Payment GooglePay","Payment Paytm"])
         extra_fields_obj = MiscDetail.objects.filter(user=user.id, misc_type__icontains="pos_extra_fields")
         for field in extra_fields_obj:

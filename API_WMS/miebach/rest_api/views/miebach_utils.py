@@ -2033,7 +2033,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'receive_po_invoice_check': 'receive_po_invoice_check', 'mark_as_delivered': 'mark_as_delivered',
                         'order_exceed_stock': 'order_exceed_stock', 'sku_pack_config': 'sku_pack_config',
                         'central_order_reassigning':'central_order_reassigning',
-                        'po_sub_user_prefix': 'po_sub_user_prefix', 
+                        'po_sub_user_prefix': 'po_sub_user_prefix',
                         'combo_allocate_stock': 'combo_allocate_stock',
                         'dispatch_qc_check': 'dispatch_qc_check',
                         'unique_mrp_putaway': 'unique_mrp_putaway',
@@ -3508,14 +3508,14 @@ def get_order_summary_data(search_params, user, sub_user):
     if search_params.get('invoice','') == 'true':
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
-                                                                    'sku__sku_desc','sku__price','sellerordersummary__invoice_number',
+                                                                    'sku__sku_desc','sku__price','sellerordersummary__invoice_number','address',
                                                                     'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
                                                                     'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace',
                                                                     'sellerordersummary__creation_date').distinct()
     else:
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size',
-                                                                    'sku__sku_desc','sku__price','order_code',
+                                                                    'sku__sku_desc','sku__price','address','order_code',
                                                                     'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
                                                                     'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace').distinct()
     pick_filters = {}
@@ -3666,7 +3666,7 @@ def get_order_summary_data(search_params, user, sub_user):
         payment_card, payment_cash ,payment_PhonePe,payment_Paytm,payment_GooglePay = 0, 0,0,0,0
         order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data['id'])
         unit_price, unit_price_inclusive_tax = [data['unit_price']] * 2
-        if order_summary:
+        if order_summary.exists():
             mrp_price = order_summary[0].mrp
             discount = order_summary[0].discount
             order_status = order_summary[0].status
@@ -3736,11 +3736,20 @@ def get_order_summary_data(search_params, user, sub_user):
         else:
             serial_number = ''
         customer_name = data['customer_name']
-        cusotomer_master_obj = CustomerMaster.objects.filter(user = user.id, name  = customer_name)
+        billing_address = shipping_address =  ''
+        if order_summary.exists():
+            shipping_address = order_summary[0].consignee
+        customer_master_obj = CustomerMaster.objects.filter(user = user.id, name  = customer_name)
         gst_number = ''
-        if cusotomer_master_obj.exists():
-            gst_number = cusotomer_master_obj[0].tin_number
-
+        if customer_master_obj.exists():
+            gst_number = customer_master_obj[0].tin_number
+            billing_address = customer_master_obj[0].address
+            if not shipping_address :
+                shipping_address = customer_master_obj[0].shipping_address
+        if not billing_address :
+            billing_address = data['address']
+        if not shipping_address :
+            shipping_address = billing_address
         aaData = OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                     ('Customer Name', customer_name),
                                                     ('Order Number' ,data['order_reference']),
@@ -3761,7 +3770,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('Invoice Amount', float(invoice_amount)), ('Price', data['sku__price']),
                                                     ('Status', status), ('Order Status', order_status),('Customer GST Number',gst_number),
                                                     ('Remarks', remarks), ('Order Taken By', order_taken_by),
-                                                    ('Invoice Date',invoice_date),
+                                                    ('Invoice Date',invoice_date),("Billing Address",billing_address),("Shipping Address",shipping_address),
                                                     ('Payment Cash', payment_cash), ('Payment Card', payment_card),('Payment PhonePe', payment_PhonePe),
                                                     ('Payment Paytm', payment_Paytm),('Payment GooglePay', payment_GooglePay)))
         aaData.update(OrderedDict(pos_extra))

@@ -404,6 +404,8 @@ function view_orders() {
           } else if (data.data == 'Insufficient Stock in given location with batch number') {
             Service.showNoty(data.data);
             vm.ok('')
+          } else if (data.data == 'Expiry batch number not Allowed'){
+            Service.showNoty(data.data);
           } else if (typeof(data.data) == "string" && data.data.indexOf("print-invoice")) {
             vm.ok("html");
             vm.status_data.data = data.data;

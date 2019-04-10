@@ -1322,11 +1322,16 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
         except:
             pass
     pic_check = StockDetail.objects.filter(**pic_check_data)
+    expiry_batches_picklist = get_misc_value('block_expired_batches_picklist', user.id)
     if not pic_check:
         if val.get('batchno', ''):
             status.append("Insufficient Stock in given location with batch number")
         else:
             status.append("Insufficient Stock in given location")
+    elif pic_check[0].batch_detail.expiry_date and expiry_batches_picklist == 'false':
+        present_date = datetime.datetime.now().date()
+        if pic_check[0].batch_detail.expiry_date <= present_date:
+            status.append("Expiry batch number not Allowed")
     location = all_locations.filter(location=val['location'], zone__user=user.id)
     if not location:
         if error_string:

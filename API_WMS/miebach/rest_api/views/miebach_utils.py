@@ -2037,6 +2037,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'combo_allocate_stock': 'combo_allocate_stock',
                         'dispatch_qc_check': 'dispatch_qc_check',
                         'unique_mrp_putaway': 'unique_mrp_putaway',
+                        'block_expired_batches_picklist': 'block_expired_batches_picklist'
                         'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation'
                         }
 

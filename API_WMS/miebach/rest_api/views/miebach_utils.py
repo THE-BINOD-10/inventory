@@ -3614,6 +3614,15 @@ def get_order_summary_data(search_params, user, sub_user):
     ('Invoice Date',''),('Payment Cash', ''),('Payment Card', ''),('Payment PhonePe',''),('Payment GooglePay',''),('Payment Paytm','')))
 
     temp_data['aaData'].append(total_row)
+    extra_order_fields = get_misc_value('extra_order_fields', user.id)
+    if extra_order_fields == 'false' :
+        extra_order_fields = []
+    else:
+        extra_order_fields = extra_order_fields.split(',')
+    order_extra_fields ={}
+    for extra in extra_order_fields :
+        order_extra_fields[extra] = ''
+    temp_data['aaData'][0].update(OrderedDict(order_extra_fields))
 
     for data in orders.iterator():
         count = count + 1
@@ -3753,11 +3762,6 @@ def get_order_summary_data(search_params, user, sub_user):
         if not shipping_address :
             shipping_address = billing_address
         order_extra_fields ={}
-        extra_order_fields = get_misc_value('extra_order_fields', user.id)
-        if extra_order_fields == 'false' :
-            extra_order_fields = []
-        else:
-            extra_order_fields = extra_order_fields.split(',')
         for extra in extra_order_fields :
             order_field_obj = OrderFields.objects.filter(original_order_id=data['original_order_id'],user=user.id ,name = extra)
             order_extra_fields[extra] = ''

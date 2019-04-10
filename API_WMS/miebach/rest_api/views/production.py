@@ -674,7 +674,6 @@ def delete_jo(request, user=''):
 @login_required
 @get_admin_user
 def close_jo(request, user=''):
-    # import pdb;pdb.set_trace()
     log.info('Request params for Cancel Job Order are ' + str(request.POST.dict()))
     try:
         job_code = request.POST.get('job_code', '')

@@ -664,7 +664,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     order_data['order_code'] = 'MN'
 
             elif key == 'quantity':
-                order_data[key] = int(get_cell_data(row_idx, value, reader, file_type))
+                order_data[key] = float(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'unit_price':
                 order_data[key] = float(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'invoice_amount':
@@ -1643,9 +1643,9 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
         if sku_data:
+	    storehippo_sync_price_value(user, {'wms_code':sku_data.wms_code, 'price':sku_data.price})
             sku_data.save()
             all_sku_masters.append(sku_data)
-
         if not sku_data:
             data_dict['sku_code'] = data_dict['wms_code']
             sku_master = SKUMaster(**data_dict)
@@ -2973,9 +2973,13 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
             reserved_dict = {'stock__sku_id': data_dict['sku_id'], 'stock__sku__user': user.id,
                              'status': 1,
                              'stock__location_id': data_dict['source_id']}
+            raw_reserved_dict = {'stock__sku_id': data_dict['sku_id'], 'stock__sku__user': user.id,
+                             'status': 1,
+                             'stock__location_id': data_dict['source_id']}
             if data_dict.get('batch_no', ''):
                 stock_dict["batch_detail__batch_no"] = data_dict['batch_no']
                 reserved_dict["stock__batch_detail__batch_no"] = data_dict['batch_no']
+                raw_reserved_dict['stock__batch_detail__batch_no'] = data_dict['batch_no']
             if data_dict.get('mrp', ''):
                 try:
                     mrp = data_dict['mrp']
@@ -2983,10 +2987,12 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                     mrp = 0
                 stock_dict["batch_detail__mrp"] = mrp
                 reserved_dict["stock__batch_detail__mrp"] = mrp
+                raw_reserved_dict["stock__batch_detail__mrp"] = mrp
             if data_dict.get('seller_master_id', ''):
                 stock_dict['sellerstock__seller_id'] = data_dict['seller_master_id']
                 stock_dict['sellerstock__quantity__gt'] = 0
                 reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
+                raw_reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
             stocks = StockDetail.objects.filter(**stock_dict)
             if not stocks:
                 index_status.setdefault(row_idx, set()).add('No Stocks Found')
@@ -2994,9 +3000,15 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                 stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
                 reserved_quantity = PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).\
                                         aggregate(Sum('reserved'))['reserved__sum']
-                if reserved_quantity:
-                    if (stock_count - reserved_quantity) < float(data_dict['quantity']):
-                        index_status.setdefault(row_idx, set()).add('Source Quantity reserved for Picklist')
+                raw_reserved_quantity = RMLocation.objects.exclude(stock=None).filter(**raw_reserved_dict).\
+                                        aggregate(Sum('reserved'))['reserved__sum']
+                if not reserved_quantity:
+                    reserved_quantity = 0
+                if not raw_reserved_quantity:
+                    raw_reserved_quantity = 0
+                avail_stock = stock_count - reserved_quantity - raw_reserved_quantity
+                if avail_stock < float(data_dict['quantity']):
+                    index_status.setdefault(row_idx, set()).add('Quantity Exceeding available quantity')
         data_list.append(data_dict)
 
     if not index_status:
@@ -5412,6 +5424,9 @@ def central_order_form(request, user=''):
 @login_required
 @get_admin_user
 def stock_transfer_order_form(request, user=''):
+    error_file = request.GET['download-stock-transfer-file']
+    if error_file:
+        return error_file_download(error_file)
     wb, ws = get_work_sheet('stock_transfer_order_form', STOCK_TRANSFER_ORDER_MAPPING.keys())
     return xls_to_response(wb, '%s.stock_transfer_order_form.xls' % str(user.id))
 
@@ -5740,9 +5755,9 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 order_dict['customer_name'] = order_data.get('customer_name', '')
             order_dict['original_order_id'] = order_id
             order_code = ''.join(re.findall('\D+', order_id))
-            order_id = ''.join(re.findall('\d+', order_id))
+            ord_id = ''.join(re.findall('\d+', order_id))
             order_dict['order_code'] = order_code
-            order_dict['order_id'] = order_id
+            order_dict['order_id'] = ord_id
             order_dict['shipment_date'] = datetime.datetime.now() #interm_obj.shipment_date
             order_dict['quantity'] = 1
             order_dict['unit_price'] = unit_price
@@ -5829,6 +5844,8 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
                 original_order_id = str(int(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type)))
             except:
                 original_order_id = str(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type))
+            if not original_order_id:
+                index_status.setdefault(count, set()).add('Courtesy SR Number is mandatory')
         if order_mapping.has_key('customer_name'):
             customer_name = str(get_cell_data(row_idx, order_mapping['customer_name'], reader, file_type))
             if not customer_name:
@@ -5866,6 +5883,7 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
     for row_idx in range(1, no_of_rows):
         order_data = copy.deepcopy(CENTRAL_ORDER_XLS_UPLOAD)
         order_data['user'] = user
+        order_data['status'] = 2
         customer_info = {}
         for key, value in order_mapping.iteritems():
             order_fields_data = {}
@@ -6010,6 +6028,17 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                     sku_id = get_syncedusers_mapped_sku(wh=wh_id, sku_id=sku_master_id)
                     if not sku_id:
                         index_status.setdefault(count, set()).add('SKU Code Not found in mentioned Location')
+        number_fields = {'quantity': 'Quantity', 'price': 'Price', 'cgst_tax': 'CGST Tax', 'sgst_tax': 'SGST Tax',
+                         'igst_tax': 'IGST Tax'}
+        for key, value in number_fields.iteritems():
+            if order_mapping.has_key(key):
+                cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+                if cell_data:
+                    if not isinstance(cell_data, (int, float)):
+                        index_status.setdefault(count, set()).add('Invalid %s' % number_fields[key])
+                elif key == 'quantity':
+                    index_status.setdefault(count, set()).add('Quantity is mandatory')
+
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
         file_path = rewrite_csv_file(f_name, index_status, reader)

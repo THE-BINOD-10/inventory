@@ -17,7 +17,9 @@ LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
 
 log = init_logger('logs/integration_requests.log')
-
+today = datetime.datetime.now().strftime("%Y%m%d")
+storehippo_fulfillments_log = init_logger('logs/storehippo_fulfillments_log_' + today + '.log')
+storehippo_sku_update_log = init_logger('logs/storehippo_sku_update_log_' + today + '.log')
 
 class EasyopsAPI:
     def __init__(self, company_name='', warehouse='', token='', user=''):
@@ -355,7 +357,6 @@ class EasyopsAPI:
         json_response = self.get_response(url, data)
         return json_response
 
-
     def qssi_order_push(self, data={}, user=''):
         """ API to push order (QSSI)"""
         if user:
@@ -394,4 +395,44 @@ class EasyopsAPI:
             url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'get_order_status', ''))
         json_response = self.get_response(url, data)
         return json_response
+
+    def storehippo_fulfill_orders(self, to_fulfill_list, user=''):
+        send_response = {}
+        if user:
+            self.user = user
+            self.get_user_token(user)
+        for to_fulfill in to_fulfill_list:
+            payload_data = {"data" : to_fulfill}
+            url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'fulfillments_url', ''))
+            headers =  {'access-key': LOAD_CONFIG.get(self.company_name, 'access_key', ''), 'content-type': 'application/json'}
+	    storehippo_fulfillments_log.info('For User : ' + str(user.username) + ' , Input Data to Fulfill Orders - ' + str(json.dumps(payload_data)))
+            response = requests.request("POST", url, data=json.dumps(payload_data), headers=headers)
+            response_status_code = response.status_code
+            if response_status_code == 200:
+                send_response = {'status': True, 'message':str(response.json())}
+                TempJson.objects.create(**{'model_id': user.id, 'model_name': 'storehippo<<>>acecraft<<>>fulfillments<<>>' + to_fulfill.get('order_id', ''), 'model_json': str(response.json())})
+		storehippo_fulfillments_log.info('Success Response on Fulfill - ' + str(response.json()))
+            else:
+                send_response = {'status': False, 'message': str(response.json())}
+		storehippo_fulfillments_log.info('Failure Response on Fulfill - ' + str(response.json()))
+	return send_response
+
+    def storehippo_sku_update(self, sku_price, user=''):
+	if user:
+            self.user = user
+            self.get_user_token(user)
+            product_url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'update_product_url', ''))
+	    headers =  {'access-key': LOAD_CONFIG.get(self.company_name, 'access_key', ''), 'content-type': 'application/json'}
+	    url = (product_url + str({"sku": str(sku_price['wms_code'])})).replace( "'", '"')
+	    payload_data = {"data":{"price": sku_price['price']}}
+            storehippo_sku_update_log.info('For User : ' + str(user.username) + ' , Input Data to Update SKU Price ' + str(sku_price['wms_code']) + ' - ' + str(payload_data))
+	    response = requests.request("PUT", url, data=json.dumps(payload_data), headers=headers)
+            response_status_code = response.status_code
+            if response_status_code == 200:
+                send_response = {'status': True, 'message':str(response.json())}
+		storehippo_sku_update_log.info(sku_price['wms_code'] + ' Updated Successfully - ' + str(response.json()))
+	    else:
+		send_response = {'status': False, 'message': str(response.json())}
+		storehippo_sku_update_log.info(sku_price['wms_code'] + ' - Error Occured on Update SKU')
+	return send_response
 

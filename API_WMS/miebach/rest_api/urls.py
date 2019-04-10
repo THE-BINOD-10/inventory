@@ -231,6 +231,8 @@ urlpatterns = [
     url(r'^check__replace_imei_exists/$', check__replace_imei_exists),
     url(r'^save_replaced_serials/$', save_replaced_serials),
     url(r'^save_replaced_locations/$', save_replaced_locations),
+    url(r'^get_vendor_list/$', get_vendor_list),
+    url(r'^create_vendor_stock_transfer/$', create_vendor_stock_transfer),
 
 
 
@@ -283,6 +285,9 @@ urlpatterns = [
     url('^insert_shipment_info/$', insert_shipment_info),
     url('^shipment_info_data/$', shipment_info_data),
     url('^update_shipment_status/$', update_shipment_status),
+    url('^get_under_taking_form/$', get_under_taking_form),
+    url('^upload_signed_under_taking_form/$', upload_signed_under_taking_form),
+    url('^get_signed_oneassist_form/$', get_signed_oneassist_form),
     url('^print_shipment/$', print_shipment),
     url('^get_sku_categories/$', get_sku_categories),
     url('^get_sku_catalogs/$', get_sku_catalogs),
@@ -626,6 +631,9 @@ urlpatterns += [
     url('^get_staff_members_list/$', get_staff_members_list),
     url(r'^pos_tax_inclusive/$', pos_tax_inclusive),
     url(r'^stock_transfer_invoice_data/$', stock_transfer_invoice_data),
+    url(r'^pos_send_mail/$', pos_send_mail),
+
+
 
 ]
 

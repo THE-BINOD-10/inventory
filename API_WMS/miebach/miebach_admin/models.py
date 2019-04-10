@@ -462,7 +462,7 @@ class OpenPO(models.Model):
     delivery_date = models.DateField(blank=True, null=True)
     status = models.CharField(max_length=32)
     measurement_unit = models.CharField(max_length=32, default='')
-    ship_to = models.CharField(max_length=128, default='')
+    ship_to = models.CharField(max_length=256, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     terms = models.TextField(default='', max_length=256)
@@ -1154,7 +1154,7 @@ class SkuTypeMapping(models.Model):
 
 class QCSerialMapping(models.Model):
     id = BigAutoField(primary_key=True)
-    quality_check = models.ForeignKey(QualityCheck)
+    quality_check = models.ForeignKey(QualityCheck, blank=True, null=True)
     serial_number = models.ForeignKey(POIMEIMapping)
     status = models.CharField(max_length=32, default='')
     reason = models.CharField(max_length=64, default='')
@@ -2112,6 +2112,7 @@ class SellerOrderSummary(models.Model):
     challan_number = models.CharField(max_length=64, default='')
     order_status_flag = models.CharField(max_length=64, default='processed_orders')
     delivered_flag = models.IntegerField(default=0)
+    financial_year = models.CharField(max_length=16, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -3080,7 +3081,7 @@ class SKUPackMaster(models.Model):
 class TempJson(models.Model):
     id = BigAutoField(primary_key=True)
     model_id = models.PositiveIntegerField()
-    model_name = models.CharField(max_length=32, default='')
+    model_name = models.CharField(max_length=256, default='')
     model_json = models.TextField(default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -3088,6 +3089,23 @@ class TempJson(models.Model):
     class Meta:
         db_table = 'TEMP_JSON'
         index_together = ('model_id', 'model_name')
+
+
+class DispatchIMEIChecklist(models.Model):
+    id = BigAutoField(primary_key=True)
+    order_id = models.CharField(max_length=128, default='')
+    po_imei_num = models.ForeignKey(POIMEIMapping)
+    qc_name = models.CharField(max_length=128, default='')
+    qc_status = models.BooleanField(default=True)
+    final_status = models.BooleanField(default=True)
+    remarks = models.CharField(max_length=64, default='')
+    qc_type = models.CharField(max_length=32, default='sales_order')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ORDER_IMEI_CHECKLIST'
+        unique_together = ('order_id', 'po_imei_num', 'qc_name')
 
 
 class OrderIMEIMapping(models.Model):
@@ -3125,3 +3143,4 @@ class ReturnsIMEIMapping(models.Model):
         db_table = 'RETURNS_IMEI_MAPPING'
         unique_together = ('order_imei', 'order_return')
         index_together = ('order_imei', 'order_return')
+

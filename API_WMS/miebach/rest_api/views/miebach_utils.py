@@ -2033,7 +2033,9 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'receive_po_invoice_check': 'receive_po_invoice_check', 'mark_as_delivered': 'mark_as_delivered',
                         'order_exceed_stock': 'order_exceed_stock', 'sku_pack_config': 'sku_pack_config',
                         'central_order_reassigning':'central_order_reassigning',
-                        'po_sub_user_prefix': 'po_sub_user_prefix', 'combo_allocate_stock': 'combo_allocate_stock',
+                        'po_sub_user_prefix': 'po_sub_user_prefix', 
+                        'combo_allocate_stock': 'combo_allocate_stock',
+                        'dispatch_qc_check': 'dispatch_qc_check',
                         'unique_mrp_putaway': 'unique_mrp_putaway',
                         'block_expired_batches_picklist': 'block_expired_batches_picklist'
                         'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation'
@@ -2098,10 +2100,11 @@ STOCK_TRANSFER_ORDER_MAPPING = OrderedDict((
                                    ))
 
 CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((
-                                      ('Courtesy SR Number', 'original_order_id'), ('Customer handset Model', 'sku_code'),
+                                      ('Courtesy SR Number', 'original_order_id'),
                                       ('Customer Name', 'customer_name'), ('Address', 'address'),
                                       ('City', 'city'), ('Pincode', 'pincode'),
-                                      ('Customer primary contact', 'mobile_no'), ('Customer emailId', 'email_id') ))
+                                      ('Customer primary contact', 'mobile_no'), ('Customer emailId', 'email_id'),
+                                      ('Customer handset Model', 'sku_code')))
 SKU_PACK_MAPPING = OrderedDict((('Sku Code', 'sku_code'), ('Pack ID', 'pack_id'),
                                       ('Pack Quantity', 'pack_quantity')))
 # SKU_PACK_MAPPING = OrderedDict((('Sku Code', 'sku_code'), ('Pack ID', 'pack_id'), ('Pack Quantity', 'pack_quantity')))

@@ -3022,6 +3022,18 @@ class RatingSKUMapping(models.Model):
         unique_together = ('rating', 'sku')
 
 
+class FeedbackMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    feedback_type = models.CharField(max_length=128, default='')
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    feedback_remarks = models.TextField()
+    feedback_image = models.ImageField(upload_to='static/images/feedback_images/', default='', blank=True)
+
+    class Meta:
+        db_table = 'FEEDBACK_MASTER'
+
+
 class PushNotifications(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, blank=True, null=True)

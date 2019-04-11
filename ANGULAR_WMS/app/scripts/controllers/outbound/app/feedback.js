@@ -57,7 +57,7 @@ function feedBackForm($scope, $http, $q, Session, colFilters, Service, $state, $
       $.each(elem, function(i, val) {
           formData.append(val.name, val.value);
       });
-      $.ajax({url:Session.url+"update_feedback_form/",
+      $.ajax({url:Session.url+"create_feedback_form/",
                method:"POST",
                data:formData,
                processData : false,
@@ -65,7 +65,7 @@ function feedBackForm($scope, $http, $q, Session, colFilters, Service, $state, $
                xhrFields: {
                  withCredentials: true},
               'success': function(response) {
-                  var response = JSON.parse(response);
+//                  var response = JSON.parse(response);
                   if(response.message == "success") {
                     vm.service.showNoty("Successfully updated Feedback data");
                     vm.clearFiles()

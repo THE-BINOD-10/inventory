@@ -9198,8 +9198,6 @@ def get_only_date(request, date):
 
 
 def get_level_based_customer_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    #index = request.GET.get('index', '')
-    #import pdb;pdb.set_trace()
     lis = ['generic_order_id','quantity', 'Delivered Qty', 'Pending Qty', 'Order Value', 'creation_date', 'Receive Status']
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
@@ -9319,7 +9317,6 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
 @csrf_exempt
 def get_customer_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     """ Return customer orders"""
-    #import pdb;pdb.set_trace()
     response_data = {'data': []}
     admin_user = get_priceband_admin_user(user)
     if admin_user:
@@ -9498,7 +9495,6 @@ def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
 
 
 def get_level_based_customer_order_detail(request, user):
-    #import pdb;pdb.set_trace()
     whole_res_map = {}
     response_data_list = []
     sku_wise_details = {}
@@ -12249,12 +12245,6 @@ def insert_enquiry_data(request, user=''):
 
 # @get_admin_user
 def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    # index = request.GET.get('index', '')
-    #import pdb;pdb.set_trace()
-    # start_index, stop_index = 0, 20
-    # if index:
-    #     start_index = int(index.split(':')[0])
-    #     stop_index = int(index.split(':')[1])
     lis = ['enquiry_id','creation_date','Quantity','Amount','Days Left','corporate_name']
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
@@ -12273,8 +12263,6 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
                 Q(enquiry_id__icontains=search_term) | Q(creation_date__regex=search_term)
                 | Q(corporate_name__icontains=search_term),
                  customer_id=cm_id, **search_params).order_by(order_data)
-    #else:
-        #em_qs = EnquiryMaster.objects.filter(customer_id=cm_id).order_by(order_data)
     temp_data['recordsTotal'] = len(em_qs)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     em_vals = em_qs.values_list('enquiry_id', 'extend_status', 'extend_date', 'corporate_name').distinct()
@@ -12311,10 +12299,8 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
             ('Extend Date', input_label + input_div), ('Move to Cart', button))))
         temp_data['recordsTotal'] = em_vals.count()
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
-        #response_data['data'].append(res_map)
-    #return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))'''
 
-# @get_admin_user
+
 def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     lis = ['enquiry_id','creation_date','customer_name','sku__sku_class','sku__sku_code']
     search_params = get_filtered_params(filters, lis)
@@ -15044,3 +15030,28 @@ def get_order_extra_fields(request , user =''):
     if not order_field_obj == 'false':
         extra_order_fields = order_field_obj.split(',')
     return HttpResponse(json.dumps({'data':extra_order_fields }))
+
+
+@login_required
+@get_admin_user
+def create_feedback_form(request, user=''):
+    resp = {'message': 'success'}
+    fb_type = request.POST.get('feedbackType', '')
+    sku_style = request.POST.get('SKU', '')
+    remarks = request.POST.get('remarks', '')
+    sku_qs = SKUMaster.objects.filter(style_name=sku_style, user=user.id)
+    if not sku_qs:
+        return HttpResponse('No SKU Style Found')
+    sku_id = sku_qs[0].id
+    image_file = request.FILES.get('files-0', '')
+    feedback_map = {'user_id': request.user.id, 'feedback_type': fb_type, 'sku_id': sku_id,
+                    'feedback_remarks': remarks, 'feedback_image': image_file}
+    try:
+        fb_master = FeedbackMaster(**feedback_map)
+        fb_master.save()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Exception raised while creating the feedback form for %s and params are %s and error statement is %s'
+                 % (str(user.username), str(request.POST.dict()), str(e)))
+    return HttpResponse(json.dumps(resp), content_type='application/json')

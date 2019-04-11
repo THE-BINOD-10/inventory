@@ -514,6 +514,7 @@ class JobOrder(models.Model):
     jo_reference = models.PositiveIntegerField(default=0)
     order_type = models.CharField(max_length=32, default='SP')
     status = models.CharField(max_length=32, default='')
+    cancel_reason = models.TextField(default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -3104,7 +3105,7 @@ class DispatchIMEIChecklist(models.Model):
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'ORDER_IMEI_CHECKLIST'
+        db_table = 'DISPATCH_IMEI_CHECKLIST'
         unique_together = ('order_id', 'po_imei_num', 'qc_name')
 
 

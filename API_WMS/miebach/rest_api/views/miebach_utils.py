@@ -1992,9 +1992,10 @@ ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict((('order_id', 0), ('awb_no', 1), ('cour
 # Company logo names
 COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png',
                       'sm_admin': 'sm-brand.jpg', 'corp_attire': 'corp_attire.jpg',
-                      'aidin_technologies': 'aidin_tech.jpg', 'nutricane': 'nutricane.jpg', '72Networks':'72networks.png'}
+                      'aidin_technologies': 'aidin_tech.jpg', 'nutricane': 'nutricane.jpg',
+                      '72Networks':'72networks.png'}
 
-TOP_COMPANY_LOGO_PATHS = {'Konda_foundation': 'dr_reddy_logo.png'}
+TOP_COMPANY_LOGO_PATHS = {'Konda_foundation': 'dr_reddy_logo.png', 'acecraft':'acecraft.jpg'}
 
 ISO_COMPANY_LOGO_PATHS = {'aidin_technologies': 'iso_aidin_tech.jpg'}
 
@@ -3622,7 +3623,7 @@ def get_order_summary_data(search_params, user, sub_user):
     ('Serial Number',''),('Invoice Number',''),('Quantity',''),('Payment Type' ,''),('Reference Number',''),
     ('Taxable Amount',''), ('Tax', ''),('City', ''), ('State', ''), ('Marketplace', 'TotalInvoiceAmount='),('Invoice Amount', temp_data['totalSellingPrice']),
     ('Price', ''),('Status', ''), ('Order Status', ''),('Customer GST Number',''),('Remarks', ''), ('Order Taken By', ''),
-    ('Invoice Date',''),('Payment Cash', ''),('Payment Card', ''),('Payment PhonePe',''),('Payment GooglePay',''),('Payment Paytm','')))
+    ('Invoice Date',''),('Billing Address',''),('Shipping Address',''),('Payment Cash', ''),('Payment Card', ''),('Payment PhonePe',''),('Payment GooglePay',''),('Payment Paytm','')))
 
     temp_data['aaData'].append(total_row)
     extra_order_fields = get_misc_value('extra_order_fields', user.id)
@@ -6332,13 +6333,37 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
         for sku in sku_masters:
             wms_code = sku.wms_code
             stock_quantity = 0
-            stock_quantity = StockDetail.objects.filter(sku__wms_code = wms_code,sku__user = user.id).aggregate(Sum('quantity'))['quantity__sum']
-            stock_quantity = get_decimal_limit(user.id,stock_quantity)
+            stock_quantity = StockDetail.objects.filter(sku__wms_code = wms_code).aggregate(Sum('quantity'))['quantity__sum']
             po_quantity = 0
-            po_quantity = PurchaseOrder.objects.exclude(status__in=['confirmed-putaway']). \
-                filter(open_po__sku__user=user.id, open_po__sku_id=sku.id, open_po__vendor_id__isnull=True).aggregate(Sum('received_quantity'))['received_quantity__sum']
-            if not po_quantity :
-               po_quantity = 0
+            purchase_order = PurchaseOrder.objects.exclude(status__in=['confirmed-putaway', 'location-assigned']). \
+                filter(open_po__sku__user=sku.user, open_po__sku_id=sku.id, open_po__vendor_id__isnull=True). \
+                values('open_po__sku_id').annotate(total_order=Sum('open_po__order_quantity'),
+                                                   total_received=Sum('received_quantity'))
+
+            qc_pending = POLocation.objects.filter(purchase_order__open_po__sku__user=sku.user, purchase_order__open_po__sku_id=sku.id,
+                                                    qualitycheck__status='qc_pending', status=2).\
+                                            only('quantity').aggregate(Sum('quantity'))['quantity__sum']
+            putaway_pending = POLocation.objects.filter(purchase_order__open_po__sku__user=sku.user, purchase_order__open_po__sku_id=sku.id,
+                                                        status=1).only('quantity').aggregate(Sum('quantity'))['quantity__sum']
+            if not qc_pending:
+                qc_pending = 0
+            if not putaway_pending:
+                putaway_pending = 0
+
+            transit_quantity = 0
+            po_quant = 0
+            if purchase_order:
+                purchase_order = purchase_order[0]
+                diff_quantity = float(purchase_order['total_order']) - float(purchase_order['total_received'])
+                if diff_quantity > 0:
+                    po_quant = diff_quantity
+
+                transit_quantity = qc_pending + putaway_pending+po_quant
+
+            po_quantity =  transit_quantity
+
+
+
             total_stock_quantity = stock_quantity+po_quantity
 
             temp_data['aaData'].append(OrderedDict((('SKU',wms_code ),('Product name',sku.sku_desc),

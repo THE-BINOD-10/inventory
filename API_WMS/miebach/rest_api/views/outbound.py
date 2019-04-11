@@ -540,9 +540,9 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
     for key, value in all_data.iteritems():
         sno = sno+1
         if one_assist_qc_check == 'true':
-            dt_map = {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Signed Invoice' : key[5], 'Serial Nu      mber' : sno, 'Total Quantity': value, 'DT_RowClass': 'results'}
+            dt_map = {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Signed Invoice' : key[5], 'Serial Number' : sno, 'Total Quantity': value, 'DT_RowClass': 'results'}
         else:
-            dt_map = {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Manifest Date' : key[5], 'Serial Num      ber' : sno, 'Total Quantity': value, 'DT_RowClass': 'results'}
+            dt_map = {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Manifest Date' : key[5], 'iSerial Number' : sno, 'Total Quantity': value, 'DT_RowClass': 'results'}
         temp_data['aaData'].append(dt_map)
     sort_col = lis[col_num]
 
@@ -863,10 +863,10 @@ def get_picklist_data(data_id, user_id):
         'po_imei_id', flat=True)
     dict_list = ['sku__sku_code', 'imei_number']
     imei_qs = POIMEIMapping.objects.filter(status=1, sku__user=user_id).exclude(id__in=dispatched_imeis).values_list(
-        *dict_list).order_by('creation_date')
+        *dict_list).distinct().order_by('creation_date')
     sku_imeis_map = {}
-    for sku_code, imei_number in imei_qs:
-        sku_imeis_map.setdefault(sku_code, []).append(imei_number)
+    #for sku_code, imei_number in imei_qs:
+    #    sku_imeis_map.setdefault(sku_code, []).append(imei_number)
 
     if not picklist_orders:
         return data, sku_total_quantities, courier_name
@@ -1328,7 +1328,7 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
             status.append("Insufficient Stock in given location with batch number")
         else:
             status.append("Insufficient Stock in given location")
-    elif pic_check[0].batch_detail.expiry_date and expiry_batches_picklist == 'false':
+    elif pic_check[0].batch_detail and pic_check[0].batch_detail.expiry_date and expiry_batches_picklist == 'false':
         present_date = datetime.datetime.now().date()
         if pic_check[0].batch_detail.expiry_date <= present_date:
             status.append("Expiry batch number not Allowed")

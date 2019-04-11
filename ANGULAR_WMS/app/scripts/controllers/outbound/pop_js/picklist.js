@@ -1,6 +1,6 @@
 'use strict';
 
-function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, $modal, items) {
+function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, $modal, items, $rootScope) {
 
   var vm = this;
   vm.state_data = items;
@@ -9,11 +9,17 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
   vm.user_type=Session.user_profile.user_type;
   vm.model_data = {};
   vm.record_serial_data = [];
+  vm.record_serial_dict= {}
   vm.record_qcitems_data = [];
   vm.status_data = {message:"cancel", data:{}}
   vm.qty_validation = {};
+  vm.serial_number_scanned = ''
+  $rootScope.collect_imei_details = {}
+  vm.collect_imei_details = $rootScope.collect_imei_details
+  vm.passed_serial_number = {}
+  vm.failed_serial_number = {}
+  vm.collect_imei_data = {};
   vm.industry_type = Session.user_profile.industry_type;
-  vm.collect_imei_data = {}
   vm.get_id = '';
   vm.decimal_limit = (vm.permissions.decimal_limit)?Number(vm.permissions.decimal_limit):1;
 
@@ -143,35 +149,44 @@ function view_orders() {
 
 }
 */
+
     vm.getrecordSerialnumber = function(rowdata) {
+      var record_serial_data = []
       for(var i=0; i < vm.model_data.data.length; i++) {
         if(vm.model_data.data[i].wms_code == rowdata.wms_code) {
           if(!vm.model_data.data[i].hasOwnProperty('sku_imeis_map')) {
-            return false
+            return false;
           }
-		  if (vm.model_data.data[i]['sku_imeis_map'].hasOwnProperty(vm.model_data.data[i].wms_code)) {
-            angular.copy(vm.model_data.data[i]['sku_imeis_map'][vm.model_data.data[i].wms_code].sort(), vm.record_serial_data);
-		  }
+          if(angular.copy(vm.model_data.data[i]['sku_imeis_map']).hasOwnProperty(vm.model_data.data[i].wms_code)) {
+            angular.copy(vm.model_data.data[i]['sku_imeis_map'][vm.model_data.data[i].wms_code].sort(), record_serial_data);
+            record_serial_data = [...new Set(record_serial_data)]
+            vm.record_serial_dict[vm.model_data.data[i].wms_code] = record_serial_data
+          }
+        }
+        if(!vm.record_serial_dict.hasOwnProperty(vm.model_data.data[i].wms_code)) {
+          vm.service.showNoty("No Serial Number Present");
+          return false;
         }
       }
-	  vm.record_serial_data = $.map(vm.record_serial_data, function(n,i){return n.toUpperCase();});
-      return true
+      return true;
     }
 
     vm.myFunction = function(rowdata, record) {
-    var x = document.getElementById("serial_no");
-    if (x.style.display === "none" || x.style.display === "") {
+      var record_serial_data = []
       for(var i=0; i < vm.model_data.data.length; i++) {
         if(vm.model_data.data[i].wms_code == rowdata.wms_code) {
-          angular.copy(vm.model_data.data[i]['sku_imeis_map'][vm.model_data.data[i].wms_code].sort(), vm.record_serial_data);
-          x.style.display = "block";
-		  vm.record_serial_data = $.map(vm.record_serial_data, function(n,i){return n.toUpperCase();});
+          if(angular.copy(vm.model_data.data[i]['sku_imeis_map']).hasOwnProperty(vm.model_data.data[i].wms_code)) {
+            angular.copy(vm.model_data.data[i]['sku_imeis_map'][vm.model_data.data[i].wms_code].sort(), record_serial_data);
+            record_serial_data = [...new Set(record_serial_data)]
+            vm.record_serial_dict[vm.model_data.data[i].wms_code] = record_serial_data
+            vm.record_serial_data = $.map(vm.record_serial_data, function(n,i){return n.toUpperCase();});
+          }
+        }
+        if(!vm.record_serial_dict.hasOwnProperty(vm.model_data.data[i].wms_code)) {
+          vm.service.showNoty("No Serial Number Present");
         }
       }
-    } else {
-        x.style.display = "none";
     }
-  }
 
   vm.serial_scan = function(event, scan, data, record) {
       if (event.keyCode == 13) {
@@ -200,11 +215,37 @@ function view_orders() {
         var length = scan_data.length;
         var elem = {};
         elem[id]= scan_data[length-1]
+        if (!vm.permissions.dispatch_qc_check) {
+          var resp_data = vm.getrecordSerialnumber(data);
+          if (!resp_data) {
+            vm.service.showNoty("Serial number not available for this SKU");
+            record.scan = '';
+            return false
+          }
+          if(vm.collect_imei_data.hasOwnProperty(data.id)) {
+            if ($.inArray(scan, vm.collect_imei_data[data.id]) != -1) {
+              vm.service.showNoty("Serial number already scanned");
+              record.scan = '';
+              return false
+            }
+          }
+        } else {
+          vm.serial_number_scanned = elem[id];
+        }
         if(total < data.reserved_quantity) {
           vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
-          if(data.data.status == "Success") {
+            if(data.data.status == "Success") {
               if(data.data.data.sku_code == record.wms_code) {
-                vm.increament(record);
+                if (vm.permissions.dispatch_qc_check) {
+                  if(vm.record_serial_dict[data.data.data.sku_code][0] == scan_data) {
+                    vm.picklist_qcitems(vm.model_data, record);
+                  } else {
+                    vm.service.showNoty("Please Enter the Correct Serial Number !");
+                    record.scan = '';
+                  }
+                } else {
+                  vm.non_qc_increament(record);
+                }
               } else {
                 Service.pop_msg(data.data.status);
                 scan_data.splice(length-1,1);
@@ -212,8 +253,7 @@ function view_orders() {
                 record.scan = record.scan+"\n";
                 record.scan = '';
               }
-            }
-            else{
+            } else {
               Service.pop_msg(data.data.status);
               record.scan = '';
             }
@@ -228,7 +268,7 @@ function view_orders() {
       }
     }
 
-    vm.increament = function (record) {
+    vm.non_qc_increament = function (record) {
       record.scan = record.scan.toUpperCase()
       record.picked_quantity = parseInt(record.picked_quantity) + 1;
       vm.record_serial_data.shift()
@@ -242,12 +282,48 @@ function view_orders() {
       record.scan = '';
     }
 
-    vm.qc_items = function(items) {
+    vm.qc_increament = function (record, result) {
+      if (result == "pass") {
+        record.picked_quantity = parseInt(record.picked_quantity) + 1;
+        for(var i=0; i < vm.model_data.data.length; i++) {
+          if (vm.model_data.data[i]['sku_imeis_map'].hasOwnProperty(record.wms_code)) {
+            vm.model_data.data[i]['sku_imeis_map'][record.wms_code].shift()
+          }
+        }
+        vm.record_serial_dict[record.wms_code].shift()
+        if (vm.passed_serial_number.hasOwnProperty(record.wms_code)) {
+          if(!vm.passed_serial_number[record.wms_code].includes(record.wms_code)) {
+            vm.passed_serial_number[record.wms_code].push(record.scan)
+          }
+        } else {
+          vm.passed_serial_number[record.wms_code] = [record.scan]
+        }
+        record.scan = '';
+      } else {
+        for(var i=0; i < vm.model_data.data.length; i++) {
+          if (vm.model_data.data[i]['sku_imeis_map'].hasOwnProperty(record.wms_code)) {
+            vm.model_data.data[i]['sku_imeis_map'][record.wms_code].shift()
+          }
+        }
+        vm.record_serial_dict[record.wms_code].shift()
+        if (vm.failed_serial_number.hasOwnProperty(record.wms_code)) {
+          if(!vm.failed_serial_number[record.wms_code].includes(record.wms_code)) {
+            vm.failed_serial_number[record.wms_code].push(record.scan)
+          }
+        } else {
+          vm.failed_serial_number[record.wms_code] = [record.scan]
+        }
+        record.scan = '';
+      }
+    }
+
+    vm.picklist_qcitems = function(items, val) {
     var mod_data =  vm.state_data
+    vm.state_data['serial_number_scanned'] = vm.serial_number_scanned
     angular.copy(vm.model_data["qc_items"].sort(), vm.record_qcitems_data);
     var modalInstance = $modal.open({
       templateUrl: 'views/outbound/toggle/qcitems.html',
-      controller: 'qcitesms',
+      controller: 'picklist_qcitems',
       controllerAs: 'pop',
       size: 'lg',
       backdrop: 'static',
@@ -260,7 +336,12 @@ function view_orders() {
     });
 
     modalInstance.result.then(function (selectedItem) {
-      console.log(selectedItem);
+      if (selectedItem != 'close') {
+        if ($.isEmptyObject(selectedItem)) {
+          selectedItem = vm.state_data['collect_imei_details'][vm.state_data['serial_number_scanned']][1]
+        }
+        vm.qc_increament(val, selectedItem);
+      }
     });
   }
 
@@ -294,13 +375,28 @@ function view_orders() {
     })
   }
 
-  vm.pdf_data = {};
+    vm.pdf_data = {};
     vm.picklist_confirmation = picklist_confirmation;
     function picklist_confirmation() {
+      var elem_dict = {}
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      vm.service.apiCall('picklist_confirmation/', 'POST', elem, true).then(function(data){
+      if (vm.permissions.dispatch_qc_check) {
+        if (vm.state_data.hasOwnProperty("collect_imei_details")) {
+          elem_dict = {'name':'imei_qc_details', 'value': JSON.stringify(vm.state_data.collect_imei_details)}
+          elem.push(elem_dict)
+        }
+        if (!$.isEmptyObject(vm.passed_serial_number)) {
+          elem_dict = {'name':'passed_serial_number', 'value': JSON.stringify(vm.passed_serial_number)}
+          elem.push(elem_dict)
+        }
+        if (!$.isEmptyObject(vm.failed_serial_number)) {
+          elem_dict = {'name':'failed_serial_number', 'value': JSON.stringify(vm.failed_serial_number)}
+          elem.push(elem_dict)
+        }
+      }
+      vm.service.apiCall('picklist_confirmation/', 'POST', elem, true).then(function(data) {
         if(data.message) {
           vm.qty_validation = {};
           if(data.data == "Picklist Confirmed") {
@@ -308,10 +404,13 @@ function view_orders() {
           } else if (data.data == 'Insufficient Stock in given location with batch number') {
             Service.showNoty(data.data);
             vm.ok('')
+          } else if (data.data == 'Expiry batch number not Allowed'){
+            Service.showNoty(data.data);
           } else if (typeof(data.data) == "string" && data.data.indexOf("print-invoice")) {
             vm.ok("html");
             vm.status_data.data = data.data;
           } else if (data.data.status == 'invoice') {
+
             vm.status_data.data = data.data.data;
             vm.ok("invoice");
           } else {
@@ -402,6 +501,7 @@ function pull_confirmation() {
           temp = update_decimal_val(temp);
           clone.picked_quantity = (remain < temp)?remain:temp;
           //clone.picked_quantity = data.reserved_quantity - total;
+          clone.picked_quantity = 0;
           clone.scan = "";
           clone.pallet_code = "";
           clone.location = "";
@@ -1033,7 +1133,7 @@ function pull_confirmation() {
 
 angular
   .module('urbanApp')
-  .controller('Picklist', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', '$modal', 'items', Picklist]);
+  .controller('Picklist', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', '$modal', 'items', '$rootScope', Picklist]);
 
 /*
 function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
@@ -1093,7 +1193,7 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
 angular
   .module('urbanApp')
   .controller('Barcodes', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', Barcodes]);*/
-  function qcitesms($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $q, $modalInstance, items) {
+  function picklist_qcitems($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $q, $modalInstance, items, $rootScope) {
 
   var vm = this;
   vm.state_data = items;
@@ -1106,7 +1206,6 @@ angular
   vm.pop_data = {};
   vm.status_data = "";
   vm.status_data = [];
-
   vm.getPoData = function(data){
     Service.apiCall(data.url, data.method, data.data, true).then(function(data){
       if(data.message) {
@@ -1116,9 +1215,7 @@ angular
           var key = vm.model_data["qc_items"][i].replace(/[" "]/g, '_').toLowerCase();
           vm.record_qcitems_data.push({[key] : vm.model_data["qc_items"][i]})
           vm.sku_details[vm.model_data["qc_items"][i]] = {'status': true, 'comment': ""}
-      }
-        console.log(vm.sku_details)
-        console.log(vm.record_qcitems_data)
+        }
       }
     });
   }
@@ -1137,30 +1234,62 @@ angular
     console.log(vm.sku_details);
   }
   vm.passdata = function() {
+    vm.checkboxes = false;
     vm.totalData("pass");
   }
-  vm.canceldata = function(){
-    vm.checkbox = true;
-    vm.totalData("fail");
+  vm.canceldata = function(keys){
+    vm.checkboxes = true;
+    if(keys == 'true') {
+      vm.totalData("fail");  
+    } else {
+      vm.totalData("");
+    }
   }
   vm.totalData = function(key){
     if(key == "pass") {
-      vm.sku_details['sku_status'] = {'status': key}
+      vm.sku_details['validation_status'] = {'status': key}
     } else {
-      vm.sku_details['sku_status'] = {'status': key}
+      vm.sku_details['validation_status'] = {'status': key}
     }
   }
+
+  vm.totalData("")
+
   vm.submitData = function() {
-    console.log(vm.sku_details);
-  }
-  vm.ok = function (msg) {
+    var submit_data = []
+    var validation_status = ''
+    angular.forEach(vm.sku_details, function(key, obj) {
+      var dict = {}
+      if (String(obj) == "validation_status") {
+        validation_status = String(key['status'])
+      } else {
+        dict[String(obj)] = [String(key['comment']), String(key['status'])]
+        submit_data.push(dict)
+      }
+    })
+    if (!validation_status) {
+      vm.service.showNoty("Choose Pass/Fail");
+      return false;
+    }
+    var elem = {
+      'sku_details':JSON.stringify(submit_data),
+      'imei_number':vm.state_data.serial_number_scanned,
+      'validation_status':validation_status
+    }
+    $rootScope.collect_imei_details[vm.state_data.serial_number_scanned] = [JSON.stringify(submit_data), validation_status]
+    vm.state_data.collect_imei_details = $rootScope.collect_imei_details
+    vm.service.showNoty("success");
     $modalInstance.close(vm.status_data);
+  }
+
+  vm.ok = function (msg) {
+    $modalInstance.close('close');
   };
 }
 
 angular
   .module('urbanApp')
-  .controller('qcitesms', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$q', '$modalInstance', 'items', qcitesms]);
+  .controller('picklist_qcitems', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$q', '$modalInstance', 'items', '$rootScope', picklist_qcitems]);
 
 function deliveryChallanPopUP($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $q, $modalInstance, items) {
 

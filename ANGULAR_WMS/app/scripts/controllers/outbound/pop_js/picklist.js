@@ -172,14 +172,12 @@ function view_orders() {
     }
 
     vm.myFunction = function(rowdata, record) {
-      var x = document.getElementById("serial_no");
       var record_serial_data = []
       for(var i=0; i < vm.model_data.data.length; i++) {
         if(vm.model_data.data[i].wms_code == rowdata.wms_code) {
           if(angular.copy(vm.model_data.data[i]['sku_imeis_map']).hasOwnProperty(vm.model_data.data[i].wms_code)) {
             angular.copy(vm.model_data.data[i]['sku_imeis_map'][vm.model_data.data[i].wms_code].sort(), record_serial_data);
             record_serial_data = [...new Set(record_serial_data)]
-            x.style.display = "block";
             vm.record_serial_dict[vm.model_data.data[i].wms_code] = record_serial_data
             vm.record_serial_data = $.map(vm.record_serial_data, function(n,i){return n.toUpperCase();});
           }
@@ -338,10 +336,12 @@ function view_orders() {
     });
 
     modalInstance.result.then(function (selectedItem) {
-      if ($.isEmptyObject(selectedItem)) {
-        selectedItem = vm.state_data['collect_imei_details'][vm.state_data['serial_number_scanned']][1]
+      if (selectedItem != 'close'){
+        if ($.isEmptyObject(selectedItem)) {
+          selectedItem = vm.state_data['collect_imei_details'][vm.state_data['serial_number_scanned']][1]
+        }
+        vm.qc_increament(val, selectedItem);
       }
-      vm.qc_increament(val, selectedItem);
     });
   }
 
@@ -1283,7 +1283,7 @@ angular
   }
 
   vm.ok = function (msg) {
-    $modalInstance.close('fail');
+    $modalInstance.close('close');
   };
 }
 

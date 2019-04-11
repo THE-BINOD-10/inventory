@@ -92,10 +92,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.service.apiCall(url+aData['Enquiry ID']).then(function(data){
             if(data.message) {
               vm.order_details = data.data;
-              vm.order_id = vm.order_details.order.enquiry_id;
-              vm.status = 'manual_enquiry';
-              vm.title = "Custom Order";
-              $state.go('user.App.MyOrders.CustomOrder');
+              if(vm.order_details.data == 'Get Manual Enquiry Detail Failed'){
+                Service.showNoty(vm.order_details.data, 'warning');
+              }else {
+                vm.order_id = vm.order_details.order.enquiry_id;
+                vm.status = 'manual_enquiry';
+                vm.title = "Custom Order";
+                $state.go('user.App.MyOrders.CustomOrder');
+              }
             }
           });
         });

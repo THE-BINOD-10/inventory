@@ -140,7 +140,11 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
   vm.moveToCart = function(order, index, event) {
 
     event.stopPropagation();
-    var send_data = {'enquiry_id': order.order_id};
+    if(order.order_id){
+      var send_data = {'enquiry_id': order.order_id};
+    } else {
+      var send_data = {'enquiry_id': order};
+    }
     Service.apiCall("move_enquiry_to_order/", 'POST', send_data).then(function(data) {
 
       if(data.message) {

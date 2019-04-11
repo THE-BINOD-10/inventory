@@ -13,7 +13,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.display = true;
-
+    vm.extended_date = '';
     //default values
     if(!vm.permissions.grn_scan_option) {
       vm.permissions.grn_scan_option = "sku_serial_scan";
@@ -59,9 +59,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        .withOption('initComplete', function( settings ) {
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
-
-    // var columns = ['Enquiry ID', 'Date', 'Quantity', 'Amount', 'Days Left','Corporate Name'];
-    // vm.dtColumns = vm.service.build_colums(columns);
     vm.dtColumns = [
       DTColumnBuilder.newColumn('Enquiry ID').withTitle('Enquiry ID'),
       DTColumnBuilder.newColumn('Date').withTitle('Date'),
@@ -69,6 +66,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       DTColumnBuilder.newColumn('Amount').withTitle('Amount').notSortable(),
       DTColumnBuilder.newColumn('Days Left').withTitle('Days Left').notSortable(),
       DTColumnBuilder.newColumn('Corporate Name').withTitle('Corporate Name'),
+      DTColumnBuilder.newColumn('Extend Date').withTitle('Extend Date').notSortable(),
+      // DTColumnBuilder.newColumn('Input Div').withTitle('Extend Date').notSortable(),
+      DTColumnBuilder.newColumn('Move to Cart').withTitle('Move to Cart').notSortable(),
     ];
     vm.model_data = {};
     var row_click_bind = 'td';
@@ -91,8 +91,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        $(row_click_bind, nRow).unbind('click');
-        $(row_click_bind, nRow).bind('click', function() {
+        $('td:not(td:last)', nRow).unbind('click');
+        $('td:not(td:last)', nRow).bind('click', function() {
             $scope.$apply(function() {
               console.log("markets")
                 vm.service.apiCall('get_customer_enquiry_detail/', 'GET', {enquiry_id: aData['Enquiry ID']}).then(function(data){
@@ -104,32 +104,33 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 });
             });
         });
+        $('td:last', nRow).prev().unbind('click');
         return nRow;
     }
-
-    vm.submit = submit;
-    function submit(form) {
-      var data = [];
-
-      for(var i=0; i<vm.model_data.data.length; i++)  {
-        var temp = vm.model_data.data[i][0];
-        if(!temp.is_new) {
-          data.push({name: temp.order_id, value: temp.value});
-        }
-      }
-      data.push({name: 'remarks', value: vm.model_data.remarks});
-      data.push({name: 'expected_date', value: vm.model_data.expected_date});
-      data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail});
-      vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
-        if(data.message) {
-          if(data.data == 'Updated Successfully') {
-            vm.close();
-            vm.service.refresh(vm.dtInstance);
+    vm.extend_order_date = function(order){
+      $('#'+order+"_extdate").addClass('hide')
+      $('#'+order+"_save").removeClass('hide')
+    }
+    vm.confirm_to_extend = function(order){
+      var send = []
+      $('#'+order+"_save").addClass('hide')
+      $('#'+order+"_extdate").removeClass('hide') 
+      if (this.extended_date) {
+        send.push({'name':'extended_date', 'value':this.extended_date})
+        send.push({'name':'order_id', 'value':order})
+        Service.apiCall('extend_enquiry_date/', 'GET', send).then(function(data) {
+          if (data.message) {
+            if (data.data == 'Success') {
+              vm.dtInstance.reloadData();
+              Service.showNoty('Your request sent, pleae wait warehouse conformation');
+            }
           } else {
-            pop_msg(data.data);
+            Service.showNoty('Something went wrong');
           }
-        }
-      });
+        });
+      } else {
+        Service.showNoty('Please fill with extend date');
+      }
     }
     vm.close = function() {
 
@@ -142,62 +143,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
       colFilters.download_excel()
     }
-
-    vm.html = "";
-    vm.confirm_grn = function(form) {
-      // var data = [];
-      // data.push({name: 'batch_no', value: form.batch_no.$viewValue});
-      // data.push({name: 'mrp', value: form.mrp.$viewValue});
-      // data.push({name: 'manf_date', value: form.manf_date.$viewValue});
-      // data.push({name: 'exp_date', value: form.exp_date.$viewValue});
-      // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
-      // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
-
-     if(check_receive()){
-      var that = vm;
-      var elem = angular.element($('form'));
-      elem = elem[0];
-      elem = $(elem).serializeArray();
-      var url = "confirm_grn/"
-      if(vm.po_qc) {
-        url = "confirm_receive_qc/"
-      }
-      vm.service.apiCall(url, 'POST', elem, true).then(function(data){
-        if(data.message) {
-          if(data.data.search("<div") != -1) {
-            vm.extra_width = {}
-            vm.html = $(data.data);
-            vm.extra_width = {}
-            //var html = $(vm.html).closest("form").clone();
-            //angular.element(".modal-body").html($(html).find(".modal-body"));
-            angular.element(".modal-body").html($(data.data));
-            vm.print_enable = true;
-            vm.service.refresh(vm.dtInstance);
-            if(vm.permissions.use_imei) {
-              fb.generate = true;
-              fb.remove_po(fb.poData["id"]);
-            }
-          } else {
-            pop_msg(data.data)
-          }
-        }
-      });
-     }
-    }
 }
-
-stockone.directive('dtPoData', function() {
-  return {
-    restrict: 'E',
-    scope: {
-      po_data: '=data',
-      preview: '=preview'
-    },
-    templateUrl: 'views/inbound/toggle/po_data_html.html',
-    link: function(scope, element, attributes, $http){
-      console.log(scope);
-    }
-  };
-});
 
 })();

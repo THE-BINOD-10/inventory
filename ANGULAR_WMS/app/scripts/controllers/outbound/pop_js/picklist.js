@@ -336,7 +336,7 @@ function view_orders() {
     });
 
     modalInstance.result.then(function (selectedItem) {
-      if (selectedItem != 'close'){
+      if (selectedItem != 'close') {
         if ($.isEmptyObject(selectedItem)) {
           selectedItem = vm.state_data['collect_imei_details'][vm.state_data['serial_number_scanned']][1]
         }

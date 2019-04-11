@@ -12310,7 +12310,7 @@ def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, ord
     response_data = {'data': []}
     if search_term:
         em_qs = ManualEnquiry.objects.filter(Q(enquiry_id__icontains=search_term)| Q(creation_date__regex=search_term)| Q(customer_name__icontains=search_term)
-            | Q(sku__sku_class__icontains=search_term) | Q(sku__customization_type__icontains=search_term) |Q(sku__sku_code__icontains=search_term) | Q(sku__status__icontains=search_term)).order_by(order_data)
+            | Q(sku__sku_class__icontains=search_term) | Q(customization_type__icontains=search_term) |Q(sku__sku_code__icontains=search_term) |Q(status__icontains=search_term)).order_by(order_data)
     else:
         em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by(order_data)
     for enquiry in em_qs[start_index:stop_index]:
@@ -12727,8 +12727,8 @@ def place_manual_order(request, user=''):
             if key == 'ask_price':
                 value = float(value)
             elif key == 'expected_date':
-                expected_date = value.split('-')
-                value = datetime.date(int(expected_date[0]), int(expected_date[1]), int(expected_date[2]))
+                expected_date = value.split('/')
+                value = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
             manual_enquiry_details[key] = value
         manual_enquiry['custom_remarks'] = request.POST.get('custom_remarks', '')
         check_enquiry = ManualEnquiry.objects.filter(user=request.user.id, sku=manual_enquiry['sku_id'],

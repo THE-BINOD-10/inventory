@@ -863,10 +863,10 @@ def get_picklist_data(data_id, user_id):
         'po_imei_id', flat=True)
     dict_list = ['sku__sku_code', 'imei_number']
     imei_qs = POIMEIMapping.objects.filter(status=1, sku__user=user_id).exclude(id__in=dispatched_imeis).values_list(
-        *dict_list).order_by('creation_date')
+        *dict_list).distinct().order_by('creation_date')
     sku_imeis_map = {}
-    for sku_code, imei_number in imei_qs:
-        sku_imeis_map.setdefault(sku_code, []).append(imei_number)
+    #for sku_code, imei_number in imei_qs:
+    #    sku_imeis_map.setdefault(sku_code, []).append(imei_number)
 
     if not picklist_orders:
         return data, sku_total_quantities, courier_name

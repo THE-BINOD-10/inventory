@@ -627,6 +627,16 @@ OPEN_ORDER_REPORT_DICT = {
      'print_url': 'print_open_order_report',
   }
 
+STOCK_COVER_REPORT_DICT = {
+       'filters': [
+           {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+           {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+           {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
+       'dt_headers': ['SKU', 'Product name','Current SIH','PO Pending','Total Stock including PO','Avg Last 30days','Avg Last 7 days', 'SIH Cover Days','Total Cover Days including PO'],
+       'dt_url': 'get_stock_cover_report', 'excel_name': 'get_stock_cover_report',
+       'print_url': 'print_stock_cover_report',
+    }
+
 DIST_SALES_REPORT_DICT = {
     'filters': [
         {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
@@ -910,6 +920,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'inventory_value_report':INVENTORY_VALUE_REPORT_DICT,
                      'bulk_to_retail_report': BULK_TO_RETAIL_REPORT_DICT,
                      'stock_transfer_report':STOCK_TRANSFER_REPORT_DICT,
+                     'stock_cover_report':STOCK_COVER_REPORT_DICT,
                      }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -6078,9 +6089,6 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
                 values_list('purchase_order_id', flat=True)
             purchase_orders = PurchaseOrder.objects.filter(id__in=rw_orders)
 
-        start_index = search_params.get('start', 0)
-        stop_index = start_index + search_params.get('length', 0)
-
         temp_data['recordsTotal'] = len(purchase_orders)
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
@@ -6290,6 +6298,59 @@ def get_open_order_report_data(search_params, user, sub_user, serial_view=False)
 
     return temp_data
 
+def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from common import get_decimal_limit
+    lis = ['open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__order_quantity','open_po__sku__sku_code']
+    if search_params.get('order_term'):
+        order_data = lis[search_params['order_index']]
+        if search_params['order_term'] == 'desc':
+            order_data = "-%s" % order_data
+    try:
+        temp_data = copy.deepcopy(AJAX_DATA)
+        search_parameters = {}
+        if 'from_date' in search_params:
+            search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+            search_parameters['creation_date__gt'] = search_params['from_date']
+        if 'to_date' in search_params:
+            search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                                 datetime.time())
+            search_parameters['creation_date__lt'] = search_params['to_date']
+        if 'sku_code' in search_params:
+            search_parameters['wms_code'] = search_params['sku_code']
+
+
+        start_index = search_params.get('start', 0)
+        stop_index = start_index + search_params.get('length', 0)
+        sku_masters = SKUMaster.objects.filter(user=user.id ,**search_parameters)
+
+        temp_data['recordsTotal'] = len(sku_masters)
+        temp_data['recordsFiltered'] = temp_data['recordsTotal']
+        if stop_index:
+            sku_masters = sku_masters[start_index:stop_index]
+        for sku in sku_masters:
+            wms_code = sku.wms_code
+            stock_quantity = 0
+            stock_quantity = StockDetail.objects.filter(sku__wms_code = wms_code,sku__user = user.id).aggregate(Sum('quantity'))['quantity__sum']
+            stock_quantity = get_decimal_limit(user.id,stock_quantity)
+            po_quantity = 0
+            po_quantity = PurchaseOrder.objects.exclude(status__in=['confirmed-putaway']). \
+                filter(open_po__sku__user=user.id, open_po__sku_id=sku.id, open_po__vendor_id__isnull=True).aggregate(Sum('received_quantity'))['received_quantity__sum']
+            if not po_quantity :
+               po_quantity = 0
+            total_stock_quantity = stock_quantity+po_quantity
+
+            temp_data['aaData'].append(OrderedDict((('SKU',wms_code ),('Product name',sku.sku_desc),
+                                                   ('Current SIH',stock_quantity),('PO Pending',po_quantity),('Total Stock including PO',total_stock_quantity),('Avg Last 30days',''),
+                                                   ('Avg Last 7 days',''),('SIH Cover Days',''),('Total Cover Days including PO',''))))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info(' Stock Cover report    failed for %s and params are and error statement is %s' % (str(user.username),str(e)))
+
+
+    return temp_data
 
 
 
@@ -6556,6 +6617,7 @@ def print_sku_wise_data(search_params, user, sub_user):
                                                 ('Total Quantity', total_quantity))))
     return temp_data
 
+    col_num = search_params.get('order_index', 0)
 def get_stock_transfer_report_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date
     temp_data = copy.deepcopy(AJAX_DATA)
@@ -6563,7 +6625,6 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
     lis = ['creation_date','st_po__open_st__sku__user','st_po__open_st__sku__user','st_po__open_st__sku__user','sku__sku_code','sku__sku_desc',\
            'quantity', 'st_po__open_st__price','st_po__open_st__sku__user','st_po__open_st__cgst_tax','st_po__open_st__sgst_tax','st_po__open_st__igst_tax','st_po__open_st__price','status']
     status_map = ['Pick List Generated','Pending','Accepted']
-    col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)
     if search_params.get('length', 0):

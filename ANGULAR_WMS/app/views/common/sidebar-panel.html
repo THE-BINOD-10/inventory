@@ -365,7 +365,7 @@
             <span>Shipment Info</span>
           </a>
         </li>
-        <li show_tab('add_stocktransfer')" ui-sref-active="active">
+        <li show_tab('add_stocktransfer') ui-sref-active="active">
           <a ui-sref="app.outbound.CreateStockTransfer">
             <span>Create Stock Transfer</span>
           </a>
@@ -551,6 +551,11 @@
         <li ui-sref-active="active">
           <a ui-sref="app.reports.OpenorderReport">
             <span>Open Order Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.Stockcover">
+            <span>Stock Cover Report</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show="show_tab('view_returntovendor')">

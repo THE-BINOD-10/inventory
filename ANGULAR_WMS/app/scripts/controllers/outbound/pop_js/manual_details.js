@@ -286,7 +286,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
   vm.sendRemarks = function(form) {
 
     var data = {};
-    if(vm.model_data.ask_price || vm.model_data.expected_date || vm.model_data.remarks) {
+    if(vm.model_data.ask_price || vm.model_data.expected_date || vm.model_data.admin_remarks) {
 
       if(!vm.model_data.ask_price && vm.order_details.order.customization_type != 'Product Customization') {
         Service.showNoty('Please Fill Ask Price', 'warning');
@@ -294,7 +294,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
       } else if (!vm.model_data.expected_date) {
         Service.showNoty('Please Fill Expected Date', 'warning');
         return false;
-      } else if (!vm.model_data.remarks) {
+      } else if (!vm.model_data.admin_remarks) {
         Service.showNoty('Please Fill Remarks', 'warning');
         return false;
       } else if (!vm.model_data.sm_d_price) {
@@ -306,7 +306,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
       }
     }
     angular.copy(vm.model_data, data);
-    data['admin_remarks'] = "true";
+    // data['admin_remarks'] = "true";
     data['status'] = 'marketing_pending';
     vm.disable_btn = true;
     Service.apiCall('save_manual_enquiry_data/', 'POST', data).then(function(data) {

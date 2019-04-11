@@ -2783,9 +2783,6 @@ var app = angular.module('urbanApp')
           })
           .state('user.App.MyOrders.OrderDetails', {
             url: '/OrderDetails',
-            // params: {
-            //   state: 'orders',
-            // },
             templateUrl: 'views/outbound/toggle/order_detail.html',
             })
           .state('user.App.MyOrders.CustomOrder', {

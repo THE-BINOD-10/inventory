@@ -85,7 +85,7 @@
         <input style="position: absolute;top: 0;right: 0; min-width: 100%; min-height: 100%; font-size: 100px; text-align: right; filter: alpha(opacity=0); opacity: 0; outline: none; background: white; cursor: inherit; display: block;" class="btn btn-primary" type = "file" name="files" id="image-upload" multi-image-upload multiple/>
         </span>
       </div>
-      <div class="row col-lg-12 col-md-12 col-sm-12 col-xs-12 no-margin" ng-init="order.show_remove={};" ng-if="order.order_details.order.customization_type != 'Price Customization' && order.order_details.order.enq_status!='pending_approval'">
+      <div class="row col-lg-12 col-md-12 col-sm-12 col-xs-12 no-margin" ng-init="order.show_remove={};" ng-if="order.order_details.order.customization_type != 'Price Customization' && order.order_details.order.enq_status!='pending_approval'" style="padding-bottom: 5px;">
        <!-- <div class="row no-margin" ng-init="order.show_remove={};"> -->
         <div class="col-md-2 no-padding" ng-repeat="image in order.order_details.style.images" ng-mouseover="order.show_remove[$index]=true" ng-mouseleave="order.show_remove[$index]=false">
           <img ng-if="order.image_loding[$index]" style="z-index: 12;position:absolute;left: 0px;right: 0px;height:100%;opacity:0.6;" class="img-thumbnail" src="images/DYALX.gif" ng-click="$event.stopPropagation();">
@@ -132,7 +132,7 @@
       <form name="form" role="form">
         <div class="row no-margin mb15" ng-if="order.order_details.order.enq_status=='approved'">
         <!-- <div class="row no-margin mb15"> -->
-          <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type=='reseller'">
+          <div class="col-md-4 col-sm-4 col-xs-6" ng-if="order.user_type=='reseller'">
           <!-- <div class="col-md-4 col-sm-4 col-xs-6"> -->
             <div class="form-group">
               <!-- <label class="control-label">PO Number *</label> -->
@@ -140,9 +140,9 @@
               <input type="hidden" class="form-control stk-readonly pull-left" ng-model="order.client_name_header" value="{{order.client_name_header}}" name="client_name_header">
             </div>
           </div>
-          <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type=='reseller'"></div>
+          <div class="col-md-4 col-sm-4 col-xs-6" ng-if="order.user_type=='reseller'"></div>
           <div class="col-md-4 col-sm-4 col-xs-6">
-            <span ng-hide="order.save" class="btn btn-primary up-btn pull-right"  style="position: relative;overflow: hidden;height: 34px;padding: 6px;width: 150px;text-overflow: ellipsis;">{{(order.uploaded_po)?order.uploaded_po:'Upload PO';}}
+            <span ng-hide="order.save" class="btn btn-primary up-btn pull-right"  style="position: relative;overflow: hidden;height: 34px;padding: 0px;width: 150px;text-overflow: ellipsis;">{{(order.uploaded_po)?order.uploaded_po:'Upload PO';}}
                <input type="file" class="btn btn-primary upload-button" ng-model="order.upload_file_name" id="file" name='file' onchange="angular.element(this).scope().uploadPo(this)" />
               <i class="fa fa-cloud-upload fa-1g" aria-hidden="true"></i>
             </span>

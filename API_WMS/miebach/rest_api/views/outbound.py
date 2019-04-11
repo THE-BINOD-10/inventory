@@ -12302,7 +12302,7 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
 
 
 def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['enquiry_id','creation_date','customer_name','sku__sku_class','sku__sku_code']
+    lis = ['enquiry_id', 'creation_date', 'customer_name', 'sku__sku_class', 'sku__customization_type', 'sku__sku_code', 'sku__sku_status']
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -12310,16 +12310,21 @@ def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, ord
     response_data = {'data': []}
     if search_term:
         em_qs = ManualEnquiry.objects.filter(Q(enquiry_id__icontains=search_term)| Q(creation_date__regex=search_term)| Q(customer_name__icontains=search_term)
-            | Q(sku__sku_class__icontains=search_term) | Q(sku__sku_code__icontains=search_term)).order_by(order_data)
+            | Q(sku__sku_class__icontains=search_term) | Q(sku__customization_type__icontains=search_term) |Q(sku__sku_code__icontains=search_term) | Q(sku__status__icontains=search_term)).order_by(order_data)
     else:
         em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by(order_data)
     for enquiry in em_qs[start_index:stop_index]:
         res_map = {'order_id': enquiry.enquiry_id, 'customer_name': enquiry.customer_name,
                    'date': get_only_date(request, enquiry.creation_date),
                    'sku_code': enquiry.sku.sku_code, 'style_name': enquiry.sku.sku_class}
+        if enquiry.customization_type:
+            if enquiry.customization_type == 'price_custom':
+                customization_type = 'Price Customization'
+            else:
+                customization_type = '  Price and Product Customization'
         temp_data['aaData'].append(OrderedDict(
             (('Enquiry ID', float(enquiry.enquiry_id)), ('Enquiry Date', get_only_date(request, enquiry.creation_date)),
-              ('Customer Name', enquiry.customer_name), ('Style Name', enquiry.sku.sku_class), ('SKU Code', enquiry.sku.sku_code))))
+              ('Customer Name', enquiry.customer_name), ('Style Name', enquiry.sku.sku_class), ('Customization', customization_type),('SKU Code', enquiry.sku.sku_code), ('Status', enquiry.status))))
         temp_data['recordsTotal'] = em_qs.count()
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
 

@@ -173,7 +173,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       model_name: "auto_confirm_po",
       param_no: 50,
       class_name: "fa fa-server",
-      display: false
+      display: true
     },
     {
       name: "Display Place Sample option in Customer Portal",

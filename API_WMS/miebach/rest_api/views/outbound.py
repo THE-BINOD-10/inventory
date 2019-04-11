@@ -183,11 +183,10 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
                 time_slot = time_slot.split("-")[0]
 
             shipment_data = shipment_data + ', ' + time_slot
-
-        try:
-            order_id = int(float(order_id))
-        except:
-            order_id = str(xcode(order_id))
+        # try:
+        #     order_id = int(float(order_id))
+        # except:
+        #     order_id = str(xcode(order_id))
         quantity = float(data.quantity)
         seller_order = all_seller_orders.filter(order_id=data.id).aggregate(Sum('quantity'))['quantity__sum']
         if seller_order:
@@ -8264,8 +8263,6 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
                         user_dict={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     user_dict = eval(user_dict)
-
-
     lis = ['order_id', 'customer_name', 'order_id', 'address', 'marketplace', 'total', 'shipment_date', 'date_only',
         'city', 'status']
 

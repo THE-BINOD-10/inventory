@@ -1230,10 +1230,20 @@ def get_auto_po_quantity(sku, stock_quantity=''):
         if sku_stock:
             stock_quantity = sku_stock
 
-    purchase_order = PurchaseOrder.objects.exclude(status__in=['confirmed-putaway']). \
+    purchase_order = PurchaseOrder.objects.exclude(status__in=['confirmed-putaway', 'location-assigned']). \
         filter(open_po__sku__user=sku.user, open_po__sku_id=sku.id, open_po__vendor_id__isnull=True). \
         values('open_po__sku_id').annotate(total_order=Sum('open_po__order_quantity'),
                                            total_received=Sum('received_quantity'))
+
+    qc_pending = POLocation.objects.filter(purchase_order__open_po__sku__user=sku.user, purchase_order__open_po__sku_id=sku.id,
+                                            qualitycheck__status='qc_pending', status=2).\
+                                    only('quantity').aggregate(Sum('quantity'))['quantity__sum']
+    putaway_pending = POLocation.objects.filter(purchase_order__open_po__sku__user=sku.user, purchase_order__open_po__sku_id=sku.id,
+                                                status=1).only('quantity').aggregate(Sum('quantity'))['quantity__sum']
+    if not qc_pending:
+        qc_pending = 0
+    if not putaway_pending:
+        putaway_pending = 0
 
     production_orders = JobOrder.objects.filter(product_code_id=sku.id, product_code__user=sku.user). \
         exclude(status__in=['open', 'confirmed-putaway']).values('product_code_id'). \
@@ -1257,6 +1267,7 @@ def get_auto_po_quantity(sku, stock_quantity=''):
         diff_quantity = float(purchase_order['total_order']) - float(purchase_order['total_received'])
         if diff_quantity > 0:
             transit_quantity = diff_quantity
+        transit_quantity = qc_pending + putaway_pending
 
     total_quantity = (stock_quantity + transit_quantity + production_quantity + intr_qty)
     raise_quantity = int(sku.threshold_quantity) - total_quantity

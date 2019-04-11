@@ -540,9 +540,9 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
     for key, value in all_data.iteritems():
         sno = sno+1
         if one_assist_qc_check == 'true':
-            dt_map = {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Signed Invoice' : key[5], 'Serial Nu      mber' : sno, 'Total Quantity': value, 'DT_RowClass': 'results'}
+            dt_map = {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Signed Invoice' : key[5], 'Serial Number' : sno, 'Total Quantity': value, 'DT_RowClass': 'results'}
         else:
-            dt_map = {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Manifest Date' : key[5], 'Serial Num      ber' : sno, 'Total Quantity': value, 'DT_RowClass': 'results'}
+            dt_map = {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Manifest Date' : key[5], 'iSerial Number' : sno, 'Total Quantity': value, 'DT_RowClass': 'results'}
         temp_data['aaData'].append(dt_map)
     sort_col = lis[col_num]
 

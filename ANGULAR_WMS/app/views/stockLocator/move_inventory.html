@@ -10,57 +10,113 @@
     </div>
     <div class="layout-body">
       <tabset class="box-tab">
-	  <tab heading="Move Inventory" ng-controller="MoveInventoryCtrl as showCase">
-		  <div class="panel">
-  			<div class="panel-header">
-          <div class="row">
-            <div class="col-md-2 col-sm-2 col-xs-2 mb10"></div>
-            <div class="col-md-10 col-sm-10 col-xs-10 mb10">
+    	  <tab heading="Move Inventory" ng-controller="MoveInventoryCtrl as showCase">
+    		  <div class="panel">
+      			<div class="panel-header">
               <div class="row">
-                <div class="col-md-1"></div>
-                <div class="col-md-11">
-                  <button type="button" class="btn btn-success" ng-click="showCase.move_location_inventory()">Move Location Inventory</button>
-                  <button type="button" class="btn btn-success" ng-click="showCase.add()">New Move Inventory</button>
-                  <button type="button" class="btn btn-success" ng-click="showCase.move_imei()">Status</button>
-                  <button type="button" class="btn btn-success" ng-click="showCase.add_sku_substitute()">Add SKU Substitute</button>
-		              <button ng-show="user.roles.permissions.combo_allocate_stock && user.user_profile.industry_type == 'FMCG' && user.user_profile.user_type == 'marketplace_user'" type="button" class="btn btn-success" ng-click="showCase.combo_allocate_stock()">Combo Allocate Stock</button>
+                <div class="col-md-2 col-sm-2 col-xs-2 mb10"></div>
+                <div class="col-md-10 col-sm-10 col-xs-10 mb10">
+                  <div class="row">
+                    <div class="col-md-1"></div>
+                    <div class="col-md-11">
+                      <button type="button" class="btn btn-success" ng-click="showCase.move_location_inventory()">Move Location Inventory</button>
+                      <button type="button" class="btn btn-success" ng-click="showCase.add()">New Move Inventory</button>
+                      <button type="button" class="btn btn-success" ng-click="showCase.move_imei()">Status</button>
+                      <button type="button" class="btn btn-success" ng-click="showCase.add_sku_substitute()">Add SKU Substitute</button>
+    		              <button ng-show="user.roles.permissions.combo_allocate_stock && user.user_profile.industry_type == 'FMCG' && user.user_profile.user_type == 'marketplace_user'" type="button" class="btn btn-success" ng-click="showCase.combo_allocate_stock()">Combo Allocate Stock</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+      			</div>
+      			<div class="panel-body" style="padding-left: 0px; padding-right: 0px">
+      			  <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable no_click_tb"></table>
+      			  <div ui-view></div>
+      			</div>
+      			<div class="panel-footer">
+      				<button type="submit" class="btn btn-danger pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.confirm_adjustment()">Confirm Ajustment</button>
+      				<button type="submit" style="margin-right:10px" class="btn btn-danger pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.delete_adjustment()">Delete</button>
+      			</div>
+    		  </div>
+    	  </tab>
+        <tab heading="Auto Sellable Suggestions" ng-controller="AutoSellableCtrl as showCase">
+          <div class="panel">
+            <div class="panel-header" style="overflow: visible;">
+  		        <div class="row">
+        			  <div class="col-md-2 col-sm-4 col-xs-6 mb10 pull-right">
+                  <button type="button" class="btn btn-success pull-right" ng-click="showCase.update_suggestions()">Update Suggestions</button>
+                </div>
+              </div>
+            </div>
+    			  <div class="panel-body">
+      				<table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="custom-table table table-condensed datatable sku-table"></table>
+              <div ui-view></div>
+            </div>
+            <div class="panel-footer">
+      				<button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.confirm()">Confirm</button>
+      				<!-- <button type="submit" style="margin-right:10px" class="btn btn-danger pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.delete_adjustment()">Delete</button> -->
+      			</div>
+          </div>
+        </tab>
+        <tab  heading="Vendor Stock Transfer"  ng-controller="VendorStockTransferCtrl as showCase" >
+          <div class="panel" ng-if = "showCase.permissions.production_switch">
+            <div class="layout-body" style="overflow: visible">
+              <div class="panel">
+                <div class="panel-body">
+                <form id="add_st" name="form" role="form">
+                  <div class="form-group clearfix mr10 ml10">
+                    <div class="row">
+                      <div class="col-md-4 col-sm-4 col-xs-6">
+                        <div class="form-group">
+                          <label class="control-label"> Vendor Name </label>
+                          <select name="vendor" class="form-control">
+                            <option ng-repeat="vendor  in showCase.vendor_list" value="{{vendor.vendor_id}}">{{vendor.name}}</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <hr>
+                  <div class="clearfix">
+                    <div class="row over-x" style="margin: 0px;">
+                        <table  class="table mw45">
+                          <thead>
+                            <tr>
+                              <th>WMS Code*</th>
+                              <th>Quantity*</th>
+                              <th>Location*</th>
+                              <th class="plus">
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr ng-repeat="data in showCase.model_data.data">
+                              <td>
+                                <input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="data.wms_code" ng-required="$first" typeahead-on-select="[data.wms_code = $item.wms_code,showCase.get_sku_details(data)];">
+                              </td>
+                              <td>
+                                <input id="quant1" type="text" name="order_quantity" class="form-control" ng-model="data.quantity"  ng-required="$first" ng-class="service.get_decimal_perm()">
+                              </td>
+                              <td>
+                                <input type="text" name="location" class="form-control" ng-model="data.location" ng-blur = "showCase.check_location_stock(data)">
+                              </td>
+                              <td>
+                                <i style="font-size: 20px;padding-top: 5px;cursor: pointer;" ng-click="showCase.update_data($index, data, $last)" ng-class="showCase.isLast($last)"></i>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                    </div>
+                  </div>
+                  <div class="col-md-12 form-group clearfix" style="padding-bottom:0px;">
+                    <button type="submit" class="btn btn-primary" id="st-create-order" ng-disabled="showCase.bt_disable" style="margin: auto;display: block;" ng-click="showCase.insert_order_data(form)">Vendor  Transfer  </button>
+                  </div>
+                </form>
                 </div>
               </div>
             </div>
           </div>
-  			</div>
-  			<div class="panel-body" style="padding-left: 0px; padding-right: 0px">
-  			  <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable no_click_tb"></table>
-  			  <div ui-view></div>
-  			</div>
-  			<div class="panel-footer">
-  				<button type="submit" class="btn btn-danger pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.confirm_adjustment()">Confirm Ajustment</button>
-  				<button type="submit" style="margin-right:10px" class="btn btn-danger pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.delete_adjustment()">Delete</button>
-  			</div>
-		  </div>
-	  </tab>
-      <tab heading="Auto Sellable Suggestions" ng-controller="AutoSellableCtrl as showCase">
-        <div class="panel">
-          <div class="panel-header" style="overflow: visible;">
-		        <div class="row">
-      			  <div class="col-md-2 col-sm-4 col-xs-6 mb10 pull-right">
-                <button type="button" class="btn btn-success pull-right" ng-click="showCase.update_suggestions()">Update Suggestions</button>
-              </div>
-            </div>
-          </div>
-  			  <div class="panel-body">
-    				<table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="custom-table table table-condensed datatable sku-table"></table>
-            <div ui-view></div>
-          </div>
-          <div class="panel-footer">
-    				<button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.confirm()">Confirm</button>
-    				<!-- <button type="submit" style="margin-right:10px" class="btn btn-danger pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.delete_adjustment()">Delete</button> -->
-    			</div>
-          </div>
-        </div>
-      </tab>
-    </tabset>
-
+        </tab>
+      </tabset>
       <!--<div class="panel">-->
         <!--<div class="panel-body" style="padding-left: 0px; padding-right: 0px">-->
           <!--<table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable no_click_tb"></table>-->

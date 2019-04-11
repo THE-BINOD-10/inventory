@@ -226,6 +226,15 @@ urlpatterns = [
     url(r'^update_rm_picklist/$', update_rm_picklist),
     url(r'^generate_jo_labels/$', generate_jo_labels),
     url(r'^check_custom_generated_label/$', check_custom_generated_label),
+    url(r'^check_return_imei_scan/$', check_return_imei_scan),
+    url(r'^rwo_data/$', rwo_data),
+    url(r'^check__replace_imei_exists/$', check__replace_imei_exists),
+    url(r'^save_replaced_serials/$', save_replaced_serials),
+    url(r'^save_replaced_locations/$', save_replaced_locations),
+    url(r'^get_vendor_list/$', get_vendor_list),
+    url(r'^create_vendor_stock_transfer/$', create_vendor_stock_transfer),
+
+
 
     # Stock Locator
     url(r'^insert_move_inventory/$', insert_move_inventory),
@@ -376,7 +385,8 @@ urlpatterns = [
     url(r'^invoice_print_manifest/$', invoice_print_manifest),
     url(r'^shipment_pack_ref/$', shipment_pack_ref),
     url(r'^shipment_pack_ref_decrease/$', shipment_pack_ref_decrease),
-
+    url(r'^generate_picklist_dc/$', generate_picklist_dc),
+    url(r'^get_order_extra_fields/$', get_order_extra_fields),
 
 
     # Uploaded POs [SWISS MILITARY]
@@ -575,12 +585,16 @@ urlpatterns += [
     url(r'check_labels/', check_labels),
     url(r'get_imei_data/', get_imei_data),
     url(r'get_user_profile_data/$', get_user_profile_data),
+    url(r'get_user_profile_shipment_addresses/$', get_user_profile_shipment_addresses),
     url(r'change_user_password/$', change_user_password),
     url(r'update_profile_data/$', update_profile_data),
+    url(r'update_profile_shipment_address/$', update_profile_shipment_address),
     url(r'get_cust_profile_info/$', get_cust_profile_info),
     url(r'get_linked_warehouse_names/$', get_linked_warehouse_names),
     url(r'delete_temp_json/$', delete_temp_json),
     url(r'^search_batches/$', search_batches),
+    url(r'^save_order_extra_fields/$', save_order_extra_fields),
+
 
     # Retailone
     url(r'^get_marketplace_data/$', get_marketplace_data),
@@ -614,6 +628,9 @@ urlpatterns += [
     url('^get_staff_members_list/$', get_staff_members_list),
     url(r'^pos_tax_inclusive/$', pos_tax_inclusive),
     url(r'^stock_transfer_invoice_data/$', stock_transfer_invoice_data),
+    url(r'^pos_send_mail/$', pos_send_mail),
+
+
 
 ]
 

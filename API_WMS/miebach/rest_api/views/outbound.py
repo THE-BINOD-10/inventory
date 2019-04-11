@@ -12310,7 +12310,7 @@ def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, ord
     response_data = {'data': []}
     if search_term:
         em_qs = ManualEnquiry.objects.filter(Q(enquiry_id__icontains=search_term)| Q(creation_date__regex=search_term)| Q(customer_name__icontains=search_term)
-            | Q(sku__sku_class__icontains=search_term) | Q(sku__customization_type__icontains=search_term) |Q(sku__sku_code__icontains=search_term) | Q(sku__status__icontains=search_term)).order_by(order_data)
+            | Q(sku__sku_class__icontains=search_term) | Q(customization_type__icontains=search_term) |Q(sku__sku_code__icontains=search_term) |Q(status__icontains=search_term)).order_by(order_data)
     else:
         em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by(order_data)
     for enquiry in em_qs[start_index:stop_index]:

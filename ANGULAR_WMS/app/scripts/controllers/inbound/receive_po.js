@@ -5,9 +5,9 @@ FUN = {};
 'use strict';
 
 var stockone = angular.module('urbanApp', ['datatables'])
-stockone.controller('ReceivePOCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$q', 'SweetAlert', 'focus', '$modal', '$compile', 'Data', ServerSideProcessingCtrl]);
+stockone.controller('ReceivePOCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$q', 'SweetAlert', 'focus', '$modal', '$compile', 'Data', '$rootScope', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, SweetAlert, focus, $modal, $compile, Data) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, SweetAlert, focus, $modal, $compile, Data, $rootScope) {
     var vm = this;
     vm.permissions = Session.roles.permissions;
     vm.apply_filters = colFilters;
@@ -23,6 +23,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.order_id = 0;
     vm.invoice_readonly ='';
     vm.receive_po_mandatory_fields = {};
+    vm.state_data = {};
+    vm.record_qcitems_data = [];
+    $rootScope.collect_imei_details = {};
+    vm.failed_serial_number = {};
+    vm.passed_serial_number = {};
+
+    vm.collect_imei_details = $rootScope.collect_imei_details;
     if(vm.permissions.receive_po_mandatory_fields) {
       angular.forEach(vm.permissions.receive_po_mandatory_fields.split(','), function(field){
         console.log(field+'\n');
@@ -41,6 +48,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
     if(vm.permissions.barcode_generate_opt == 'sku_ean') {
       vm.permissions.barcode_generate_opt = 'sku_code';
+    }
+
+    vm.getPoData = function(data) {
+      Service.apiCall('view_picklist/', "GET", data.data, true).then(function(data){
+        if(data.message) {
+          angular.copy(data.data, vm.model_data);
+          for(var i=0; i < vm.model_data["qc_items"].length; i++) {
+            var keyvalue = vm.model_data["qc_items"][i];
+            var key = vm.model_data["qc_items"][i].replace(/[" "]/g, '_').toLowerCase();
+            vm.record_qcitems_data.push({[key] : vm.model_data["qc_items"][i]})
+            vm.sku_details[vm.model_data["qc_items"][i]] = {'status': true, 'comment': ""}
+          }
+        }
+      });
     }
 
     //process type;
@@ -93,6 +114,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     } else {
 
       var toggle = DTColumnBuilder.newColumn('PO No').withTitle(' ').notSortable().notVisible();
+    }
+    if(vm.permissions.dispatch_qc_check) {
+      vm.dtColumns.push(DTColumnBuilder.newColumn('SR Number').withTitle('Courtesy SR Number'))
+    }else {
+      vm.dtColumns.pop(DTColumnBuilder.newColumn('SR Number').withTitle('Courtesy SR Number'))
     }
     vm.dtColumns.unshift(toggle);
     vm.dtInstance = {};
@@ -192,6 +218,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       $state.go('app.inbound.RevceivePo.Vendor');
                     } else {
                       $state.go('app.inbound.RevceivePo.GRN');
+                    }
+                    vm.sku_details = {};
+                    vm.record_qcitems_data= [];
+                    if (vm.permissions.dispatch_qc_check) {
+                      for(var i=0; i < data.data['qc_items'].length; i++) {
+                        var keyvalue = data.data["qc_items"][i];
+                        var key = data.data["qc_items"][i].replace(/[" "]/g, '_').toLowerCase();
+                        vm.record_qcitems_data.push({[key] : data.data["qc_items"][i]});
+                        vm.sku_details[data.data["qc_items"][i]] = {'status': true, 'comment': ""};
+                      }
                     }
                   }
                 });
@@ -662,6 +698,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $.each(files, function(i, file) {
           form_data.append('files-' + i, file);
         });
+        if (vm.permissions.dispatch_qc_check) {
+          if (!$.isEmptyObject(vm.collect_imei_details)) {
+            var elem_dict = {'name':'imei_qc_details', 'value': JSON.stringify(vm.collect_imei_details)}
+            elem.push(elem_dict)
+          }
+          if (!$.isEmptyObject(vm.passed_serial_number)) {
+            var elem_dict = {'name':'passed_serial_number', 'value': JSON.stringify(vm.passed_serial_number)}
+            elem.push(elem_dict)
+          }
+          if (!$.isEmptyObject(vm.failed_serial_number)) {
+            var elem_dict = {'name':'failed_serial_number', 'value': JSON.stringify(vm.failed_serial_number)}
+            elem.push(elem_dict)
+          }
+        }
         $.each(elem, function(i, val) {
           form_data.append(val.name, val.value);
         });
@@ -670,8 +720,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           url = "confirm_receive_qc/"
         }
         vm.service.apiCall(url, 'POST', form_data, true, true).then(function(data){
-          if(data.message) {
-            if(data.data.search("<div") != -1) {
+          if (data.message) {
+            if (data.data.search("<div") != -1) {
+              vm.passed_serial_number = {}
+              $rootScope.collect_imei_details = {}
+              vm.failed_serial_number = {}
+              vm.collect_imei_details = {}
               vm.extra_width = {}
               vm.html = $(data.data);
               vm.extra_width = {}
@@ -684,6 +738,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 fb.generate = true;
                 fb.remove_po(fb.poData["id"]);
               }
+            } else if(data.data.search("Success") != -1) {
+              vm.passed_serial_number = {}
+              $rootScope.collect_imei_details = {}
+              vm.failed_serial_number = {}
+              vm.collect_imei_details = {}
+              vm.extra_width = {}
+              vm.print_enable = true;
+              vm.service.refresh(vm.dtInstance);
+              vm.close();
             } else {
               pop_msg(data.data)
             }
@@ -992,6 +1055,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       fb.change_serial(data1, field);
       vm.current_sku = "";
       data1.imei_number = "";
+      $("input[attr-name='imei_"+data1.wms_code+"']").trigger('focus');
       if(vm.permissions.grn_scan_option == "sku_serial_scan") {
         $('textarea[name="scan_sku"]').trigger('focus').val('');
       }
@@ -1017,24 +1081,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.imei_list = [];
     vm.model_data1 = {};
     vm.po_qc_imei_scan = function(data1, index) {
-
-      //vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number}).then(function(data){
-      //  if(data.message) {
-      //    if (data.data == "") {
-            data1.sku_details[0].fields = data1.sku_details[0].fields.toUpperCase();
-            vm.current_index = index;
-            vm.model_data1["sku_data"] = data1.sku_details[0].fields;
-            vm.imei_list.push(data1.imei_number);
-            vm.accept_qc(data1, data1.imei_number);
-            qc_details();
-            data1.imei_number = "";
-            vm.current_sku = "";
-      //    } else {
-      //      Service.showNoty(data.data);
-      //    }
-      //    data1.imei_number = "";
-      //  }
-      //})
+      data1.sku_details[0].fields = data1.sku_details[0].fields.toUpperCase();
+      vm.current_index = index;
+      vm.model_data1["sku_data"] = data1.sku_details[0].fields;
+      vm.imei_list.push(data1.imei_number);
+      vm.accept_qc(data1, data1.imei_number);
+      qc_details();
+      data1.imei_number = "";
+      $("input[attr-name='imei_"+data1.wms_code+"']").trigger('focus');
+      vm.current_sku = "";
     }
 
     vm.from_qc_scan = function(event, field) {
@@ -1042,17 +1097,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (event.keyCode == 13 && field.length > 0) {
         field = field.toUpperCase();
         if (!vm.current_sku && (vm.permissions.grn_scan_option == "sku_serial_scan")) {
-
           focus('focusSKU');
           Service.showNoty("Scan SKU first before scaning IMEI");
         } else if (vm.imei_list.indexOf(field) > -1) {
-
           Service.showNoty("IMEI Already Scanned");
         } else if(vm.model_data.data[vm.current_index][0].po_quantity == vm.model_data.data[vm.current_index][0].value && (vm.permissions.barcode_generate_opt != 'sku_serial')) {
-
           Service.showNoty("PO quanity already equal to Receive Quantity for with SKU Code");
         } else {
-
           fb.check_imei(field).then(function(resp) {
             if (resp.status) {
               Service.showNoty("Serial Number already Exist in other PO: "+resp.data.po);
@@ -1114,35 +1165,91 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
 
+    vm.receive_qcitems = function(data_values, row_data, index) {
+      var imei_number = row_data.imei_number;
+      vm.serial_number_scanned = imei_number;
+      vm.state_data = {}
+      var mod_data =  data_values;
+      vm.state_data['serial_number_scanned'] = imei_number
+      var modalInstance = $modal.open({
+        templateUrl: 'views/outbound/toggle/qcitems.html',
+        controller: 'receive_qcitems',
+        controllerAs: 'pop',
+        size: 'lg',
+        backdrop: 'static',
+        keyboard: false,
+        resolve: {
+          items: function () {
+            return mod_data;
+          }
+        }
+      });
+      modalInstance.result.then(function (status) {
+        var status = vm.sku_details['validation_status']['status'];
+        vm.qc_add_receive_qty(vm.model_data.data[index][0], status, index);
+      });
+    }
+
+    vm.qc_add_receive_qty = function (record, status, index) {
+      if (status == "pass") {
+        if (vm.passed_serial_number.hasOwnProperty(record.wms_code)) {
+          if(!vm.passed_serial_number[record.wms_code].includes(record.imei_number)) {
+            vm.passed_serial_number[record.wms_code].push(record.imei_number)
+          }
+        } else {
+          vm.passed_serial_number[record.wms_code] = [record.imei_number]
+        }
+        if (vm.po_qc) {
+          vm.po_qc_imei_scan(record, index)
+        } else {
+          vm.po_imei_scan(record, record.imei_number)
+        }
+      } else if (status == "fail") {
+        if (vm.failed_serial_number.hasOwnProperty(record.wms_code)) {
+          if(!vm.failed_serial_number[record.wms_code].includes(record.imei_number)) {
+            vm.failed_serial_number[record.wms_code].push(record.imei_number)
+          }
+        } else {
+          vm.failed_serial_number[record.wms_code] = [record.imei_number]
+        }
+        vm.imei_list.push(record.imei_number);
+        record.imei_number = '';
+        record.scan = '';
+        record.value += 1;
+      } else {
+        record.imei_number = '';
+        record.scan = '';
+      }
+      $("input[attr-name='imei_"+record.wms_code+"']").trigger('focus');
+    }
+
+
     vm.serial_numbers = [];
     vm.check_imei_exists = function(event, data1, index) {
       event.stopPropagation();
       if (event.keyCode == 13 && data1.imei_number.length > 0 && data1["disable"] != true) {
         data1.imei_number = data1.imei_number.toUpperCase();
-        //if(vm.imei_list.indexOf(data1.imei_number) > -1) {
-
-        //  Service.showNoty("IMEI Already Scanned");
-
-        if (vm.fb.poData.serials.indexOf(data1.imei_number) != -1){
-
+        if(vm.imei_list.indexOf(data1.imei_number) > -1) {
+          Service.showNoty("IMEI Already Scanned");
+          data1.imei_number = "";
+          data1.scan = '';
+          $("input[attr-name='imei_"+data1.wms_code+"']").trigger('focus');
+          return false;
+        }
+        if (vm.fb.poData.serials.indexOf(data1.imei_number) != -1) {
           Service.showNoty("Serial Number already Exist");
           data1.imei_number = "";
-          //if(vm.permissions.barcode_generate_opt != "sku_serial") {
-          //  $('textarea[name="scan_sku"]').trigger('focus').val('');
-          //}
+          $("input[attr-name='imei_"+data1.wms_code+"']").trigger('focus');
           if(vm.permissions.grn_scan_option == "sku_serial_scan") {
             $('textarea[name="scan_sku"]').trigger('focus').val('');
           }
         } else {
-
           data1["disable"] = true;
           fb.check_imei(data1.imei_number).then(function(resp) {
             if (resp.status) {
               Service.showNoty("Serial Number already Exist in other PO: "+resp.data.po);
               data1.imei_number = "";
-              //if(vm.permissions.barcode_generate_opt != "sku_serial") {
-              //  $('textarea[name="scan_sku"]').trigger('focus').val('');
-              //}
+              $("input[attr-name='imei_"+data1.wms_code+"']").trigger('focus');
               if(vm.permissions.grn_scan_option == "sku_serial_scan") {
                 $('textarea[name="scan_sku"]').trigger('focus').val('');
               }
@@ -1150,16 +1257,32 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             } else {
               if(vm.permissions.barcode_generate_opt != "sku_serial") {
                 vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number, sku_code: data1.wms_code}).then(function(data){
-                  if(data.message) {
+                  if (data.message) {
                     if (data.data == "") {
-                      if(vm.po_qc) {
-                        vm.po_qc_imei_scan(data1, index)
+                      if (vm.permissions.dispatch_qc_check) {
+                        for (let i = 0; i < vm.model_data.returnable_serials.length; i++) {
+                          if(vm.model_data.returnable_serials[i] == data1.imei_number) {
+                            vm.receive_qcitems(vm, data1, index);
+                          } else {
+                            Service.showNoty("Please Verify your Serial Number ! ");
+                            data1.imei_number = "";
+                          }
+                        }
                       } else {
-                        vm.po_imei_scan(data1, data1.imei_number)
+                        if(vm.po_qc) {
+                          vm.po_qc_imei_scan(data1, index)
+                        } else {
+                          vm.po_imei_scan(data1, data1.imei_number)
+                        }
                       }
                     } else {
-                      Service.showNoty(data.data);
+                      if (data.data.message != undefined) {
+                        Service.showNoty(data.data.message);
+                      } else {
+                        Service.showNoty(data.data);
+                      }
                       data1.imei_number = "";
+                      $("input[attr-name='imei_"+data1.wms_code+"']").trigger('focus');
                     }
                   }
                   data1["disable"] = false;
@@ -1173,6 +1296,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       if (data1.wms_code != sku_code) {
                         Service.showNoty("Scanned label belongs to "+sku_code);
                         data1.imei_number = "";
+                        $("input[attr-name='imei_"+data1.wms_code+"']").trigger('focus');
                         return false;
                       }
                       if(vm.po_qc) {
@@ -2341,3 +2465,93 @@ angular.module('urbanApp').controller('addNewSkuCtrl', function ($modalInstance,
     $modalInstance.dismiss('cancel');
   };
 });
+
+function receive_qcitems($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $q, $modalInstance, items, $rootScope) {
+
+  var vm = this;
+  vm.state_data = items;
+  vm.service = Service;
+  vm.input_types = ['Input', 'Number', 'Textarea'];
+  vm.empty_data = {'id': '', 'attribute_name': '', 'attribute_type': 'Input'}
+  vm.model_data = {};
+  vm.sku_details = {};
+  vm.pop_data = {};
+  vm.status_data = "";
+  vm.status_data = [];
+  vm.record_qcitems_data = items['record_qcitems_data'];
+  vm.sku_details = items['sku_details'];
+  angular.forEach(Object.values(vm.sku_details), function (list_val) {
+    list_val['comment'] = '';
+  })
+  vm.serial_number_scanned = items['serial_number_scanned']
+  
+  vm.qcitemstatus = function (keys, values){
+    for(var i=0; i < Object.keys(vm.sku_details).length; i++) {
+      if(Object.keys(vm.sku_details)[i] == values) {
+        if(vm.sku_details[values].status == true) {
+          vm.sku_details[values].status = false
+        } else {
+          vm.sku_details[values].status = true
+        }
+      }
+    }
+  }
+
+  vm.passdata = function() {
+    vm.checkboxes = false;
+    vm.totalData("pass");
+  }
+
+  vm.canceldata = function(keys){
+    vm.checkboxes = true;
+    if (keys == 'true') {
+      vm.totalData("fail");
+    } else {
+      vm.totalData("");
+    }
+  }
+
+  vm.totalData = function(key){
+    vm.sku_details['validation_status'] = {'status': key}
+  }
+
+  vm.submitData = function() {
+    var submit_data = []
+    var validation_status = ''
+    angular.forEach(vm.sku_details, function(key, obj) {
+      var dict = {}
+      if (String(obj) == "validation_status") {
+        validation_status = String(key['status'])
+      } else {
+        dict[String(obj)] = [String(key['comment']), String(key['status'])]
+        submit_data.push(dict)
+      }
+    })
+
+    if (!validation_status) {
+      vm.service.showNoty("Choose Pass/Fail");
+      return false;
+    }
+    var elem = {
+      'sku_details':JSON.stringify(submit_data),
+      'imei_number':vm.serial_number_scanned,
+      'validation_status':validation_status
+    }
+
+    $rootScope.collect_imei_details[vm.state_data.serial_number_scanned] = [JSON.stringify(submit_data), validation_status]
+    vm.state_data.collect_imei_details = $rootScope.collect_imei_details;
+    vm.service.showNoty("success");
+    $modalInstance.close(validation_status);
+  }
+  
+  vm.totalData("")
+
+  vm.ok = function (msg) {
+    vm.totalData("");
+    $modalInstance.close('fail');
+  };
+}
+
+angular
+  .module('urbanApp')
+  .controller('receive_qcitems', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$q', '$modalInstance', 'items', '$rootScope', receive_qcitems]);

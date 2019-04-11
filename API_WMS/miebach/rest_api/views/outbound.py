@@ -1328,7 +1328,7 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
             status.append("Insufficient Stock in given location with batch number")
         else:
             status.append("Insufficient Stock in given location")
-    elif pic_check[0].batch_detail.expiry_date and expiry_batches_picklist == 'false':
+    elif pic_check[0].batch_detail and pic_check[0].batch_detail.expiry_date and expiry_batches_picklist == 'false':
         present_date = datetime.datetime.now().date()
         if pic_check[0].batch_detail.expiry_date <= present_date:
             status.append("Expiry batch number not Allowed")

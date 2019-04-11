@@ -3105,7 +3105,7 @@ class DispatchIMEIChecklist(models.Model):
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'ORDER_IMEI_CHECKLIST'
+        db_table = 'DISPATCH_IMEI_CHECKLIST'
         unique_together = ('order_id', 'po_imei_num', 'qc_name')
 
 

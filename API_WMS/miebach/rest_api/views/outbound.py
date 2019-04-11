@@ -12727,8 +12727,8 @@ def place_manual_order(request, user=''):
             if key == 'ask_price':
                 value = float(value)
             elif key == 'expected_date':
-                expected_date = value.split('-')
-                value = datetime.date(int(expected_date[0]), int(expected_date[1]), int(expected_date[2]))
+                expected_date = value.split('/')
+                value = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
             manual_enquiry_details[key] = value
         manual_enquiry['custom_remarks'] = request.POST.get('custom_remarks', '')
         check_enquiry = ManualEnquiry.objects.filter(user=request.user.id, sku=manual_enquiry['sku_id'],

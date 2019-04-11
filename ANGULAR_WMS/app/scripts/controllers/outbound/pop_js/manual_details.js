@@ -207,51 +207,50 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
 
 
   vm.send_for_approval = function(form) {
-    if(vm.model_data.ask_price || vm.model_data.expected_date || vm.model_data.remarks) {
-      if(!vm.model_data.ask_price) {
-        Service.showNoty('Please Fill Ask Price', 'warning');
-        return false;
-      } else if (!vm.model_data.expected_date && vm.permissions.user_type != 'sm_purchase_admin') {
-        Service.showNoty('Please Fill Expected Date', 'warning');
-        return false;
-      } else if (!vm.model_data.remarks) {
-        Service.showNoty('Please Fill Remarks', 'warning');
-        return false;
-      }else if (!vm.model_data.lead_time && vm.permissions.user_type == 'sm_purchase_admin') {
-        Service.showNoty('Please Fill Lead Time in Days', 'warning');
-        return false;
-      }
-    }
-    vm.disable_btn = true;
-    var data = {};
-    angular.copy(vm.model_data, data);
-    data['enq_status'] = "pending_approval";
-    data['status'] = "pending_approval";
-    Service.apiCall('request_manual_enquiry_approval/', 'POST', data).then(function(data) {
-      if (data.message) {
-        if (data.data.msg == 'Success') {
-          Service.showNoty(data.data.msg);
-          $modalInstance.close();
+    if(vm.model_data.ask_price && vm.model_data.expected_date && vm.model_data.remarks) {
+      vm.disable_btn = true;
+      var data = {};
+      angular.copy(vm.model_data, data);
+      data['enq_status'] = "pending_approval";
+      data['status'] = "pending_approval";
+      Service.apiCall('request_manual_enquiry_approval/', 'POST', data).then(function(data) {
+        if (data.message) {
+          if (data.data.msg == 'Success') {
+            Service.showNoty(data.data.msg);
+            $modalInstance.close();
+          } else {
+            Service.showNoty(data.message, 'warning');
+          }
         } else {
-          Service.showNoty(data.message, 'warning');
+          Service.showNoty('Something went wrong', 'warning');
         }
-      } else {
-        Service.showNoty('Something went wrong', 'warning');
-      }
-      vm.disable_btn = false;
-    });
+        vm.disable_btn = false;
+      });
+    } else if (!vm.model_data.ask_price){
+      Service.showNoty('Please Fill Ask Price', 'warning');
+      return false;
+    } else if (!vm.model_data.expected_date && vm.permissions.user_type != 'sm_purchase_admin'){
+      Service.showNoty('Please Fill Expected Date', 'warning');
+      return false;
+    } else if (!vm.model_data.lead_time && vm.permissions.user_type == 'sm_purchase_admin'){
+      Service.showNoty('Please Fill Lead Time in Days', 'warning');
+      return false;
+    } else if (!vm.model_data.remarks) {
+      Service.showNoty('Please Fill Remarks', 'warning');
+      return false;
+    }
   }
 
   vm.approved = function(form) {
     var data = {};
-    if(vm.model_data.ask_price || vm.model_data.expected_date || vm.model_data.remarks) {
+    if(vm.model_data.ask_price || vm.model_data.expected_date || vm.model_data.admin_remarks) {
       if(!vm.model_data.ask_price) {
         Service.showNoty('Please Fill Ask Price', 'warning');
         return false;
       } else if (!vm.model_data.expected_date) {
         Service.showNoty('Please Fill Expected Date', 'warning');
         return false;
-      } else if (!vm.model_data.remarks) {
+      } else if (!vm.model_data.admin_remarks) {
         Service.showNoty('Please Fill Remarks', 'warning');
         return false;
       } else if (!vm.model_data.sm_d_price) {
@@ -275,7 +274,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
           Service.showNoty(data.data.msg);
           $modalInstance.close();
         } else {
-          Service.showNoty(data.message, 'warning');
+          Service.showNoty(data.data, 'warning');
         }
       } else {
         Service.showNoty('Something went wrong', 'warning');

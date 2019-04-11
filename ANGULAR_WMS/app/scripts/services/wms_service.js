@@ -104,7 +104,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     vm.get_report_data = function(name){
       var send = {};
       var d = $q.defer();
-      if(vm.reports[name] && name != 'order_summary_report') {
+      if(vm.reports[name]) {
         d.resolve(vm.reports[name]);
       } else {
         vm.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data){

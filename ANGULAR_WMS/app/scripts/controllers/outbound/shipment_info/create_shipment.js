@@ -18,8 +18,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 
     //table start
     vm.selected = {};
-    vm.order_imei_mapping = {}
-    vm.imei_mapping = []
     vm.selectAll = false;
 
     vm.special_key = {customer: '', market_place:'', order_id: '', from_date: '', to_date: ''}
@@ -261,7 +259,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     }
 
     vm.empty_data = {"shipment_number":"", "shipment_date":"","truck_number":"","shipment_reference":"","customer_id":"", "marketplace":"",
-                     "market_list":[], "courier_name" : [], "picked_imeis" : []};
+                     "market_list":[], "courier_name" : []};
     vm.model_data = {};
     angular.copy(vm.empty_data, vm.model_data);
 
@@ -424,16 +422,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
       if(vm.service.check_quantity(vm.model_data.data, 'sub_data', 'shipping_quantity')) {
         vm.bt_disable = true;
         var data = $("#add-customer:visible").serializeArray();
-        if (vm.permissions.dispatch_qc_check) {
-          data['order_imei_mapping'] = vm.order_imei_mapping
-        }
         vm.service.apiCall("insert_shipment_info/", "POST", data, true).then(function(data){
           if(data.message) {
             vm.service.showNoty("Shipment Created Successfully");
-            vm.close();
-            vm.reloadData();
-            vm.awb_no = '';
-            vm.bt_disable = false;
             if (!(data.data.status)) {
               if(data.data.search("<div") != -1) {
                 if(!(data)) {
@@ -521,26 +512,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
            });
           }
         else{
-              if (vm.permissions.dispatch_qc_check) {
-                for (var i = 0; i < vm.model_data.picked_imeis.length; i++) {
-                  if (vm.model_data.picked_imeis[i] == imei) {
-                    if(vm.model_data.data[i].picked > vm.model_data.data[i]['sub_data'][0].shipping_quantity) {
-                      vm.model_data.data[i]['sub_data'][0].shipping_quantity += 1;
-                      vm.imei_mapping.push(imei)
-                      vm.order_imei_mapping[vm.model_data.data[i].order_id] = vm.imei_mapping
-                      vm.model_data.picked_imeis.splice(i,1);
-                      vm.imei_number = "";
-                    }
-                  } else {
-                    vm.service.showNoty('Please Scan Correct IMEI Number !');
-                    vm.imei_number = "";
-                  }
-                }
-              } else {
-                for(var i=0;i<vm.model_data.data.length;i++)
-                   {
-                    for(var j =0;j<vm.model_data.data[i].serial_number.length;j++)
-                      {
+              for(var i=0;i<vm.model_data.data.length;i++)
+               {
+                  for(var j =0;j<vm.model_data.data[i].serial_number.length;j++)
+                    {
                         if(vm.model_data.data[i].serial_number[j] == imei)
                           {
                             if(vm.model_data.data[i].picked > vm.model_data.data[i]['sub_data'][0].shipping_quantity)
@@ -550,11 +525,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 
                               }
                             }
-                      }
-                   }
-              }
-              vm.imei_number = "";
-              vm.scan_imei_readonly = false;
+                        }
+               }
+               vm.imei_number = "";
+               vm.scan_imei_readonly = false;
             }
         }
       }

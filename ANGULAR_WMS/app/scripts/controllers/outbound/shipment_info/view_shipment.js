@@ -10,8 +10,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout,$compile, $roo
     vm.selectAll = false;
     vm.toggleAll = toggleAll;
     vm.toggleOne = toggleOne;
-    vm.host = Session.host;
-    vm.upload_enable = true;
     vm.permissions = Session.roles.permissions;
     vm.awb_ship_type = (vm.permissions.create_shipment_type == true) ? true: false;
     var titleHtml = '<input type="checkbox" class="data-select" ng-model="vm.selectAll" ng-change="vm.toggleAll(vm.selectAll, vm.selected); $event.stopPropagation();">';
@@ -45,6 +43,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout,$compile, $roo
        .withOption('RecordsTotal', function( settings ) {
          console.log("complete")
        });
+
     vm.dtColumns = [];
     if(vm.permissions.central_order_reassigning) {
        vm.dtColumns.push(DTColumnBuilder.newColumn('Serial Number').withTitle('Serial Number')),
@@ -57,17 +56,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout,$compile, $roo
       vm.dtColumns.push(DTColumnBuilder.newColumn('Customer Name').withTitle('Customer Name')),
       vm.dtColumns.push(DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'))
     }
-    if(vm.permissions.dispatch_qc_check) {
-      vm.dtColumns.push(DTColumnBuilder.newColumn('Signed Invoice').withTitle('Signed Invoice Upload').notSortable())
-    } else {
-      vm.dtColumns.pop(DTColumnBuilder.newColumn('Signed Invoice').withTitle('Signed Invoice Upload').notSortable())
-    }
+
+
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $compile(angular.element('td', nRow))($scope);
         /*$('td:not(td:first)', nRow).unbind('click');
         $('td:not(td:first)', nRow).bind('click', function() {*/
-        $('td:not(td:last)', nRow).unbind('click');
-        $('td:not(td:last)', nRow).bind('click', function() {
+        $('td', nRow).unbind('click');
+        $('td', nRow).bind('click', function() {
             $scope.$apply(function() {
                 console.log(aData);
                 var data = { gateout : 0 ,customer_id: aData['Customer ID'], shipment_number:aData['Shipment Number']}
@@ -82,6 +78,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout,$compile, $roo
                         vm.model_data.sel_cartons[vm.model_data.data[i].pack_reference] = vm.model_data.data[i].ship_quantity;
                       }
                     }
+
                     $state.go('app.outbound.ShipmentInfo.ConfirmShipment');
                   }
                 });
@@ -167,124 +164,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout,$compile, $roo
     vm.model_data = {};
     angular.copy(vm.empty_data, vm.model_data);
 
-    vm.under_taken_form = function(data){
-      let elem = $("form:visible");
-      elem = $(elem).serializeArray();
-      elem.push({name:'serial_number', value:vm.model_data.data[0].serial_number})
-      vm.service.apiCall("get_under_taking_form/", "POST", elem).then(function(data) {
-        if(data.message) {
-          if(data.data.search("<div") != -1) {
-            if(!(data)) {
-              data = $('.print:visible').clone();
-            } else {
-              data = $(data.data).clone();
-            }
-            var print_div= "<div class='print'></div>";
-            print_div= $(print_div).html(data);
-            print_div = $(print_div).clone();
-            $(print_div).find(".modal-body").css('max-height', 'none');
-            $(print_div).find(".modal-footer").remove();
-            print_div = $(print_div).html();
-            var title = "Order Shipment Print"
-            var mywindow = window.open('', title, 'height=400,width=600');
-            mywindow.document.write('<html><head><title>'+title+'</title>');
-            mywindow.document.write('<link rel="stylesheet" type="text/css" href="vendor/bootstrap/dist/css/bootstrap.min.css" />');
-            mywindow.document.write('<link rel="stylesheet" type="text/css" href="styles/custom/page.css" media="print"/>');
-            mywindow.document.write('</head><body>');
-            mywindow.document.write(print_div);
-            mywindow.document.write('</body></html>');
-            mywindow.document.close();
-            mywindow.focus();
-            $timeout(function(){
-              mywindow.print();
-              mywindow.close();
-            }, 3000);
-            return true;
-          }
-        }
-      });
-    }
-    vm.uploaded_file_data = function(data, flag){
-      vm.uploadedpdf_order_id = ''
-      if(flag == 'view') {
-        var send = $("form:visible");
-        send = $(send).serializeArray();
-        for (var i = 0; i < send.length; i++) {
-          if(send[i].name == 'id'){
-            vm.uploadedpdf_order_id = send[i].value
-          }
-        }
-        vm.view_signed_copy(vm.uploadedpdf_order_id)
-      }else if(flag == 'table') {
-        vm.uploadedpdf_order_id = data
-      }
-    }
-    vm.upload_file_name = "";
-    $scope.$on("fileSelected", function (event, args) {
-      $scope.$apply(function () {
-        vm.upload_file_name = args.file.name;
-        if(vm.upload_enable){
-          vm.uploaded_pdf_send(vm.uploadedpdf_order_id, args.file)
-        }
-      });
-    });
-
-    vm.uploaded_pdf_send = function(id, pdf_file) {
-      vm.upload_enable = false;
-      var formData = new FormData();
-      var el = $("#file-upload");
-      var files = pdf_file;
-
-      if(files.length == 0){
-        return false;
-      }
-      formData.append('pdf_file', files);
-      formData.append('id', id);
-      $.ajax({url: Session.url+'upload_signed_under_taking_form/',
-        data: formData,
-        method: 'POST',
-        processData : false,
-        contentType : false,
-        xhrFields: {
-          withCredentials: true
-        },
-        'success': function(response) {
-          if(response == 'Uploaded Successfully') {
-            vm.dtInstance.reloadData();
-            Service.showNoty(response);
-            vm.upload_enable = true;
-          } else {
-            Service.showNoty(response, 'warning');
-            vm.upload_enable = true;
-          }
-        },
-        'error': function(response) {
-          Service.showNoty('Something Went Wrong', 'warning');
-          vm.upload_enable = true;
-        }
-      });
-    }
-    vm.view_signed_copy = function(id) {
-      let elem = []
-      let host = vm.host
-      elem.push({name:'shipment_id', value:id})
-      vm.service.apiCall("get_signed_oneassist_form/", "POST", elem).then(function(data) {
-        if(data.message) {
-          if (data.data == 'Please Upload Signed Invoice Copy'){
-            Service.showNoty(data.data, 'warning');
-          } else {
-            let srcpdf = host+data.data.data_dict[0]
-            var mywindow = window.open(srcpdf, 'height=400,width=600');
-            mywindow.focus();
-            $timeout(function(){
-              mywindow.print();
-              mywindow.close();
-            }, 3000);
-            return true;
-          }
-        }
-      });
-    }
     vm.submit = function(data) {
       var send = $("form:visible");
       send = $(send).serializeArray();

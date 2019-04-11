@@ -71,56 +71,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session , pri
       colFilters.download_excel()
     }
 
-    vm.close_jo = close_jo;
-    vm.closed_jo = {};
-    function close_jo(data) {
-        var elem = angular.element($('form'));
-        vm.closed_jo['elem'] = $(elem[0]).serializeArray();
-        swal2({
-          title: 'Do you want to close the JO',
-          text: '',
-          input: 'text',
-          confirmButtonColor: '#43ab47',
-          cancelButtonColor: '#d33',
-          confirmButtonText: 'Confirm',
-          cancelButtonText: 'Cancel',
-          showLoaderOnConfirm: true,
-          inputOptions: 'Testing',
-          inputPlaceholder: 'Type Reason',
-          confirmButtonClass: 'btn btn-success',
-          cancelButtonClass: 'btn btn-danger',
-          showCancelButton: true,
-          preConfirm: function (text) {
-            return new Promise(function (resolve, reject) {
-              vm.closed_jo.elem.push({name: 'remarks', value: text});
-              if(!text){
-                Service.showNoty("Close JO Reason is Mandatory");
-                reject();
-                return false;
-              }
-              console.log(vm.closed_jo.elem)
-              vm.service.apiCall('close_jo/', 'POST', vm.closed_jo.elem, true).then(function(data){
-                if(data.message) {
-                  if(data.data == 'Cancelled Successfully') {
-                    vm.close();
-                    vm.service.refresh(vm.dtInstance);
-                    resolve();
-                  } else {
-                    Service.showNoty(data.data)
-                  }
-                }
-              });
-            })
-          },
-          allowOutsideClick: false,
-        }).then(function (text) {
-            swal2({
-              type: 'success',
-              title: 'Received JO is Cancelled!',
-            })
-        });
-    }
-
     vm.close = close;
     function close() {
 

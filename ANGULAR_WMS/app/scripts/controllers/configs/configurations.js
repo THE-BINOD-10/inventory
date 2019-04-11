@@ -27,9 +27,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'auto_raise_stock_transfer': false, 'inbound_supplier_invoice': false, 'customer_dc': false,
                     'mark_as_delivered': false, 'order_exceed_stock': false, 'receive_po_mandatory_fields': false,
                     'sku_pack_config': false, 'central_order_reassigning':false, 'po_sub_user_prefix': false,
-                    'combo_allocate_stock': false, 'sno_in_invoice': false, 'unique_mrp_putaway': false,'block_expired_batches_picklist':false,
+                    'combo_allocate_stock': false, 'sno_in_invoice': false, 'unique_mrp_putaway': false,
                     'generate_delivery_challan_before_pullConfiramation':false,'pos_remarks' :'',
-                    'rtv_prefix_code': false, 'dispatch_qc_check':false,
+                    'rtv_prefix_code': false
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -53,7 +53,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      71: 'order_exceed_stock',72:'invoice_declaration',73:'central_order_reassigning',
                      74: 'sku_pack_config', 75: 'po_sub_user_prefix', 76: 'combo_allocate_stock', 77:'sno_in_invoice', 78:'raisepo_terms_conditions',
                      79: 'generate_delivery_challan_before_pullConfiramation', 80: 'unique_mrp_putaway',
-                     81: 'rtv_prefix_code',82:'pos_remarks', 83:'dispatch_qc_check', 84:'block_expired_batches_picklist',}
+                     81: 'rtv_prefix_code',82:'pos_remarks'}
 
   vm.check_box_data = [
     {
@@ -454,21 +454,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
      param_no: 79,
      class_name: "fa fa-server",
      display: true
-   },
-   {
-    name: "Dispatch QC Check",
-    model_name: "dispatch_qc_check",
-    param_no: 83,
-    class_name: "fa fa-server",
-    display: true
-  },
-  {
-    name: "Block Expired Batches In Picklist",
-    model_name: "block_expired_batches_picklist",
-    param_no: 84,
-    class_name: "fa fa-server",
-    display: true
-  },
+   }
 ]
 
   vm.empty = {};
@@ -858,28 +844,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     vm.service.showLoader();
     var order_management;
     $.ajax({
-      url: Session.url+'order_management_toggle?order_manage='+data,
-      method: 'GET',
-      xhrFields: {
-        withCredentials: true
-      },
-      'success': function(response) {
-        if (data){
-            $('#channel_component').removeClass('ng-hide').css('display', 'block');
-            order_management = "Order Management Enabled"
-            localStorage.setItem("order_management", String(data));
-        } else {
-            $('#channel_component').addClass('ng-hide').css('display', 'none');
-            order_management = "Order Management Disabled"
-            localStorage.setItem("order_management", String(data));
+	url: Session.url+'order_management_toggle?order_manage='+data,
+        method: 'GET',
+        xhrFields: {
+          withCredentials: true
+        },
+        'success': function(response) {
+	  if (data){
+	      $('#channel_component').removeClass('ng-hide').css('display', 'block');
+	      order_management = "Order Management Enabled"
+	      localStorage.setItem("order_management", String(data));
+	  } else {
+	      $('#channel_component').addClass('ng-hide').css('display', 'none');
+	      order_management = "Order Management Disabled"
+	      localStorage.setItem("order_management", String(data));
+	  }
+	  vm.service.showNoty(order_management, 'success', 'topRight');
+	  vm.service.hideLoader();
+        },
+	'error': function(response) {
+	  console.log(response);
+	  vm.service.hideLoader();
         }
-        vm.service.showNoty(order_management, 'success', 'topRight');
-        vm.service.hideLoader();
-      },
-      'error': function(response) {
-        console.log(response);
-        vm.service.hideLoader();
-      }
     });
   };
 

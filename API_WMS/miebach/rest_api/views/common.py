@@ -498,7 +498,6 @@ def get_search_params(request, user=''):
             search_params[data_mapping[key]] = value
     #pos extra headers
     if user:
-        headers.extend(["Billing Address" ,"Shipping Address"])
         headers.extend(["Order Taken By", "Payment Cash", "Payment Card","Payment PhonePe","Payment GooglePay","Payment Paytm"])
         extra_fields_obj = MiscDetail.objects.filter(user=user.id, misc_type__icontains="pos_extra_fields")
         for field in extra_fields_obj:
@@ -2337,21 +2336,18 @@ def search_batches(request, user=''):
         for stock in stock_data:
             try:
                 manufactured_date = datetime.datetime.strftime(stock.batch_detail.manufactured_date, "%d/%m/%Y")
-                batchno =  stock.batch_detail.batch_no
             except:
                 manufactured_date = ''
+            try:
+                batchno =  stock.batch_detail.batch_no
+            except:
                 batchno  = ''
             try:
-                expiry_batches_picklist = get_misc_value('block_expired_batches_picklist', user.id)
-                if stock.batch_detail.batch_no and expiry_batches_picklist == 'true':
-                    present_date = datetime.datetime.now().date()
-                    if stock.batch_detail.expiry_date and stock.batch_detail.expiry_date >= present_date:
-                        total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
-                else:
-                    if batchno:
-                        total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
+                expiry_date = datetime.datetime.strftime(stock.batch_detail.expiry_date, "%d/%m/%Y")
             except:
-                total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
+                expiry_date = ''
+            total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date ,'expiry_date':expiry_date})
+
     return HttpResponse(json.dumps(total_data))
 
 

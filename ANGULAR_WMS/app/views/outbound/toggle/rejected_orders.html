@@ -14,7 +14,6 @@
                 <tr>
                   <th> Order ID</th>
                   <th> Qunatity  </th>
-                  <th ng-if="pop.permissions.dispatch_qc_check"> SKU Code </th>
                   <th> Remarks </th>
                 </tr>
               </thead>
@@ -22,11 +21,6 @@
                 <tr ng-repeat="product in pop.state_data.data">
                   <td><input type="text" ng-model="product['Order ID']" name="order_id" class="form-control" readonly></td>
                   <td><input type="text" disabled ng-model="product['Total Quantity']" name="quantity" class="form-control" readonly></td>
-                  <td ng-if="pop.permissions.dispatch_qc_check">
-                    <input type="hidden" name="extra_data" value="{{data.extra}}">
-                    <input type="hidden" name="discount" class="form-control" value="{{data.discount}}">
-                    <input type="text" autocomplete="off" name="sku_id" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in pop.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="data.sku_id" typeahead-on-select="pop.get_sku_data(data, $item, $index)" ng-keyup="pop.key_event($event, data, $item, $index)">
-                  </td>
                   <td><input type="text" ng-model="product.remarks" name="remarks" class="form-control"></td>
                 </tr>
               </tbody>

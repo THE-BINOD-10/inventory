@@ -119,22 +119,14 @@
                   <!-- <input type="hidden" value="{{vm.sel_carton}}" name="sel_carton" class="form-control"> -->
                 </div>
               </div>
+
               <div class="col-md-4">
                 <button type="button" class="btn btn-success mt25" style="width: 100%" ng-click="vm.print_pdf(form)">Print</button>
               </div>
             </div>
           </div>
-        <div ng-include="'views/common/msg.html'"></div>
-        <div class="row" ng-if="vm.permissions.dispatch_qc_check">
-          <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12 col-md-offset-3 col-lg-offset-3">
-            <div class="col-lg-6 col-md-6">
-              <button type="button" class="btn pop pop-green"  ng-if="vm.permissions.dispatch_qc_check" ng-click="vm.under_taken_form(form)">Download Under Taken Form</button>
-            </div>
-            <div class="col-lg-6 col-md-6">
-              <button type="button" class="btn pop pop-green"  ng-if="vm.permissions.dispatch_qc_check" ng-click="vm.uploaded_file_data(form, 'view')">View Signed Under taken Form</button>
-            </div>
-          </div>
-        </div>
+
+          <div ng-include="'views/common/msg.html'"></div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn pop pop-normal"  ng-click="vm.invoice_print()">Invoice Print</button>

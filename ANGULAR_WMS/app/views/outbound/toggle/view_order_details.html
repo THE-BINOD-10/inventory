@@ -360,7 +360,7 @@
       </div>-->
     </div>
     <!-- This Division is enable for all login except one_assist -->
-    <div class="row" style="padding-bottom:2%;" ng-if="!showCase.permissions.dispatch_qc_check" >
+    <div class="row" style="padding-bottom:2%;" ng-if="!showCase.permissions.dispatch_qc_check" ng-hide="showCase.hide_buttons">
       <div class="col-md-6">
         <input type="hidden" class="form-control" name="tax_type" value="{{showCase.model_data.tax_type}}" disabled>
         <button type="button" class="btn btn-primary" ng-if="!showCase.input_status" style="margin: auto;display: block;"
@@ -372,7 +372,7 @@
       </div>
     </div>
     <!-- This Division enable only for one_assist admin only -->
-    <div class="row" style="padding-bottom:2%;" ng-if="showCase.permissions.dispatch_qc_check && showCase.permissions.multi_warehouse">
+    <div class="row" style="padding-bottom:2%;" ng-if="showCase.permissions.dispatch_qc_check && showCase.permissions.multi_warehouse" ng-hide="showCase.hide_buttons">
       <div class="col-md-6">
         <input type="hidden" class="form-control" name="tax_type" value="{{showCase.model_data.tax_type}}" disabled>
         <button type="button" class="btn btn-primary" ng-if="!showCase.input_status" style="margin: auto;display: block;"

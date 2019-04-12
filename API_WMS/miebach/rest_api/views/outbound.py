@@ -7752,7 +7752,11 @@ def get_view_order_details(request, user=''):
     data_dict.append({'cus_data': cus_data, 'status': status_obj, 'ord_data': order_details_data,
                       'central_remarks': central_remarks, 'all_status': view_order_status, 'tax_type': tax_type,
                       'invoice_type': invoice_type, 'invoice_types': invoice_types, 'courier_name':courier_name})
-    return HttpResponse(json.dumps({'data_dict': data_dict}))
+    hide_buttons = False
+    check_storehippo_user = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
+    if check_storehippo_user:
+        hide_buttons = True
+    return HttpResponse(json.dumps({'data_dict': data_dict, 'hide_buttons':hide_buttons}))
 
 
 def get_stock_location_quantity_data(wms_code, location, user):

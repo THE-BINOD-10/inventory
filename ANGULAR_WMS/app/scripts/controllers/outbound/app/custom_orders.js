@@ -99,6 +99,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.close = function() {
     $state.go('user.App.MyOrders', {'state': 'orders'})
+    vm.dtInstance.reloadData();
   }
   vm.moment = moment();
   vm.date = new Date()
@@ -124,6 +125,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.model_data.expected_date= ''
           vm.model_data.remarks = '';
           Service.showNoty(data.data);
+          vm.dtInstance.reloadData();
         }
       } else {
         Service.showNoty('Something went wrong');
@@ -169,6 +171,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                  if(isConfirm) {
                    vm.upload_po(vm.po_number_header, vm.client_name_header);
                    Service.showNoty('Order Confirmed Successfully');
+                   vm.dtInstance.reloadData();
                    vm.po_number_header = '';
                    vm.client_name_header = '';
                  } else {
@@ -231,6 +234,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     Service.apiCall('remove_manual_enquiry_image/', 'POST', data).then(function(data) {
       if (data.message) {
         if (data.data == 'Success') {
+          vm.dtInstance.reloadData();
           Service.showNoty('Image Deleted Successfully');
           vm.order_details.style.images.splice(index, 1);
         } else {
@@ -291,7 +295,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           'success': function(response) {
             response = JSON.parse(response);
             if(response.msg == 'Success') {
-
               Service.showNoty(response.msg);
               $scope.$apply(function() {
                 vm.upload_name = [];

@@ -10,6 +10,7 @@ stockone.controller('MyOrdersTbl',['$scope', '$http', '$state', '$timeout', 'Ses
 function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, SweetAlert, focus, $modal, $compile, Data) {
     var vm = this;
     vm.permissions = Session.roles.permissions;
+    vm.user_type = vm.permissions.user_type;
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.display = true;

@@ -294,7 +294,7 @@
         </tbody>
       </table>
 
-      <center ng-if="!showCase.input_status">
+      <center ng-if="!showCase.input_status" ng-hide="showCase.hide_buttons">
         <button type="button" class="btn btn-default" style="margin-top:10px" ng-click="showCase.update_order_details(0, {}, true)">Add New WMS Code</button>
       </center>
     </div>

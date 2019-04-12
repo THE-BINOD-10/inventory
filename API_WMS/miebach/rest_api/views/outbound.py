@@ -2179,7 +2179,7 @@ def picklist_confirmation(request, user=''):
                     if 'labels' in val.keys() and val['labels'] and picklist.order:
                         update_order_labels(picklist, val)
                     order_id = picklist.order
-                    if picklist.order.sku.wms_code in passed_serial_number.keys():
+                    if picklist.order and picklist.order.sku.wms_code in passed_serial_number.keys():
                         send_imei_qc_details = dict(zip(passed_serial_number[picklist.order.sku.wms_code], [imei_qc_details[k] for k in passed_serial_number[picklist.order.sku.wms_code]]))
                         save_status = "PASS"
                         try:
@@ -2190,7 +2190,7 @@ def picklist_confirmation(request, user=''):
                             import traceback
                             picklist_qc_log.debug(traceback.format_exc())
                             picklist_qc_log.info("Error in Dispatch QC - On Pass - %s - %s" % (str(user.username),  str(e)))
-                    if picklist.order.sku.wms_code in failed_serial_number.keys():
+                    if picklist.order and picklist.order.sku.wms_code in failed_serial_number.keys():
                         send_imei_qc_details = dict(zip(failed_serial_number[picklist.order.sku.wms_code], [imei_qc_details[k] for k in failed_serial_number[picklist.order.sku.wms_code]]))
                         save_status = "FAIL"
                         try:

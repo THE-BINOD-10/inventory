@@ -270,6 +270,8 @@ class SKUSupplier(models.Model):
     supplier_reference = models.CharField(max_length=256, default='')
     supplier_code = models.CharField(max_length=128, default='')
     price = models.FloatField(default=0)
+    costing_type = models.CharField(max_length=128, default='price_based')
+    margin_percentage = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

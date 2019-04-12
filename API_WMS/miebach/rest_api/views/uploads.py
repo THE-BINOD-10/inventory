@@ -2035,7 +2035,11 @@ def validate_supplier_form(open_sheet, user_id):
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % messages_dict[key])
-
+            elif key == 'markdown_percentage':
+                if not isinstance(cell_data, (int, float)):
+                    index_status.setdefault(row_idx, set()).add('Markdown % Should be in integer or float')
+                elif not float(cell_data) in range(0, 100):
+                    index_status.setdefault(row_idx, set()).add('Markdown % Should be in between 0 and 100')
 
     if not index_status:
         return 'Success'

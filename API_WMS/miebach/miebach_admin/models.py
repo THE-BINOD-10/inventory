@@ -251,6 +251,7 @@ class SupplierMaster(models.Model):
     branch_name = models.CharField(max_length=256, default='')
     account_number = models.BigIntegerField(default=0)
     account_holder_name = models.CharField(max_length=256, default='')
+    markdown_percentage = models.FloatField(default=0)
 
     class Meta:
         db_table = 'SUPPLIER_MASTER'

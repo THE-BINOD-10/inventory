@@ -305,7 +305,9 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('bank_name', data.bank_name), ('ifsc_code', data.ifsc_code),
                                                 ('branch_name', data.branch_name),
                                                 ('account_number', data.account_number),
-                                                ('account_holder_name', data.account_holder_name))))
+                                                ('account_holder_name', data.account_holder_name),
+                                                ('markdown_percentage', data.markdown_percentage)
+                                            )))
 
 
 @csrf_exempt
@@ -331,11 +333,13 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
 
     temp_data['recordsTotal'] = len(mapping_results)
     temp_data['recordsFiltered'] = len(mapping_results)
-
     for result in mapping_results[start_index: stop_index]:
+        sku_preference = result.preference
+        if sku_preference:
+            sku_preference = int(sku_preference)
         temp_data['aaData'].append(OrderedDict((('supplier_id', result.supplier_id), ('wms_code', result.sku.wms_code),
                                                 ('supplier_code', result.supplier_code), ('moq', result.moq),
-                                                ('preference', int(result.preference)),
+                                                ('preference', sku_preference),
                                                 ('price', result.price), ('DT_RowClass', 'results'),
                                                 ('DT_RowId', result.id))))
 
@@ -755,6 +759,7 @@ def get_sku_data(request, user=''):
 
     filter_params = {'id': data_id, 'user': user.id}
     data = get_or_none(SKUMaster, filter_params)
+    import pdb;pdb.set_trace()
 
     filter_params = {'user': user.id}
     zones = filter_by_values(ZoneMaster, filter_params, ['zone'])
@@ -1023,6 +1028,7 @@ def update_sku(request, user=''):
         if image_file:
             save_image_file(image_file, data, user)
         setattr(data, 'enable_serial_based', False)
+        import pdb;pdb.set_trace()
         for key, value in request.POST.iteritems():
 
             if 'attr_' in key:
@@ -3999,7 +4005,9 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
                                                 ('bank_name', data.bank_name), ('ifsc_code', data.ifsc_code),
                                                 ('branch_name', data.branch_name),
                                                 ('account_number', data.account_number),
-                                                ('account_holder_name', data.account_holder_name))))
+                                                ('account_holder_name', data.account_holder_name),
+                                                ('markdown_percentage', data.markdown_percentage)
+                                            )))
     excel_headers = ''
     if temp_data['aaData']:
         excel_headers = temp_data['aaData'][0].keys()
@@ -4015,7 +4023,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
     'City', 'State', 'Days To Supply', 'Fulfillment Amount', 'Credibility', 'Country', 'Pincode',
     'Status', 'Supplier Type', 'Tax Type', 'PO Exp Duration', 'Owner Name',
     'Owner Number', 'Owner Email Id', 'Spoc Name', 'Spoc Number', 'Lead Time', 'Spoc Email ID', 'Credit Period',
-    'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name']
+    'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name', 'Markdown Percentage']
     try:
         wb, ws = get_work_sheet('skus', itemgetter(*excel_headers)(headers))
     except:

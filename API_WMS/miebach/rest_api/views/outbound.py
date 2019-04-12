@@ -9405,7 +9405,8 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
 
                 temp_data['aaData'].append(OrderedDict(
                     (('Order ID', record['order_id']),('Ordered Qty', record['total_quantity']),
-                    ('Delivered Qty',record['picked_quantity']), ('Pending Qty',record['total_quantity']-record['picked_quantity']), ('Order Value', record['total_inv_amt']),('Order Date', record['date']),('Receive Status', 'results'))))
+                    ('Delivered Qty',record['picked_quantity']), ('Pending Qty',record['total_quantity']-record['picked_quantity']),
+                    ('Order Value', record['total_inv_amt']),('Order Date', record['date']),('Receive Status', record['status']))))
 
     """return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))"""
 

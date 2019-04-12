@@ -1,0 +1,266 @@
+<div id="page-pop" class="modal fade in over-x">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
+    <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width">
+      <div class="modal-content mw80">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title">{{showCase.title}}</h4>
+        </div>
+        <div class="modal-body">
+          <div class="detail-list mb20" ng-repeat="records in showCase.model_data.data">
+            <div class="detail-item border-grey detail-bg-grey">
+              <div class="row">
+                <div class="col-md-6 col-sm-6 col-xs-9">
+                  <h4 class="detail-black"><b>Order ID: {{records['order_id']}}</b></h4>
+                  <div class="row border-grey no-margin">
+                    <div class="col-md-4 col-sm-6 col-xs-6 no-padding">
+                      <span>Order Quantity</span>
+                    </div>
+                    <div class="col-md-4 col-sm-6 col-xs-6 detail-black">
+                      <span>: {{records['sum_data'].quantity}}</span>
+                    </div>
+                  </div>
+                  <div class="row border-grey no-margin">
+                    <div class="col-md-4 col-sm-6 col-xs-6 no-padding">
+                      <span>Order Date</span>
+                    </div>
+                    <div class="col-md-4 col-sm-6 col-xs-6 detail-black">
+                      <span>: {{records['date']}}</span>
+                    </div>
+                  </div>
+                  <div class="row no-margin">
+                    <div class="col-md-4 col-sm-6 col-xs-6 no-padding">
+                      <span>Order Value</span>
+                    </div>
+                    <div class="col-md-6 col-sm-6 col-xs-6 detail-black">
+                      <span>: Rs. {{records['sum_data'].amount- records['tax']  | number : 2}}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-6 col-sm-6 col-xs-12">
+                  <div class="row">
+                    <span ng-if="records['status']" class="label pull-right text-uppercase" ng-class="(records['status'].toLowerCase() == 'open')? 'label-danger': 'label-success';" style="font-size: 12px;">{{records['status']}}</span>
+                  </div>
+                  <div class="row alert alert-info" ng-if="records['freight_charges']" style="margin-top: 7px; margin-bottom: 0px">
+                    <strong>Note:</strong>Freight as applicable will be charged extra.
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <div class="detail-item border-grey" ng-if="order.loading">
+               <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
+            </div>
+
+            <div class="detail-item border-grey" ng-repeat="value in records['data']">
+              <div class="row">
+                <section class="widget text-center no-margin">
+                  <div class="col-md-5 col-sm-5 col-xs-12 no-padding">
+                  <div class="row">
+                  <div class="widget-details col-md-5 col-sm-5 col-xs-4">
+                    <small class="order-label" ng-if="value.schedule_date">SKU</small>
+                    <p class="no-margin order-bold detail-black" style="font-size:12px"><b>{{value.sku__sku_code}}</b></p>
+                    <img  style="width: 100%;" ng-src="{{showCase.service.check_image_url(value.sku__image_url)}}">
+                    <p class="text-center detail-black order-bold" style="font-size:12px;overflow-wrap: break-word;">{{data.sku__sku_code}}</p>
+                  </div>
+                  <div class="widget-details col-md-7 col-sm-7 col-xs-8 text-left">
+                    <small class="order-label">SKU Description</small>
+                    <p class="no-margin order-bold detail-black" style="font-size:12px">{{value.sku__sku_desc}} <strong ng-if="value.level_name">({{value.level_name}})</strong></p><br>
+                    <small class="order-label" ng-if="value.schedule_date"><b>Delivery Schedule Date</b></small>
+                    <p class="no-margin order-bold detail-black" style="font-size:12px"><b>{{value.schedule_date}}</b></p>
+                  </div>
+                  </div>
+                  </div>
+                  <div class="col-md-7 col-sm-7 col-xs-12 no-padding">
+                    <div class="row">
+                      <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-center">
+                        <small class="order-label">Ordered Qty</small>
+                        <p class="no-margin order-bold detail-black">{{value.quantity}}</p>
+                      </div>
+                      <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-center">
+                       <small class="order-label">Delivered Qty</small>
+                        <p class="no-margin order-bold detail-black">{{value.picked_quantity}}</p>
+                      </div>
+                      <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-center">
+                        <small class="order-label">Pending Qty</small>
+                        <p class="no-margin order-bold detail-black">{{value.quantity - value.picked_quantity}}</p>
+                      </div>
+                      <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-right">
+                        <small class="order-label">Total</small>
+                        <p class="no-margin order-bold detail-black">Rs. {{value.invoice_amount | number : 2}}</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
+
+            <div class="detail-item border-grey detail-bg-grey">
+              <div class="row">
+                <div class="col-md-4 col-sm-4 col-xs-3">
+                </div>
+                <div class="col-md-8 col-sm-8 col-xs-9">
+                  <div class="row" ng-if="order_details.other_charges">
+                    <div class="col-xs-8 no-padding">
+                      <span class="pull-right">Other Charges:</span>
+                    </div>
+                    <div class="col-xs-4 detail-black">
+                      <span>Rs. {{value.other_charges | number : 2}}</span>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-xs-8 no-padding">
+                      <span class="pull-right">Sub Total:</span>
+                    </div>
+                    <div class="col-xs-4 detail-black">
+                      <span>Rs. {{records['sum_data'].amount-records['tax']-records['other_charges']  | number : 2}}</span>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-xs-8 no-padding">
+                      <span class="pull-right">Applicable Tax:</span>
+                    </div>
+                    <div class="col-xs-4 detail-black">
+                      <span>Rs. {{records['tax']  | number : 2}}</span>
+                    </div>
+                  </div>
+                  <div class="row detail-black" style="font-size: 16px;">
+                    <div class="col-xs-8 no-padding">
+                      <span class="pull-right"><b>Total Amount:</b></span>
+                    </div>
+                    <div class="col-xs-4">
+                      <span><b>Rs. {{records['sum_data'].amount | number : 2}}</b></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- <div class="row over-x" ng-repeat="records in showCase.model_data.data">
+            <table class="table mw40">
+              <thead>
+                <tr>
+                  <th><b> Order Id </b></th>
+                  <th><b> Image</b></th>
+                  <th><b> Order Value </b></th>
+                  <th><b> Order Date </b></th>
+                  <th><b> SKU  </b></th>
+                  <th><b> SKU Description </b></th>
+                  <th><b> Ordered Qty</b></th>
+                  <th><b> Delivered Qty</b></th>
+                  <th><b> Pending Qty</b></th>
+                  <th><b> Delivery Date</b></th>
+                  <th><b> Total</b></th>
+                </tr>
+              </thead>
+                <tbody ng-repeat="value in records['data']">
+                    <tr>
+                      <td>
+                      <b>  {{value.order_id}}</b>
+                      </td>
+                      <td>
+                        <img  style="width: 100%;" ng-src="{{showCase.service.check_image_url(value.sku__image_url)}}">
+                      </td>
+                      <td>
+                          {{value.invoice_amount - value.sku_tax_amt}}
+                      </td>
+                      <td>
+                          {{value.creation_date}}
+                      </td>
+                      <td>
+                          {{value.sku__sku_code}}
+                      </td>
+                       <td>
+                           {{value.sku__sku_desc}}
+                       </td>
+                       <td>
+                         {{value.quantity}}
+                      </td>
+                      <td>
+                        {{value.picked_quantity}}
+                     </td>
+                     <td>
+                         {{value.quantity - value.picked_quantity}}
+                    </td>
+                    <td>
+                        {{value.schedule_date}}
+                   </td>
+                    <td>
+                        {{value.invoice_amount}}
+                   </td>
+                </tr>
+              </tbody>
+            </table>
+            <hr>
+            <div class ="row">
+              <div class ="col-lg-8 col-md-8 col-sm-8 no-padding">
+               Status  <b> {{ records['status']}}</b>
+              </div>
+              <div class="col-lg-4 col-md-4 col-sm-4">
+              <p>Sub Total:{{records['sum_data'].amount - records['tax'] - records['other_charges']| number : 2}}</p>
+              <p>Tax:{{records['tax'] | number : 2 }}</p>
+              <p><b>Total Amount:{{records['sum_data'].amount | number : 2 }}</b></p>
+            </div>
+            </div>
+          </div> -->
+          <div class="row over-x">
+            <div ng-include="'views/outbound/app/create_orders/sku_wise_details.html'">
+            <!-- <table class="table mw40">
+              <div class="modal-header">
+                  <h4 class="modal-title"> SKU Wise Details</h4>
+              </div>
+              <thead>
+                <tr>
+                  <th><b> SKU Description </b></th>
+                  <th><b>  Qty</b></th>
+                  <th><b> Avg Landing Price</b></th>
+                  <th><b> Amount</b></th>
+
+                </tr>
+              </thead>
+                <tbody ng-repeat="records in showCase.model_data.sku_wise_details['data']">
+                    <tr>
+                       <td>
+                           {{records.sku_code}}
+                       </td>
+                       <td>
+                         {{records.quantity}}
+                      </td>
+                      <td>
+                        {{records.landing_price}}
+                     </td>
+                     <td>
+                         {{records.total_amount}}
+                    </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class ="row">
+              <div class ="col-lg-8 col-md-8 col-sm-8">
+              </div>
+              <div class="col-lg-4 col-md-4 col-sm-4">
+              <p>Sub Total:{{showCase.model_data.sku_wise_details['totals'].sub_total | number : 2 }}</p>
+              <p>Tax:{{showCase.model_data.sku_wise_details['totals'].tax | number : 2 }}</p>
+              <p><b>Total Amount:{{showCase.model_data.sku_wise_details['totals'].total_amount | number : 2 }}</b></p>
+            </div>
+            </div> -->
+          </div>
+          <!-- <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span> </button> -->
+        </div>
+
+        <!-- <div class="modal-body raise_po">
+          <div ng-include="'views/outbound/app/create_orders/order_detail.html'"></div>
+		    </div> -->
+
+        <!-- <div class="modal-footer">
+          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop {{showCase.permissions.change_openpo?'pop-normal':'pop-green'}}" ng-click="showCase.save_raise_po(form)">{{showCase.permissions.change_openpo?'Save':'Send for Approval'}}</button>
+          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)">Confirm PO</button>
+          <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
+          <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print_grn()">Print</button>
+        </div> -->
+      </div>
+    </div>
+  </form>
+</div>

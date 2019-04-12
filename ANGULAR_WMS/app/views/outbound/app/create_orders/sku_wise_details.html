@@ -1,4 +1,4 @@
-<div class="mb10" ng-if="order.order_details.sku_wise_details.data" ng-hide="order.loading" style="border: 1px solid #ed1c24">
+<div class="mb10" ng-if="showCase.model_data.sku_wise_details['data']" ng-hide="order.loading" style="border: 1px solid #ed1c24">
   <div class="detail-list">
     <div class="detail-item border-grey detail-bg-grey" style="background:#ed1c24">
       <div class="row no-margin">
@@ -7,25 +7,25 @@
         </div>
       </div>
     </div>
-    <div class="detail-item border-grey" ng-repeat="sku_data in order.order_details.sku_wise_details.data">
+    <div class="detail-item border-grey" ng-repeat="records in showCase.model_data.sku_wise_details['data']">
       <div class="row no-margin">
         <section class="widget text-center no-margin">
           <div class="row no-margin">
           <div class="widget-details col-md-4 col-sm-4 col-xs-4 text-left">
             <small class="order-label">SKU Description</small>
-            <p class="no-margin order-bold detail-black" style="font-size:12px">{{sku_data.sku_code}}</p>
+            <p class="no-margin order-bold detail-black" style="font-size:12px">{{records.sku_code}}</p>
           </div>
           <div class="widget-details col-md-2 col-sm-2 col-xs-2 text-center">
             <small class="order-label">Qty</small>
-            <p class="no-margin order-bold detail-black">{{sku_data.quantity}}</p>
+            <p class="no-margin order-bold detail-black">{{records.quantity}}</p>
           </div>
           <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-center">
             <small class="order-label">Avg Landing Price</small>
-            <p class="no-margin order-bold detail-black">{{sku_data.landing_price}}</p>
+            <p class="no-margin order-bold detail-black">{{records.landing_price}}</p>
           </div>
           <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-right">
             <small class="order-label">Amount</small>
-            <p class="no-margin order-bold detail-black">Rs. {{sku_data.total_amount | number : 2}}</p>
+            <p class="no-margin order-bold detail-black">Rs. {{records.total_amount | number : 2}}</p>
           </div>
           </div>
         </section>
@@ -36,12 +36,12 @@
         <div class="col-md-4 col-sm-4 col-xs-3">
         </div>
         <div class="col-md-8 col-sm-8 col-xs-9">
-          <div class="row no-margin" ng-if="order.order_details.sku_wise_details.totals.other_charges">
+          <div class="row no-margin" ng-if="showCase.model_data.sku_wise_details['totals'].other_charges">
             <div class="col-xs-8 no-padding">
               <span class="pull-right">Other Charges:</span>
             </div>
             <div class="col-xs-4 detail-black">
-              <span>Rs. {{order.order_details.sku_wise_details.totals.other_charges | number : 2}}</span>
+              <span>Rs. {{showCase.model_data.sku_wise_details['totals'].other_charges | number : 2}}</span>
             </div>
           </div>
           <div class="row no-margin">
@@ -49,7 +49,7 @@
               <span class="pull-right">Sub Total:</span>
             </div>
             <div class="col-xs-4 detail-black">
-              <span>Rs. {{order.order_details.sku_wise_details.totals.sub_total  | number : 2}}</span>
+              <span>Rs. {{showCase.model_data.sku_wise_details['totals'].sub_total  | number : 2}}</span>
             </div>
           </div>
           <div class="row no-margin">
@@ -57,7 +57,7 @@
               <span class="pull-right">Tax:</span>
             </div>
             <div class="col-xs-4 detail-black">
-              <span>Rs. {{order.order_details.sku_wise_details.totals.tax  | number : 2}}</span>
+              <span>Rs. {{showCase.model_data.sku_wise_details['totals'].tax  | number : 2}}</span>
             </div>
           </div>
           <div class="row detail-black no-margin" style="font-size: 16px;">
@@ -65,7 +65,7 @@
               <span class="pull-right"><b>Total Amount:</b></span>
             </div>
             <div class="col-xs-4">
-              <span><b>Rs. {{order.order_details.sku_wise_details.totals.total_amount | number : 2}}</b></span>
+              <span><b>Rs. {{showCase.model_data.sku_wise_details['totals'].total_amount | number : 2}}</b></span>
             </div>
           </div>
         </div>

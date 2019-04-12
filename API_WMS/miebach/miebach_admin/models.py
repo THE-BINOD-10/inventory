@@ -3164,4 +3164,3 @@ class StockReconciliation(models.Model):
 
     class Meta:
         db_table = 'STOCK_RECONCILIATION'
-

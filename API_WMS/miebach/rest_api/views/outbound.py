@@ -15043,14 +15043,23 @@ def create_feedback_form(request, user=''):
     resp = {'message': 'success'}
     fb_type = request.POST.get('feedbackType', '')
     sku_style = request.POST.get('SKU', '')
+    url = request.POST.get('sku', '')
     remarks = request.POST.get('remarks', '')
-    sku_qs = SKUMaster.objects.filter(style_name=sku_style, user=user.id)
-    if not sku_qs:
-        return HttpResponse('No SKU Style Found')
-    sku_id = sku_qs[0].id
-    image_file = request.FILES.get('files-0', '')
+    if not (fb_type == 'Technical Support' or fb_type == 'Others'):
+        sku_qs = SKUMaster.objects.filter(style_name=sku_style, user=user.id)
+        if not sku_qs:
+            return HttpResponse('No SKU Style Found')
+        url_name = ''
+        sku_id = sku_qs[0].id
+        image_file = request.FILES.get('files-0', '')
+    else:
+        if fb_type == 'Technical Support':
+            sku_id = image_file = ''
+            url_name = url
+        else:
+            sku_id = url_name = image_file = ''
     feedback_map = {'user_id': request.user.id, 'feedback_type': fb_type, 'sku_id': sku_id,
-                    'feedback_remarks': remarks, 'feedback_image': image_file}
+                    'feedback_remarks': remarks, 'feedback_image': image_file, 'url_name': url_name}
     try:
         fb_master = FeedbackMaster(**feedback_map)
         fb_master.save()
@@ -15060,3 +15069,49 @@ def create_feedback_form(request, user=''):
         log.info('Exception raised while creating the feedback form for %s and params are %s and error statement is %s'
                  % (str(user.username), str(request.POST.dict()), str(e)))
     return HttpResponse(json.dumps(resp), content_type='application/json')
+
+
+@csrf_exempt
+def get_feedback_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}):
+    lis = ['user__username', 'feedback_type', 'sku__sku_class', 'feedback_remarks', 'url_name']
+    search_params = get_filtered_params(filters, lis)
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    response_data = {'data': []}
+    warehouse_qs = UserGroups.objects.filter(admin_user=user.id)
+    dist_users = warehouse_qs.filter(user__userprofile__warehouse_level=1).values_list('user_id__username', flat=True)
+    wh_userids = warehouse_qs.values_list('user_id', flat=True)
+    reseller_qs = CustomerUserMapping.objects.filter(customer__user__in=wh_userids).values('user')
+    feedback_data = FeedbackMaster.objects.filter(user_id__in=reseller_qs).order_by(order_data)
+    if search_term:
+        feedback_data = FeedbackMaster.objects.filter(Q(user__username__icontains=search_term)| Q(feedback_type__icontains=search_term)
+            | Q(sku__sku_class__icontains=search_term) | Q(feedback_remarks__icontains=search_term) | Q(url_name__icontains=search_term)).order_by(order_data)
+    try:
+        if feedback_data:
+            for data in feedback_data:
+                username = data.user.username
+                feedback_type = data.feedback_type
+                if data.sku_id:
+                    sku_class = data.sku.sku_class
+                else:
+                    sku_class = ''
+                if data.feedback_image:
+                    feedback_image = data.feedback_image
+                else:
+                    feedback_image = ''
+                if data.url_name:
+                    url_name = data.url_name
+                else:
+                    url_name = ''
+                feedback_remarks = data.feedback_remarks
+                temp_data['aaData'].append(OrderedDict(
+                    (('User Name', username), ('Feedback Type', feedback_type), ('SKU', sku_class), ('Feedback Remarks', feedback_remarks), ('Feedback Image', str(feedback_image)), ('URL', url_name))))
+                temp_data['recordsTotal'] = feedback_data.count()
+                temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Exception raised while display feedback form for %s and params are %s and error statement is %s'
+                 % (str(user.username), str(request.POST.dict()), str(e)))
+

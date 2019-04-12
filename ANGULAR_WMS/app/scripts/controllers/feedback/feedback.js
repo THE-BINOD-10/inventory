@@ -1,16 +1,15 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('uploadedfeedbackTable',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('uploadedfeedbackTable',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', 'Data', '$modal', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service,  Data, $modal) {
     var vm = this;
     vm.cancelPoDisable = false;
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.user_type = Session.roles.permissions.user_type;
-    console.log(vm.user_type)
-    vm.filters = {'datatable': 'UploadedPos', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':''}
+    vm.filters = {'datatable': 'FeedbackData', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -26,17 +25,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        .withPaginationType('full_numbers')
        .withOption('rowCallback', rowCallback);
     vm.dtColumns = [
-        DTColumnBuilder.newColumn('id').withTitle('S.No'),
-        DTColumnBuilder.newColumn('uploaded_user').withTitle('Uploaded User'),
-        DTColumnBuilder.newColumn('distributor').withTitle('Distributor'),
-        DTColumnBuilder.newColumn('order_id').withTitle('Order ID'),
-        DTColumnBuilder.newColumn('emizaids').withTitle('Emiza Order IDs'),
-        DTColumnBuilder.newColumn('po_number').withTitle('Po No'),
-        DTColumnBuilder.newColumn('uploaded_date').withTitle('Date'),
-        DTColumnBuilder.newColumn('customer_name').withTitle('Customer Name'),
-        DTColumnBuilder.newColumn('verification_flag').withTitle('Validation')
+        DTColumnBuilder.newColumn('User Name').withTitle('User'),
+        DTColumnBuilder.newColumn('Feedback Type').withTitle('Feedback Type'),
+        DTColumnBuilder.newColumn('SKU').withTitle('SKU'),
+        DTColumnBuilder.newColumn('Feedback Remarks').withTitle('Feedback Remarks'),
+        DTColumnBuilder.newColumn('URL').withTitle('URL')
     ];
-
     vm.dtInstance = {};
     vm.reloadData = reloadData;
 
@@ -69,20 +63,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
             $scope.$apply(function() {
-                console.log(aData);
-                vm.model_data = {};
-                vm.update = true;
-                vm.message = "";
-                vm.title = "Update Uploaded PO's";
-                var poId = {id:aData.id};
-
-                vm.service.apiCall("get_updated_pos/", "POST", poId, true).then(function(data) {
-                  if(data.message) {
-                    angular.copy(data.data, vm.model_data);
-                    vm.model_data.data.file_path = Session.host+data.data.data.uploaded_file;
-                    $state.go('app.uploadedPOs.PO');
+              vm.update = true;
+              vm.message = "";
+              vm.title = "View Feedback";
+              var mod_data = aData;
+              var modalInstance = $modal.open({
+                templateUrl: 'views/feedback/toggle/feedback_popup.html',
+                controller: 'FeedbackviewDetail',
+                controllerAs: 'pop',
+                size: 'lg',
+                backdrop: 'static',
+                keyboard: false,
+                resolve: {
+                  items: function () {
+                    return mod_data;
                   }
-                });
+                }
+              });
+
+              modalInstance.result.then(function (selectedItem) {
+              });
             });
         });
         if(vm.filter_enable){
@@ -93,3 +93,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
 }
+
+function FeedbackviewDetail($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items, Data) {
+  var vm = this;
+  vm.service = Service;
+  vm.permissions = Session.roles.permissions;
+  vm.state_data = items;
+  vm.image_url = Session.host
+  if (vm.state_data['Feedback Image']){
+    vm.image_path = vm.state_data['Feedback Image']
+    vm.image = vm.image_url + vm.image_path
+  }
+    vm.ok = function () {
+      $modalInstance.close("close");
+    };
+  }
+angular
+  .module('urbanApp')
+  .controller('FeedbackviewDetail', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', FeedbackviewDetail]);

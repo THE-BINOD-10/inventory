@@ -629,7 +629,8 @@ OPEN_ORDER_REPORT_DICT = {
 
 STOCK_COVER_REPORT_DICT = {
        'filters': [
-           {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
+           {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+           {'label': 'SKU Category', 'name': 'sku_category', 'type': 'select'}],
        'dt_headers': ['SKU', 'Product name','Current SIH','PO Pending','Total Stock including PO','Avg Last 30days','Avg Last 7 days','SIH Cover Days 30-day Avg','Total Cover Days including PO 30-day Avg','SIH Cover Days 7-day Avg','Total Cover Days including PO 7-day Avg'],
        'dt_url': 'get_stock_cover_report', 'excel_name': 'get_stock_cover_report',
        'print_url': 'print_stock_cover_report',
@@ -6312,6 +6313,8 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
         search_parameters = {}
         if 'sku_code' in search_params:
             search_parameters['wms_code'] = search_params['sku_code']
+        if 'sku_category' in search_params:
+            search_parameters['sku_category'] = search_params['sku_category']
         start_index = search_params.get('start', 0)
         stop_index = start_index + search_params.get('length', 0)
         sku_masters = SKUMaster.objects.filter(user=user.id ,**search_parameters).order_by(order_data)

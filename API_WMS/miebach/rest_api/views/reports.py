@@ -45,7 +45,7 @@ def get_report_data(request, user=''):
                                                          .values_list('stage_name', flat=True))
             data['filters'][data_index]['values'].extend(
                 ['Picked', 'Putaway pending', 'Picklist Generated', 'Created', 'Partially Picked'])
-    elif report_name == 'order_summary_report' or report_name == 'po_report' or report_name == 'open_order_report' :
+    elif report_name in ['order_summary_report','po_report','open_order_report','stock_cover_report']  :
         if report_name == 'order_summary_report' :
             from common import get_misc_value
             extra_order_fields = get_misc_value('extra_order_fields', user.id)

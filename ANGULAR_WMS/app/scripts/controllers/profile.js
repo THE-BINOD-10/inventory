@@ -81,7 +81,7 @@ function Profile($scope, Session, Service, $modal) {
   vm.emptyData = function () {
     vm.model_data.address_title = vm.model_data.address_name = vm.model_data.address_mobile_number = vm.model_data.address_pincode = vm.model_data.address_shipment = '';
   }
-  vm.updateShipmentAddress = function(form) {
+  vm.updateShipmentAddress = function() {
     if (vm.model_data.address_title && vm.model_data.address_name && vm.model_data.address_mobile_number && vm.model_data.address_pincode && vm.model_data.address_shipment) {
       Service.apiCall('update_profile_shipment_address/', 'POST', vm.model_data).then(function(data){
         if(data.message) {

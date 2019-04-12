@@ -462,7 +462,7 @@ class OpenPO(models.Model):
     delivery_date = models.DateField(blank=True, null=True)
     status = models.CharField(max_length=32)
     measurement_unit = models.CharField(max_length=32, default='')
-    ship_to = models.CharField(max_length=128, default='')
+    ship_to = models.CharField(max_length=256, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     terms = models.TextField(default='', max_length=256)
@@ -514,6 +514,7 @@ class JobOrder(models.Model):
     jo_reference = models.PositiveIntegerField(default=0)
     order_type = models.CharField(max_length=32, default='SP')
     status = models.CharField(max_length=32, default='')
+    cancel_reason = models.TextField(default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1154,7 +1155,7 @@ class SkuTypeMapping(models.Model):
 
 class QCSerialMapping(models.Model):
     id = BigAutoField(primary_key=True)
-    quality_check = models.ForeignKey(QualityCheck)
+    quality_check = models.ForeignKey(QualityCheck, blank=True, null=True)
     serial_number = models.ForeignKey(POIMEIMapping)
     status = models.CharField(max_length=32, default='')
     reason = models.CharField(max_length=64, default='')
@@ -3091,6 +3092,23 @@ class TempJson(models.Model):
     class Meta:
         db_table = 'TEMP_JSON'
         index_together = ('model_id', 'model_name')
+
+
+class DispatchIMEIChecklist(models.Model):
+    id = BigAutoField(primary_key=True)
+    order_id = models.CharField(max_length=128, default='')
+    po_imei_num = models.ForeignKey(POIMEIMapping)
+    qc_name = models.CharField(max_length=128, default='')
+    qc_status = models.BooleanField(default=True)
+    final_status = models.BooleanField(default=True)
+    remarks = models.CharField(max_length=64, default='')
+    qc_type = models.CharField(max_length=32, default='sales_order')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'DISPATCH_IMEI_CHECKLIST'
+        unique_together = ('order_id', 'po_imei_num', 'qc_name')
 
 
 class OrderIMEIMapping(models.Model):

@@ -2780,13 +2780,14 @@ class ManualEnquiry(models.Model):
 
     class Meta:
         db_table = 'MANUAL_ENQUIRY'
-        unique_together = ('enquiry_id', 'customer_name', 'user')
+        unique_together = ('enquiry_id', 'customer_name', 'user', 'sku')
 
 
 class ManualEnquiryDetails(models.Model):
     id = BigAutoField(primary_key=True)
-    user_id = models.PositiveIntegerField()
-    enquiry = models.ForeignKey(ManualEnquiry)
+    remarks_user_id = models.PositiveIntegerField()
+    order_user_id = models.PositiveIntegerField()
+    enquiry_id = models.DecimalField(max_digits=50, decimal_places=0)
     ask_price = models.FloatField(default=0)
     expected_date = models.DateField(blank=True, null=True)
     remarks = models.TextField(default='')
@@ -3022,6 +3023,19 @@ class RatingSKUMapping(models.Model):
     class Meta:
         db_table = 'RATINGS_SKU_MAPPING'
         unique_together = ('rating', 'sku')
+
+
+class FeedbackMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    feedback_type = models.CharField(max_length=128, default='')
+    url_name = models.CharField(max_length=256, default='')
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    feedback_remarks = models.TextField()
+    feedback_image = models.ImageField(upload_to='static/images/feedback_images/', default='', blank=True)
+
+    class Meta:
+        db_table = 'FEEDBACK_MASTER'
 
 
 class PushNotifications(models.Model):

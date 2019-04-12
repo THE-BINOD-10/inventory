@@ -2998,7 +2998,6 @@ def update_pricing(request, user=''):
             min_unit_range, max_unit_range = common_range
             price, discount = ui_map[(min_unit_range, max_unit_range)]
             p = price_master_data.filter(min_unit_range=min_unit_range, max_unit_range=max_unit_range)[0]
-            print p.id, min_unit_range, max_unit_range
             p.price = price
             p.discount = discount
             p.save()

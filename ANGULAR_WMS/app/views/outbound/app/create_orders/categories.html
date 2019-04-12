@@ -24,6 +24,7 @@
           <li><a ng-click="$state.go('user.App.ManualEnquiry');">Create Custom Order</a></li>
           <li ng-if="showCase.permissions.display_sku_cust_mapping"><a ng-click="$state.go('user.App.PendingOrder');">Pending Order</a></li>
           <!--<li><a ng-click="$state.go('user.App.CorporateOrders');" ng-if="showCase.user_type=='reseller'">Corporate Orders</a></li>-->
+          <li><a ng-click="$state.go('user.App.feedback');">Feedback Form</a></li>
           <li><a ng-click="showCase.logout()">Logout</a></li>
         </ul>
       </div>

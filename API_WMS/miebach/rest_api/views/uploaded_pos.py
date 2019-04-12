@@ -9,9 +9,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
 
 from miebach_utils import OrderUploads, GenericOrderDetailMapping, CustomerOrderSummary, UserProfile
-from common import get_filtered_params, get_admin
+from common import get_filtered_params, get_admin, order_cancel_functionality, order_push
 from miebach_admin.custom_decorators import get_admin_user, login_required
-from miebach_admin.models import CustomerUserMapping, CustomerMaster, UserGroups
+from miebach_admin.models import CustomerUserMapping, CustomerMaster, UserGroups, User
 from utils import *
 
 
@@ -216,3 +216,48 @@ def pending_pos(request, user=''):
         customer_name = pending_obj.customer_name
         pending_pos_list.append({'po_number': po_number, 'customer_name': customer_name})
     return HttpResponse(json.dumps({'data': pending_pos_list}))
+
+
+@csrf_exempt
+@login_required
+def sm_cancel_order_from_uploaded_pos(request):
+    message = 'Success'
+    upload_id = request.GET.get('upload_id', '')
+    if not upload_id:
+        return HttpResponse("No Upload ID")
+    try:
+        upload_qs = OrderUploads.objects.filter(id=upload_id)
+        if upload_qs:
+            upload_obj = upload_qs[0]
+            po_number = upload_obj.po_number
+            client_name = upload_obj.customer_name
+            reseller = upload_obj.uploaded_user
+            cm_obj = CustomerUserMapping.objects.filter(user_id=reseller)
+            if not cm_obj:
+                return HttpResponse("There is something wrong, pelase check with StockOne Team")
+            cm_id = cm_obj[0].customer_id
+            gen_qs = GenericOrderDetailMapping.objects.filter(po_number=po_number, client_name=client_name,
+                                                              customer_id=cm_id)
+            is_emiza_order_failed = False
+            generic_orders = gen_qs.values('orderdetail__original_order_id', 'orderdetail__user').distinct()
+            for generic_order in generic_orders:
+                original_order_id = generic_order['orderdetail__original_order_id']
+                order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
+                resp = order_push(original_order_id, order_detail_user, "CANCEL")
+                log.info('Cancel Order Push Status done by Admin Login: %s' % (str(resp)))
+                if resp.get('Status', '') == 'Failure' or resp.get('status', '') == 'Internal Server Error':
+                    is_emiza_order_failed = True
+                    if resp.get('status', '') == 'Internal Server Error':
+                        message = "400 Bad Request"
+                    else:
+                        message = resp['Result']['Errors'][0]['ErrorMessage']
+            if not is_emiza_order_failed:
+                order_det_ids = gen_qs.values_list('orderdetail_id', flat=True)
+                order_cancel_functionality(order_det_ids)
+                upload_qs.delete()
+                gen_qs.delete()
+    except Exception as e:
+        log.debug(traceback.format_exc())
+        log.info('Order Cancellation failed for user %s and params are %s and error statement is %s' % (
+            str(request.user.username), str(request.GET.dict()), str(e)))
+    return HttpResponse(message)

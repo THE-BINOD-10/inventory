@@ -9350,10 +9350,10 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
                 orders_dict = {'customer_id': customer_id, 'user': user.id}
                 pick_dict = {'order__customer_id': customer_id, 'order__user': user.id}
             orders = OrderDetail.objects.filter(**orders_dict).exclude(status=3).order_by('-creation_date')
-            if order_data:
-                orders = OrderDetail.objects.filter(**orders_dict).order_by(order_data)
-            # if search_term:
-            #     orders = OrderDetail.objects.filter(Q(order_id__icontains=search_term) ,**orders_dict).order_by(order_data)
+            # if order_data:
+            #     orders = OrderDetail.objects.filter(**orders_dict).order_by(order_data)
+            if search_term:
+                orders = OrderDetail.objects.filter(Q(original_order_id__icontains=search_term) ,**orders_dict).order_by(order_data)
             temp_data['recordsTotal'] = len(orders)
             temp_data['recordsFiltered'] = temp_data['recordsTotal']
             picklist = Picklist.objects.filter(**pick_dict)

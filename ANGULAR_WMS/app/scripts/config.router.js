@@ -1706,6 +1706,17 @@ var app = angular.module('urbanApp')
             url: '/PO',
             templateUrl: 'views/uploadedPos/toggles/uploaded_po_update.html'
          })
+      // feedback form
+      .state('app.feedback', {
+          url: '/feedback',
+          templateUrl: 'views/feedback/feedback.html',
+          authRequired: true,
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/feedback/feedback.js');
+              }]
+          }
+        })
       // Targets route
       .state('app.targets', {
           url: '/targets',

@@ -1,0 +1,18 @@
+<div ng-controller="uploadedfeedbackTable as showCase">
+  <div class="page-layout">
+    <div class='layout-header'>
+      <div class="row">
+        <div class="col-md-6 col-sm-12 col-xs-12">
+          <offscreen class="visible-xs fa fa-bars pull-left" style="font-size: 22px;padding: 8px 12px 0px 5px;"></offscreen>
+          <h4 class="pull-left">FEEDBACK DETAILS</h4>
+        </div>
+        <div class="col-md-6 col-sm-12 col-xs-12">
+          <div class="row">
+            <div ng-include="'views/common/excel_button.html'"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div ng-include="'views/common/master-datatable.html'"></div>
+  </div>
+</div>

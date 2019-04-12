@@ -1494,7 +1494,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
     from masters import check_update_hot_release
     all_sku_masters = []
     zone_master = ZoneMaster.objects.filter(user=user.id).values('id', 'zone')
-    zones = map(lambda d: d['zone'], zone_master)
+    zones = map(lambda d: str(d['zone']).upper(), zone_master)
     zone_ids = map(lambda d: d['id'], zone_master)
     sku_file_mapping = get_sku_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
     for row_idx in range(1, no_of_rows):

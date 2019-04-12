@@ -217,7 +217,7 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
             stock.save()
             if seller_order:
                 change_seller_stock(seller_order.seller_id, stock, user, stock_count, 'dec')
-            save_sku_stats(user, stock.sku_id, new_picklist.id, 'picklist', stock_count)
+            save_sku_stats(user, stock.sku_id, new_picklist.id, 'picklist', stock_count, stock)
             if not seller_pick_number:
                 seller_pick_number = get_seller_pick_id(new_picklist, user)
             if seller_order:

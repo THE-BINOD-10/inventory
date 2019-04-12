@@ -332,7 +332,7 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
             order_data)
 
     temp_data['recordsTotal'] = len(mapping_results)
-    temp_data['recordsFiltered'] = len(mapping_results)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for result in mapping_results[start_index: stop_index]:
         sku_preference = result.preference
         if sku_preference:
@@ -340,7 +340,8 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
         temp_data['aaData'].append(OrderedDict((('supplier_id', result.supplier_id), ('wms_code', result.sku.wms_code),
                                                 ('supplier_code', result.supplier_code), ('moq', result.moq),
                                                 ('preference', sku_preference),
-                                                ('price', result.price), ('DT_RowClass', 'results'),
+                                                ('price', result.price), ('costing_type', result.costing_type), 
+                                                ('margin_percentage', result.margin_percentage), ('DT_RowClass', 'results'),
                                                 ('DT_RowId', result.id))))
 
 

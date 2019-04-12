@@ -9350,10 +9350,12 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
                 orders_dict = {'customer_id': customer_id, 'user': user.id}
                 pick_dict = {'order__customer_id': customer_id, 'order__user': user.id}
             orders = OrderDetail.objects.filter(**orders_dict).exclude(status=3).order_by('-creation_date')
-            if order_data:
-                orders = OrderDetail.objects.filter(**orders_dict).order_by(order_data)
-            # if search_term:
-            #     orders = OrderDetail.objects.filter(Q(order_id__icontains=search_term) ,**orders_dict).order_by(order_data)
+            # if order_data:
+            #     orders = OrderDetail.objects.filter(**orders_dict).order_by(order_data)
+            if search_term:
+                orders = OrderDetail.objects.filter(Q(original_order_id__icontains=search_term) |
+                                                    Q(sku__sku_code__icontains=search_term)|
+                                                    Q(sku__style_name__icontains=search_terms),**orders_dict).order_by(order_data)
             temp_data['recordsTotal'] = len(orders)
             temp_data['recordsFiltered'] = temp_data['recordsTotal']
             picklist = Picklist.objects.filter(**pick_dict)
@@ -9405,7 +9407,8 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
 
                 temp_data['aaData'].append(OrderedDict(
                     (('Order ID', record['order_id']),('Ordered Qty', record['total_quantity']),
-                    ('Delivered Qty',record['picked_quantity']), ('Pending Qty',record['total_quantity']-record['picked_quantity']), ('Order Value', record['total_inv_amt']),('Order Date', record['date']),('Receive Status', 'results'))))
+                    ('Delivered Qty',record['picked_quantity']), ('Pending Qty',record['total_quantity']-record['picked_quantity']),
+                    ('Order Value', record['total_inv_amt']),('Order Date', record['date']),('Receive Status', record['status']))))
 
     """return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))"""
 
@@ -12247,6 +12250,7 @@ def insert_enquiry_data(request, user=''):
 def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     lis = ['enquiry_id','creation_date','Quantity','Amount','Days Left','corporate_name']
     search_params = get_filtered_params(filters, lis)
+    is_excel_download = request.POST.get('excel')
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -12293,10 +12297,14 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
             input_label = '<a href="" id='+str(int(enq_id))+"_extdate"' class="extend_date_picker" ng-click="showCase.extend_order_date('+str(int(enq_id))+');" style="text-decoration: underline; color: #33cc66;">Extend Date</a>'
             input_div = '<div id='+str(int(enq_id))+"_save"' class="col-lg-12 col-md-12 col-sm-12 hide"><div class="col-lg-6 col-md-6"><input name="extended_date" ui-jq="datepicker" ng-model="showCase.extended_date" placeholder="Select Date" class="form-control stk-readonly" type="text" id="extended_date" data-date-today-highlight="true" data-date-autoclose="true" readonly="true" style="height: 26px;width: 100px !important;"></div><div class="col-lg-6 col-md-6"><button type="button" class="btn btn-primary" style="height: 26px;padding: 2px 5px;" ng-click="showCase.confirm_to_extend('+str(int(enq_id))+');">Save</button></div></div>'
         button = '<button type="button" class="btn btn-warning pull-right" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="orders.moveToCart('+str(int(enq_id))+', $index, $event)" ng-disabled="orders.moving">Move to Cart</button>'
-        temp_data['aaData'].append(OrderedDict(
-            (('Enquiry ID', enq_id),('Date',get_only_date(request, em_qs.filter(enquiry_id=enq_id)[0].creation_date)),
+        if is_excel_download:
+            ord_tuple = (('Enquiry ID', enq_id),('Date',get_only_date(request, em_qs.filter(enquiry_id=enq_id)[0].creation_date)),
+            ('Quantity',total_qty[enq_id]), ('Amount',each_total_inv_amt), ('Days Left', days_left),('Corporate Name',corp_name))
+        else:
+            ord_tuple = (('Enquiry ID', enq_id),('Date',get_only_date(request, em_qs.filter(enquiry_id=enq_id)[0].creation_date)),
             ('Quantity',total_qty[enq_id]), ('Amount',each_total_inv_amt), ('Days Left', days_left),('Corporate Name',corp_name),
-            ('Extend Date', input_label + input_div), ('Move to Cart', button))))
+            ('Extend Date', input_label + input_div), ('Move to Cart', button))
+        temp_data['aaData'].append(OrderedDict(ord_tuple))
         temp_data['recordsTotal'] = em_vals.count()
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
@@ -12864,7 +12872,7 @@ def save_manual_enquiry_data(request, user=''):
                     if zone_user:
                         users_list.append(zone_user[0].id)
         if enq_status == 'reseller_pending':
-            users_list.append(manual_enq_data.enquiry.user.id)
+            users_list.append(manual_enq_data.order_user_id)
         else:
             # Adding Zonal Admin for every status update
             try:

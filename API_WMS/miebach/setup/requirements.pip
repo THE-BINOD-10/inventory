@@ -34,3 +34,4 @@ pyOpenSSL==18.0.0
 enum34==1.1.6
 ipaddress==1.0.22
 httplib2==0.12.1
+idna==2.8

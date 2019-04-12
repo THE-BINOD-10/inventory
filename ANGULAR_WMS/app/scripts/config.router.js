@@ -2247,7 +2247,18 @@ var app = angular.module('urbanApp')
             title: 'Stock Transfer Report',
           }
         })
-
+        .state('app.reports.StockReconciliationReport', {
+          url: '/StockReconciliationReport',
+          templateUrl: 'views/reports/stock_reconciliation_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/stock_reconciliation_report.js');
+              }]
+          },
+          data: {
+            title: 'Stock Reconciliation Report',
+          }
+        })
         .state('app.reports.RTVReport', {
           url: '/RTVReport',
           templateUrl: 'views/reports/rtv_report.html',
@@ -2300,8 +2311,18 @@ var app = angular.module('urbanApp')
             title: 'Bulk to Retail Report',
           }
         })
-
-
+        .state('app.reports.MarginReport', {
+          url: '/MarginReport',
+          templateUrl: 'views/reports/margin_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/margin_report.js');
+              }]
+          },
+          data: {
+            title: 'Margin Report',
+          }
+        })
       // configuration route
       .state('app.configurations', {
           url: '/configurations',

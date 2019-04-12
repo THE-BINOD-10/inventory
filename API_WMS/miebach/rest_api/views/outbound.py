@@ -542,7 +542,7 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
         if one_assist_qc_check == 'true':
             dt_map = {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Signed Invoice' : key[5], 'Serial Number' : sno, 'Total Quantity': value, 'DT_RowClass': 'results'}
         else:
-            dt_map = {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Manifest Date' : key[5], 'iSerial Number' : sno, 'Total Quantity': value, 'DT_RowClass': 'results'}
+            dt_map = {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Manifest Date' : key[5], 'Serial Number' : sno, 'Total Quantity': value, 'DT_RowClass': 'results'}
         temp_data['aaData'].append(dt_map)
     sort_col = lis[col_num]
 
@@ -2179,7 +2179,7 @@ def picklist_confirmation(request, user=''):
                     if 'labels' in val.keys() and val['labels'] and picklist.order:
                         update_order_labels(picklist, val)
                     order_id = picklist.order
-                    if picklist.order.sku.wms_code in passed_serial_number.keys():
+                    if picklist.order and picklist.order.sku.wms_code in passed_serial_number.keys():
                         send_imei_qc_details = dict(zip(passed_serial_number[picklist.order.sku.wms_code], [imei_qc_details[k] for k in passed_serial_number[picklist.order.sku.wms_code]]))
                         save_status = "PASS"
                         try:
@@ -2190,7 +2190,7 @@ def picklist_confirmation(request, user=''):
                             import traceback
                             picklist_qc_log.debug(traceback.format_exc())
                             picklist_qc_log.info("Error in Dispatch QC - On Pass - %s - %s" % (str(user.username),  str(e)))
-                    if picklist.order.sku.wms_code in failed_serial_number.keys():
+                    if picklist.order and picklist.order.sku.wms_code in failed_serial_number.keys():
                         send_imei_qc_details = dict(zip(failed_serial_number[picklist.order.sku.wms_code], [imei_qc_details[k] for k in failed_serial_number[picklist.order.sku.wms_code]]))
                         save_status = "FAIL"
                         try:
@@ -2241,7 +2241,7 @@ def picklist_confirmation(request, user=''):
                             stock.location.save()
 
                         # SKU Stats
-                        save_sku_stats(user, stock.sku_id, picklist.id, 'picklist', update_picked)
+                        save_sku_stats(user, stock.sku_id, picklist.id, 'picklist', update_picked, stock)
                         pick_loc = all_pick_locations.filter(picklist_id=picklist.id,
                                                              stock__location_id=stock.location_id, status=1)
                         # update_picked = picking_count1

@@ -2113,7 +2113,7 @@ def inventory_adj_modify_qty(request, user=''):
             stock_new_create['receipt_type'] = ''
             message="Added Quantity Successfully"
             inventory_create_new = StockDetail.objects.create(**stock_new_create)
-            save_sku_stats(user, sku_id, inventory_create_new.id, 'inventory-adjustment', stock_new_create['quantity'])
+            save_sku_stats(user, sku_id, inventory_create_new.id, 'inventory-adjustment', stock_new_create['quantity'], inventory_create_new)
         if old_available_qty != available_qty or sub_qty:
             stock_qty_update = {}
             if location_id:
@@ -2154,14 +2154,16 @@ def inventory_adj_modify_qty(request, user=''):
                         save_reduced_qty = obj_qty
                         if save_reduced_qty >= sub_qty:
                             diff_qty = int(save_reduced_qty)-int(sub_qty)
-                            StockDetail.objects.filter(id=ob.id).update(quantity=diff_qty)
-                            save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', diff_qty)
+                            stock_obj = StockDetail.objects.filter(id=ob.id)
+                            stock_obj.update(quantity=diff_qty)
+                            save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', diff_qty, stock_obj)
                             update_cycle_count_inventory_adjustment(user, sku_id, location_id, old_available_qty, available_qty, pallet_id)
                             sub_qty = 0
                         elif save_reduced_qty:
                             sub_qty = int(sub_qty)-int(save_reduced_qty)
-                            StockDetail.objects.filter(id=ob.id).update(quantity=0)
-                            save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', 0)
+                            stock_obj = StockDetail.objects.filter(id=ob.id)
+                            stock_obj.update(quantity=0)
+                            save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', 0, stock_obj)
                             update_cycle_count_inventory_adjustment(user, sku_id, location_id, old_available_qty, available_qty, pallet_id)
                             continue
                         if not sub_qty:
@@ -2191,14 +2193,16 @@ def inventory_adj_modify_qty(request, user=''):
                     if save_reduced_qty >= sub_qty:
                         diff_qty = int(save_reduced_qty)-int(sub_qty)
                         ob.quantiy = diff_qty
-                        StockDetail.objects.filter(id=ob.id).update(quantity=diff_qty)
-                        save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', diff_qty)
+                        stock_obj = StockDetail.objects.filter(id=ob.id)
+                        stock_obj.update(quantity=diff_qty)
+                        save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', diff_qty, stock_obj)
                         update_cycle_count_inventory_adjustment(user, sku_id, location_id, old_available_qty, available_qty, pallet_id)
                         sub_qty = 0
                     elif save_reduced_qty:
                         sub_qty = int(sub_qty)-int(save_reduced_qty)
-                        StockDetail.objects.filter(id=ob.id).update(quantity=0)
-                        save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', 0)
+                        stock_obj = StockDetail.objects.filter(id=ob.id)
+                        stock_obj.update(quantity=0)
+                        save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', 0, stock_obj)
                         update_cycle_count_inventory_adjustment(user, sku_id, location_id, old_available_qty, available_qty, pallet_id)
                         continue
                     if not sub_qty:

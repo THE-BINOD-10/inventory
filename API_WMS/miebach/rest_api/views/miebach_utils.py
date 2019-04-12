@@ -626,12 +626,13 @@ OPEN_ORDER_REPORT_DICT = {
      'dt_url': 'get_open_order_report', 'excel_name': 'get_open_order_report',
      'print_url': 'print_open_order_report',
   }
-
 STOCK_COVER_REPORT_DICT = {
        'filters': [
            {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
-           {'label': 'SKU Category', 'name': 'sku_category', 'type': 'select'}],
-       'dt_headers': ['SKU', 'Product name','Current SIH','PO Pending','Total Stock including PO','Avg Last 30days','Avg Last 7 days','SIH Cover Days 30-day Avg','Total Cover Days including PO 30-day Avg','SIH Cover Days 7-day Avg','Total Cover Days including PO 7-day Avg'],
+           {'label': 'SKU Category', 'name': 'sku_category', 'type': 'select'},
+           {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'},
+           {'label': 'SKU Type', 'name': 'sku_type', 'type': 'input'},],
+       'dt_headers': ['SKU', 'SKU Description','SKU Category', 'SKU Type', 'SKU class','Current Stock In Hand','PO Pending','Total Stock including PO','Avg Last 30days','Avg Last 7 days','Stock Cover Days (30-day)','Stock Cover Days including PO stock (30-day)','Stock Cover Days (7-day)','Stock Cover Days including PO stock (7-day)'],
        'dt_url': 'get_stock_cover_report', 'excel_name': 'get_stock_cover_report',
        'print_url': 'print_stock_cover_report',
     }
@@ -6303,7 +6304,7 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
     from miebach_admin.models import *
     from miebach_admin.views import *
     from common import get_decimal_limit
-    lis = ['sku_code', 'sku__sku_desc', 'sku_code','sku_code','sku_code','sku_code','sku_code','sku_code','sku_code','sku_code','sku_code']
+    lis = ['sku_code', 'sku_desc', 'sku_category','sku_type','sku_class','sku_code','sku_code','sku_code','sku_code','sku_code','sku_code']
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
         if search_params['order_term'] == 'desc':
@@ -6315,6 +6316,11 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
             search_parameters['wms_code'] = search_params['sku_code']
         if 'sku_category' in search_params:
             search_parameters['sku_category'] = search_params['sku_category']
+        if 'sku_class' in search_params:
+            search_parameters['sku_class'] = search_params['sku_class']
+        if 'sku_type' in search_params :
+            search_parameters['sku_type'] = search_params['sku_type']
+
         start_index = search_params.get('start', 0)
         stop_index = start_index + search_params.get('length', 0)
         sku_masters = SKUMaster.objects.filter(user=user.id ,**search_parameters).order_by(order_data)
@@ -6375,11 +6381,9 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
                 avg_seven = total_stock_available / picked_quantity_seven_days
                 avg_seven_po = total_with_po / picked_quantity_seven_days
 
-
-
-            temp_data['aaData'].append(OrderedDict((('SKU',wms_code ),('Product name',sku.sku_desc),
-                                                   ('Current SIH',total_stock_available),('PO Pending',po_quantity),('Total Stock including PO',total_with_po),('Avg Last 30days',"%.2f" % picked_quantity_thirty_days),
-                                                   ('Avg Last 7 days',"%.2f" %picked_quantity_seven_days),('SIH Cover Days 30-day Avg',avg_thirty),('Total Cover Days including PO 30-day Avg',avg_thirty_po),('SIH Cover Days 7-day Avg',avg_seven),('Total Cover Days including PO 7-day Avg',avg_seven_po))))
+            temp_data['aaData'].append(OrderedDict((('SKU',wms_code ),('SKU Description',sku.sku_desc),('SKU Category',sku.sku_category),('SKU Type',sku.sku_type),('SKU class',sku.sku_class),
+                                                   ('Current Stock In Hand',total_stock_available),('PO Pending',po_quantity),('Total Stock including PO',total_with_po),('Avg Last 30days',"%.2f" % picked_quantity_thirty_days),
+                                                   ('Avg Last 7 days',"%.2f" %picked_quantity_seven_days),('Stock Cover Days (30-day)',"%.2f"%avg_thirty),('Stock Cover Days including PO stock (30-day)',"%.2f"%avg_thirty_po),('Stock Cover Days (7-day)',"%.2f"%avg_seven),('Stock Cover Days including PO stock (7-day)',"%.2f"%avg_seven_po))))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

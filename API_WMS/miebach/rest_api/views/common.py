@@ -1267,7 +1267,7 @@ def get_auto_po_quantity(sku, stock_quantity=''):
         diff_quantity = float(purchase_order['total_order']) - float(purchase_order['total_received'])
         if diff_quantity > 0:
             transit_quantity = diff_quantity
-        transit_quantity = qc_pending + putaway_pending
+        transit_quantity += (qc_pending + putaway_pending)
 
     total_quantity = (stock_quantity + transit_quantity + production_quantity + intr_qty)
     raise_quantity = int(sku.threshold_quantity) - total_quantity

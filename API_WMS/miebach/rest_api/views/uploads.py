@@ -6623,19 +6623,14 @@ def custom_order_xls_upload(request, reader, user, admin_user, no_of_rows, fname
                 if key == 'ask_price':
                     value = float(value)
                 elif key == 'expected_date':
-                    # expected_date = value.split('/')
-                    # value = datetime.date(int(expected_date[0]), int(expected_date[1]), int(expected_date[2]))
-                    value = datetime.datetime.today()
+                    try:
+                        year, month, day, hour, minute, second = xldate_as_tuple(value, 0)
+                        value = datetime.datetime(year, month, day, hour, minute, second)
+                    except Exception as e:
+                        log.info("Expected Date Validation Error in Custom Order Upload")
                 manual_enquiry_details[key] = value
-            #manual_enquiry['custom_remarks'] = request.POST.get('custom_remarks', '')
-            # check_enquiry = ManualEnquiry.objects.filter(user=request.user.id, sku=manual_enquiry['sku_id'],
-            #                                              status__in=['', 'approved', 'confirm_order'],
-            #                                              customer_name=manual_enquiry['customer_name'])
-            # if check_enquiry:
-            #     return HttpResponse("Manual Enquiry Already Exists")
             res_id = User.objects.filter(username=each_row_map.get('reseller_name'))
             manual_enquiry['user_id'] = res_id[0].id
-            #enq_qs = ManualEnquiry.objects.filter(user=res_id).order_by('-enquiry_id')
             enq_id = user_enq_map.get(res_id[0].id)
             if enq_id:
                 enq_id = int(enq_id) + 1
@@ -6645,27 +6640,10 @@ def custom_order_xls_upload(request, reader, user, admin_user, no_of_rows, fname
             enq_data = ManualEnquiry(**manual_enquiry)
             enq_data.save()
             manual_enquiry_details['enquiry_id'] = enq_id
-            #manual_enquiry_details['user_id'] = res_id[0].id
             manual_enquiry_details['order_user_id'] = res_id[0].id
             manual_enquiry_details['remarks_user_id'] = res_id[0].id  # Remarks mentioned by user in order placement
             manual_enq_data = ManualEnquiryDetails(**manual_enquiry_details)
             manual_enq_data.save()
-            # admin_user = get_priceband_admin_user(user)
-            # purchase_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
-            #     Q(userprofile__warehouse_type='SM_PURCHASE_ADMIN')).values_list('id', flat=True)
-            # if purchase_admin_user_id:
-            #     purchase_admin_user_id = purchase_admin_user_id[0]
-            # cont_vals = (request.user.username, request.user.first_name, str(enq_data.enquiry_id), str(enq_data.quantity),
-            #              str(enq_data.sku.sku_code), enq_data.customer_name)
-            # contents = {"en": "%s-%s placed a custom order %s of %s Pcs %s for %s" % cont_vals}
-            # users_list = [user.id, admin_user.id, purchase_admin_user_id]
-            # marketing_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
-            #     Q(userprofile__zone=user.userprofile.zone)).values_list('id', flat=True)
-            # if marketing_admin_user_id:
-            #     users_list.append(marketing_admin_user_id[0])
-            # send_push_notification(contents, users_list)
-            # if request.FILES.get('po_file', ''):
-            #     save_manual_enquiry_images(request, enq_data)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

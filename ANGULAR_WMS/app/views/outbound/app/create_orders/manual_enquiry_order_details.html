@@ -36,7 +36,7 @@
           <span><b>: {{order.order_details.order.quantity}}</b></span>
         </div>
       </div>
-      <div class="row no-margin" ng-if="showCase.user_type != 'reseller'">
+      <div class="row no-margin" ng-if="order.user_type != 'reseller'">
         <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
           <span><b>SM-D Price</b></span>
         </div>
@@ -226,7 +226,7 @@
           </div>
         </div>
         <hr ng-if="order.order_details.order.enq_status=='pending_approval' && order.permissions.user_type != 'admin_sub_user' && showCase.user_type !='reseller'" style="border-top: 2px solid #e4e4e4;">
-        <div class="row col-lg-12 col-md-12 col-sm-12 col-xs-12 no-margin" ng-if="order.order_details.order.enq_status=='pending_approval' && order.permissions.user_type != 'admin_sub_user' && showCase.user_type !='reseller'" style="float: none;">
+        <div class="row col-lg-12 col-md-12 col-sm-12 col-xs-12 no-margin" ng-if="order.order_details.order.enq_status=='pending_approval' && order.permissions.user_type != 'admin_sub_user' && order.user_type !='reseller'" style="float: none;">
           <div class="col-md-4 col-sm-4 col-xs-12">
             <div class="form-group">
               <input type="text" name="sm_d_price" ng-model="order.model_data.sm_d_price" class="form-control ng-pristine" placeholder="SM-D Price *" decimal-number required>

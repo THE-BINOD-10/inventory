@@ -629,10 +629,8 @@ OPEN_ORDER_REPORT_DICT = {
 
 STOCK_COVER_REPORT_DICT = {
        'filters': [
-           {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
-           {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
            {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
-       'dt_headers': ['SKU', 'Product name','Current SIH','PO Pending','Total Stock including PO','Avg Last 30days','Avg Last 7 days', 'SIH Cover Days','Total Cover Days including PO'],
+       'dt_headers': ['SKU', 'Product name','Current SIH','PO Pending','Total Stock including PO','Avg Last 30days','Avg Last 7 days','SIH Cover Days 30-day Avg','Total Cover Days including PO 30-day Avg','SIH Cover Days 7-day Avg','Total Cover Days including PO 7-day Avg'],
        'dt_url': 'get_stock_cover_report', 'excel_name': 'get_stock_cover_report',
        'print_url': 'print_stock_cover_report',
     }
@@ -1589,6 +1587,7 @@ PERMISSION_DICT = OrderedDict((
                  ('Shipment Report', 'view_ordershipment'), ('RTV Report', 'view_returntovendor'),
                  ('Current Stock Report', 'view_skudetailstats'),
                  ('Inventory Value Report', 'delete_skudetailstats'),
+                 ('Stock Cover Report' ,'add_skudetailstats'),
                  ('Bulk To Retail Report', 'view_substitutionsummary'))),
 
     # Uploaded POs
@@ -6303,7 +6302,7 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
     from miebach_admin.models import *
     from miebach_admin.views import *
     from common import get_decimal_limit
-    lis = ['open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__order_quantity','open_po__sku__sku_code']
+    lis = ['sku_code', 'sku__sku_desc', 'sku_code','sku_code','sku_code','sku_code','sku_code','sku_code','sku_code','sku_code','sku_code']
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
         if search_params['order_term'] == 'desc':
@@ -6311,20 +6310,11 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
     try:
         temp_data = copy.deepcopy(AJAX_DATA)
         search_parameters = {}
-        if 'from_date' in search_params:
-            search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
-            search_parameters['creation_date__gt'] = search_params['from_date']
-        if 'to_date' in search_params:
-            search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
-                                                                 datetime.time())
-            search_parameters['creation_date__lt'] = search_params['to_date']
         if 'sku_code' in search_params:
             search_parameters['wms_code'] = search_params['sku_code']
-
-
         start_index = search_params.get('start', 0)
         stop_index = start_index + search_params.get('length', 0)
-        sku_masters = SKUMaster.objects.filter(user=user.id ,**search_parameters)
+        sku_masters = SKUMaster.objects.filter(user=user.id ,**search_parameters).order_by(order_data)
 
         temp_data['recordsTotal'] = len(sku_masters)
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -6332,9 +6322,7 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
             sku_masters = sku_masters[start_index:stop_index]
         for sku in sku_masters:
             wms_code = sku.wms_code
-            stock_quantity = 0
             stock_quantity = StockDetail.objects.filter(sku__wms_code = wms_code).aggregate(Sum('quantity'))['quantity__sum']
-            po_quantity = 0
             purchase_order = PurchaseOrder.objects.exclude(status__in=['confirmed-putaway', 'location-assigned']). \
                 filter(open_po__sku__user=sku.user, open_po__sku_id=sku.id, open_po__vendor_id__isnull=True). \
                 values('open_po__sku_id').annotate(total_order=Sum('open_po__order_quantity'),
@@ -6344,31 +6332,51 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
                                                     qualitycheck__status='qc_pending', status=2).\
                                             only('quantity').aggregate(Sum('quantity'))['quantity__sum']
             putaway_pending = POLocation.objects.filter(purchase_order__open_po__sku__user=sku.user, purchase_order__open_po__sku_id=sku.id,
-                                                        status=1).only('quantity').aggregate(Sum('quantity'))['quantity__sum']
+                                                   status=1).only('quantity').aggregate(Sum('quantity'))['quantity__sum']
+            if not stock_quantity :
+               stock_quantity = 0
             if not qc_pending:
                 qc_pending = 0
             if not putaway_pending:
                 putaway_pending = 0
-
-            transit_quantity = 0
-            po_quant = 0
+            po_quantity = 0
+            total_stock_available = 0
             if purchase_order:
                 purchase_order = purchase_order[0]
                 diff_quantity = float(purchase_order['total_order']) - float(purchase_order['total_received'])
                 if diff_quantity > 0:
-                    po_quant = diff_quantity
+                    po_quantity = diff_quantity
 
-                transit_quantity = qc_pending + putaway_pending+po_quant
+                total_stock_available = stock_quantity + qc_pending + putaway_pending
 
-            po_quantity =  transit_quantity
+            total_with_po = total_stock_available + po_quantity
+            picked_quantity_thirty_days = SKUDetailStats.objects.filter(sku_id=sku.id, transact_type='picklist',creation_date__lte=datetime.datetime.today(), creation_date__gt=datetime.datetime.today()-datetime.timedelta(days=30)).aggregate(Sum('quantity'))['quantity__sum']
+            picked_quantity_seven_days = SKUDetailStats.objects.filter(sku_id=sku.id, transact_type='picklist',creation_date__lte=datetime.datetime.today(), creation_date__gt=datetime.datetime.today()-datetime.timedelta(days=7)).aggregate(Sum('quantity'))['quantity__sum']
+            if not picked_quantity_thirty_days :
+                picked_quantity_thirty_days = 0
+                avg_thirty = 0
+                avg_thirty_po = 0
+
+            else:
+                picked_quantity_thirty_days = picked_quantity_thirty_days/30
+                avg_thirty = total_stock_available / picked_quantity_thirty_days
+                avg_thirty_po = total_with_po / picked_quantity_thirty_days
+
+            if not picked_quantity_seven_days :
+                picked_quantity_seven_days = 0
+                avg_seven = 0
+                avg_seven_po = 0
+
+            else:
+                picked_quantity_seven_days = picked_quantity_seven_days/7
+                avg_seven = total_stock_available / picked_quantity_seven_days
+                avg_seven_po = total_with_po / picked_quantity_seven_days
 
 
-
-            total_stock_quantity = stock_quantity+po_quantity
 
             temp_data['aaData'].append(OrderedDict((('SKU',wms_code ),('Product name',sku.sku_desc),
-                                                   ('Current SIH',stock_quantity),('PO Pending',po_quantity),('Total Stock including PO',total_stock_quantity),('Avg Last 30days',''),
-                                                   ('Avg Last 7 days',''),('SIH Cover Days',''),('Total Cover Days including PO',''))))
+                                                   ('Current SIH',total_stock_available),('PO Pending',po_quantity),('Total Stock including PO',total_with_po),('Avg Last 30days',"%.2f" % picked_quantity_thirty_days),
+                                                   ('Avg Last 7 days',"%.2f" %picked_quantity_seven_days),('SIH Cover Days 30-day Avg',avg_thirty),('Total Cover Days including PO 30-day Avg',avg_thirty_po),('SIH Cover Days 7-day Avg',avg_seven),('Total Cover Days including PO 7-day Avg',avg_seven_po))))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

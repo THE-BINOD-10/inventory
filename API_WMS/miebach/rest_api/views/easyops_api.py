@@ -396,6 +396,7 @@ class EasyopsAPI:
         json_response = self.get_response(url, data)
         return json_response
 
+    """
     def storehippo_fulfill_orders(self, to_fulfill_list, user=''):
         send_response = {}
         if user:
@@ -416,6 +417,7 @@ class EasyopsAPI:
                 send_response = {'status': False, 'message': str(response.json())}
 		storehippo_fulfillments_log.info('Failure Response on Fulfill - ' + str(response.json()))
 	return send_response
+    """
 
     def storehippo_sku_update(self, sku_price, user=''):
 	if user:

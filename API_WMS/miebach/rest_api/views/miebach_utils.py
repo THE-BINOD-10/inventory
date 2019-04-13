@@ -1482,6 +1482,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_current_stock_report': 'get_current_stock_report_data',
                         'get_inventory_value_report':'get_inventory_value_report_data',
                         'get_bulk_to_retail_report':'get_bulk_to_retail_report_data',
+                        'get_stock_cover_report':'get_stock_cover_report_data',
                         }
 # End of Download Excel Report Mapping
 
@@ -6305,10 +6306,7 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
     from miebach_admin.views import *
     from common import get_decimal_limit
     lis = ['sku_code', 'sku_desc', 'sku_category','sku_type','sku_class','sku_code','sku_code','sku_code','sku_code','sku_code','sku_code']
-    if search_params.get('order_term'):
-        order_data = lis[search_params['order_index']]
-        if search_params['order_term'] == 'desc':
-            order_data = "-%s" % order_data
+
     try:
         temp_data = copy.deepcopy(AJAX_DATA)
         search_parameters = {}
@@ -6323,7 +6321,13 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
 
         start_index = search_params.get('start', 0)
         stop_index = start_index + search_params.get('length', 0)
-        sku_masters = SKUMaster.objects.filter(user=user.id ,**search_parameters).order_by(order_data)
+
+        sku_masters = SKUMaster.objects.filter(user=user.id ,**search_parameters)
+        if search_params.get('order_term'):
+            order_data = lis[search_params['order_index']]
+            if search_params['order_term'] == 'desc':
+                order_data = "-%s" % order_data
+            sku_masters = sku_masters.order_by(order_data)
 
         temp_data['recordsTotal'] = len(sku_masters)
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -6350,7 +6354,7 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
                 putaway_pending = 0
             po_quantity = 0
             total_stock_available = 0
-            if purchase_order:
+            if purchase_order.exists():
                 purchase_order = purchase_order[0]
                 diff_quantity = float(purchase_order['total_order']) - float(purchase_order['total_received'])
                 if diff_quantity > 0:
@@ -6382,8 +6386,8 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
                 avg_seven_po = total_with_po / picked_quantity_seven_days
 
             temp_data['aaData'].append(OrderedDict((('SKU',wms_code ),('SKU Description',sku.sku_desc),('SKU Category',sku.sku_category),('SKU Type',sku.sku_type),('SKU class',sku.sku_class),
-                                                   ('Current Stock In Hand',total_stock_available),('PO Pending',po_quantity),('Total Stock including PO',total_with_po),('Avg Last 30days',"%.2f" % picked_quantity_thirty_days),
-                                                   ('Avg Last 7 days',"%.2f" %picked_quantity_seven_days),('Stock Cover Days (30-day)',"%.2f"%avg_thirty),('Stock Cover Days including PO stock (30-day)',"%.2f"%avg_thirty_po),('Stock Cover Days (7-day)',"%.2f"%avg_seven),('Stock Cover Days including PO stock (7-day)',"%.2f"%avg_seven_po))))
+                                                   ('Current Stock In Hand',total_stock_available),('PO Pending',po_quantity),('Total Stock including PO',total_with_po),('Avg Last 30days',"%.1f" % picked_quantity_thirty_days),
+                                                   ('Avg Last 7 days',"%.1f" %picked_quantity_seven_days),('Stock Cover Days (30-day)',"%.1f"%avg_thirty),('Stock Cover Days including PO stock (30-day)',"%.1f"%avg_thirty_po),('Stock Cover Days (7-day)',"%.1f"%avg_seven),('Stock Cover Days including PO stock (7-day)',"%.1f"%avg_seven_po))))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

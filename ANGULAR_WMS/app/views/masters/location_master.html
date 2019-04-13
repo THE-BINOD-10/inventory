@@ -35,7 +35,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr ng-repeat="location in showCase.zone_data" style="cursor:pointer" ng-click="showCase.open_location(location, zone.zone)">
+                <tr ng-repeat="location in showCase.zone_data[zone.zone]" style="cursor:pointer" ng-click="showCase.open_location(location, zone.zone)">
                   <td>{{location.location}}</td>
                   <td>{{location.max_capacity}}</td>
                   <td>{{location.fill_sequence}}</td>

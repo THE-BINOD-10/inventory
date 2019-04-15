@@ -128,6 +128,9 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         send.empty_data[data.name] = ""
       });
 
+      send.empty_data.from_date = ''
+      send.empty_data.to_date = ''
+
       send.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url + data.dt_url + '/',

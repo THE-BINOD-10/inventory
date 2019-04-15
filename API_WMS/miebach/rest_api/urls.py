@@ -391,6 +391,7 @@ urlpatterns = [
     url(r'^shipment_pack_ref_decrease/$', shipment_pack_ref_decrease),
     url(r'^generate_picklist_dc/$', generate_picklist_dc),
     url(r'^get_order_extra_fields/$', get_order_extra_fields),
+    url(r'^create_feedback_form/$', create_feedback_form),
 
 
     # Uploaded POs [SWISS MILITARY]
@@ -398,6 +399,8 @@ urlpatterns = [
     url(r'^get_updated_pos/$', get_updated_pos),
     url(r'^validate_po/$', validate_po),
     url(r'^pending_pos/$', pending_pos),
+    url(r'^sm_cancel_order_from_uploaded_pos/$', sm_cancel_order_from_uploaded_pos),
+
     # Targets [SWISS MILITARY]
     url(r'^get_distributor_targets/$', get_distributor_targets),
     # Reports
@@ -435,6 +438,8 @@ urlpatterns = [
     url(r'^get_daily_production_report/$', get_daily_production_report),
     url(r'^print_daily_production_report/$', print_daily_production_report),
     url(r'^print_order_summary_report/$', print_order_summary_report),
+    url(r'^print_stock_reconciliation_report/$', print_stock_reconciliation_report),
+    url(r'^print_margin_report/$', print_margin_report),
     url(r'^get_marketplaces_list_reports/$', get_marketplaces_list_reports),
     url(r'^get_seller_invoices_filter/$', get_seller_invoices_filter),
     url(r'^print_seller_invoice_report/$', print_seller_invoice_report),
@@ -479,6 +484,8 @@ urlpatterns = [
     url(r'^get_sku_wise_rtv_filter/$', get_sku_wise_rtv_filter),
     url(r'^download_grn_invoice_mapping/$', download_grn_invoice_mapping),
     url(r'^get_stock_transfer_report/$', get_stock_transfer_report),
+    url(r'^get_stock_reconciliation_report/$', get_stock_reconciliation_report),
+    url(r'^get_margin_report/$', get_margin_report),
     url(r'^get_current_stock_report/$', get_current_stock_report),
     url(r'^print_current_stock_report/$', print_current_stock_report),
     url(r'^get_inventory_value_report/$', get_inventory_value_report),
@@ -553,6 +560,8 @@ urlpatterns += [
     url(r'^skupack_master_upload/$', skupack_master_upload),
     url(r'^block_stock_download/$', block_stock_download),
     url(r'^block_stock_upload/$', block_stock_upload),
+    url(r'^custom_order_download/$', custom_order_download),
+    url(r'^custom_order_upload/$', custom_order_upload),
 
 
     # configurations

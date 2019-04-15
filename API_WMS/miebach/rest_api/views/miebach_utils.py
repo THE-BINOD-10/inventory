@@ -3769,6 +3769,7 @@ def get_order_summary_data(search_params, user, sub_user):
                     pos_extra[str(val['name'])] = str(val['value'])
 
         if search_params.get('invoice','') == 'true':
+            invoice_number = ''
             invoice_number_obj = SellerOrderSummary.objects.filter(order_id = data['id'])
             if invoice_number_obj.exists() :
                 invoice_number = invoice_number_obj[0].invoice_number

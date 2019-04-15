@@ -1015,7 +1015,8 @@ def switches(request, user=''):
                        'po_sub_user_prefix': 'po_sub_user_prefix',
                        'combo_allocate_stock': 'combo_allocate_stock',
                        'unique_mrp_putaway': 'unique_mrp_putaway',
-                       'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation'
+                       'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation',
+                       'non_transacted_skus': 'non_transacted_skus',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

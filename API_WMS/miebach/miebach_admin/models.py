@@ -2689,7 +2689,7 @@ class SKUDetailStats(models.Model):
 
     class Meta:
         db_table = 'SKU_DETAIL_STATS'
-        index_together = (('sku', 'transact_type'), ('sku', 'transact_type', 'transact_id'))
+        index_together = (('sku', 'transact_type'), ('sku', 'transact_type', 'transact_id'), ('sku', 'creation_date', 'transact_type'))
 
 class StockStats(models.Model):
     id = BigAutoField(primary_key=True)

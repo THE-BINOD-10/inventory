@@ -18,6 +18,7 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
   $ctrl.customization_types = {};
   $ctrl.client_logo = Session.parent.logo;
   $ctrl.api_url = Session.host;
+  $ctrl.enable_table = false;
 
 
   $ctrl.style = '';
@@ -68,19 +69,34 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
 
   $ctrl.selected_style = {};
   $ctrl.select_style = function(style, styles) {
-
+    $ctrl.enable_table = false
     $ctrl.is_skuId_empty = false;
     $ctrl.selected_style = {};
-    for(let i=0; i<styles.length; i++) {
-      if(styles[i].sku_class == style){
-        $ctrl.selected_style = styles[i];
-      }
+    if(style){
+      var send = {sku_class:style, customer_id: Session.userId, is_catalog: true}
+      $ctrl.service.apiCall("get_sku_variants/", "POST", send).then(function(data) {
+        $ctrl.selected_style = data.data.data
+        $ctrl.enable_table = true
+      })
     }
-    console.log($ctrl.selected_style);
   }
-
+  $ctrl.change_variant_quantity = function(data, size) {
+    $ctrl.totalQuantity = 0
+    for(let k=0; k<data.length; k++) {
+      if(data[k].quantity){
+        $ctrl.totalQuantity += parseInt(data[k].quantity)
+        $ctrl.model_data.quantity = $ctrl.totalQuantity
+      }else if(data[k].quantity == 'undefined' || data[k].quantity == ''){}
+    }
+  }
   $ctrl.place = function(form) {
     $ctrl.loading = true;
+    let sku_quantity = {}
+    for(let j=0; j<$ctrl.selected_style.length; j++) {
+      if($ctrl.selected_style[j].quantity){
+        sku_quantity[$ctrl.selected_style[j].wms_code] = parseInt($ctrl.selected_style[j].quantity)
+      }else if($ctrl.selected_style[j].quantity == 'undefined' || $ctrl.selected_style[j].quantity == ''){}
+    }
     if(form.$valid) {
       var formData = new FormData();
       var el = $("#image-upload");
@@ -117,6 +133,7 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
         }
       })
       formData.append("custom_remarks", remarks);
+      formData.append("sku_quantity_map", JSON.stringify(sku_quantity));
       $ctrl.uploading = true;
       $.ajax({url: Session.url+'place_manual_order/',
             data: formData,

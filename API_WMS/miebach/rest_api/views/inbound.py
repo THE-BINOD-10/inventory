@@ -4142,7 +4142,7 @@ def putaway_data(request, user=''):
         sku_codes = []
         marketplace_data = []
         mod_locations = []
-	unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
+        unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
         for i in range(0, len(myDict['id'])):
             po_data = ''
             if myDict['orig_data'][i]:
@@ -4155,7 +4155,7 @@ def putaway_data(request, user=''):
                     all_data.setdefault(cond, 0)
                     all_data[cond] += float(orig_data['orig_quantity'])
             else:
-		if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
                     cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i], myDict['mrp'][i])
                 else:
                     cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
@@ -4239,9 +4239,8 @@ def putaway_data(request, user=''):
                         pallet_detail = pallet_mapping[0].pallet_detail
                         setattr(stock_data, 'pallet_detail_id', pallet_detail.id)
                     stock_data.save()
-
                     # SKU Stats
-                    save_sku_stats(user, stock_data.sku_id, data.id, 'po', float(value))
+                    save_sku_stats(user, stock_data.sku_id, data.id, 'po', float(value), stock_data)
                     update_details = create_update_seller_stock(data, value, user, stock_data, old_loc, use_value=True)
                     if update_details:
                         marketplace_data += update_details
@@ -4268,7 +4267,7 @@ def putaway_data(request, user=''):
                     stock_detail.save()
 
                     # SKU Stats
-                    save_sku_stats(user, stock_detail.sku_id, data.id, 'PO', float(value))
+                    save_sku_stats(user, stock_detail.sku_id, data.id, 'PO', float(value), stock_detail)
                     # Collecting data for auto stock allocation
                     putaway_stock_data.setdefault(stock_detail.sku_id, [])
                     putaway_stock_data[stock_detail.sku_id].append(data.purchase_order_id)
@@ -5652,14 +5651,13 @@ def returns_putaway_data(request, user=''):
             returns_data.quantity = float(returns_data.quantity) - float(quantity)
 
             # Save SKU Level stats
-            save_sku_stats(user, returns_data.returns.sku_id, returns_data.returns.id, 'return', quantity)
+            save_sku_stats(user, returns_data.returns.sku_id, returns_data.returns.id, 'return', quantity, stock_data)
             if returns_data.quantity <= 0:
                 returns_data.status = 0
             if not returns_data.location_id == location_id[0].id:
                 setattr(returns_data, 'location_id', location_id[0].id)
             returns_data.save()
             status = 'Updated Successfully'
-
     return_wms_codes = list(set(return_wms_codes))
     if user_profile.user_type == 'marketplace_user':
         if marketplace_data:
@@ -6447,7 +6445,6 @@ def confirm_receive_qc(request, user=''):
             dc_level_grn = request.POST.get('dc_level_grn', '')
             if dc_level_grn == 'on':
                 bill_no = request.POST.get('dc_number', '')
-                bill_date = challan_date
             else:
                 bill_no = request.POST.get('invoice_number', '')
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
@@ -7508,6 +7505,7 @@ def generate_supplier_invoice(request, user=''):
             result_data["total_amt"], result_data["total_invoice_amount"], result_data["rounded_invoice_amount"],\
             result_data["total_quantity"], result_data["total_tax"] = [0]*5
             tot_cgst, tot_sgst, tot_igst, tot_utgst = [0]*4
+            sku_grouping_dict = OrderedDict()
             for req_data in request_data:
                 #sell_summary_param['purchase_order__order_id'] = req_data.get('purchase_order__order_id', '')
                 #sell_summary_param['receipt_number'] = req_data.get('receipt_number', '')
@@ -7567,6 +7565,7 @@ def generate_supplier_invoice(request, user=''):
                         sku = open_po.sku
                         unit_price = open_po.price
                         qty = rem_quantity
+                        mrp = open_po.mrp
                         cgst_tax = open_po.cgst_tax
                         sgst_tax = open_po.sgst_tax
                         igst_tax = open_po.igst_tax
@@ -7574,6 +7573,7 @@ def generate_supplier_invoice(request, user=''):
                         if seller_sum.batch_detail:
                             unit_price = seller_sum.batch_detail.buy_price
                             temp_tax_percent = seller_sum.batch_detail.tax_percent
+                            mrp = seller_sum.batch_detail.mrp
                             if open_po.supplier.tax_type == 'intra_state':
                                 temp_tax_percent = temp_tax_percent / 2
                                 cgst_tax = truncate_float(temp_tax_percent, 1)
@@ -7620,6 +7620,35 @@ def generate_supplier_invoice(request, user=''):
                                     "shipment_date": '',
                                     "taxes": taxes
                                     }
+
+                        grouping_key = '%s:%s:%s' % (str(sku.sku_code), str(unit_price), str(mrp))
+                        sku_grouping_dict.setdefault(grouping_key, {"id": sku.id,
+                                    "seller_summary_id": seller_sum.id,
+                                    "open_po_id": open_po.id,
+                                    "sku_code": sku.wms_code,
+                                    "title": sku.sku_desc,
+                                    "unit_price": unit_price,
+                                    "tax_type": open_po.tax_type,
+                                    "invoice_amount": 0,
+                                    "hsn_code": '',
+                                    "amt": 0,
+                                    "quantity": 0,
+                                    "shipment_date": '',
+                                    #"taxes": taxes,
+                                    "mrp": mrp
+                                    })
+                        sku_grouping_dict[grouping_key].setdefault('taxes',
+                                 {"cgst_tax": cgst_tax, "sgst_tax": sgst_tax,
+                                 "igst_tax": igst_tax, "utgst_tax": utgst_tax,
+                                 "cgst_amt": 0, "sgst_amt": 0,
+                                 "igst_amt": 0, "utgst_amt": 0})
+                        sku_grouping_dict[grouping_key]['quantity'] += qty
+                        sku_grouping_dict[grouping_key]['amt'] += amt
+                        sku_grouping_dict[grouping_key]['invoice_amount'] += invoice_amt
+                        sku_grouping_dict[grouping_key]['taxes']['cgst_amt'] += cgst_amt
+                        sku_grouping_dict[grouping_key]['taxes']['sgst_amt'] += sgst_amt
+                        sku_grouping_dict[grouping_key]['taxes']['igst_amt'] += igst_amt
+                        sku_grouping_dict[grouping_key]['taxes']['utgst_amt'] += utgst_amt
                         result_data["data"].append(sku_data)
                         result_data["sequence_number"] = sku.sequence
                     if seller_summary and seller_summary[0].overall_discount:
@@ -7631,7 +7660,7 @@ def generate_supplier_invoice(request, user=''):
                     result_data["total_tax"] += tot_tax
                     result_data["total_taxes"] = {"cgst_amt": tot_cgst, "igst_amt": tot_igst,
                                                   "sgst_amt": tot_sgst, "utgst_amt": tot_utgst}
-
+        result_data['data'] = sku_grouping_dict.values()
 
     except Exception as e:
         import traceback
@@ -8083,7 +8112,6 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
     search_params['purchase_order__open_po__sku_id__in'] = sku_master_ids
     lis = ['purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
             'purchase_order__order_id', 'purchase_order_date', 'invoice_number', 'invoice_date', 'total', 'total']
-
     headers1, filters, filter_params1 = get_search_params(request)
     enable_dc_returns = request.POST.get("enable_dc_returns", "")
     inv_or_dc_number = 'invoice_number'
@@ -8437,6 +8465,8 @@ def save_update_rtv(data_list, return_type=''):
                                                     creation_date=datetime.datetime.now())
             data_list[ind]['rtv_id'] = rtv_obj.id
     return data_list
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -8492,7 +8522,7 @@ def create_rtv(request, user=''):
             date_val = date_val.replace('-', '')
             rtv_number = '%s%s-%s' % (rtv_prefix_code, date_val, rtv_no)
             for final_dict in data_list:
-                update_stock_detail(final_dict['stocks'], float(final_dict['quantity']), user)
+                update_stock_detail(final_dict['stocks'], float(final_dict['quantity']), user, final_dict['rtv_id'])
                 #ReturnToVendor.objects.create(rtv_number=rtv_number, seller_po_summary_id=final_dict['summary_id'],
                 #                              quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
                 rtv_obj = ReturnToVendor.objects.get(id=final_dict['rtv_id'])
@@ -8502,7 +8532,6 @@ def create_rtv(request, user=''):
                 rtv_obj.save()
             report_data_dict = {}
             show_data_invoice = get_debit_note_data(rtv_number, user)
-
             return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback

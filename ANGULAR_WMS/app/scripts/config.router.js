@@ -1706,6 +1706,17 @@ var app = angular.module('urbanApp')
             url: '/PO',
             templateUrl: 'views/uploadedPos/toggles/uploaded_po_update.html'
          })
+      // feedback form
+      .state('app.feedback', {
+          url: '/feedback',
+          templateUrl: 'views/feedback/feedback.html',
+          authRequired: true,
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/feedback/feedback.js');
+              }]
+          }
+        })
       // Targets route
       .state('app.targets', {
           url: '/targets',
@@ -2247,7 +2258,18 @@ var app = angular.module('urbanApp')
             title: 'Stock Transfer Report',
           }
         })
-
+        .state('app.reports.StockReconciliationReport', {
+          url: '/StockReconciliationReport',
+          templateUrl: 'views/reports/stock_reconciliation_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/stock_reconciliation_report.js');
+              }]
+          },
+          data: {
+            title: 'Stock Reconciliation Report',
+          }
+        })
         .state('app.reports.RTVReport', {
           url: '/RTVReport',
           templateUrl: 'views/reports/rtv_report.html',
@@ -2300,8 +2322,18 @@ var app = angular.module('urbanApp')
             title: 'Bulk to Retail Report',
           }
         })
-
-
+        .state('app.reports.MarginReport', {
+          url: '/MarginReport',
+          templateUrl: 'views/reports/margin_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/margin_report.js');
+              }]
+          },
+          data: {
+            title: 'Margin Report',
+          }
+        })
       // configuration route
       .state('app.configurations', {
           url: '/configurations',
@@ -2695,6 +2727,18 @@ var app = angular.module('urbanApp')
               title: 'Profile'
             }
           })
+          .state('user.App.feedback', {
+            url: '/feedback',
+            templateUrl: 'views/outbound/app/create_orders/feedback.html',
+            resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/outbound/app/feedback.js');
+                      }]
+            },
+            data: {
+              title: 'feedback'
+            }
+          })
 
           .state('user.App.Style', {
             url: '/Style?styleId',
@@ -2743,7 +2787,8 @@ var app = angular.module('urbanApp')
             }
           })
           .state('user.App.MyOrders', {
-            url: '/MyOrders?state',
+            // url: '/MyOrders?state',
+            url: '/MyOrders',
             params: {
               state: 'orders',
             },
@@ -2751,24 +2796,31 @@ var app = angular.module('urbanApp')
             resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
-                  'scripts/controllers/outbound/app/my_order.js',
-                  'scripts/controllers/outbound/pop_js/enquiry_details.js'
-                ]);
+                  'scripts/controllers/outbound/app/my_order.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/app/orders.js'
+                  ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/app/market_enq.js'
+                  ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/app/custom_orders.js'
+                  ])
+                });
               }]
             }
           })
-          .state('user.App.OrderDetails', {
-            url: '/OrderDetails?orderId&state&intermediate_order',
-            params: {
-              state: 'orders',
-            },
-            templateUrl: 'views/outbound/app/create_orders/order_detail.html',
-            resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/outbound/app/order_details.js');
-              }]
-            }
-          })
+          .state('user.App.MyOrders.OrderDetails', {
+            url: '/OrderDetails',
+            templateUrl: 'views/outbound/toggle/order_detail.html',
+            })
+          .state('user.App.MyOrders.CustomOrder', {
+            url: '/CustomOrder',
+            templateUrl: 'views/outbound/toggle/custom_detail_view.html',
+            })
           .state('user.App.ManualEnquiry', {
             url: '/ManualEnquiry',
             templateUrl: 'views/outbound/app/create_orders/manual_enquiry.html',

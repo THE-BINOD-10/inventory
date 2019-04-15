@@ -192,7 +192,6 @@ class TallyBridgeApp(object):
 
             invoice.arlLedgerEntries.Add(party_tax_ledger)
 
-            # import pdb;pdb.set_trace()
             # Testing Ledger
             # party_tax_ledger = Tally.LedgerEntry()
             # party_tax_ledger.ledgerName = 'Bill of Supply'

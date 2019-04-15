@@ -419,11 +419,6 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     }
 
     vm.reset_data = function(from, to) {
-      if(from.from_date || from.to_date)
-      {
-        from.from_date = '';
-        from.to_date = '';
-      }
       angular.copy(from, to);
     }
 

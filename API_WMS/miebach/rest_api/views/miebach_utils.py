@@ -2411,16 +2411,20 @@ def get_receipt_filter_data(search_params, user, sub_user):
                'purchase_order__open_po__sku__sku_desc', 'imei_number', 'creation_date', 'purchase_order__reason']
         query_prefix = 'purchase_order__'
         model_obj = POIMEIMapping
+        if 'from_date' in search_params:
+            search_parameters[query_prefix + 'creation_date__gt'] = search_params['from_date']
+        if 'to_date' in search_params:
+            search_parameters[query_prefix + 'creation_date__lt'] = search_params['to_date']
+    else:
+        if 'from_date' in search_params:
+            search_parameters[query_prefix + 'updation_date__gt'] = search_params['from_date']
+        if 'to_date' in search_params:
+            search_parameters[query_prefix + 'updation_date__lt'] = search_params['to_date']
     temp_data = copy.deepcopy(AJAX_DATA)
     temp_data['draw'] = search_params.get('draw')
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-
-    if 'from_date' in search_params:
-        search_parameters[query_prefix + 'creation_date__gt'] = search_params['from_date']
-    if 'to_date' in search_params:
-        search_parameters[query_prefix + 'creation_date__lt'] = search_params['to_date']
 
     if 'supplier' in search_params:
         search_parameters[query_prefix + 'open_po__supplier__id__iexact'] = search_params['supplier']

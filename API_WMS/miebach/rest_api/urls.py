@@ -200,6 +200,7 @@ urlpatterns = [
     url(r'^save_jo/$', save_jo),
     url(r'^delete_jo/$', delete_jo),
     url(r'^confirm_jo/$', confirm_jo),
+    url(r'^close_jo/$', close_jo),
     url(r'^get_material_codes/$', get_material_codes),
     url('^jo_generate_picklist/$', jo_generate_picklist),
     url(r'^view_rm_picklist/$', view_rm_picklist),
@@ -232,6 +233,8 @@ urlpatterns = [
     url(r'^check__replace_imei_exists/$', check__replace_imei_exists),
     url(r'^save_replaced_serials/$', save_replaced_serials),
     url(r'^save_replaced_locations/$', save_replaced_locations),
+    url(r'^get_vendor_list/$', get_vendor_list),
+    url(r'^create_vendor_stock_transfer/$', create_vendor_stock_transfer),
 
 
 
@@ -284,6 +287,9 @@ urlpatterns = [
     url('^insert_shipment_info/$', insert_shipment_info),
     url('^shipment_info_data/$', shipment_info_data),
     url('^update_shipment_status/$', update_shipment_status),
+    url('^get_under_taking_form/$', get_under_taking_form),
+    url('^upload_signed_under_taking_form/$', upload_signed_under_taking_form),
+    url('^get_signed_oneassist_form/$', get_signed_oneassist_form),
     url('^print_shipment/$', print_shipment),
     url('^get_sku_categories/$', get_sku_categories),
     url('^get_sku_catalogs/$', get_sku_catalogs),
@@ -386,6 +392,7 @@ urlpatterns = [
     url(r'^shipment_pack_ref_decrease/$', shipment_pack_ref_decrease),
     url(r'^generate_picklist_dc/$', generate_picklist_dc),
     url(r'^get_order_extra_fields/$', get_order_extra_fields),
+    url(r'^create_feedback_form/$', create_feedback_form),
 
 
     # Uploaded POs [SWISS MILITARY]
@@ -393,6 +400,8 @@ urlpatterns = [
     url(r'^get_updated_pos/$', get_updated_pos),
     url(r'^validate_po/$', validate_po),
     url(r'^pending_pos/$', pending_pos),
+    url(r'^sm_cancel_order_from_uploaded_pos/$', sm_cancel_order_from_uploaded_pos),
+
     # Targets [SWISS MILITARY]
     url(r'^get_distributor_targets/$', get_distributor_targets),
     # Reports
@@ -430,6 +439,8 @@ urlpatterns = [
     url(r'^get_daily_production_report/$', get_daily_production_report),
     url(r'^print_daily_production_report/$', print_daily_production_report),
     url(r'^print_order_summary_report/$', print_order_summary_report),
+    url(r'^print_stock_reconciliation_report/$', print_stock_reconciliation_report),
+    url(r'^print_margin_report/$', print_margin_report),
     url(r'^get_marketplaces_list_reports/$', get_marketplaces_list_reports),
     url(r'^get_seller_invoices_filter/$', get_seller_invoices_filter),
     url(r'^print_seller_invoice_report/$', print_seller_invoice_report),
@@ -474,13 +485,16 @@ urlpatterns = [
     url(r'^get_sku_wise_rtv_filter/$', get_sku_wise_rtv_filter),
     url(r'^download_grn_invoice_mapping/$', download_grn_invoice_mapping),
     url(r'^get_stock_transfer_report/$', get_stock_transfer_report),
+    url(r'^get_stock_reconciliation_report/$', get_stock_reconciliation_report),
+    url(r'^get_margin_report/$', get_margin_report),
     url(r'^get_current_stock_report/$', get_current_stock_report),
     url(r'^print_current_stock_report/$', print_current_stock_report),
     url(r'^get_inventory_value_report/$', get_inventory_value_report),
     url(r'^print_inventory_value_report/$', print_inventory_value_report),
     url(r'^get_bulk_to_retail_report/$', get_bulk_to_retail_report),
     url(r'^print_bulk_to_retail_report/$', print_bulk_to_retail_report),
-
+    url(r'^get_stock_cover_report/$', get_stock_cover_report),
+    url(r'^print_stock_cover_report/$', print_stock_cover_report),
 ]
 
 # urlpatterns += patterns('rest_api.views',
@@ -547,6 +561,8 @@ urlpatterns += [
     url(r'^skupack_master_upload/$', skupack_master_upload),
     url(r'^block_stock_download/$', block_stock_download),
     url(r'^block_stock_upload/$', block_stock_upload),
+    url(r'^custom_order_download/$', custom_order_download),
+    url(r'^custom_order_upload/$', custom_order_upload),
 
 
     # configurations
@@ -627,6 +643,9 @@ urlpatterns += [
     url('^get_staff_members_list/$', get_staff_members_list),
     url(r'^pos_tax_inclusive/$', pos_tax_inclusive),
     url(r'^stock_transfer_invoice_data/$', stock_transfer_invoice_data),
+    url(r'^pos_send_mail/$', pos_send_mail),
+
+
 
 ]
 

@@ -18,6 +18,7 @@ log = init_logger('logs/stock_locator.log')
 
 
 @csrf_exempt
+@fn_timer
 def get_stock_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     is_excel = request.POST.get('excel', 'false')
@@ -145,6 +146,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     temp_data['totalAvailableQuantity'] = int(temp_data['totalAvailableQuantity'])
 
     sku_type_qty = dict(OrderDetail.objects.filter(user=user.id, quantity__gt=0, status=1).values_list('sku__sku_code').distinct().annotate(Sum('quantity')))
+    sku_pack_config = get_misc_value('sku_pack_config', user.id)
     for ind, data in enumerate(master_data[start_index:stop_index]):
         total_stock_value = 0
         reserved = 0
@@ -155,7 +157,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                 if len(data) > 4:
                     total = data[4]
 
-        sku = sku_master.get(wms_code=data[0], user=user.id)
+        sku = sku_master.get(user=user.id, sku_code=data[0])
         if data[0] in picklist_reserved.keys():
             reserved += float(picklist_reserved[data[0]])
         if data[0] in raw_reserved.keys():
@@ -165,6 +167,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             quantity = 0
 
         total_stock_value = 0
+        sku_packs = 0
         if quantity:
             wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code = data[0], sku__user=user.id)
             wms_code_obj_unit_price = wms_code_obj.filter(unit_price__gt=0).only('quantity', 'unit_price')
@@ -172,12 +175,10 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
             total_wms_qty_sku_unit_price = sum(wms_code_obj_sku_unit_price.annotate(stock_value=Sum(F('quantity') * F('sku__cost_price'))).values_list('stock_value',flat=True))
             total_stock_value = total_wms_qty_unit_price + total_wms_qty_sku_unit_price
-            
-        try:
-            sku_pack_obj = SKUPackMaster.objects.get(sku__wms_code= data[0],sku__user = user.id)
-            sku_packs = int(quantity / sku_pack_obj.pack_quantity)
-        except:
-            sku_packs = 0
+            if sku_pack_config == 'true':
+                sku_pack_obj = sku.skupackmaster_set.filter().only('pack_quantity')
+                if sku_pack_obj.exists() and sku_pack_obj[0].pack_quantity:
+                    sku_packs = int(quantity / sku_pack_obj[0].pack_quantity)
         open_order_qty = sku_type_qty.get(data[0], 0)
         temp_data['aaData'].append(OrderedDict((('WMS Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),
@@ -605,8 +606,6 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
     for i in da:
         if i['available'] is None:
             i['available'] = 0
-        # if i['asn'] is None:
-        #     i['asn'] = 0
         list_da[i['ware']] = i['available']
 
     temp_data['ware_list'] = list_da
@@ -636,29 +635,19 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
                 if net_amt < 0:
                     net_amt = 0
                 var[wh_name + '-Open'] = net_amt
-                if 'WH Net Open' in var:
-                    var['WH Net Open'] += net_amt
-                else:
-                    var['WH Net Open'] = net_amt
+                wh_level_stock_map = {'WH Net Open': net_amt, 'Total WH': single['available'],
+                                      'Total WH Res': single['reserved'], 'Total WH Blocked': single['blocked'],
+                                      'ASN Total': single['asn'], 'ASN Res': single['asn_res'],
+                                      'ASN Blocked': single['asn_blocked'], 'NON_KITTED': single['non_kitted']}
 
-                if 'ASN Total' in var:
-                    var['ASN Total'] += single['asn']
-                else:
-                    var['ASN Total'] = single['asn']
-                if 'ASN Res' in var:
-                    var['ASN Res'] += single['asn_res']
-                else:
-                    var['ASN Res'] = single['asn_res']
-                if 'ASN Blocked' in var:
-                    var['ASN Blocked'] += single['asn_blocked']
-                else:
-                    var['ASN Blocked'] = single['asn_blocked']
+                for header, val in wh_level_stock_map.items():
+                    if header in var:
+                        var[header] += val
+                    else:
+                        var[header] = val
+
                 asn_open = var['ASN Total'] - var['ASN Res'] - var['ASN Blocked']
                 var['ASN Open'] = asn_open
-                if 'NON_KITTED' in var:
-                    var['NON_KITTED'] += single['non_kitted']
-                else:
-                    var['NON_KITTED'] = single['non_kitted']
         var['Net Open'] = var['WH Net Open'] + var['ASN Open']
 
         temp_data['aaData'].append(var)
@@ -1521,6 +1510,8 @@ def warehouse_headers(request, user=''):
             wh_list = []
             for wh in ware_list:
                 wh_list.extend(list(map(lambda x: wh+'-'+x, warehouse_suffixes)))
+            total_wh_dets = ['Total WH', 'Total WH Res', 'Total WH Blocked']
+            wh_list.extend(total_wh_dets)
             wh_list.append('WH Net Open')
             intr_headers = ['ASN Total', 'ASN Res', 'ASN Blocked', 'ASN Open', 'Net Open']
             wh_list.extend(intr_headers)
@@ -2112,7 +2103,7 @@ def inventory_adj_modify_qty(request, user=''):
             stock_new_create['receipt_type'] = ''
             message="Added Quantity Successfully"
             inventory_create_new = StockDetail.objects.create(**stock_new_create)
-            save_sku_stats(user, sku_id, inventory_create_new.id, 'inventory-adjustment', stock_new_create['quantity'])
+            save_sku_stats(user, sku_id, inventory_create_new.id, 'inventory-adjustment', stock_new_create['quantity'], inventory_create_new)
         if old_available_qty != available_qty or sub_qty:
             stock_qty_update = {}
             if location_id:
@@ -2153,14 +2144,16 @@ def inventory_adj_modify_qty(request, user=''):
                         save_reduced_qty = obj_qty
                         if save_reduced_qty >= sub_qty:
                             diff_qty = int(save_reduced_qty)-int(sub_qty)
-                            StockDetail.objects.filter(id=ob.id).update(quantity=diff_qty)
-                            save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', diff_qty)
+                            stock_obj = StockDetail.objects.filter(id=ob.id)
+                            stock_obj.update(quantity=diff_qty)
+                            save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', diff_qty, stock_obj)
                             update_cycle_count_inventory_adjustment(user, sku_id, location_id, old_available_qty, available_qty, pallet_id)
                             sub_qty = 0
                         elif save_reduced_qty:
                             sub_qty = int(sub_qty)-int(save_reduced_qty)
-                            StockDetail.objects.filter(id=ob.id).update(quantity=0)
-                            save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', 0)
+                            stock_obj = StockDetail.objects.filter(id=ob.id)
+                            stock_obj.update(quantity=0)
+                            save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', 0, stock_obj)
                             update_cycle_count_inventory_adjustment(user, sku_id, location_id, old_available_qty, available_qty, pallet_id)
                             continue
                         if not sub_qty:
@@ -2190,14 +2183,16 @@ def inventory_adj_modify_qty(request, user=''):
                     if save_reduced_qty >= sub_qty:
                         diff_qty = int(save_reduced_qty)-int(sub_qty)
                         ob.quantiy = diff_qty
-                        StockDetail.objects.filter(id=ob.id).update(quantity=diff_qty)
-                        save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', diff_qty)
+                        stock_obj = StockDetail.objects.filter(id=ob.id)
+                        stock_obj.update(quantity=diff_qty)
+                        save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', diff_qty, stock_obj)
                         update_cycle_count_inventory_adjustment(user, sku_id, location_id, old_available_qty, available_qty, pallet_id)
                         sub_qty = 0
                     elif save_reduced_qty:
                         sub_qty = int(sub_qty)-int(save_reduced_qty)
-                        StockDetail.objects.filter(id=ob.id).update(quantity=0)
-                        save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', 0)
+                        stock_obj = StockDetail.objects.filter(id=ob.id)
+                        stock_obj.update(quantity=0)
+                        save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', 0, stock_obj)
                         update_cycle_count_inventory_adjustment(user, sku_id, location_id, old_available_qty, available_qty, pallet_id)
                         continue
                     if not sub_qty:
@@ -2218,7 +2213,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                              filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'batch_detail__batch_no',
-           'batch_detail__mrp', 'location__zone__zone', 'location__location', 'pallet_detail__pallet_code',
+           'batch_detail__mrp', 'batch_detail__manufactured_date', 'batch_detail__expiry_date', 'location__zone__zone', 'location__location', 'pallet_detail__pallet_code',
            'quantity', 'receipt_type']
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -2253,11 +2248,13 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
     for data in master_data[start_index:stop_index]:
         _date = get_local_date(user, data.receipt_date, True)
         _date = _date.strftime("%d %b, %Y")
-        batch_no = ''
+        batch_no = manufactured_date = expiry_date = ''
         mrp = 0
         if data.batch_detail:
             batch_no = data.batch_detail.batch_no
             mrp = data.batch_detail.mrp
+            manufactured_date = data.batch_detail.manufactured_date.strftime("%d %b %Y") if data.batch_detail.manufactured_date else ''
+            expiry_date = data.batch_detail.expiry_date.strftime("%d %b %Y") if data.batch_detail.expiry_date else ''
         if pallet_switch == 'true':
             pallet_code = ''
             if data.pallet_detail:
@@ -2267,7 +2264,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                                     ('WMS Code', data.sku.wms_code),
                                                     ('Product Description', data.sku.sku_desc),
                                                     ('Batch Number', batch_no),
-                                                    ('MRP', mrp),
+                                                    ('MRP', mrp), ('Manufactured Date', manufactured_date), ('Expiry Date', expiry_date),
                                                     ('Zone', data.location.zone.zone),
                                                     ('Location', data.location.location),
                                                     ('Quantity', get_decimal_limit(user.id, data.quantity)),
@@ -2278,7 +2275,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                                     ('WMS Code', data.sku.wms_code),
                                                     ('Product Description', data.sku.sku_desc),
                                                     ('Batch Number', batch_no),
-                                                    ('MRP', mrp),
+                                                    ('MRP', mrp),('Manufactured Date', manufactured_date), ('Expiry Date', expiry_date),
                                                     ('Zone', data.location.zone.zone),
                                                     ('Location', data.location.location),
                                                     ('Quantity', get_decimal_limit(user.id, data.quantity)),

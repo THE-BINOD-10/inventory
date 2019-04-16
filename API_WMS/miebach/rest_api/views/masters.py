@@ -983,6 +983,8 @@ def update_sku(request, user=''):
     reversion.set_user(request.user)
     log.info('Update SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
+    today = datetime.datetime.now().strftime("%Y%m%d")
+    storehippo_fulfillments_log = init_logger('logs/storehippo_fulfillments_log_' + today + '.log')
     try:
         number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'ean_number',
                          'hsn_code', 'shelf_life']
@@ -1042,6 +1044,9 @@ def update_sku(request, user=''):
                 continue
             elif key == 'enable_serial_based':
                 value = 1
+            elif key == 'price':
+                wms_code = request.POST.get('wms_code', '')
+                storehippo_sync_price_value(user, {'wms_code':wms_code, 'price':value})
             if key in number_fields and not value:
                 value = 0
             setattr(data, key, value)
@@ -2968,7 +2973,6 @@ def update_pricing(request, user=''):
             min_unit_range, max_unit_range = common_range
             price, discount = ui_map[(min_unit_range, max_unit_range)]
             p = price_master_data.filter(min_unit_range=min_unit_range, max_unit_range=max_unit_range)[0]
-            print p.id, min_unit_range, max_unit_range
             p.price = price
             p.discount = discount
             p.save()

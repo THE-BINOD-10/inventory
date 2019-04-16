@@ -69,16 +69,49 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
 
   $ctrl.selected_style = {};
   $ctrl.select_style = function(style, styles) {
+    $ctrl.variant_url = ''
+    $ctrl.selected_data = ''
+    angular.forEach(styles, function(data){
+      if(style == data.sku_class){
+        $ctrl.selected_data = data
+      }
+    })
+    if ($ctrl.selected_data != '') {
+      $ctrl.variant_url = $ctrl.api_url.slice(0, -1) + $ctrl.selected_data.image_url
+    }
     $ctrl.enable_table = false
     $ctrl.is_skuId_empty = false;
     $ctrl.selected_style = {};
     if(style){
-      var send = {sku_class:style, customer_id: Session.userId, is_catalog: true}
+      var send = {sku_class:style, customer_id: Session.userId, is_catalog: true, level: 1, is_style_detail: true}
       $ctrl.service.apiCall("get_sku_variants/", "POST", send).then(function(data) {
-        $ctrl.selected_style = data.data.data
+        $ctrl.selected_style = $ctrl.get_table_data($ctrl.selected_data, data.data.lead_times, data.data.data)
         $ctrl.enable_table = true
       })
     }
+  }
+  $ctrl.get_table_data = function(data, leadtimes, variants){
+    $ctrl.temp_selected_style = {}
+    $ctrl.temp_selected_style = data.variants;
+    angular.forEach(variants, function(data){
+      var physical_quantity = 0
+      for (var i = 0; i < leadtimes.length; i++) {
+        if (data[leadtimes[i]] == 'null') {
+          physical_quantity = physical_quantity + 0;
+        } else {
+          physical_quantity = physical_quantity + data[leadtimes[i]];
+        }
+      }
+      physical_quantity = physical_quantity + data.intransit_quantity;
+      angular.forEach($ctrl.temp_selected_style, function(item){
+        if(item.wms_code == data.wms_code){
+          item.style_quantity = physical_quantity;
+          item.blocked_quantity = data.blocked_quantity;
+        }
+      })
+      console.log($ctrl.temp_selected_style)
+    })
+    return $ctrl.temp_selected_style;
   }
   $ctrl.change_variant_quantity = function(data, size) {
     $ctrl.totalQuantity = 0

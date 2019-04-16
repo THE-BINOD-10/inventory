@@ -71,7 +71,8 @@ urlpatterns = [
     url(r'^get_barcodes_myntra/$', get_barcodes_myntra),
     url(r'^change_warehouse_password/$', change_warehouse_password),
     url(r'^insert_sku_pack/$',insert_sku_pack),
-    # url(r'^update_sku_pack/$',update_sku_pack),
+    url(r'^get_zone_details/$',get_zone_details),
+
 
 
 

@@ -128,8 +128,8 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         send.empty_data[data.name] = ""
       });
 
-      send.empty_data.from_date = new Date().toLocaleDateString().split('/')[1] + '/' + new Date().toLocaleDateString().split('/')[0] + '/' + new Date().toLocaleDateString().split('/')[2]
-      send.empty_data.to_date =new Date().toLocaleDateString().split('/')[1] + '/' + new Date().toLocaleDateString().split('/')[0] + '/' + new Date().toLocaleDateString().split('/')[2]
+      send.empty_data.from_date = ''
+      send.empty_data.to_date = ''
 
       send.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -419,7 +419,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     }
 
     vm.reset_data = function(from, to) {
-
+      
       angular.copy(from, to);
     }
 

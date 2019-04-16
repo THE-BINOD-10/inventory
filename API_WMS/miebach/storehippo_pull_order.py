@@ -1,9 +1,7 @@
 import requests
 import jwt
-
 import time
 import json
-
 import os
 import sys
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "miebach.settings")
@@ -36,27 +34,29 @@ def make_request():
     #payload = { "jti": jti, "iss": apiKey, "iat": tokencreationtime }
     #token = jwt.encode(payload, secretKey, algorithm='HS256')
     headers =  {'access-key': api_key, 'content-type': 'application/json'}
-    inv_payload = {'status' : 'Open'}
+    inv_payload = {'total':1, 'start': 0, 'limit':500}
     import pdb;pdb.set_trace()
     resp_data = []
-    response = requests.get(url, headers=headers, params=inv_payload)
-    if str(response.status_code) in ['500', '422', '409', '404', '403', '401', '400']:
-        print "Error Occured"
-    else:
-        resp_json = response.json()
-        resp_data += resp_json['data']
-        #if 'lastKey' in resp_json.keys():
-        #    lastKey = 1
-        #    inv_payload['lastKey'] = resp_json['lastKey']
-        #else:
-        #    lastKey = 0
+    lastKey = 1
+    while lastKey:
+	response = requests.get(url, headers=headers, params=inv_payload)
+	if str(response.status_code) in ['500', '422', '409', '404', '403', '401', '400']:
+	    print "Error Occured"
+	else:
+	    resp_json = response.json()
+            if resp_json['data']:
+                resp_data += resp_json['data']
+	        if resp_data in resp_json.keys():
+		    lastKey = 1
+		    inv_payload['start'] += 500
+	    else:
+		lastKey = 0
     pull_order_storehippo_stockone.info(' --- Response of Stockone - Branch Code ---')
     if resp_data:
         send_to_stockone_resp = sendToStockOne({'data':resp_data})
     b = datetime.datetime.now()
     delta = b - a
     time_taken = str(delta.total_seconds() * 1000)
-    #order_pull_rista_stockone_logs.info('----- Ended - Storehippo ------- ')
 
 
 def sendToStockOne(resp):

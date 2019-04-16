@@ -6,6 +6,7 @@ function LocationMasterCtrl($scope, $state, $http, $timeout, Session, Service) {
   vm.service = Service;
   vm.permissions = Session.roles.permissions;
   vm.segregation_list = {};
+  vm.zone_data = {};
   vm.segregation_selected = 'sellable';
 
   vm.data = [];
@@ -36,6 +37,12 @@ function LocationMasterCtrl($scope, $state, $http, $timeout, Session, Service) {
         }, 500);
       }
     })
+  }
+  vm.get_zone_details = function(zone)
+  {
+    vm.service.apiCall('get_zone_details/','GET',{'zone':zone}).then(function(zone_data){
+      vm.zone_data[zone] = zone_data.data.location_data
+    });
   }
 
   vm.zone = "";

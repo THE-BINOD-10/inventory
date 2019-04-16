@@ -2750,7 +2750,8 @@ def confirm_back_order(request, user=''):
                         temp_data["customData"] = value
                     else:
                         temp_data[key] = value
-                temp_data['image_url'] = request.META['HTTP_ORIGIN'] + '/images/fabricColors/' + temp_data['customData']['colorDataDict'][temp_data['customData']['bodyColor']]
+                if temp_data["customData"] :
+                    temp_data['image_url'] = request.META['HTTP_ORIGIN'] + '/images/fabricColors/' + temp_data['customData']['colorDataDict'][temp_data['customData']['bodyColor']]
                 t = loader.get_template('templates/customOrderDetailsTwo.html')
                 rendered1 = t.render(temp_data)
         job_order_id = ''

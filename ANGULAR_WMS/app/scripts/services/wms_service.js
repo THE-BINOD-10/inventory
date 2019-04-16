@@ -419,7 +419,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     }
 
     vm.reset_data = function(from, to) {
-
+      
       angular.copy(from, to);
     }
 

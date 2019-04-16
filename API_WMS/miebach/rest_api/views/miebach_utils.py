@@ -2013,7 +2013,7 @@ ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict((('order_id', 0), ('awb_no', 1), ('cour
 # Company logo names
 COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png',
                       'sm_admin': 'sm-brand.jpg', 'corp_attire': 'corp_attire.jpg',
-                      'aidin_technologies': 'aidin_tech.jpg', 'nutricane': 'nutricane.jpg', 
+                      'aidin_technologies': 'aidin_tech.jpg', 'nutricane': 'nutricane.jpg',
                       '72Networks':'72networks.png'}
 
 TOP_COMPANY_LOGO_PATHS = {'Konda_foundation': 'dr_reddy_logo.png', 'acecraft':'acecraft.jpg'}
@@ -3767,24 +3767,29 @@ def get_order_summary_data(search_params, user, sub_user):
             for val in extra_vals:
                 if field == val['name']:
                     pos_extra[str(val['name'])] = str(val['value'])
-
+        invoice_number,invoice_date,quantity= '','',''
         if search_params.get('invoice','') == 'true':
             invoice_number = data['sellerordersummary__invoice_number']
+            if not invoice_number :
+                invoice_number_obj = SellerOrderSummary.objects.filter(order_id = data['id'])
+                if invoice_number_obj.exists() :
+                    invoice_number = invoice_number_obj[0].invoice_number
+                    if not invoice_no_gen.exists() or (invoice_no_gen and invoice_no_gen[0].creation_date >= invoice_number_obj[0].creation_date):
+                        if invoice_number_obj[0].order:
+                            invoice_number = str(invoice_number_obj[0].order.order_id)
+                        else:
+                            invoice_number = str(invoice_number_obj[0].seller_order.order.order_id)
 
-            if data['sellerordersummary__creation_date'] :
-                invoice_date = get_local_date(user,data['sellerordersummary__creation_date'])
-            else:
-                invoice_date =''
-            user_profile = UserProfile.objects.get(user_id=user.id)
-            if user_profile.user_type == 'marketplace_user':
-                quantity = SellerOrderSummary.objects.filter(seller_order__order_id=data['id'], invoice_number=data['sellerordersummary__invoice_number']).aggregate(Sum('quantity'))['quantity__sum']
-            else:
-                quantity = SellerOrderSummary.objects.filter(order_id=data['id'], invoice_number=data['sellerordersummary__invoice_number']).aggregate(Sum('quantity'))['quantity__sum']
+                if data['sellerordersummary__creation_date'] :
+                    invoice_date = get_local_date(user,data['sellerordersummary__creation_date'])
+                else:
+                    invoice_date =''
+                user_profile = UserProfile.objects.get(user_id=user.id)
+                if user_profile.user_type == 'marketplace_user':
+                    quantity = SellerOrderSummary.objects.filter(seller_order__order_id=data['id'], invoice_number=data['sellerordersummary__invoice_number']).aggregate(Sum('quantity'))['quantity__sum']
+                else:
+                    quantity = SellerOrderSummary.objects.filter(order_id=data['id'], invoice_number=data['sellerordersummary__invoice_number']).aggregate(Sum('quantity'))['quantity__sum']
 
-        else:
-            invoice_number = ''
-            invoice_date = ''
-            quantity = ''
         try:
             #serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data.sku.sku_code,order__original_order_id=order_id,po_imei__sku__user=user.id)
             serial_number = OrderIMEIMapping.objects.filter(order__id=data['id'])
@@ -6999,7 +7004,7 @@ def get_margin_report_data(search_params, user, sub_user):
         if weighted_avg_cost_value:
             consolidated_margin = float(((weighted_avg_selling_price_value - weighted_avg_cost_value + brand_discount)/weighted_avg_cost_value))
         temp_data['aaData'].append(OrderedDict((
-                                                 ('SKU Code', wms_code), ('Vendor Name', ''), 
+                                                 ('SKU Code', wms_code), ('Vendor Name', ''),
                                                  ('Brand', collect_sku_data.sku_brand), ('Category', collect_sku_data.sku_category),
                                                  ('Sub Category', collect_sku_data.sub_category), ('QTY', quantity),
                                                  ('Weighted Avg Cost', "%.2f" % weighted_avg_cost_value), ('Weighted Avg Selling Price', "%.2f" % weighted_avg_selling_price_value),
@@ -7111,4 +7116,3 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     if stop_index:
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data
-

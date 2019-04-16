@@ -18,7 +18,7 @@
       <accordion close-others="oneAtATime">
         <accordion-group ng-repeat="zone in showCase.data.location_data" is-open="status.isFirstOpen">
           <accordion-heading>
-            {{zone.zone}}
+            <span ng-click="showCase.get_zone_details(zone.zone)">  {{zone.zone}} </span>
             <i class="pull-right glyphicon" ng-click="showCase.get_zone_details(zone.zone)" ng-class="{'glyphicon-chevron-down': status.open, 'glyphicon-chevron-right': !status.open}"></i>
           </accordion-heading>
           <div class="over-x">

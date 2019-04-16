@@ -2013,7 +2013,7 @@ ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict((('order_id', 0), ('awb_no', 1), ('cour
 # Company logo names
 COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png',
                       'sm_admin': 'sm-brand.jpg', 'corp_attire': 'corp_attire.jpg',
-                      'aidin_technologies': 'aidin_tech.jpg', 'nutricane': 'nutricane.jpg', 
+                      'aidin_technologies': 'aidin_tech.jpg', 'nutricane': 'nutricane.jpg',
                       '72Networks':'72networks.png'}
 
 TOP_COMPANY_LOGO_PATHS = {'Konda_foundation': 'dr_reddy_logo.png', 'acecraft':'acecraft.jpg'}
@@ -2070,6 +2070,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'combo_allocate_stock': 'combo_allocate_stock',
                         'dispatch_qc_check': 'dispatch_qc_check',
                         'unique_mrp_putaway': 'unique_mrp_putaway',
+                        'sku_less_than_threshold':'sku_less_than_threshold',
                         'block_expired_batches_picklist': 'block_expired_batches_picklist',
                         'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation'
                         }
@@ -6999,7 +7000,7 @@ def get_margin_report_data(search_params, user, sub_user):
         if weighted_avg_cost_value:
             consolidated_margin = float(((weighted_avg_selling_price_value - weighted_avg_cost_value + brand_discount)/weighted_avg_cost_value))
         temp_data['aaData'].append(OrderedDict((
-                                                 ('SKU Code', wms_code), ('Vendor Name', ''), 
+                                                 ('SKU Code', wms_code), ('Vendor Name', ''),
                                                  ('Brand', collect_sku_data.sku_brand), ('Category', collect_sku_data.sku_category),
                                                  ('Sub Category', collect_sku_data.sub_category), ('QTY', quantity),
                                                  ('Weighted Avg Cost', "%.2f" % weighted_avg_cost_value), ('Weighted Avg Selling Price', "%.2f" % weighted_avg_selling_price_value),
@@ -7111,4 +7112,3 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     if stop_index:
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data
-

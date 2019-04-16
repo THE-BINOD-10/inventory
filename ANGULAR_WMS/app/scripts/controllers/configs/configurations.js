@@ -29,7 +29,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'sku_pack_config': false, 'central_order_reassigning':false, 'po_sub_user_prefix': false,
                     'combo_allocate_stock': false, 'sno_in_invoice': false, 'unique_mrp_putaway': false,'block_expired_batches_picklist':false,
                     'generate_delivery_challan_before_pullConfiramation':false,'pos_remarks' :'',
-                    'rtv_prefix_code': false, 'dispatch_qc_check':false,
+                    'rtv_prefix_code': false, 'dispatch_qc_check':false,'sku_less_than_threshold':false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -53,7 +53,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      71: 'order_exceed_stock',72:'invoice_declaration',73:'central_order_reassigning',
                      74: 'sku_pack_config', 75: 'po_sub_user_prefix', 76: 'combo_allocate_stock', 77:'sno_in_invoice', 78:'raisepo_terms_conditions',
                      79: 'generate_delivery_challan_before_pullConfiramation', 80: 'unique_mrp_putaway',
-                     81: 'rtv_prefix_code',82:'pos_remarks', 83:'dispatch_qc_check', 84:'block_expired_batches_picklist',}
+                     81: 'rtv_prefix_code',82:'pos_remarks', 83:'dispatch_qc_check', 84:'block_expired_batches_picklist',
+                     85:'sku_less_than_threshold',}
 
   vm.check_box_data = [
     {
@@ -469,6 +470,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     class_name: "fa fa-server",
     display: true
   },
+  {
+    name: "Notify SKU below Threshold",
+    model_name: "sku_less_than_threshold",
+    param_no: 85,
+    class_name: "fa fa-server",
+    display: true
+  },
+
 ]
 
   vm.empty = {};
@@ -530,6 +539,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       value = false;
       vm.model_data[vm.switch_names[switch_num]] = value;
       Service.showNoty("Auto PO & Auto Raise Stock Transfer can't be enabled simultaneously", 'warning');
+      return
+    }
+    if(vm.switch_names[switch_num] === "sku_less_than_threshold" && vm.model_data["auto_po_switch"]) {
+      value = false;
+      vm.model_data[vm.switch_names[switch_num]] = value;
+      Service.showNoty("Auto PO & Notify SKU below Threshold can't be enabled simultaneously", 'warning');
+      return
+    }
+    if(vm.switch_names[switch_num] === "auto_po_switch" && vm.model_data["sku_less_than_threshold"]) {
+      value = false;
+      vm.model_data[vm.switch_names[switch_num]] = value;
+      Service.showNoty("Auto PO & Notify SKU below Threshold can't be enabled simultaneously", 'warning');
       return
     }
     vm.service.apiCall("switches/?"+vm.switch_names[switch_num]+"="+String(value)).then(function(data){

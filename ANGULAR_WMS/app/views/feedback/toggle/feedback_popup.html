@@ -1,0 +1,78 @@
+<div id="page-pop">
+  <form name="FeedbackviewDetail" role="form" ui-jq="validate" ui-options="validationOpt">
+    <div class="model-custom">
+      <div class="mw60">
+        <div ng-include="'views/common/loader.html'"></div>
+        <div class="modal-header">
+          <h4 class="modal-title">view Feedback</h4>
+        </div>
+        <!-- body-->
+        <div class="mb10" style="padding: 15px;">
+          <div class="detail-list" style="border:none;">
+            <div class="detail-item border-grey detail-bg-grey mb5">
+              <h4><b>Feedback Details: </b></h4>
+              <div class="row no-margin">
+                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+                  <span><b>USER</b></span>
+                </div>
+                <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
+                  <span><b>: {{pop.state_data['User Name']}}</b></span>
+                </div>
+              </div>
+              <div class="row no-margin">
+                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+                  <span><b>FEEDBACK TYPE</b></span>
+                </div>
+                <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
+                  <span><b>: {{pop.state_data['Feedback Type']}}</b></span>
+                </div>
+              </div>
+              <div class="row no-margin" ng-if="pop.state_data['SKU']">
+                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+                  <span><b>SKU</b></span>
+                </div>
+                <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
+                  <span><b>: {{pop.state_data['SKU']}}</b></span>
+                </div>
+              </div>
+              <div class="row no-margin">
+                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+                  <span><b>FEEDBACK REMARKS</b></span>
+                </div>
+                <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
+                  <span><b>: {{pop.state_data['Feedback Remarks']}}</b></span>
+                </div>
+              </div>
+              <div class="row no-margin" ng-if="pop.state_data['URL']">
+                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+                  <span><b>URL</b></span>
+                </div>
+                <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
+                  <span><b>: {{pop.state_data['URL']}}</b></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mb10" style="padding: 15px;">
+          <div class="detail-list" style="border:none;">
+            <div class="detail-item mb5">
+              <div class="text-center mb15" ng-if = "pop.image">
+                <img ng-src="{{pop.image}}" style="width: 90%;">
+              </div>
+              <div class="text-center mb15" ng-if = "!pop.image">
+                <h4 class="modal-title" style="color: crimson;">---- NO IMAGE FOUND ----</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <div class="form-group" style="margin-bottom:0px;">
+            <button type="button" class="btn pop pop-red" ng-click="pop.ok()">Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,194 @@
+<!-- <link rel="stylesheet" href="/app/css/receipt.css"/> -->
+<style>
+.receipt {
+  width: 300px;
+  font-size: 14px;
+}
+* {
+  padding: 0px;
+  margin: 0px;
+}
+.shop-name{
+  text-align: center;
+  display: block;
+}
+.shop-title {
+  text-align: center;
+  display: block;
+  font-size: 18px;
+}
+.products table,
+.table-pro table {
+  width: 100%;
+  font-size: 14px;
+}
+.products table thead th:nth-child(1),
+.table-pro table thead th:nth-child(1) {
+  text-align: left;
+}
+.products table thead th,
+.table-pro table thead th {
+  text-align: center;
+}
+.products table tbody tr > td:nth-child(1),
+.table-pro table tbody tr > td:nth-child(1) {
+  text-align: left;
+}
+.products table tbody tr > td,
+.table-pro table tbody tr > td {
+  text-align: center;
+}
+.product-total span {
+  width: 30%;
+  display: inline-block;
+}
+</style>
+
+<div class="receipt">
+  <span class="shop-title"><strong>{{user.company}}</strong></span>
+  <span class="shop-name">{{user.address}}</span>
+  <span class="shop-name">Ph: {{user.phone}}</span>
+  <span class="shop-name">Tax Invoice</span>
+  <span class="shop-name">GSTIN: {{user.gstin}}</span>
+  <span class="shop-name">{{print_type}}</span>
+  <hr>
+  <div class="title">
+    <div>
+        <!--<span class="hide shop-title">Sales Person Name: {{urlService.userData.user_name}}</span>-->
+      <div>
+          <span class="pull-right">Bill Number: {{data.summary.invoice_number}}{{data.user.user_id}}{{data.order_id}}</span>
+      </div>
+      <!--<div>
+          <span class="pull-right">Order Number: {{data.order_id}}</span>
+      </div>-->
+      <div>
+          <span class="pull-right">Order Type: {{data.summary.issue_type}}</span>
+      </div>
+
+      <div>
+          <span class="pull-right">Order Taken By: {{data.summary.staff_member}}</span>
+      </div>
+
+      <div>
+          <span class="pull-right">Order Date: {{date}}</span>
+      </div>
+    </div>
+  </div>
+  <hr>
+    <p align="center">Customer Details</p>
+  <hr>
+  <div class="customer">
+    <p>Name : {{data.customer_data.FirstName}}</p>
+    <p>Email : {{data.customer_data.Email}}</p>
+    <p>Cell Number: {{data.customer_data.Number}} </p>
+  </div>
+
+  <hr>
+  <div class="products table-pro">
+    <table>
+      <thead>
+        <tr>
+          <th>Item Name</th>
+          <th>Qty</th>
+          <th>Rate</th>
+          <th>Amt</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in data.sku_data %}
+        <tr>
+          <td> {{item.name}} </td>
+          <td> {{item.quantity}} </td>
+          <td> {{item.selling_price |floatformat:2 }} </td>
+          <td> {{item.amount |floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <hr>
+    <div class="product-total">
+      <span>Tot Items: {{data.sku_data.length}}</span>
+      <span>Tot Qty: {{data.summary.total_quantity}} </span>
+      {% if data.summary.issue_type == "Delivery Challan" %}
+      <span>
+        Amt: {{ data.summary_total_amount |floatformat:2}}
+      </span>
+      {% endif %}
+      {% if data.summary.issue_type == "Pre Order" %}
+      <span>
+        Amt: {{ data.summary.subtotal|floatformat:2 }}
+      </span>
+      {% endif %}
+      <span style="width: 40%;">Discount: {{data.summary.total_discount|floatformat:2}}</span><br>
+      {% if data.summary.issue_type == "Delivery Challan" %}
+      <span style="width: 100%;text-align:center;font-size: 10px;font-weight:bold">
+        Total: {{ data.summary_discount|floatformat:2 }}
+      </span>
+      {% endif %}
+      {% if data.summary.issue_type == "Pre Order" %}
+      <span style="width: 100%;text-align:center;font-size: 10px;font-weight:bold">
+        Total: {{ data.summary_total|floatformat:2 }}
+      </span>
+        {% endif %}
+    </div>
+  <hr>
+    <p align="center">TAX Details</p>
+  <hr>
+  <div class="vat-cal table-pro">
+    <table>
+      <thead>
+        <tr>
+          <th>Taxable Amt</th>
+          <th>CGST %</th>
+          <th>CGST Amt</th>
+          <th>SGST %</th>
+          <th>SGST Amt</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for key,value  in  data.summary.gst_based.items %}
+        <tr>
+            <td>{{value.taxable_amt|floatformat:2 }}</td>
+            <td>{{value.cgst_percent |floatformat:2}}</td>
+            <td>{{value.cgst|floatformat:2}}</td>
+            <td>{{value.sgst_percent|floatformat:2 }}</td>
+            <td>{{value.sgst|floatformat:2}}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <hr>
+
+  <hr>
+    <p align="center">Payment Mode</p>
+  <hr>
+  <div class="vat-cal table-pro col-md-12">
+      <span class="pull-left">  {{ data.payment_mode }} </span>
+      <span class="pull-right">  {{data.reference_number }} </span>
+
+  </div>
+  <hr>
+  <div class="vat-cal table-pro col-md-12">
+      <span class="pull-left">  {{ data.pos_remarks }} </span>
+  </div>
+
+  <!--
+  <div class="total">
+    <div class="product-total">
+       <span>Total ...</span>
+       <span></span>
+       <span>Amt: {{data.summary.total_amount}}</span>
+    </div>
+  </div>
+  -->
+  <hr>
+  <div ng-if="data.summary.issue_type == 'sample'">
+      <b>Note:Not for Sale</b>
+      <hr>
+  </div>
+  <p align="center">Goods Once Sold Cannot Be Taken Back or Exchange</p>
+  <p align="center">!!! THANK YOU VISIT AGAIN !!!</p>
+  <hr>
+</div>

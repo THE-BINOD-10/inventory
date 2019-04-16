@@ -271,11 +271,13 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    perm: "add_suppliermaster"
                  },
                  {
-                   title: "Create StockTransfer Order Form Download/ Upload",
-                   download: "StockTransfer Order Download Form",
-                   upload: "StockTransfer Order Upload Form",
+                   title: "Create Stock Transfer Order Form Download/ Upload",
+                   download: "Stock Transfer Order Download Form",
+                   upload: "Stock Transfer Order Upload Form",
                    durl: "stock_transfer_order_form/",
                    uurl: "stock_transfer_order_upload/",
+                   dparam: "download-stock-transfer-file",
+                   value: ""
                  },{
                    title: "SKUPack Master Form Download/ Upload",
                    download: "SKUPack Master Download Form",
@@ -293,6 +295,17 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "block_stock_upload/",
                    dparam: "download-file",
                    value: "",
+                   perm: "add_enquirymaster",
+                 },
+                 {
+                   title: "Custom Order Form Download/ Upload",
+                   download: "Custom Order Download Form",
+                   upload: "Custom Order Upload Form",
+                   durl: "custom_order_download/",
+                   uurl: "custom_order_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   perm: "add_enquirymaster",
                  },
                 ]
 

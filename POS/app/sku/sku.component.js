@@ -1,6 +1,6 @@
 ;(function (angular) {
     "use strict";
-  
+
    angular.module("sku", ["ngMaterial"])
            .component("sku", {
              "templateUrl": "/app/sku/sku.template.html",
@@ -8,29 +8,30 @@
                               "manageData","printer", "$rootScope", "$location", "$window",
       function ($http, $scope, $timeout, $q, $log, urlService, manageData, printer, $rootScope, $location, $window) {
         var self = this;
-        self.tax_inclusive = false;
-  
+        self.tax_inclusive = true;
+        self.send_email = false;
+
       self.simulateQuery = false;
       self.isDisabled    = false;
       $scope.onlyNumbers = /^\d+$/;
-  
+
       self.repos;
       self.querySearch   = querySearch;
       self.selectedItemChange = selectedItemChange;
       self.searchTextChange   = searchTextChange;
       self.searchText
-      
+
       self.table_headers = false;
-  
+
       self.submit_enable = false;
       self.qty_switch;
-  
+
       self.names = ['Delivery Challan', 'Pre Order'];//['Delivery Challan', 'sample', 'R&D']
       self.nw_status = "";
       self.sku_data_filtered = [];
       self.style_based_sku_data = [];
 
-      
+
       $http.get(urlService.mainUrl+'rest_api/get_file_content/?name=sku_master&user='+urlService.userData.parent_id)
            .then( function(data) {
               self.sku_data_filtered = data.data.file_content.slice(0,500);
@@ -40,7 +41,7 @@
               self.selected_skus = [];
             },function(error){
               getOflfineSkuContent();
-              
+
             });
 
       //get offline sku conntent
@@ -49,7 +50,7 @@
                 if(data.length==0){
                   if(self.sku_data.length<0)
                     urlService.show_toast("offline has no sku's");
-                  
+
                   //uncheck selected sku's
                   for(var sk in self.sku_data_filtered) {
                     self.sku_data_filtered[sk]["checked"] = false;
@@ -64,12 +65,12 @@
                   self.selected_skus = [];
                   intialiseMultiSelectData(self.sku_data);
                 }else{
-                  self.sku_data = data;  
+                  self.sku_data = data;
                   intialiseMultiSelectData(self.sku_data);
                   self.selected_skus = [];
                 }
               });
-      }     
+      }
 
     self.change_config = change_config;
     function change_config(switch_value, switch_name) {
@@ -119,8 +120,8 @@
             }).catch(function(error){
               console.log("tax_inclusive_switch issue getting data from local db "+error);
               $(".preloader").removeClass("ng-show").addClass("ng-hide");
-            });  
-         
+            });
+
     });
       self.check_sku = check_sku;
       self.checked_sku = false;
@@ -198,7 +199,7 @@
       self.slice_to = 500;
       self.sku_data_filtered=data.slice(self.slice_from,self.slice_to );
      }
-    
+
     self.hide_load = hide_load;
     function hide_load(last) {
       //last ? $(".preloader").addClass("ng-hide") : $(".preloader").removeClass("ng-hide");
@@ -288,7 +289,7 @@
           self.skus[i].sgst = self.skus[i].cgst = self.skus[i].igst = self.skus[i].utgst = 0;
         }
           if (!self.tax_inclusive) {
-            self.skus[i].price = parseFloat((self.skus[i].quantity * self.skus[i].unit_price).toFixed(2));
+            self.skus[i].price = parseFloat((self.skus[i].quantity * Math.abs(self.skus[i].unit_price)).toFixed(2));
             urlService.current_order.summary.total_amount += self.skus[i].price;
             urlService.current_order.summary.subtotal += self.skus[i].price;
             var total_tax_percent =  self.skus[i].sgst_percent + self.skus[i].cgst_percent + self.skus[i].igst_percent + self.skus[i].utgst_percent
@@ -319,8 +320,8 @@
           urlService.current_order.summary.total_quantity += self.skus[i].quantity;
           var discount = (((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100);
           discount = (urlService.current_order.summary.total_discount/self.skus.length);
-          var agg = (self.skus[i].price + (self.skus[i].cgst*self.skus[i].quantity) + (self.skus[i].sgst*self.skus[i].quantity));
-          var tax_amt = agg - (self.skus[i].cgst_percent *(agg/100)) - (self.skus[i].sgst_percent *(agg/100)) - discount;
+          var agg = (self.skus[i].price);
+          var tax_amt = agg - discount;
           if(Object.keys(urlService.current_order.summary.gst_based).includes(self.skus[i].cgst_percent.toString())) {
               if (self.tax_inclusive) {
                 urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] += (self.skus[i].cgst_percent * (agg/100));
@@ -343,7 +344,7 @@
           urlService.current_order.summary.total_returned += -self.skus[i].price;
           }
       else
-          
+
           if ((self.skus.length-1) == i) {
             urlService.current_order.summary.total_amount = urlService.current_order.summary.total_amount;
 
@@ -370,9 +371,14 @@
         angular.forEach(urlService.current_order.summary.paymenttype_values, function (index_value, index) {
           self.payment[index_value['type_name']] = index_value['type_value'];
         })
-        delete(urlService.current_order.summary.paymenttype_values);
-        $rootScope.$broadcast('empty_payment_values');
-        urlService.current_order.summary.payment = self.payment;
+        if (urlService.current_order.customer_data.Number  && urlService.current_order.customer_data.FirstName) {
+          if(isNaN(urlService.current_order.customer_data.Number)){
+            alert("Please Enter Valid Phone Number")
+          }
+          else{
+          delete(urlService.current_order.summary.paymenttype_values);
+          $rootScope.$broadcast('empty_payment_values');
+          urlService.current_order.summary.payment = self.payment;
         if(self.issue_selected !== "Pre Order") {
             if (urlService.current_order.sku_data.length > 0) {
                 if (urlService.current_order.customer_data.Number == null) {
@@ -427,25 +433,46 @@
             }
         }
       }
+    }
+      else{
+          alert("Please Fill the Customer Number and Customer Name");
+      }
+      }
 
       //print order
       self.print_order = print_order;
       function print_order(data,user) {
-  
+
         var date = new Date().toDateString();
 
         if (data.summary.issue_type == 'Delivery Challan') {
+          if(self.send_email)
+          {
+            var data_dict = {}
+            data_dict['data'] = urlService.current_order;
+            data_dict ['user'] = urlService.userData;
+            data_dict ['date'] = date;
+            data_dict ['print'] = '';
+            data_dict ['print_type'] = '';
+
+         $http.post( urlService.mainUrl+'rest_api/pos_send_mail/',data_dict).
+          then(function(data) {
+
+          })
+        }
+        else{
            printer.print('/app/views/print.html', {'data': urlService.current_order, 'user':urlService.userData, 'print': '',
                         'date': date, 'print_type': ''});
+          }
          } else {
            printer.print('/app/views/pre_order_print.html', {'data': urlService.current_order, 'user':urlService.userData, 'print': '',
                        'date': date, 'print_type': ''});
          }
       }
-  
+
       self.store_data = store_data;
       function store_data(data, state) {
-  
+
         data['status'] = state;
         if (urlService.hold_data.length == 5) {
           urlService.hold_data.splice(0,1);
@@ -454,16 +481,19 @@
           urlService.hold_data.push(data);
         }
       }
-  
+
       //clear all fields
       self.clear_fields = clear_fields;
       function clear_fields() {
-  
+
         self.searchText = '';
         self.table_headers = false;
         urlService.current_order = {"customer_data" : {"FirstName": "", "Number": "", "value": ""},
                                     "customer_extra": {},
                                     "sku_data" : [],
+                                    "payment_mode":"",
+                                    "card_name":'',
+                                    "reference_number":'',
                                     "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0,
                                     "issue_type": self.issue_selected, "order_id": 0, "nw_status": "online", 'invoice_number': '',
                                     "order_date":'', 'staff_member': urlService.default_staff_member},
@@ -493,18 +523,18 @@
            //debugger;
         }
       }*/
-  
+
       // unhold holded customer order
       $scope.$on('change_current_order', function(){
 
         self.skus = urlService.current_order.sku_data;
         self.table_headers = ( self.skus.length>0 )? true : false;
       })
-  
+
       // ajax call to send data to backend
       self.customer_order = customer_order;
       function customer_order(data) {
- 
+
         data["summary"]["nw_status"] = 'online';
         self.submit_enable = true;
 
@@ -518,7 +548,7 @@
         }else{
             data.status="0";
         }
-  
+
               data.summary.nw_status = ONLINE;
               var order_data=Object.assign({},data);
             var data = $.param({
@@ -563,7 +593,7 @@
 
             setSynOrdersData(urlService.userData.parent_id,order_data,self.qty_switch).
                   then(function(data){
-    
+
                       if(data.is_all_return==true){
                         urlService.current_order.order_id = "return";
                       }else{
@@ -575,10 +605,10 @@
                       print_order(urlService.current_order, urlService.userData)
                       console.log(data);
                       self.submit_enable = false;
-                                 
-                                       
+
+
                     }).then(function(){
-  
+
                       clear_fields();
                        //auto sync when network available
                       syncPOSData(false).then(function(data){
@@ -586,7 +616,7 @@
                        // $rootScope.sync_status = false;
                        // $rootScope.$broadcast('change_sync_status');
                       });
-  
+
                     }).catch(function(error){
                        console.log("order saving error "+error);
                        urlService.show_toast("order creation error "+error);
@@ -594,7 +624,7 @@
 
           });
        }
-  
+
       self.hold_data = hold_data;
       function hold_data() {
         if (urlService.current_order.sku_data.length > 0 && urlService.current_order.customer_data.FirstName.length > 0) {
@@ -613,7 +643,7 @@
           manageData.prepForBroadcast("clear");
         }
       }
-  
+
       self.get_product_data = get_product_data;
 
       function update_search_results(filter_data, key) {
@@ -641,13 +671,13 @@
                 }
               }
               if (!self.repeated_data) {
-             
+
                 if (!self.qty_switch && !self.return_switch && self.issue_selected === "Delivery Challan" && filter_data[i].stock_quantity == 0) {
                   alert("Given SKU stock is empty.");
                   $('input[name="selected_sku"][value="'+filter_data[0]["SKUCode"]+'"]').prop("checked", false);
                   break;
                 } else {
-  
+
                   //var quantity = (filter_data[i].stock_quantity > 0) ? 1: 0;
                   //Change the quantity to 1
                   var quantity = 1;
@@ -670,14 +700,14 @@
                                   'utgst_percent': filter_data[i].utgst, 'return_status': self.return_switch.toString()});
                   urlService.current_order.sku_data = self.skus;
                   break;
-  
+
                 }
               }
             }
            }
           }
         }
-  
+
       function get_product_data(key, style_switch) {
 
           if(key.length>1){
@@ -704,10 +734,10 @@
                     repo.value = repo.search.toLowerCase();
                     return repo;
                     });
-                    
+
                  if(data.length === 1)
                     update_search_results(data, data[0].SKUCode);
-                  
+
                  }
                  deferred.resolve(querySearch (key));
                  deferred.promise.then(function(data){
@@ -715,7 +745,7 @@
                     self.changeQuantity(value);
                   });
                  });
-                      
+
                 },function(error){
                   console.log("offline");
                    getData(key).then(function(data){
@@ -725,7 +755,7 @@
                         repo.value = repo.search.toLowerCase();
                         return repo;
                         });
-                      
+
                       if(data.length === 1)
                         update_search_results(data, data[0].SKUCode);
 
@@ -750,29 +780,29 @@
         }
       return [];
     }
-  
-  
+
+
       self.removeProduct = removeProduct;
       function removeProduct(name) {
-  
+
         for (i = 0; i < self.skus.length; i++) {
-  
+
           if (name ==  self.skus[i].name) {
-  
+
             self.skus.splice(i, 1);
             cal_total();
             break;
           }
         }
       }
-  
+
       self.increaseQuantity = increaseQuantity;
     function increaseQuantity(code) {
-  
+
         for (i = 0; i < self.skus.length; i++) {
-  
+
           if (code ==  self.skus[i].sku_code) {
-  
+
             self.skus[i].quantity += 1;
             self.skus[i].price = self.skus[i].unit_price * self.skus[i].quantity;
             cal_total();
@@ -780,43 +810,43 @@
           }
         }
       }
-  
+
       self.decreaseQuantity = decreaseQuantity;
       function decreaseQuantity(code) {
-  
+
         for (i = 0; i < self.skus.length; i++) {
-  
+
           if ((code ==  self.skus[i].sku_code) && (self.skus[i].quantity > 1)) {
-  
+
             self.skus[i].quantity -= 1;
             self.skus[i].price = self.skus[i].unit_price * self.skus[i].quantity;
             cal_total();
             break;
           } else if (self.skus[i].quantity == 1) {
-  
+
             self.skus.splice(i, 1);
             cal_total();
             break;
           }
         }
       }
-  
+
       self.update_quantity = 0;
       self.changeQuantity = changeQuantity;
       function changeQuantity(item) {
         console.log(item);
-  
+
         if (!self.qty_switch && !self.return_switch && self.issue_selected === "Delivery Challan" && item.quantity > item.stock_quantity) {
           alert("Given Quantity is more than Stock Quantity.");
         item.quantity = item.stock_quantity;
         }
-  
+
         for (var i = 0; i < self.skus.length ; i ++) {
-  
+
           if (self.skus[i].sku_code == item.sku_code){
-  
+
             if( (item.quantity == 0) || (item.quantity == "0")) {
-  
+
               self.skus.splice(i, 1);
               cal_total();
               var indx = self.selected_skus.indexOf(item.sku_code);
@@ -838,16 +868,16 @@
         }
         cal_total();
       }
-  
+
       self.changePrice = changePrice;
       function changePrice(item, prev) {
         console.log(item);
         if(item.price !== prev) {
-  
+
             for (var i = 0; i < self.skus.length ; i ++) {
-      
+
               if (self.skus[i].sku_code == item.sku_code){
-      
+
                 if( (item.price == 0) || (item.price == "0")) {
                   item.price = 0;
                   item.unit_price = 0;
@@ -875,8 +905,8 @@
         }
         cal_total();
       }
-      
-  
+
+
       // Internal methods
       function querySearch (query) {
         var results = query ? self.repos.filter( createFilterFor(query) ) : self.repos,
@@ -889,7 +919,7 @@
           return results;
         }
       }
-  
+
       function searchTextChange(text) {
         $log.info('Text changed to ' + text);
       }
@@ -908,17 +938,17 @@
           self.searchText = "";
         }
       }
-  
+
       // Create filter function for a query string
       function createFilterFor(query) {
         var lowercaseQuery = angular.lowercase(query);
-  
+
         return function filterFn(item) {
         return (item.value.indexOf(lowercaseQuery) >= 0);
         };
-  
+
       }
-  
+
       //printer.print('/HOME1/app/views/print.html', {patient: {name: 'Ram Kumar', dateOfBirth: '1978-08-23', gender: 'M'}})
       self.print = print
       var print = function (templateUrl, data) {
@@ -936,13 +966,13 @@
           waitForRenderAndPrint();
       });
      };
-  
+
       $scope.filterValue = function($event){
               if(isNaN(String.fromCharCode($event.keyCode))){
                         $event.preventDefault();
                         }
                };
-  
+
       }]
     })
   }(window.angular));

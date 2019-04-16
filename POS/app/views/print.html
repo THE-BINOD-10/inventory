@@ -98,8 +98,18 @@
         <tr ng-repeat="item in data.sku_data">
           <td> {{item.name}} </td>
           <td> {{item.quantity}} </td>
-          <td> {{item.unit_price + item.sgst + item.cgst + (item.selling_price*item.discount/100)| number:2}} </td>
-          <td> {{((item.unit_price + item.sgst + item.cgst + (item.selling_price*item.discount/100)) * item.quantity) | number:2}}</td>
+          <!-- <td ng-if = "print_type == 'DUPLICATE'">
+            {{ (item.unit_price + item.sgst/item.quantity + item.cgst/item.quantity + (item.selling_price*item.discount/100)) | number:2 }}
+          </td> -->
+          <td>
+            {{item.selling_price | number:2}}
+          </td>
+          <td ng-if = "print_type == 'DUPLICATE'">
+            {{((item.unit_price + item.sgst + item.cgst + (item.selling_price*item.discount/100)) * item.quantity) | number:2}}
+          </td>
+          <td ng-if = "print_type != 'DUPLICATE'">
+            {{((item.unit_price + item.sgst/item.quantity + item.cgst/item.quantity + (item.selling_price*item.discount/100)) * item.quantity) | number:2}}
+          </td>
         </tr>
       </tbody>
     </table>
@@ -149,6 +159,21 @@
     </table>
   </div>
   <hr>
+
+  <hr>
+    <p align="center">Payment Mode</p>
+  <hr>
+  <div class="vat-cal table-pro col-md-12">
+      <span class="pull-left">  {{ data.payment_mode }} </span>
+      <span class="pull-right" ng-if = "data.payment_mode == 'Paytm'|| data.payment_mode == 'PhonePe' ||data.payment_mode == 'GooglePay'||data.payment_mode == 'Card'">  {{data.reference_number }} </span>
+      <div ng-if = "data.payment_mode == 'Card'" >
+      <span class="pull-right">  {{data.card_name["key"] }} </span>
+      </div>
+  </div>
+  <hr>
+  <div class="vat-cal table-pro col-md-12">
+      <span class="pull-left">  {{ user.pos_remarks }} </span>
+  </div>
   <!--
   <div class="total">
     <div class="product-total">
@@ -167,4 +192,3 @@
   <p align="center">!!! THANK YOU VISIT AGAIN !!!</p>
   <hr>
 </div>
-

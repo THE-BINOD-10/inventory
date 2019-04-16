@@ -20,7 +20,7 @@
         {{record.title}}
         </td>
         <td>{{record.quantity}}</td>
-        <td ng-if="permissions.show_mrp">{{record.amt | number:2}}</td>
+        <td ng-if="permissions.show_mrp">{{record.mrp | number:2}}</td>
         <td>{{record.unit_price | number:2}}</td>
         <!-- <td>{{record.discount}}</td> -->
         <td>{{(record.taxes.cgst_tax) + (record.taxes.sgst_tax) + (record.taxes.igst_tax)}}</td>

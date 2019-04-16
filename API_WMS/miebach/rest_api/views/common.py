@@ -1403,11 +1403,12 @@ def auto_po(wms_codes, user):
             if moq <= 0:
                 continue
             suggestions_data = OpenPO.objects.filter(sku_id=sku.id, sku__user=user, status__in=['Automated', 1])
+            order_quantity = max(qty,moq)
             if not suggestions_data:
                 po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
                 po_suggestions['sku_id'] = sku.id
                 po_suggestions['supplier_id'] = supplier_master_id
-                po_suggestions['order_quantity'] = moq
+                po_suggestions['order_quantity'] = order_quantity
                 po_suggestions['status'] = 'Automated'
                 po_suggestions['price'] = price
                 po_suggestions.update(taxes)

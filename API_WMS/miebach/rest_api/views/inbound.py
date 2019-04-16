@@ -1411,6 +1411,7 @@ def get_mapping_values(request, user=''):
             'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
     if sku_supplier:
         if sku_supplier[0].costing_type == 'margin_based':
+            margin_percentage = sku_supplier[0].margin_percentage
             prefill_unit_price = sku_master.mrp - ((sku_master.mrp * margin_percentage)/100)
             data['price'] = prefill_unit_price
         else:

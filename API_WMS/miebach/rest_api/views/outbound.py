@@ -2305,20 +2305,6 @@ def picklist_confirmation(request, user=''):
                                 rista_order_dict[original_order_id_str] = []
                                 rista_order_dict[original_order_id_str].append(sku_code_dict)
 
-		    #StoreHippo COnfirm Picklist
-		    check_storehippo_user = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
-                    if check_storehippo_user and picklist.order:
-                        original_order_id_str = str(picklist.order.order_reference)
-                        picking_count1 = int(picking_count1)
-                        if picking_count1:
-                            sku_code_str = picklist.order.sku.sku_code
-                            sku_code_dict = {}
-                            sku_code_dict[sku_code_str] = picking_count1
-                            if original_order_id_str in storehippo_order_dict.keys():
-                                storehippo_order_dict[original_order_id_str].append(sku_code_dict)
-                            else:
-                                storehippo_order_dict[original_order_id_str] = []
-                                storehippo_order_dict[original_order_id_str].append(sku_code_dict)
                     picklist.save()
                     if user_profile.user_type == 'marketplace_user' and picklist.order:
                         create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,
@@ -2365,31 +2351,6 @@ def picklist_confirmation(request, user=''):
     	    rista_order_id = list(set(rista_order_id_list))
     	    rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
 
-        #Check StoreHippo User
-        check_store_hippo = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
-    	if len(check_store_hippo):
-            to_fulfill = {}
-            to_fulfill_list = []
-            alert_message_for_email = LOAD_CONFIG.get('storehippo', 'alert_message_for_email', '')
-            send_alert_msg_to = eval(LOAD_CONFIG.get('storehippo', 'send_alert_msg_to', ''))
-            body_of_alert_email = LOAD_CONFIG.get('storehippo', 'body_of_alert_email', '')
-    	    for key, value in storehippo_order_dict.iteritems():
-                items_list = []
-                for obj in value:
-                    sku = obj.keys()[0]
-                    quantity = obj.values()[0]
-                    items_list.append({'sku':sku, 'quantity':quantity})
-                    to_fulfill = {'order_id': key, 'items': items_list}
-                    to_fulfill_list.append(to_fulfill)
-    	    from rest_api.views.easyops_api import *
-    	    for integrate in check_store_hippo:
-                obj = eval(integrate.api_instance)(company_name=integrate.name, user=user.id)
-                storehippo_response = obj.storehippo_fulfill_orders(to_fulfill_list, user)
-                if storehippo_response.get('status', False):
-                    storehippo_fulfillments_log.info('For User: ' + str(user.username) + ', Storehippo Order Confirm Response - ' + str(storehippo_response))
-                else:
-                    storehippo_fulfillments_log.info('For User : ' + str(user.username) + ' ,' + str(alert_message_for_email) + ', Response - ' + str(storehippo_response))
-                    send_mail(send_alert_msg_to, body_of_alert_email, 'For User : ' + str(user.username) + ' , ' + str(alert_message_for_email) + ', Response - ' + str(storehippo_response))
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
         order_ids = picks_all.values_list('order_id', flat=True).distinct()
@@ -7748,7 +7709,11 @@ def get_view_order_details(request, user=''):
     data_dict.append({'cus_data': cus_data, 'status': status_obj, 'ord_data': order_details_data,
                       'central_remarks': central_remarks, 'all_status': view_order_status, 'tax_type': tax_type,
                       'invoice_type': invoice_type, 'invoice_types': invoice_types, 'courier_name':courier_name})
-    return HttpResponse(json.dumps({'data_dict': data_dict}))
+    hide_buttons = False
+    check_storehippo_user = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
+    if check_storehippo_user:
+        hide_buttons = True
+    return HttpResponse(json.dumps({'data_dict': data_dict, 'hide_buttons':hide_buttons}))
 
 
 def get_stock_location_quantity_data(wms_code, location, user):

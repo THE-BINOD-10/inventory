@@ -112,7 +112,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                    vm.remarks = data.data.data_dict[0].remarks;
                    vm.cust_data = data.data.data_dict[0].cus_data;
                    vm.item_code = data.data.data_dict[0].item_code;
-                   vm.order_id = data.data.data_dict[0].order_id;;
+                   vm.order_id = data.data.data_dict[0].order_id;
+		   vm.hide_buttons = data.data.hide_buttons;
                    vm.img_url = vm.service.check_image_url('');
                    var custom_data = data.data.data_dict[0].customization_data;
                    if (custom_data.length === 0){

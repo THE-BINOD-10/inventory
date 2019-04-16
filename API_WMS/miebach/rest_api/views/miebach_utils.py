@@ -3767,32 +3767,29 @@ def get_order_summary_data(search_params, user, sub_user):
             for val in extra_vals:
                 if field == val['name']:
                     pos_extra[str(val['name'])] = str(val['value'])
-
+        invoice_number,invoice_date,quantity= '','',''
         if search_params.get('invoice','') == 'true':
-            invoice_number = ''
-            invoice_number_obj = SellerOrderSummary.objects.filter(order_id = data['id'])
-            if invoice_number_obj.exists() :
-                invoice_number = invoice_number_obj[0].invoice_number
-                if not invoice_no_gen.exists() or (invoice_no_gen and invoice_no_gen[0].creation_date >= invoice_number_obj[0].creation_date):
-                    if invoice_number_obj[0].order:
-                        invoice_number = str(invoice_number_obj[0].order.order_id)
-                    else:
-                        invoice_number = str(invoice_number_obj[0].seller_order.order.order_id)
+            invoice_number = data['sellerordersummary__invoice_number']
+            if not invoice_number :
+                invoice_number_obj = SellerOrderSummary.objects.filter(order_id = data['id'])
+                if invoice_number_obj.exists() :
+                    invoice_number = invoice_number_obj[0].invoice_number
+                    if not invoice_no_gen.exists() or (invoice_no_gen and invoice_no_gen[0].creation_date >= invoice_number_obj[0].creation_date):
+                        if invoice_number_obj[0].order:
+                            invoice_number = str(invoice_number_obj[0].order.order_id)
+                        else:
+                            invoice_number = str(invoice_number_obj[0].seller_order.order.order_id)
 
-            if data['sellerordersummary__creation_date'] :
-                invoice_date = get_local_date(user,data['sellerordersummary__creation_date'])
-            else:
-                invoice_date =''
-            user_profile = UserProfile.objects.get(user_id=user.id)
-            if user_profile.user_type == 'marketplace_user':
-                quantity = SellerOrderSummary.objects.filter(seller_order__order_id=data['id'], invoice_number=data['sellerordersummary__invoice_number']).aggregate(Sum('quantity'))['quantity__sum']
-            else:
-                quantity = SellerOrderSummary.objects.filter(order_id=data['id'], invoice_number=data['sellerordersummary__invoice_number']).aggregate(Sum('quantity'))['quantity__sum']
+                if data['sellerordersummary__creation_date'] :
+                    invoice_date = get_local_date(user,data['sellerordersummary__creation_date'])
+                else:
+                    invoice_date =''
+                user_profile = UserProfile.objects.get(user_id=user.id)
+                if user_profile.user_type == 'marketplace_user':
+                    quantity = SellerOrderSummary.objects.filter(seller_order__order_id=data['id'], invoice_number=data['sellerordersummary__invoice_number']).aggregate(Sum('quantity'))['quantity__sum']
+                else:
+                    quantity = SellerOrderSummary.objects.filter(order_id=data['id'], invoice_number=data['sellerordersummary__invoice_number']).aggregate(Sum('quantity'))['quantity__sum']
 
-        else:
-            invoice_number = ''
-            invoice_date = ''
-            quantity = ''
         try:
             #serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data.sku.sku_code,order__original_order_id=order_id,po_imei__sku__user=user.id)
             serial_number = OrderIMEIMapping.objects.filter(order__id=data['id'])

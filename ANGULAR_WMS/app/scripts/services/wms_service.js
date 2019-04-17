@@ -408,7 +408,6 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     }
 
     vm.generate_report = function(instance, data)  {
-
       var temp = {};
       angular.copy(data, temp);
       instance.DataTable.context[0].ajax.data = temp;

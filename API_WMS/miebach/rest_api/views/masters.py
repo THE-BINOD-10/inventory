@@ -760,7 +760,6 @@ def get_sku_data(request, user=''):
 
     filter_params = {'id': data_id, 'user': user.id}
     data = get_or_none(SKUMaster, filter_params)
-    import pdb;pdb.set_trace()
 
     filter_params = {'user': user.id}
     zones = filter_by_values(ZoneMaster, filter_params, ['zone'])
@@ -1029,7 +1028,6 @@ def update_sku(request, user=''):
         if image_file:
             save_image_file(image_file, data, user)
         setattr(data, 'enable_serial_based', False)
-        import pdb;pdb.set_trace()
         for key, value in request.POST.iteritems():
 
             if 'attr_' in key:
@@ -1773,7 +1771,8 @@ def get_supplier_list(request, user=''):
     supplier_list = []
     for supplier in suppliers:
         supplier_list.append({'id': supplier.id, 'name': supplier.name})
-    return HttpResponse(json.dumps({'suppliers': supplier_list}))
+    costing_type = ['Price Based', 'Margin Based']
+    return HttpResponse(json.dumps({'suppliers': supplier_list, 'costing_type': costing_type}))
 
 
 def validate_bom_data(all_data, product_sku, user):

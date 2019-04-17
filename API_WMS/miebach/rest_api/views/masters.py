@@ -826,7 +826,11 @@ def get_sku_data(request, user=''):
     sku_data['shelf_life'] = data.shelf_life
     sku_data['measurement_type'] = data.measurement_type;
     sku_data['youtube_url'] = data.youtube_url;
-    sku_data['enable_serial_based'] = data.enable_serial_based
+    sku_data['enable_serial_based'] = data.enable_serial_based;
+    sku_data['block_for_po'] = 'No'
+    if data.block_for_po == 'PO':
+        sku_data['block_for_po'] = 'Yes';
+    
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
         sku_data['size_type'] = sku_fields[0].field_value
@@ -1079,6 +1083,11 @@ def update_sku(request, user=''):
                 storehippo_sync_price_value(user, {'wms_code':wms_code, 'price':value})
             if key in number_fields and not value:
                 value = 0
+            elif key == 'block_for_po':
+                if value == '0':
+                    value = 'PO'
+                else:
+                    value = ''
             setattr(data, key, value)
         data.save()
         update_sku_attributes(data, request)
@@ -2405,10 +2414,11 @@ def insert_sku(request, user=''):
                             value = 0
                         else:
                             value = 1
-                    #elif key == 'ean_number' and value:
-                    #    ean_status = check_ean_number(wms, value, user)
-                    #    if ean_status:
-                    #        return HttpResponse(ean_status)
+                    elif key == 'block_for_po':
+                        if value == '0':
+                            value = 'PO'
+                        else:
+                            value = ''
                     if value == '':
                         continue
                     data_dict[key] = value
@@ -2417,8 +2427,8 @@ def insert_sku(request, user=''):
             sku_master = SKUMaster(**data_dict)
             sku_master.save()
             contents = {"en": "New SKU %s is created." % data_dict['sku_code']}
-            send_push_notification(contents, notified_users)
-            update_sku_attributes(sku_master, request)
+            #send_push_notification(contents, notified_users)
+            #update_sku_attributes(sku_master, request)
             image_file = request.FILES.get('files-0', '')
             if image_file:
                 save_image_file(image_file, sku_master, user)

@@ -125,6 +125,7 @@ class SKUMaster(models.Model):
     shelf_life = models.IntegerField(default=0)
     youtube_url = models.CharField(max_length=64, default='')
     enable_serial_based = models.IntegerField(default=0)
+    block_for_po = models.CharField(max_length=5, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

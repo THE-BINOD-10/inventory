@@ -88,7 +88,7 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'price': 0,
             'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': 0, 'product_type': '',
             'sub_category': '', 'primary_category': '', 'cost_price': 0, 'sequence': 0, 'image_url': '',
-            'measurement_type': '', 'sale_through': '', 'shelf_life': 0, 'enable_serial_based': 0}
+            'measurement_type': '', 'sale_through': '', 'shelf_life': 0, 'enable_serial_based': 0, 'block_for_po': ''}
 
 STOCK_TRANSFER_FIELDS = {'order_id': '', 'invoice_amount': 0, 'quantity': 0, 'shipment_date': datetime.datetime.now(),
                          'st_po_id': '', 'sku_id': '', 'status': 1}

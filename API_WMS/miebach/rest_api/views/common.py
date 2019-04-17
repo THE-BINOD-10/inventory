@@ -3696,7 +3696,6 @@ def search_wms_data(request, user=''):
     search_key = request.GET.get('q', '')
     total_data = []
     limit = 10
-
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 

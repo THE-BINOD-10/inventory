@@ -61,9 +61,10 @@
       <div class="col-md-4 col-sm-6 col-xs-6">
         <div class="form-group">
           <label class="col-md-6 control-label"> Margin Percentage </label>
-          <input type="text" name="margin_percentage" class="form-control" ng-model="showCase.model_data.margin_percentage" decimal-number>
+          <input type="number" min="0" max="100" name="margin_percentage" class="form-control" ng-model="showCase.model_data.margin_percentage" decimal-number>
         </div>
       </div>
+
     </div>
           <div class="row insert-status">
             <h4 style="text-align: center;">{{showCase.service.message}}</h4>

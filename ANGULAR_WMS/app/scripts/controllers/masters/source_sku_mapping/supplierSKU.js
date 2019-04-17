@@ -93,7 +93,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   // add or update supplier sku mapping
   vm.supplier_sku = function(url) {
-
     vm.service.apiCall(url, 'POST', vm.model_data, true).then(function(data){
       if(data.message) {
         if(data.data == "Updated Successfully" || data.data == "Added Successfully") {

@@ -3666,6 +3666,10 @@ def get_order_summary_data(search_params, user, sub_user):
         for i in tmp:
             extra_fields.append(str(i))
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
+    milkbasket_user = False
+    milkbasket_users = copy.deepcopy(MILKBASKET_USERS)
+    if user.username in milkbasket_users :
+        milkbasket_user = True
     total_row = {}
     total_row = OrderedDict((('Order Date', ''), ('Order ID', ""),('Customer Name', ""),('Order Number' ,""),
     ('SKU Brand', ""),('SKU Category', ''),('SKU Class', ''),('SKU Size', ''), ('SKU Description', ''),
@@ -3684,7 +3688,12 @@ def get_order_summary_data(search_params, user, sub_user):
     order_extra_fields ={}
     for extra in extra_order_fields :
         order_extra_fields[extra] = ''
+    if  milkbasket_user :
+        cost_price_dict ={}
+        cost_price_dict['Cost Price'] = ''
+        temp_data['aaData'][0].update(OrderedDict(cost_price_dict))
     temp_data['aaData'][0].update(OrderedDict(order_extra_fields))
+
 
     for data in orders.iterator():
         count = count + 1
@@ -3698,6 +3707,7 @@ def get_order_summary_data(search_params, user, sub_user):
             order_id = data['original_order_id']
         payment_type = ''
         reference_number = ''
+
         if  'DC'  in data['order_code'] or 'PRE' in data['order_code']:
             payment_obj = OrderFields.objects.filter(original_order_id=data['original_order_id'], \
                                    name__contains='payment', user=user.id)
@@ -3709,6 +3719,22 @@ def get_order_summary_data(search_params, user, sub_user):
             if reference_obj.exists():
                 reference_obj = reference_obj[0]
                 reference_number = reference_obj.value
+        cost_price = 0
+        cost_price_dict = {}
+        if milkbasket_user :
+            picklist_obj = Picklist.objects.filter(order_id = data['id'] ,order__user = user.id, picked_quantity__gt=0)
+            qty_price = dict(picklist_obj.values_list('order__sku__wms_code').distinct()\
+            .annotate(weighted_cost=Sum(F('stock__batch_detail__buy_price') * F('picked_quantity'))))
+
+            sku_count = dict(picklist_obj.values_list('order__sku__wms_code').distinct().annotate(count_qty=Count('order__sku__wms_code')))
+            if sku_count and qty_price :
+                sku_count = sku_count.values()[0]
+                qty_price = qty_price.values()[0]
+                if sku_count > 0 and qty_price > 0 :
+                    cost_price = float(qty_price / sku_count)
+
+            cost_price_dict['Cost Price']  = cost_price
+
 
         # ['Open', 'Picklist generated', 'Partial Picklist generated', 'Picked', 'Partially picked']
         if not _status:
@@ -3834,6 +3860,7 @@ def get_order_summary_data(search_params, user, sub_user):
             order_extra_fields[extra] = ''
             if order_field_obj.exists():
                 order_extra_fields[order_field_obj[0].name] = order_field_obj[0].value
+
         aaData = OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                     ('Customer Name', customer_name),
                                                     ('Order Number' ,data['order_reference']),
@@ -3858,6 +3885,8 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('Payment Cash', payment_cash), ('Payment Card', payment_card),('Payment PhonePe', payment_PhonePe),
                                                     ('Payment Paytm', payment_Paytm),('Payment GooglePay', payment_GooglePay)))
         aaData.update(OrderedDict(pos_extra))
+        if milkbasket_user :
+            aaData.update(OrderedDict(cost_price_dict))
         aaData.update(OrderedDict(order_extra_fields))
         temp_data['aaData'].append(aaData)
     return temp_data

@@ -235,6 +235,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.filterData.selectedBrands = {};
         vm.filterData.subCats = {};
         vm.filterData.leastCats = {};
+        vm.get_category(true);
+
 
 	vm.brands = data.data.brands;
 	if (vm.brands.length === 0){

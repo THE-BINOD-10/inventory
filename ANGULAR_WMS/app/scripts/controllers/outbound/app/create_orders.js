@@ -215,7 +215,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
         vm.categories = data.data.categories;
         vm.all_cate = data.data.categories;
-
+        vm.get_category(true);
         Data.categories = data.data.categories;
         Data.sub_categories = data.data.sub_categories;
 
@@ -235,7 +235,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.filterData.selectedBrands = {};
         vm.filterData.subCats = {};
         vm.filterData.leastCats = {};
-        vm.get_category(true);
+
 
 
 	vm.brands = data.data.brands;

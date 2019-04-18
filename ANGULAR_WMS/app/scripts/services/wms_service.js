@@ -104,7 +104,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     vm.get_report_data = function(name){
       var send = {};
       var d = $q.defer();
-      if(vm.reports[name]) {
+      if(vm.reports[name] && name != 'order_summary_report') {
         d.resolve(vm.reports[name]);
       } else {
         vm.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data){
@@ -127,6 +127,9 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
         send.empty_data[data.name] = ""
       });
+
+      send.empty_data.from_date = ''
+      send.empty_data.to_date = ''
 
       send.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -416,7 +419,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     }
 
     vm.reset_data = function(from, to) {
-
+      
       angular.copy(from, to);
     }
 

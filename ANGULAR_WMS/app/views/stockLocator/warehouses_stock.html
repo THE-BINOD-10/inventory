@@ -20,7 +20,7 @@
             </div>
           </div>
 
-          <div class="row" ng-if="!(showCase.permissions.user_type=='central_admin' || showCase.permissions.user_type=='admin_sub_user')">
+          <div class="row" ng-if="!(showCase.permissions.user_type=='central_admin' || showCase.permissions.user_type=='admin_sub_user' || showCase.permissions.user_type=='sm_purchase_admin')">
             <div class="col-md-2 col-sm-4 col-xs-6 mb10 pull-right" style="height: 34px;padding-left: 0px;">
               <select class="form-control pull-right" ng-model="showCase.g_data.view" ng-change="showCase.change_datatable()">
                 <option ng-repeat="view in showCase.g_data.views" value="{{view}}" ng-selected="view == showCase.g_data.view"> {{view}}</option>
@@ -34,7 +34,7 @@
     
         <div class="panel-body" style="padding-left: 0px; padding-right: 0px">
           
-          <div class="col-sm-3 col-md-3 col-xs-3 mt25" style="float: right;" ng-if="showCase.permissions.user_type!='central_admin' && showCase.permissions.user_type!='admin_sub_user'">
+          <div class="col-sm-3 col-md-3 col-xs-3 mt25" style="float: right;" ng-if="showCase.permissions.user_type!='central_admin' && showCase.permissions.user_type!='admin_sub_user' && showCase.permissions.user_type!='sm_purchase_admin'">
             <label class="switch switch-sm square pull-right mt5">
             <div>
               <input type="checkbox" class="ng-pristine ng-valid" ng-change="showCase.alternate_view()" ng-model="showCase.alternate_view_value">
@@ -54,12 +54,12 @@
               </select>
             </div>
           </div>
-          <div class="hide" ng-if="showCase.permissions.user_type=='central_admin' || showCase.permissions.user_type=='admin_sub_user'">
+          <div class="hide" ng-if="showCase.permissions.user_type=='central_admin' || showCase.permissions.user_type=='admin_sub_user' || showCase.permissions.user_type=='sm_purchase_admin'">
               <select class="form-control pull-right" ng-init="showCase.g_data.view='Available+ASN'" ng-model="showCase.g_data.view" ng-change="showCase.change_datatable()">
                 <option ng-repeat="view in showCase.g_data.views" value="{{view}}" ng-selected="view == Available+ASN"> {{view}}</option>
               </select>
           </div>
-          <div class="col-md-3 col-sm-3 col-xs-3" ng-if="!showCase.alternate_view_value&&!showCase.permissions.user_type=='central_admin'&&!showCase.permissions.user_type=='admin_sub_user'">
+          <div class="col-md-3 col-sm-3 col-xs-3" ng-if="!showCase.alternate_view_value&&!showCase.permissions.user_type=='central_admin'&&!showCase.permissions.user_type=='admin_sub_user'&&!showCase.permissions.user_type=='sm_purchase_admin'">
             <div class="form-group">
               <label class="control-label"> Select View *</label>
               <select class="form-control pull-right" ng-model="showCase.g_data.view" ng-change="showCase.change_datatable()">
@@ -68,7 +68,7 @@
             </div>
           </div>
 
-          <div class="col-md-3 col-sm-3 col-xs-3" ng-if="showCase.alternate_view_value&&showCase.permissions.user_type!='central_admin'&&showCase.permissions.user_type!='admin_sub_user'">
+          <div class="col-md-3 col-sm-3 col-xs-3" ng-if="showCase.alternate_view_value&&showCase.permissions.user_type!='central_admin'&&showCase.permissions.user_type!='admin_sub_user'&&!showCase.permissions.user_type=='sm_purchase_admin'">
             <div class="form-group">
               <label class="control-label"> Warehouse Name *</label>
               <select class="form-control" name="warehouse_name" ng-model="showCase.warehouse_value" ng-change="showCase.get_sizetypes_for_warehouses()" required>

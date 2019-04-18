@@ -115,6 +115,7 @@
           <span>Save</span>
           <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process"></span>
         </button>
+        <button type="button" class="btn btn-warning pop pull-left" ng-if="showCase.user_type=='central_admin'" ng-click="showCase.sm_cancel_order_from_uploaded_pos(showCase.model_data.data.id)" ng-disabled = "showCase.cancelPoDisable">Cancel</button>
       </div>
 
     </div><!-- /.modal-content -->

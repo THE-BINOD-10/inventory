@@ -670,6 +670,34 @@ def delete_jo(request, user=''):
                                                                                                  str(e)))
         return HttpResponse("Delete Job Order Failed")
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def close_jo(request, user=''):
+    log.info('Request params for Cancel Job Order are ' + str(request.POST.dict()))
+    try:
+        job_code = request.POST.get('job_code', '')
+        remarks = request.POST.get('remarks', '')
+        status_dict = {'Vendor Produce': 'VP', 'Self Produce': 'SP'}
+        for key in status_dict:
+            job_order = JobOrder.objects.filter(job_code=job_code, order_type=status_dict[key],
+                                                product_code__user=user.id)
+            job_order_object = {}
+            if job_order:
+                job_order_object = job_order[0]
+                job_order_object.status = 'cancelled'
+                job_order_object.cancel_reason = remarks
+                job_order_object.save()
+        return HttpResponse("Cancelled Successfully")
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Cancel Job Order failed for %s and params are %s and error statement is %s' % (str(user.username),
+                                                                                                 str(
+                                                                                                     request.POST.dict()),
+                                                                                                 str(e)))
+        return HttpResponse("Cancel Job Order Failed")
+
 
 @csrf_exempt
 @login_required
@@ -1225,7 +1253,7 @@ def rm_picklist_confirmation(request, user=''):
                             picking_count1 = truncate_float(picking_count1, decimal_limit)
                             update_picked = picking_count1
                             # SKU Stats
-                            save_sku_stats(user, stock.sku_id, picklist.id, 'rm_picklist', update_picked)
+                            save_sku_stats(user, stock.sku_id, picklist.id, 'rm_picklist', update_picked, stock)
                             if pick_loc:
                                 update_picklist_locations(pick_loc, picklist, update_picked, '', decimal_limit)
                             else:
@@ -2165,7 +2193,7 @@ def jo_putaway_data(request, user=''):
                 mod_locations.append(stock_detail.location.location)
 
             # SKU Stats
-            save_sku_stats(user, stock_detail.sku_id, data.job_order_id, 'jo', float(val[1]))
+            save_sku_stats(user, stock_detail.sku_id, data.job_order_id, 'jo', float(val[1]), stock_detail)
             # Collecting data for auto stock allocation
             putaway_stock_data.setdefault(stock_detail.sku_id, [])
             putaway_stock_data[stock_detail.sku_id].append(data.job_order_id)
@@ -2722,7 +2750,8 @@ def confirm_back_order(request, user=''):
                         temp_data["customData"] = value
                     else:
                         temp_data[key] = value
-                temp_data['image_url'] = request.META['HTTP_ORIGIN'] + '/images/fabricColors/' + temp_data['customData']['colorDataDict'][temp_data['customData']['bodyColor']]
+                if temp_data["customData"] :
+                    temp_data['image_url'] = request.META['HTTP_ORIGIN'] + '/images/fabricColors/' + temp_data['customData']['colorDataDict'][temp_data['customData']['bodyColor']]
                 t = loader.get_template('templates/customOrderDetailsTwo.html')
                 rendered1 = t.render(temp_data)
         job_order_id = ''

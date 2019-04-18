@@ -514,6 +514,7 @@ class JobOrder(models.Model):
     jo_reference = models.PositiveIntegerField(default=0)
     order_type = models.CharField(max_length=32, default='SP')
     status = models.CharField(max_length=32, default='')
+    cancel_reason = models.TextField(default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1154,7 +1155,7 @@ class SkuTypeMapping(models.Model):
 
 class QCSerialMapping(models.Model):
     id = BigAutoField(primary_key=True)
-    quality_check = models.ForeignKey(QualityCheck)
+    quality_check = models.ForeignKey(QualityCheck, blank=True, null=True)
     serial_number = models.ForeignKey(POIMEIMapping)
     status = models.CharField(max_length=32, default='')
     reason = models.CharField(max_length=64, default='')
@@ -2682,6 +2683,7 @@ class TANDCMaster(models.Model):
 class SKUDetailStats(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    stock_detail = models.ForeignKey(StockDetail, blank=True, null=True)
     transact_id = models.IntegerField(default=0)
     transact_type = models.CharField(max_length=36, default='')
     quantity = models.FloatField(default=0)
@@ -2690,7 +2692,8 @@ class SKUDetailStats(models.Model):
 
     class Meta:
         db_table = 'SKU_DETAIL_STATS'
-        index_together = (('sku', 'transact_type'), ('sku', 'transact_type', 'transact_id'))
+        index_together = (('sku', 'transact_type'), ('sku', 'transact_type', 'transact_id'), ('sku', 'creation_date', 'transact_type'))
+
 
 class StockStats(models.Model):
     id = BigAutoField(primary_key=True)
@@ -2777,13 +2780,14 @@ class ManualEnquiry(models.Model):
 
     class Meta:
         db_table = 'MANUAL_ENQUIRY'
-        unique_together = ('enquiry_id', 'customer_name', 'user')
+        unique_together = ('enquiry_id', 'customer_name', 'user', 'sku')
 
 
 class ManualEnquiryDetails(models.Model):
     id = BigAutoField(primary_key=True)
-    user_id = models.PositiveIntegerField()
-    enquiry = models.ForeignKey(ManualEnquiry)
+    remarks_user_id = models.PositiveIntegerField()
+    order_user_id = models.PositiveIntegerField()
+    enquiry_id = models.DecimalField(max_digits=50, decimal_places=0)
     ask_price = models.FloatField(default=0)
     expected_date = models.DateField(blank=True, null=True)
     remarks = models.TextField(default='')
@@ -3021,6 +3025,19 @@ class RatingSKUMapping(models.Model):
         unique_together = ('rating', 'sku')
 
 
+class FeedbackMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    feedback_type = models.CharField(max_length=128, default='')
+    url_name = models.CharField(max_length=256, default='')
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    feedback_remarks = models.TextField()
+    feedback_image = models.ImageField(upload_to='static/images/feedback_images/', default='', blank=True)
+
+    class Meta:
+        db_table = 'FEEDBACK_MASTER'
+
+
 class PushNotifications(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, blank=True, null=True)
@@ -3091,6 +3108,23 @@ class TempJson(models.Model):
         index_together = ('model_id', 'model_name')
 
 
+class DispatchIMEIChecklist(models.Model):
+    id = BigAutoField(primary_key=True)
+    order_id = models.CharField(max_length=128, default='')
+    po_imei_num = models.ForeignKey(POIMEIMapping)
+    qc_name = models.CharField(max_length=128, default='')
+    qc_status = models.BooleanField(default=True)
+    final_status = models.BooleanField(default=True)
+    remarks = models.CharField(max_length=64, default='')
+    qc_type = models.CharField(max_length=32, default='sales_order')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'DISPATCH_IMEI_CHECKLIST'
+        unique_together = ('order_id', 'po_imei_num', 'qc_name')
+
+
 class OrderIMEIMapping(models.Model):
     id = BigAutoField(primary_key=True)
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
@@ -3126,3 +3160,21 @@ class ReturnsIMEIMapping(models.Model):
         db_table = 'RETURNS_IMEI_MAPPING'
         unique_together = ('order_imei', 'order_return')
         index_together = ('order_imei', 'order_return')
+
+
+class StockReconciliation(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster)
+    vendor_name = models.CharField(max_length=64, default='')
+    quantity = models.PositiveIntegerField()
+    report_type = models.CharField(max_length=64, default='')
+    avg_rate = models.FloatField(default=0)
+    amount_before_tax = models.FloatField(default=0)
+    tax_rate = models.FloatField(default=0)
+    cess_rate = models.FloatField(default=0)
+    amount_after_tax = models.FloatField(default=0)
+    created_date = models.DateField(blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'STOCK_RECONCILIATION'

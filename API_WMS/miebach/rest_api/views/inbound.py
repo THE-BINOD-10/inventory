@@ -1408,15 +1408,27 @@ def get_mapping_values(request, user=''):
         ean_number = 0
         sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, supplier_id=supplier_id, sku__user=user.id)
     sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
-    data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,
-            'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
-    if sku_supplier:
-        data['supplier_code'] = sku_supplier[0].supplier_code
-        data['price'] = sku_supplier[0].price
-        data['sku'] = sku_supplier[0].sku.sku_code
-        data['ean_number'] = ean_number
-        data['measurement_unit'] = sku_supplier[0].sku.measurement_type
-
+    if sku_master.block_for_po != "PO":
+        data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,
+                'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
+        if sku_supplier:
+            if sku_supplier[0].costing_type == 'Margin Based':
+                margin_percentage = sku_supplier[0].margin_percentage
+                prefill_unit_price = sku_master.mrp - ((sku_master.mrp * margin_percentage)/100)
+                data['price'] = prefill_unit_price
+            else:
+                data['price'] = sku_supplier[0].price
+            data['supplier_code'] = sku_supplier[0].supplier_code
+            data['sku'] = sku_supplier[0].sku.sku_code
+            data['ean_number'] = ean_number
+            data['measurement_unit'] = sku_supplier[0].sku.measurement_type
+        else:
+            sup_markdown = SupplierMaster.objects.get(id=supplier_id)
+            price_value = sku_master.mrp - ((sku_master.mrp * sup_markdown.markdown_percentage)/100)
+            data['price'] = price_value
+            data['ean_number'] = ean_number
+    else:
+        data = {}
     return HttpResponse(json.dumps(data), content_type='application/json')
 
 

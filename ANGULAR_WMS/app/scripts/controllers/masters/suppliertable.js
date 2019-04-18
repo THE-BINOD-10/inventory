@@ -140,21 +140,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
   vm.submit = function(data) {
-
     if (data.$valid) {
-
       if ("Add Supplier" == vm.title) {
-
         vm.supplier('insert_supplier/');
       } else {
-
         vm.supplier('update_supplier_values/');
       }
     } else {
-
-      vm.service.pop_msg('Please fill required fields');
+      vm.service.pop_msg('Please fill required fields OR Check Percentage Value 0 - 100');
     }
   }
+  
   //read files
     function readFile(input) {
       var deferred = $.Deferred();

@@ -305,7 +305,9 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('bank_name', data.bank_name), ('ifsc_code', data.ifsc_code),
                                                 ('branch_name', data.branch_name),
                                                 ('account_number', data.account_number),
-                                                ('account_holder_name', data.account_holder_name))))
+                                                ('account_holder_name', data.account_holder_name),
+                                                ('markdown_percentage', data.markdown_percentage)
+                                            )))
 
 
 @csrf_exempt
@@ -330,13 +332,16 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
             order_data)
 
     temp_data['recordsTotal'] = len(mapping_results)
-    temp_data['recordsFiltered'] = len(mapping_results)
-
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for result in mapping_results[start_index: stop_index]:
+        sku_preference = result.preference
+        if sku_preference:
+            sku_preference = int(sku_preference)
         temp_data['aaData'].append(OrderedDict((('supplier_id', result.supplier_id), ('wms_code', result.sku.wms_code),
                                                 ('supplier_code', result.supplier_code), ('moq', result.moq),
-                                                ('preference', int(result.preference)),
-                                                ('price', result.price), ('DT_RowClass', 'results'),
+                                                ('preference', sku_preference),
+                                                ('price', result.price), ('costing_type', result.costing_type), 
+                                                ('margin_percentage', result.margin_percentage), ('DT_RowClass', 'results'),
                                                 ('DT_RowId', result.id))))
 
 
@@ -796,7 +801,11 @@ def get_sku_data(request, user=''):
     sku_data['shelf_life'] = data.shelf_life
     sku_data['measurement_type'] = data.measurement_type;
     sku_data['youtube_url'] = data.youtube_url;
-    sku_data['enable_serial_based'] = data.enable_serial_based
+    sku_data['enable_serial_based'] = data.enable_serial_based;
+    sku_data['block_for_po'] = 'No'
+    if data.block_for_po == 'PO':
+        sku_data['block_for_po'] = 'Yes';
+    
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
         sku_data['size_type'] = sku_fields[0].field_value
@@ -1049,6 +1058,11 @@ def update_sku(request, user=''):
                 storehippo_sync_price_value(user, {'wms_code':wms_code, 'price':value})
             if key in number_fields and not value:
                 value = 0
+            elif key == 'block_for_po':
+                if value == '0':
+                    value = 'PO'
+                else:
+                    value = ''
             setattr(data, key, value)
         data.save()
         update_sku_attributes(data, request)
@@ -1741,7 +1755,8 @@ def get_supplier_list(request, user=''):
     supplier_list = []
     for supplier in suppliers:
         supplier_list.append({'id': supplier.id, 'name': supplier.name})
-    return HttpResponse(json.dumps({'suppliers': supplier_list}))
+    costing_type = ['Price Based', 'Margin Based']
+    return HttpResponse(json.dumps({'suppliers': supplier_list, 'costing_type': costing_type}))
 
 
 def validate_bom_data(all_data, product_sku, user):
@@ -2374,10 +2389,11 @@ def insert_sku(request, user=''):
                             value = 0
                         else:
                             value = 1
-                    #elif key == 'ean_number' and value:
-                    #    ean_status = check_ean_number(wms, value, user)
-                    #    if ean_status:
-                    #        return HttpResponse(ean_status)
+                    elif key == 'block_for_po':
+                        if value == '0':
+                            value = 'PO'
+                        else:
+                            value = ''
                     if value == '':
                         continue
                     data_dict[key] = value
@@ -2386,8 +2402,8 @@ def insert_sku(request, user=''):
             sku_master = SKUMaster(**data_dict)
             sku_master.save()
             contents = {"en": "New SKU %s is created." % data_dict['sku_code']}
-            send_push_notification(contents, notified_users)
-            update_sku_attributes(sku_master, request)
+            #send_push_notification(contents, notified_users)
+            #update_sku_attributes(sku_master, request)
             image_file = request.FILES.get('files-0', '')
             if image_file:
                 save_image_file(image_file, sku_master, user)
@@ -3973,7 +3989,9 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
                                                 ('bank_name', data.bank_name), ('ifsc_code', data.ifsc_code),
                                                 ('branch_name', data.branch_name),
                                                 ('account_number', data.account_number),
-                                                ('account_holder_name', data.account_holder_name))))
+                                                ('account_holder_name', data.account_holder_name),
+                                                ('markdown_percentage', data.markdown_percentage)
+                                            )))
     excel_headers = ''
     if temp_data['aaData']:
         excel_headers = temp_data['aaData'][0].keys()
@@ -3989,7 +4007,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
     'City', 'State', 'Days To Supply', 'Fulfillment Amount', 'Credibility', 'Country', 'Pincode',
     'Status', 'Supplier Type', 'Tax Type', 'PO Exp Duration', 'Owner Name',
     'Owner Number', 'Owner Email Id', 'Spoc Name', 'Spoc Number', 'Lead Time', 'Spoc Email ID', 'Credit Period',
-    'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name']
+    'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name', 'Markdown Percentage']
     try:
         wb, ws = get_work_sheet('skus', itemgetter(*excel_headers)(headers))
     except:

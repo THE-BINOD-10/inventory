@@ -188,11 +188,10 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
                 time_slot = time_slot.split("-")[0]
 
             shipment_data = shipment_data + ', ' + time_slot
-
-        try:
-            order_id = int(float(order_id))
-        except:
-            order_id = str(xcode(order_id))
+        # try:
+        #     order_id = int(float(order_id))
+        # except:
+        #     order_id = str(xcode(order_id))
         quantity = float(data.quantity)
         seller_order = all_seller_orders.filter(order_id=data.id).aggregate(Sum('quantity'))['quantity__sum']
         if seller_order:
@@ -8378,8 +8377,6 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
                         user_dict={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     user_dict = eval(user_dict)
-
-
     lis = ['order_id', 'customer_name', 'order_id', 'address', 'marketplace', 'total', 'shipment_date', 'date_only',
         'city', 'status']
 
@@ -14738,7 +14735,7 @@ def do_delegate_orders(request, user=''):
                             order_dict['address'] = customer_user[0].customer.address
 
                     #Order Detail Save Block
-                    original_order_id, address1, address2, client_code, village, state, pincode = '', '', '', '', '', '', ''
+                    original_order_id, address1, address2, client_code, village, state,marketplace, pincode = '','', '', '', '', '', '', ''
                     central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)#for 72 networks
 
                     if central_order_reassigning :
@@ -14762,6 +14759,8 @@ def do_delegate_orders(request, user=''):
                             state = obj['value']
                         if obj['name'] == "pincode":
                             pincode = obj['value']
+                        if obj['name'] == 'marketplace':
+                            marketplace = obj['value']
                     order_dict['customer_id'] = interm_obj.customer_id
                     order_dict['customer_name'] = interm_obj.customer_name
                     order_dict['email_id'] = ''
@@ -14770,11 +14769,11 @@ def do_delegate_orders(request, user=''):
                     order_dict['quantity'] = 1
                     order_dict['invoice_amount'] = inv_amt
                     order_dict['shipment_date'] = datetime.datetime.now()
-                    order_dict['marketplace'] = ''
                     order_dict['vat_percentage'] = 0
                     order_dict['status'] = 0
                     order_dict['city'] = village[:59]
                     order_dict['state'] = state
+                    order_dict['marketplace'] = marketplace
                     try:
                         order_dict['pin_code'] = int(pincode)
                     except:
@@ -15332,4 +15331,3 @@ def get_feedback_data(start_index, stop_index, temp_data, search_term, order_ter
         log.debug(traceback.format_exc())
         log.info('Exception raised while display feedback form for %s and params are %s and error statement is %s'
                  % (str(user.username), str(request.POST.dict()), str(e)))
-

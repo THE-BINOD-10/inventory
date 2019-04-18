@@ -3725,12 +3725,12 @@ def get_order_summary_data(search_params, user, sub_user):
             picklist_obj = Picklist.objects.filter(order_id = data['id'] ,order__user = user.id, picked_quantity__gt=0)
             qty_price = dict(picklist_obj.values_list('order__sku__wms_code').distinct()\
             .annotate(weighted_cost=Sum(F('stock__batch_detail__buy_price') * F('picked_quantity'))))
-            sku_count = dict(picklist_obj.values_list('order__sku__wms_code').distinct().annotate(count_qty=Sum('picked_quantity')))
-            if sku_count and qty_price :
-                sku_count = sku_count.values()[0]
+            sku_quantity = dict(picklist_obj.values_list('order__sku__wms_code').distinct().annotate(count_qty=Sum('picked_quantity')))
+            if sku_quantity and qty_price :
+                sku_quantity = sku_quantity.values()[0]
                 qty_price = qty_price.values()[0]
-                if sku_count > 0 and qty_price > 0 :
-                    cost_price = float(qty_price / sku_count)
+                if sku_quantity > 0 and qty_price > 0 :
+                    cost_price = float(qty_price / sku_quantity)
 
             cost_price_dict['Cost Price']  = cost_price
 

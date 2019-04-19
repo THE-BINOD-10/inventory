@@ -374,7 +374,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
 
   function upload_status(msg, index) {
 
-    if (msg != "Success" && msg != "Upload Fail" && msg.indexOf("Orders exceeded") === -1 && msg != 'Duplicate records Found') {
+    if (msg != "Success" && msg != "Upload Fail" && msg.indexOf("Orders exceeded") === -1) {
 
       $scope.uploads[parseInt(index)].download = "Download Error Form";
       $scope.uploads[parseInt(index)].value = msg;

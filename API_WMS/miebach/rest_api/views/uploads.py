@@ -6251,6 +6251,7 @@ def block_stock_download(request, user=''):
 @csrf_exempt
 def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_type=''):
     from stock_locator import get_quantity_data
+    block_stock_list = []
     index_status = {}
     blockstock_file_mapping = copy.deepcopy(BLOCK_STOCK_DEF_EXCEL)
     if not blockstock_file_mapping:
@@ -6274,18 +6275,21 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
         res_corp_names_map.setdefault(res_id, []).extend(corp_names)
 
     for row_idx in range(1, no_of_rows):
+        block_stock_dict = {}
         for key, value in blockstock_file_mapping.iteritems():
             cell_data = get_cell_data(row_idx, blockstock_file_mapping[key], reader, file_type)
             if key == 'sku_code':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add("SKU Code is missing")
                 else:
+                    block_stock_dict[key] = int(cell_data)
                     if cell_data not in sku_codes:
                         index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
             elif key == 'quantity':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add("Quantity Missing")
                 else:
+                    block_stock_dict[key] = int(cell_data)
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Invalid Quantity Amount')
                     else:
@@ -6307,6 +6311,7 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add("Reseller Name is missing")
                 else:
+                    block_stock_dict[key] = cell_data
                     if cell_data not in reseller_users:
                         index_status.setdefault(row_idx, set()).add("Reseller Name not found")
             elif key == 'corporate_name':
@@ -6314,7 +6319,8 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                 res_id = reseller_ids_map.get(res_code, '')
                 mapped_corp_names = res_corp_names_map.get(res_id, [])
                 if cell_data:
-                   if cell_data not in mapped_corp_names:
+                    block_stock_dict[key] = cell_data
+                    if cell_data not in mapped_corp_names:
                         index_status.setdefault(row_idx, set()).add('Corporate Name not mapped with Reseller')
                 else:
                     index_status.setdefault(row_idx, set()).add('Corporate Name Missing')
@@ -6322,17 +6328,31 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Warehouse Username is missing.')
                 else:
+                    if isinstance(cell_data, (int, float)):
+                        block_stock_dict[key] = int(cell_data)
+                    else:
+                        block_stock_dict[key] = cell_data
                     if cell_data not in dist_users:
                         index_status.setdefault(row_idx, set()).add('Invalid Warehouse Username')
             elif key == 'level':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add("Level Missing")
                 else:
+                    block_stock_dict[key] = int(cell_data)
                     if int(cell_data) not in [1, 3]:
                         index_status.setdefault(row_idx, set()).add('Level must be either 1 or 3')
             else:
                 index_status.setdefault(row_idx, set()).add('Invalid Field')
-
+        append_status = True
+        if block_stock_list:
+            for dat in block_stock_list:
+                if dat['sku_code'] == block_stock_dict['sku_code']:
+                    if dat['corporate_name'] == block_stock_dict['corporate_name'] and dat['reseller_name'] == block_stock_dict['reseller_name'] and dat['warehouse'] == block_stock_dict['warehouse'] and dat['level'] == block_stock_dict['level']:
+                        append_status = False
+        if append_status:
+            block_stock_list.append(block_stock_dict)
+        else:
+            return 'Duplicate records Found'
     if not index_status:
         return 'Success'
 

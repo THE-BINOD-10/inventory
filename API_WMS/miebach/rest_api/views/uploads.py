@@ -6345,14 +6345,11 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
           	        index_status.setdefault(row_idx, set()).add('Level must be either 1 or 3')
             else:
                 index_status.setdefault(row_idx, set()).add('Invalid Field')
-        grouping_key = '%s,%s,%s,%s,%s' % (str(block_stock_dict.get('sku_code')),str(block_stock_dict.get('corporate_name')),str(block_stock_dict.get('reseller_name')),str(block_stock_dict.get('warehouse')),str(block_stock_dict.get('level')))
-        append_status = True
+        grouping_key = '%s,%s,%s,%s,%s' % (str(block_stock_dict.get('sku_code', '')),str(block_stock_dict.get('corporate_name', '')),str(block_stock_dict.get('reseller_name', '')),str(block_stock_dict.get('warehouse', '')),str(block_stock_dict.get('level', '')))
         if grouping_key in block_stock_list:
-            append_status = False
-        if append_status:
-            block_stock_list.append(grouping_key)
+             index_status.setdefault(row_idx, set()).add('Duplicate Record Found')
         else:
-            return 'Duplicate records Found'
+            block_stock_list.append(grouping_key)
     if not index_status:
         return 'Success'
 

@@ -119,7 +119,7 @@ ISSUE_DATA = {'issue_title': '', 'name': '', 'email_id': '',
               'issue_description': '', 'creation_date': datetime.datetime.now()}
 
 SUPPLIER_SKU_DATA = {'supplier_id': '', 'supplier_type': '',
-                     'sku': '', 'supplier_code': '', 'preference': '', 'moq': '', 'price': ''}
+        'sku': '', 'supplier_code': '', 'preference': '', 'moq': '', 'price': '', 'costing_type': 'Price Based', 'margin_percentage': 0}
 
 SKU_PACK_DATA = {'sku': '','pack_id':'', 'pack_quantity': '','creation_date':datetime.datetime.now()}
 
@@ -276,7 +276,7 @@ SALES_RETURN_BULK = ['Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantit
 RETURN_DATA_FIELDS = ['sales-check', 'order_id', 'sku_code', 'customer_id', 'shipping_quantity', 'return_quantity',
                       'damaged_quantity', 'delete-sales']
 
-SUPPLIER_SKU_HEADERS = ['Supplier Id', 'WMS Code', 'Supplier Code', 'Preference', 'MOQ', 'Price']
+SUPPLIER_SKU_HEADERS = ['Supplier Id', 'WMS Code', 'Supplier Code', 'Preference', 'MOQ', 'Price', 'Costing Type (Price Based/Margin Based)', 'Margin Percentage']
 
 MARKETPLACE_SKU_HEADERS = ['WMS Code', 'Flipkart SKU', 'Snapdeal SKU', 'Paytm SKU', 'Amazon SKU', 'HomeShop18 SKU',
                            'Jabong SKU', 'Indiatimes SKU', 'Flipkart Description', 'Snapdeal Description',
@@ -977,7 +977,7 @@ SKU_HEADERS = ['WMS Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU 
                'MRP Price', 'Sequence', 'Image Url',
                'Threshold Quantity', 'Measurment Type', 'Sale Through', 'Color', 'EAN Number',
                'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Hot Release',
-               'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Combo Flag', 'Status']
+               'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Combo Flag', 'Block For PO', 'Status']
 
 MARKET_USER_SKU_HEADERS = ['WMS Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)',
                            'SKU Category',
@@ -1023,7 +1023,7 @@ PROCESSING_HEADER = ('WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity
 
 SKU_SUPPLIER_MAPPING = OrderedDict(
     [('Supplier ID', 'supplier__id'), ('SKU CODE', 'sku__wms_code'), ('Supplier Code', 'supplier_code'),
-     ('Priority', 'preference'), ('MOQ', 'moq')])
+     ('Priority', 'preference'), ('MOQ', 'moq'), ('Costing Type', 'costing_type'), ('Margin Percentage', 'margin_percentage')])
 
 SKU_WH_MAPPING = OrderedDict(
     [('Warehouse Name', 'warehouse__username'), ('SKU CODE', 'sku__wms_code'), ('Priority', 'priority'),
@@ -1309,7 +1309,7 @@ SKU_COMMON_MAPPING = OrderedDict((('WMS Code', 'wms_code'), ('SKU Description', 
                                   ('Hot Release', 'hot_release'),
                                   ('Mix SKU Attribute(Options: No Mix, Mix within Group)', 'mix_sku'),
                                   ('Status', 'status'), ('Shelf life', 'shelf_life'),
-                                  ('Enable Serial Number', 'enable_serial_based')
+                                  ('Enable Serial Number', 'enable_serial_based'), ('Block For PO', 'block_for_po')
                                 ))
 
 SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),
@@ -1320,7 +1320,7 @@ SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 
                              ('measurement_type', 19),
                              ('sale_through', 20), ('color', 21), ('ean_number', 22), ('load_unit_handle', 23),
                              ('hsn_code', 24),
-                             ('sub_category', 25), ('hot_release', 26), ('mix_sku', 27), ('combo_flag', 28), ('status', 29)
+                             ('sub_category', 25), ('hot_release', 26), ('mix_sku', 27), ('combo_flag', 28), ('block_for_po', 29), ('status', 30)
                              ))
 
 MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(

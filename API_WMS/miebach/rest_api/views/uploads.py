@@ -975,7 +975,6 @@ def supplier_sku_form(request, user=''):
     supplier_file = request.GET['download-supplier-sku-file']
     if supplier_file:
         return error_file_download(supplier_file)
-
     wb, ws = get_work_sheet('supplier', SUPPLIER_SKU_HEADERS)
     return xls_to_response(wb, '%s.supplier_sku_form.xls' % str(user.id))
 
@@ -1458,7 +1457,12 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Sequence should be in number')
-
+            elif key == 'block_for_po':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Block For PO should be Yes/No')
+                else:
+                    if not cell_data in ['Yes', 'No']:
+                        index_status.setdefault(row_idx, set()).add('Block For PO should be Yes/No')
     if not index_status:
         return 'Success'
 
@@ -1635,6 +1639,13 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     cell_data = 1
                 if toggle_value == "disable":
                     cell_data = 0
+                setattr(sku_data, key, cell_data)
+                data_dict[key] = cell_data
+            elif key == 'block_for_po':
+                if str(cell_data).lower() == 'yes':
+                    cell_data = 'PO'
+                if str(cell_data).lower() == 'no':
+                    cell_data = ''
                 setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
             elif cell_data:
@@ -2269,7 +2280,14 @@ def validate_supplier_sku_form(open_sheet, user_id):
                     index_status.setdefault(row_idx, set()).add('Missing Preference')
                 else:
                     preference1 = int(cell_data)
-
+            if col_idx == 6:
+                if not cell_data in ['Price Based', 'Margin Based']:
+                    index_status.setdefault(row_idx, set()).add('Costing Type should be "Price Based/Margin Based"')
+            if col_idx == 7:
+		if not isinstance(cell_data, (int, float)):
+                    index_status.setdefault(row_idx, set()).add('Margin % Should be in integer or float')
+                elif not float(cell_data) in range(0, 100):
+                    index_status.setdefault(row_idx, set()).add('Margin % Should be in between 0 and 100')
         if wms_code1 and preference1 and row_idx > 0:
             supp_val = SKUMaster.objects.filter(wms_code=wms_code1, user=user_id)
             if supp_val:
@@ -2352,7 +2370,10 @@ def supplier_sku_upload(request, user=''):
                     supplier_data['price'] = cell_data
                     if cell_data and supplier_sku_instance:
                         supplier_sku_instance.price = cell_data
-
+                elif col_idx == 6:
+                    supplier_data['costing_type'] = cell_data
+                elif col_idx == 7:
+                    supplier_data['margin_percentage'] = cell_data
             supplier_sku = SupplierMaster.objects.filter(id=supplier_data['supplier_id'], user=user.id)
             if supplier_sku and not supplier_sku_obj:
                 supplier_sku = SKUSupplier(**supplier_data)

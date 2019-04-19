@@ -609,7 +609,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.get_sku_details = function(product, item, index) {
       console.log(item);
       vm.purchase_history_wms_code = item.wms_code;
-      if (!vm.model_data.supplier_id){
+      if (!vm.model_data.supplier_id && Session.user_profile.user_type != 'marketplace_user' && Session.user_profile.industry_type != 'FMCG') {
         product.fields.sku.wms_code = ''
         vm.service.showNoty('Fill Supplier ID');
         return false;

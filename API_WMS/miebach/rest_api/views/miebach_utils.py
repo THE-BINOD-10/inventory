@@ -6416,7 +6416,7 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
                 if diff_quantity > 0:
                     po_quantity = diff_quantity
 
-                total_stock_available = stock_quantity + qc_pending + putaway_pending
+            total_stock_available = stock_quantity + qc_pending + putaway_pending
 
             total_with_po = total_stock_available + po_quantity
             picked_quantity_thirty_days = SKUDetailStats.objects.filter(sku_id=sku.id, transact_type='picklist',creation_date__lte=datetime.datetime.today(), creation_date__gt=datetime.datetime.today()-datetime.timedelta(days=30)).aggregate(Sum('quantity'))['quantity__sum']
@@ -6442,8 +6442,8 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
                 avg_seven_po = total_with_po / picked_quantity_seven_days
 
             temp_data['aaData'].append(OrderedDict((('SKU',wms_code ),('SKU Description',sku.sku_desc),('SKU Category',sku.sku_category),('SKU Type',sku.sku_type),('SKU class',sku.sku_class),
-                                                   ('Current Stock In Hand',total_stock_available),('PO Pending',po_quantity),('Total Stock including PO',total_with_po),('Avg Last 30days',"%.1f" % picked_quantity_thirty_days),
-                                                   ('Avg Last 7 days',"%.1f" %picked_quantity_seven_days),('Stock Cover Days (30-day)',"%.1f"%avg_thirty),('Stock Cover Days including PO stock (30-day)',"%.1f"%avg_thirty_po),('Stock Cover Days (7-day)',"%.1f"%avg_seven),('Stock Cover Days including PO stock (7-day)',"%.1f"%avg_seven_po))))
+                                                   ('Current Stock In Hand',total_stock_available),('PO Pending',po_quantity),('Total Stock including PO',total_with_po),('Avg Last 30days',"%.0f" % picked_quantity_thirty_days),
+                                                   ('Avg Last 7 days',"%.0f" %picked_quantity_seven_days),('Stock Cover Days (30-day)',"%.0f"%avg_thirty),('Stock Cover Days including PO stock (30-day)',"%.0f"%avg_thirty_po),('Stock Cover Days (7-day)',"%.0f"%avg_seven),('Stock Cover Days including PO stock (7-day)',"%.0f"%avg_seven_po))))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

@@ -6338,11 +6338,11 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add("Level Missing")
                 else:
-                	if isinstance(cell_data, (int, float)):
-              			cell_data = str(int(cell_data))
-          			block_stock_dict[key] = cell_data
-          			if int(cell_data) not in [1, 3]:
-          				index_status.setdefault(row_idx, set()).add('Level must be either 1 or 3')
+                    if isinstance(cell_data, (int, float)):
+              		cell_data = str(int(cell_data))
+              	    block_stock_dict[key] = cell_data
+          	    if int(cell_data) not in [1, 3]:
+          	        index_status.setdefault(row_idx, set()).add('Level must be either 1 or 3')
             else:
                 index_status.setdefault(row_idx, set()).add('Invalid Field')
         grouping_key = '%s,%s,%s,%s,%s' % (str(block_stock_dict.get('sku_code')),str(block_stock_dict.get('corporate_name')),str(block_stock_dict.get('reseller_name')),str(block_stock_dict.get('warehouse')),str(block_stock_dict.get('level')))

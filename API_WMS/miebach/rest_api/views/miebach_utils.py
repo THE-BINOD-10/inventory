@@ -823,10 +823,10 @@ ENQUIRY_STATUS_REPORT = {
         {'label': 'Enquiry Status', 'name': 'enquiry_status', 'type': 'select'},
     ],
     'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
-                   'Level','Enquiry No', 'Enquiry Aging', 'Enquiry Status'],
+                   'Level','Warehouse', 'Enquiry No', 'Enquiry Aging', 'Enquiry Status'],
     'dt_url': 'get_enquiry_status_report', 'excel_name': 'get_enquiry_status_report',
     'dt_unsort': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
-                   'Enquiry No', 'Level', 'Enquiry Aging', 'Enquiry Status'],
+                   'Enquiry No', 'Level', 'Warehouse', 'Enquiry Aging', 'Enquiry Status'],
     'print_url': 'print_enquiry_status_report',
 }
 
@@ -5874,6 +5874,10 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         dist_obj = User.objects.get(id=em_obj.user)
         distributor_name = dist_obj.username + ' - ' + dist_obj.first_name
         zone = dist_obj.userprofile.zone
+        user_name = en_obj.sku.user
+        if user_name:
+            user = User.objects.get(id = user_name)
+            warehouse = user.get_username()
         sku_code = en_obj.sku.sku_code
         quantity = en_obj.quantity
         warehouse_level = en_obj.warehouse_level
@@ -5891,6 +5895,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
                                 ('Warehouse Level',warehouse_level),
                                 ('Enquiry No', enq_id),
                                 ('Level', warehouse_level),
+                                ('Warehouse', warehouse),
                                 ('Enquiry Aging', days_left),
                                 ('Enquiry Status', extend_status)))
         temp_data['aaData'].append(ord_dict)

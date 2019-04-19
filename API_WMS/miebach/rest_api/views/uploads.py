@@ -6273,23 +6273,24 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
     for res_id, corp_ids in res_corp_map.items():
         corp_names = CorporateMaster.objects.filter(id__in=corp_ids).values_list('name', flat=True)
         res_corp_names_map.setdefault(res_id, []).extend(corp_names)
-
     for row_idx in range(1, no_of_rows):
         block_stock_dict = {}
+        grouping_key = ''
         for key, value in blockstock_file_mapping.iteritems():
             cell_data = get_cell_data(row_idx, blockstock_file_mapping[key], reader, file_type)
             if key == 'sku_code':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add("SKU Code is missing")
                 else:
-                    block_stock_dict[key] = int(cell_data)
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = str(int(cell_data))
+                    block_stock_dict[key] = cell_data
                     if cell_data not in sku_codes:
                         index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
             elif key == 'quantity':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add("Quantity Missing")
                 else:
-                    block_stock_dict[key] = int(cell_data)
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Invalid Quantity Amount')
                     else:
@@ -6329,28 +6330,27 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                     index_status.setdefault(row_idx, set()).add('Warehouse Username is missing.')
                 else:
                     if isinstance(cell_data, (int, float)):
-                        block_stock_dict[key] = int(cell_data)
-                    else:
-                        block_stock_dict[key] = cell_data
+                        cell_data = str(int(cell_data))
+                    block_stock_dict[key] = cell_data
                     if cell_data not in dist_users:
                         index_status.setdefault(row_idx, set()).add('Invalid Warehouse Username')
             elif key == 'level':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add("Level Missing")
                 else:
-                    block_stock_dict[key] = int(cell_data)
-                    if int(cell_data) not in [1, 3]:
-                        index_status.setdefault(row_idx, set()).add('Level must be either 1 or 3')
+                	if isinstance(cell_data, (int, float)):
+              			cell_data = str(int(cell_data))
+          			block_stock_dict[key] = cell_data
+          			if int(cell_data) not in [1, 3]:
+          				index_status.setdefault(row_idx, set()).add('Level must be either 1 or 3')
             else:
                 index_status.setdefault(row_idx, set()).add('Invalid Field')
+        grouping_key = '%s,%s,%s,%s,%s' % (str(block_stock_dict.get('sku_code')),str(block_stock_dict.get('corporate_name')),str(block_stock_dict.get('reseller_name')),str(block_stock_dict.get('warehouse')),str(block_stock_dict.get('level')))
         append_status = True
-        if block_stock_list:
-            for dat in block_stock_list:
-                if dat['sku_code'] == block_stock_dict['sku_code']:
-                    if dat['corporate_name'] == block_stock_dict['corporate_name'] and dat['reseller_name'] == block_stock_dict['reseller_name'] and dat['warehouse'] == block_stock_dict['warehouse'] and dat['level'] == block_stock_dict['level']:
-                        append_status = False
+        if grouping_key in block_stock_list:
+            append_status = False
         if append_status:
-            block_stock_list.append(block_stock_dict)
+            block_stock_list.append(grouping_key)
         else:
             return 'Duplicate records Found'
     if not index_status:

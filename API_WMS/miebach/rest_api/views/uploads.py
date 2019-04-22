@@ -6259,6 +6259,8 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
     warehouse_qs = UserGroups.objects.filter(admin_user=user.id)
     dist_users = warehouse_qs.filter(user__userprofile__warehouse_level=1).values_list('user_id__username', flat=True)
     wh_userids = warehouse_qs.values_list('user_id', flat=True)
+    sister_whs = copy.deepcopy(list(wh_userids))
+    sister_whs.append(user.id)
     reseller_qs = CustomerUserMapping.objects.filter(customer__user__in=wh_userids)
     reseller_ids_map = dict(reseller_qs.values_list('user_id__username', 'customer__id'))
     reseller_ids = reseller_ids_map.values()
@@ -6271,7 +6273,7 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
     for res_id, corp_id in res_corp_qs:
         res_corp_map.setdefault(res_id, []).append(corp_id)
     for res_id, corp_ids in res_corp_map.items():
-        corp_names = CorporateMaster.objects.filter(id__in=corp_ids).values_list('name', flat=True)
+        corp_names = CorporateMaster.objects.filter(corporate_id__in=corp_ids, user__in=sister_whs).values_list('name', flat=True)
         res_corp_names_map.setdefault(res_id, []).extend(corp_names)
     for row_idx in range(1, no_of_rows):
         block_stock_dict = {}

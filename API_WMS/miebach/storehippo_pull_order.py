@@ -38,7 +38,6 @@ def make_request():
 	if str(response.status_code) in ['500', '422', '409', '404', '403', '401', '400', '429']:
 	    print "Error Occured"
             break
-	    import pdb;pdb.set_trace()
 	else:
             try:
 	        resp_json = response.json()
@@ -62,7 +61,6 @@ def make_request():
         if str(response.status_code) in ['500', '422', '409', '404', '403', '401', '400', '429']:
             print "Error Occured"
             break
-	    import pdb;pdb.set_trace()
         else:
             try:
                 resp_json = response.json()
@@ -90,19 +88,6 @@ def sendToStockOne(resp):
     write_order_resp = ''
     get_client_secret_obj = User.objects.filter(username='acecraft')
     if get_client_secret_obj:
-	#get_client_secret = get_client_secret_obj[0].oauth2_provider_application.values()
-	#if get_client_secret:
-	#    get_client_secret = get_client_secret[0]
-	#    stockone_auth['client_id'] = get_client_secret['client_id']
-	#    stockone_auth['client_secret'] = get_client_secret['client_secret']
-	#    stockone_auth['client_name'] = get_client_secret['name']
-	#    stockone_auth['client_type'] = get_client_secret['client_type']
-	#    stockone_auth['authorization_grant_type'] = 'client_credentials'
-	#    stockone_auth['redirect_uris'] = get_client_secret['redirect_uris']
-    	#try:
-	#    access_token = getAuthToken(stockone_auth)
-	#except:
-	#    print "Error in generating Access Token"
 	try:
 	    user_id = get_client_secret_obj[0].id
 	    int_obj = Integrations.objects.filter(**{'user':user_id, 'name':'storehippo', 'status':1})

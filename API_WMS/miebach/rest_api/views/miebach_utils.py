@@ -5877,7 +5877,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         user_name = en_obj.sku.user
         if user_name:
             user = User.objects.get(id = user_name)
-            warehouse = user.get_username()
+            warehouse = user.username
         sku_code = en_obj.sku.sku_code
         quantity = en_obj.quantity
         warehouse_level = en_obj.warehouse_level

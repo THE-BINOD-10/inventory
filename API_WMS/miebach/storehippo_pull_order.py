@@ -31,48 +31,15 @@ def make_request():
     stop_order_id = 5911
     lastKey = 1
     counter = 0
-    while lastKey:
-        counter += 1
-        start = 2200
-        response = requests.get(url, headers=headers, params={'limit':958, 'start':start, 'total':1})
+    start_list = [2200, 1769, 1330]
+    for lis in start_list:
+        response = requests.get(url, headers=headers, params={'limit':958, 'start':lis, 'total':1})
 	if str(response.status_code) in ['500', '422', '409', '404', '403', '401', '400', '429']:
 	    print "Error Occured"
-            break
+	    break
 	else:
-            try:
-	        resp_json = response.json()
-            except:
-                lastKey = 0
-            if resp_json['data']:
-                resp_data += resp_json['data']
-                start_order_id += 1
-                start += 1
-            if int(start_order_id) == int(stop_order_id):
-                lastKey = 0
-
-    lastKey = 1
-    counter = 0
-    start_order_id = 4953
-    stop_order_id = 5911
-    while lastKey:
-        counter += 1
-        start = 1769
-        response = requests.get(url, headers=headers, params={'limit':958, 'start':start, 'total':1})
-        if str(response.status_code) in ['500', '422', '409', '404', '403', '401', '400', '429']:
-            print "Error Occured"
-            break
-        else:
-            try:
-                resp_json = response.json()
-            except:
-                lastKey = 0
-            if resp_json['data']:
-                resp_data += resp_json['data']
-                start_order_id += 1
-                start += 1
-            if int(start_order_id) == int(stop_order_id):
-                lastKey = 0
-
+	    resp_json = response.json()
+	    resp_data += resp_json['data']
     pull_order_storehippo_stockone.info(' --- Response of Stockone - Branch Code ---')
     if resp_data:
         send_to_stockone_resp = sendToStockOne({'data':resp_data})

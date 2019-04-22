@@ -5899,7 +5899,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
 
 
 def get_shipment_report_data(search_params, user, sub_user, serial_view=False, firebase_response=None):
-    from common import get_admin
+    from common import get_admin ,get_full_invoice_number
     from rest_api.views.common import get_sku_master, get_order_detail_objs, get_linked_user_objs, get_misc_value, \
         get_local_date
     #sku_master, sku_master_ids = get_sku_master(user, sub_user)
@@ -6008,9 +6008,11 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
             creation_date = ord_inv_dates_map.get(data['order__id'], '')
             if creation_date:
                 invoice_date = get_local_date(user, creation_date)
-            	invoice_number = 'TI/%s/%s' % (creation_date.strftime('%m%y'), data['order__original_order_id'])
+                invoice_number = ord_invoice_map.get(data['order__id'], '')
+                order = OrderDetail.objects.get(original_order_id = data['order__original_order_id'] ,user = user.id)
+                invoice_number = get_full_invoice_number(user,invoice_number,order,creation_date ,'')
             else:
-                invoice_number = 'TI/%s' % data['order__original_order_id']
+                invoice_number = '%s' % data['order__original_order_id']
         else:
             increment_invoice = get_misc_value('increment_invoice', user.id)
             if data['order__id'] in ord_invoice_map and increment_invoice == 'true':

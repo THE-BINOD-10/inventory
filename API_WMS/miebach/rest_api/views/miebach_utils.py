@@ -5875,6 +5875,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         distributor_name = dist_obj.username + ' - ' + dist_obj.first_name
         zone = dist_obj.userprofile.zone
         user_name = en_obj.sku.user
+        warehouse = ''
         if user_name:
             user = User.objects.get(id = user_name)
             warehouse = user.username

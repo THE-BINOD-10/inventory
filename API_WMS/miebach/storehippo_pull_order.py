@@ -25,38 +25,63 @@ def make_request():
     a = datetime.datetime.now()
     pull_order_storehippo_stockone.info(' ----- Started - Order Push Storehippo to Stockone -------')
     url = stockone_url
-    #for branch_code in branch_list:
-    #get_api_key_secret = rista_location_keys[branch_code]
-    #0apiKey = get_api_key_secret[0]
-    #secretKey = get_api_key_secret[1]
-    #tokencreationtime = int(round(time.time()))
-    #jti = int(time.time() * 1000.0)
-    #payload = { "jti": jti, "iss": apiKey, "iat": tokencreationtime }
-    #token = jwt.encode(payload, secretKey, algorithm='HS256')
     headers =  {'access-key': api_key, 'content-type': 'application/json'}
-    inv_payload = {'total':1, 'start': 0, 'limit':500}
-    import pdb;pdb.set_trace()
     resp_data = []
+    start_order_id = 4953
+    stop_order_id = 5911
     lastKey = 1
+    counter = 0
     while lastKey:
-	response = requests.get(url, headers=headers, params=inv_payload)
-	if str(response.status_code) in ['500', '422', '409', '404', '403', '401', '400']:
+        counter += 1
+        start = 2200
+        response = requests.get(url, headers=headers, params={'limit':958, 'start':start, 'total':1})
+	if str(response.status_code) in ['500', '422', '409', '404', '403', '401', '400', '429']:
 	    print "Error Occured"
+            break
+	    import pdb;pdb.set_trace()
 	else:
-	    resp_json = response.json()
+            try:
+	        resp_json = response.json()
+            except:
+                lastKey = 0
             if resp_json['data']:
                 resp_data += resp_json['data']
-	        if resp_data in resp_json.keys():
-		    lastKey = 1
-		    inv_payload['start'] += 500
-	    else:
-		lastKey = 0
+                start_order_id += 1
+                start += 1
+            if int(start_order_id) == int(stop_order_id):
+                lastKey = 0
+
+    lastKey = 1
+    counter = 0
+    start_order_id = 4953
+    stop_order_id = 5911
+    while lastKey:
+        counter += 1
+        start = 1769
+        response = requests.get(url, headers=headers, params={'limit':958, 'start':start, 'total':1})
+        if str(response.status_code) in ['500', '422', '409', '404', '403', '401', '400', '429']:
+            print "Error Occured"
+            break
+	    import pdb;pdb.set_trace()
+        else:
+            try:
+                resp_json = response.json()
+            except:
+                lastKey = 0
+            if resp_json['data']:
+                resp_data += resp_json['data']
+                start_order_id += 1
+                start += 1
+            if int(start_order_id) == int(stop_order_id):
+                lastKey = 0
+
     pull_order_storehippo_stockone.info(' --- Response of Stockone - Branch Code ---')
     if resp_data:
         send_to_stockone_resp = sendToStockOne({'data':resp_data})
     b = datetime.datetime.now()
     delta = b - a
-    time_taken = str(delta.total_seconds() * 1000)
+    time_taken = str(delta.total_seconds())
+    print time_taken + 'in seconds'
 
 
 def sendToStockOne(resp):
@@ -195,7 +220,6 @@ def writeOrders(user, store_hippo_data_list):
         create_order['invoice_amount'] = create_order.get('all_total_items', 0) + create_order.get('all_total_tax', 0) + create_order.get('shipping_charges', 0) - create_order.get('discount', 0)
         allOrders.append(create_order)
     try:
-        import pdb;pdb.set_trace()
         validation_dict, failed_status, final_data_dict = validate_orders_format_storehippo(allOrders, user=user, company_name='mieone')
         if validation_dict:
             return json.dumps({'messages': validation_dict, 'status': 0})

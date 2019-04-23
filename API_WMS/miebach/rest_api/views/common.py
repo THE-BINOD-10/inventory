@@ -1404,6 +1404,7 @@ def auto_po(wms_codes, user):
             if moq <= 0:
                 continue
             suggestions_data = OpenPO.objects.filter(sku_id=sku.id, sku__user=user, status__in=['Automated', 1])
+            order_quantity = max(qty,moq)
             if not suggestions_data:
                 if sku_less_than_threshold == 'true' :
                     push_notify = PushNotifications.objects.filter(user=user ,message = sku.wms_code+"  "+"quantity is below Threshold quantity")
@@ -8267,25 +8268,6 @@ def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
     if seller_master_id:
         stock_dict['sellerstock__seller_id'] = seller_master_id
 
-    data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
-    data_dict['cycle'] = cycle_id
-    data_dict['sku_id'] = sku_id
-    data_dict['location_id'] = location[0].id
-    data_dict['quantity'] = total_stock_quantity
-    data_dict['seen_quantity'] = total_stock_quantity - quantity
-    data_dict['status'] = 0
-    data_dict['creation_date'] = now
-    data_dict['updation_date'] = now
-    cycle_obj = CycleCount.objects.filter(cycle=cycle_id, sku_id=sku_id, location_id=data_dict['location_id'])
-    if cycle_obj:
-        cycle_obj = cycle_obj[0]
-        cycle_obj.seen_quantity += quantity
-        cycle_obj.save()
-        dat = cycle_obj
-    else:
-        dat = CycleCount(**data_dict)
-        dat.save()
-
     total_stock_quantity = 0
     if quantity:
         quantity = float(quantity)
@@ -8295,6 +8277,24 @@ def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
             return 'No Stocks Found'
         elif total_stock_quantity < quantity:
             return 'Reducing quantity is more than total quantity'
+	data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
+	data_dict['cycle'] = cycle_id
+	data_dict['sku_id'] = sku_id
+	data_dict['location_id'] = location[0].id
+	data_dict['quantity'] = total_stock_quantity
+	data_dict['seen_quantity'] = total_stock_quantity - quantity
+	data_dict['status'] = 0
+	data_dict['creation_date'] = now
+	data_dict['updation_date'] = now
+	cycle_obj = CycleCount.objects.filter(cycle=cycle_id, sku_id=sku_id, location_id=data_dict['location_id'])
+	if cycle_obj:
+	    cycle_obj = cycle_obj[0]
+	    cycle_obj.seen_quantity += quantity
+	    cycle_obj.save()
+	    dat = cycle_obj
+	else:
+	    dat = CycleCount(**data_dict)
+	    dat.save()
         remaining_quantity = quantity
         for stock in stocks:
             if remaining_quantity == 0:

@@ -188,11 +188,10 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
                 time_slot = time_slot.split("-")[0]
 
             shipment_data = shipment_data + ', ' + time_slot
-
-        try:
-            order_id = int(float(order_id))
-        except:
-            order_id = str(xcode(order_id))
+        # try:
+        #     order_id = int(float(order_id))
+        # except:
+        #     order_id = str(xcode(order_id))
         quantity = float(data.quantity)
         seller_order = all_seller_orders.filter(order_id=data.id).aggregate(Sum('quantity'))['quantity__sum']
         if seller_order:
@@ -1328,7 +1327,7 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
             status.append("Insufficient Stock in given location with batch number")
         else:
             status.append("Insufficient Stock in given location")
-    elif pic_check[0].batch_detail and pic_check[0].batch_detail.expiry_date and expiry_batches_picklist == 'false':
+    elif pic_check[0].batch_detail and pic_check[0].batch_detail.expiry_date and expiry_batches_picklist == 'true':
         present_date = datetime.datetime.now().date()
         if pic_check[0].batch_detail.expiry_date <= present_date:
             status.append("Expiry batch number not Allowed")
@@ -2305,20 +2304,6 @@ def picklist_confirmation(request, user=''):
                                 rista_order_dict[original_order_id_str] = []
                                 rista_order_dict[original_order_id_str].append(sku_code_dict)
 
-		    #StoreHippo COnfirm Picklist
-		    check_storehippo_user = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
-                    if check_storehippo_user and picklist.order:
-                        original_order_id_str = str(picklist.order.order_reference)
-                        picking_count1 = int(picking_count1)
-                        if picking_count1:
-                            sku_code_str = picklist.order.sku.sku_code
-                            sku_code_dict = {}
-                            sku_code_dict[sku_code_str] = picking_count1
-                            if original_order_id_str in storehippo_order_dict.keys():
-                                storehippo_order_dict[original_order_id_str].append(sku_code_dict)
-                            else:
-                                storehippo_order_dict[original_order_id_str] = []
-                                storehippo_order_dict[original_order_id_str].append(sku_code_dict)
                     picklist.save()
                     if user_profile.user_type == 'marketplace_user' and picklist.order:
                         create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,
@@ -2365,31 +2350,6 @@ def picklist_confirmation(request, user=''):
     	    rista_order_id = list(set(rista_order_id_list))
     	    rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
 
-        #Check StoreHippo User
-        check_store_hippo = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
-    	if len(check_store_hippo):
-            to_fulfill = {}
-            to_fulfill_list = []
-            alert_message_for_email = LOAD_CONFIG.get('storehippo', 'alert_message_for_email', '')
-            send_alert_msg_to = eval(LOAD_CONFIG.get('storehippo', 'send_alert_msg_to', ''))
-            body_of_alert_email = LOAD_CONFIG.get('storehippo', 'body_of_alert_email', '')
-    	    for key, value in storehippo_order_dict.iteritems():
-                items_list = []
-                for obj in value:
-                    sku = obj.keys()[0]
-                    quantity = obj.values()[0]
-                    items_list.append({'sku':sku, 'quantity':quantity})
-                    to_fulfill = {'order_id': key, 'items': items_list}
-                    to_fulfill_list.append(to_fulfill)
-    	    from rest_api.views.easyops_api import *
-    	    for integrate in check_store_hippo:
-                obj = eval(integrate.api_instance)(company_name=integrate.name, user=user.id)
-                storehippo_response = obj.storehippo_fulfill_orders(to_fulfill_list, user)
-                if storehippo_response.get('status', False):
-                    storehippo_fulfillments_log.info('For User: ' + str(user.username) + ', Storehippo Order Confirm Response - ' + str(storehippo_response))
-                else:
-                    storehippo_fulfillments_log.info('For User : ' + str(user.username) + ' ,' + str(alert_message_for_email) + ', Response - ' + str(storehippo_response))
-                    send_mail(send_alert_msg_to, body_of_alert_email, 'For User : ' + str(user.username) + ' , ' + str(alert_message_for_email) + ', Response - ' + str(storehippo_response))
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
         order_ids = picks_all.values_list('order_id', flat=True).distinct()
@@ -7748,7 +7708,11 @@ def get_view_order_details(request, user=''):
     data_dict.append({'cus_data': cus_data, 'status': status_obj, 'ord_data': order_details_data,
                       'central_remarks': central_remarks, 'all_status': view_order_status, 'tax_type': tax_type,
                       'invoice_type': invoice_type, 'invoice_types': invoice_types, 'courier_name':courier_name})
-    return HttpResponse(json.dumps({'data_dict': data_dict}))
+    hide_buttons = False
+    check_storehippo_user = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
+    if check_storehippo_user:
+        hide_buttons = True
+    return HttpResponse(json.dumps({'data_dict': data_dict, 'hide_buttons':hide_buttons}))
 
 
 def get_stock_location_quantity_data(wms_code, location, user):
@@ -8413,8 +8377,6 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
                         user_dict={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     user_dict = eval(user_dict)
-
-
     lis = ['order_id', 'customer_name', 'order_id', 'address', 'marketplace', 'total', 'shipment_date', 'date_only',
         'city', 'status']
 
@@ -14773,7 +14735,7 @@ def do_delegate_orders(request, user=''):
                             order_dict['address'] = customer_user[0].customer.address
 
                     #Order Detail Save Block
-                    original_order_id, address1, address2, client_code, village, state, pincode = '', '', '', '', '', '', ''
+                    original_order_id, address1, address2, client_code, village, state,marketplace, pincode = '','', '', '', '', '', '', ''
                     central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)#for 72 networks
 
                     if central_order_reassigning :
@@ -14797,6 +14759,8 @@ def do_delegate_orders(request, user=''):
                             state = obj['value']
                         if obj['name'] == "pincode":
                             pincode = obj['value']
+                        if obj['name'] == 'marketplace':
+                            marketplace = obj['value']
                     order_dict['customer_id'] = interm_obj.customer_id
                     order_dict['customer_name'] = interm_obj.customer_name
                     order_dict['email_id'] = ''
@@ -14805,11 +14769,11 @@ def do_delegate_orders(request, user=''):
                     order_dict['quantity'] = 1
                     order_dict['invoice_amount'] = inv_amt
                     order_dict['shipment_date'] = datetime.datetime.now()
-                    order_dict['marketplace'] = ''
                     order_dict['vat_percentage'] = 0
                     order_dict['status'] = 0
                     order_dict['city'] = village[:59]
                     order_dict['state'] = state
+                    order_dict['marketplace'] = marketplace
                     try:
                         order_dict['pin_code'] = int(pincode)
                     except:
@@ -15367,4 +15331,3 @@ def get_feedback_data(start_index, stop_index, temp_data, search_term, order_ter
         log.debug(traceback.format_exc())
         log.info('Exception raised while display feedback form for %s and params are %s and error statement is %s'
                  % (str(user.username), str(request.POST.dict()), str(e)))
-

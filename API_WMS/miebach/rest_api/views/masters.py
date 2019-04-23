@@ -700,33 +700,8 @@ def location_master(request, user=''):
         #loc = filter_by_values(LocationMaster, filter_params,
         #                       ['location', 'max_capacity', 'fill_sequence', 'pick_sequence', 'status',
         #                        'pallet_capacity', 'lock_status', 'zone__level', 'zone__zone'])
-        loc = LocationMaster.objects.prefetch_related('zone').filter(**filter_params)
-        temp_locs = []
-        for loc_location in loc:
-            print loc_location
-            #loc_group_dict = filter(lambda person: str(loc_location['location']) == str(person['location__location']),
-            #                        location_groups)
-            #loc_groups = map(lambda d: d['group'], loc_group_dict)
-            #loc_groups = [str(x).encode('UTF8') for x in loc_groups]
-            loc_groups = list(loc_location.locationgroups_set.filter().values_list('group', flat=True))
-            location_data = {}
-            location_data['location'] = loc_location.location
-            location_data['max_capacity'] = loc_location.max_capacity
-            location_data['fill_sequence'] = loc_location.fill_sequence
-            location_data['pick_sequence'] = loc_location.pick_sequence
-            location_data['status'] = loc_location.status
-            location_data['pallet_capacity'] = loc_location.pallet_capacity
-            location_data['lock_status'] = loc_location.lock_status
-            location_data['zone__zone'] = loc_location.zone.zone
-            location_data['zone__level'] = loc_location.zone.level
-            location_data['location_group'] = loc_groups
-            sub_zone = ''
-            if loc_location.zone.level == 1:
-                sub_zone = loc_location.zone.zone
-            location_data['sub_zone'] = sub_zone
-            temp_locs.append(location_data)
-        #new_loc.append(temp_locs)
-        data.append({'zone': loc_type.zone, 'data': temp_locs})
+
+        data.append({'zone': loc_type.zone})
         #loc_location.values('location', 'max_capacity', 'fill_sequence', 'pick_sequence', 'status', 'pallet_capacity',
         #                                    'lock_status', 'zone__level', 'zone__zone'))
 
@@ -4115,3 +4090,43 @@ def change_warehouse_password (request ,user=''):
         return HttpResponse('Successfully changed the Password')
     else:
         return HttpResponse('Failed to change the Password')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_zone_details(request , user =''):
+    filter_params = {'user': user.id, 'level': 0}
+    zone = request.GET['zone']
+    filter_params = {'zone__zone': zone, 'zone__user': user.id}
+    try:
+        loc = LocationMaster.objects.prefetch_related('zone').filter(**filter_params)
+        temp_locs = []
+        for loc_location in loc:
+            # print loc_location
+            #loc_group_dict = filter(lambda person: str(loc_location['location']) == str(person['location__location']),
+            #                        location_groups)
+            #loc_groups = map(lambda d: d['group'], loc_group_dict)
+            #loc_groups = [str(x).encode('UTF8') for x in loc_groups]
+            loc_groups = list(loc_location.locationgroups_set.filter().values_list('group', flat=True))
+            location_data = {}
+            location_data['location'] = loc_location.location
+            location_data['max_capacity'] = loc_location.max_capacity
+            location_data['fill_sequence'] = loc_location.fill_sequence
+            location_data['pick_sequence'] = loc_location.pick_sequence
+            location_data['status'] = loc_location.status
+            location_data['pallet_capacity'] = loc_location.pallet_capacity
+            location_data['lock_status'] = loc_location.lock_status
+            location_data['zone__zone'] = loc_location.zone.zone
+            location_data['zone__level'] = loc_location.zone.level
+            location_data['location_group'] = loc_groups
+            sub_zone = ''
+            if loc_location.zone.level == 1:
+                sub_zone = loc_location.zone.zone
+            location_data['sub_zone'] = sub_zone
+            temp_locs.append(location_data)
+    except Exception as e:
+         import traceback
+         log.debug(traceback.format_exc())
+         log.info('Get Zone details failed for  %s and params are %s and error statement is %s' % (
+         str(user.username), str(request.GET.dict()), str(e)))
+    return  HttpResponse(json.dumps({'location_data': temp_locs}))

@@ -1033,6 +1033,7 @@ def switches(request, user=''):
                        'unique_mrp_putaway': 'unique_mrp_putaway',
                        'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation',
                        'rtv_prefix_code': 'rtv_prefix_code',
+                       'non_transacted_skus': 'non_transacted_skus',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

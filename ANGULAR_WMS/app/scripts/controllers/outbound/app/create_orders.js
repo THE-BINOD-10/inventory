@@ -11,6 +11,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.brand_size_data = [];//To get Sizes for some brands
   vm.size_filter = {};//Size Filter Search
   vm.show_no_data = false;//Show No Data
+  vm.images_urls = Session.host.slice(0,-1)
   vm.size_filter_show = false;
   vm.size_filter_data = {};
   vm.size_toggle = true;
@@ -215,7 +216,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
         vm.categories = data.data.categories;
         vm.all_cate = data.data.categories;
-
+        vm.cluster_images = data.data.Image_urls;
+        console.log(vm.cluster_images)
         Data.categories = data.data.categories;
         Data.sub_categories = data.data.sub_categories;
 
@@ -562,6 +564,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
         if(data.message) {
           vm.all_cate = data.data.categories;
+          vm.cluster_images = data.data.Image_urls;
+          console.log(vm.cluster_images)
           vm.categories_details = data.data.categories_details;
           vm.old_path = vm.location;
           vm.location = '/App/Categories';

@@ -2234,8 +2234,8 @@ def picklist_confirmation(request, user=''):
                                 rista_order_dict[original_order_id_str] = []
                                 rista_order_dict[original_order_id_str].append(sku_code_dict)
 
-		    #StoreHippo COnfirm Picklist
-		    check_storehippo_user = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
+                    #StoreHippo COnfirm Picklist
+                    check_storehippo_user = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
                     if check_storehippo_user and picklist.order:
                         original_order_id_str = str(picklist.order.order_reference)
                         picking_count1 = int(picking_count1)
@@ -11453,6 +11453,9 @@ def generate_customer_invoice(request, user=''):
             invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('pick_number__in', ''))))
         invoice_data['invoice_no'] = invoice_no
         invoice_data['pick_number'] = pick_number
+        check_storehippo_user = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
+        if check_storehippo_user:
+            invoice_data['order_reference'] = ''
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         return_data = request.GET.get('data', '')
         delivery_challan = request.GET.get('delivery_challan', '')

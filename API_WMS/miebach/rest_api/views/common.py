@@ -1886,8 +1886,8 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
                                "updation_date": now_date
                               })
             dest_stocks = StockDetail(**stock_dict)
-            save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', stock.quantity, stock)
             dest_stocks.save()
+            save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', dest_stocks.quantity, dest_stocks)
             change_seller_stock(seller_master_id, dest_stocks, user, abs(remaining_quantity), 'create')
 
     adj_quantity = quantity - total_stock_quantity

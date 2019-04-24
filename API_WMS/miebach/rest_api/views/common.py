@@ -442,7 +442,6 @@ def get_search_params(request, user=''):
     Zone Code is (NORTH, EAST, WEST, SOUTH)
     Zone Id is Warehouse Zone.
     """
-    #import pdb; pdb.set_trace()
     search_params = {}
     filter_params = {}
     headers = []

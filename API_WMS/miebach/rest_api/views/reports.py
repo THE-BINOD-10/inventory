@@ -50,6 +50,9 @@ def get_report_data(request, user=''):
             from common import get_misc_value
             extra_order_fields = get_misc_value('extra_order_fields', user.id)
             data = copy.deepcopy(data)
+            milkbasket_users = copy.deepcopy(MILKBASKET_USERS)
+            if user.username in milkbasket_users :
+                data['dt_headers'].append("Cost Price")
             if extra_order_fields == 'false' :
                 extra_order_fields = []
             else:
@@ -1685,4 +1688,3 @@ def print_margin_report(request, user=''):
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)
     return HttpResponse(html_data)
-

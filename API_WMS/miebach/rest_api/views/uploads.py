@@ -927,6 +927,8 @@ def sku_form(request, user=''):
         headers += attr_headers
     if user_profile.industry_type == "FMCG":
         headers.append("Shelf life")
+    if request.user.is_staff:
+	headers = list(filter(('Block For PO').__ne__, headers))
     wb, ws = get_work_sheet('skus', headers)
 
     return xls_to_response(wb, '%s.sku_form.xls' % str(user.id))

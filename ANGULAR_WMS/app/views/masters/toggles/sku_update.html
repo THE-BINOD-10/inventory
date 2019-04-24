@@ -275,7 +275,7 @@
               </div>
             </div>
             -->
-            <div class="col-md-4 col-sm-6 col-xs-6" ng-if="!showCase.permissions.is_staff">
+            <div class="col-md-4 col-sm-6 col-xs-6" ng-if="showCase.permissions.is_staff">
               <div class="form-group">
                 <label class="control-label"> Block For PO </label>
                 <select class="form-control" name="block_for_po" ng-model="showCase.model_data.sku_data.block_for_po" ng-options="qc for qc in showCase.block_for_po_list" ng-selected="qc == showCase.model_data.sku_data.block_for_po">

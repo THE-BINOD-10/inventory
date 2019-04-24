@@ -865,6 +865,7 @@ def configurations(request, user=''):
     mandatory_receive_po = get_misc_value('receive_po_mandatory_fields', user.id)
     if mandatory_receive_po != 'false':
         config_dict['selected_receive_po_mandatory'] = mandatory_receive_po.split(',')
+    config_dict['all_order_field_options'] = {}
     return HttpResponse(json.dumps(config_dict))
 
 
@@ -9184,3 +9185,35 @@ def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
         log.debug(traceback.format_exc())
         log.info('Create order extra fields failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(extra_order_fields), str(e)))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_extra_order_options(request, user=''):
+    try:
+        data_dict = json.loads(request.POST.get('data'))
+        field = data_dict.get('field','')
+        options_list = data_dict.get('order_field_options')
+        options_string = ",".join(options_list)
+        misc_obj = MiscDetail.objects.filter(user=user.id,misc_type='extra_order_fields')
+        if misc_obj.exists():
+            misc_obj = misc_obj[0]
+            misc_options = MiscDetailOptions.objects.filter(misc_detail= misc_obj,misc_key = field)
+            if misc_options.exists():
+                misc_options =  misc_options[0]
+                misc_options.misc_value = options_string
+                misc_options.save()
+            else:
+                MiscDetailOptions.objects.create(misc_detail= misc_obj,misc_key = field,misc_value = options_string)
+            message = "Success"
+        else:
+            message = "Please Enter Extra Fields"
+    except:
+       import traceback
+       log.debug(traceback.format_exc())
+       log.info('Issue for ' + request)
+       log.info('extra options Insert failed for %s and params are %s and error statement is %s' % (
+       str(user), str(request.POST), str(e)))
+       return HttpResponse("Something Went Wrong")
+    return HttpResponse(json.dumps({'message': message}))

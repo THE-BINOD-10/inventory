@@ -30,7 +30,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'combo_allocate_stock': false, 'sno_in_invoice': false, 'unique_mrp_putaway': false,'block_expired_batches_picklist':false,
                     'generate_delivery_challan_before_pullConfiramation':false,'pos_remarks' :'',
                     'rtv_prefix_code': false, 'dispatch_qc_check':false,
-                    'non_transacted_skus':false,
+                    'non_transacted_skus':false,'all_order_field_options':{},
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -55,7 +55,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      74: 'sku_pack_config', 75: 'po_sub_user_prefix', 76: 'combo_allocate_stock', 77:'sno_in_invoice', 78:'raisepo_terms_conditions',
                      79: 'generate_delivery_challan_before_pullConfiramation', 80: 'unique_mrp_putaway',
                      81: 'rtv_prefix_code',82:'pos_remarks', 83:'dispatch_qc_check', 84:'block_expired_batches_picklist', 85:'non_transacted_skus',}
-
   vm.check_box_data = [
     {
       name: "Tally Enable/Disable",
@@ -514,6 +513,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       })
     }
   }
+  vm.save_order_options = function(field)
+  {
+    var send_data = {}
+    send_data['order_field_options'] = []
+    angular.forEach(vm.model_data.all_order_field_options[field], function(data){
+
+      if (!data.field_name) {
+        vm.service.showNoty('Please fill all the required fields which are selected', 'success', 'topRight');
+        vm.validation_err = true;
+      } else {
+        send_data['order_field_options'].push(data.field_name);
+      }
+    });
+    if (!vm.validation_err) {
+      send_data['field'] = field
+      vm.service.apiCall("save_extra_order_options/", "POST",{'data':JSON.stringify(send_data)}).then(function(data) {
+          Service.showNoty(data.data.message);
+          vm.pos_extra_fields = [{input_type: "",field_name: ""}];
+      })
+    }
+
+  }
 
   vm.pos_extra_fields = [{'input_type': "",'field_name': ""}];
   vm.add_pos_fields = function() {
@@ -525,6 +546,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
 
     vm.pos_extra_fields.splice(index,1);
   }
+  vm.model_data.all_order_field_options = {}
+  vm.add_order_options = function (extra) {
+    if (!vm.model_data.all_order_field_options[extra])
+    {
+       vm.model_data.all_order_field_options[extra]= []
+    }
+    vm.model_data.all_order_field_options[extra].push({field_name: ""})
+  }
+ vm.remove_order_options = function (extra,index) {
+    vm.model_data.all_order_field_options[extra].splice(index,1)
+   }
+
 
   vm.switches = switches;
   function switches(value, switch_num) {
@@ -633,6 +666,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $(".sku_groups").importTags(vm.model_data.all_groups);
       $(".stages").importTags(vm.model_data.all_stages);
       $(".order_fields").importTags(vm.model_data.all_order_fields);
+      // $(".order_fields_options").importTags(vm.model_data.all_order_field_options);
+      vm.model_data.all_order_fields_list = vm.model_data.all_order_fields.split(",")
       $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
       $(".invoice_types").importTags(vm.model_data.invoice_types);
       $(".mode_of_transport").importTags(vm.model_data.mode_of_transport||'');
@@ -758,7 +793,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       }
     });
   }
-
   vm.update_invoice_titles = function() {
     var data = $(".titles").val();
     vm.switches(data, 38);

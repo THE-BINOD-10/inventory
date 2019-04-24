@@ -3573,13 +3573,13 @@ def get_order_summary_data(search_params, user, sub_user):
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
                                                                     'sku__sku_desc','sku__price','sellerordersummary__invoice_number','address',
-                                                                    'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
+                                                                    'quantity','original_order_id','order_reference','sku__sku_brand','customer_name','payment_mode',
                                                                     'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace',
                                                                     'sellerordersummary__creation_date').distinct()
     else:
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size',
-                                                                    'sku__sku_desc','sku__price','address','order_code',
+                                                                    'sku__sku_desc','sku__price','address','order_code','payment_mode',
                                                                     'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
                                                                     'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace').distinct()
     pick_filters = {}
@@ -3696,7 +3696,7 @@ def get_order_summary_data(search_params, user, sub_user):
         order_id = str(data['order_code']) + str(data['order_id'])
         if data['original_order_id']:
             order_id = data['original_order_id']
-        payment_type = ''
+        payment_type = data['payment_mode']
         reference_number = ''
         if  'DC'  in data['order_code'] or 'PRE' in data['order_code']:
             payment_obj = OrderFields.objects.filter(original_order_id=data['original_order_id'], \
@@ -3771,7 +3771,8 @@ def get_order_summary_data(search_params, user, sub_user):
                                       original_order_id=data['original_order_id']).values_list('name', 'value')
         if payment_obj:
             for pay in payment_obj:
-                exec("%s = %s" % (pay[0],pay[1]))
+                if not 'order_' in  pay[0] :
+                    exec("%s = %s" % (pay[0],pay[1]))
         #pos extra fields
         pos_extra = {}
         extra_vals = OrderFields.objects.filter(user=user.id,\

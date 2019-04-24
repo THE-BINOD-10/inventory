@@ -17,10 +17,11 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: "",
                             location: "", serials: [], serial: "", capacity: 0, discount: ""
                           }],
-                    customer_id: "", payment_received: "", order_taken_by: "", other_charges: [],  shipment_time_slot: "",
+                    customer_id: "", payment_received: "", order_taken_by: "", other_charges: [],  shipment_time_slot: "",payment_modes:[],
                     tax_type: "", vehicle_num: "",blind_order: false, mode_of_transport: "", payment_status: ""};
 
   angular.copy(empty_data, vm.model_data);
+
 
   vm.from_custom_order = false;
   if(Data.create_orders.custom_order_data.length > 0) {
@@ -116,6 +117,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
         var elem = angular.element($('form'));
         elem = elem[0];
         elem = $(elem).serializeArray();
+        elem.push({'name':'payment_modes','value':JSON.stringify(vm.model_data.payment_amounts)})
         if (is_sample == 'sample') {
           elem.push({'name':'is_sample', 'value':true});
         }
@@ -1550,6 +1552,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
       vm.final_data.total_amount = vm.final_data.temp_total_amount;
     }
   }
+  vm.model_data.payment_amounts = {}
 }
 angular
   .module('urbanApp')

@@ -227,17 +227,17 @@
           <tbody>
             <tr>
               <td>
-                <select class="form-control" name="payment_mode" ng-model="showCase.model_data.payment_mode">
+                <select class="form-control"  multiple  ng-model="showCase.model_data.payment_mode" ng-change="showCase.selected_payment(showCase.model_data.payment_mode)">
                   <option value="" selected></option>
-                  <option>Credit Card</option>
-                  <option>Debit Card</option>
-                  <option>Cash</option>
-                  <option>NEFT</option>
-                  <option>RTGS</option>
-                  <option>IMPS</option>
-                  <option>Online Transfer</option>
-                  <option>Cash Remittance</option>
-                  <option>cheque</option>
+                  <option value ="Credit card Amount">Credit Card</option>
+                  <option value ="Debit card Amount" >Debit Card</option>
+                  <option value="Cash Amount">Cash</option>
+                  <option value="Neft Amount">NEFT</option>
+                  <option value="Rtgs Amount">RTGS</option>
+                  <option value="Imps Amount">IMPS</option>
+                  <option value="Online transfer Amount">Online Transfer</option>
+                  <option value="Cash remittance Amount">Cash Remittance</option>
+                  <option value = "Cheque">cheque</option>
                 </select>
               </td>
               <td>
@@ -250,6 +250,13 @@
           </tbody>
         </table>
       </div>
+      <div class="row">
+        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6" ng-repeat="payment in showCase.model_data.payment_mode track by payment">
+           {{ payment }}
+           <input type="text"  class="form-control" ng-model="showCase.model_data.payment_amounts[payment]">
+        </div>
+      </div>
+
       <div class="row over-x" style="overflow-y: hidden;">
         <table class="table" ng-class="showCase.min_width">
           <thead>

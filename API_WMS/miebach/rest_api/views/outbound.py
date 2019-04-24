@@ -4259,6 +4259,7 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
     sku_master = {}
+    payment_mode = ''
     for key, value in request.POST.iteritems():
         if key in continue_list:
             continue
@@ -4336,6 +4337,15 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
             value = myDict[key][i]
             if value:
                 order_data[key] = datetime.datetime.strptime(value, '%d/%m/%Y')
+        elif key == 'payment_modes' :
+            if not payment_mode :
+                payment_dict = myDict['payment_modes'][0]
+                for payment_type , value in  json.loads(payment_dict).iteritems() :
+                    payment_type = payment_type.replace(' Amount' ,'')
+                    order_field_name = "order_payment_"+payment_type
+                    extra_order_fields[order_field_name] = value
+                    payment_mode +=payment_type+","
+            order_data['payment_mode'] = payment_mode
         else:
             order_data[key] = value
 
@@ -4921,8 +4931,7 @@ def insert_order_data(request, user=''):
 
     # Validate sku, quantity, stock
     valid_status, all_sku_codes, temp_distinct_skus = validate_order_form(myDict, request, user)
-
-    payment_mode = request.POST.get('payment_mode', '')
+    payment_modes =  json.loads(request.POST.get('payment_modes', ''))
     payment_received = request.POST.get('payment_received', '')
     payment_status = request.POST.get('payment_status', '')
     tax_percent = request.POST.get('tax', '')
@@ -5011,7 +5020,6 @@ def insert_order_data(request, user=''):
             # Written a separate function to make the code simpler
             order_data, order_summary_dict, sku_master, extra_order_fields = construct_order_data_dict(
                 request, i, order_data, myDict, all_sku_codes, custom_order)
-
             if not order_data['sku_id'] or not order_data['quantity']:
                 continue
             order_summary_dict['invoice_type'] = invoice_type

@@ -2547,6 +2547,8 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     if not sku_master:
                         index_status.setdefault(row_idx, set()).add("WMS Code doesn't exist")
                     else:
+                        if sku_master[0].block_for_po == 'PO':
+                            index_status.setdefault(row_idx, set()).add("WMS Code is blocked for PO")
                         data_dict['sku'] = sku_master[0]
             elif key == 'seller_id':
                 if not cell_data:

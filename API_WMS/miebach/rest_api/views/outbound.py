@@ -11611,6 +11611,9 @@ def generate_customer_invoice(request, user=''):
         invoice_data['invoice_no'] = invoice_no
         invoice_data['pick_number'] = pick_number
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
+        check_storehippo_user = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
+        if check_storehippo_user:
+            invoice_data['order_reference'] = ''
         return_data = request.GET.get('data', '')
         delivery_challan = request.GET.get('delivery_challan', '')
         if delivery_challan == "true":

@@ -7112,18 +7112,26 @@ def get_margin_report_data(search_params, user, sub_user):
     search_parameters['status__in'] = ['picked', 'batch_picked', 'dispatched']
     search_parameters['order__user'] = user.id
     order_data = Picklist.objects.filter(**search_parameters)
+    order_data = order_data.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('stock__batch_detail__mrp'), Value('<<>>'), F('stock__batch_detail__weight'), output_field=CharField()))
     get_all_order_ids = list(order_data.values_list('order__id',flat=True).distinct())
+    get_batch_detail_ids = order_data.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('stock__batch_detail__mrp'), Value('<<>>'), F('stock__batch_detail__weight'), output_field=CharField())).values_list('group_key', 'order__id').distinct()
+
+
     cust_order_summary = CustomerOrderSummary.objects.filter(order__id__in=get_all_order_ids)
-    tax_cust_order = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(total_tax=Sum(F('cgst_tax') + F('sgst_tax') + F('igst_tax') + F('utgst_tax') + F('cess_tax'))))
+    tax_cust_order = dict(cust_order_summary.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('mrp'), output_field=CharField())).values_list('group_key').annotate(total_tax=Sum(F('cgst_tax') + F('sgst_tax') + F('igst_tax') + F('utgst_tax') + F('cess_tax'))))
     divide_tax = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(count_skus=Count(F('order__sku__sku_code'))))
     collect_discount = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(discount=Sum(F('discount'))))
     if col_num in [0, 2, 3, 4]:
-        order_data_loop = order_data.order_by(sort_data).values_list('order__sku__sku_code',flat=True).distinct()
+	order_data_loop = order_data.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('stock__batch_detail__mrp'), Value('<<>>'), F('stock__batch_detail__weight'), output_field=CharField())).order_by(sort_data).values_list('group_key').distinct()
     else:
-        order_data_loop = order_data.values_list('order__sku__sku_code',flat=True).distinct()
-    qty_data = dict(order_data.values_list('order__sku__sku_code').annotate(total_quantity=Sum('picked_quantity', distinct=True)))
-    weighted_avg_cost = dict(order_data.exclude(stock__batch_detail=None).values_list('order__sku__sku_code').annotate(weighted_cost=Sum(F('picked_quantity') * F('stock__batch_detail__buy_price'))))
-    weighted_avg_selling_price = dict(order_data.values_list('order__sku__sku_code').annotate(weighted_sell=Sum(F('picked_quantity') * F('order__unit_price'))))
+	order_data_loop = order_data.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('stock__batch_detail__mrp'), Value('<<>>'), F('stock__batch_detail__weight'), output_field=CharField())).values_list('group_key').distinct()
+    qty_data = dict(order_data.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('stock__batch_detail__mrp'), Value('<<>>'), F('stock__batch_detail__weight'), output_field=CharField())).values_list('group_key').distinct().annotate(total_quantity=Sum('picked_quantity', distinct=True)))
+    weighted_avg_cost = dict(order_data.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('stock__batch_detail__mrp'), Value('<<>>'), F('stock__batch_detail__weight'), output_field=CharField())).values_list('group_key').distinct().exclude(stock__batch_detail=None).annotate(weighted_cost=Sum(F('picked_quantity') * F('stock__batch_detail__buy_price'))))
+    weighted_avg_selling_price = dict(order_data.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('stock__batch_detail__mrp'), Value('<<>>'), F('stock__batch_detail__weight'), output_field=CharField())).values_list('group_key').distinct().exclude(stock__batch_detail=None).annotate(weighted_sell=Sum(F('picked_quantity') * F('order__unit_price'))))
+
+
+
+
     temp_data['recordsTotal'] = order_data_loop.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     time = str(datetime.datetime.now())
@@ -7131,17 +7139,19 @@ def get_margin_report_data(search_params, user, sub_user):
     weighted_avg_selling_price_value = 0
     quantity = 0
     for wms_code in (order_data_loop[start_index:stop_index]):
+	wms_code = wms_code[0]
+	sku_code, sku_desc, mrp, weight = wms_code.split('<<>>')
         consolidated_margin = 0
-        collect_sku_data = SKUMaster.objects.get(user=user.id, wms_code=wms_code)
+        collect_sku_data = SKUMaster.objects.get(user=user.id, wms_code=sku_code)
         quantity = qty_data.get(wms_code, 0)
         weighted_avg_cost_value = float(weighted_avg_cost.get(wms_code, 0)/quantity)
         weighted_avg_selling_price_value = float(weighted_avg_selling_price.get(wms_code, 0)/quantity)
-        consolidated_tax = float(tax_cust_order.get(wms_code,0)/divide_tax.get(wms_code,0))
-        brand_discount = float(collect_discount.get(wms_code,0)/divide_tax.get(wms_code,0))
+        consolidated_tax = float(tax_cust_order.get(sku_code,0)/divide_tax.get(sku_code,0))
+        brand_discount = float(collect_discount.get(sku_code,0)/divide_tax.get(sku_code,0))
         if weighted_avg_cost_value:
             consolidated_margin = float(((weighted_avg_selling_price_value - weighted_avg_cost_value + brand_discount)/weighted_avg_cost_value))
         temp_data['aaData'].append(OrderedDict((
-                                                 ('SKU Code', wms_code), ('Vendor Name', ''),
+                                                 ('SKU Code', sku_code), ('Vendor Name', ''),
                                                  ('Brand', collect_sku_data.sku_brand), ('Category', collect_sku_data.sku_category),
                                                  ('Sub Category', collect_sku_data.sub_category), ('QTY', quantity),
                                                  ('Weighted Avg Cost', "%.2f" % weighted_avg_cost_value), ('Weighted Avg Selling Price', "%.2f" % weighted_avg_selling_price_value),

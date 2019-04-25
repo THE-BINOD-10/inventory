@@ -669,7 +669,7 @@ var app = angular.module('urbanApp')
         })
         .state('app.masters.ClusterSkuMaster', {
           url: '/ClusterSkuMaster',
-          permission: 'add_clustermaster',
+          permission: 'add_clusterskumapping',
           templateUrl: 'views/masters/cluster_sku_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -680,10 +680,6 @@ var app = angular.module('urbanApp')
             title: 'Cluster Sku Master',
           }
         })
-          // .state('app.masters.ClusterSkuMaster.cluster', {
-          //   url: '/cluster',
-          //   templateUrl: 'views/masters/toggles/supplier_update.html'
-          // })
       // Inbound routes
       .state('app.inbound', {
           template: '<div ui-view></div>',

@@ -315,7 +315,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "cluster_sku_upload/",
                    dparam: "download-file",
                    value: "",
-                   // perm: "add_clustermaster",
+                   perm: "add_clusterskumapping",
                  },
                 ]
 

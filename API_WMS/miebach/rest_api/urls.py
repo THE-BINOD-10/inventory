@@ -72,6 +72,7 @@ urlpatterns = [
     url(r'^change_warehouse_password/$', change_warehouse_password),
     url(r'^insert_sku_pack/$',insert_sku_pack),
     url(r'^get_zone_details/$',get_zone_details),
+    url(r'^delete_cluster_sku/$',delete_cluster_sku),
 
 
 

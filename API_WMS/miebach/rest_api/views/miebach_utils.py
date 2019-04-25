@@ -1551,7 +1551,9 @@ PERMISSION_DICT = OrderedDict((
                        ('Pricing Master', 'add_pricemaster'), ('Network Master', 'add_networkmaster'),
                        ('Tax Master', 'add_taxmaster'), ('T&C Master', 'add_tandcmaster'),
                        ('Seller Master', 'add_sellermaster'), ('Seller Margin Mapping', 'add_sellermarginmapping'),
-                       ('Staff Master', 'add_staffmaster'), ('Notification Master', 'add_pushnotifications'))),
+                       ('Staff Master', 'add_staffmaster'), ('Notification Master', 'add_pushnotifications'),
+                       ('Cluster SKU Mapping', 'add_clusterskumapping'),
+                       )),
 
     # Inbound
     ("INBOUND_LABEL", (("Raise PO", "add_openpo"), ("Confirm PO", "change_openpo"),
@@ -1608,6 +1610,7 @@ PERMISSION_DICT = OrderedDict((
                                     ('add_substitutionsummary', 'add_substitutionsummary'),
                                     ('add_targetmaster', 'add_targetmaster'),
                                     ('add_enquirymaster', 'add_enquirymaster'),
+                                    ('add_clusterskumapping', 'add_clusterskumapping'),
                  )),
     ("REPORTS", (('SKU List Report', 'view_skumaster'),('Location Wise Filter Report', 'view_locationmaster'),
                  ('Goods Receipt Note Report', 'view_sellerposummary'), ('Receipt Summary Report', 'view_polocation'),
@@ -2183,6 +2186,9 @@ CUSTOM_ORDER_DEF_EXCEL = OrderedDict((
     ('reseller_name', 0), ('customer_name', 1), ('sku_code', 2), ('customization_type', 3), ('ask_price', 4),
     ('quantity', 5), ('client_po_rate', 6), ('expected_date', 7), ('remarks', 8)))
 
+CLUSTER_SKU_MAPPING = OrderedDict((
+                                  ('Cluster Name', 0),
+                                  ('Sku Code', 1), ('Sequence', 2)))
 #PICKLIST_EXCLUDE_ZONES = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
 
 def fn_timer(function):

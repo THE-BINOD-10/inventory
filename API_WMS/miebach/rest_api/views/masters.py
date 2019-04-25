@@ -4161,7 +4161,8 @@ def get_zone_details(request , user =''):
     return  HttpResponse(json.dumps({'location_data': temp_locs}))
 
 def get_cluster_sku_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['cluster_name', 'sku__sku_code', 'sequence', 'creation_date']
+    excel_flag = request.POST.get('excel', '')
+    lis = ['cluster_name', 'cluster_name', 'sku__sku_code', 'sequence', 'creation_date']
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -4173,8 +4174,29 @@ def get_cluster_sku_results(start_index, stop_index, temp_data, search_term, ord
     else:
         cl_qs = ClusterSkuMapping.objects.filter(sku__user=request.user.id).order_by(order_data)
     for cluster in cl_qs[start_index:stop_index]:
-        temp_data['aaData'].append(OrderedDict(
+        if excel_flag == 'true':
+            checkbox = ''
+            temp_data['aaData'].append(OrderedDict(
             (('ClusterName', cluster.cluster_name), ('Skuid', cluster.sku.sku_code), ('Sequence', cluster.sequence), 
-                ('CreationDate', get_local_date(user, cluster.creation_date)))))
+                ('CreationDate', get_local_date(user, cluster.creation_date)), ('id', cluster.id))))
+        else:
+            checkbox = '<input type="checkbox" name="id" value="%s">' % cluster.id
+            temp_data['aaData'].append(OrderedDict(
+                (('check', checkbox), ('ClusterName', cluster.cluster_name), ('Skuid', cluster.sku.sku_code), ('Sequence', cluster.sequence), 
+                    ('CreationDate', get_local_date(user, cluster.creation_date)), ('id', cluster.id))))
         temp_data['recordsTotal'] = cl_qs.count()
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+def delete_cluster_sku (request, user=''):
+    deleted_ids = request.POST.get('data', '')
+    status = 'Cluster-sku Deletion Failed'
+    deleted_clusters = eval(deleted_ids)
+    try:
+        for cluster in deleted_clusters:
+            ClusterSkuMapping.objects.filter(id = cluster).delete()
+            status = 'success'
+    except Exception as e:
+         import traceback
+         log.debug(traceback.format_exc())
+         log.info('Cluster SKU Deletion failed for id : %s' % str(cluster))
+    return  HttpResponse(status)

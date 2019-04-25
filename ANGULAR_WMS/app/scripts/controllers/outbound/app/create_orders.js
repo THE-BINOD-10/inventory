@@ -437,7 +437,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                 to_price: vm.toPrice, quantity: vm.quantity, delivery_date: vm.delivery_date, is_margin_percentage: vm.marginData.is_margin_percentage,
                 margin: vm.marginData.margin, hot_release: vm.hot_release, margin_data: JSON.stringify(Data.marginSKUData.data),
                 dimensions: dimension_data};
-
+    if(vm.cluster){
+      data['cluster'] = vm.cluster
+    }
     if(status) {
       angular.copy([], vm.catlog_data.data);
     }
@@ -576,9 +578,14 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
   }
 
-  vm.change_category = function(category) {
-
-    vm.category = category;
+  vm.change_category = function(category, cluster='') {
+    if (cluster == 'cluster_name'){
+      vm.cluster = category
+      vm.category = ''
+    } else {
+      vm.cluster = ''
+      vm.category = category;
+    }
     if (vm.filterData.selectedCats){
       vm.filterData.selectedCats[category] = true;
     } else {

@@ -6473,7 +6473,6 @@ def print_shipment(request, user=''):
 @login_required
 @get_admin_user
 def get_sku_categories(request, user=''):
-    # import pdb; pdb.set_trace()
     price_band_flag = get_misc_value('priceband_sync', user.id)
     if price_band_flag == 'true':
         user = get_admin(user)
@@ -6486,7 +6485,9 @@ def get_sku_categories(request, user=''):
     images= []
     for url in cluster_masters:
         if cluster_masters[url]:
-            images.append(cluster_masters[url])
+            images.append({'cluster_name':url, 'image':cluster_masters[url]})
+        else:
+            images.append({'cluster_name':url, 'image':'/static/images/categories/default.png'})
     reseller_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     corp_names = []
     if reseller_obj and price_band_flag == 'true':

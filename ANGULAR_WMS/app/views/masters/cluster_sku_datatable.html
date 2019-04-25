@@ -6,7 +6,6 @@
       </div>
       <div class="col-md-6 col-sm-12 col-xs-12">
         <div class="row no-margin">
-          <!-- <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-3" ng-click="showCase.add()">New Supplier</button> -->
           <button type="button" class="btn btn-primary col-md-3 col-sm-3 col-xs-12" style="width: 150px; margin-bottom:5px;" ng-click="showCase.root_path('clusterUpload')">Image Upload</button>
           <div ng-include="'views/common/excel_button.html'"></div>
         </div>
@@ -14,4 +13,5 @@
     </div>
   </div>
   <div ng-include="'views/common/master-datatable.html'"></div>
+  <button type="submit" class="btn btn-danger pull-right" ng-click="showCase.delete_confirmation()" ng-disabled="showCase.bt_disable" style="margin-right: 30px;">Delete Sku Cluster</button>
 </div>

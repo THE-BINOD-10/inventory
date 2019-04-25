@@ -859,13 +859,23 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
               vm.exta_model[vm.order_extra_fields[i]] = '';
 
            }
-
-         }
+          }
         }
       })
     }
 
   vm.get_order_extra_fields();
+  vm.get_extra_order_options  = function()
+  {
+    vm.service.apiCall("get_order_extra_options/").then(function(data){
+      if(data.message) {
+        vm.extra_order_options = data.data;
+      }
+
+    })
+
+  }
+  vm.get_extra_order_options();
 
   vm.change_tax_type = function() {
 

@@ -2277,6 +2277,14 @@ def save_order_extra_fields(request, user=''):
         if not misc_detail.exists():
              MiscDetail.objects.create(user=user.id,misc_type='extra_order_fields',misc_value=order_extra_fields)
         else:
+            misc_order_option_list = list(MiscDetailOptions.objects.filter(misc_detail__user=user.id).values_list('misc_key',flat=True))
+            order_extra_list = order_extra_fields.split(',')
+            diff_list = list(set(misc_order_option_list)- set(order_extra_list))
+            if len(diff_list) > 0 :
+                for key in diff_list :
+                    misc_records = MiscDetailOptions.objects.filter(misc_detail__user= user.id,misc_key = key)
+                    for record in misc_records :
+                        record.delete()
             misc_detail_obj = misc_detail[0]
             misc_detail_obj.misc_value = order_extra_fields
             misc_detail_obj.save()

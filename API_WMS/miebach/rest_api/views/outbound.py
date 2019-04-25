@@ -15339,3 +15339,21 @@ def get_feedback_data(start_index, stop_index, temp_data, search_term, order_ter
         log.debug(traceback.format_exc())
         log.info('Exception raised while display feedback form for %s and params are %s and error statement is %s'
                  % (str(user.username), str(request.POST.dict()), str(e)))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_order_extra_options(request, user=''):
+    misc_options =[]
+    options_dict = {}
+    try:
+        misc_options =list( MiscDetailOptions.objects.filter(misc_detail__user=user.id).values('misc_key','misc_value'))
+        for option in misc_options :
+            options_dict[option.get('misc_key','')]  =  option.get('misc_value','').split(",")
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Exception raised for getting extra order options for  %s and error statement is %s'
+                 % (str(user.username), str(e)))
+    return HttpResponse(json.dumps(options_dict), content_type='application/json')

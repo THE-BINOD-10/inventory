@@ -9197,6 +9197,10 @@ def picklist_delete(request, user=""):
                         status_message = 'Partial Picked Picklist not allowed to cancel'
                         continue
                     else:
+                        order_fields = OrderFields.objects.filter(original_order_id = order.original_order_id,user = user.id)
+                        if order_fields .exists():
+                            for order_field in order_fields :
+                                order_field.delete()
                         order.delete()
                 else:
                     all_seller_orders = SellerOrder.objects.filter(order__user=user.id,
@@ -9217,6 +9221,10 @@ def picklist_delete(request, user=""):
                                                                                 float(remaining_qty)
 
                     if picked_qty <= 0 and not seller_order:
+                        order_fields = OrderFields.objects.filter(original_order_id = order.original_order_id,user = user.id)
+                        if order_fields .exists():
+                            for order_field in order_fields :
+                                order_field.delete()
                         order.delete()
                         continue
                     save_order_tracking_data(order, quantity=remaining_qty, status='cancelled', imei='')
@@ -9262,6 +9270,7 @@ def picklist_delete(request, user=""):
             log.info("total time -- %s" % (duration))
             if cancelled_orders_dict:
                 check_and_update_order_status_data(cancelled_orders_dict, user, status='CANCELLED')
+
             return HttpResponse(status_message)
 
         else:

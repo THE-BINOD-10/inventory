@@ -149,7 +149,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
           $modalInstance.close();
           Service.showNoty('Order Placed Successfully');
         }else{
-          Service.showNoty(data.data, 'warning');
+          Service.showNoty(data.data.msg, 'warning');
         }
       })
     }

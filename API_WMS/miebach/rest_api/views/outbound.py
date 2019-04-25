@@ -12954,6 +12954,8 @@ def save_manual_enquiry_data(request, user=''):
         ask_price = request.POST.get('ask_price', 0)
         expected_date = request.POST.get('expected_date', '')
         remarks = request.POST.get('remarks', '')
+        if admin_remarks == 'true':
+            remarks = request.POST.get('admin_remark', '')
         status = request.POST.get('status', '')
         designer_flag = False
         if request.user.userprofile.warehouse_type == "SM_DESIGN_ADMIN":
@@ -12990,7 +12992,7 @@ def save_manual_enquiry_data(request, user=''):
             #     users_list.append(market_admin_user_id)
             users_list.append(admin_user.id)
             if admin_remarks == 'true':
-                enq_user = manual_enq_data.enquiry.user
+                enq_user = User.objects.get(id=manual_enq_data.order_user_id)
                 customer_user = get_customer_parent_user(enq_user)
                 temp_group = Group.objects.filter(name=user.username)
                 if temp_group and customer_user:
@@ -13466,7 +13468,7 @@ def convert_customorder_to_actualorder(request, user=''):
                     wh_user_obj = User.objects.get(username=warehouse['warehouse'])
                     stock_wh_map[wh_user_obj.id] = float(warehouse['quantity'])
     except:
-        return HttpResponse('Something Went Wrong')
+        return HttpResponse(json.dumps({'msg': 'Something Went Wrong', 'data': []}))
     resp = {'msg': 'Success', 'data': []}
     try:
         enq_id = request.POST.get('enquiry_id', '')
@@ -13477,7 +13479,7 @@ def convert_customorder_to_actualorder(request, user=''):
             return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
         enq_obj = en_qs[0]
         if enq_obj.status != 'confirm_order':
-            return HttpResponse('Either Order is not approved by Admin or Order already Created')
+            return HttpResponse(json.dumps({'msg': 'Either Order is not approved by Admin or Order already Created', 'data': []}))
         sku_id = enq_obj.sku.id
         sku_code = enq_obj.sku.sku_code
         title = enq_obj.sku.sku_desc
@@ -13498,7 +13500,7 @@ def convert_customorder_to_actualorder(request, user=''):
                 ask_price = ask_price_qs[0]
             exp_date_qs = man_det_qs.values_list('expected_date', flat=True).order_by('-id')
             if not exp_date_qs:
-                return HttpResponse("Some thing went wrong, please check with team")
+                return HttpResponse(json.dumps({"msg": "Some thing went wrong, please check with team", "data": []}))
             else:
                 exp_date = exp_date_qs[0]
                 if exp_date < datetime.date.today():
@@ -13518,7 +13520,7 @@ def convert_customorder_to_actualorder(request, user=''):
         dist_order_copy = {}
         customer_obj = CustomerMaster.objects.filter(id=cm_id)
         if not customer_obj:
-            return HttpResponse('Customer Not Found, Something went wrong')
+            return HttpResponse(json.dumps({'msg': 'Customer Not Found, Something went wrong', 'data': []}))
 
         cm_id = customer_obj[0].id
         generic_order_id = get_generic_order_id(cm_id)
@@ -13627,13 +13629,13 @@ def convert_customorder_to_actualorder(request, user=''):
         else:
             log.info("Order Push failed for order:%s : Customer Id:%s : Error: %s" %(generic_order_id, cm_id, message))
             cancel_emiza_order(generic_order_id, cm_id)
-            return HttpResponse('Order is not placed properly in Emiza, please check with Stockone Team')
+            return HttpResponse(json.dumps({'msg': 'Order is not placed properly in Emiza, please check with Stockone Team', 'data': []}))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Converting Custom Order to Actual Order Failed. User: %s, Params: %s, Error: %s'
                  % (user.username, str(request.POST.dict()), str(e)))
-        return HttpResponse('Converting Custom Order to Actual Order Failed.')
+        return HttpResponse(json.dumps({'msg': 'Converting Custom Order to Actual Order Failed.', 'data': []}))
 
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 

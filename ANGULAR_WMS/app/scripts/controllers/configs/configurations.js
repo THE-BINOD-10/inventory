@@ -530,7 +530,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       send_data['field'] = field
       vm.service.apiCall("save_extra_order_options/", "POST",{'data':JSON.stringify(send_data)}).then(function(data) {
           Service.showNoty(data.data.message);
-          vm.pos_extra_fields = [{input_type: "",field_name: ""}];
       })
     }
 
@@ -788,6 +787,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     vm.service.apiCall("save_order_extra_fields/?extra_order_fields="+data).then(function(data){
       if(data.message) {
         msg = data.data;
+        vm.model_data.all_order_fields_list = $(".order_fields").val().split(',');
         $scope.showNoty();
         Auth.status();
       }

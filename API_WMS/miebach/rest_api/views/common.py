@@ -866,6 +866,15 @@ def configurations(request, user=''):
     if mandatory_receive_po != 'false':
         config_dict['selected_receive_po_mandatory'] = mandatory_receive_po.split(',')
     config_dict['all_order_field_options'] = {}
+    misc_options = MiscDetailOptions.objects.filter(misc_detail__user=user.id).values('misc_key','misc_value')
+    for misc in misc_options :
+        misc_list = misc.get('misc_value').split(',')
+        config_dict['all_order_field_options'][misc.get('misc_key')]=[]
+        for misc_value in misc_list :
+            temp_dict = {}
+            temp_dict['field_name'] = misc_value
+            config_dict['all_order_field_options'][misc.get('misc_key')].append(temp_dict)
+
     return HttpResponse(json.dumps(config_dict))
 
 

@@ -14743,7 +14743,7 @@ def do_delegate_orders(request, user=''):
                     original_order_id, address1, address2, client_code, village, state,marketplace, pincode = '','', '', '', '', '', '', ''
                     central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)#for 72 networks
 
-                    if central_order_reassigning :
+                    if central_order_reassigning == 'true':
                         ord_det_obj = OrderDetail.objects.filter(id = interm_obj.order_id)
                         order_fields = OrderFields.objects.filter(user=user.id, original_order_id=ord_det_obj[0].original_order_id)
                     else:
@@ -14766,6 +14766,8 @@ def do_delegate_orders(request, user=''):
                             pincode = obj['value']
                         if obj['name'] == 'marketplace':
                             marketplace = obj['value']
+                        if central_order_reassigning == 'true':
+                            marketplace = 'Offline'
                     order_dict['customer_id'] = interm_obj.customer_id
                     order_dict['customer_name'] = interm_obj.customer_name
                     order_dict['email_id'] = ''
@@ -14810,7 +14812,7 @@ def do_delegate_orders(request, user=''):
                         #get_existing_order.save()
                         order_fields.update(original_order_id=original_order_id)
                         interm_obj_filter.update(status=1)
-                        if central_order_reassigning :
+                        if central_order_reassigning == 'true':
                             interm_obj_filter.update(order_id = get_existing_order.id)
                             interm_obj.order_id = get_existing_order.id
                             interm_obj.status = 1
@@ -14827,7 +14829,7 @@ def do_delegate_orders(request, user=''):
                                 ord_obj.save()
                             order_fields.update(original_order_id=original_order_id)
                             interm_obj_filter.update(status=1)
-                            if central_order_reassigning :
+                            if central_order_reassigning == 'true':
                                 interm_obj.order_id = ord_obj.id
                                 interm_obj.status = 1
                                 interm_obj.save()

@@ -106,7 +106,7 @@ SUPPLIER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '',
                  'owner_name': '', 'owner_number': '', 'owner_email_id': '',
                  'spoc_name': '', 'spoc_number': '', 'spoc_email_id': '',
                  'lead_time': 0, 'credit_period': 0, 'bank_name': '', 'ifsc_code': '',
-                 'branch_name': '', 'account_number': 0, 'account_holder_name': '', 'markdown_percentage': 0
+                 'branch_name': '', 'account_number': 0, 'account_holder_name': ''
                 }
 
 SIZE_DATA = {'size_name': '', 'size_value': '', 'creation_date': datetime.datetime.now()}
@@ -246,7 +246,7 @@ SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone N
                     'Credibility', 'Tax Type(Options: Inter State, Intra State)', 'PO Expiry Duration',
                     'Owner Name', 'Owner Number', 'Owner Email', 'SPOC Name', 'SPOC Number', 'SPOC Email',
                     'Lead Time', 'Credit Period', 'Bank Name', 'IFSC Code', 'Branch Name',
-                    'Account Number', 'Account Holder Name', 'Markdown Percentage']
+                    'Account Number', 'Account Holder Name']
 
 VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
 
@@ -1958,7 +1958,7 @@ SUPPLIER_EXCEL_FIELDS = OrderedDict((('id', 0), ('name', 1), ('address', 2), ('e
                                      ('spoc_name', 19), ('spoc_number', 20), ('spoc_email_id', 21),
                                      ('lead_time', 22), ('credit_period', 23), ('bank_name', 24),
                                      ('ifsc_code', 25), ('branch_name', 26), ('account_number', 27),
-                                     ('account_holder_name', 28), ('markdown_percentage', 29),
+                                     ('account_holder_name', 28),
                                      ))
 STATUS_DICT = {1: True, 0: False}
 

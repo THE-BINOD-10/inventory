@@ -10,6 +10,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   var vm = this;
   vm.apply_filters = colFilters;
   vm.service = Service;
+  vm.industry_type = Session.user_profile.industry_type;
+  vm.user_type = Session.user_profile.user_type
 
   vm.filters = {'datatable': 'SupplierMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
   vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -54,6 +56,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       $scope.$apply(function() {
         vm.model_data = {};
         angular.extend(vm.model_data, aData);
+        if (vm.model_data.ep_supplier == 1) {
+          vm.model_data.ep_supplier = 'yes'
+        }else if (vm.model_data.ep_supplier == 0) {
+          vm.model_data.ep_supplier = 'no'
+        }else{
+          vm.model_data.ep_supplier = ''
+        }
         vm.update = true;
         vm.message = "";
         vm.title = "Update Supplier";
@@ -146,9 +155,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       } else {
         vm.supplier('update_supplier_values/');
       }
-    } else {
-      vm.service.pop_msg('Please fill required fields OR Check Percentage Value 0 - 100');
     }
+    // else {
+    //   vm.service.pop_msg('Please fill required fields OR Check Percentage Value 0 - 100');
+    // }
   }
   
   //read files

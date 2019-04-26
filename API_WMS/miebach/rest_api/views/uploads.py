@@ -964,10 +964,12 @@ def inventory_form(request, user=''):
 @get_admin_user
 def supplier_form(request, user=''):
     supplier_file = request.GET['download-supplier-file']
+    supplier_headers = copy.deepcopy(SUPPLIER_HEADERS)
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        supplier_headers.append('EP Supplier(yes/no)')
     if supplier_file:
         return error_file_download(supplier_file)
-
-    wb, ws = get_work_sheet('supplier', SUPPLIER_HEADERS)
+    wb, ws = get_work_sheet('supplier', supplier_headers)
     return xls_to_response(wb, '%s.supplier_form.xls' % str(user.id))
 
 
@@ -2003,6 +2005,9 @@ def validate_supplier_form(open_sheet, user_id):
     index_status = {}
     supplier_ids = []
     mapping_dict = copy.deepcopy(SUPPLIER_EXCEL_FIELDS)
+    user = User.objects.get(id = user_id)
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        mapping_dict['ep_supplier'] = 29
     messages_dict = {'phone_number': 'Phone Number', 'days_to_supply': 'Days required to supply',
                      'fulfillment_amt': 'Fulfillment Amount', 'owner_number': 'Owner Number',
                      'spoc_number': 'SPOC Number', 'lead_time': 'Lead Time', 'credit_period': 'Credit Period',
@@ -2048,11 +2053,16 @@ def validate_supplier_form(open_sheet, user_id):
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % messages_dict[key])
-            elif key == 'markdown_percentage':
-                if not isinstance(cell_data, (int, float)):
-                    index_status.setdefault(row_idx, set()).add('Markdown % Should be in integer or float')
-                elif not float(cell_data) in range(0, 100):
-                    index_status.setdefault(row_idx, set()).add('Markdown % Should be in between 0 and 100')
+            elif key == 'ep_supplier':
+                if isinstance(cell_data, (int, float)):
+                    index_status.setdefault(row_idx, set()).add('EP Supplier Should be in yes or no')
+                elif cell_data and (cell_data.lower() == 'yes' or cell_data.lower() == 'no'):
+                    cell_data = cell_data.lower()
+            # elif key == 'markdown_percentage':
+            #     if not isinstance(cell_data, (int, float)):
+            #         index_status.setdefault(row_idx, set()).add('Markdown % Should be in integer or float')
+            #     elif not float(cell_data) in range(0, 100):
+            #         index_status.setdefault(row_idx, set()).add('Markdown % Should be in between 0 and 100')
 
     if not index_status:
         return 'Success'
@@ -2064,6 +2074,8 @@ def validate_supplier_form(open_sheet, user_id):
 
 def supplier_excel_upload(request, open_sheet, user, demo_data=False):
     mapping_dict = copy.deepcopy(SUPPLIER_EXCEL_FIELDS)
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        mapping_dict['ep_supplier'] = 29
     number_str_fields = ['pincode', 'phone_number', 'days_to_supply', 'fulfillment_amt', 'po_exp_duration',
                          'owner_number', 'spoc_number', 'lead_time', 'credit_period', 'account_number']
     rev_tax_types = dict(zip(TAX_TYPE_ATTRIBUTES.values(), TAX_TYPE_ATTRIBUTES.keys()))
@@ -2105,7 +2117,11 @@ def supplier_excel_upload(request, open_sheet, user, demo_data=False):
                     supplier_data[key] = cell_data
                     if supplier_master:
                         setattr(supplier_master, key, cell_data)
-
+            elif key == 'ep_supplier':
+                if cell_data.lower() =='yes':
+                    supplier_data[key] = 1
+                else:
+                    supplier_data[key] = 0
             else:
                 supplier_data[key] = cell_data
                 if supplier_master and cell_data:

@@ -306,7 +306,8 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('branch_name', data.branch_name),
                                                 ('account_number', data.account_number),
                                                 ('account_holder_name', data.account_holder_name),
-                                                ('markdown_percentage', data.markdown_percentage)
+                                                # ('markdown_percentage', data.markdown_percentage),
+                                                ('ep_supplier', data.ep_supplier)
                                             )))
 
 
@@ -1159,7 +1160,6 @@ def get_supplier_master_data(request, user=''):
 @get_admin_user
 def update_supplier_values(request, user=''):
     """ Update Supplier Data """
-
     log.info('Update Supplier request params for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         data_id = request.POST['id']
@@ -1177,6 +1177,11 @@ def update_supplier_values(request, user=''):
                 continue
             if key == 'status':
                 if value == 'Active':
+                    value = 1
+                else:
+                    value = 0
+            if key == 'ep_supplier' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                if value == 'yes':
                     value = 1
                 else:
                     value = 0
@@ -1239,6 +1244,11 @@ def insert_supplier(request, user=''):
             for key, value in request.POST.iteritems():
                 if key == 'status':
                     if value == 'Active':
+                        value = 1
+                    else:
+                        value = 0
+                if key == 'ep_supplier' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                    if value == 'yes':
                         value = 1
                     else:
                         value = 0
@@ -3990,7 +4000,8 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
                                                 ('branch_name', data.branch_name),
                                                 ('account_number', data.account_number),
                                                 ('account_holder_name', data.account_holder_name),
-                                                ('markdown_percentage', data.markdown_percentage)
+                                                ('ep_supplier', data.ep_supplier)
+                                                # ('markdown_percentage', data.markdown_percentage)
                                             )))
     excel_headers = ''
     if temp_data['aaData']:
@@ -4007,7 +4018,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
     'City', 'State', 'Days To Supply', 'Fulfillment Amount', 'Credibility', 'Country', 'Pincode',
     'Status', 'Supplier Type', 'Tax Type', 'PO Exp Duration', 'Owner Name',
     'Owner Number', 'Owner Email Id', 'Spoc Name', 'Spoc Number', 'Lead Time', 'Spoc Email ID', 'Credit Period',
-    'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name', 'Markdown Percentage']
+    'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name']
     try:
         wb, ws = get_work_sheet('skus', itemgetter(*excel_headers)(headers))
     except:

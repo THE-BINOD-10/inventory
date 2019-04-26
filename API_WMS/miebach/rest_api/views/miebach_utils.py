@@ -3769,10 +3769,13 @@ def get_order_summary_data(search_params, user, sub_user):
         #payment mode
         payment_obj = OrderFields.objects.filter(user=user.id, name__icontains="payment_",\
                                       original_order_id=data['original_order_id']).values_list('name', 'value')
+
         if payment_obj:
             for pay in payment_obj:
                 if not 'order_' in  pay[0] :
                     exec("%s = %s" % (pay[0],pay[1]))
+                else:
+                    payment_type +=pay[1]+","
         #pos extra fields
         pos_extra = {}
         extra_vals = OrderFields.objects.filter(user=user.id,\

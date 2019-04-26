@@ -103,7 +103,7 @@ class Command(BaseCommand):
                             else:
                                 StockStats.objects.create(**data_dict)
                         else:
-                            quantity = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).aggregate(Sum('quantity'))['quantity__sum']
+                            quantity = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku_id=sku.id).aggregate(Sum('quantity'))['quantity__sum']
                             if not quantity:
                                 quantity = 0
                             data_dict = {'opening_stock': 0, 'closing_stock': quantity, 'sku_id':sku.id}

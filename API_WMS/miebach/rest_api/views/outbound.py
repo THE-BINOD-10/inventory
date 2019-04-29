@@ -9118,42 +9118,61 @@ def picklist_delete(request, user=""):
 
     st_time = datetime.datetime.now()
     log.info("deletion of picklist process started")
+    stock_transfer_order = False
+    order_ids =[]
     picklist_id = request.GET.get("picklist_id", "")
     key = request.GET.get("key", "")
     picklist_objs = Picklist.objects.filter(picklist_number=picklist_id, status__in=["open", "batch_open"],
                                             order_id__user=user.id)
-    order_ids = list(picklist_objs.values_list('order_id', flat=True).distinct())
-    order_objs = OrderDetail.objects.filter(id__in=order_ids, user=user.id)
+    if not picklist_objs.exists():
+        picklist_objs = Picklist.objects.filter(picklist_number=picklist_id, status__in=["open", "batch_open"],
+                                                stock__sku__user=user.id)
+        if picklist_objs.exists():
+            stock_transfer_order = True
+
+    if not stock_transfer_order :
+        order_ids = list(picklist_objs.values_list('order_id', flat=True).distinct())
+        order_objs = OrderDetail.objects.filter(id__in=order_ids, user=user.id)
     log.info('Cancel Picklist request params for ' + user.username + ' is ' + str(request.GET.dict()))
     cancelled_orders_dict = {}
     try:
         if key == "process":
             status_message = 'Picklist is saved for later use'
-            for order in order_objs:
-                combo_picklists = picklist_objs.filter(order_type='combo', order_id=order.id)
-                if combo_picklists:
-                    is_picked = combo_picklists.filter(picked_quantity__gt=0, order_id=order.id)
-                    remaining_qty = order.quantity
-                    if is_picked:
-                        #status_message = 'Partial Picked Picklist not allowed to cancel'
-                        #cancel_combo_partial_orders(combo_picklists, order, user)
-                        remaining_qty = combo_picklists.filter(picked_quantity__gt=0).\
-                                                    aggregate(Min('reserved_quantity'))['reserved_quantity__min']
-                        #order_ids.remove(order.id)
-                        #continue
-                else:
-                    remaining_qty = picklist_objs.filter(order_id=order).\
-                        aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
+            if not stock_transfer_order :
+                for order in order_objs:
+                    combo_picklists = picklist_objs.filter(order_type='combo', order_id=order.id)
+                    if combo_picklists:
+                        is_picked = combo_picklists.filter(picked_quantity__gt=0, order_id=order.id)
+                        remaining_qty = order.quantity
+                        if is_picked:
+                            #status_message = 'Partial Picked Picklist not allowed to cancel'
+                            #cancel_combo_partial_orders(combo_picklists, order, user)
+                            remaining_qty = combo_picklists.filter(picked_quantity__gt=0).\
+                                                        aggregate(Min('reserved_quantity'))['reserved_quantity__min']
+                            #order_ids.remove(order.id)
+                            #continue
+                    else:
+                        remaining_qty = picklist_objs.filter(order_id=order).\
+                            aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
 
-                if remaining_qty and remaining_qty > 0:
-                    order.status, order.quantity = 1, remaining_qty
-                    order.save()
-                    seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id=order.id)
-                    if seller_orders:
-                        seller_orders.update(status=1)
-            if order_ids:
-                OrderLabels.objects.filter(order_id__in=order_ids, picklist__picklist_number=picklist_id).update(
-                    picklist=None)
+                    if remaining_qty and remaining_qty > 0:
+                        order.status, order.quantity = 1, remaining_qty
+                        order.save()
+                        seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id=order.id)
+                        if seller_orders:
+                            seller_orders.update(status=1)
+            else:
+                for picklist in picklist_objs :
+                    st_orders = STOrder.objects.filter(picklist = picklist.id)
+                    stock_transfer_obj = st_orders[0].stock_transfer
+                    stock_transfer_obj.quantity = picklist.reserved_quantity
+                    stock_transfer_obj.status = 1
+                    stock_transfer_obj.save()
+
+            if order_ids or stock_transfer_order :
+                if not stock_transfer_order :
+                    OrderLabels.objects.filter(order_id__in=order_ids, picklist__picklist_number=picklist_id).update(
+                        picklist=None)
                 picked_objs = picklist_objs.filter(picked_quantity__gt=0)
                 not_picked_objs = picklist_objs.filter(picked_quantity=0)
                 if not_picked_objs.exists():

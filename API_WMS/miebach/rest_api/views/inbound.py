@@ -1424,7 +1424,8 @@ def get_mapping_values(request, user=''):
             data['measurement_unit'] = sku_supplier[0].sku.measurement_type
         else:
             sup_markdown = SupplierMaster.objects.get(id=supplier_id)
-            price_value = sku_master.mrp - ((sku_master.mrp * sup_markdown.markdown_percentage)/100)
+            #price_value = sku_master.mrp - ((sku_master.mrp * sup_markdown.markdown_percentage)/100)
+            price_value = sku_master.mrp
             data['price'] = price_value
             data['ean_number'] = ean_number
     else:

@@ -1232,6 +1232,10 @@ def get_auto_po_quantity(sku, stock_quantity=''):
         if sku_stock:
             stock_quantity = sku_stock
 
+    open_po_qty = OpenPO.objects.filter(sku_id=sku.id, sku__user=sku.user,
+                                             status__in=['Automated', 1, 'Manual']).only('order_quantity').\
+        aggregate(Sum('order_quantity'))['order_quantity__sum']
+
     purchase_order = PurchaseOrder.objects.exclude(status__in=['confirmed-putaway', 'location-assigned']). \
         filter(open_po__sku__user=sku.user, open_po__sku_id=sku.id, open_po__vendor_id__isnull=True). \
         values('open_po__sku_id').annotate(total_order=Sum('open_po__order_quantity'),
@@ -1246,6 +1250,8 @@ def get_auto_po_quantity(sku, stock_quantity=''):
         qc_pending = 0
     if not putaway_pending:
         putaway_pending = 0
+    if not open_po_qty:
+        open_po_qty = 0
 
     production_orders = JobOrder.objects.filter(product_code_id=sku.id, product_code__user=sku.user). \
         exclude(status__in=['open', 'confirmed-putaway']).values('product_code_id'). \
@@ -1271,7 +1277,7 @@ def get_auto_po_quantity(sku, stock_quantity=''):
             transit_quantity = diff_quantity
         transit_quantity += (qc_pending + putaway_pending)
 
-    total_quantity = (stock_quantity + transit_quantity + production_quantity + intr_qty)
+    total_quantity = (stock_quantity + transit_quantity + production_quantity + intr_qty + open_po_qty)
     raise_quantity = int(sku.threshold_quantity) - total_quantity
     if raise_quantity < 0:
         raise_quantity = 0
@@ -1385,7 +1391,16 @@ def auto_po(wms_codes, user):
                     # moq = qty
                     continue
                 supplier_master_id = supplier_id[0].supplier_id
+                taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
                 price = supplier_id[0].price
+                inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
+                inter_state = inter_state_dict.get(supplier_id[0].supplier.tax_type, 2)
+                tax_master = TaxMaster.objects.filter(user_id=user, inter_state=inter_state,
+                                                      product_type=sku.product_type,
+                                                      min_amt__lte=price, max_amt__gte=price).\
+                    values('cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax')
+                if tax_master.exists():
+                    taxes = copy.deepcopy(tax_master[0])
             elif auto_raise_stock_transfer == 'true':
                 all_data = {}
                 user_obj = User.objects.get(id=user)
@@ -1402,15 +1417,22 @@ def auto_po(wms_codes, user):
 
             if moq <= 0:
                 continue
-            suggestions_data = OpenPO.objects.filter(sku_id=sku.id, sku__user=user, status__in=['Automated', 1])
-            order_quantity = max(qty,moq)
-            if not suggestions_data:
+            suggestions_data = OpenPO.objects.filter(sku_id=sku.id, sku__user=user,
+                                                     status__in=['Automated', 1, 'Manual'])
+            if not suggestions_data.exists():
+                order_quantity = max(qty,moq)
+            else:
+                order_quantity = qty
+            automated_po = OpenPO.objects.filter(sku_id=sku.id, sku__user=user,
+                                                     status='Automated')
+            if not automated_po.exists():
                 po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
                 po_suggestions['sku_id'] = sku.id
                 po_suggestions['supplier_id'] = supplier_master_id
                 po_suggestions['order_quantity'] = order_quantity
                 po_suggestions['status'] = 'Automated'
                 po_suggestions['price'] = price
+                po_suggestions['mrp'] = sku.mrp
                 po_suggestions.update(taxes)
                 po = OpenPO(**po_suggestions)
                 po.save()
@@ -1428,8 +1450,10 @@ def auto_po(wms_codes, user):
                                                  prefix=user_profile.prefix,
                                                  creation_date=datetime.datetime.now())
                     check_purchase_order_created(User.objects.get(id=user), po_order_id)
-    else:
-        pass
+            else:
+                automated_po = automated_po[0]
+                automated_po.order_quantity += order_quantity
+                automated_po.save()
 
 
 @csrf_exempt

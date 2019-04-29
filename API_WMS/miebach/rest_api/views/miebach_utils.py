@@ -6015,8 +6015,9 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
             if creation_date:
                 invoice_date = get_local_date(user, creation_date)
                 invoice_number = ord_invoice_map.get(data['order__id'], '')
-                order = OrderDetail.objects.get(original_order_id = data['order__original_order_id'] ,user = user.id)
-                invoice_number = get_full_invoice_number(user,invoice_number,order,creation_date ,'')
+                order = OrderDetail.objects.filter(original_order_id = data['order__original_order_id'] ,user = user.id)
+                if order.exists():
+                    invoice_number = get_full_invoice_number(user,invoice_number,order[0],creation_date ,'')
             else:
                 invoice_number = '%s' % data['order__original_order_id']
         else:

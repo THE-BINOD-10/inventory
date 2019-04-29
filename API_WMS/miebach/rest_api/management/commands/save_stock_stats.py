@@ -43,6 +43,8 @@ class Command(BaseCommand):
         users = User.objects.filter(is_staff=True)
         for user in users:
             print user
+            if not user.userprofile:
+                continue
             non_transact_process = get_misc_value('non_transacted_skus', user.id)
             log.info(get_local_date(user, datetime.datetime.now()))
             sku_obj = SKUMaster.objects.filter(user=user.id)

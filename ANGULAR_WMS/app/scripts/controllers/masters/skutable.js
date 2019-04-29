@@ -83,7 +83,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         hot_release: 0,
                         image_url:"images/wms/dflt.jpg",
                         measurement_type: "",
-                        block_for_po: "No"
+                        block_options: "No"
                       },
                       "zones":[],
                       "groups":[],
@@ -112,7 +112,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.status = vm.status_data[0];
     vm.qc_data = ['Disable','Enable'];
     vm.qc = vm.qc_data[0];
-    vm.block_for_po = vm.block_for_po_list[0];
+    vm.block_options = vm.block_for_po_list[0];
     vm.market_list = [];
     vm.market;
     vm.market_data = [];

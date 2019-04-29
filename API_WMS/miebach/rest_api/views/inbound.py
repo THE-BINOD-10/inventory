@@ -1409,7 +1409,7 @@ def get_mapping_values(request, user=''):
         sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, supplier_id=supplier_id, sku__user=user.id)
     sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
     sup_markdown = SupplierMaster.objects.get(id=supplier_id)
-    if (int(sup_markdown.ep_supplier) and sku_master.block_options == "PO") || (sku_master.block_options != "PO"):
+    if (int(sup_markdown.ep_supplier) and sku_master.block_options == "PO") or (not sku_master.block_options == "PO"):
         data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,
                 'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
         if sku_supplier:

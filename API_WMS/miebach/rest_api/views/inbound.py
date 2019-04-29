@@ -1573,10 +1573,10 @@ def add_po(request, user=''):
         if not sku_id:
             status = 'Invalid WMS CODE'
             return HttpResponse(status)
-	else:
-	    if sku_id[0].block_options == 'PO':
-		status = 'WMS Code - Blocked for PO'
-		return HttpResponse(status)
+        else:
+            if sku_id[0].block_options == 'PO':
+                status = 'WMS Code - Blocked for PO'
+                return HttpResponse(status)
         po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
 
         supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=value['supplier_id'],

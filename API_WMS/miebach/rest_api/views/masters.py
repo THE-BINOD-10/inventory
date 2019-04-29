@@ -343,7 +343,7 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
                                                 ('preference', sku_preference),
                                                 ('price', result.price), ('costing_type', result.costing_type), 
                                                 ('margin_percentage', result.margin_percentage), ('DT_RowClass', 'results'),
-                                                ('DT_RowId', result.id))))
+                                                ('DT_RowId', result.id), ('mrp', result.mrp))))
 
 
 @csrf_exempt

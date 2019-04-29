@@ -276,7 +276,7 @@ SALES_RETURN_BULK = ['Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantit
 RETURN_DATA_FIELDS = ['sales-check', 'order_id', 'sku_code', 'customer_id', 'shipping_quantity', 'return_quantity',
                       'damaged_quantity', 'delete-sales']
 
-SUPPLIER_SKU_HEADERS = ['Supplier Id', 'WMS Code', 'Supplier Code', 'Preference', 'MOQ', 'Price', 'Costing Type (Price Based/Margin Based)', 'Margin Percentage']
+SUPPLIER_SKU_HEADERS = ['Supplier Id', 'WMS Code', 'Supplier Code', 'Preference', 'MOQ', 'Price', 'Costing Type (Price Based/Margin Based)', 'Margin Percentage', 'MRP']
 
 MARKETPLACE_SKU_HEADERS = ['WMS Code', 'Flipkart SKU', 'Snapdeal SKU', 'Paytm SKU', 'Amazon SKU', 'HomeShop18 SKU',
                            'Jabong SKU', 'Indiatimes SKU', 'Flipkart Description', 'Snapdeal Description',
@@ -1023,7 +1023,7 @@ PROCESSING_HEADER = ('WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity
 
 SKU_SUPPLIER_MAPPING = OrderedDict(
     [('Supplier ID', 'supplier__id'), ('SKU CODE', 'sku__wms_code'), ('Supplier Code', 'supplier_code'),
-     ('Priority', 'preference'), ('MOQ', 'moq'), ('Costing Type', 'costing_type'), ('Margin Percentage', 'margin_percentage')])
+     ('Priority', 'preference'), ('MOQ', 'moq'), ('Costing Type', 'costing_type'), ('Margin Percentage', 'margin_percentage'), ('MRP', 'mrp')])
 
 SKU_WH_MAPPING = OrderedDict(
     [('Warehouse Name', 'warehouse__username'), ('SKU CODE', 'sku__wms_code'), ('Priority', 'priority'),

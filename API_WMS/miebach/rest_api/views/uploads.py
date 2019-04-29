@@ -2302,10 +2302,13 @@ def validate_supplier_sku_form(open_sheet, user_id):
                 if not cell_data in ['Price Based', 'Margin Based']:
                     index_status.setdefault(row_idx, set()).add('Costing Type should be "Price Based/Margin Based"')
             if col_idx == 7:
-		if not isinstance(cell_data, (int, float)):
+                if not isinstance(cell_data, (int, float)):
                     index_status.setdefault(row_idx, set()).add('Margin % Should be in integer or float')
                 elif not float(cell_data) in range(0, 100):
                     index_status.setdefault(row_idx, set()).add('Margin % Should be in between 0 and 100')
+            if col_idx == 8:
+                if not isinstance(cell_data, (int, float)):
+                    index_status.setdefault(row_idx, set()).add('MRP Should be in integer or float')
         if wms_code1 and preference1 and row_idx > 0:
             supp_val = SKUMaster.objects.filter(wms_code=wms_code1, user=user_id)
             if supp_val:
@@ -2390,8 +2393,16 @@ def supplier_sku_upload(request, user=''):
                         supplier_sku_instance.price = cell_data
                 elif col_idx == 6:
                     supplier_data['costing_type'] = cell_data
+                    if cell_data and supplier_sku_instance:
+                        supplier_sku_instance.costing_type = cell_data
                 elif col_idx == 7:
                     supplier_data['margin_percentage'] = cell_data
+                    if cell_data and supplier_sku_instance:
+                        supplier_sku_instance.margin_percentage = cell_data
+                elif col_idx == 8:
+                    supplier_data['mrp'] = cell_data
+                    if cell_data and supplier_sku_instance:
+                        supplier_sku_instance.mrp = cell_data
             supplier_sku = SupplierMaster.objects.filter(id=supplier_data['supplier_id'], user=user.id)
             if supplier_sku and not supplier_sku_obj:
                 supplier_sku = SKUSupplier(**supplier_data)

@@ -34,7 +34,7 @@ ISSUE_DATA = {'issue_title': '', 'priority': '', 'status': 'Active',
             'issue_description': '', 'creation_date': NOW}
 
 SUPPLIER_SKU_DATA = {'supplier_id': '', 'supplier_type': '',
-        'sku': '','supplier_code':'', 'preference': '','moq': '', 'price': '',
+        'sku': '','supplier_code':'', 'preference': '','moq': '', 'price': '', 'mrp': '',
              'creation_date': NOW}
 
 UPLOAD_ORDER_DATA = {'order_id': '', 'title': '','user': '',

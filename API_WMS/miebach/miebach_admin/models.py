@@ -274,6 +274,7 @@ class SKUSupplier(models.Model):
     price = models.FloatField(default=0)
     costing_type = models.CharField(max_length=128, default='Price Based')
     margin_percentage = models.FloatField(default=0)
+    mrp = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

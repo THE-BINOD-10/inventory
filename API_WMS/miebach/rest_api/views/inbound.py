@@ -1408,7 +1408,7 @@ def get_mapping_values(request, user=''):
         ean_number = 0
         sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, supplier_id=supplier_id, sku__user=user.id)
     sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
-    if sku_master.block_for_po != "PO":
+    if sku_master.block_options != "PO":
         data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,
                 'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
         if sku_supplier:
@@ -1574,7 +1574,7 @@ def add_po(request, user=''):
             status = 'Invalid WMS CODE'
             return HttpResponse(status)
 	else:
-	    if sku_id[0].block_for_po == 'PO':
+	    if sku_id[0].block_options == 'PO':
 		status = 'WMS Code - Blocked for PO'
 		return HttpResponse(status)
         po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
@@ -4965,7 +4965,7 @@ def confirm_add_po(request, sales_data='', user=''):
                                             wms_code__in=myDict['wms_code'], user=user.id)
 	if ean_data:
 	    ean_flag = True
-	    if ean_data[0].block_for_po == 'PO':
+	    if ean_data[0].block_options == 'PO':
 		return HttpResponse(ean_data[0].wms_code + " SKU Code Blocked for PO")
 
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)

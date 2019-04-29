@@ -964,11 +964,11 @@ def inventory_form(request, user=''):
 @get_admin_user
 def supplier_form(request, user=''):
     supplier_file = request.GET['download-supplier-file']
+    if supplier_file:
+        return error_file_download(supplier_file)
     supplier_headers = copy.deepcopy(SUPPLIER_HEADERS)
     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
         supplier_headers.append('EP Supplier(yes/no)')
-    if supplier_file:
-        return error_file_download(supplier_file)
     wb, ws = get_work_sheet('supplier', supplier_headers)
     return xls_to_response(wb, '%s.supplier_form.xls' % str(user.id))
 
@@ -2054,10 +2054,8 @@ def validate_supplier_form(open_sheet, user_id):
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % messages_dict[key])
             elif key == 'ep_supplier':
-                if isinstance(cell_data, (int, float)):
+                if str(cell_data).lower() not in ['yes', 'no']:
                     index_status.setdefault(row_idx, set()).add('EP Supplier Should be in yes or no')
-                elif cell_data and (cell_data.lower() == 'yes' or cell_data.lower() == 'no'):
-                    cell_data = cell_data.lower()
             # elif key == 'markdown_percentage':
             #     if not isinstance(cell_data, (int, float)):
             #         index_status.setdefault(row_idx, set()).add('Markdown % Should be in integer or float')
@@ -2066,9 +2064,11 @@ def validate_supplier_form(open_sheet, user_id):
 
     if not index_status:
         return 'Success'
-
+    supplier_headers = copy.deepcopy(SUPPLIER_HEADERS)
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        supplier_headers.append('EP Supplier(yes/no)')
     f_name = '%s.supplier_form.xls' % user_id
-    write_error_file(f_name, index_status, open_sheet, SUPPLIER_HEADERS, 'Supplier')
+    write_error_file(f_name, index_status, open_sheet, supplier_headers, 'Supplier')
     return f_name
 
 

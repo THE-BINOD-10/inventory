@@ -1461,7 +1461,7 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Sequence should be in number')
-            elif key == 'block_for_po':
+            elif key == 'block_options':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Block For PO should be Yes/No')
                 else:
@@ -1645,7 +1645,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     cell_data = 0
                 setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
-            elif key == 'block_for_po':
+            elif key == 'block_options':
                 if str(cell_data).lower() == 'yes':
                     cell_data = 'PO'
                 if str(cell_data).lower() == 'no':
@@ -2563,7 +2563,7 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     if not sku_master:
                         index_status.setdefault(row_idx, set()).add("WMS Code doesn't exist")
                     else:
-                        if sku_master[0].block_for_po == 'PO':
+                        if sku_master[0].block_options == 'PO':
                             index_status.setdefault(row_idx, set()).add("WMS Code is blocked for PO")
                         data_dict['sku'] = sku_master[0]
             elif key == 'seller_id':

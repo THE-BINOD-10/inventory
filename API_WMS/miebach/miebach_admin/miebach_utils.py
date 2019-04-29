@@ -21,7 +21,7 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'sku_desc': '', 'sku_group': '', 'sku_type': '',
             'sku_category': '', 'sku_class': '', 'threshold_quantity': 0, 'zone_id': '',
             'status': 1, 'online_percentage': 0, 'qc_check': 0, 'creation_date': NOW, 
-            'enable_serial_based': 0, 'block_for_po': ''}
+            'enable_serial_based': 0, 'block_options': ''}
 
 SKU_STOCK_DATA = {'sku_id': '', 'total_quantity': 0,
             'online_quantity': 0, 'offline_quantity': 0}

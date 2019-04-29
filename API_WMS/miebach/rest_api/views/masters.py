@@ -803,9 +803,9 @@ def get_sku_data(request, user=''):
     sku_data['measurement_type'] = data.measurement_type;
     sku_data['youtube_url'] = data.youtube_url;
     sku_data['enable_serial_based'] = data.enable_serial_based;
-    sku_data['block_for_po'] = 'No'
-    if data.block_for_po == 'PO':
-        sku_data['block_for_po'] = 'Yes';
+    sku_data['block_options'] = 'No'
+    if data.block_options == 'PO':
+        sku_data['block_options'] = 'Yes';
     
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
@@ -1059,7 +1059,7 @@ def update_sku(request, user=''):
                 storehippo_sync_price_value(user, {'wms_code':wms_code, 'price':value})
             if key in number_fields and not value:
                 value = 0
-            elif key == 'block_for_po':
+            elif key == 'block_options':
                 if value == '0':
                     value = 'PO'
                 else:
@@ -2399,7 +2399,7 @@ def insert_sku(request, user=''):
                             value = 0
                         else:
                             value = 1
-                    elif key == 'block_for_po':
+                    elif key == 'block_options':
                         if value == '0':
                             value = 'PO'
                         else:

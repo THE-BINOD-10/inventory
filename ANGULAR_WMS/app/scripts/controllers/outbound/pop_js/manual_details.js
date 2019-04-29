@@ -142,14 +142,14 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
       elem = {};
       angular.copy(vm.model_data, elem);
       elem['enq_status'] = 'order_placed';
-      elem['remarks'] = vm.remarks;
+      elem['remarks'] = vm.model_data.remarks;
       elem['warehouse_data'] = JSON.stringify(vm.warehouse_data);
       vm.service.apiCall('convert_customorder_to_actualorder/', 'POST', elem).then(function(data){
         if(data.data.msg == 'Success'){
           $modalInstance.close();
           Service.showNoty('Order Placed Successfully');
         }else{
-          Service.showNoty(data.data, 'warning');
+          Service.showNoty(data.data.msg, 'warning');
         }
       })
     }

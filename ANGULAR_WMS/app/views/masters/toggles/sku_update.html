@@ -267,22 +267,11 @@
                 </div>
               </div>
             </div>
-            <!--
-            <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> Block For PO </label>
-                <input type="text" name="block_for_po" class="form-control" ng-model="showCase.model_data.sku_data.block_for_po">
-              </div>
-            </div>
-            -->
             <div class="col-md-4 col-sm-6 col-xs-6" ng-if="showCase.permissions.is_staff">
               <div class="form-group">
                 <label class="control-label"> Block For PO </label>
                 <select class="form-control" name="block_options" ng-model="showCase.model_data.sku_data.block_options" ng-options="qc for qc in showCase.block_for_po_list" ng-selected="qc == showCase.model_data.sku_data.block_options">
                 </select>
-                <!--
-                <input type="hidden" name="block_for_po" class="form-control" value="{{showCase.model_data.sku_data.block_for_po}}" readonly>
-                -->
               </div>
             </div>
 

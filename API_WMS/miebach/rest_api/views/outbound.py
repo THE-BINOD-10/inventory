@@ -324,7 +324,7 @@ def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, o
         checkbox = '<input type="checkbox" name="id" value="%s">' % data.id
         w_user = User.objects.get(id=data.st_po.open_st.sku.user)
         temp_data['aaData'].append({'': checkbox, 'Warehouse Name': w_user.username, 'Stock Transfer ID': data.order_id,
-                                    'SKU Code': data.sku.sku_code, 'Quantity': data.quantity, 'DT_RowClass': 'results',
+                                    'SKU Code': data.sku.sku_code, 'Quantity': data.quantity-data.picked_quantity, 'DT_RowClass': 'results',
                                     'Creation Date':data.creation_date.strftime("%d %b, %Y"),
                                     'DT_RowAttr': {'id': data.id}, 'id': count})
         count = count + 1
@@ -355,7 +355,6 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
         header = PICKED_PICK_LIST_HEADERS
     else:
         header = OPEN_PICK_LIST_HEADERS
-
     all_picks = Picklist.objects.select_related('order', 'stock').\
                                 filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id), **filter_params)
 
@@ -847,6 +846,7 @@ def get_picklist_data(data_id, user_id):
     sku_imeis_map = {}
     is_combo_picklist = False
     manufactured_date =''
+    st_order =''
     picklist_orders = Picklist.objects.filter(Q(order__sku__user=user_id) | Q(stock__sku__user=user_id),
                                               picklist_number=data_id)
     pick_stocks = StockDetail.objects.filter(sku__user=user_id)
@@ -923,7 +923,7 @@ def get_picklist_data(data_id, user_id):
                 st_order = STOrder.objects.filter(picklist_id=order.id)
                 sku_code = ''
                 title, invoice, load_unit_handle, category = '', '', '', ''
-                if st_order:
+                if st_order.exists():
                     title = st_order[0].stock_transfer.sku.sku_desc
                     invoice = st_order[0].stock_transfer.invoice_amount
                     load_unit_handle = st_order[0].stock_transfer.sku.load_unit_handle
@@ -967,6 +967,8 @@ def get_picklist_data(data_id, user_id):
                         expiry_date = datetime.datetime.strftime(stock_id.batch_detail.expiry_date, "%d/%m/%Y")
                     except:
                         expiry_date =''
+
+            reserved_quantity = order.reserved_quantity
             match_condition = (location, batch_no, manufactured_date,pallet_detail, wms_code, sku_code, title)
             if match_condition not in batch_data:
                 if order.reserved_quantity == 0:
@@ -984,11 +986,12 @@ def get_picklist_data(data_id, user_id):
                     original_order_id = str(order_id) + str(order_code)
                 if not invoice :
                     invoice = 0
+
                 batch_data[match_condition] = {'wms_code': wms_code, 'zone': zone, 'sequence': sequence,
-                                               'location': location, 'reserved_quantity': order.reserved_quantity,
+                                               'location': location, 'reserved_quantity': reserved_quantity,
                                                'picklist_number': data_id, 'stock_id': st_id,
-                                               'picked_quantity': order.reserved_quantity, 'id': order.id,
-                                               'invoice_amount': invoice, 'price': invoice * order.reserved_quantity,
+                                               'picked_quantity': reserved_quantity, 'id': order.id,
+                                               'invoice_amount': invoice, 'price': invoice * reserved_quantity,
                                                'image': image, 'order_id': str(order.order_id), 'status': order.status,
                                                'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title,
                                                'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
@@ -1001,8 +1004,8 @@ def get_picklist_data(data_id, user_id):
                                                'original_order_id': original_order_id, 'mrp':mrp,
                                                'batchno':batch_no, 'is_combo_picklist': is_combo_picklist, 'sku_imeis_map': sku_imeis_map}
             else:
-                batch_data[match_condition]['reserved_quantity'] += order.reserved_quantity
-                batch_data[match_condition]['picked_quantity'] += order.reserved_quantity
+                batch_data[match_condition]['reserved_quantity'] += reserved_quantity
+                batch_data[match_condition]['picked_quantity'] += reserved_quantity
                 batch_data[match_condition]['invoice_amount'] += invoice
                 if batch_data[match_condition]['marketplace'].find(marketplace) == -1:
                     batch_data[match_condition]['marketplace'] += "," + marketplace
@@ -5534,7 +5537,6 @@ def create_stock_transfer(request, user=''):
 @get_admin_user
 def stock_transfer_delete(request,stock_transfer ='', user=""):
     """ This code will delete the stock tranfer and po selected"""
-    import pdb; pdb.set_trace()
     st_time = datetime.datetime.now()
     log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
     log.info("deletion of stock transfer order process started")
@@ -9166,7 +9168,7 @@ def picklist_delete(request, user=""):
                 for picklist in picklist_objs :
                     st_orders = STOrder.objects.filter(picklist = picklist.id)
                     stock_transfer_obj = st_orders[0].stock_transfer
-                    stock_transfer_obj.quantity = picklist.reserved_quantity
+                    stock_transfer_obj.picked_quantity = picklist.picked_quantity
                     stock_transfer_obj.status = 1
                     stock_transfer_obj.save()
 

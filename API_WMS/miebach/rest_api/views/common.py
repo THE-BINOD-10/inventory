@@ -6762,6 +6762,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                 picklist_data['stock_id'] = stock.id
                 if 'st_po' in dir(order):
                     picklist_data['order_id'] = None
+                    picklist_data['reserved_quantity'] = picklist_data['reserved_quantity'] - order.picked_quantity
                 else:
                     picklist_data['order_id'] = order.id
                 picklist_data['status'] = status

@@ -982,7 +982,8 @@ def get_picklist_data(data_id, user_id):
                     last_picked_locs = ','.join(last_picked)
                 if not original_order_id:
                     original_order_id = str(order_id) + str(order_code)
-
+                if not invoice :
+                    invoice = 0
                 batch_data[match_condition] = {'wms_code': wms_code, 'zone': zone, 'sequence': sequence,
                                                'location': location, 'reserved_quantity': order.reserved_quantity,
                                                'picklist_number': data_id, 'stock_id': st_id,
@@ -5531,9 +5532,9 @@ def create_stock_transfer(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-def stock_transfer_delete(request, user=""):
+def stock_transfer_delete(request,stock_transfer ='', user=""):
     """ This code will delete the stock tranfer and po selected"""
-
+    import pdb; pdb.set_trace()
     st_time = datetime.datetime.now()
     log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
     log.info("deletion of stock transfer order process started")
@@ -9200,71 +9201,94 @@ def picklist_delete(request, user=""):
 
         elif key == "delete":
             status_message = 'Picklist is deleted'
-            for order in order_objs:
-                if picklist_objs.filter(order_type='combo', order_id=order.id):
-                    is_picked = picklist_objs.filter(picked_quantity__gt=0, order_id=order.id)
-                    remaining_qty = order.quantity
-                    if is_picked:
+            if not stock_transfer_order :
+                for order in order_objs:
+                    if picklist_objs.filter(order_type='combo', order_id=order.id):
+                        is_picked = picklist_objs.filter(picked_quantity__gt=0, order_id=order.id)
+                        remaining_qty = order.quantity
+                        if is_picked:
+                            status_message = 'Partial Picked Picklist not allowed to cancel'
+                            continue
+                        else:
+                            order.delete()
+                    else:
+                        all_seller_orders = SellerOrder.objects.filter(order__user=user.id,
+                                                                       order_id__in=order_objs.values_list('id', flat=True))
+                        picked_qty = picklist_objs.filter(order_id=order).aggregate(Sum('picked_quantity'))[
+                            'picked_quantity__sum']
+                        pick_order = picklist_objs.filter(order_id=order)
+                        remaining_qty = pick_order.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
+                        pick_status = 'picked'
+                        if pick_order.filter(status__icontains='batch'):
+                            pick_status = 'batch_picked'
+                        seller_order = all_seller_orders.filter(order_id=order.id, order__user=user.id)
+                        if seller_order:
+                            cancelled_orders_dict.setdefault(seller_order[0].id, {})
+                            cancelled_orders_dict[seller_order[0].id].setdefault('quantity', 0)
+                            cancelled_orders_dict[seller_order[0].id]['quantity'] = float(
+                                cancelled_orders_dict[seller_order[0].id]['quantity']) + \
+                                                                                    float(remaining_qty)
+
+                        if picked_qty <= 0 and not seller_order:
+                            order.delete()
+                            continue
+                        save_order_tracking_data(order, quantity=remaining_qty, status='cancelled', imei='')
+                        temp_order_quantity = float(order.quantity) - float(remaining_qty)
+                        if temp_order_quantity > 0:
+                            order.quantity = temp_order_quantity
+                        else:
+                            order.status = 3
+                        shipped = ShipmentInfo.objects.filter(order_id=order.id).aggregate(Sum('shipping_quantity'))[
+                            'shipping_quantity__sum']
+                        proc_pick_obj = Picklist.objects.filter(order_id=order.id, status='dispatched', order__user=user.id)
+                        proc_pick_qty = 0
+                        if proc_pick_obj and proc_pick_obj[0].order:
+                            proc_pick_qty = float(proc_pick_obj[0].order.quantity)
+                        if shipped:
+                            shipped = float(shipped) - float(proc_pick_qty)
+                            if float(shipped) == float(order.quantity):
+                                order.status = 2
+                                pick_status = 'dispatched'
+                        del_seller_order = all_seller_orders.filter(order_id=order.id, order_status='DELIVERY_RESCHEDULED')
+                        if del_seller_order and not pick_status == 'dispatched':
+                            order.status = 5
+                            del_seller_order = del_seller_order[0]
+                            del_seller_order.status = 0
+                            del_seller_order.order_status = 'PROCESSED'
+                            del_seller_order.save()
+                        order.save()
+                        picklist_locations = PicklistLocation.objects.filter(picklist__order_id=order.id,
+                                                                             picklist__picklist_number=picklist_id,
+                                                                             picklist__status__in=["open", "batch_open"],
+                                                                             picklist__order__user=user.id)
+                        for pick_location in picklist_locations:
+                            pick_location.quantity = float(pick_location.quantity) - float(pick_location.reserved)
+                            pick_location.reserved = 0
+                            pick_location.status = 0
+                            pick_location.save()
+                        pick_order.update(reserved_quantity=0, status=pick_status)
+            else:
+                for picklist in  picklist_objs :
+                    if picklist.picked_quantity > 0:
                         status_message = 'Partial Picked Picklist not allowed to cancel'
                         continue
                     else:
-                        order.delete()
-                else:
-                    all_seller_orders = SellerOrder.objects.filter(order__user=user.id,
-                                                                   order_id__in=order_objs.values_list('id', flat=True))
-                    picked_qty = picklist_objs.filter(order_id=order).aggregate(Sum('picked_quantity'))[
-                        'picked_quantity__sum']
-                    pick_order = picklist_objs.filter(order_id=order)
-                    remaining_qty = pick_order.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
-                    pick_status = 'picked'
-                    if pick_order.filter(status__icontains='batch'):
-                        pick_status = 'batch_picked'
-                    seller_order = all_seller_orders.filter(order_id=order.id, order__user=user.id)
-                    if seller_order:
-                        cancelled_orders_dict.setdefault(seller_order[0].id, {})
-                        cancelled_orders_dict[seller_order[0].id].setdefault('quantity', 0)
-                        cancelled_orders_dict[seller_order[0].id]['quantity'] = float(
-                            cancelled_orders_dict[seller_order[0].id]['quantity']) + \
-                                                                                float(remaining_qty)
+                        st_orders = STOrder.objects.filter(picklist = picklist.id)
+                        stock_transfer_obj = st_orders[0].stock_transfer
+                        st_po = stock_transfer_obj.st_po
+                        po = st_po.po
+                        open_st = st_po.open_st
+                        open_st.delete()
+                        po.delete()
+                        picklist_locations = PicklistLocation.objects.filter(picklist_id=picklist.id,
+                                                                             stock__sku__user=user.id)
+                        for pick_location in picklist_locations:
+                            pick_location.quantity = float(pick_location.quantity) - float(pick_location.reserved)
+                            pick_location.reserved = 0
+                            pick_location.status = 0
+                            pick_location.save()
+                        picklist.delete()
 
-                    if picked_qty <= 0 and not seller_order:
-                        order.delete()
-                        continue
-                    save_order_tracking_data(order, quantity=remaining_qty, status='cancelled', imei='')
-                    temp_order_quantity = float(order.quantity) - float(remaining_qty)
-                    if temp_order_quantity > 0:
-                        order.quantity = temp_order_quantity
-                    else:
-                        order.status = 3
-                    shipped = ShipmentInfo.objects.filter(order_id=order.id).aggregate(Sum('shipping_quantity'))[
-                        'shipping_quantity__sum']
-                    proc_pick_obj = Picklist.objects.filter(order_id=order.id, status='dispatched', order__user=user.id)
-                    proc_pick_qty = 0
-                    if proc_pick_obj and proc_pick_obj[0].order:
-                        proc_pick_qty = float(proc_pick_obj[0].order.quantity)
-                    if shipped:
-                        shipped = float(shipped) - float(proc_pick_qty)
-                        if float(shipped) == float(order.quantity):
-                            order.status = 2
-                            pick_status = 'dispatched'
-                    del_seller_order = all_seller_orders.filter(order_id=order.id, order_status='DELIVERY_RESCHEDULED')
-                    if del_seller_order and not pick_status == 'dispatched':
-                        order.status = 5
-                        del_seller_order = del_seller_order[0]
-                        del_seller_order.status = 0
-                        del_seller_order.order_status = 'PROCESSED'
-                        del_seller_order.save()
-                    order.save()
-                    picklist_locations = PicklistLocation.objects.filter(picklist__order_id=order.id,
-                                                                         picklist__picklist_number=picklist_id,
-                                                                         picklist__status__in=["open", "batch_open"],
-                                                                         picklist__order__user=user.id)
-                    for pick_location in picklist_locations:
-                        pick_location.quantity = float(pick_location.quantity) - float(pick_location.reserved)
-                        pick_location.reserved = 0
-                        pick_location.status = 0
-                        pick_location.save()
-                    pick_order.update(reserved_quantity=0, status=pick_status)
 
             check_picklist_number_created(user, picklist_id)
             end_time = datetime.datetime.now()

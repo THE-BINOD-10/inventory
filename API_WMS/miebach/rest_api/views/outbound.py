@@ -9271,12 +9271,14 @@ def picklist_delete(request, user=""):
                         pick_order.update(reserved_quantity=0, status=pick_status)
             else:
                 for picklist in  picklist_objs :
+                    st_orders = STOrder.objects.filter(picklist = picklist.id)
+                    stock_transfer_obj = st_orders[0].stock_transfer
                     if picklist.picked_quantity > 0:
-                        status_message = 'Partial Picked Picklist not allowed to cancel'
-                        continue
+                        picklist.reserved_quantity = 0
+                        stock_transfer_obj.quantity = picklist.picked_quantity
+                        stock_transfer_obj.save()
+                        picklist.save()
                     else:
-                        st_orders = STOrder.objects.filter(picklist = picklist.id)
-                        stock_transfer_obj = st_orders[0].stock_transfer
                         st_po = stock_transfer_obj.st_po
                         po = st_po.po
                         open_st = st_po.open_st

@@ -311,7 +311,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
 
     $rootScope.process = true;
-    debugger;
     $.ajax({url: Session.url+vm.url,
             data: formData,
             method: 'POST',

@@ -1414,9 +1414,10 @@ def get_mapping_values(request, user=''):
         data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,
                 'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
         if sku_supplier:
+            mrp_value = sku_supplier[0].mrp
             if sku_supplier[0].costing_type == 'Margin Based':
                 margin_percentage = sku_supplier[0].margin_percentage
-                prefill_unit_price = sku_master.mrp - ((sku_master.mrp * margin_percentage)/100)
+                prefill_unit_price = mrp_value - ((mrp_value * margin_percentage)/100)
                 data['price'] = prefill_unit_price
             else:
                 data['price'] = sku_supplier[0].price
@@ -1425,8 +1426,7 @@ def get_mapping_values(request, user=''):
             data['ean_number'] = ean_number
             data['measurement_unit'] = sku_supplier[0].sku.measurement_type
         else:
-            price_value = sku_master.mrp
-            data['price'] = price_value
+            data['price'] = 0
             data['ean_number'] = ean_number
     else:
         data = {}
@@ -1574,10 +1574,10 @@ def add_po(request, user=''):
         if not sku_id:
             status = 'Invalid WMS CODE'
             return HttpResponse(status)
-	else:
-	    if sku_id[0].block_options == 'PO':
-		status = 'WMS Code - Blocked for PO'
-		return HttpResponse(status)
+        else:
+            if sku_id[0].block_options == 'PO':
+                status = 'WMS Code - Blocked for PO'
+                return HttpResponse(status)
         po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
 
         supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=value['supplier_id'],

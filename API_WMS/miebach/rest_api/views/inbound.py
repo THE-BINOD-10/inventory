@@ -1033,6 +1033,7 @@ def switches(request, user=''):
                        'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation',
                        'rtv_prefix_code': 'rtv_prefix_code',
                        'non_transacted_skus': 'non_transacted_skus',
+                       'update_mrp_on_grn': 'update_mrp_on_grn',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -2434,7 +2435,9 @@ def supplier_code_mapping(request, myDict, i, data, user=''):
             setattr(supplier_mapping, 'supplier_code', data.open_po.supplier_code)
             supplier_mapping.save()
         else:
-            sku_mapping = {'supplier_id': data.open_po.supplier_id, 'sku': data.open_po.sku, 'preference': 1, 'moq': 0,
+            sku_supplier_create = SKUSupplier.objects.filter(sku__wms_code=myDict['wms_code'][i].upper(), sku__user=user.id).annotate(max_preference = Cast('preference', FloatField())).aggregate(Max('max_preference'))
+            sku_preference = int(sku_supplier_create.get('max_preference__max', 0) + 1)
+            sku_mapping = {'supplier_id': data.open_po.supplier_id, 'sku': data.open_po.sku, 'preference': sku_preference, 'moq': 0,
                            'supplier_code': data.open_po.supplier_code, 'price': data.open_po.price,
                            'creation_date': datetime.datetime.now(),
                            'updation_date': datetime.datetime.now()}
@@ -2777,6 +2780,8 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
     data_dict = ''
     purchase_data = {}
     data = {}
+    supplier_id = request.POST['supplier_id']
+    update_mrp_on_grn = get_misc_value('update_mrp_on_grn', user.id)
     remarks = request.POST.get('remarks', '')
     expected_date = request.POST.get('expected_date', '')
     remainder_mail = request.POST.get('remainder_mail', '')
@@ -2980,6 +2985,16 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
             continue
         else:
             is_putaway = 'true'
+        if 'mrp' in myDict.keys() and update_mrp_on_grn == 'true':
+            wms_code = myDict['wms_code'][i]
+            if myDict['mrp'][i]:
+                new_mrp_value = float(myDict['mrp'][i])
+            else:
+                new_mrp_value = ''
+            if new_mrp_value:
+                sku_supplier = SKUSupplier.objects.filter(supplier_id=supplier_id, sku__wms_code=wms_code, sku__user=user.id)
+                if sku_supplier:
+                    sku_supplier.update(mrp=new_mrp_value)
         save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list, run_segregation=True,
                          batch_dict=batch_dict)
         create_bayarea_stock(purchase_data['wms_code'], 'BAY_AREA', temp_dict['received_quantity'], user.id)

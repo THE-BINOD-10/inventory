@@ -31,6 +31,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'generate_delivery_challan_before_pullConfiramation':false,'pos_remarks' :'',
                     'rtv_prefix_code': false, 'dispatch_qc_check':false,
                     'non_transacted_skus':false,
+                    'update_mrp_on_grn': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -54,7 +55,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      71: 'order_exceed_stock',72:'invoice_declaration',73:'central_order_reassigning',
                      74: 'sku_pack_config', 75: 'po_sub_user_prefix', 76: 'combo_allocate_stock', 77:'sno_in_invoice', 78:'raisepo_terms_conditions',
                      79: 'generate_delivery_challan_before_pullConfiramation', 80: 'unique_mrp_putaway',
-                     81: 'rtv_prefix_code',82:'pos_remarks', 83:'dispatch_qc_check', 84:'block_expired_batches_picklist', 85:'non_transacted_skus',}
+                     81: 'rtv_prefix_code',82:'pos_remarks', 83:'dispatch_qc_check', 84:'block_expired_batches_picklist', 85:'non_transacted_skus',
+                     86: 'update_mrp_on_grn',}
 
   vm.check_box_data = [
     {
@@ -474,6 +476,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     name: "Display NonTransacted SKU's In Stock Ledger",
     model_name: "non_transacted_skus",
     param_no: 85,
+    class_name: "fa fa-server",
+    display: true
+  },
+  {
+    name: "Update MRP On GRN",
+    model_name: "update_mrp_on_grn",
+    param_no: 86,
     class_name: "fa fa-server",
     display: true
   },

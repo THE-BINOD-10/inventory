@@ -1363,7 +1363,8 @@ def auto_po(wms_codes, user):
     auto_po_switch = get_misc_value('auto_po_switch', user)
     po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user)
     auto_raise_stock_transfer = get_misc_value('auto_raise_stock_transfer', user)
-    if 'true' in [auto_po_switch, auto_raise_stock_transfer]:
+    sku_less_than_threshold = get_misc_value('sku_less_than_threshold', user)
+    if 'true' in [auto_po_switch, auto_raise_stock_transfer] or sku_less_than_threshold == 'true':
         sku_codes = SKUMaster.objects.filter(wms_code__in=wms_codes, user=user, threshold_quantity__gt=0)
         price_band_flag = get_misc_value('priceband_sync', user)
         for sku in sku_codes:
@@ -1382,7 +1383,7 @@ def auto_po(wms_codes, user):
                 moq = qty + intr_qty
                 if not supplier_master_id:
                     continue
-            elif auto_po_switch == 'true':
+            elif auto_po_switch == 'true' or sku_less_than_threshold == 'true':
                 supplier_id = SKUSupplier.objects.filter(sku_id=sku.id, sku__user=user, moq__gt=0).order_by('preference')
                 if not supplier_id:
                     continue
@@ -1426,30 +1427,35 @@ def auto_po(wms_codes, user):
             automated_po = OpenPO.objects.filter(sku_id=sku.id, sku__user=user,
                                                      status='Automated')
             if not automated_po.exists():
-                po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
-                po_suggestions['sku_id'] = sku.id
-                po_suggestions['supplier_id'] = supplier_master_id
-                po_suggestions['order_quantity'] = order_quantity
-                po_suggestions['status'] = 'Automated'
-                po_suggestions['price'] = price
-                po_suggestions['mrp'] = sku.mrp
-                po_suggestions.update(taxes)
-                po = OpenPO(**po_suggestions)
-                po.save()
-                auto_confirm_po = get_misc_value('auto_confirm_po', user)
-                if auto_confirm_po == 'true':
-                    po.status = 0
+                if sku_less_than_threshold == 'true' :
+                    push_notify = PushNotifications.objects.filter(user=user ,message = sku.wms_code+"  "+"quantity is below Threshold quantity")
+                    if not push_notify.exists() :
+                        PushNotifications.objects.create(user_id=user, message=sku.wms_code+"  "+"quantity is below Threshold quantity")
+                else:
+                    po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
+                    po_suggestions['sku_id'] = sku.id
+                    po_suggestions['supplier_id'] = supplier_master_id
+                    po_suggestions['order_quantity'] = order_quantity
+                    po_suggestions['status'] = 'Automated'
+                    po_suggestions['price'] = price
+                    po_suggestions['mrp'] = sku.mrp
+                    po_suggestions.update(taxes)
+                    po = OpenPO(**po_suggestions)
                     po.save()
-                    user_obj = User.objects.get(id=user)
-                    po_order_id = get_purchase_order_id(user_obj) + 1
-                    if po_sub_user_prefix == 'true':
-                        po_order_id = update_po_order_prefix(user_obj, po_order_id)
-                    user_profile = UserProfile.objects.get(user_id=sku.user)
-                    PurchaseOrder.objects.create(open_po_id=po.id, order_id=po_order_id, status='',
-                                                 received_quantity=0, po_date=datetime.datetime.now(),
-                                                 prefix=user_profile.prefix,
-                                                 creation_date=datetime.datetime.now())
-                    check_purchase_order_created(User.objects.get(id=user), po_order_id)
+                    auto_confirm_po = get_misc_value('auto_confirm_po', user)
+                    if auto_confirm_po == 'true':
+                        po.status = 0
+                        po.save()
+                        user_obj = User.objects.get(id=user)
+                        po_order_id = get_purchase_order_id(user_obj) + 1
+                        if po_sub_user_prefix == 'true':
+                            po_order_id = update_po_order_prefix(user_obj, po_order_id)
+                        user_profile = UserProfile.objects.get(user_id=sku.user)
+                        PurchaseOrder.objects.create(open_po_id=po.id, order_id=po_order_id, status='',
+                                                     received_quantity=0, po_date=datetime.datetime.now(),
+                                                     prefix=user_profile.prefix,
+                                                     creation_date=datetime.datetime.now())
+                        check_purchase_order_created(User.objects.get(id=user), po_order_id)
             else:
                 automated_po = automated_po[0]
                 automated_po.order_quantity += order_quantity

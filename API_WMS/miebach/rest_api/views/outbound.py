@@ -7276,7 +7276,7 @@ def search_customer_data(request, user=''):
 
     lis = ['name', 'email_id', 'phone_number', 'address', 'status', 'tax_type']
     master_data = CustomerMaster.objects.filter(Q(phone_number__icontains=search_key) | Q(name__icontains=search_key) |
-                                                Q(customer_id__icontains=search_key), user=user.id)
+                                                Q(customer_id__icontains=search_key), user=user.id,status = 1)
 
     for data in master_data[:30]:
         status = 'Inactive'

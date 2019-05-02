@@ -6010,7 +6010,8 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                 index_status.setdefault(count, set()).add('Invalid warehouse')
             else:
                 try:
-                    sister_wh = get_sister_warehouse(user)
+                    admin_user = get_admin(user)
+                    sister_wh = get_sister_warehouse(admin_user)
                     user_obj = sister_wh.filter(user__username=warehouse_name)
                     if not user_obj:
                         index_status.setdefault(count, set()).add('Invalid Warehouse Location')
@@ -6072,7 +6073,10 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
             elif key == 'quantity':
                  quantity = int(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'price':
-                 price = int(get_cell_data(row_idx, value, reader, file_type))
+                try:
+                    price = int(get_cell_data(row_idx, value, reader, file_type))
+                except:
+                    price = 0
             elif key == 'cgst_tax':
                 try:
                     cgst_tax = str(int(get_cell_data(row_idx, value, reader, file_type)))

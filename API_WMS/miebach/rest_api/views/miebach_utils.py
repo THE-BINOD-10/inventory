@@ -3795,15 +3795,22 @@ def get_order_summary_data(search_params, user, sub_user):
                         else:
                             invoice_number = str(invoice_number_obj[0].seller_order.order.order_id)
 
-                if data['sellerordersummary__creation_date'] :
-                    invoice_date = get_local_date(user,data['sellerordersummary__creation_date'])
-                else:
-                    invoice_date =''
-                user_profile = UserProfile.objects.get(user_id=user.id)
-                if user_profile.user_type == 'marketplace_user':
-                    quantity = SellerOrderSummary.objects.filter(seller_order__order_id=data['id'], invoice_number=data['sellerordersummary__invoice_number']).aggregate(Sum('quantity'))['quantity__sum']
-                else:
-                    quantity = SellerOrderSummary.objects.filter(order_id=data['id'], invoice_number=data['sellerordersummary__invoice_number']).aggregate(Sum('quantity'))['quantity__sum']
+            if data['sellerordersummary__creation_date'] :
+                invoice_date = get_local_date(user,data['sellerordersummary__creation_date'])
+            else:
+                invoice_date =''
+            user_profile = UserProfile.objects.get(user_id=user.id)
+            invoice_qty_filter = {}
+            if user_profile.user_type == 'marketplace_user':
+                invoice_qty_filter['seller_order__order_id'] = data['id']
+                if data['sellerordersummary__invoice_number']:
+                    invoice_qty_filter['invoice_number'] = data['sellerordersummary__invoice_number']
+                quantity = SellerOrderSummary.objects.filter(**invoice_qty_filter).aggregate(Sum('quantity'))['quantity__sum']
+            else:
+                invoice_qty_filter['order_id'] = data['id']
+                if data['sellerordersummary__invoice_number']:
+                    invoice_qty_filter['invoice_number'] = data['sellerordersummary__invoice_number']
+                quantity = SellerOrderSummary.objects.filter(**invoice_qty_filter).aggregate(Sum('quantity'))['quantity__sum']
 
         try:
             #serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data.sku.sku_code,order__original_order_id=order_id,po_imei__sku__user=user.id)
@@ -6016,8 +6023,9 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
             if creation_date:
                 invoice_date = get_local_date(user, creation_date)
                 invoice_number = ord_invoice_map.get(data['order__id'], '')
-                order = OrderDetail.objects.get(original_order_id = data['order__original_order_id'] ,user = user.id)
-                invoice_number = get_full_invoice_number(user,invoice_number,order,creation_date ,'')
+                order = OrderDetail.objects.filter(original_order_id = data['order__original_order_id'] ,user = user.id)
+                if order.exists():
+                    invoice_number = get_full_invoice_number(user,invoice_number,order[0],creation_date ,'')
             else:
                 invoice_number = '%s' % data['order__original_order_id']
         else:

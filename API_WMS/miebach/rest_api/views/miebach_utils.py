@@ -6408,7 +6408,7 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
             sku_masters = sku_masters[start_index:stop_index]
         for sku in sku_masters:
             wms_code = sku.wms_code
-            stock_quantity = StockDetail.objects.filter(sku__wms_code = wms_code).aggregate(Sum('quantity'))['quantity__sum']
+            stock_quantity = StockDetail.objects.filter(sku__wms_code = wms_code,sku__user = user.id).exclude(location__zone__zone = 'DAMAGED_ZONE').aggregate(Sum('quantity'))['quantity__sum']
             purchase_order = PurchaseOrder.objects.exclude(status__in=['confirmed-putaway', 'location-assigned']). \
                 filter(open_po__sku__user=sku.user, open_po__sku_id=sku.id, open_po__vendor_id__isnull=True). \
                 values('open_po__sku_id').annotate(total_order=Sum('open_po__order_quantity'),

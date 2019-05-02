@@ -2744,7 +2744,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
         if not user_profile.user_type == 'marketplace_user':
             po_reference = get_po_reference(data)
             receivable_quantity = int(order_data['order_quantity'] - data.received_quantity)
-            if receivable_quantity < 0:
+            if receivable_quantity < 0 or status == 'Closed PO':
                 receivable_quantity = 0
             temp = OrderedDict((('PO Reference', po_reference), ('PO Date', get_local_date(user, data.po_date)), ('Supplier', order_data['supplier_name']),
                                 ('SKU Code', order_data['wms_code']), ('Order Quantity', order_data['order_quantity']),

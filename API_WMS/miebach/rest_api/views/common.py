@@ -6672,7 +6672,6 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                         stock_status.append(str(combo.member_sku.sku_code))
                         members = {}
                         break
-
         for member, member_qty in members.iteritems():
             stock_detail, stock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
                                                                    sku_id_stocks, add_mrp_filter=add_mrp_filter,
@@ -6692,6 +6691,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
             #     order_quantity = float(order.quantity)
             # else:
             #     order_quantity = float(seller_order.quantity)
+            order_quantity = order_quantity - order.picked_quantity
 
             if stock_quantity < float(order_quantity):
                 if not no_stock_switch:
@@ -6700,6 +6700,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
 
                 if stock_quantity < 0:
                     stock_quantity = 0
+                order_diff = 0
                 order_diff = order_quantity - stock_quantity
                 order_quantity -= order_diff
                 # stock_detail = []
@@ -6762,7 +6763,6 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                 picklist_data['stock_id'] = stock.id
                 if 'st_po' in dir(order):
                     picklist_data['order_id'] = None
-                    picklist_data['reserved_quantity'] = picklist_data['reserved_quantity'] - order.picked_quantity
                 else:
                     picklist_data['order_id'] = order.id
                 picklist_data['status'] = status

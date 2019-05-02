@@ -1878,14 +1878,18 @@ def validate_picklist_combos(data, all_picklists, picks_all):
             if picklist_order_id:
                 picklist_batch = list(set([picklist]))
             for picklist in picklist_batch:
-                if not picklist.order or not picklist.order_type == 'combo':
+                if (not picklist.order and not picklist.storder_set.filter()) or not picklist.order_type == 'combo':
                     continue
                 if float(picklist.reserved_quantity) < count:
                     pick_val = float(picklist.reserved_quantity)
                 else:
                     pick_val = count
                 combo_exists = True
-                grouping_key = '%s<<>>%s<<>>%s' % (str(picklist.order_id), str(picklist.order.sku_id), str(picklist.order.quantity))
+                if not picklist.storder_set.filter() :
+                    grouping_key = '%s<<>>%s<<>>%s' % (str(picklist.order_id), str(picklist.order.sku_id), str(picklist.order.quantity))
+                else:
+                    stock_transfer_obj = picklist.storder_set.filter()[0].stock_transfer
+                    grouping_key = '%s<<>>%s<<>>%s' % (str(stock_transfer_obj.id), str(stock_transfer_obj.sku_id), str(stock_transfer_obj.quantity))
                 if picklist.stock:
                     sku_code = picklist.stock.sku.sku_code
                 else:
@@ -9165,10 +9169,13 @@ def picklist_delete(request, user=""):
                         if seller_orders:
                             seller_orders.update(status=1)
             else:
-                for picklist in picklist_objs :
+                for picklist in  picklist_objs :
                     st_orders = STOrder.objects.filter(picklist = picklist.id)
                     stock_transfer_obj = st_orders[0].stock_transfer
-                    stock_transfer_obj.picked_quantity = picklist.picked_quantity
+                    stock_transfer_obj.picked_quantity = Picklist.objects.filter(picklist_number=picklist.picklist_number,\
+                                                               stock__sku__user =user.id,\
+                                                               stock__sku__wms_code = picklist.stock.sku.wms_code).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+
                     stock_transfer_obj.status = 1
                     stock_transfer_obj.save()
 
@@ -9275,7 +9282,9 @@ def picklist_delete(request, user=""):
                     stock_transfer_obj = st_orders[0].stock_transfer
                     if picklist.picked_quantity > 0:
                         picklist.reserved_quantity = 0
-                        stock_transfer_obj.quantity = picklist.picked_quantity
+                        stock_transfer_obj.quantity = Picklist.objects.filter(picklist_number=picklist.picklist_number,\
+                                                                   stock__sku__user =user.id,\
+                                                                   stock__sku__wms_code = picklist.stock.sku.wms_code).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
                         stock_transfer_obj.save()
                         picklist.save()
                     else:

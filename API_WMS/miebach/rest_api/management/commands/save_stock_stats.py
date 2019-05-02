@@ -43,6 +43,8 @@ class Command(BaseCommand):
         users = User.objects.filter(is_staff=True)
         for user in users:
             print user
+            if not user.userprofile:
+                continue
             non_transact_process = get_misc_value('non_transacted_skus', user.id)
             log.info(get_local_date(user, datetime.datetime.now()))
             sku_obj = SKUMaster.objects.filter(user=user.id)
@@ -103,7 +105,7 @@ class Command(BaseCommand):
                             else:
                                 StockStats.objects.create(**data_dict)
                         else:
-                            quantity = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).aggregate(Sum('quantity'))['quantity__sum']
+                            quantity = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku_id=sku.id).aggregate(Sum('quantity'))['quantity__sum']
                             if not quantity:
                                 quantity = 0
                             data_dict = {'opening_stock': 0, 'closing_stock': quantity, 'sku_id':sku.id}

@@ -1363,7 +1363,8 @@ def auto_po(wms_codes, user):
     auto_po_switch = get_misc_value('auto_po_switch', user)
     po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user)
     auto_raise_stock_transfer = get_misc_value('auto_raise_stock_transfer', user)
-    if 'true' in [auto_po_switch, auto_raise_stock_transfer]:
+    sku_less_than_threshold = get_misc_value('sku_less_than_threshold', user)
+    if 'true' in [auto_po_switch, auto_raise_stock_transfer] or sku_less_than_threshold == 'true':
         sku_codes = SKUMaster.objects.filter(wms_code__in=wms_codes, user=user, threshold_quantity__gt=0)
         price_band_flag = get_misc_value('priceband_sync', user)
         for sku in sku_codes:
@@ -1382,7 +1383,7 @@ def auto_po(wms_codes, user):
                 moq = qty + intr_qty
                 if not supplier_master_id:
                     continue
-            elif auto_po_switch == 'true':
+            elif auto_po_switch == 'true' or sku_less_than_threshold == 'true':
                 supplier_id = SKUSupplier.objects.filter(sku_id=sku.id, sku__user=user, moq__gt=0).order_by('preference')
                 if not supplier_id:
                     continue
@@ -1426,6 +1427,10 @@ def auto_po(wms_codes, user):
             automated_po = OpenPO.objects.filter(sku_id=sku.id, sku__user=user,
                                                      status='Automated')
             if not automated_po.exists():
+                if sku_less_than_threshold == 'true' :
+                    push_notify = PushNotifications.objects.filter(user=user ,message = sku.wms_code+"  "+"quantity is below Threshold quantity")
+                    if not push_notify.exists() :
+                        PushNotifications.objects.create(user_id=user, message=sku.wms_code+"  "+"quantity is below Threshold quantity")
                 po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
                 po_suggestions['sku_id'] = sku.id
                 po_suggestions['supplier_id'] = supplier_master_id

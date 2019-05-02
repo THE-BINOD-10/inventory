@@ -1145,19 +1145,17 @@ def get_supplier_master_data(request, user=''):
 @get_admin_user
 def update_supplier_values(request, user=''):
     """ Update Supplier Data """
-
     log.info('Update Supplier request params for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         data_id = request.POST['id']
         data = get_or_none(SupplierMaster, {'id': data_id, 'user': user.id})
         old_name = data.name
         upload_master_file(request, user, data.id, "SupplierMaster")
-
         create_login = request.POST.get('create_login', '')
         password = request.POST.get('password', '')
         username = request.POST.get('username', '')
         login_created = request.POST.get('login_created', '')
-
+        secondary_email_id = request.POST.get('secondary_email_id', '').split(',')
         for key, value in request.POST.iteritems():
             if key not in data.__dict__.keys():
                 continue
@@ -1167,8 +1165,20 @@ def update_supplier_values(request, user=''):
                 else:
                     value = 0
             setattr(data, key, value)
-
         data.save()
+
+        master_data_dict = {}
+        master_data_dict['user_id'] = user.id
+        master_data_dict['master_type'] = 'supplier'
+        MasterEmailMapping.objects.filter(**master_data_dict).delete()
+        for mail in secondary_email_id:
+            master_data_dict = {}
+            master_data_dict['user_id'] = user.id
+            master_data_dict['email_id'] = mail
+            master_data_dict['master_id'] = data_id
+            master_data_dict['master_type'] = 'supplier'
+            MasterEmailMapping.objects.create(**master_data_dict)
+
         if create_login == 'true':
             status_msg, new_user_id = create_update_user(data.name, data.email_id, data.phone_number,
                                                          password, username, role_name='supplier')

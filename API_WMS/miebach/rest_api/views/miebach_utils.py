@@ -448,8 +448,8 @@ SKU_WISE_PO_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'typ
                                 {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
                                 {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                                 {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
-                    'dt_headers': ['PO Date', 'Supplier', 'SKU Code', 'Order Quantity', 'Received Quantity',
-                                   'Rejected Quantity', 'Receipt Date', 'Status'],
+                    'dt_headers': ['PO Reference', 'PO Date', 'Supplier', 'SKU Code', 'Order Quantity', 'Received Quantity',
+                                   'Receivable Quantity', 'Rejected Quantity', 'Receipt Date', 'Status'],
                     'mk_dt_headers': ['PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'SKU Code',
                                       'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
                                       'Sub Category',
@@ -2087,6 +2087,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'combo_allocate_stock': 'combo_allocate_stock',
                         'dispatch_qc_check': 'dispatch_qc_check',
                         'unique_mrp_putaway': 'unique_mrp_putaway',
+                        'sku_less_than_threshold':'sku_less_than_threshold',
                         'block_expired_batches_picklist': 'block_expired_batches_picklist',
                         'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation',
                         'non_transacted_skus':'non_transacted_skus',
@@ -2679,8 +2680,8 @@ def sku_wise_purchase_data(search_params, user, sub_user):
     user_profile = UserProfile.objects.get(user_id=user.id)
 
     if not user_profile.user_type == 'marketplace_user':
-        lis = ['po_date', 'open_po__supplier__name', 'open_po__sku__sku_code', 'open_po__order_quantity',
-               'received_quantity', 'id', 'updation_date', 'id']
+        lis = ['open_po__order_quantity', 'po_date', 'open_po__supplier__name', 'open_po__sku__sku_code', 'open_po__order_quantity',
+               'received_quantity', 'open_po__order_quantity', 'id', 'updation_date', 'id']
         columns = SKU_WISE_PO_DICT['dt_headers']
     else:
         lis = ['po_date', 'order_id', 'open_po__supplier_id', 'open_po__supplier__name',
@@ -2742,12 +2743,17 @@ def sku_wise_purchase_data(search_params, user, sub_user):
         else:
             status = 'Received'
             receipt_date = str(data.updation_date).split('+')[0]
-
+        if data.status in ['confirmed-putaway', 'location-assigned'] and (data.received_quantity < data.open_po.order_quantity):
+            status = 'Closed PO'
         order_data = get_purchase_order_data(data)
         if not user_profile.user_type == 'marketplace_user':
-            temp = OrderedDict((('PO Date', get_local_date(user, data.po_date)), ('Supplier', order_data['supplier_name']),
+            po_reference = get_po_reference(data)
+            receivable_quantity = int(order_data['order_quantity'] - data.received_quantity)
+            if receivable_quantity < 0 or status == 'Closed PO':
+                receivable_quantity = 0
+            temp = OrderedDict((('PO Reference', po_reference), ('PO Date', get_local_date(user, data.po_date)), ('Supplier', order_data['supplier_name']),
                                 ('SKU Code', order_data['wms_code']), ('Order Quantity', order_data['order_quantity']),
-                                ('Received Quantity', data.received_quantity), ('Receipt Date', receipt_date),
+                                ('Received Quantity', data.received_quantity), ('Receivable Quantity', receivable_quantity), ('Receipt Date', receipt_date),
                                 ('Status', status)))
             temp['Rejected Quantity'] = 0
             if int(data.id) in qc_po_ids:
@@ -3798,15 +3804,22 @@ def get_order_summary_data(search_params, user, sub_user):
                         else:
                             invoice_number = str(invoice_number_obj[0].seller_order.order.order_id)
 
-                if data['sellerordersummary__creation_date'] :
-                    invoice_date = get_local_date(user,data['sellerordersummary__creation_date'])
-                else:
-                    invoice_date =''
-                user_profile = UserProfile.objects.get(user_id=user.id)
-                if user_profile.user_type == 'marketplace_user':
-                    quantity = SellerOrderSummary.objects.filter(seller_order__order_id=data['id'], invoice_number=data['sellerordersummary__invoice_number']).aggregate(Sum('quantity'))['quantity__sum']
-                else:
-                    quantity = SellerOrderSummary.objects.filter(order_id=data['id'], invoice_number=data['sellerordersummary__invoice_number']).aggregate(Sum('quantity'))['quantity__sum']
+            if data['sellerordersummary__creation_date'] :
+                invoice_date = get_local_date(user,data['sellerordersummary__creation_date'])
+            else:
+                invoice_date =''
+            user_profile = UserProfile.objects.get(user_id=user.id)
+            invoice_qty_filter = {}
+            if user_profile.user_type == 'marketplace_user':
+                invoice_qty_filter['seller_order__order_id'] = data['id']
+                if data['sellerordersummary__invoice_number']:
+                    invoice_qty_filter['invoice_number'] = data['sellerordersummary__invoice_number']
+                quantity = SellerOrderSummary.objects.filter(**invoice_qty_filter).aggregate(Sum('quantity'))['quantity__sum']
+            else:
+                invoice_qty_filter['order_id'] = data['id']
+                if data['sellerordersummary__invoice_number']:
+                    invoice_qty_filter['invoice_number'] = data['sellerordersummary__invoice_number']
+                quantity = SellerOrderSummary.objects.filter(**invoice_qty_filter).aggregate(Sum('quantity'))['quantity__sum']
 
         try:
             #serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data.sku.sku_code,order__original_order_id=order_id,po_imei__sku__user=user.id)
@@ -6404,7 +6417,7 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
             sku_masters = sku_masters[start_index:stop_index]
         for sku in sku_masters:
             wms_code = sku.wms_code
-            stock_quantity = StockDetail.objects.filter(sku__wms_code = wms_code).aggregate(Sum('quantity'))['quantity__sum']
+            stock_quantity = StockDetail.objects.filter(sku__wms_code = wms_code,sku__user = user.id).exclude(location__zone__zone = 'DAMAGED_ZONE').aggregate(Sum('quantity'))['quantity__sum']
             purchase_order = PurchaseOrder.objects.exclude(status__in=['confirmed-putaway', 'location-assigned']). \
                 filter(open_po__sku__user=sku.user, open_po__sku_id=sku.id, open_po__vendor_id__isnull=True). \
                 values('open_po__sku_id').annotate(total_order=Sum('open_po__order_quantity'),

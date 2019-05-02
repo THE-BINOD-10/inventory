@@ -448,8 +448,8 @@ SKU_WISE_PO_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'typ
                                 {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
                                 {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                                 {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
-                    'dt_headers': ['PO Date', 'Supplier', 'SKU Code', 'Order Quantity', 'Received Quantity',
-                                   'Rejected Quantity', 'Receipt Date', 'Status'],
+                    'dt_headers': ['PO Reference', 'PO Date', 'Supplier', 'SKU Code', 'Order Quantity', 'Received Quantity',
+                                   'Receivable Quantity', 'Rejected Quantity', 'Receipt Date', 'Status'],
                     'mk_dt_headers': ['PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'SKU Code',
                                       'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
                                       'Sub Category',
@@ -2676,8 +2676,8 @@ def sku_wise_purchase_data(search_params, user, sub_user):
     user_profile = UserProfile.objects.get(user_id=user.id)
 
     if not user_profile.user_type == 'marketplace_user':
-        lis = ['po_date', 'open_po__supplier__name', 'open_po__sku__sku_code', 'open_po__order_quantity',
-               'received_quantity', 'id', 'updation_date', 'id']
+        lis = ['open_po__order_quantity', 'po_date', 'open_po__supplier__name', 'open_po__sku__sku_code', 'open_po__order_quantity',
+               'received_quantity', 'open_po__order_quantity', 'id', 'updation_date', 'id']
         columns = SKU_WISE_PO_DICT['dt_headers']
     else:
         lis = ['po_date', 'order_id', 'open_po__supplier_id', 'open_po__supplier__name',
@@ -2739,12 +2739,17 @@ def sku_wise_purchase_data(search_params, user, sub_user):
         else:
             status = 'Received'
             receipt_date = str(data.updation_date).split('+')[0]
-
+        if data.status in ['confirmed-putaway', 'location-assigned'] and (data.received_quantity < data.open_po.order_quantity):
+            status = 'Closed PO'
         order_data = get_purchase_order_data(data)
         if not user_profile.user_type == 'marketplace_user':
-            temp = OrderedDict((('PO Date', get_local_date(user, data.po_date)), ('Supplier', order_data['supplier_name']),
+            po_reference = get_po_reference(data)
+            receivable_quantity = int(order_data['order_quantity'] - data.received_quantity)
+            if receivable_quantity < 0 or status == 'Closed PO':
+                receivable_quantity = 0
+            temp = OrderedDict((('PO Reference', po_reference), ('PO Date', get_local_date(user, data.po_date)), ('Supplier', order_data['supplier_name']),
                                 ('SKU Code', order_data['wms_code']), ('Order Quantity', order_data['order_quantity']),
-                                ('Received Quantity', data.received_quantity), ('Receipt Date', receipt_date),
+                                ('Received Quantity', data.received_quantity), ('Receivable Quantity', receivable_quantity), ('Receipt Date', receipt_date),
                                 ('Status', status)))
             temp['Rejected Quantity'] = 0
             if int(data.id) in qc_po_ids:

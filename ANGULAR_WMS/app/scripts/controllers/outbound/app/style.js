@@ -91,6 +91,9 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
         if (Object.keys(vm.style_details).length === 0) {
           vm.style_details = style_data[0];
         }
+        if (vm.style_details.youtube_url) {
+          vm.if_youtube_url = vm.style_details.youtube_url
+        }
         vm.y_video_flag = vm.style_details.youtube_url ? true : false;
         $('.youtube_thumbnaile_elem').html('<object width="100" height="70" data="'+vm.style_details.youtube_url+'"></object>');
         $('.youtube_video_play_elem').html('<object style="margin-top:49px" width="100%" height="100%" data="'+vm.style_details.youtube_url+'"></object>');
@@ -462,6 +465,25 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
       vm.includeMobileTemplate = false;
     }
   }
+  vm.youtube_iframe = function(val){
+    vm.title = "View Feedback";
+      var mod_data = val;
+      var modalInstance = $modal.open({
+        templateUrl: 'views/outbound/create_orders/youtube_iframe.html',
+        controller: 'YoutubeviewDetail',
+        controllerAs: 'pop',
+        size: 'lg',
+        backdrop: 'static',
+        keyboard: false,
+        resolve: {
+          items: function () {
+            return mod_data;
+          }
+        }
+      });
+      modalInstance.result.then(function (selectedItem) {
+      });
+  }
   vm.screenSize();
   angular.element($window).bind('resize', function(){
 
@@ -475,3 +497,21 @@ angular
 
 
 })();
+
+function YoutubeviewDetail($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items, Data) {
+  var vm = this;
+  vm.service = Service;
+  vm.permissions = Session.roles.permissions;
+  vm.video_link = items;
+  vm.remaining_video = '?autoplay=0&fs=0&iv_load_policy=3&showinfo=0&rel=0&cc_load_policy=0&start=0&end=0&origin=https://youtubeembedcode.com'
+  vm.state_data = vm.video_link + vm.remaining_video
+  setTimeout(function(){
+    document.getElementById('youtube_iframe').setAttribute("src",vm.state_data);
+  }, 500);
+    vm.ok = function () {
+      $modalInstance.close("close");
+    };
+  }
+angular
+  .module('urbanApp')
+  .controller('YoutubeviewDetail', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', YoutubeviewDetail]);

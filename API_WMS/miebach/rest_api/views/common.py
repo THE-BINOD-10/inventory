@@ -576,6 +576,8 @@ data_datatable = {  # masters
     'EnquiryOrders': 'get_enquiry_orders',
     'ManualEnquiryOrders': 'get_manual_enquiry_orders',
     'Targets': 'get_distributor_targets',
+    # feedBack Details
+    'FeedbackData': 'get_feedback_data',
     #invoice based payment tracker
     'PaymentTrackerInvBased': 'get_inv_based_payment_data',
     'OutboundPaymentReport': 'get_outbound_payment_report',

@@ -4649,6 +4649,7 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
                                                   user__first_name__icontains=dist_code).values_list('user_id', flat=True)
     search_parameters['quantity__gt'] = 0
     temp_data = copy.deepcopy(AJAX_DATA)
+    reseller_dist_mapping = dict(CustomerMaster.objects.filter(user__in=distributors).values_list('id', 'user'))
     zones_map = dict(UserProfile.objects.filter(user__in=distributors).values_list('user_id', 'zone'))
     dist_names_map = dict(UserProfile.objects.filter(user__in=distributors).
                           values_list('user_id', Concat('user__username', Value(' - '), 'user__first_name')))
@@ -4685,7 +4686,8 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    search_parameters['cust_wh_id__in'] = distributors
+    #search_parameters['cust_wh_id__in'] = distributors
+    search_parameters['customer_id__in'] = CustomerMaster.objects.filter(user__in=distributors).values_list('id', flat=True)
     generic_order_qs = GenericOrderDetailMapping.objects.filter(**search_parameters)
 
     ##Orders Status Functionality
@@ -4753,7 +4755,11 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
         dist_code = dist_names_map.get(data['cust_wh_id'], '')
         prod_catg = data['orderdetail__sku__sku_category']
         net_amt = round(data['quantity'] * data['unit_price'], 2)
-        zone_code = zones_map.get(data['cust_wh_id'], '')
+        zone_code = ''
+        reseller_dist_code = reseller_dist_mapping.get(data['customer_id'], '')
+        if reseller_dist_code:
+            zone_code = zones_map.get(reseller_dist_code, '')
+            dist_code = dist_names_map.get(reseller_dist_code, '')
         order_date = data['creation_date'].strftime("%d-%m-%Y")
         reseller_code = cust_id_names_map[data['customer_id']]
         corp_name = data['client_name']
@@ -4764,6 +4770,7 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
         gst_rate = (cgst_tax + sgst_tax + igst_tax + utgst_tax)
         gross_amt = round(net_amt + (net_amt * gst_rate / 100), 2)
         gst_value = round(gross_amt - net_amt, 2)
+        status = ''
         if not _status:
             if order_id_status.get(order_id, '') == '1':
                 status = ORDER_SUMMARY_REPORT_STATUS[0]

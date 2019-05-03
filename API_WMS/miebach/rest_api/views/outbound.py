@@ -510,16 +510,16 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
                 continue
         one_assist_qc_check = get_misc_value('dispatch_qc_check', user.id)
         central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
+        manifest_date = get_local_date(user,result.order_shipment.creation_date)
         if central_order_reassigning == 'true':
             if result.order_shipment.shipment_number:
                 shipment_orders_count = ShipmentInfo.objects.filter(order_shipment__shipment_number=result.order_shipment.shipment_number,
                                                   order_shipment__user=user.id)
                 total_orders = shipment_orders_count.count()
-                manifest_date = get_local_date(user,result.order_shipment.creation_date)
                 cond = (result.order_shipment.shipment_number, 0, 0, int(result.order_shipment.manifest_number), total_orders, manifest_date)
         else:
             total_orders = 0
-            cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name, int(result.order_shipment.manifest_number), total_orders)
+            cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name, int(result.order_shipment.manifest_number), total_orders,manifest_date)
         signed_copy = ''
         if one_assist_qc_check == 'true':
             order_detail = result.order

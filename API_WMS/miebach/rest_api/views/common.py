@@ -6691,7 +6691,8 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
             #     order_quantity = float(order.quantity)
             # else:
             #     order_quantity = float(seller_order.quantity)
-            order_quantity = order_quantity - order.picked_quantity
+            if 'st_po' in dir(order) :
+                order_quantity = order_quantity - order.picked_quantity
 
             if stock_quantity < float(order_quantity):
                 if not no_stock_switch:

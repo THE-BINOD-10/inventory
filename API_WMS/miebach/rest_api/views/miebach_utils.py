@@ -1551,7 +1551,9 @@ PERMISSION_DICT = OrderedDict((
                        ('Pricing Master', 'add_pricemaster'), ('Network Master', 'add_networkmaster'),
                        ('Tax Master', 'add_taxmaster'), ('T&C Master', 'add_tandcmaster'),
                        ('Seller Master', 'add_sellermaster'), ('Seller Margin Mapping', 'add_sellermarginmapping'),
-                       ('Staff Master', 'add_staffmaster'), ('Notification Master', 'add_pushnotifications'))),
+                       ('Staff Master', 'add_staffmaster'), ('Notification Master', 'add_pushnotifications'),
+                       ('Cluster SKU Mapping', 'add_clusterskumapping'),
+                       )),
 
     # Inbound
     ("INBOUND_LABEL", (("Raise PO", "add_openpo"), ("Confirm PO", "change_openpo"),
@@ -1608,6 +1610,7 @@ PERMISSION_DICT = OrderedDict((
                                     ('add_substitutionsummary', 'add_substitutionsummary'),
                                     ('add_targetmaster', 'add_targetmaster'),
                                     ('add_enquirymaster', 'add_enquirymaster'),
+                                    ('add_clusterskumapping', 'add_clusterskumapping'),
                  )),
     ("REPORTS", (('SKU List Report', 'view_skumaster'),('Location Wise Filter Report', 'view_locationmaster'),
                  ('Goods Receipt Note Report', 'view_sellerposummary'), ('Receipt Summary Report', 'view_polocation'),
@@ -2188,6 +2191,9 @@ CUSTOM_ORDER_DEF_EXCEL = OrderedDict((
     ('reseller_name', 0), ('customer_name', 1), ('sku_code', 2), ('customization_type', 3), ('ask_price', 4),
     ('quantity', 5), ('client_po_rate', 6), ('expected_date', 7), ('remarks', 8)))
 
+CLUSTER_SKU_MAPPING = OrderedDict((
+                                  ('Cluster Name', 0),
+                                  ('Sku Code', 1), ('Sequence', 2)))
 #PICKLIST_EXCLUDE_ZONES = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
 
 def fn_timer(function):
@@ -4653,6 +4659,7 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
                                                   user__first_name__icontains=dist_code).values_list('user_id', flat=True)
     search_parameters['quantity__gt'] = 0
     temp_data = copy.deepcopy(AJAX_DATA)
+    reseller_dist_mapping = dict(CustomerMaster.objects.filter(user__in=distributors).values_list('id', 'user'))
     zones_map = dict(UserProfile.objects.filter(user__in=distributors).values_list('user_id', 'zone'))
     dist_names_map = dict(UserProfile.objects.filter(user__in=distributors).
                           values_list('user_id', Concat('user__username', Value(' - '), 'user__first_name')))
@@ -4689,7 +4696,8 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    search_parameters['cust_wh_id__in'] = distributors
+    #search_parameters['cust_wh_id__in'] = distributors
+    search_parameters['customer_id__in'] = CustomerMaster.objects.filter(user__in=distributors).values_list('id', flat=True)
     generic_order_qs = GenericOrderDetailMapping.objects.filter(**search_parameters)
 
     ##Orders Status Functionality
@@ -4757,7 +4765,11 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
         dist_code = dist_names_map.get(data['cust_wh_id'], '')
         prod_catg = data['orderdetail__sku__sku_category']
         net_amt = round(data['quantity'] * data['unit_price'], 2)
-        zone_code = zones_map.get(data['cust_wh_id'], '')
+        zone_code = ''
+        reseller_dist_code = reseller_dist_mapping.get(data['customer_id'], '')
+        if reseller_dist_code:
+            zone_code = zones_map.get(reseller_dist_code, '')
+            dist_code = dist_names_map.get(reseller_dist_code, '')
         order_date = data['creation_date'].strftime("%d-%m-%Y")
         reseller_code = cust_id_names_map[data['customer_id']]
         corp_name = data['client_name']
@@ -4768,6 +4780,7 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
         gst_rate = (cgst_tax + sgst_tax + igst_tax + utgst_tax)
         gross_amt = round(net_amt + (net_amt * gst_rate / 100), 2)
         gst_value = round(gross_amt - net_amt, 2)
+        status = ''
         if not _status:
             if order_id_status.get(order_id, '') == '1':
                 status = ORDER_SUMMARY_REPORT_STATUS[0]

@@ -97,8 +97,9 @@
         </div>
         <div class="panel-body">
           <ul>
-            <li>Rename the image with the sku code like sku.jpg</li>
-            <li>Upload multiple images for single sku. Rename the sku __ and add some number like sku__1.jpg</li>
+            <li ng-if = "uploader.model_data.type == 'clusterUpload'">Rename the image with the cluster code like cluster.jpg</li>
+            <li ng-if= "uploader.model_data.type == 'skuUpload'">Rename the image with the sku code like sku.jpg</li>
+            <li ng-if= "uploader.model_data.type == 'skuUpload'">Upload multiple images for single sku. Rename the sku __ and add some number like sku__1.jpg</li>
             <li>Status
               <ul>
                 <li><i class="glyphicon glyphicon-ok"></i> This symbol will indicate "Success".</li>

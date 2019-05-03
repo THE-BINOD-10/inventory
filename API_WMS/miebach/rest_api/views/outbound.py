@@ -6481,13 +6481,15 @@ def get_sku_categories(request, user=''):
         ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
     sub_categories = list(SKUMaster.objects.filter(user=user.id).exclude(sub_category='').values_list('sub_category',
                                                                                                       flat=True).distinct())
-    cluster_masters = dict(list(ClusterSkuMapping.objects.filter(sku__user=user.id).values_list('cluster_name', 'image_url').distinct()))
+    sku_brand = request.GET.get('brand', '')
     images= []
-    for url in cluster_masters:
-        if cluster_masters[url]:
-            images.append({'cluster_name':url, 'image':cluster_masters[url]})
-        else:
-            images.append({'cluster_name':url, 'image':'/static/images/categories/default.png'})
+    if sku_brand:
+        cluster_masters = dict(list(ClusterSkuMapping.objects.filter(sku__user=user.id, sku__sku_brand=sku_brand).values_list('cluster_name', 'image_url').distinct()))
+        for url in cluster_masters:
+            if cluster_masters[url]:
+                images.append({'cluster_name':url, 'image':cluster_masters[url]})
+            else:
+                images.append({'cluster_name':url, 'image':'/static/images/categories/default.png'})
     reseller_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     corp_names = []
     if reseller_obj and price_band_flag == 'true':

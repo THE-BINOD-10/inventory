@@ -5405,6 +5405,15 @@ def sku_substitution_upload(request, user=''):
                                  data_dict['source_updated'], mrp_dict, transact_number)
     return HttpResponse('Success')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def cluster_sku_form(request, user=''):
+    cluster_sku_file = request.GET['download-file']
+    if cluster_sku_file:
+        return error_file_download(cluster_sku_file)
+    wb, ws = get_work_sheet('cluster_sku_form', CLUSTER_SKU_MAPPING.keys())
+    return xls_to_response(wb, '%s.cluster_sku_form.xls' % str(user.id))
 
 @csrf_exempt
 @login_required
@@ -6722,3 +6731,104 @@ def custom_order_upload(request, user=''):
     if not upload_status == 'Success':
         return HttpResponse(upload_status)
     return HttpResponse('Success')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def cluster_sku_upload(request, user=''):
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+        status = validate_cluster_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type)
+        if status != 'Success':
+            return HttpResponse(status)
+        else:
+            return HttpResponse(status)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Cluster sku form Upload failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Cluster Sku Upload Failed")
+
+def validate_cluster_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls'):
+    cluster_sku_list = []
+    count = 0
+    st_time = datetime.datetime.now()
+    index_status = {}
+    cluster_skus_mapping = OrderedDict((('Cluster Name', 0),
+                                        ('Sku Code', 1),
+                                        ('Sequence', 2)
+                                       ))
+    for row_idx in range(1, no_of_rows):
+        cluster_sku_dict = {}
+        count += 1
+        for key, value in cluster_skus_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, cluster_skus_mapping[key], reader, file_type)
+            if key == 'Cluster Name':
+                if not cell_data:
+                    index_status.setdefault(count, set()).add('Input Mismatch')
+                else:
+                    cluster_sku_dict[key] = cell_data
+            elif key == 'Sku Code':
+                if not cell_data:
+                    index_status.setdefault(count, set()).add('Input Mismatch')
+                else:
+                    if isinstance(cell_data, float):
+                        cluster_sku_dict[key] = int(cell_data)
+                    else:
+                        cluster_sku_dict[key] = cell_data
+                    sku_data = SKUMaster.objects.filter(user=user.id, sku_code=cell_data)
+                    if not sku_data:
+                        index_status.setdefault(count, set()).add('SKU Not Found')
+            elif key == 'Sequence':
+                if not cell_data:
+                    index_status.setdefault(count, set()).add('Input Mismatch')
+                else:
+                    if isinstance(cell_data, float) or  isinstance(cell_data, int):
+                        cluster_sku_dict[key] = int(cell_data)
+                    else:
+                        index_status.setdefault(count, set()).add('Input Mismatch')
+        cluster_sku_list.append(cluster_sku_dict)
+    try:
+        if not index_status and cluster_sku_list:
+            for data in cluster_sku_list:
+                status = 'cluster Upload Failed'
+                cluster_skus = {'cluster_name': '', 'sku_id': '', 'sequence': ''}
+                cluster_skus['cluster_name'] = data['Cluster Name']
+                cluster_skus['sequence'] = data['Sequence']
+                if data['Sku Code']:
+                    sku_data = SKUMaster.objects.filter(user=user.id, sku_code=data['Sku Code'])
+                    if not sku_data:
+                        return 'SKU Not Found'
+                    else:
+                        cluster_skus['sku_id'] = sku_data[0].id
+                        clust_obj = ClusterSkuMapping.objects.filter(cluster_name = cluster_skus['cluster_name'], sku_id = cluster_skus['sku_id'])
+                        cluster_obj_image = ClusterSkuMapping.objects.filter(cluster_name = cluster_skus['cluster_name'], sku__user= user.id)
+                        if clust_obj:
+                            clust_obj.update(sequence = cluster_skus['sequence'])
+                            if cluster_obj_image:
+                                cluster_skus['image_url'] = cluster_obj_image[0].image_url
+                            status = 'Success'
+                        else:
+                            if cluster_obj_image:
+                                cluster_skus['image_url'] = cluster_obj_image[0].image_url  
+                            final_data = ClusterSkuMapping(**cluster_skus)
+                            final_data.save()
+                            status = 'Success'
+            return status
+        elif index_status and file_type == 'xls':
+            f_name = fname.name.replace(' ', '_')
+            file_path = rewrite_excel_file(f_name, index_status, reader)
+            if file_path:
+                f_name = file_path
+            return f_name
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Cluster sku form Upload failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Cluster sku Upload Failed")
+

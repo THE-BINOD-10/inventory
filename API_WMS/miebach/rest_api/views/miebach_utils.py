@@ -823,10 +823,10 @@ ENQUIRY_STATUS_REPORT = {
         {'label': 'Enquiry Status', 'name': 'enquiry_status', 'type': 'select'},
     ],
     'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
-                   'Level','Warehouse', 'Enquiry No', 'Enquiry Aging', 'Enquiry Status'],
+                   'Level','Warehouse', 'Enquiry No', 'Enquiry Aging', 'Enquiry Status', 'Corporate Name', 'Remarks'],
     'dt_url': 'get_enquiry_status_report', 'excel_name': 'get_enquiry_status_report',
     'dt_unsort': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
-                   'Enquiry No', 'Level', 'Warehouse', 'Enquiry Aging', 'Enquiry Status'],
+                   'Enquiry No', 'Level', 'Warehouse', 'Enquiry Aging', 'Enquiry Status', 'Corporate Name', 'Remarks'],
     'print_url': 'print_enquiry_status_report',
 }
 
@@ -5895,6 +5895,8 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         sku_code = en_obj.sku.sku_code
         quantity = en_obj.quantity
         warehouse_level = en_obj.warehouse_level
+        corporate_name = en_obj.customer_name
+        remarks = en_obj.remarks
         if 'Total Qty' not in totals_map:
             totals_map['Total Qty'] = quantity
         else:
@@ -5911,7 +5913,10 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
                                 ('Level', warehouse_level),
                                 ('Warehouse', warehouse),
                                 ('Enquiry Aging', days_left),
-                                ('Enquiry Status', extend_status)))
+                                ('Enquiry Status', extend_status),
+				('Corporate Name', corporate_name),
+				('Remarks', remarks),
+                               ))
         temp_data['aaData'].append(ord_dict)
     temp_data['totals'] = totals_map
     return temp_data

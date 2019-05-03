@@ -2293,7 +2293,7 @@ def picklist_confirmation(request, user=''):
                         temp_json = TempJson.objects.filter(model_id=int(user.id), model_name=model_name_value)
                         if temp_json:
                             rista_order_id_list.append(original_order_id_str)
-                        picking_count1 = int(picking_count1)
+                        picking_count1 = float(picking_count1)
                         if picking_count1:
                             sku_code_str = picklist.order.sku.sku_code
                             sku_code_dict = {}

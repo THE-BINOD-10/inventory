@@ -5895,8 +5895,8 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         sku_code = en_obj.sku.sku_code
         quantity = en_obj.quantity
         warehouse_level = en_obj.warehouse_level
-        corporate_name = en_obj.customer_name
-        remarks = en_obj.remarks
+        corporate_name = en_obj.enquiry.customer_name
+        remarks = en_obj.enquiry.remarks
         if 'Total Qty' not in totals_map:
             totals_map['Total Qty'] = quantity
         else:

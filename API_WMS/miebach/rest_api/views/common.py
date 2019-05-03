@@ -442,7 +442,6 @@ def get_search_params(request, user=''):
     Zone Code is (NORTH, EAST, WEST, SOUTH)
     Zone Id is Warehouse Zone.
     """
-    #import pdb; pdb.set_trace()
     search_params = {}
     filter_params = {}
     headers = []
@@ -519,7 +518,7 @@ data_datatable = {  # masters
     'SellerMaster': 'get_seller_master', 'SellerMarginMapping': 'get_seller_margin_mapping', \
     'TaxMaster': 'get_tax_master', 'NetworkMaster': 'get_network_master_results',\
     'StaffMaster': 'get_staff_master', 'CorporateMaster': 'get_corporate_master',\
-    'WarehouseSKUMappingMaster': 'get_wh_sku_mapping',
+    'WarehouseSKUMappingMaster': 'get_wh_sku_mapping', 'ClusterMaster': 'get_cluster_sku_results',
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
     'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data', \
@@ -3415,6 +3414,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         request_data = request.POST
     filter_params = {'user': user.id}
     sku_class = request_data.get('sku_class', '')
+    cluster = request_data.get('cluster', '')
     sku_brand = request_data.get('brand', '')
     sku_category = request_data.get('category', '')
     sub_category = request_data.get('sub_category', '')
@@ -3501,6 +3501,10 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         filter_params1['sku__user'] = admin_user.id
     else:
         filter_params1['sku__user'] = user.id
+    if cluster:
+        cluster_sku_list = list(ClusterSkuMapping.objects.filter(cluster_name = cluster, sku__user = filter_params1['sku__user']).values_list('sku__sku_code', flat=True))
+        filter_params['sku_code__in'] = cluster_sku_list
+        filter_params1['sku__sku_code__in'] = cluster_sku_list
     start, stop = indexes.split(':')
     start, stop = int(start), int(stop)
     if sku_class:

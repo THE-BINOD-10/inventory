@@ -6,7 +6,21 @@
     <div class="panel">
       <div class="panel-body">
         <div class="row">
-            <div class="panel-header">
+          <div class="form-group">
+            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+              <div class="col-lg-4 col-md-4"></div>
+              <div class="col-lg-4 col-md-4">
+                <h6>Please Select Upload Type *</h6>
+                <select ng-model="uploader.model_data.type" class="form-control" name="selected_type" ng-required="true" ng-change="uploader.changing_value(uploader.model_data.type)" ng-init= "uploader.changing_value(uploader.model_data.type)">
+                  <!-- <option value={{uploader.model_data.type}}> {{uploader.model_data.type}}</option> -->
+                  <option ng-if = "uploader.model_data.type == 'clusterUpload'" value="clusterUpload">Cluster Upload</option>
+                  <option ng-if= "uploader.model_data.type == 'skuUpload'" value="skuUpload">Sku Upload</option>
+                </select>
+              </div>
+              <div class="col-lg-4 col-md-4"></div>
+            </div>
+          </div>
+          <div class="panel-header">
             <div class="col-md-12">
             Multiple
               <input type="file" nv-file-select="" uploader="uploader" multiple accept=".jpg,.png,.jpeg,.JPG,.PNG,.JPEG"/>
@@ -83,8 +97,9 @@
         </div>
         <div class="panel-body">
           <ul>
-            <li>Rename the image with the sku code like sku.jpg</li>
-            <li>Upload multiple images for single sku. Rename the sku __ and add some number like sku__1.jpg</li>
+            <li ng-if = "uploader.model_data.type == 'clusterUpload'">Rename the image with the cluster code like cluster.jpg</li>
+            <li ng-if= "uploader.model_data.type == 'skuUpload'">Rename the image with the sku code like sku.jpg</li>
+            <li ng-if= "uploader.model_data.type == 'skuUpload'">Upload multiple images for single sku. Rename the sku __ and add some number like sku__1.jpg</li>
             <li>Status
               <ul>
                 <li><i class="glyphicon glyphicon-ok"></i> This symbol will indicate "Success".</li>

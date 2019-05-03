@@ -6480,6 +6480,15 @@ def get_sku_categories(request, user=''):
         ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
     sub_categories = list(SKUMaster.objects.filter(user=user.id).exclude(sub_category='').values_list('sub_category',
                                                                                                       flat=True).distinct())
+    sku_brand = request.GET.get('brand', '')
+    images= []
+    if sku_brand:
+        cluster_masters = dict(list(ClusterSkuMapping.objects.filter(sku__user=user.id, sku__sku_brand=sku_brand).values_list('cluster_name', 'image_url').distinct()))
+        for url in cluster_masters:
+            if cluster_masters[url]:
+                images.append({'cluster_name':url, 'image':cluster_masters[url]})
+            else:
+                images.append({'cluster_name':url, 'image':'/static/images/categories/default.png'})
     reseller_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     corp_names = []
     if reseller_obj and price_band_flag == 'true':
@@ -6489,7 +6498,7 @@ def get_sku_categories(request, user=''):
         corp_names = list(CorporateMaster.objects.filter(corporate_id__in=res_corps, user=user.id).values_list('name', flat=True).distinct())
 
     return HttpResponse(
-        json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list,
+        json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list, 'Image_urls': images, 
                     'sub_categories': sub_categories, 'colors': colors, 'customization_types': dict(CUSTOMIZATION_TYPES),\
                     'primary_details': categories_details['primary_details'], 'reseller_corporates': corp_names}))
 

@@ -667,6 +667,19 @@ var app = angular.module('urbanApp')
             title: 'Notification Master',
           }
         })
+        .state('app.masters.ClusterSkuMaster', {
+          url: '/ClusterSkuMaster',
+          permission: 'add_clusterskumapping',
+          templateUrl: 'views/masters/cluster_sku_datatable.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/masters/clusterskutable.js');
+                    }]
+          },
+          data: {
+            title: 'Cluster Sku Master',
+          }
+        })
       // Inbound routes
       .state('app.inbound', {
           template: '<div ui-view></div>',

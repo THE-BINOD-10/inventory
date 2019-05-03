@@ -5625,6 +5625,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 order_fields_objs = create_order_fields_entry(order_id, key, key_value, user, is_bulk_create=True,
                               order_fields_objs=order_fields_objs)
+                order_fields_objs = create_order_fields_entry(order_id , 'marketplace','Offline' , user,is_bulk_create=True,order_fields_objs=order_fields_objs)
             elif key == 'loan_proposal_code':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 order_fields_objs = create_order_fields_entry(order_id, key, key_value, user, is_bulk_create=True,
@@ -5770,6 +5771,8 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             order_dict['shipment_date'] = datetime.datetime.now() #interm_obj.shipment_date
             order_dict['quantity'] = 1
             order_dict['unit_price'] = unit_price
+            if order_mapping.has_key('loan_proposal_id'):
+                order_dict['marketplace'] = 'Offline'
             get_existing_order = OrderDetail.objects.filter(**{'sku_id': sku_id,
                 'original_order_id': order_id, 'user':order_data['order_assigned_wh_id'] })
             if get_existing_order.exists():
@@ -6016,7 +6019,8 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                 index_status.setdefault(count, set()).add('Invalid warehouse')
             else:
                 try:
-                    sister_wh = get_sister_warehouse(user)
+                    admin_user = get_admin(user)
+                    sister_wh = get_sister_warehouse(admin_user)
                     user_obj = sister_wh.filter(user__username=warehouse_name)
                     if not user_obj:
                         index_status.setdefault(count, set()).add('Invalid Warehouse Location')
@@ -6078,7 +6082,10 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
             elif key == 'quantity':
                  quantity = int(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'price':
-                 price = int(get_cell_data(row_idx, value, reader, file_type))
+                try:
+                    price = int(get_cell_data(row_idx, value, reader, file_type))
+                except:
+                    price = 0
             elif key == 'cgst_tax':
                 try:
                     cgst_tax = str(int(get_cell_data(row_idx, value, reader, file_type)))
@@ -6257,6 +6264,7 @@ def block_stock_download(request, user=''):
 @csrf_exempt
 def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_type=''):
     from stock_locator import get_quantity_data
+    block_stock_list = []
     index_status = {}
     blockstock_file_mapping = copy.deepcopy(BLOCK_STOCK_DEF_EXCEL)
     if not blockstock_file_mapping:
@@ -6264,6 +6272,8 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
     warehouse_qs = UserGroups.objects.filter(admin_user=user.id)
     dist_users = warehouse_qs.filter(user__userprofile__warehouse_level=1).values_list('user_id__username', flat=True)
     wh_userids = warehouse_qs.values_list('user_id', flat=True)
+    sister_whs = copy.deepcopy(list(wh_userids))
+    sister_whs.append(user.id)
     reseller_qs = CustomerUserMapping.objects.filter(customer__user__in=wh_userids)
     reseller_ids_map = dict(reseller_qs.values_list('user_id__username', 'customer__id'))
     reseller_ids = reseller_ids_map.values()
@@ -6276,16 +6286,20 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
     for res_id, corp_id in res_corp_qs:
         res_corp_map.setdefault(res_id, []).append(corp_id)
     for res_id, corp_ids in res_corp_map.items():
-        corp_names = CorporateMaster.objects.filter(id__in=corp_ids).values_list('name', flat=True)
+        corp_names = CorporateMaster.objects.filter(corporate_id__in=corp_ids, user__in=sister_whs).values_list('name', flat=True)
         res_corp_names_map.setdefault(res_id, []).extend(corp_names)
-
     for row_idx in range(1, no_of_rows):
+        block_stock_dict = {}
+        grouping_key = ''
         for key, value in blockstock_file_mapping.iteritems():
             cell_data = get_cell_data(row_idx, blockstock_file_mapping[key], reader, file_type)
             if key == 'sku_code':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add("SKU Code is missing")
                 else:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = str(int(cell_data))
+                    block_stock_dict[key] = cell_data
                     if cell_data not in sku_codes:
                         index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
             elif key == 'quantity':
@@ -6313,6 +6327,7 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add("Reseller Name is missing")
                 else:
+                    block_stock_dict[key] = cell_data
                     if cell_data not in reseller_users:
                         index_status.setdefault(row_idx, set()).add("Reseller Name not found")
             elif key == 'corporate_name':
@@ -6320,7 +6335,8 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                 res_id = reseller_ids_map.get(res_code, '')
                 mapped_corp_names = res_corp_names_map.get(res_id, [])
                 if cell_data:
-                   if cell_data not in mapped_corp_names:
+                    block_stock_dict[key] = cell_data
+                    if cell_data not in mapped_corp_names:
                         index_status.setdefault(row_idx, set()).add('Corporate Name not mapped with Reseller')
                 else:
                     index_status.setdefault(row_idx, set()).add('Corporate Name Missing')
@@ -6328,17 +6344,25 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Warehouse Username is missing.')
                 else:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = str(int(cell_data))
+                    block_stock_dict[key] = cell_data
                     if cell_data not in dist_users:
                         index_status.setdefault(row_idx, set()).add('Invalid Warehouse Username')
             elif key == 'level':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add("Level Missing")
                 else:
-                    if int(cell_data) not in [1, 3]:
-                        index_status.setdefault(row_idx, set()).add('Level must be either 1 or 3')
+                    block_stock_dict[key] = int(cell_data)
+          	    if int(cell_data) not in [1, 3]:
+          	        index_status.setdefault(row_idx, set()).add('Level must be either 1 or 3')
             else:
                 index_status.setdefault(row_idx, set()).add('Invalid Field')
-
+        grouping_key = '%s,%s,%s,%s,%s' % (str(block_stock_dict.get('sku_code', '')),str(block_stock_dict.get('corporate_name', '')),str(block_stock_dict.get('reseller_name', '')),str(block_stock_dict.get('warehouse', '')),str(block_stock_dict.get('level', '')))
+        if grouping_key in block_stock_list:
+             index_status.setdefault(row_idx, set()).add('Duplicate Record Found')
+        else:
+            block_stock_list.append(grouping_key)
     if not index_status:
         return 'Success'
 

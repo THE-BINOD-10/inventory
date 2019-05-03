@@ -188,11 +188,10 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
                 time_slot = time_slot.split("-")[0]
 
             shipment_data = shipment_data + ', ' + time_slot
-
-        try:
-            order_id = int(float(order_id))
-        except:
-            order_id = str(xcode(order_id))
+        # try:
+        #     order_id = int(float(order_id))
+        # except:
+        #     order_id = str(xcode(order_id))
         quantity = float(data.quantity)
         seller_order = all_seller_orders.filter(order_id=data.id).aggregate(Sum('quantity'))['quantity__sum']
         if seller_order:
@@ -511,16 +510,16 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
                 continue
         one_assist_qc_check = get_misc_value('dispatch_qc_check', user.id)
         central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
+        manifest_date = get_local_date(user,result.order_shipment.creation_date)
         if central_order_reassigning == 'true':
             if result.order_shipment.shipment_number:
                 shipment_orders_count = ShipmentInfo.objects.filter(order_shipment__shipment_number=result.order_shipment.shipment_number,
                                                   order_shipment__user=user.id)
                 total_orders = shipment_orders_count.count()
-                manifest_date = get_local_date(user,result.order_shipment.creation_date)
                 cond = (result.order_shipment.shipment_number, 0, 0, int(result.order_shipment.manifest_number), total_orders, manifest_date)
         else:
             total_orders = 0
-            cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name, int(result.order_shipment.manifest_number), total_orders)
+            cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name, int(result.order_shipment.manifest_number), total_orders,manifest_date)
         signed_copy = ''
         if one_assist_qc_check == 'true':
             order_detail = result.order
@@ -1328,7 +1327,7 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
             status.append("Insufficient Stock in given location with batch number")
         else:
             status.append("Insufficient Stock in given location")
-    elif pic_check[0].batch_detail and pic_check[0].batch_detail.expiry_date and expiry_batches_picklist == 'false':
+    elif pic_check[0].batch_detail and pic_check[0].batch_detail.expiry_date and expiry_batches_picklist == 'true':
         present_date = datetime.datetime.now().date()
         if pic_check[0].batch_detail.expiry_date <= present_date:
             status.append("Expiry batch number not Allowed")
@@ -7286,7 +7285,7 @@ def search_customer_data(request, user=''):
 
     lis = ['name', 'email_id', 'phone_number', 'address', 'status', 'tax_type']
     master_data = CustomerMaster.objects.filter(Q(phone_number__icontains=search_key) | Q(name__icontains=search_key) |
-                                                Q(customer_id__icontains=search_key), user=user.id)
+                                                Q(customer_id__icontains=search_key), user=user.id,status = 1)
 
     for data in master_data[:30]:
         status = 'Inactive'
@@ -8387,8 +8386,6 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
                         user_dict={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     user_dict = eval(user_dict)
-
-
     lis = ['order_id', 'customer_name', 'order_id', 'address', 'marketplace', 'total', 'shipment_date', 'date_only',
         'city', 'status']
 
@@ -11623,6 +11620,9 @@ def generate_customer_invoice(request, user=''):
         invoice_data['invoice_no'] = invoice_no
         invoice_data['pick_number'] = pick_number
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
+        check_storehippo_user = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
+        if check_storehippo_user:
+            invoice_data['order_reference'] = ''
         return_data = request.GET.get('data', '')
         delivery_challan = request.GET.get('delivery_challan', '')
         if delivery_challan == "true":
@@ -12966,6 +12966,8 @@ def save_manual_enquiry_data(request, user=''):
         ask_price = request.POST.get('ask_price', 0)
         expected_date = request.POST.get('expected_date', '')
         remarks = request.POST.get('remarks', '')
+        if admin_remarks == 'true':
+            remarks = request.POST.get('admin_remark', '')
         status = request.POST.get('status', '')
         designer_flag = False
         if request.user.userprofile.warehouse_type == "SM_DESIGN_ADMIN":
@@ -13002,7 +13004,7 @@ def save_manual_enquiry_data(request, user=''):
             #     users_list.append(market_admin_user_id)
             users_list.append(admin_user.id)
             if admin_remarks == 'true':
-                enq_user = manual_enq_data.enquiry.user
+                enq_user = User.objects.get(id=manual_enq_data.order_user_id)
                 customer_user = get_customer_parent_user(enq_user)
                 temp_group = Group.objects.filter(name=user.username)
                 if temp_group and customer_user:
@@ -13478,7 +13480,7 @@ def convert_customorder_to_actualorder(request, user=''):
                     wh_user_obj = User.objects.get(username=warehouse['warehouse'])
                     stock_wh_map[wh_user_obj.id] = float(warehouse['quantity'])
     except:
-        return HttpResponse('Something Went Wrong')
+        return HttpResponse(json.dumps({'msg': 'Something Went Wrong', 'data': []}))
     resp = {'msg': 'Success', 'data': []}
     try:
         enq_id = request.POST.get('enquiry_id', '')
@@ -13489,7 +13491,7 @@ def convert_customorder_to_actualorder(request, user=''):
             return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
         enq_obj = en_qs[0]
         if enq_obj.status != 'confirm_order':
-            return HttpResponse('Either Order is not approved by Admin or Order already Created')
+            return HttpResponse(json.dumps({'msg': 'Either Order is not approved by Admin or Order already Created', 'data': []}))
         sku_id = enq_obj.sku.id
         sku_code = enq_obj.sku.sku_code
         title = enq_obj.sku.sku_desc
@@ -13510,7 +13512,7 @@ def convert_customorder_to_actualorder(request, user=''):
                 ask_price = ask_price_qs[0]
             exp_date_qs = man_det_qs.values_list('expected_date', flat=True).order_by('-id')
             if not exp_date_qs:
-                return HttpResponse("Some thing went wrong, please check with team")
+                return HttpResponse(json.dumps({"msg": "Some thing went wrong, please check with team", "data": []}))
             else:
                 exp_date = exp_date_qs[0]
                 if exp_date < datetime.date.today():
@@ -13530,7 +13532,7 @@ def convert_customorder_to_actualorder(request, user=''):
         dist_order_copy = {}
         customer_obj = CustomerMaster.objects.filter(id=cm_id)
         if not customer_obj:
-            return HttpResponse('Customer Not Found, Something went wrong')
+            return HttpResponse(json.dumps({'msg': 'Customer Not Found, Something went wrong', 'data': []}))
 
         cm_id = customer_obj[0].id
         generic_order_id = get_generic_order_id(cm_id)
@@ -13639,13 +13641,13 @@ def convert_customorder_to_actualorder(request, user=''):
         else:
             log.info("Order Push failed for order:%s : Customer Id:%s : Error: %s" %(generic_order_id, cm_id, message))
             cancel_emiza_order(generic_order_id, cm_id)
-            return HttpResponse('Order is not placed properly in Emiza, please check with Stockone Team')
+            return HttpResponse(json.dumps({'msg': 'Order is not placed properly in Emiza, please check with Stockone Team', 'data': []}))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Converting Custom Order to Actual Order Failed. User: %s, Params: %s, Error: %s'
                  % (user.username, str(request.POST.dict()), str(e)))
-        return HttpResponse('Converting Custom Order to Actual Order Failed.')
+        return HttpResponse(json.dumps({'msg': 'Converting Custom Order to Actual Order Failed.', 'data': []}))
 
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 
@@ -14747,10 +14749,10 @@ def do_delegate_orders(request, user=''):
                             order_dict['address'] = customer_user[0].customer.address
 
                     #Order Detail Save Block
-                    original_order_id, address1, address2, client_code, village, state, pincode = '', '', '', '', '', '', ''
+                    original_order_id, address1, address2, client_code, village, state,marketplace, pincode = '','', '', '', '', '', '', ''
                     central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)#for 72 networks
 
-                    if central_order_reassigning :
+                    if central_order_reassigning == 'true':
                         ord_det_obj = OrderDetail.objects.filter(id = interm_obj.order_id)
                         order_fields = OrderFields.objects.filter(user=user.id, original_order_id=ord_det_obj[0].original_order_id)
                     else:
@@ -14771,6 +14773,10 @@ def do_delegate_orders(request, user=''):
                             state = obj['value']
                         if obj['name'] == "pincode":
                             pincode = obj['value']
+                        if obj['name'] == 'marketplace':
+                            marketplace = obj['value']
+                        if central_order_reassigning == 'true':
+                            marketplace = 'Offline'
                     order_dict['customer_id'] = interm_obj.customer_id
                     order_dict['customer_name'] = interm_obj.customer_name
                     order_dict['email_id'] = ''
@@ -14779,11 +14785,11 @@ def do_delegate_orders(request, user=''):
                     order_dict['quantity'] = 1
                     order_dict['invoice_amount'] = inv_amt
                     order_dict['shipment_date'] = datetime.datetime.now()
-                    order_dict['marketplace'] = ''
                     order_dict['vat_percentage'] = 0
                     order_dict['status'] = 0
                     order_dict['city'] = village[:59]
                     order_dict['state'] = state
+                    order_dict['marketplace'] = marketplace
                     try:
                         order_dict['pin_code'] = int(pincode)
                     except:
@@ -14815,7 +14821,7 @@ def do_delegate_orders(request, user=''):
                         #get_existing_order.save()
                         order_fields.update(original_order_id=original_order_id)
                         interm_obj_filter.update(status=1)
-                        if central_order_reassigning :
+                        if central_order_reassigning == 'true':
                             interm_obj_filter.update(order_id = get_existing_order.id)
                             interm_obj.order_id = get_existing_order.id
                             interm_obj.status = 1
@@ -14832,7 +14838,7 @@ def do_delegate_orders(request, user=''):
                                 ord_obj.save()
                             order_fields.update(original_order_id=original_order_id)
                             interm_obj_filter.update(status=1)
-                            if central_order_reassigning :
+                            if central_order_reassigning == 'true':
                                 interm_obj.order_id = ord_obj.id
                                 interm_obj.status = 1
                                 interm_obj.save()
@@ -15341,4 +15347,3 @@ def get_feedback_data(start_index, stop_index, temp_data, search_term, order_ter
         log.debug(traceback.format_exc())
         log.info('Exception raised while display feedback form for %s and params are %s and error statement is %s'
                  % (str(user.username), str(request.POST.dict()), str(e)))
-

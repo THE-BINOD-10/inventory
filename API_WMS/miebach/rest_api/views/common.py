@@ -89,6 +89,9 @@ def get_decimal_value(user_id ,price = ''):
                 decimal_limit = get_misc_value('decimal_limit_price', user_id, number=True)
             else:
                 decimal_limit = get_misc_value('decimal_limit', user_id, number=True)
+            if not decimal_limit :
+                decimal_limit = 2
+
     return decimal_limit
 
 
@@ -445,7 +448,6 @@ def get_search_params(request, user=''):
     Zone Code is (NORTH, EAST, WEST, SOUTH)
     Zone Id is Warehouse Zone.
     """
-    #import pdb; pdb.set_trace()
     search_params = {}
     filter_params = {}
     headers = []

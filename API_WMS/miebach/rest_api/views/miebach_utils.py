@@ -821,6 +821,7 @@ ENQUIRY_STATUS_REPORT = {
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'Warehouse Level', 'name': 'warehouse_level', 'type': 'input'},
         {'label': 'Enquiry Status', 'name': 'enquiry_status', 'type': 'select'},
+	{'label': 'Corporate Name', 'name': 'corporate_name', 'type': 'input'},
     ],
     'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
                    'Level','Warehouse', 'Enquiry No', 'Enquiry Aging', 'Enquiry Status', 'Corporate Name', 'Remarks'],
@@ -5862,6 +5863,8 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
             aging_period = 0
         extend_date = datetime.datetime.today() + datetime.timedelta(days=aging_period)
         search_parameters['enquiry__extend_date'] = extend_date
+    if 'corporate_name' in search_params:
+        search_parameters['enquiry__customer_name'] = search_params['corporate_name']
 
     resellers_qs = CustomerUserMapping.objects.filter(customer__user__in=distributors)
     resellers_names_map = dict(resellers_qs.values_list('customer_id',

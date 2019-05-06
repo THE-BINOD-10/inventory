@@ -957,6 +957,7 @@ def switches(request, user=''):
                        'automate_invoice': 'automate_invoice',
                        'show_mrp': 'show_mrp',
                        'decimal_limit': 'decimal_limit',
+                       'decimal_limit_price':'decimal_limit_price',
                        'picklist_sort_by': 'picklist_sort_by',
                        'stock_sync': 'stock_sync',
                        'sku_sync': 'sku_sync',

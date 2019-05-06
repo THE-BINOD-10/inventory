@@ -3181,6 +3181,19 @@ class StockReconciliation(models.Model):
         db_table = 'STOCK_RECONCILIATION'
 
 
+class ClusterSkuMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster)
+    cluster_name = models.CharField(max_length=64, default='')
+    sequence = models.PositiveIntegerField(default=0)
+    image_url = models.URLField(default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'CLUSTER_SKU_MAPPING'
+
+
 class MasterEmailMapping(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)
@@ -3193,3 +3206,4 @@ class MasterEmailMapping(models.Model):
     class Meta:
         db_table = 'MASTER_EMAIL_MAPPING'
         unique_together = ('user', 'master_id', 'master_type', 'email_id')
+

@@ -246,7 +246,7 @@ SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone N
                     'Credibility', 'Tax Type(Options: Inter State, Intra State)', 'PO Expiry Duration',
                     'Owner Name', 'Owner Number', 'Owner Email', 'SPOC Name', 'SPOC Number', 'SPOC Email',
                     'Lead Time', 'Credit Period', 'Bank Name', 'IFSC Code', 'Branch Name',
-                    'Account Number', 'Account Holder Name']
+                    'Account Number', 'Account Holder Name', 'Secondary Email ID']
 
 VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
 
@@ -821,6 +821,7 @@ ENQUIRY_STATUS_REPORT = {
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'Warehouse Level', 'name': 'warehouse_level', 'type': 'input'},
         {'label': 'Enquiry Status', 'name': 'enquiry_status', 'type': 'select'},
+        {'label': 'Corporate Name', 'name': 'corporate_name', 'type': 'input'},
     ],
     'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
                    'Level','Warehouse', 'Enquiry No', 'Enquiry Aging', 'Enquiry Status'],
@@ -1958,7 +1959,7 @@ SUPPLIER_EXCEL_FIELDS = OrderedDict((('id', 0), ('name', 1), ('address', 2), ('e
                                      ('spoc_name', 19), ('spoc_number', 20), ('spoc_email_id', 21),
                                      ('lead_time', 22), ('credit_period', 23), ('bank_name', 24),
                                      ('ifsc_code', 25), ('branch_name', 26), ('account_number', 27),
-                                     ('account_holder_name', 28),
+                                     ('account_holder_name', 28), ('secondary_email_id', 29),
                                      ))
 STATUS_DICT = {1: True, 0: False}
 

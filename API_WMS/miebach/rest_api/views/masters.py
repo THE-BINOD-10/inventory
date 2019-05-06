@@ -1181,7 +1181,10 @@ def update_supplier_values(request, user=''):
         master_data_dict['user_id'] = user.id
         master_data_dict['master_type'] = 'supplier'
         master_data_dict['master_id'] = data_id
-        MasterEmailMapping.objects.filter(**master_data_dict).delete()
+
+        master_email_map = MasterEmailMapping.objects.filter(**master_data_dict)
+        if master_email_map:
+            master_email_map.delete()
         for mail in secondary_email_id:
             master_data_dict = {}
             master_data_dict['user_id'] = user.id
@@ -3967,7 +3970,13 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     temp_data['aaData'] = []
 
+    filter_dict = {}
+    filter_dict['user_id'] = user.id
+    filter_dict['master_type'] = 'supplier'
+    master_email_map = MasterEmailMapping.objects.filter(**filter_dict)
+
     for data in master_data:
+        secondary_email_ids = ''
         uploads_list = []
         uploads_obj = MasterDocs.objects.filter(master_id=data.id, master_type=data.__class__.__name__)\
                                 .values_list('uploaded_file', flat=True)
@@ -3976,16 +3985,17 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
         status = 'Inactive'
         if data.status:
             status = 'Active'
-
         login_created = False
         user_role_mapping = UserRoleMapping.objects.filter(role_id=data.id, role_type='supplier')
         username = ""
         if user_role_mapping:
             login_created = True
             username = user_role_mapping[0].user.username
-
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
+        master_email = master_email_map.filter(master_id=data.id)
+        if master_email:
+            secondary_email_ids = ','.join(list(master_email.values_list('email_id', flat=True)))
         temp_data['aaData'].append(OrderedDict((('id', data.id), ('name', data.name), ('address', data.address),
                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
                                                 ('cst_number', data.cst_number), ('tin_number', data.tin_number),
@@ -4005,7 +4015,9 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
                                                 ('bank_name', data.bank_name), ('ifsc_code', data.ifsc_code),
                                                 ('branch_name', data.branch_name),
                                                 ('account_number', data.account_number),
-                                                ('account_holder_name', data.account_holder_name))))
+                                                ('account_holder_name', data.account_holder_name),
+                                                ('secondary_email_id', secondary_email_ids)
+                                            )))
     excel_headers = ''
     if temp_data['aaData']:
         excel_headers = temp_data['aaData'][0].keys()
@@ -4021,7 +4033,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
     'City', 'State', 'Days To Supply', 'Fulfillment Amount', 'Credibility', 'Country', 'Pincode',
     'Status', 'Supplier Type', 'Tax Type', 'PO Exp Duration', 'Owner Name',
     'Owner Number', 'Owner Email Id', 'Spoc Name', 'Spoc Number', 'Lead Time', 'Spoc Email ID', 'Credit Period',
-    'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name']
+    'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name', 'Secondary Email ID']
     try:
         wb, ws = get_work_sheet('skus', itemgetter(*excel_headers)(headers))
     except:

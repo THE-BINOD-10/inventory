@@ -125,6 +125,7 @@ class SKUMaster(models.Model):
     shelf_life = models.IntegerField(default=0)
     youtube_url = models.CharField(max_length=64, default='')
     enable_serial_based = models.IntegerField(default=0)
+    block_options = models.CharField(max_length=5, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -251,7 +252,8 @@ class SupplierMaster(models.Model):
     branch_name = models.CharField(max_length=256, default='')
     account_number = models.BigIntegerField(default=0)
     account_holder_name = models.CharField(max_length=256, default='')
-
+    # markdown_percentage = models.FloatField(default=0)
+    ep_supplier = models.IntegerField(default=0)
     class Meta:
         db_table = 'SUPPLIER_MASTER'
         index_together = ('name', 'user')
@@ -270,6 +272,9 @@ class SKUSupplier(models.Model):
     supplier_reference = models.CharField(max_length=256, default='')
     supplier_code = models.CharField(max_length=128, default='')
     price = models.FloatField(default=0)
+    costing_type = models.CharField(max_length=128, default='Price Based')
+    margin_percentage = models.FloatField(default=0)
+    mrp = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

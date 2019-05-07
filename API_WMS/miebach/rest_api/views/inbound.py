@@ -1034,6 +1034,7 @@ def switches(request, user=''):
                        'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation',
                        'rtv_prefix_code': 'rtv_prefix_code',
                        'non_transacted_skus': 'non_transacted_skus',
+                       'update_mrp_on_grn': 'update_mrp_on_grn',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -1409,15 +1410,27 @@ def get_mapping_values(request, user=''):
         ean_number = 0
         sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, supplier_id=supplier_id, sku__user=user.id)
     sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
-    data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,
-            'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
-    if sku_supplier:
-        data['supplier_code'] = sku_supplier[0].supplier_code
-        data['price'] = sku_supplier[0].price
-        data['sku'] = sku_supplier[0].sku.sku_code
-        data['ean_number'] = ean_number
-        data['measurement_unit'] = sku_supplier[0].sku.measurement_type
-
+    sup_markdown = SupplierMaster.objects.get(id=supplier_id)
+    if (int(sup_markdown.ep_supplier) and sku_master.block_options == "PO") or (not sku_master.block_options == "PO"):
+        data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,
+                'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
+        if sku_supplier:
+            mrp_value = sku_supplier[0].mrp
+            if sku_supplier[0].costing_type == 'Margin Based':
+                margin_percentage = sku_supplier[0].margin_percentage
+                prefill_unit_price = mrp_value - ((mrp_value * margin_percentage)/100)
+                data['price'] = prefill_unit_price
+            else:
+                data['price'] = sku_supplier[0].price
+            data['supplier_code'] = sku_supplier[0].supplier_code
+            data['sku'] = sku_supplier[0].sku.sku_code
+            data['ean_number'] = ean_number
+            data['measurement_unit'] = sku_supplier[0].sku.measurement_type
+        else:
+            data['price'] = 0
+            data['ean_number'] = ean_number
+    else:
+        data = {}
     return HttpResponse(json.dumps(data), content_type='application/json')
 
 
@@ -1559,12 +1572,13 @@ def add_po(request, user=''):
             sku_id = SKUMaster.objects.filter(Q(ean_number=wms_code) | Q(wms_code=wms_code), user=user.id)
         else:
             sku_id = SKUMaster.objects.filter(wms_code=wms_code.upper(), user=user.id)
-
-        # sku_id = SKUMaster.objects.filter(wms_code=wms_code.upper(),user=user.id)
         if not sku_id:
             status = 'Invalid WMS CODE'
             return HttpResponse(status)
-
+        else:
+            if sku_id[0].block_options == 'PO':
+                status = 'WMS Code - Blocked for PO'
+                return HttpResponse(status)
         po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
 
         supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=value['supplier_id'],
@@ -2422,7 +2436,9 @@ def supplier_code_mapping(request, myDict, i, data, user=''):
             setattr(supplier_mapping, 'supplier_code', data.open_po.supplier_code)
             supplier_mapping.save()
         else:
-            sku_mapping = {'supplier_id': data.open_po.supplier_id, 'sku': data.open_po.sku, 'preference': 1, 'moq': 0,
+            sku_supplier_create = SKUSupplier.objects.filter(sku__wms_code=myDict['wms_code'][i].upper(), sku__user=user.id).annotate(max_preference = Cast('preference', FloatField())).aggregate(Max('max_preference'))
+            sku_preference = int(sku_supplier_create.get('max_preference__max', 0) + 1)
+            sku_mapping = {'supplier_id': data.open_po.supplier_id, 'sku': data.open_po.sku, 'preference': sku_preference, 'moq': 0,
                            'supplier_code': data.open_po.supplier_code, 'price': data.open_po.price,
                            'creation_date': datetime.datetime.now(),
                            'updation_date': datetime.datetime.now()}
@@ -2765,6 +2781,8 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
     data_dict = ''
     purchase_data = {}
     data = {}
+    supplier_id = request.POST['supplier_id']
+    update_mrp_on_grn = get_misc_value('update_mrp_on_grn', user.id)
     remarks = request.POST.get('remarks', '')
     expected_date = request.POST.get('expected_date', '')
     remainder_mail = request.POST.get('remainder_mail', '')
@@ -2968,6 +2986,16 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
             continue
         else:
             is_putaway = 'true'
+        if 'mrp' in myDict.keys() and update_mrp_on_grn == 'true':
+            wms_code = myDict['wms_code'][i]
+            if myDict['mrp'][i]:
+                new_mrp_value = float(myDict['mrp'][i])
+            else:
+                new_mrp_value = ''
+            if new_mrp_value:
+                sku_supplier = SKUSupplier.objects.filter(supplier_id=supplier_id, sku__wms_code=wms_code, sku__user=user.id)
+                if sku_supplier:
+                    sku_supplier.update(mrp=new_mrp_value)
         save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list, run_segregation=True,
                          batch_dict=batch_dict)
         create_bayarea_stock(purchase_data['wms_code'], 'BAY_AREA', temp_dict['received_quantity'], user.id)
@@ -4951,8 +4979,10 @@ def confirm_add_po(request, sales_data='', user=''):
         industry_type = user_profile[0].industry_type
         ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
                                             wms_code__in=myDict['wms_code'], user=user.id)
-        if ean_data:
-            ean_flag = True
+	if ean_data:
+	    ean_flag = True
+	    if ean_data[0].block_options == 'PO':
+		return HttpResponse(ean_data[0].wms_code + " SKU Code Blocked for PO")
 
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
 

@@ -93,7 +93,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   // add or update supplier sku mapping
   vm.supplier_sku = function(url) {
-
     vm.service.apiCall(url, 'POST', vm.model_data, true).then(function(data){
       if(data.message) {
         if(data.data == "Updated Successfully" || data.data == "Added Successfully") {
@@ -108,6 +107,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   // Get all supplier list
   vm.supplier_list = [];
+  vm.costing_type_list = ['Price Based', 'Margin Based'];
   function get_suppliers() {
     vm.service.apiCall('get_supplier_list/').then(function(data){
       if(data.message) {
@@ -118,6 +118,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         });
         vm.supplier_list = list;
         vm.model_data.supplier_id = vm.supplier_list[0];
+        vm.costing_type_list = data.costing_type;
+        vm.model_data.costing_type = 'Price Based';
       }
     }); 
   }

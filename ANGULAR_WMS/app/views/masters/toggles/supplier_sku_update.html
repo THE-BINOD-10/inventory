@@ -37,17 +37,42 @@
 	    </div>
 	    <div class="col-md-4 col-sm-6 col-xs-6">
 	      <div class="form-group">
-		<label class="control-label"> MOQ *</label>
-		<input name="moq" type="text" class="form-control" ng-model="showCase.model_data.moq" whole-number required>
+      		<label class="control-label"> MOQ *</label>
+      		<input name="moq" type="text" class="form-control" ng-model="showCase.model_data.moq" whole-number required>
 	      </div>
 	    </div>
-	    <div class="col-md-4 col-sm-6 col-xs-6">
-	      <div class="form-group">
-		<label class="col-md-5 control-label"> Price </label>
-		<input type="text" name="price" class="form-control" ng-model="showCase.model_data.price" decimal-number>
-	      </div>
-	    </div>
-	  </div>
+
+      <div class="col-md-4 col-sm-6 col-xs-6">
+        <div class="form-group">
+          <label class="col-md-5 control-label"> Price </label>
+        	<input type="text" name="price" class="form-control" ng-model="showCase.model_data.price" decimal-number>
+        </div>
+      </div>
+
+      <div class="col-md-4 col-sm-6 col-xs-6">
+        <div class="form-group">
+          <label class="control-label"> Costing Type </label>
+          <select class="form-control" name="costing_type" ng-model="showCase.model_data.costing_type">
+            <option ng-repeat="obj in showCase.costing_type_list" value="{{obj}}" ng-selected="obj == showCase.model_data.costing_type">{{obj}}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="col-md-4 col-sm-6 col-xs-6">
+        <div class="form-group">
+          <label class="col-md-6 control-label"> Margin Percentage </label>
+          <input type="number" min="0" max="100" name="margin_percentage" class="form-control" ng-model="showCase.model_data.margin_percentage" decimal-number>
+        </div>
+      </div>
+
+      <div class="col-md-4 col-sm-6 col-xs-6">
+        <div class="form-group">
+          <label class="col-md-5 control-label"> MRP </label>
+          <input type="text" name="price" class="form-control" ng-model="showCase.model_data.mrp" decimal-number>
+        </div>
+      </div>
+
+    </div>
           <div class="row insert-status">
             <h4 style="text-align: center;">{{showCase.service.message}}</h4>
           </div>

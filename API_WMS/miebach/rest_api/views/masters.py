@@ -317,7 +317,10 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('bank_name', data.bank_name), ('ifsc_code', data.ifsc_code),
                                                 ('branch_name', data.branch_name),
                                                 ('account_number', data.account_number),
-                                                ('account_holder_name', data.account_holder_name))))
+                                                ('account_holder_name', data.account_holder_name),
+                                                # ('markdown_percentage', data.markdown_percentage),
+                                                ('ep_supplier', data.ep_supplier)
+                                            )))
 
 
 @csrf_exempt
@@ -342,14 +345,17 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
             order_data)
 
     temp_data['recordsTotal'] = len(mapping_results)
-    temp_data['recordsFiltered'] = len(mapping_results)
-
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for result in mapping_results[start_index: stop_index]:
+        sku_preference = result.preference
+        if sku_preference:
+            sku_preference = int(sku_preference)
         temp_data['aaData'].append(OrderedDict((('supplier_id', result.supplier_id), ('wms_code', result.sku.wms_code),
                                                 ('supplier_code', result.supplier_code), ('moq', result.moq),
-                                                ('preference', int(result.preference)),
-                                                ('price', result.price), ('DT_RowClass', 'results'),
-                                                ('DT_RowId', result.id))))
+                                                ('preference', sku_preference),
+                                                ('price', result.price), ('costing_type', result.costing_type), 
+                                                ('margin_percentage', result.margin_percentage), ('DT_RowClass', 'results'),
+                                                ('DT_RowId', result.id), ('mrp', result.mrp))))
 
 
 @csrf_exempt
@@ -808,7 +814,11 @@ def get_sku_data(request, user=''):
     sku_data['shelf_life'] = data.shelf_life
     sku_data['measurement_type'] = data.measurement_type;
     sku_data['youtube_url'] = data.youtube_url;
-    sku_data['enable_serial_based'] = data.enable_serial_based
+    sku_data['enable_serial_based'] = data.enable_serial_based;
+    sku_data['block_options'] = 'No'
+    if data.block_options == 'PO':
+        sku_data['block_options'] = 'Yes';
+    
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
         sku_data['size_type'] = sku_fields[0].field_value
@@ -1061,6 +1071,11 @@ def update_sku(request, user=''):
                 storehippo_sync_price_value(user, {'wms_code':wms_code, 'price':value})
             if key in number_fields and not value:
                 value = 0
+            elif key == 'block_options':
+                if value == '0':
+                    value = 'PO'
+                else:
+                    value = ''
             setattr(data, key, value)
         data.save()
         update_sku_attributes(data, request)
@@ -1157,7 +1172,6 @@ def get_supplier_master_data(request, user=''):
 @get_admin_user
 def update_supplier_values(request, user=''):
     """ Update Supplier Data """
-
     log.info('Update Supplier request params for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         data_id = request.POST['id']
@@ -1175,6 +1189,11 @@ def update_supplier_values(request, user=''):
                 continue
             if key == 'status':
                 if value == 'Active':
+                    value = 1
+                else:
+                    value = 0
+            if key == 'ep_supplier' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                if value == 'yes':
                     value = 1
                 else:
                     value = 0
@@ -1237,6 +1256,11 @@ def insert_supplier(request, user=''):
             for key, value in request.POST.iteritems():
                 if key == 'status':
                     if value == 'Active':
+                        value = 1
+                    else:
+                        value = 0
+                if key == 'ep_supplier' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                    if value == 'yes':
                         value = 1
                     else:
                         value = 0
@@ -1753,7 +1777,8 @@ def get_supplier_list(request, user=''):
     supplier_list = []
     for supplier in suppliers:
         supplier_list.append({'id': supplier.id, 'name': supplier.name})
-    return HttpResponse(json.dumps({'suppliers': supplier_list}))
+    costing_type = ['Price Based', 'Margin Based']
+    return HttpResponse(json.dumps({'suppliers': supplier_list, 'costing_type': costing_type}))
 
 
 def validate_bom_data(all_data, product_sku, user):
@@ -2386,10 +2411,11 @@ def insert_sku(request, user=''):
                             value = 0
                         else:
                             value = 1
-                    #elif key == 'ean_number' and value:
-                    #    ean_status = check_ean_number(wms, value, user)
-                    #    if ean_status:
-                    #        return HttpResponse(ean_status)
+                    elif key == 'block_options':
+                        if value == '0':
+                            value = 'PO'
+                        else:
+                            value = ''
                     if value == '':
                         continue
                     data_dict[key] = value
@@ -2398,8 +2424,8 @@ def insert_sku(request, user=''):
             sku_master = SKUMaster(**data_dict)
             sku_master.save()
             contents = {"en": "New SKU %s is created." % data_dict['sku_code']}
-            send_push_notification(contents, notified_users)
-            update_sku_attributes(sku_master, request)
+            #send_push_notification(contents, notified_users)
+            #update_sku_attributes(sku_master, request)
             image_file = request.FILES.get('files-0', '')
             if image_file:
                 save_image_file(image_file, sku_master, user)
@@ -4002,7 +4028,10 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
                                                 ('bank_name', data.bank_name), ('ifsc_code', data.ifsc_code),
                                                 ('branch_name', data.branch_name),
                                                 ('account_number', data.account_number),
-                                                ('account_holder_name', data.account_holder_name))))
+                                                ('account_holder_name', data.account_holder_name),
+                                                ('ep_supplier', data.ep_supplier)
+                                                # ('markdown_percentage', data.markdown_percentage)
+                                            )))
     excel_headers = ''
     if temp_data['aaData']:
         excel_headers = temp_data['aaData'][0].keys()

@@ -609,6 +609,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.get_sku_details = function(product, item, index) {
       console.log(item);
       vm.purchase_history_wms_code = item.wms_code;
+      if (!vm.model_data.supplier_id && Session.user_profile.user_type != 'marketplace_user' && Session.user_profile.industry_type != 'FMCG') {
+        product.fields.sku.wms_code = ''
+        vm.service.showNoty('Fill Supplier ID');
+        return false;
+      }
       if(vm.permissions.show_purchase_history) {
 	    $timeout( function() {
 	        vm.populate_last_transaction('')
@@ -637,17 +642,34 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
         vm.model_data.supplier_id = vm.model_data.seller_supplier_map[vm.model_data.seller_type.split(":")[0]];
       }
 
-      if (!vm.model_data.supplier_id){
-        return false;
-      } else {
+      if (vm.model_data.supplier_id) {
         var supplier = vm.model_data.supplier_id;
         $http.get(Session.url+'get_mapping_values/?wms_code='+product.fields.sku.wms_code+'&supplier_id='+supplier, {withCredentials : true}).success(function(data, status, headers, config) {
-          if(Object.values(data).length) {
-            product.fields.price = data.price;
-            product.fields.supplier_code = data.supplier_code;
-
-            vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
-            vm.getTotals();
+          if ($.isEmptyObject(data)) {
+            product.fields.sku.wms_code = '';
+            product.fields.measurement_unit = '';
+            product.fields.description = '';
+            product.fields.order_quantity = '';
+            product.fields.ean_number = '';
+            product.fields.price = '';
+            product.fields.mrp = '';
+            product.fields.description = '';
+            product.fields.sgst_tax = "";
+            product.fields.cgst_tax = "";
+            product.fields.igst_tax = "";
+            product.fields.cess_tax = "";
+            product.fields.apmc_tax = "";
+            product.fields.utgst_tax = "";
+            product.fields.tax = "";
+            product.taxes = [];
+            vm.service.showNoty('This SKU is Blocked for PO');
+          } else {
+            if(Object.values(data).length) {
+              product.fields.price = data.price;
+              product.fields.supplier_code = data.supplier_code;
+              vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
+              vm.getTotals();
+            }
           }
         });
         vm.get_supplier_sku_prices(item.wms_code).then(function(sku_data){

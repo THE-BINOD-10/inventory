@@ -3026,6 +3026,8 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
             if 'offer_applied' in remarks_list:
                 custom_remarks.append('Offer Applied')
             remarks = ','.join(custom_remarks)
+        if not remarks and result.remarks:
+            remarks = result.remarks
         temp_data['aaData'].append(OrderedDict((('Received Date', get_local_date(user, seller_po_summary.creation_date)),
                             ('PO Date', get_local_date(user, result.creation_date)),
                             ('PO Number', po_number),

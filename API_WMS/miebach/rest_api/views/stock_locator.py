@@ -1763,11 +1763,10 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
             worksheet.write(0, n, header, bold)
         dict_list = ['sku__sku_code', 'sku__sku_desc',
                      'sku__sku_brand', 'sku__sku_category',
-                     'imei_number']
+                     'status', 'imei_number']
 
         filter_params = get_filtered_params(filters, dict_list)
-        dispatched_imeis = OrderIMEIMapping.objects.filter(status=1, order__user=user.id, po_imei__isnull=False).values_list('po_imei_id',
-                                                                                                      flat=True)
+        dispatched_imeis = OrderIMEIMapping.objects.filter(status=1, order__user=user.id, po_imei__isnull=False).values_list('po_imei_id', flat=True)
         damaged_returns = dict(ReturnsIMEIMapping.objects.filter(status='damaged', order_imei__order__user=user.id). \
                                values_list('order_imei__po_imei__imei_number', 'reason'))
         qc_damaged = dict(QCSerialMapping.objects.filter(serial_number__purchase_order__open_po__sku__user=user.id,
@@ -1779,11 +1778,11 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
                                                      Q(sku__sku_desc__icontains=search_term) |
                                                      Q(sku__sku_brand__icontains=search_term) |
                                                      Q(sku__sku_category__icontains=search_term),
-                                                     status=1, sku__user=user.id,
+                                                        sku__user=user.id,
                                                      **filter_params). \
                 exclude(id__in=dispatched_imeis).values_list(*dict_list)
         else:
-            imei_data = POIMEIMapping.objects.filter(status=1, sku__user=user.id,
+            imei_data = POIMEIMapping.objects.filter(sku__user=user.id,
                                                      **filter_params). \
                 exclude(id__in=dispatched_imeis).values_list(*dict_list)
         row = 1
@@ -1794,7 +1793,7 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
                 col_count += 1
             imei_status = 'Accepted'
             reason = ''
-            if imei[-1] in qc_damaged:
+            if imei[-1] in qc_damaged or imei[-2] == 0:
                 imei_status = 'Damaged'
                 reason = qc_damaged.get(imei[-1], '')
             worksheet.write(row, col_count, imei_status)

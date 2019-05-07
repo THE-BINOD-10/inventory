@@ -1260,12 +1260,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   if (data.message) {
                     if (data.data == "") {
                       if (vm.permissions.dispatch_qc_check) {
-                        for (let i = 0; i < vm.model_data.returnable_serials.length; i++) {
-                          if(vm.model_data.returnable_serials[i] == data1.imei_number) {
-                            vm.receive_qcitems(vm, data1, index);
-                          } else {
-                            Service.showNoty("Please Verify your Serial Number ! ");
-                            data1.imei_number = "";
+                        if (vm.model_data.returnable_serials.length == -2){
+                          vm.receive_qcitems(vm, data1, index);
+                        } else {
+                          for (let i = 0; i < vm.model_data.returnable_serials.length; i++) {
+                            if(vm.model_data.returnable_serials[i] == data1.imei_number) {
+                              vm.receive_qcitems(vm, data1, index);
+                            } else {
+                              Service.showNoty("Please Verify your Serial Number ! ");
+                              data1.imei_number = "";
+                            }
                           }
                         }
                       } else {

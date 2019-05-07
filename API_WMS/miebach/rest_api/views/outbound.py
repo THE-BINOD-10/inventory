@@ -2124,7 +2124,6 @@ def picklist_confirmation(request, user=''):
         if combo_status:
             return HttpResponse(json.dumps({'message': 'Combo Quantities are not matching',
                                             'sku_codes': combo_status, 'status': 0}))
-
         for picklist_dict in final_data_list:
             picklist = picklist_dict['picklist']
             picklist_batch = picklist_dict['picklist_batch']
@@ -2145,7 +2144,7 @@ def picklist_confirmation(request, user=''):
                                                                  picklist_batch)
                 for picklist in picklist_batch:
                     save_status = ''
-                    if count == 0:
+                    if not failed_serial_number.keys() and count == 0:
                         continue
 
                     status = ''
@@ -2198,6 +2197,8 @@ def picklist_confirmation(request, user=''):
                             import traceback
                             picklist_qc_log.debug(traceback.format_exc())
                             picklist_qc_log.info("Error in Dispatch QC - On Fail - %s - %s" % (str(user.username), str(e)))
+                    if count == 0:
+                        continue
                     if 'imei' in val.keys() and val['imei'] and not picklist.order and val['imei'] != '[]':
                         order = picklist.storder_set.filter()
                         if order:
@@ -2303,7 +2304,6 @@ def picklist_confirmation(request, user=''):
                             else:
                                 rista_order_dict[original_order_id_str] = []
                                 rista_order_dict[original_order_id_str].append(sku_code_dict)
-
                     picklist.save()
                     if user_profile.user_type == 'marketplace_user' and picklist.order:
                         create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,

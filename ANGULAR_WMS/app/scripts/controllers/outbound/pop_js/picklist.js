@@ -287,10 +287,14 @@ function view_orders() {
         record.picked_quantity = parseInt(record.picked_quantity) + 1;
         for(var i=0; i < vm.model_data.data.length; i++) {
           if (vm.model_data.data[i]['sku_imeis_map'].hasOwnProperty(record.wms_code)) {
-            vm.model_data.data[i]['sku_imeis_map'][record.wms_code].shift()
+            for( var j = 0; j < vm.model_data.data[i]['sku_imeis_map'][record.wms_code].length; j++){
+              if ( vm.model_data.data[i]['sku_imeis_map'][record.wms_code][j] == record.scan) {
+                vm.model_data.data[i]['sku_imeis_map'][record.wms_code].splice(j, 1);
+                vm.record_serial_dict[record.wms_code].splice(j, 1);
+              }
+            }
           }
         }
-        vm.record_serial_dict[record.wms_code].shift()
         if (vm.passed_serial_number.hasOwnProperty(record.wms_code)) {
           if(!vm.passed_serial_number[record.wms_code].includes(record.wms_code)) {
             vm.passed_serial_number[record.wms_code].push(record.scan)
@@ -302,10 +306,14 @@ function view_orders() {
       } else {
         for(var i=0; i < vm.model_data.data.length; i++) {
           if (vm.model_data.data[i]['sku_imeis_map'].hasOwnProperty(record.wms_code)) {
-            vm.model_data.data[i]['sku_imeis_map'][record.wms_code].shift()
+            for( var j = 0; j < vm.model_data.data[i]['sku_imeis_map'][record.wms_code].length; j++){
+              if ( vm.model_data.data[i]['sku_imeis_map'][record.wms_code][j] == record.scan) {
+                vm.model_data.data[i]['sku_imeis_map'][record.wms_code].splice(j, 1);
+                vm.record_serial_dict[record.wms_code].splice(j, 1);
+              }
+            }
           }
         }
-        vm.record_serial_dict[record.wms_code].shift()
         if (vm.failed_serial_number.hasOwnProperty(record.wms_code)) {
           if(!vm.failed_serial_number[record.wms_code].includes(record.wms_code)) {
             vm.failed_serial_number[record.wms_code].push(record.scan)
@@ -341,6 +349,8 @@ function view_orders() {
           selectedItem = vm.state_data['collect_imei_details'][vm.state_data['serial_number_scanned']][1]
         }
         vm.qc_increament(val, selectedItem);
+      } else {
+        val.scan = ''
       }
     });
   }

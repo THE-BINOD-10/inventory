@@ -669,10 +669,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               {
                 vm.service.showNoty('Please Create Sku Supplier Mapping');
               }
-              product.fields.price = data.price;
-              product.fields.supplier_code = data.supplier_code;
-              vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
-              vm.getTotals();
+              else
+              {
+                product.fields.price = data.price;
+                product.fields.supplier_code = data.supplier_code;
+                vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
+                vm.getTotals();
+              }
             }
           }
         });

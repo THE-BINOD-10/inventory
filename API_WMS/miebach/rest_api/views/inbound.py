@@ -2756,6 +2756,7 @@ def update_remarks_put_zone(remarks, user, put_zone, seller_summary_id=''):
 
 
 def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=False):
+
     order_quantity_dict = {}
     all_data = OrderedDict()
     seller_receipt_id = 0
@@ -2791,9 +2792,11 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
             wms_code = myDict['wms_code'][i]
             failed_qty = len(failed_qty_dict.get(wms_code, 0))
             if int(myDict['quantity'][i]):
-                value = int(myDict['quantity'][i]) - failed_qty
+                value = myDict['quantity'][i]
+                # value = int(myDict['quantity'][i]) - failed_qty
             else:
-                value = 0
+                # value = 0
+                value = myDict['quantity'][i]
             myDict['quantity'][i] = str(value)
         else:
             value = myDict['quantity'][i]
@@ -2967,8 +2970,9 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
             continue
         else:
             is_putaway = 'true'
-        save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list, run_segregation=True,
-                         batch_dict=batch_dict)
+        if not failed_qty_dict:
+            save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list, run_segregation=True,
+                             batch_dict=batch_dict)
         create_bayarea_stock(purchase_data['wms_code'], 'BAY_AREA', temp_dict['received_quantity'], user.id)
         data_dict = (('Order ID', data.order_id), ('Supplier ID', purchase_data['supplier_id']),
                      ('Order Date', get_local_date(request.user, data.creation_date)),

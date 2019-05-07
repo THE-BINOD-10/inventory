@@ -2302,12 +2302,10 @@ def validate_supplier_sku_form(open_sheet, user_id):
                 if not cell_data in ['Price Based', 'Margin Based']:
                     index_status.setdefault(row_idx, set()).add('Costing Type should be "Price Based/Margin Based"')
                 if cell_data == 'Price Based' :
-                    cell_data_price = ''
                     cell_data_price = open_sheet.cell(row_idx, 5).value
                     if not cell_data_price :
                         index_status.setdefault(row_idx, set()).add('Price is Mandatory For Price Based')
                 elif cell_data == 'Margin Based' :
-                    cell_data_margin = ''
                     cell_data_margin = open_sheet.cell(row_idx, 7).value
                     if not cell_data_margin :
                         index_status.setdefault(row_idx, set()).add('Margin Percentage is Mandatory For Margin Based')

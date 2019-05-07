@@ -2399,10 +2399,6 @@ def supplier_sku_upload(request, user=''):
                     supplier_data['margin_percentage'] = cell_data
                     if cell_data and supplier_sku_instance:
                         supplier_sku_instance.margin_percentage = cell_data
-                elif col_idx == 8:
-                    supplier_data['mrp'] = cell_data
-                    if cell_data and supplier_sku_instance:
-                        supplier_sku_instance.mrp = cell_data
             supplier_sku = SupplierMaster.objects.filter(id=supplier_data['supplier_id'], user=user.id)
             if supplier_sku and not supplier_sku_obj:
                 supplier_sku = SKUSupplier(**supplier_data)

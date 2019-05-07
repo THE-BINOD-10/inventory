@@ -343,7 +343,7 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
                                                 ('preference', sku_preference),
                                                 ('price', result.price), ('costing_type', result.costing_type), 
                                                 ('margin_percentage', result.margin_percentage), ('DT_RowClass', 'results'),
-                                                ('DT_RowId', result.id), ('mrp', result.mrp))))
+                                                ('DT_RowId', result.id), ('mrp', result.sku.mrp))))
 
 
 @csrf_exempt
@@ -1303,6 +1303,8 @@ def update_sku_supplier_values(request, user=''):
     data_id = request.POST['data-id']
     data = get_or_none(SKUSupplier, {'id': data_id})
     for key, value in request.POST.iteritems():
+        if key == 'mrp':
+            continue
         if key in ('moq', 'price'):
             if not value:
                 value = 0

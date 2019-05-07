@@ -80,17 +80,23 @@ def get_company_logo(user, IMAGE_PATH_DICT):
     return image
 
 
-def get_decimal_value(user_id):
+def get_decimal_value(user_id ,price = ''):
     decimal_limit = 0
     if get_misc_value('float_switch', user_id) == 'true':
         decimal_limit = 1
         if get_misc_value('float_switch', user_id, number=True):
-            decimal_limit = get_misc_value('decimal_limit', user_id, number=True)
+            if price :
+                decimal_limit = get_misc_value('decimal_limit_price', user_id, number=True)
+            else:
+                decimal_limit = get_misc_value('decimal_limit', user_id, number=True)
+            if not decimal_limit :
+                decimal_limit = 2
+
     return decimal_limit
 
 
-def get_decimal_limit(user_id, value):
-    decimal_limit = get_decimal_value(user_id)
+def get_decimal_limit(user_id, value,price =''):
+    decimal_limit = get_decimal_value(user_id,price)
     return truncate_float(value, decimal_limit)
 
 
@@ -3144,6 +3150,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 continue
             if math.ceil(quantity) == quantity:
                 quantity = int(quantity)
+            quantity = get_decimal_limit(user.id ,quantity)
+            invoice_amount = get_decimal_limit(user.id ,invoice_amount ,'price')
+
             count = count +1
             data.append(
                 {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,

@@ -21,27 +21,39 @@ log = init_logger('logs/masters.log')
 
 # Create your views here.
 
-def save_image_file(image_file, data, user, extra_image='', saved_file_path='', file_name=''):
+def save_image_file(image_file, data, user, extra_image='', saved_file_path='', file_name='', image_model='sku'):
     extension = image_file.name.split('.')[-1]
     path = 'static/images/'
     folder = str(user.id)
-    image_name = str(data.wms_code).replace('/', '--')
-    if extra_image:
-        image_name = image_file.name.strip('.' + image_file.name.split('.')[-1])
-    if not os.path.exists(path + folder):
-        os.makedirs(path + folder)
-    full_filename = os.path.join(path, folder, str(image_name) + '.' + str(extension))
-    fout = open(full_filename, 'wb+')
-    file_content = ContentFile(image_file.read())
-
+    folder_in = '/cluster'
+    if image_model == 'sku':
+        image_name = str(data.wms_code).replace('/', '--')
+        if extra_image:
+            image_name = image_file.name.strip('.' + image_file.name.split('.')[-1])
+        if not os.path.exists(path + folder):
+            os.makedirs(path + folder)
+        full_filename = os.path.join(path, folder, str(image_name) + '.' + str(extension))
+        fout = open(full_filename, 'wb+')
+        file_content = ContentFile(image_file.read())
+    elif image_model == 'cluster':
+        image_name = str(data.cluster_name).replace('/', '--')
+        if extra_image:
+            image_name = image_file.name.strip('.' + image_file.name.split('.')[-1])
+        if not os.path.exists(path + folder + folder_in):
+            os.makedirs(path + folder + folder_in)
+        full_filename = os.path.join(path, folder, 'cluster', str(image_name) + '.' + str(extension))
+        fout = open(full_filename, 'wb+')
+        file_content = ContentFile(image_file.read())
     try:
-        # Iterate through the chunks.
         file_contents = file_content.chunks()
         for chunk in file_contents:
             fout.write(chunk)
         fout.close()
-        if not saved_file_path:
+        if not saved_file_path and image_model == 'sku':
             image_url = '/' + path + folder + '/' + str(image_name) + '.' + str(extension)
+            saved_file_path = image_url
+        elif not saved_file_path and image_model == 'cluster':
+            image_url = '/' + path + folder + folder_in + '/' + str(image_name) + '.' + str(extension)
             saved_file_path = image_url
         else:
             image_url = saved_file_path
@@ -2462,25 +2474,42 @@ def insert_sku(request, user=''):
 @get_admin_user
 def upload_images(request, user=''):
     status = 'Uploaded Successfully'
-    image_file = request.FILES.get('file', '')
-    extra_image = ''
-    saved_file_path = ''
-    if image_file:
-        image_name = image_file.name.strip('.' + image_file.name.split('.')[-1])
-        sku_code = image_name
-        if '__' in image_name:
-            sku_code = image_name.split('__')[0]
-        sku_masters = SKUMaster.objects.filter(sku_class__iexact=sku_code, user=user.id)
-        if not sku_masters:
-            sku_masters = SKUMaster.objects.filter(sku_code__iexact=sku_code, user=user.id)
-        for sku_master in sku_masters:
-            # extra_image = 'true'
-            # if 'default-image' in sku_master.image_url or not sku_master.image_url:
-            # if not sku_master.image_url:
-            extra_image = ''
-            saved_file_path = save_image_file(image_file, sku_master, user, extra_image, saved_file_path)
-        if not sku_masters:
-            status = "SKU Code doesn't exists"
+    upload_stat = request.GET.get('data', '')
+    if upload_stat == 'skuUpload':
+        image_file = request.FILES.get('file', '')
+        extra_image = ''
+        saved_file_path = ''
+        if image_file:
+            image_name = image_file.name.strip('.' + image_file.name.split('.')[-1])
+            sku_code = image_name
+            if '__' in image_name:
+                sku_code = image_name.split('__')[0]
+            sku_masters = SKUMaster.objects.filter(sku_class__iexact=sku_code, user=user.id)
+            if not sku_masters:
+                sku_masters = SKUMaster.objects.filter(sku_code__iexact=sku_code, user=user.id)
+            for sku_master in sku_masters:
+                extra_image = ''
+                saved_file_path = save_image_file(image_file, sku_master, user, extra_image, saved_file_path)
+            if not sku_masters:
+                status = "SKU Code doesn't exists"
+    elif upload_stat == 'clusterUpload':
+        image_file = request.FILES.get('file', '')
+        extra_image = ''
+        saved_file_path = ''
+        if image_file:
+            image_name = image_file.name.split('.')[0]
+            cluster_name = image_name
+            cluster_masters = ClusterSkuMapping.objects.filter(cluster_name=cluster_name, sku__user=user.id)
+            if cluster_masters.exists():
+                saved_file_path = save_image_file(image_file, cluster_masters[0], user, extra_image, saved_file_path, image_model='cluster')
+            if saved_file_path and cluster_masters.exists():
+                for cluster_master in cluster_masters:
+                    cluster_master.image_url = saved_file_path
+                    cluster_master.save()
+            else:
+                status = "Cluster Name doesn't exists"
+    else:
+        status = 'Image Uploadedload Type Not Found'
     return HttpResponse(status)
 
 
@@ -4161,3 +4190,44 @@ def get_zone_details(request , user =''):
          log.info('Get Zone details failed for  %s and params are %s and error statement is %s' % (
          str(user.username), str(request.GET.dict()), str(e)))
     return  HttpResponse(json.dumps({'location_data': temp_locs}))
+
+def get_cluster_sku_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    excel_flag = request.POST.get('excel', '')
+    lis = ['cluster_name', 'cluster_name', 'sku__sku_code', 'sequence', 'creation_date']
+    search_params = get_filtered_params(filters, lis)
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    response_data = {'data': []}
+    if search_term:
+        cl_qs = ClusterSkuMapping.objects.filter( Q(cluster_name__icontains=search_term)| Q(sku__sku_code__icontains=search_term)
+             | Q(sequence__icontains=search_term) | Q(creation_date__regex=search_term)).order_by(order_data)
+    else:
+        cl_qs = ClusterSkuMapping.objects.filter(sku__user=request.user.id).order_by(order_data)
+    for cluster in cl_qs[start_index:stop_index]:
+        if excel_flag == 'true':
+            checkbox = ''
+            temp_data['aaData'].append(OrderedDict(
+            (('ClusterName', cluster.cluster_name), ('Skuid', cluster.sku.sku_code), ('Sequence', cluster.sequence), 
+                ('CreationDate', get_local_date(user, cluster.creation_date)), ('id', cluster.id))))
+        else:
+            checkbox = '<input type="checkbox" name="id" value="%s">' % cluster.id
+            temp_data['aaData'].append(OrderedDict(
+                (('check', checkbox), ('ClusterName', cluster.cluster_name), ('Skuid', cluster.sku.sku_code), ('Sequence', cluster.sequence), 
+                    ('CreationDate', get_local_date(user, cluster.creation_date)), ('id', cluster.id))))
+        temp_data['recordsTotal'] = cl_qs.count()
+        temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+def delete_cluster_sku (request, user=''):
+    deleted_ids = request.POST.get('data', '')
+    status = 'Cluster-sku Deletion Failed'
+    deleted_clusters = eval(deleted_ids)
+    try:
+        for cluster in deleted_clusters:
+            ClusterSkuMapping.objects.filter(id = cluster).delete()
+            status = 'success'
+    except Exception as e:
+         import traceback
+         log.debug(traceback.format_exc())
+         log.info('Cluster SKU Deletion failed for id : %s' % str(cluster))
+    return  HttpResponse(status)

@@ -11,6 +11,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.brand_size_data = [];//To get Sizes for some brands
   vm.size_filter = {};//Size Filter Search
   vm.show_no_data = false;//Show No Data
+  vm.images_urls = Session.host.slice(0,-1)
   vm.size_filter_show = false;
   vm.size_filter_data = {};
   vm.size_toggle = true;
@@ -215,7 +216,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
         vm.categories = data.data.categories;
         vm.all_cate = data.data.categories;
-
+        vm.cluster_images = data.data.Image_urls;
+        vm.get_category(true);
         Data.categories = data.data.categories;
         Data.sub_categories = data.data.sub_categories;
 
@@ -235,6 +237,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.filterData.selectedBrands = {};
         vm.filterData.subCats = {};
         vm.filterData.leastCats = {};
+
+
 
 	vm.brands = data.data.brands;
 	if (vm.brands.length === 0){
@@ -435,7 +439,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                 to_price: vm.toPrice, quantity: vm.quantity, delivery_date: vm.delivery_date, is_margin_percentage: vm.marginData.is_margin_percentage,
                 margin: vm.marginData.margin, hot_release: vm.hot_release, margin_data: JSON.stringify(Data.marginSKUData.data),
                 dimensions: dimension_data};
-
+    if(vm.cluster){
+      data['cluster'] = vm.cluster
+    }
     if(status) {
       angular.copy([], vm.catlog_data.data);
     }
@@ -562,6 +568,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
         if(data.message) {
           vm.all_cate = data.data.categories;
+          vm.cluster_images = data.data.Image_urls;
+          console.log(vm.cluster_images)
           vm.categories_details = data.data.categories_details;
           vm.old_path = vm.location;
           vm.location = '/App/Categories';
@@ -572,9 +580,14 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
   }
 
-  vm.change_category = function(category) {
-
-    vm.category = category;
+  vm.change_category = function(category, cluster='') {
+    if (cluster == 'cluster_name'){
+      vm.cluster = category
+      vm.category = ''
+    } else {
+      vm.cluster = ''
+      vm.category = category;
+    }
     if (vm.filterData.selectedCats){
       vm.filterData.selectedCats[category] = true;
     } else {

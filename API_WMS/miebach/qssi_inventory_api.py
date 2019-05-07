@@ -97,6 +97,8 @@ def update_inventory(company_name):
                                 inventory_values[sku_id] = {}
                             inventory_values[sku_id]['TU_INVENTORY'] = item['Inventory']
                             expected_items = item['Expected']
+                            if not expected_items:
+                                expected_items = []
                             if isinstance(expected_items, list):
                                 asn_stock_map.setdefault(sku_id, []).extend(expected_items)
                             wait_on_qc = [v for d in item['OnHoldDetails'] for k, v in d.items() if k == 'WAITONQC']
@@ -192,6 +194,7 @@ def update_inventory(company_name):
                                     asn_stock_detail = asn_stock_detail[0]
                                     asn_stock_detail.quantity = qc_quantity
                                     asn_stock_detail.arriving_date = arriving_date
+                                    asn_stock_detail.status = 'open'
                                     asn_stock_detail.save()
                                 else:
                                     ASNStockDetail.objects.create(asn_po_num=po, sku_id=sku.id,

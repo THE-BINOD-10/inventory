@@ -80,17 +80,23 @@ def get_company_logo(user, IMAGE_PATH_DICT):
     return image
 
 
-def get_decimal_value(user_id):
+def get_decimal_value(user_id ,price = ''):
     decimal_limit = 0
     if get_misc_value('float_switch', user_id) == 'true':
         decimal_limit = 1
         if get_misc_value('float_switch', user_id, number=True):
-            decimal_limit = get_misc_value('decimal_limit', user_id, number=True)
+            if price :
+                decimal_limit = get_misc_value('decimal_limit_price', user_id, number=True)
+            else:
+                decimal_limit = get_misc_value('decimal_limit', user_id, number=True)
+            if not decimal_limit :
+                decimal_limit = 2
+
     return decimal_limit
 
 
-def get_decimal_limit(user_id, value):
-    decimal_limit = get_decimal_value(user_id)
+def get_decimal_limit(user_id, value,price =''):
+    decimal_limit = get_decimal_value(user_id,price)
     return truncate_float(value, decimal_limit)
 
 
@@ -295,7 +301,6 @@ def add_user_permissions(request, response_data, user=''):
     response_data['message'] = 'Success'
     return response_data
 
-
 def add_user_type_permissions(user_profile):
     update_perm = False
     if user_profile.user_type == 'warehouse_user':
@@ -460,7 +465,7 @@ def get_search_params(request, user=''):
                     'order_report_status': 'order_report_status', 'customer_id': 'customer_id',
                     'imei_number': 'imei_number','creation_date':'creation_date',
                     'order_id': 'order_id', 'job_code': 'job_code', 'job_order_code': 'job_order_code',
-                    'fg_sku_code': 'fg_sku_code', 'invoice':'invoice',
+                    'fg_sku_code': 'fg_sku_code','warehouse_level':'warehouse_level','invoice':'invoice',
                     'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet','invoice_date':'invoice_date',
                     'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number', 'dc_number': 'challan_number',
                     'zone_code': 'zone_code', 'distributor_code': 'distributor_code', 'reseller_code': 'reseller_code',
@@ -498,6 +503,7 @@ def get_search_params(request, user=''):
             search_params[data_mapping[key]] = value
     #pos extra headers
     if user:
+        headers.extend(["Billing Address" ,"Shipping Address"])
         headers.extend(["Order Taken By", "Payment Cash", "Payment Card","Payment PhonePe","Payment GooglePay","Payment Paytm"])
         extra_fields_obj = MiscDetail.objects.filter(user=user.id, misc_type__icontains="pos_extra_fields")
         for field in extra_fields_obj:
@@ -518,7 +524,7 @@ data_datatable = {  # masters
     'SellerMaster': 'get_seller_master', 'SellerMarginMapping': 'get_seller_margin_mapping', \
     'TaxMaster': 'get_tax_master', 'NetworkMaster': 'get_network_master_results',\
     'StaffMaster': 'get_staff_master', 'CorporateMaster': 'get_corporate_master',\
-    'WarehouseSKUMappingMaster': 'get_wh_sku_mapping',
+    'WarehouseSKUMappingMaster': 'get_wh_sku_mapping', 'ClusterMaster': 'get_cluster_sku_results',
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
     'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data', \
@@ -563,6 +569,8 @@ data_datatable = {  # masters
     'StockTransferInvoice' : 'get_stock_transfer_invoice_data',
     'StockTransferShipment' : 'get_stock_transfer_shipment_data',
     'AltStockTransferOrders': 'get_stock_transfer_order_level_data', 'RatingsTable': 'get_ratings_data',\
+    'MyOrdersTbl' : 'get_customer_orders',\
+    'MarketEnqTbl': 'get_enquiry_data', 'CustomOrdersTbl': 'get_manual_enquiry_data',\
     # manage users
     'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
     # retail one
@@ -574,6 +582,8 @@ data_datatable = {  # masters
     'EnquiryOrders': 'get_enquiry_orders',
     'ManualEnquiryOrders': 'get_manual_enquiry_orders',
     'Targets': 'get_distributor_targets',
+    # feedBack Details
+    'FeedbackData': 'get_feedback_data',
     #invoice based payment tracker
     'PaymentTrackerInvBased': 'get_inv_based_payment_data',
     'OutboundPaymentReport': 'get_outbound_payment_report',
@@ -1229,10 +1239,26 @@ def get_auto_po_quantity(sku, stock_quantity=''):
         if sku_stock:
             stock_quantity = sku_stock
 
-    purchase_order = PurchaseOrder.objects.exclude(status__in=['confirmed-putaway']). \
+    open_po_qty = OpenPO.objects.filter(sku_id=sku.id, sku__user=sku.user,
+                                             status__in=['Automated', 1, 'Manual']).only('order_quantity').\
+        aggregate(Sum('order_quantity'))['order_quantity__sum']
+
+    purchase_order = PurchaseOrder.objects.exclude(status__in=['confirmed-putaway', 'location-assigned']). \
         filter(open_po__sku__user=sku.user, open_po__sku_id=sku.id, open_po__vendor_id__isnull=True). \
         values('open_po__sku_id').annotate(total_order=Sum('open_po__order_quantity'),
                                            total_received=Sum('received_quantity'))
+
+    qc_pending = POLocation.objects.filter(purchase_order__open_po__sku__user=sku.user, purchase_order__open_po__sku_id=sku.id,
+                                            qualitycheck__status='qc_pending', status=2).\
+                                    only('quantity').aggregate(Sum('quantity'))['quantity__sum']
+    putaway_pending = POLocation.objects.filter(purchase_order__open_po__sku__user=sku.user, purchase_order__open_po__sku_id=sku.id,
+                                                status=1).only('quantity').aggregate(Sum('quantity'))['quantity__sum']
+    if not qc_pending:
+        qc_pending = 0
+    if not putaway_pending:
+        putaway_pending = 0
+    if not open_po_qty:
+        open_po_qty = 0
 
     production_orders = JobOrder.objects.filter(product_code_id=sku.id, product_code__user=sku.user). \
         exclude(status__in=['open', 'confirmed-putaway']).values('product_code_id'). \
@@ -1256,8 +1282,9 @@ def get_auto_po_quantity(sku, stock_quantity=''):
         diff_quantity = float(purchase_order['total_order']) - float(purchase_order['total_received'])
         if diff_quantity > 0:
             transit_quantity = diff_quantity
+        transit_quantity += (qc_pending + putaway_pending)
 
-    total_quantity = (stock_quantity + transit_quantity + production_quantity + intr_qty)
+    total_quantity = (stock_quantity + transit_quantity + production_quantity + intr_qty + open_po_qty)
     raise_quantity = int(sku.threshold_quantity) - total_quantity
     if raise_quantity < 0:
         raise_quantity = 0
@@ -1343,7 +1370,8 @@ def auto_po(wms_codes, user):
     auto_po_switch = get_misc_value('auto_po_switch', user)
     po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user)
     auto_raise_stock_transfer = get_misc_value('auto_raise_stock_transfer', user)
-    if 'true' in [auto_po_switch, auto_raise_stock_transfer]:
+    sku_less_than_threshold = get_misc_value('sku_less_than_threshold', user)
+    if 'true' in [auto_po_switch, auto_raise_stock_transfer] or sku_less_than_threshold == 'true':
         sku_codes = SKUMaster.objects.filter(wms_code__in=wms_codes, user=user, threshold_quantity__gt=0)
         price_band_flag = get_misc_value('priceband_sync', user)
         for sku in sku_codes:
@@ -1362,7 +1390,7 @@ def auto_po(wms_codes, user):
                 moq = qty + intr_qty
                 if not supplier_master_id:
                     continue
-            elif auto_po_switch == 'true':
+            elif auto_po_switch == 'true' or sku_less_than_threshold == 'true':
                 supplier_id = SKUSupplier.objects.filter(sku_id=sku.id, sku__user=user, moq__gt=0).order_by('preference')
                 if not supplier_id:
                     continue
@@ -1371,7 +1399,16 @@ def auto_po(wms_codes, user):
                     # moq = qty
                     continue
                 supplier_master_id = supplier_id[0].supplier_id
+                taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
                 price = supplier_id[0].price
+                inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
+                inter_state = inter_state_dict.get(supplier_id[0].supplier.tax_type, 2)
+                tax_master = TaxMaster.objects.filter(user_id=user, inter_state=inter_state,
+                                                      product_type=sku.product_type,
+                                                      min_amt__lte=price, max_amt__gte=price).\
+                    values('cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax')
+                if tax_master.exists():
+                    taxes = copy.deepcopy(tax_master[0])
             elif auto_raise_stock_transfer == 'true':
                 all_data = {}
                 user_obj = User.objects.get(id=user)
@@ -1388,33 +1425,48 @@ def auto_po(wms_codes, user):
 
             if moq <= 0:
                 continue
-            suggestions_data = OpenPO.objects.filter(sku_id=sku.id, sku__user=user, status__in=['Automated', 1])
-            if not suggestions_data:
-                po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
-                po_suggestions['sku_id'] = sku.id
-                po_suggestions['supplier_id'] = supplier_master_id
-                po_suggestions['order_quantity'] = moq
-                po_suggestions['status'] = 'Automated'
-                po_suggestions['price'] = price
-                po_suggestions.update(taxes)
-                po = OpenPO(**po_suggestions)
-                po.save()
-                auto_confirm_po = get_misc_value('auto_confirm_po', user)
-                if auto_confirm_po == 'true':
-                    po.status = 0
+            suggestions_data = OpenPO.objects.filter(sku_id=sku.id, sku__user=user,
+                                                     status__in=['Automated', 1, 'Manual'])
+            if not suggestions_data.exists():
+                order_quantity = max(qty,moq)
+            else:
+                order_quantity = qty
+            automated_po = OpenPO.objects.filter(sku_id=sku.id, sku__user=user,
+                                                     status='Automated')
+            if not automated_po.exists():
+                if sku_less_than_threshold == 'true' :
+                    push_notify = PushNotifications.objects.filter(user=user ,message = sku.wms_code+"  "+"quantity is below Threshold quantity")
+                    if not push_notify.exists() :
+                        PushNotifications.objects.create(user_id=user, message=sku.wms_code+"  "+"quantity is below Threshold quantity")
+                else:
+                    po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
+                    po_suggestions['sku_id'] = sku.id
+                    po_suggestions['supplier_id'] = supplier_master_id
+                    po_suggestions['order_quantity'] = order_quantity
+                    po_suggestions['status'] = 'Automated'
+                    po_suggestions['price'] = price
+                    po_suggestions['mrp'] = sku.mrp
+                    po_suggestions.update(taxes)
+                    po = OpenPO(**po_suggestions)
                     po.save()
-                    user_obj = User.objects.get(id=user)
-                    po_order_id = get_purchase_order_id(user_obj) + 1
-                    if po_sub_user_prefix == 'true':
-                        po_order_id = update_po_order_prefix(user_obj, po_order_id)
-                    user_profile = UserProfile.objects.get(user_id=sku.user)
-                    PurchaseOrder.objects.create(open_po_id=po.id, order_id=po_order_id, status='',
-                                                 received_quantity=0, po_date=datetime.datetime.now(),
-                                                 prefix=user_profile.prefix,
-                                                 creation_date=datetime.datetime.now())
-                    check_purchase_order_created(User.objects.get(id=user), po_order_id)
-    else:
-        pass
+                    auto_confirm_po = get_misc_value('auto_confirm_po', user)
+                    if auto_confirm_po == 'true':
+                        po.status = 0
+                        po.save()
+                        user_obj = User.objects.get(id=user)
+                        po_order_id = get_purchase_order_id(user_obj) + 1
+                        if po_sub_user_prefix == 'true':
+                            po_order_id = update_po_order_prefix(user_obj, po_order_id)
+                        user_profile = UserProfile.objects.get(user_id=sku.user)
+                        PurchaseOrder.objects.create(open_po_id=po.id, order_id=po_order_id, status='',
+                                                     received_quantity=0, po_date=datetime.datetime.now(),
+                                                     prefix=user_profile.prefix,
+                                                     creation_date=datetime.datetime.now())
+                        check_purchase_order_created(User.objects.get(id=user), po_order_id)
+            else:
+                automated_po = automated_po[0]
+                automated_po.order_quantity += order_quantity
+                automated_po.save()
 
 
 @csrf_exempt
@@ -1798,6 +1850,27 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         stock_dict['sellerstock__seller_id'] = seller_master_id
 
     total_stock_quantity = 0
+    dest_stocks = ''
+
+    data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
+    data_dict['cycle'] = cycle_id
+    data_dict['sku_id'] = sku_id
+    data_dict['location_id'] = location[0].id
+    data_dict['quantity'] = total_stock_quantity
+    data_dict['seen_quantity'] = quantity
+    data_dict['status'] = 0
+    data_dict['creation_date'] = now
+    data_dict['updation_date'] = now
+    cycle_obj = CycleCount.objects.filter(cycle=cycle_id, sku_id=sku_id, location_id=data_dict['location_id'])
+    if cycle_obj:
+        cycle_obj = cycle_obj[0]
+        cycle_obj.seen_quantity += quantity
+        cycle_obj.save()
+        dat = cycle_obj
+    else:
+        dat = CycleCount(**data_dict)
+        dat.save()
+
     if quantity:
         #quantity = float(quantity)
         stocks = StockDetail.objects.filter(**stock_dict)
@@ -1808,6 +1881,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         for stock in stocks:
             if total_stock_quantity < quantity:
                 stock.quantity += abs(remaining_quantity)
+                save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', remaining_quantity, stock)
                 stock.save()
                 change_seller_stock(seller_master_id, stock, user, abs(remaining_quantity), 'inc')
                 break
@@ -1817,11 +1891,13 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
                     break
                 elif stock_quantity >= remaining_quantity:
                     setattr(stock, 'quantity', stock_quantity - remaining_quantity)
+                    save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', -remaining_quantity, stock)
                     stock.save()
                     change_seller_stock(seller_master_id, stock, user, remaining_quantity, 'dec')
                     remaining_quantity = 0
                 elif stock_quantity < remaining_quantity:
                     setattr(stock, 'quantity', 0)
+                    save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', stock.quantity, stock)
                     stock.save()
                     change_seller_stock(seller_master_id, stock, user, stock_quantity,
                                         'dec')
@@ -1848,6 +1924,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
                               })
             dest_stocks = StockDetail(**stock_dict)
             dest_stocks.save()
+            save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', dest_stocks.quantity, dest_stocks)
             change_seller_stock(seller_master_id, dest_stocks, user, abs(remaining_quantity), 'create')
 
     adj_quantity = quantity - total_stock_quantity
@@ -1864,24 +1941,6 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         if seller_master_id:
             SellerStock.objects.filter(seller_id=seller_master_id,
                                        stock_id__in=list(all_stocks.values_list('id', flat=True))).update(quantity=0)
-    data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
-    data_dict['cycle'] = cycle_id
-    data_dict['sku_id'] = sku_id
-    data_dict['location_id'] = location[0].id
-    data_dict['quantity'] = total_stock_quantity
-    data_dict['seen_quantity'] = quantity
-    data_dict['status'] = 0
-    data_dict['creation_date'] = now
-    data_dict['updation_date'] = now
-    cycle_obj = CycleCount.objects.filter(cycle=cycle_id, sku_id=sku_id, location_id=data_dict['location_id'])
-    if cycle_obj:
-        cycle_obj = cycle_obj[0]
-        cycle_obj.seen_quantity += quantity
-        cycle_obj.save()
-        dat = cycle_obj
-    else:
-        dat = CycleCount(**data_dict)
-        dat.save()
 
     data = copy.deepcopy(INVENTORY_FIELDS)
     data['cycle_id'] = dat.id
@@ -1903,9 +1962,6 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
     else:
         dat = InventoryAdjustment(**data)
         dat.save()
-    # SKU Stats
-    save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', adj_quantity)
-
     return 'Added Successfully'
 
 
@@ -2336,18 +2392,21 @@ def search_batches(request, user=''):
         for stock in stock_data:
             try:
                 manufactured_date = datetime.datetime.strftime(stock.batch_detail.manufactured_date, "%d/%m/%Y")
-            except:
-                manufactured_date = ''
-            try:
                 batchno =  stock.batch_detail.batch_no
             except:
+                manufactured_date = ''
                 batchno  = ''
             try:
-                expiry_date = datetime.datetime.strftime(stock.batch_detail.expiry_date, "%d/%m/%Y")
+                expiry_batches_picklist = get_misc_value('block_expired_batches_picklist', user.id)
+                if stock.batch_detail.batch_no and expiry_batches_picklist == 'true':
+                    present_date = datetime.datetime.now().date()
+                    if stock.batch_detail.expiry_date and stock.batch_detail.expiry_date >= present_date:
+                        total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
+                else:
+                    if batchno:
+                        total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
             except:
-                expiry_date = ''
-            total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date ,'expiry_date':expiry_date})
-
+                total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
     return HttpResponse(json.dumps(total_data))
 
 
@@ -3091,6 +3150,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 continue
             if math.ceil(quantity) == quantity:
                 quantity = int(quantity)
+            quantity = get_decimal_limit(user.id ,quantity)
+            invoice_amount = get_decimal_limit(user.id ,invoice_amount ,'price')
+
             count = count +1
             data.append(
                 {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
@@ -3363,6 +3425,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         request_data = request.POST
     filter_params = {'user': user.id}
     sku_class = request_data.get('sku_class', '')
+    cluster = request_data.get('cluster', '')
     sku_brand = request_data.get('brand', '')
     sku_category = request_data.get('category', '')
     sub_category = request_data.get('sub_category', '')
@@ -3449,6 +3512,10 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         filter_params1['sku__user'] = admin_user.id
     else:
         filter_params1['sku__user'] = user.id
+    if cluster:
+        cluster_sku_list = list(ClusterSkuMapping.objects.filter(cluster_name = cluster, sku__user = filter_params1['sku__user']).values_list('sku__sku_code', flat=True))
+        filter_params['sku_code__in'] = cluster_sku_list
+        filter_params1['sku__sku_code__in'] = cluster_sku_list
     start, stop = indexes.split(':')
     start, stop = int(start), int(stop)
     if sku_class:
@@ -7551,10 +7618,10 @@ def get_price_field(user):
     return price_field
 
 
-def save_sku_stats(user, sku_id, transact_id, transact_type, quantity):
+def save_sku_stats(user, sku_id, transact_id, transact_type, quantity, stock_detail=None):
     try:
         SKUDetailStats.objects.create(sku_id=sku_id, transact_id=transact_id, transact_type=transact_type,
-                                  quantity=quantity, creation_date=datetime.datetime.now())
+                                  quantity=quantity, creation_date=datetime.datetime.now(), stock_detail=stock_detail)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -8181,8 +8248,10 @@ def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty,
     SubstitutionSummary.objects.create(**sub_data)
     log.info("Substitution Done For " + str(json.dumps(sub_data)))
 
-def update_stock_detail(stocks, quantity, user):
+
+def update_stock_detail(stocks, quantity, user, rtv_id):
     for stock in stocks:
+        save_sku_stats(user, stock.sku.id, rtv_id, 'rtv', quantity, stock)
         if stock.quantity > quantity:
             stock.quantity -= quantity
             seller_stock = stock.sellerstock_set.filter()
@@ -8247,6 +8316,24 @@ def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
             return 'No Stocks Found'
         elif total_stock_quantity < quantity:
             return 'Reducing quantity is more than total quantity'
+	data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
+	data_dict['cycle'] = cycle_id
+	data_dict['sku_id'] = sku_id
+	data_dict['location_id'] = location[0].id
+	data_dict['quantity'] = total_stock_quantity
+	data_dict['seen_quantity'] = total_stock_quantity - quantity
+	data_dict['status'] = 0
+	data_dict['creation_date'] = now
+	data_dict['updation_date'] = now
+	cycle_obj = CycleCount.objects.filter(cycle=cycle_id, sku_id=sku_id, location_id=data_dict['location_id'])
+	if cycle_obj:
+	    cycle_obj = cycle_obj[0]
+	    cycle_obj.seen_quantity += quantity
+	    cycle_obj.save()
+	    dat = cycle_obj
+	else:
+	    dat = CycleCount(**data_dict)
+	    dat.save()
         remaining_quantity = quantity
         for stock in stocks:
             if remaining_quantity == 0:
@@ -8255,37 +8342,20 @@ def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
                 stock_quantity = float(stock.quantity)
                 if stock_quantity >= remaining_quantity:
                     setattr(stock, 'quantity', stock_quantity - remaining_quantity)
+                    save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', -remaining_quantity, stock)
                     stock.save()
                     if seller_master_id:
                         change_seller_stock(seller_master_id, stock, user, remaining_quantity, 'dec')
                     remaining_quantity = 0
                 elif stock_quantity < remaining_quantity:
                     setattr(stock, 'quantity', 0)
+                    save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', stock.quantity, stock)
                     stock.save()
                     if seller_master_id:
                         change_seller_stock(seller_master_id, stock, user, remaining_quantity, 'dec')
                     remaining_quantity = remaining_quantity - stock_quantity
     else:
         return 'Invalid Quantity'
-
-    data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
-    data_dict['cycle'] = cycle_id
-    data_dict['sku_id'] = sku_id
-    data_dict['location_id'] = location[0].id
-    data_dict['quantity'] = total_stock_quantity
-    data_dict['seen_quantity'] = total_stock_quantity - quantity
-    data_dict['status'] = 0
-    data_dict['creation_date'] = now
-    data_dict['updation_date'] = now
-    cycle_obj = CycleCount.objects.filter(cycle=cycle_id, sku_id=sku_id, location_id=data_dict['location_id'])
-    if cycle_obj:
-        cycle_obj = cycle_obj[0]
-        cycle_obj.seen_quantity += quantity
-        cycle_obj.save()
-        dat = cycle_obj
-    else:
-        dat = CycleCount(**data_dict)
-        dat.save()
 
     data = copy.deepcopy(INVENTORY_FIELDS)
     data['cycle_id'] = dat.id
@@ -8307,8 +8377,6 @@ def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
     else:
         dat = InventoryAdjustment(**data)
         dat.save()
-    # SKU Stats
-    save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', quantity)
 
     return 'Added Successfully'
 

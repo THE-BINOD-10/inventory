@@ -1,6 +1,7 @@
 <div class="clearfix render-items" style="padding-top: 60px;">
   <!--<div ng-if="showCase.pdfDownloading" style="position: fixed;z-index: 101;width: 100%;height: 100%;top: 0px;background: rgba(0, 0, 0, 0.1);padding-top: 125px;"><img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;"></div>-->
-  <div class="row style-menu" style="height: 60px;position: absolute;top:0px;width:100%;z-index:100">
+  <div class="row style-menu
+  " style="height: 60px;position: absolute;top:0px;width:100%;z-index:100">
     <div class="col-md-4 col-sm-4 col-xs-4">
       <div ng-if="!showCase.disable_brands && showCase.disable_categories" class="menu-left" style="line-height: 60px">
         <span ng-click="$state.go('user.App.Brands');showCase.showFilter = false;"><i class="fa fa-arrow-left" style="color:#fff;" title="Go to Brand Page"></i></span>
@@ -33,6 +34,7 @@
           <li><a ng-click="$state.go('user.App.ManualEnquiry');">Create Custom Order</a></li>
           <li ng-if="showCase.permissions.display_sku_cust_mapping"><a ng-click="$state.go('user.App.PendingOrder');">Pending Order</a></li>
           <!--<li><a ng-click="$state.go('user.App.CorporateOrders');" ng-if="showCase.user_type=='reseller'">Corporate Orders</a></li>-->
+          <li><a ng-click="$state.go('user.App.feedback');">Feedback Form</a></li>
           <li><a ng-click="showCase.logout()">Logout</a></li>
         </ul>
       </div>

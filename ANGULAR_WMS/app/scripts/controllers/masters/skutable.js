@@ -458,6 +458,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }, 3000);
   }
 
+  vm.root_path = function(value){
+    $rootScope.type = value
+    $state.go('app.masters.ImageBulkUpload')
+  }
+
   vm.change_size_type = function(item) {
 
     if(!(item)) {

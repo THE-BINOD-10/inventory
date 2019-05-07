@@ -100,6 +100,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 vm.service.apiCall("get_view_order_details/", "GET", {id: $(aData[""]).attr('name'),order_id: aData["Order ID"]}).then(function(data){
                   var all_order_details = data.data.data_dict[0].ord_data;
             vm.ord_status = data.data.data_dict[0].status;
+	    vm.hide_buttons = data.data.hide_buttons;
 
             vm.model_data = {}
             var empty_data = {data: []}

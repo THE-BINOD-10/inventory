@@ -1035,6 +1035,7 @@ def switches(request, user=''):
                        'rtv_prefix_code': 'rtv_prefix_code',
                        'non_transacted_skus': 'non_transacted_skus',
                        'update_mrp_on_grn': 'update_mrp_on_grn',
+                       'mandate_sku_supplier':'mandate_sku_supplier',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -1427,6 +1428,9 @@ def get_mapping_values(request, user=''):
             data['ean_number'] = ean_number
             data['measurement_unit'] = sku_supplier[0].sku.measurement_type
         else:
+            mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
+            if mandate_supplier == 'true':
+                data['supplier_mapping'] = True
             data['price'] = 0
             data['ean_number'] = ean_number
     else:

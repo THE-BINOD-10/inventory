@@ -665,10 +665,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
             vm.service.showNoty('This SKU is Blocked for PO');
           } else {
             if(Object.values(data).length) {
-              product.fields.price = data.price;
-              product.fields.supplier_code = data.supplier_code;
-              vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
-              vm.getTotals();
+              if(data.supplier_mapping)
+              {
+                vm.service.showNoty('Please Create Sku Supplier Mapping');
+              }
+              else
+              {
+                product.fields.price = data.price;
+                product.fields.supplier_code = data.supplier_code;
+                vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
+                vm.getTotals();
+              }
             }
           }
         });

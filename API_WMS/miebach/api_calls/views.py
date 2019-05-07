@@ -1641,7 +1641,7 @@ def create_update_sku_storehippo(store_hippo_data, user_obj):
 
 
 def order_edit_storehippo(store_hippo_data, user_obj):
-    order_edit_storehippo_log.info('Input Data - For User '+ user_obj.name + ' , ' + str(store_hippo_data))
+    order_edit_storehippo_log.info('Input Data - For User '+ user_obj.username + ' , ' + str(store_hippo_data))
     order_id_list = []
     if store_hippo_data['status'] == 'cancelled':
         order_id = store_hippo_data.get('order_id', '')

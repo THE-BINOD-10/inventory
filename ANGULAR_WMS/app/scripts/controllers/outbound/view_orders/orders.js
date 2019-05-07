@@ -289,28 +289,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             url = "get_seller_order_details/"
           }
           vm.service.apiCall(url, "GET", data).then(function(data){
-
             var all_order_details = data.data.data_dict[0].ord_data;
             vm.ord_status = data.data.data_dict[0].status;
             vm.invoice_type = data.data.data_dict[0].invoice_type;
             vm.courier_name = data.data.data_dict[0].courier_name;
+	    if (data.data.hasOwnProperty('hide_buttons')) {
+	    	vm.hide_buttons = data.data.hide_buttons;
+	    }
             vm.display_status_none = (vm.ord_status=="")?true:false;
-
             vm.model_data = {}
             var empty_data = {data: []}
             angular.copy(empty_data, vm.model_data);
-
             if (vm.g_data.view == 'CustomerOrderView'){
               vm.input_status = false;
             } else {
               vm.input_status = true;
             }
-
             if(vm.g_data.view == 'SellerOrderView') {
               vm.model_data["sor_id"] = aData['SOR ID'];
             }
             vm.order_input_status = false;
-
             vm.model_data["central_remarks"]= data.data.data_dict[0].central_remarks;
             vm.model_data["all_status"] = data.data.data_dict[0].all_status;
             vm.model_data["seller_data"] = data.data.data_dict[0].seller_details;

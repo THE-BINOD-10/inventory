@@ -175,6 +175,11 @@
             <span>Notification Master</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="show_tab('add_clusterskumapping')">
+          <a ui-sref="app.masters.ClusterSkuMaster">
+            <span>Cluster SKU Mapping</span>
+          </a>
+        </li>
       </ul>
     </li>
     <!-- /Masters -->
@@ -365,7 +370,7 @@
             <span>Shipment Info</span>
           </a>
         </li>
-        <li show_tab('add_stocktransfer')" ui-sref-active="active">
+        <li show_tab('add_stocktransfer') ui-sref-active="active">
           <a ui-sref="app.outbound.CreateStockTransfer">
             <span>Create Stock Transfer</span>
           </a>
@@ -562,6 +567,11 @@
             <span>Open Order Report</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show = "show_tab('add_skudetailstats')">
+          <a ui-sref="app.reports.Stockcover">
+            <span>Stock Cover Report</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-show="show_tab('view_returntovendor')">
           <a ui-sref="app.reports.RTVReport">
             <span>RTV</span>
@@ -638,10 +648,20 @@
           </a>
         </li>
         <li ui-sref-active="active">
-        <a ui-sref="app.reports.StockTransferReport">
-          <span>Stock Transfer </span>
-        </a>
-      </li>
+          <a ui-sref="app.reports.StockTransferReport">
+            <span>Stock Transfer</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="user.user_profile.user_type == 'marketplace_user' && user.user_profile.industry_type == 'FMCG'">
+          <a ui-sref="app.reports.StockReconciliationReport">
+            <span>Stock Reconciliation</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="user.user_profile.user_type == 'marketplace_user' && user.user_profile.industry_type == 'FMCG'">
+          <a ui-sref="app.reports.MarginReport">
+            <span>Margin Report</span>
+          </a>
+        </li>
       </ul>
     </li>
     <!-- /extras -->

@@ -27,9 +27,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'auto_raise_stock_transfer': false, 'inbound_supplier_invoice': false, 'customer_dc': false,
                     'mark_as_delivered': false, 'order_exceed_stock': false, 'receive_po_mandatory_fields': false,
                     'sku_pack_config': false, 'central_order_reassigning':false, 'po_sub_user_prefix': false,
-                    'combo_allocate_stock': false, 'sno_in_invoice': false, 'unique_mrp_putaway': false,
-                    'generate_delivery_challan_before_pullConfiramation':false,
-                    'rtv_prefix_code': false
+                    'combo_allocate_stock': false, 'sno_in_invoice': false, 'unique_mrp_putaway': false,'block_expired_batches_picklist':false,
+                    'generate_delivery_challan_before_pullConfiramation':false,'pos_remarks' :'',
+                    'rtv_prefix_code': false, 'dispatch_qc_check':false,'sku_less_than_threshold':false,
+                    'non_transacted_skus':false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -53,7 +54,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      71: 'order_exceed_stock',72:'invoice_declaration',73:'central_order_reassigning',
                      74: 'sku_pack_config', 75: 'po_sub_user_prefix', 76: 'combo_allocate_stock', 77:'sno_in_invoice', 78:'raisepo_terms_conditions',
                      79: 'generate_delivery_challan_before_pullConfiramation', 80: 'unique_mrp_putaway',
-                     81: 'rtv_prefix_code'}
+                     81: 'rtv_prefix_code',82:'pos_remarks', 83:'dispatch_qc_check', 84:'block_expired_batches_picklist', 85:'non_transacted_skus',
+                     86:'sku_less_than_threshold',}
 
   vm.check_box_data = [
     {
@@ -173,7 +175,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       model_name: "auto_confirm_po",
       param_no: 50,
       class_name: "fa fa-server",
-      display: false
+      display: true
     },
     {
       name: "Display Place Sample option in Customer Portal",
@@ -454,7 +456,35 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
      param_no: 79,
      class_name: "fa fa-server",
      display: true
-   }
+   },
+   {
+    name: "Dispatch QC Check",
+    model_name: "dispatch_qc_check",
+    param_no: 83,
+    class_name: "fa fa-server",
+    display: true
+  },
+  {
+    name: "Block Expired Batches In Picklist",
+    model_name: "block_expired_batches_picklist",
+    param_no: 84,
+    class_name: "fa fa-server",
+    display: true
+  },
+  {
+    name: "Display NonTransacted SKU's In Stock Ledger",
+    model_name: "non_transacted_skus",
+    param_no: 85,
+    class_name: "fa fa-server",
+    display: true
+  },
+  {
+    name: "Notify SKU below Threshold",
+    model_name: "sku_less_than_threshold",
+    param_no: 86,
+    class_name: "fa fa-server",
+    display: true
+  },
 ]
 
   vm.empty = {};
@@ -516,6 +546,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       value = false;
       vm.model_data[vm.switch_names[switch_num]] = value;
       Service.showNoty("Auto PO & Auto Raise Stock Transfer can't be enabled simultaneously", 'warning');
+      return
+    }
+    if(vm.switch_names[switch_num] === "sku_less_than_threshold" && vm.model_data["auto_po_switch"]) {
+      value = false;
+      vm.model_data[vm.switch_names[switch_num]] = value;
+      Service.showNoty("Auto PO & Notify SKU below Threshold can't be enabled simultaneously", 'warning');
+      return
+    }
+    if(vm.switch_names[switch_num] === "auto_po_switch" && vm.model_data["sku_less_than_threshold"]) {
+      value = false;
+      vm.model_data[vm.switch_names[switch_num]] = value;
+      Service.showNoty("Auto PO & Notify SKU below Threshold can't be enabled simultaneously", 'warning');
       return
     }
     vm.service.apiCall("switches/?"+vm.switch_names[switch_num]+"="+String(value)).then(function(data){
@@ -621,6 +663,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $('#my-select').multiSelect();
       vm.getRemarks(vm.model_data.invoice_remarks)
       vm.getDeclaration(vm.model_data.invoice_declaration)
+      vm.getPosremarks(vm.model_data.pos_remarks)
       vm.getRaisePOterms(vm.model_data.raisepo_terms_conditions)
     }
   })
@@ -843,28 +886,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     vm.service.showLoader();
     var order_management;
     $.ajax({
-	url: Session.url+'order_management_toggle?order_manage='+data,
-        method: 'GET',
-        xhrFields: {
-          withCredentials: true
-        },
-        'success': function(response) {
-	  if (data){
-	      $('#channel_component').removeClass('ng-hide').css('display', 'block');
-	      order_management = "Order Management Enabled"
-	      localStorage.setItem("order_management", String(data));
-	  } else {
-	      $('#channel_component').addClass('ng-hide').css('display', 'none');
-	      order_management = "Order Management Disabled"
-	      localStorage.setItem("order_management", String(data));
-	  }
-	  vm.service.showNoty(order_management, 'success', 'topRight');
-	  vm.service.hideLoader();
-        },
-	'error': function(response) {
-	  console.log(response);
-	  vm.service.hideLoader();
+      url: Session.url+'order_management_toggle?order_manage='+data,
+      method: 'GET',
+      xhrFields: {
+        withCredentials: true
+      },
+      'success': function(response) {
+        if (data){
+            $('#channel_component').removeClass('ng-hide').css('display', 'block');
+            order_management = "Order Management Enabled"
+            localStorage.setItem("order_management", String(data));
+        } else {
+            $('#channel_component').addClass('ng-hide').css('display', 'none');
+            order_management = "Order Management Disabled"
+            localStorage.setItem("order_management", String(data));
         }
+        vm.service.showNoty(order_management, 'success', 'topRight');
+        vm.service.hideLoader();
+      },
+      'error': function(response) {
+        console.log(response);
+        vm.service.hideLoader();
+      }
     });
   };
 
@@ -991,6 +1034,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     vm.switches(data, 72);
     Auth.status();
   }
+  vm.update_pos_remarks= function(pos_remarks) {
+
+    var data = $("[name='pos_remarks']").val().split("\n").join("<<>>");
+    vm.switches(data, 82);
+    Auth.status();
+  }
   vm.raise_po_terms_conditions = function(raisepo_terms_conditions) {
     var data = $("[name='raisepo_terms_conditions']").val().split("\n").join("<<>>");
     vm.switches(data, 78);
@@ -1014,6 +1063,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $("[name='invoice_declaration']").val( declaration.split("<<>>").join("\n") )
     } else {
       $("[name='invoice_declaration']").val( declaration );
+    }
+    }, 1000);
+  }
+  vm.getPosremarks= function(pos_remarks) {
+
+    $timeout(function() {
+    if(pos_remarks && pos_remarks.split("<<>>").length > 1) {
+      $("[name='pos_remarks']").val( pos_remarks.split("<<>>").join("\n") )
+    } else {
+      $("[name='pos_remarks']").val( pos_remarks );
     }
     }, 1000);
   }

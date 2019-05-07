@@ -1,13 +1,12 @@
 'use strict';
 
-function uploadCtrl($scope, FileUploader, Session) {
+function uploadCtrl($scope, FileUploader, Session, $rootScope) {
   var uploader = $scope.uploader = new FileUploader({
-    url: Session.url+"upload_images/",
+    url: Session.url+"upload_images/?data="+$rootScope.type,
     withCredentials: 'true'
   });
-
+  uploader.model_data = {}
   // FILTERS
-
   uploader.filters.push({
     name: 'customFilter',
     fn: function (item /*{File|FileLikeObject}*/ , options) {
@@ -20,7 +19,9 @@ function uploadCtrl($scope, FileUploader, Session) {
     console.log(dat);
     dat = [];
   };
-
+  uploader.changing_value = function(val) {
+    $rootScope.type = val
+  };
   var dat = [];
   uploader.onCompleteItem = function(item, response, status, headers) {
     if (response != "Uploaded Successfully") {
@@ -31,9 +32,9 @@ function uploadCtrl($scope, FileUploader, Session) {
       dat.push(item.file.name);
     }
   }
+  uploader.model_data.type = $rootScope.type
 }
-
 angular
   .module('urbanApp')
-  .controller('uploadCtrl', ['$scope', 'FileUploader', 'Session', uploadCtrl]);
+  .controller('uploadCtrl', ['$scope', 'FileUploader', 'Session', '$rootScope', uploadCtrl]);
 

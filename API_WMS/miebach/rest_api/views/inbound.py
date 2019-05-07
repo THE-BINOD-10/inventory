@@ -1029,6 +1029,7 @@ def switches(request, user=''):
                        'po_sub_user_prefix': 'po_sub_user_prefix',
                        'combo_allocate_stock': 'combo_allocate_stock',
                        'block_expired_batches_picklist': 'block_expired_batches_picklist',
+                       'sku_less_than_threshold':'sku_less_than_threshold',
                        'dispatch_qc_check': 'dispatch_qc_check',
                        'unique_mrp_putaway': 'unique_mrp_putaway',
                        'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation',

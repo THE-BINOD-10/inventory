@@ -2301,6 +2301,17 @@ def validate_supplier_sku_form(open_sheet, user_id):
             if col_idx == 6:
                 if not cell_data in ['Price Based', 'Margin Based']:
                     index_status.setdefault(row_idx, set()).add('Costing Type should be "Price Based/Margin Based"')
+                if cell_data == 'Price Based' :
+                    cell_data_price = ''
+                    cell_data_price = open_sheet.cell(row_idx, 5).value
+                    if not cell_data_price :
+                        index_status.setdefault(row_idx, set()).add('Price is Mandatory For Price Based')
+                elif cell_data == 'Margin Based' :
+                    cell_data_margin = ''
+                    cell_data_margin = open_sheet.cell(row_idx, 7).value
+                    if not cell_data_margin :
+                        index_status.setdefault(row_idx, set()).add('Margin Percentage is Mandatory For Margin Based')
+
             if col_idx == 7:
                 if not isinstance(cell_data, (int, float)):
                     index_status.setdefault(row_idx, set()).add('Margin % Should be in integer or float')
@@ -6872,7 +6883,7 @@ def validate_cluster_sku_form(request, reader, user, no_of_rows, no_of_cols, fna
                             status = 'Success'
                         else:
                             if cluster_obj_image:
-                                cluster_skus['image_url'] = cluster_obj_image[0].image_url  
+                                cluster_skus['image_url'] = cluster_obj_image[0].image_url
                             final_data = ClusterSkuMapping(**cluster_skus)
                             final_data.save()
                             status = 'Success'
@@ -6889,4 +6900,3 @@ def validate_cluster_sku_form(request, reader, user, no_of_rows, no_of_cols, fna
         log.info('Cluster sku form Upload failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Cluster sku Upload Failed")
-

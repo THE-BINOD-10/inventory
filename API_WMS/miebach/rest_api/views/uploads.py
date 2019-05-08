@@ -2056,11 +2056,6 @@ def validate_supplier_form(open_sheet, user_id):
             elif key == 'ep_supplier':
                 if str(cell_data).lower() not in ['yes', 'no']:
                     index_status.setdefault(row_idx, set()).add('EP Supplier Should be in yes or no')
-            # elif key == 'markdown_percentage':
-            #     if not isinstance(cell_data, (int, float)):
-            #         index_status.setdefault(row_idx, set()).add('Markdown % Should be in integer or float')
-            #     elif not float(cell_data) in range(0, 100):
-            #         index_status.setdefault(row_idx, set()).add('Markdown % Should be in between 0 and 100')
 
     if not index_status:
         return 'Success'

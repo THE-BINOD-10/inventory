@@ -1414,21 +1414,9 @@ def get_mapping_values(request, user=''):
     if (int(sup_markdown.ep_supplier) and sku_master.block_options == "PO") or (not sku_master.block_options == "PO"):
         data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,
                 'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
-        if sku_supplier:
-            mrp_value = sku_supplier[0].mrp
-            if sku_supplier[0].costing_type == 'Margin Based':
-                margin_percentage = sku_supplier[0].margin_percentage
-                prefill_unit_price = mrp_value - ((mrp_value * margin_percentage)/100)
-                data['price'] = prefill_unit_price
-            else:
-                data['price'] = sku_supplier[0].price
-            data['supplier_code'] = sku_supplier[0].supplier_code
-            data['sku'] = sku_supplier[0].sku.sku_code
-            data['ean_number'] = ean_number
-            data['measurement_unit'] = sku_supplier[0].sku.measurement_type
-        else:
-            data['price'] = 0
-            data['ean_number'] = ean_number
+        data['mrp'] = sku_master.mrp
+        data['price'] = 0
+        data['ean_number'] = ean_number
     else:
         data = {}
     return HttpResponse(json.dumps(data), content_type='application/json')
@@ -2992,10 +2980,6 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
                 new_mrp_value = float(myDict['mrp'][i])
             else:
                 new_mrp_value = ''
-            if new_mrp_value:
-                sku_supplier = SKUSupplier.objects.filter(supplier_id=supplier_id, sku__wms_code=wms_code, sku__user=user.id)
-                if sku_supplier:
-                    sku_supplier.update(mrp=new_mrp_value)
         save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list, run_segregation=True,
                          batch_dict=batch_dict)
         create_bayarea_stock(purchase_data['wms_code'], 'BAY_AREA', temp_dict['received_quantity'], user.id)
@@ -6413,8 +6397,8 @@ def confirm_receive_qc(request, user=''):
             imeis_list = [im.split('<<>>')[0] for im in (myDict['rejected'][ind]).split(',')] + myDict['accepted'][
                 ind].split(',')
             myDict['imei_number'].append(','.join(imeis_list))
-        po_data, status_msg, all_data, order_quantity_dict, \
-        purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user, failed_serial_number={}, is_confirm_receive=True)
+        failed_serial_number = {}
+        po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user, failed_serial_number, is_confirm_receive=True)
         for i in range(0, len(myDict['id'])):
             if not myDict['id'][i]:
                 continue

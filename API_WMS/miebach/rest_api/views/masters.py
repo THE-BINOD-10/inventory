@@ -353,9 +353,10 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
         temp_data['aaData'].append(OrderedDict((('supplier_id', result.supplier_id), ('wms_code', result.sku.wms_code),
                                                 ('supplier_code', result.supplier_code), ('moq', result.moq),
                                                 ('preference', sku_preference),
-                                                ('price', result.price), ('costing_type', result.costing_type), 
+                                                ('price', result.price), ('costing_type', result.costing_type),
                                                 ('margin_percentage', result.margin_percentage), ('DT_RowClass', 'results'),
-                                                ('DT_RowId', result.id), ('mrp', result.mrp))))
+                                                ('DT_RowId', result.id), ('mrp', result.sku.mrp)))
+                                  )
 
 
 @csrf_exempt

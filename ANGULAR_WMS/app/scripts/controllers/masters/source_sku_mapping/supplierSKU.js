@@ -80,7 +80,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
   vm.submit = function(data) {
-
+    delete(vm.model_data.mrp)
     if (data.$valid) {
       if ("Add Supplier SKU Mapping" == vm.title) {
         vm.supplier_sku('insert_mapping/');

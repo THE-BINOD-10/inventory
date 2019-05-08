@@ -12945,6 +12945,10 @@ def save_manual_enquiry_data(request, user=''):
         user_id = request.POST.get('user_id', '')
         enq_status = request.POST.get('enq_status', '')
         admin_remarks = request.POST.get('admin_remarks', '')
+        from_flag = request.POST.get('from', '')
+        status = request.POST.get('status', '')
+        if from_flag == 'pending_approval' and status == 'marketing_pending':  # Changing the status even admin provides remarks
+            enq_status = status
         if not enquiry_id or not user_id:
             return HttpResponse("Give information insufficient")
         smd_price = request.POST.get('sm_d_price', 0)
@@ -13549,8 +13553,8 @@ def convert_customorder_to_actualorder(request, user=''):
             dist_order_copy['email_id'] = customer_user[0].customer.email_id
             dist_order_copy['address'] = customer_user[0].customer.address
 
-        if req_stock != sum(stock_wh_map.values()):
-            resp['msg'] = 'No Available Stock to Place the Order or Total quantity is not considered'
+        if req_stock > sum(stock_wh_map.values()):
+            resp['msg'] = 'Order has been placed to more quantity'
             return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
         is_emiza_order_failed = False
         message = ''

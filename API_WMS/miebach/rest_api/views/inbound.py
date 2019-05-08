@@ -1417,6 +1417,7 @@ def get_mapping_values(request, user=''):
                 'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
         data['mrp'] = sku_master.mrp
         data['ean_number'] = ean_number
+        data['measurement_unit'] = sku_supplier[0].sku.measurement_type
     else:
         data = {}
     return HttpResponse(json.dumps(data), content_type='application/json')

@@ -1035,7 +1035,7 @@ def switches(request, user=''):
                        'rtv_prefix_code': 'rtv_prefix_code',
                        'non_transacted_skus': 'non_transacted_skus',
                        'update_mrp_on_grn': 'update_mrp_on_grn',
-                       'mandate_sku_supplier':'mandate_sku_supplier',
+                       'mandate_sku_supplier':'mandate_sku_supplier'
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -2770,6 +2770,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
     data_dict = ''
     purchase_data = {}
     data = {}
+    mrp = 0
     supplier_id = request.POST['supplier_id']
     update_mrp_on_grn = get_misc_value('update_mrp_on_grn', user.id)
     remarks = request.POST.get('remarks', '')
@@ -2794,6 +2795,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
         expected_date = expected_date.split('/')
         expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
     for i in range(len(myDict['id'])):
+        mrp = 0
         temp_dict = {}
         if failed_qty_dict:
             wms_code = myDict['wms_code'][i]
@@ -2811,6 +2813,10 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
             value = 0
         if not value:
             continue
+        if 'mrp' in myDict.keys() and update_mrp_on_grn == 'true' and myDict['mrp'][i]:
+            sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
+            if sku_master:
+                sku_master.update(mrp=float(myDict['mrp'][i]))
         if 'po_quantity' in myDict.keys() and 'price' in myDict.keys() and not myDict['id'][i]:
             if myDict['wms_code'][i] and myDict['quantity'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
@@ -2975,12 +2981,6 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
             continue
         else:
             is_putaway = 'true'
-        if 'mrp' in myDict.keys() and update_mrp_on_grn == 'true':
-            wms_code = myDict['wms_code'][i]
-            if myDict['mrp'][i]:
-                new_mrp_value = float(myDict['mrp'][i])
-            else:
-                new_mrp_value = ''
         save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list, run_segregation=True,
                          batch_dict=batch_dict)
         create_bayarea_stock(purchase_data['wms_code'], 'BAY_AREA', temp_dict['received_quantity'], user.id)

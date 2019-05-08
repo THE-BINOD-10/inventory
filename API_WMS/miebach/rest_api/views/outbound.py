@@ -12582,6 +12582,10 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
         zone = dist_obj.userprofile.zone
         if central_admin_zone and zone != central_admin_zone:
             continue
+        if search_term:
+            st = search_term.lower()
+            if st not in customer_name.lower() and st not in distributor_name.lower() and st not in zone.lower() and str(st) not in str(em_obj.enquiry_id):
+                continue
         date = em_obj.creation_date.strftime('%Y-%m-%d')
         extend_status = em_obj.extend_status
         if em_obj.extend_date:
@@ -12968,7 +12972,6 @@ def save_manual_enquiry_data(request, user=''):
         remarks = request.POST.get('remarks', '')
         if admin_remarks == 'true':
             remarks = request.POST.get('admin_remark', '')
-        status = request.POST.get('status', '')
         designer_flag = False
         if request.user.userprofile.warehouse_type == "SM_DESIGN_ADMIN":
             designer_flag = True

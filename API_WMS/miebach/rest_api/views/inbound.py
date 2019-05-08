@@ -2755,8 +2755,7 @@ def update_remarks_put_zone(remarks, user, put_zone, seller_summary_id=''):
     return put_zone
 
 
-def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=False):
-
+def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, is_confirm_receive=False):
     order_quantity_dict = {}
     all_data = OrderedDict()
     seller_receipt_id = 0
@@ -2793,10 +2792,8 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
             failed_qty = len(failed_qty_dict.get(wms_code, 0))
             if int(myDict['quantity'][i]):
                 value = myDict['quantity'][i]
-                # value = int(myDict['quantity'][i]) - failed_qty
             else:
-                # value = 0
-                value = myDict['quantity'][i]
+                value = 0
             myDict['quantity'][i] = str(value)
         else:
             value = myDict['quantity'][i]
@@ -2886,7 +2883,6 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
                 purchase_data['apmc_tax'])
         all_data.setdefault(cond, 0)
         all_data[cond] += float(value)
-
         if data.id not in order_quantity_dict:
             order_quantity_dict[data.id] = float(purchase_data['order_quantity']) - temp_quantity
         data.received_quantity = float(data.received_quantity) + float(value)
@@ -2970,7 +2966,13 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
             continue
         else:
             is_putaway = 'true'
+        if passed_qty_dict:
+            # for one assist_sending the passed items quantity as a received quantity
+            pass_qty = len(passed_qty_dict.get(wms_code, 0))
+            seller_received_list = []
+            temp_dict['received_quantity'] = pass_qty
         if not failed_qty_dict:
+            # this condition will not allow only for one_assist failed_quantaties available
             save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list, run_segregation=True,
                              batch_dict=batch_dict)
         create_bayarea_stock(purchase_data['wms_code'], 'BAY_AREA', temp_dict['received_quantity'], user.id)
@@ -3104,7 +3106,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
     try:
         po_data, status_msg, all_data, order_quantity_dict, \
-        purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user,  failed_serial_number, is_confirm_receive=True)
+        purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user,  failed_serial_number, passed_serial_number, is_confirm_receive=True)
         for key, value in all_data.iteritems():
             entry_price = float(key[3]) * float(value)
             if key[10]:
@@ -3133,7 +3135,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                     save_status = "FAIL"
                     try:
                         purchase_order_qc(user, send_imei_qc_details, '', save_status, key[1], data)
-                        data = PurchaseOrder.objects.get(id=key[0])
+                        po_data = PurchaseOrder.objects.get(id=key[0])
                         qty = len(failed_serial_number.get(data.open_po.sku.wms_code, []))
                         if qty:
                             put_zone = 'DAMAGED_ZONE'
@@ -3141,7 +3143,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'rejected_quantity': qty, 'new_quantity': qty,
                                 'total_check_quantity': qty, 'user': user.id, 'data': data}
                             save_po_location(put_zone, temp_dict)
-                            get_imeis = failed_serial_number.get(data.open_po.sku.wms_code, [])
+                            get_imeis = failed_serial_number.get(po_data.open_po.sku.wms_code, [])
                             for imei in get_imeis:
                                 po_mapping = POIMEIMapping.objects.filter(imei_number=imei, sku__user=user.id)
                                 if po_mapping:
@@ -6387,7 +6389,7 @@ def confirm_receive_qc(request, user=''):
                 ind].split(',')
             myDict['imei_number'].append(','.join(imeis_list))
         po_data, status_msg, all_data, order_quantity_dict, \
-        purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user, failed_serial_number={}, is_confirm_receive=True)
+        purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user, failed_serial_number={}, passed_serial_number={}, is_confirm_receive=True)
         for i in range(0, len(myDict['id'])):
             if not myDict['id'][i]:
                 continue

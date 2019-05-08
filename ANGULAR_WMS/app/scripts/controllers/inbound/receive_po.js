@@ -1260,7 +1260,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   if (data.message) {
                     if (data.data == "") {
                       if (vm.permissions.dispatch_qc_check) {
-                        if (vm.model_data.returnable_serials.length == -2){
+                        if (vm.model_data.returnable_serials.length == 0){
                           vm.receive_qcitems(vm, data1, index);
                         } else {
                           for (let i = 0; i < vm.model_data.returnable_serials.length; i++) {

@@ -1035,6 +1035,7 @@ def switches(request, user=''):
                        'rtv_prefix_code': 'rtv_prefix_code',
                        'non_transacted_skus': 'non_transacted_skus',
                        'update_mrp_on_grn': 'update_mrp_on_grn',
+                       'mandate_sku_supplier':'mandate_sku_supplier',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

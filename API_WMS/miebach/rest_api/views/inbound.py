@@ -1416,7 +1416,6 @@ def get_mapping_values(request, user=''):
         data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,
                 'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
         data['mrp'] = sku_master.mrp
-        data['price'] = 0
         data['ean_number'] = ean_number
     else:
         data = {}

@@ -2600,6 +2600,7 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                         data_dict[key] = float(cell_data)
                 else:
                     index_status.setdefault(row_idx, set()).add('Missing Quantity')
+
             elif key == 'price':
                 if cell_data != '':
                     if not isinstance(cell_data, (int, float)):
@@ -2608,6 +2609,12 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                         data_dict[key] = float(cell_data)
                 else:
                     data_dict[key] = ''
+                    sku_supplier = SKUSupplier.objects.filter(sku__wms_code=data_dict['sku'].wms_code, supplier_id=data_dict['supplier'].id, sku__user=user.id)
+                    if not sku_supplier.exists() :
+                        mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
+                        if mandate_supplier == 'true' and not int(data_dict['supplier'].ep_supplier):
+                            index_status.setdefault(row_idx, set()).add('Please Create Sku Supplier Mapping')
+
             elif key in ['po_name', 'ship_to']:
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))

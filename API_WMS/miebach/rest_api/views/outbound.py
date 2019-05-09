@@ -12595,6 +12595,10 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
         zone = dist_obj.userprofile.zone
         if central_admin_zone and zone != central_admin_zone:
             continue
+        if search_term:
+            st = search_term.lower()
+            if st not in customer_name.lower() and st not in distributor_name.lower() and st not in zone.lower() and str(st) not in str(em_obj.enquiry_id):
+                continue
         date = em_obj.creation_date.strftime('%Y-%m-%d')
         extend_status = em_obj.extend_status
         if em_obj.extend_date:
@@ -12954,6 +12958,10 @@ def save_manual_enquiry_data(request, user=''):
         user_id = request.POST.get('user_id', '')
         enq_status = request.POST.get('enq_status', '')
         admin_remarks = request.POST.get('admin_remarks', '')
+        from_flag = request.POST.get('from', '')
+        status = request.POST.get('status', '')
+        if from_flag == 'pending_approval' and status == 'marketing_pending':  # Changing the status even admin provides remarks
+            enq_status = status
         if not enquiry_id or not user_id:
             return HttpResponse("Give information insufficient")
         smd_price = request.POST.get('sm_d_price', 0)
@@ -12981,7 +12989,6 @@ def save_manual_enquiry_data(request, user=''):
         remarks = request.POST.get('remarks', '')
         if admin_remarks == 'true':
             remarks = request.POST.get('admin_remark', '')
-        status = request.POST.get('status', '')
         designer_flag = False
         if request.user.userprofile.warehouse_type == "SM_DESIGN_ADMIN":
             designer_flag = True
@@ -13559,8 +13566,8 @@ def convert_customorder_to_actualorder(request, user=''):
             dist_order_copy['email_id'] = customer_user[0].customer.email_id
             dist_order_copy['address'] = customer_user[0].customer.address
 
-        if req_stock != sum(stock_wh_map.values()):
-            resp['msg'] = 'No Available Stock to Place the Order or Total quantity is not considered'
+        if req_stock < sum(stock_wh_map.values()):
+            resp['msg'] = 'Order has been placed to more quantity'
             return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
         is_emiza_order_failed = False
         message = ''

@@ -1420,6 +1420,9 @@ def get_mapping_values(request, user=''):
         data['measurement_unit'] = sku_supplier[0].sku.measurement_type
     else:
         data = {}
+        mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
+            if mandate_supplier == 'true':
+                data['supplier_mapping'] = True
     return HttpResponse(json.dumps(data), content_type='application/json')
 
 

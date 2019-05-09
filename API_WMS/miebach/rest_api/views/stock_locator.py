@@ -1794,7 +1794,7 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
             imei_status = 'Accepted'
             reason = ''
             if imei[-1] in qc_damaged or imei[-2] == 0:
-                imei_status = 'Damaged'
+                imei_status = 'Rejected'
                 reason = qc_damaged.get(imei[-1], '')
             worksheet.write(row, col_count, imei_status)
             col_count += 1

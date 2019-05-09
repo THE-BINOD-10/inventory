@@ -1416,19 +1416,21 @@ def get_mapping_values(request, user=''):
             'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
     if sku_supplier:
         mrp_value = sku_master.mrp
-	if sku_supplier[0].costing_type == 'Margin Based':
-	    margin_percentage = sku_supplier[0].margin_percentage
-	    prefill_unit_price = mrp_value - ((mrp_value * margin_percentage)/100)
-	    data['price'] = prefill_unit_price
-	else:
-	    data['price'] = sku_supplier[0].price
-	data['supplier_code'] = sku_supplier[0].supplier_code
-	data['sku'] = sku_supplier[0].sku.sku_code
-	data['ean_number'] = ean_number
-	data['measurement_unit'] = sku_supplier[0].sku.measurement_type
+        if sku_supplier[0].costing_type == 'Margin Based':
+            margin_percentage = sku_supplier[0].margin_percentage
+            prefill_unit_price = mrp_value - ((mrp_value * margin_percentage)/100)
+            data['price'] = prefill_unit_price
+        else:
+            data['price'] = sku_supplier[0].price
+        data['supplier_code'] = sku_supplier[0].supplier_code
+        data['sku'] = sku_supplier[0].sku.sku_code
+        data['ean_number'] = ean_number
+        data['measurement_unit'] = sku_supplier[0].sku.measurement_type
     else:
+        if int(sup_markdown.ep_supplier):
+            data['price'] = 0
         mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
-        if mandate_supplier == 'true':
+        if mandate_supplier == 'true' and not int(sup_markdown.ep_supplier):
             data['supplier_mapping'] = True
     if sku_master.block_options == "PO":
         if not int(sup_markdown.ep_supplier):

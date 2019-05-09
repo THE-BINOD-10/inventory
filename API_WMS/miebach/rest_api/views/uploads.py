@@ -2607,7 +2607,7 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     else:
                         data_dict[key] = float(cell_data)
                 else:
-                    data_dict[key] = 0
+                    data_dict[key] = ''
             elif key in ['po_name', 'ship_to']:
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
@@ -2620,6 +2620,9 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     except:
                         index_status.setdefault(row_idx, set()).add('%s is Number Field' % mapping_fields[key])
                 else:
+                    data_dict[key] = cell_data
+            elif cell_data == '':
+                if key in number_fields:
                     data_dict[key] = cell_data
         data_list.append(data_dict)
     if not index_status:
@@ -2684,6 +2687,9 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         order_data['sku_id'] = final_dict['sku'].id
         order_data['order_quantity'] = final_dict['quantity']
         order_data['price'] = final_dict.get('price', 0)
+        if order_data['price'] == '':
+            mapping_data = get_mapping_values_po(final_dict['sku'].wms_code ,final_dict['supplier'].id ,user)
+            order_data['price'] = mapping_data.get('price',0)
         order_data['po_name'] = final_dict['po_name']
         order_data['mrp'] = final_dict.get('mrp', 0)
         order_data['cgst_tax'] = final_dict.get('cgst_tax', 0)
@@ -2692,6 +2698,28 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         order_data['utgst_tax'] = final_dict.get('utgst_tax', 0)
         order_data['cess_tax'] = final_dict.get('cess_tax', 0)
         order_data['apmc_tax'] = final_dict.get('apmc_tax', 0)
+        if order_data['mrp'] == '':
+            order_data['mrp'] = final_dict['sku'].mrp
+        if (order_data['cgst_tax'] == '' and order_data['sgst_tax'] == '') or order_data['igst_tax'] == '' :
+            taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0 ,'cess_tax':0,'apmc_tax':0}
+            price = order_data['price']
+            inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
+            inter_state = inter_state_dict.get(final_dict['supplier'].tax_type, 2)
+            tax_master = TaxMaster.objects.filter(user_id=user, inter_state=inter_state,
+                                                  product_type=final_dict['sku'].product_type,
+                                                  min_amt__lte=price, max_amt__gte=price).\
+                values('cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax','cess_tax','apmc_tax')
+            if tax_master.exists():
+                taxes = copy.deepcopy(tax_master[0])
+            order_data['cgst_tax'] = taxes.get('cgst_tax',0)
+            order_data['sgst_tax'] = taxes.get('sgst_tax' ,0)
+            order_data['igst_tax'] = taxes.get('igst_tax',0)
+            if not order_data['utgst_tax'] :
+                order_data['utgst_tax'] = taxes.get('utgst_tax',0)
+            if not order_data['cess_tax'] :
+                order_data['cess_tax'] = taxes.get('cess_tax',0)
+            if not order_data['apmc_tax'] :
+                order_data['apmc_tax'] = taxes.get('apmc_tax',0)
         order_data['measurement_unit'] = final_dict['sku'].measurement_type
         order_data['creation_date'] = creation_date
         if final_dict.get('po_delivery_date', ''):

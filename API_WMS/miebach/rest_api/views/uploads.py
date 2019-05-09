@@ -2700,8 +2700,8 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         order_data['apmc_tax'] = final_dict.get('apmc_tax', 0)
         if order_data['mrp'] == '':
             order_data['mrp'] = final_dict['sku'].mrp
-        if (order_data['cgst_tax'] == '' and order_data['sgst_tax'] == '') or order_data['igst_tax'] == '' :
-            taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0 ,'cess_tax':0,'apmc_tax':0}
+        taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0 ,'cess_tax':0,'apmc_tax':0}
+        if order_data['cgst_tax'] == '' and order_data['sgst_tax'] == '' and order_data['igst_tax'] == '' :
             price = order_data['price']
             inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
             inter_state = inter_state_dict.get(final_dict['supplier'].tax_type, 2)
@@ -2720,6 +2720,10 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                 order_data['cess_tax'] = taxes.get('cess_tax',0)
             if not order_data['apmc_tax'] :
                 order_data['apmc_tax'] = taxes.get('apmc_tax',0)
+        else:
+            for key,value in taxes.iteritems():
+                if not order_data[key] :
+                    order_data[key] = value
         order_data['measurement_unit'] = final_dict['sku'].measurement_type
         order_data['creation_date'] = creation_date
         if final_dict.get('po_delivery_date', ''):

@@ -646,27 +646,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
         var supplier = vm.model_data.supplier_id;
         $http.get(Session.url+'get_mapping_values/?wms_code='+product.fields.sku.wms_code+'&supplier_id='+supplier, {withCredentials : true}).success(function(data, status, headers, config) {
           if ($.isEmptyObject(data)) {
-            product.fields.sku.wms_code = '';
-            product.fields.measurement_unit = '';
-            product.fields.description = '';
-            product.fields.order_quantity = '';
-            product.fields.ean_number = '';
-            product.fields.price = '';
-            product.fields.mrp = '';
-            product.fields.description = '';
-            product.fields.sgst_tax = "";
-            product.fields.cgst_tax = "";
-            product.fields.igst_tax = "";
-            product.fields.cess_tax = "";
-            product.fields.apmc_tax = "";
-            product.fields.utgst_tax = "";
-            product.fields.tax = "";
-            product.taxes = [];
+            vm.clear_raise_po_data(product);
             vm.service.showNoty('This SKU is Blocked for PO');
           } else {
             if(Object.values(data).length) {
               if(data.supplier_mapping)
               {
+                vm.clear_raise_po_data(product);
                 vm.service.showNoty('Please Create Sku Supplier Mapping');
               }
               else
@@ -688,6 +674,25 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
             vm.get_tax_value(product);
         })
       }
+    }
+
+    vm.clear_raise_po_data = function(product){
+      product.fields.sku.wms_code = '';
+      product.fields.measurement_unit = '';
+      product.fields.description = '';
+      product.fields.order_quantity = '';
+      product.fields.ean_number = '';
+      product.fields.price = '';
+      product.fields.mrp = '';
+      product.fields.description = '';
+      product.fields.sgst_tax = "";
+      product.fields.cgst_tax = "";
+      product.fields.igst_tax = "";
+      product.fields.cess_tax = "";
+      product.fields.apmc_tax = "";
+      product.fields.utgst_tax = "";
+      product.fields.tax = "";
+      product.taxes = [];
     }
 
     vm.key_event = function(product, item, index) {

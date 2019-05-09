@@ -2971,6 +2971,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             pass_qty = len(passed_qty_dict.get(wms_code, 0))
             seller_received_list = []
             temp_dict['received_quantity'] = pass_qty
+            save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list, run_segregation=True, batch_dict=batch_dict)
         if not failed_qty_dict:
             # this condition will not allow only for one_assist failed_quantaties available
             save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list, run_segregation=True,

@@ -1182,7 +1182,8 @@ def confirm_po(request, user=''):
                 sku_id = SKUMaster.objects.filter(wms_code='TEMP', user=user.id)
                 po_suggestions['wms_code'] = key.upper()
                 po_suggestions['supplier_code'] = value['supplier_code']
-                if not sku_id[0].wms_code == 'TEMP':
+                mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
+                if not sku_id[0].wms_code == 'TEMP' and not mandate_supplier == 'true':
                     supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=value['supplier_id'],
                                                                   sku__user=user.id)
                     sku_mapping = {'supplier_id': value['supplier_id'], 'sku': sku_id[0], 'preference': 1, 'moq': 0,
@@ -1579,10 +1580,10 @@ def add_po(request, user=''):
         if not sku_id:
             status = 'Invalid WMS CODE'
             return HttpResponse(status)
-        else:
-            if sku_id[0].block_options == 'PO':
-                status = 'WMS Code - Blocked for PO'
-                return HttpResponse(status)
+        supplier_master = SupplierMaster.objects.filter(id=value['supplier_id'], user=user.id)
+        if sku_id[0].block_options == 'PO' and not int(supplier_master[0].ep_supplier):
+            status = 'WMS Code - Blocked for PO'
+            return HttpResponse(status)
         po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
 
         supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=value['supplier_id'],
@@ -1592,14 +1593,16 @@ def add_po(request, user=''):
                        'creation_date': datetime.datetime.now(),
                        'updation_date': datetime.datetime.now()}
 
-        if supplier_mapping:
-            supplier_mapping = supplier_mapping[0]
-            if sku_mapping['supplier_code'] and supplier_mapping.supplier_code != sku_mapping['supplier_code']:
-                supplier_mapping.supplier_code = sku_mapping['supplier_code']
-                supplier_mapping.save()
-        else:
-            new_mapping = SKUSupplier(**sku_mapping)
-            new_mapping.save()
+        mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
+        if not mandate_supplier == 'true':
+            if supplier_mapping:
+                supplier_mapping = supplier_mapping[0]
+                if sku_mapping['supplier_code'] and supplier_mapping.supplier_code != sku_mapping['supplier_code']:
+                    supplier_mapping.supplier_code = sku_mapping['supplier_code']
+                    supplier_mapping.save()
+            else:
+                new_mapping = SKUSupplier(**sku_mapping)
+                new_mapping.save()
 
         suggestions_data = OpenPO.objects.exclude(status__exact='0').filter(sku_id=sku_id,
                                                                             supplier_id=value['supplier_id'],
@@ -2798,6 +2801,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
     bill_date = None if dc_level_grn=='on' else datetime.datetime.now().date()
     challan_number = request.POST.get('dc_number', '')
     challan_date = request.POST.get('dc_date', '')
+    mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
     if challan_date:
         challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date()
     else:
@@ -2941,7 +2945,8 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
                 if sku_master:
-                    supplier_code_mapping(request, myDict, i, data)
+                    if not mandate_supplier == 'true':
+                        supplier_code_mapping(request, myDict, i, data)
                 else:
                     if not status_msg:
                         status_msg = 'Invalid WMS Code ' + myDict['wms_code'][i]

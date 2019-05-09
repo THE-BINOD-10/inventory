@@ -821,12 +821,13 @@ ENQUIRY_STATUS_REPORT = {
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'Warehouse Level', 'name': 'warehouse_level', 'type': 'input'},
         {'label': 'Enquiry Status', 'name': 'enquiry_status', 'type': 'select'},
+	{'label': 'Corporate Name', 'name': 'corporate_name', 'type': 'input'},
     ],
     'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
-                   'Level','Warehouse', 'Enquiry No', 'Enquiry Aging', 'Enquiry Status'],
+                   'Level','Warehouse', 'Enquiry No', 'Enquiry Aging', 'Enquiry Status', 'Corporate Name', 'Remarks'],
     'dt_url': 'get_enquiry_status_report', 'excel_name': 'get_enquiry_status_report',
     'dt_unsort': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
-                   'Enquiry No', 'Level', 'Warehouse', 'Enquiry Aging', 'Enquiry Status'],
+                   'Enquiry No', 'Level', 'Warehouse', 'Enquiry Aging', 'Enquiry Status', 'Corporate Name', 'Remarks'],
     'print_url': 'print_enquiry_status_report',
 }
 
@@ -5879,6 +5880,8 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
             aging_period = 0
         extend_date = datetime.datetime.today() + datetime.timedelta(days=aging_period)
         search_parameters['enquiry__extend_date'] = extend_date
+    if 'corporate_name' in search_params:
+        search_parameters['enquiry__customer_name'] = search_params['corporate_name']
 
     resellers_qs = CustomerUserMapping.objects.filter(customer__user__in=distributors)
     resellers_names_map = dict(resellers_qs.values_list('customer_id',
@@ -5912,6 +5915,8 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         sku_code = en_obj.sku.sku_code
         quantity = en_obj.quantity
         warehouse_level = en_obj.warehouse_level
+        corporate_name = en_obj.enquiry.customer_name
+        remarks = en_obj.enquiry.remarks
         if 'Total Qty' not in totals_map:
             totals_map['Total Qty'] = quantity
         else:
@@ -5928,7 +5933,10 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
                                 ('Level', warehouse_level),
                                 ('Warehouse', warehouse),
                                 ('Enquiry Aging', days_left),
-                                ('Enquiry Status', extend_status)))
+                                ('Enquiry Status', extend_status),
+				('Corporate Name', corporate_name),
+				('Remarks', remarks),
+                               ))
         temp_data['aaData'].append(ord_dict)
     temp_data['totals'] = totals_map
     return temp_data

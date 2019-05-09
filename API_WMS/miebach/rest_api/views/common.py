@@ -80,17 +80,23 @@ def get_company_logo(user, IMAGE_PATH_DICT):
     return image
 
 
-def get_decimal_value(user_id):
+def get_decimal_value(user_id ,price = ''):
     decimal_limit = 0
     if get_misc_value('float_switch', user_id) == 'true':
         decimal_limit = 1
         if get_misc_value('float_switch', user_id, number=True):
-            decimal_limit = get_misc_value('decimal_limit', user_id, number=True)
+            if price :
+                decimal_limit = get_misc_value('decimal_limit_price', user_id, number=True)
+            else:
+                decimal_limit = get_misc_value('decimal_limit', user_id, number=True)
+            if not decimal_limit :
+                decimal_limit = 2
+
     return decimal_limit
 
 
-def get_decimal_limit(user_id, value):
-    decimal_limit = get_decimal_value(user_id)
+def get_decimal_limit(user_id, value,price =''):
+    decimal_limit = get_decimal_value(user_id,price)
     return truncate_float(value, decimal_limit)
 
 
@@ -442,7 +448,6 @@ def get_search_params(request, user=''):
     Zone Code is (NORTH, EAST, WEST, SOUTH)
     Zone Id is Warehouse Zone.
     """
-    #import pdb; pdb.set_trace()
     search_params = {}
     filter_params = {}
     headers = []
@@ -519,7 +524,7 @@ data_datatable = {  # masters
     'SellerMaster': 'get_seller_master', 'SellerMarginMapping': 'get_seller_margin_mapping', \
     'TaxMaster': 'get_tax_master', 'NetworkMaster': 'get_network_master_results',\
     'StaffMaster': 'get_staff_master', 'CorporateMaster': 'get_corporate_master',\
-    'WarehouseSKUMappingMaster': 'get_wh_sku_mapping',
+    'WarehouseSKUMappingMaster': 'get_wh_sku_mapping', 'ClusterMaster': 'get_cluster_sku_results',
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
     'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data', \
@@ -577,6 +582,8 @@ data_datatable = {  # masters
     'EnquiryOrders': 'get_enquiry_orders',
     'ManualEnquiryOrders': 'get_manual_enquiry_orders',
     'Targets': 'get_distributor_targets',
+    # feedBack Details
+    'FeedbackData': 'get_feedback_data',
     #invoice based payment tracker
     'PaymentTrackerInvBased': 'get_inv_based_payment_data',
     'OutboundPaymentReport': 'get_outbound_payment_report',
@@ -3143,6 +3150,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 continue
             if math.ceil(quantity) == quantity:
                 quantity = int(quantity)
+            quantity = get_decimal_limit(user.id ,quantity)
+            invoice_amount = get_decimal_limit(user.id ,invoice_amount ,'price')
+
             count = count +1
             data.append(
                 {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
@@ -3415,6 +3425,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         request_data = request.POST
     filter_params = {'user': user.id}
     sku_class = request_data.get('sku_class', '')
+    cluster = request_data.get('cluster', '')
     sku_brand = request_data.get('brand', '')
     sku_category = request_data.get('category', '')
     sub_category = request_data.get('sub_category', '')
@@ -3501,6 +3512,10 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         filter_params1['sku__user'] = admin_user.id
     else:
         filter_params1['sku__user'] = user.id
+    if cluster:
+        cluster_sku_list = list(ClusterSkuMapping.objects.filter(cluster_name = cluster, sku__user = filter_params1['sku__user']).values_list('sku__sku_code', flat=True))
+        filter_params['sku_code__in'] = cluster_sku_list
+        filter_params1['sku__sku_code__in'] = cluster_sku_list
     start, stop = indexes.split(':')
     start, stop = int(start), int(stop)
     if sku_class:

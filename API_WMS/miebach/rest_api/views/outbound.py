@@ -2293,7 +2293,7 @@ def picklist_confirmation(request, user=''):
                         temp_json = TempJson.objects.filter(model_id=int(user.id), model_name=model_name_value)
                         if temp_json:
                             rista_order_id_list.append(original_order_id_str)
-                        picking_count1 = int(picking_count1)
+                        picking_count1 = float(picking_count1)
                         if picking_count1:
                             sku_code_str = picklist.order.sku.sku_code
                             sku_code_dict = {}
@@ -2303,7 +2303,20 @@ def picklist_confirmation(request, user=''):
                             else:
                                 rista_order_dict[original_order_id_str] = []
                                 rista_order_dict[original_order_id_str].append(sku_code_dict)
-
+                    #StoreHippo COnfirm Picklist
+                    check_storehippo_user = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
+                    if check_storehippo_user and picklist.order:
+                        original_order_id_str = str(picklist.order.order_reference)
+                        picking_count1 = int(picking_count1)
+                        if picking_count1:
+                            sku_code_str = picklist.order.sku.sku_code
+                            sku_code_dict = {}
+                            sku_code_dict[sku_code_str] = picking_count1
+                            if original_order_id_str in storehippo_order_dict.keys():
+                                storehippo_order_dict[original_order_id_str].append(sku_code_dict)
+                            else:
+                                storehippo_order_dict[original_order_id_str] = []
+                                storehippo_order_dict[original_order_id_str].append(sku_code_dict)
                     picklist.save()
                     if user_profile.user_type == 'marketplace_user' and picklist.order:
                         create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,
@@ -6480,6 +6493,15 @@ def get_sku_categories(request, user=''):
         ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
     sub_categories = list(SKUMaster.objects.filter(user=user.id).exclude(sub_category='').values_list('sub_category',
                                                                                                       flat=True).distinct())
+    sku_brand = request.GET.get('brand', '')
+    images= []
+    if sku_brand:
+        cluster_masters = dict(list(ClusterSkuMapping.objects.filter(sku__user=user.id, sku__sku_brand=sku_brand).values_list('cluster_name', 'image_url').distinct()))
+        for url in cluster_masters:
+            if cluster_masters[url]:
+                images.append({'cluster_name':url, 'image':cluster_masters[url]})
+            else:
+                images.append({'cluster_name':url, 'image':'/static/images/categories/default.png'})
     reseller_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     corp_names = []
     if reseller_obj and price_band_flag == 'true':
@@ -6489,7 +6511,7 @@ def get_sku_categories(request, user=''):
         corp_names = list(CorporateMaster.objects.filter(corporate_id__in=res_corps, user=user.id).values_list('name', flat=True).distinct())
 
     return HttpResponse(
-        json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list,
+        json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list, 'Image_urls': images, 
                     'sub_categories': sub_categories, 'colors': colors, 'customization_types': dict(CUSTOMIZATION_TYPES),\
                     'primary_details': categories_details['primary_details'], 'reseller_corporates': corp_names}))
 
@@ -11610,10 +11632,10 @@ def generate_customer_invoice(request, user=''):
             invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('pick_number__in', ''))))
         invoice_data['invoice_no'] = invoice_no
         invoice_data['pick_number'] = pick_number
-        invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         check_storehippo_user = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
         if check_storehippo_user:
             invoice_data['order_reference'] = ''
+        invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         return_data = request.GET.get('data', '')
         delivery_challan = request.GET.get('delivery_challan', '')
         if delivery_challan == "true":
@@ -12573,6 +12595,10 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
         zone = dist_obj.userprofile.zone
         if central_admin_zone and zone != central_admin_zone:
             continue
+        if search_term:
+            st = search_term.lower()
+            if st not in customer_name.lower() and st not in distributor_name.lower() and st not in zone.lower() and str(st) not in str(em_obj.enquiry_id):
+                continue
         date = em_obj.creation_date.strftime('%Y-%m-%d')
         extend_status = em_obj.extend_status
         if em_obj.extend_date:
@@ -12932,6 +12958,10 @@ def save_manual_enquiry_data(request, user=''):
         user_id = request.POST.get('user_id', '')
         enq_status = request.POST.get('enq_status', '')
         admin_remarks = request.POST.get('admin_remarks', '')
+        from_flag = request.POST.get('from', '')
+        status = request.POST.get('status', '')
+        if from_flag == 'pending_approval' and status == 'marketing_pending':  # Changing the status even admin provides remarks
+            enq_status = status
         if not enquiry_id or not user_id:
             return HttpResponse("Give information insufficient")
         smd_price = request.POST.get('sm_d_price', 0)
@@ -12959,7 +12989,6 @@ def save_manual_enquiry_data(request, user=''):
         remarks = request.POST.get('remarks', '')
         if admin_remarks == 'true':
             remarks = request.POST.get('admin_remark', '')
-        status = request.POST.get('status', '')
         designer_flag = False
         if request.user.userprofile.warehouse_type == "SM_DESIGN_ADMIN":
             designer_flag = True
@@ -13537,8 +13566,8 @@ def convert_customorder_to_actualorder(request, user=''):
             dist_order_copy['email_id'] = customer_user[0].customer.email_id
             dist_order_copy['address'] = customer_user[0].customer.address
 
-        if req_stock != sum(stock_wh_map.values()):
-            resp['msg'] = 'No Available Stock to Place the Order or Total quantity is not considered'
+        if req_stock < sum(stock_wh_map.values()):
+            resp['msg'] = 'Order has been placed to more quantity'
             return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
         is_emiza_order_failed = False
         message = ''

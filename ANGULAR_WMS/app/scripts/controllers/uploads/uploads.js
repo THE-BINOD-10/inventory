@@ -307,6 +307,16 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    value: "",
                    perm: "add_enquirymaster",
                  },
+                 {
+                   title: "Cluster SKU Mapping Download/ Upload",
+                   download: "Cluster SKU Mapping Download Form",
+                   upload: "Cluster SKU Mapping Upload Form",
+                   durl: "cluster_sku_form/",
+                   uurl: "cluster_sku_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   perm: "add_clusterskumapping",
+                 },
                 ]
 
   $scope.download = function(data) {
@@ -375,12 +385,11 @@ function uploads($scope, Session, $http, $rootScope, Service) {
   function upload_status(msg, index) {
 
     if (msg != "Success" && msg != "Upload Fail" && msg.indexOf("Orders exceeded") === -1) {
-
       $scope.uploads[parseInt(index)].download = "Download Error Form";
       $scope.uploads[parseInt(index)].value = msg;
       vm.service.showNotyNotHide("Please Download The Error Form");
     } else {
-    vm.service.showNoty(msg);
+      vm.service.showNoty(msg);
     }
     $scope.disable = false;
     $(".preloader").removeClass("ng-show").addClass("ng-hide");

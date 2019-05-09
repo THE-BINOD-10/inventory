@@ -13553,7 +13553,7 @@ def convert_customorder_to_actualorder(request, user=''):
             dist_order_copy['email_id'] = customer_user[0].customer.email_id
             dist_order_copy['address'] = customer_user[0].customer.address
 
-        if req_stock > sum(stock_wh_map.values()):
+        if req_stock < sum(stock_wh_map.values()):
             resp['msg'] = 'Order has been placed to more quantity'
             return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
         is_emiza_order_failed = False

@@ -12318,6 +12318,7 @@ def insert_enquiry_data(request, user=''):
     message = 'Success'
     customer_id = request.user.id
     corporate_name = request.POST.get('name', '')
+    remarks = request.POST.get('remarks', '')
     admin_user = get_priceband_admin_user(user)
     enq_limit = get_misc_value('auto_expire_enq_limit', admin_user.id)
     if enq_limit:
@@ -12338,7 +12339,8 @@ def insert_enquiry_data(request, user=''):
         customer_details = get_order_customer_details(customer_details, request)
         customer_details['customer_id'] = cm_id  # Updating Customer Master ID
         enquiry_map = {'user': user.id, 'enquiry_id': enquiry_id,
-                       'extend_date': datetime.datetime.today() + datetime.timedelta(days=enq_limit)}
+                       'extend_date': datetime.datetime.today() + datetime.timedelta(days=enq_limit),
+                       'remarks': remarks}
         if corporate_name:
             enquiry_map['corporate_name'] = corporate_name
         enquiry_map.update(customer_details)

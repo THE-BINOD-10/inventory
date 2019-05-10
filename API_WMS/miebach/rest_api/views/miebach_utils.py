@@ -5911,7 +5911,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         sku_code = en_obj.sku.sku_code
         quantity = en_obj.quantity
         warehouse_level = en_obj.warehouse_level
-        corporate_name = en_obj.enquiry.customer_name
+        corporate_name = en_obj.enquiry.corporate_name
         remarks = en_obj.enquiry.remarks
         if 'Total Qty' not in totals_map:
             totals_map['Total Qty'] = quantity
@@ -5930,8 +5930,8 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
                                 ('Warehouse', warehouse),
                                 ('Enquiry Aging', days_left),
                                 ('Enquiry Status', extend_status),
-				('Corporate Name', corporate_name),
-				('Remarks', remarks),
+                                ('Corporate Name', corporate_name),
+                                ('Remarks', remarks),
                                ))
         temp_data['aaData'].append(ord_dict)
     temp_data['totals'] = totals_map

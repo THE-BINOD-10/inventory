@@ -3820,7 +3820,7 @@ def get_supplier_sku_prices(request, user=""):
                 taxes_data.append(tax_master.json())
             supplier_sku = SKUSupplier.objects.filter(sku_id=data.id, supplier_id=supplier_master[0].id)
             mandate_sku_supplier = get_misc_value('mandate_sku_supplier', user.id)
-            if not supplier_sku and ep_supplier and mandate_sku_supplier:
+            if not supplier_sku and ep_supplier and mandate_sku_supplier == "true":
                 edit_tax = True
             result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'tax_type': tax_type,
                 'taxes': taxes_data, 'mrp': data.mrp, 'edit_tax':edit_tax})

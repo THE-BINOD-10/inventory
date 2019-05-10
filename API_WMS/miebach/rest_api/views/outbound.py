@@ -12590,14 +12590,17 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
         dist_obj = User.objects.get(id=em_obj.user)
         distributor_name = dist_obj.username
         zone = dist_obj.userprofile.zone
+        corporate_name = em_obj.corporate_name
+        extend_status = em_obj.extend_status
         if central_admin_zone and zone != central_admin_zone:
             continue
         if search_term:
             st = search_term.lower()
-            if st not in customer_name.lower() and st not in distributor_name.lower() and st not in zone.lower() and str(st) not in str(em_obj.enquiry_id):
+            if st not in corporate_name.lower() and st not in distributor_name.lower() and \
+                    st not in zone.lower() and str(st) not in str(em_obj.enquiry_id) and \
+                    str(st) not in str(extend_status):
                 continue
         date = em_obj.creation_date.strftime('%Y-%m-%d')
-        extend_status = em_obj.extend_status
         if em_obj.extend_date:
             days_left_obj = em_obj.extend_date - datetime.datetime.today().date()
             days_left = days_left_obj.days
@@ -12605,7 +12608,7 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
             days_left = 0
         temp_data['aaData'].append(OrderedDict((('Enquiry ID', enq_id), ('Sub Distributor', customer_name),
                                                 ('Distributor', distributor_name),
-                                                ('Customer Name', em_obj.corporate_name), ('Zone', zone),
+                                                ('Customer Name', corporate_name), ('Zone', zone),
                                                 ('Quantity', total_qty), ('Date', date),
                                                 ('Customer ID', em_obj.customer_id),
                                                 ('Extend Status', extend_status), ('Days Left', days_left))))

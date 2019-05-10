@@ -6137,11 +6137,12 @@ def shipment_info_data(request, user=''):
     alternative_mobile_no = 0
     customer_id = request.GET['customer_id']
     shipment_number = request.GET['shipment_number']
+    manifest_number = request.GET.get('manifest_number' ,0)
     gateout = request.GET.get('gateout', '')
     if gateout:
         gateout = int(gateout)
     ship_reference = ''
-    shipment_orders = ShipmentInfo.objects.filter(order_shipment__shipment_number=shipment_number,
+    shipment_orders = ShipmentInfo.objects.filter(order_shipment__shipment_number=shipment_number,order_shipment__manifest_number = manifest_number,
                                                   order_shipment__user=user.id)
     print shipment_orders.count()
     truck_number = ''
@@ -6521,7 +6522,7 @@ def get_sku_categories(request, user=''):
         corp_names = list(CorporateMaster.objects.filter(corporate_id__in=res_corps, user=user.id).values_list('name', flat=True).distinct())
 
     return HttpResponse(
-        json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list, 'Image_urls': images, 
+        json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list, 'Image_urls': images,
                     'sub_categories': sub_categories, 'colors': colors, 'customization_types': dict(CUSTOMIZATION_TYPES),\
                     'primary_details': categories_details['primary_details'], 'reseller_corporates': corp_names}))
 

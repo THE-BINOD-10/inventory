@@ -2,7 +2,7 @@ activate_this = 'setup/MIEBACH/bin/activate_this.py'
 execfile(activate_this, dict(__file__ = activate_this))
 import os
 import sys
-from math import floor
+from math import ceil
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "miebach.settings")
 import django
@@ -186,7 +186,7 @@ def update_inventory(company_name):
                                     continue
                                 arriving_date = datetime.datetime.strptime(asn_stock['By'], '%d-%b-%Y')
                                 quantity = int(asn_stock['Qty'])
-                                qc_quantity = int(floor(quantity*90/100))
+                                qc_quantity = int(ceil(quantity*90.0/100))
                                 if qc_quantity <= 0:
                                     continue
                                 asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku.id, asn_po_num=po)

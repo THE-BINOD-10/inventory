@@ -84,7 +84,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     if (data.$valid) {
       if(data.costing_type.$modelValue == 'Price Based' &&  data.price.$viewValue == '')
       {
-        vm.service.pop_msg("Price Percentage is Mandatory For Price Based");
+        vm.service.pop_msg("Price  is Mandatory For Price Based");
       }
       else if (data.costing_type.$modelValue == 'Margin Based' &&  data.margin_percentage.$viewValue == '') {
          vm.service.pop_msg("Margin Percentage is Mandatory For Margin Based")

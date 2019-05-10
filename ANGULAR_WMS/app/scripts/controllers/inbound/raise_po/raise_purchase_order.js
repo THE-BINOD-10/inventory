@@ -619,7 +619,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 	        vm.populate_last_transaction('')
         }, 2000 );
       }
-
       product.fields.sku.wms_code = item.wms_code;
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.description = item.sku_desc;
@@ -635,13 +634,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       product.fields.apmc_tax = "";
       product.fields.utgst_tax = "";
       product.fields.tax = "";
+      product.fields.edit_tax = false;
       product.taxes = [];
       vm.getTotals();
-
       if(vm.model_data.receipt_type == 'Hosted Warehouse') {
         vm.model_data.supplier_id = vm.model_data.seller_supplier_map[vm.model_data.seller_type.split(":")[0]];
       }
-
       if (vm.model_data.supplier_id) {
         var supplier = vm.model_data.supplier_id;
         $http.get(Session.url+'get_mapping_values/?wms_code='+product.fields.sku.wms_code+'&supplier_id='+supplier, {withCredentials : true}).success(function(data, status, headers, config) {
@@ -661,6 +659,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
             product.fields.apmc_tax = "";
             product.fields.utgst_tax = "";
             product.fields.tax = "";
+	    product.fields.edit_tax = false;
             product.taxes = [];
             vm.service.showNoty('This SKU is Blocked for PO');
           } else {
@@ -685,6 +684,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
             //sku_data["price"] = product.fields.price;
             //vm.model_data.supplier_sku_prices = sku_data;
             product["taxes"] = sku_data.taxes;
+	    product["fields"]["edit_tax"] = sku_data.edit_tax;
             vm.get_tax_value(product);
         })
       }

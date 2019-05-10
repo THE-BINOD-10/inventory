@@ -3798,12 +3798,14 @@ def get_supplier_sku_prices(request, user=""):
         result_data = []
         supplier_master = ""
         inter_state = 2
+        edit_tax = False
+        ep_supplier = False
         if suppli_id:
             supplier_master = SupplierMaster.objects.filter(id=suppli_id, user=user.id)
             if supplier_master:
                 tax_type = supplier_master[0].tax_type
                 inter_state = inter_state_dict.get(tax_type, 2)
-
+                ep_supplier = supplier_master[0].ep_supplier
         for sku_code in sku_codes:
             if not sku_code:
                 continue
@@ -3817,8 +3819,12 @@ def get_supplier_sku_prices(request, user=""):
             taxes_data = []
             for tax_master in tax_masters:
                 taxes_data.append(tax_master.json())
+            supplier_sku = SKUSupplier.objects.filter(sku_id=data.id, supplier_id=supplier_master[0].id)
+            mandate_sku_supplier = get_misc_value('mandate_sku_supplier', user.id)
+            if not supplier_sku and ep_supplier and mandate_sku_supplier:
+                edit_tax = True
             result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'tax_type': tax_type,
-                            'taxes': taxes_data, 'mrp': data.mrp})
+                'taxes': taxes_data, 'mrp': data.mrp, 'edit_tax':edit_tax})
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

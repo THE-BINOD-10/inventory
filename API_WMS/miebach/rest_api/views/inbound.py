@@ -1035,6 +1035,8 @@ def switches(request, user=''):
                        'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation',
                        'rtv_prefix_code': 'rtv_prefix_code',
                        'non_transacted_skus': 'non_transacted_skus',
+                       'update_mrp_on_grn': 'update_mrp_on_grn',
+                       'mandate_sku_supplier':'mandate_sku_supplier'
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -1181,7 +1183,8 @@ def confirm_po(request, user=''):
                 sku_id = SKUMaster.objects.filter(wms_code='TEMP', user=user.id)
                 po_suggestions['wms_code'] = key.upper()
                 po_suggestions['supplier_code'] = value['supplier_code']
-                if not sku_id[0].wms_code == 'TEMP':
+                mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
+                if not sku_id[0].wms_code == 'TEMP' and not mandate_supplier == 'true':
                     supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=value['supplier_id'],
                                                                   sku__user=user.id)
                     sku_mapping = {'supplier_id': value['supplier_id'], 'sku': sku_id[0], 'preference': 1, 'moq': 0,
@@ -1402,23 +1405,7 @@ def search_vendor(request, user=''):
 def get_mapping_values(request, user=''):
     wms_code = request.GET['wms_code']
     supplier_id = request.GET['supplier_id']
-    if wms_code.isdigit():
-        ean_number = wms_code
-        sku_supplier = SKUSupplier.objects.filter(Q(sku__ean_number=wms_code) | Q(sku__wms_code=wms_code),
-                                                  supplier_id=supplier_id, sku__user=user.id)
-    else:
-        ean_number = 0
-        sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, supplier_id=supplier_id, sku__user=user.id)
-    sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
-    data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,
-            'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
-    if sku_supplier:
-        data['supplier_code'] = sku_supplier[0].supplier_code
-        data['price'] = sku_supplier[0].price
-        data['sku'] = sku_supplier[0].sku.sku_code
-        data['ean_number'] = ean_number
-        data['measurement_unit'] = sku_supplier[0].sku.measurement_type
-
+    data = get_mapping_values_po(wms_code ,supplier_id,user)
     return HttpResponse(json.dumps(data), content_type='application/json')
 
 
@@ -1560,12 +1547,13 @@ def add_po(request, user=''):
             sku_id = SKUMaster.objects.filter(Q(ean_number=wms_code) | Q(wms_code=wms_code), user=user.id)
         else:
             sku_id = SKUMaster.objects.filter(wms_code=wms_code.upper(), user=user.id)
-
-        # sku_id = SKUMaster.objects.filter(wms_code=wms_code.upper(),user=user.id)
         if not sku_id:
             status = 'Invalid WMS CODE'
             return HttpResponse(status)
-
+        supplier_master = SupplierMaster.objects.filter(id=value['supplier_id'], user=user.id)
+        if sku_id[0].block_options == 'PO' and not int(supplier_master[0].ep_supplier):
+            status = 'WMS Code - Blocked for PO'
+            return HttpResponse(status)
         po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
 
         supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=value['supplier_id'],
@@ -1575,14 +1563,16 @@ def add_po(request, user=''):
                        'creation_date': datetime.datetime.now(),
                        'updation_date': datetime.datetime.now()}
 
-        if supplier_mapping:
-            supplier_mapping = supplier_mapping[0]
-            if sku_mapping['supplier_code'] and supplier_mapping.supplier_code != sku_mapping['supplier_code']:
-                supplier_mapping.supplier_code = sku_mapping['supplier_code']
-                supplier_mapping.save()
-        else:
-            new_mapping = SKUSupplier(**sku_mapping)
-            new_mapping.save()
+        mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
+        if not mandate_supplier == 'true':
+            if supplier_mapping:
+                supplier_mapping = supplier_mapping[0]
+                if sku_mapping['supplier_code'] and supplier_mapping.supplier_code != sku_mapping['supplier_code']:
+                    supplier_mapping.supplier_code = sku_mapping['supplier_code']
+                    supplier_mapping.save()
+            else:
+                new_mapping = SKUSupplier(**sku_mapping)
+                new_mapping.save()
 
         suggestions_data = OpenPO.objects.exclude(status__exact='0').filter(sku_id=sku_id,
                                                                             supplier_id=value['supplier_id'],
@@ -2423,7 +2413,9 @@ def supplier_code_mapping(request, myDict, i, data, user=''):
             setattr(supplier_mapping, 'supplier_code', data.open_po.supplier_code)
             supplier_mapping.save()
         else:
-            sku_mapping = {'supplier_id': data.open_po.supplier_id, 'sku': data.open_po.sku, 'preference': 1, 'moq': 0,
+            sku_supplier_create = SKUSupplier.objects.filter(sku__wms_code=myDict['wms_code'][i].upper(), sku__user=user.id).annotate(max_preference = Cast('preference', FloatField())).aggregate(Max('max_preference'))
+            sku_preference = int(sku_supplier_create.get('max_preference__max', 0) + 1)
+            sku_mapping = {'supplier_id': data.open_po.supplier_id, 'sku': data.open_po.sku, 'preference': sku_preference, 'moq': 0,
                            'supplier_code': data.open_po.supplier_code, 'price': data.open_po.price,
                            'creation_date': datetime.datetime.now(),
                            'updation_date': datetime.datetime.now()}
@@ -2766,6 +2758,9 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
     data_dict = ''
     purchase_data = {}
     data = {}
+    mrp = 0
+    supplier_id = request.POST['supplier_id']
+    update_mrp_on_grn = get_misc_value('update_mrp_on_grn', user.id)
     remarks = request.POST.get('remarks', '')
     expected_date = request.POST.get('expected_date', '')
     remainder_mail = request.POST.get('remainder_mail', '')
@@ -2776,6 +2771,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
     bill_date = None if dc_level_grn=='on' else datetime.datetime.now().date()
     challan_number = request.POST.get('dc_number', '')
     challan_date = request.POST.get('dc_date', '')
+    mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
     if challan_date:
         challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date()
     else:
@@ -2788,6 +2784,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
         expected_date = expected_date.split('/')
         expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
     for i in range(len(myDict['id'])):
+        mrp = 0
         temp_dict = {}
         if failed_qty_dict:
             wms_code = myDict['wms_code'][i]
@@ -2805,6 +2802,10 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
             value = 0
         if not value:
             continue
+        if 'mrp' in myDict.keys() and update_mrp_on_grn == 'true' and myDict['mrp'][i]:
+            sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
+            if sku_master:
+                sku_master.update(mrp=float(myDict['mrp'][i]))
         if 'po_quantity' in myDict.keys() and 'price' in myDict.keys() and not myDict['id'][i]:
             if myDict['wms_code'][i] and myDict['quantity'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
@@ -2914,7 +2915,8 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
                 if sku_master:
-                    supplier_code_mapping(request, myDict, i, data)
+                    if not mandate_supplier == 'true':
+                        supplier_code_mapping(request, myDict, i, data)
                 else:
                     if not status_msg:
                         status_msg = 'Invalid WMS Code ' + myDict['wms_code'][i]
@@ -4952,8 +4954,10 @@ def confirm_add_po(request, sales_data='', user=''):
         industry_type = user_profile[0].industry_type
         ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
                                             wms_code__in=myDict['wms_code'], user=user.id)
-        if ean_data:
-            ean_flag = True
+	if ean_data:
+	    ean_flag = True
+	    if ean_data[0].block_options == 'PO':
+		return HttpResponse(ean_data[0].wms_code + " SKU Code Blocked for PO")
 
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
 
@@ -6384,8 +6388,8 @@ def confirm_receive_qc(request, user=''):
             imeis_list = [im.split('<<>>')[0] for im in (myDict['rejected'][ind]).split(',')] + myDict['accepted'][
                 ind].split(',')
             myDict['imei_number'].append(','.join(imeis_list))
-        po_data, status_msg, all_data, order_quantity_dict, \
-        purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user, failed_serial_number={}, is_confirm_receive=True)
+        failed_serial_number = {}
+        po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user, failed_serial_number, is_confirm_receive=True)
         for i in range(0, len(myDict['id'])):
             if not myDict['id'][i]:
                 continue

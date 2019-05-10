@@ -2372,28 +2372,46 @@ def get_location_stock_data(search_params, user, sub_user):
         total_quantity = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
     if order_term:
         stock_detail = stock_detail.order_by(order_data)
-    stock_detail = OrderedDict(stock_detail.annotate(grouped_val=Concat('sku__sku_code', Value('<<>>'),
-                                                                 'location__location', Value('<<>>'), 'batch_detail__mrp' ,output_field=CharField())).\
-                                    values_list('grouped_val').distinct().annotate(tsum=Sum('quantity')))
+
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+	stock_detail = OrderedDict(stock_detail.annotate(grouped_val=Concat('sku__sku_code', Value('<<>>'), 'location__location', Value('<<>>'), 'batch_detail__mrp' ,output_field=CharField())).values_list('grouped_val').distinct().annotate(tsum=Sum('quantity')))
+    else:
+        stock_detail = OrderedDict(stock_detail.annotate(grouped_val=Concat('sku__sku_code', Value('<<>>'), 'location__location', output_field=CharField())).values_list('grouped_val').distinct().annotate(tsum=Sum('quantity')))
+
     results_data['recordsTotal'] = len(stock_detail)
     results_data['recordsFiltered'] = results_data['recordsTotal']
     stock_detail_keys = stock_detail.keys()
     if stop_index:
         stock_detail_keys = stock_detail_keys[start_index:stop_index]
-    picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user=user.id).\
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user=user.id).\
                              annotate(grouped_val=Concat('stock__sku__wms_code', Value('<<>>'),
                              'stock__location__location', Value('<<>>'), 'stock__batch_detail__mrp', output_field=CharField())).\
                              values_list('grouped_val').distinct().annotate(reserved=Sum('reserved')))
-    raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user=user.id).\
+        raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user=user.id).\
                         annotate(grouped_val=Concat('material_picklist__jo_material__material_code__wms_code',
                         Value('<<>>'), 'stock__location__location', Value('<<>>'), 'stock__batch_detail__mrp',
+                        output_field=CharField())).values_list('grouped_val').distinct().\
+                        annotate(rm_reserved=Sum('reserved')))
+    else:
+	picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user=user.id).\
+                             annotate(grouped_val=Concat('stock__sku__wms_code', Value('<<>>'),   
+                             'stock__location__location', output_field=CharField())).\
+                             values_list('grouped_val').distinct().annotate(reserved=Sum('reserved')))
+        raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user=user.id).\
+                        annotate(grouped_val=Concat('material_picklist__jo_material__material_code__wms_code',
+                        Value('<<>>'), 'stock__location__location',
                         output_field=CharField())).values_list('grouped_val').distinct().\
                         annotate(rm_reserved=Sum('reserved')))
     for stock_detail_key in stock_detail_keys:
         total_stock_value = 0
         reserved = 0
+	mrp = 0
         total = stock_detail[stock_detail_key]
-        sku_code, location, mrp = stock_detail_key.split('<<>>')
+	if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+	    sku_code, location, mrp = stock_detail_key.split('<<>>')
+	else:
+	    sku_code, location = stock_detail_key.split('<<>>')
         sku_master = SKUMaster.objects.get(sku_code=sku_code, user=user.id)
         location_master = LocationMaster.objects.get(location=location, zone__user=user.id)
         if stock_detail_key in picklist_reserved.keys():

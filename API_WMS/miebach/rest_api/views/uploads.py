@@ -2535,6 +2535,7 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
     user_profile = user.userprofile
     for row_idx in range(1, no_of_rows):
         data_dict = {}
+        print excel_mapping
         for key, value in excel_mapping.iteritems():
             cell_data = get_cell_data(row_idx, value, reader, file_type)
             if key == 'supplier_id':
@@ -2542,6 +2543,7 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     cell_data = str(int(cell_data))
                 if demo_data:
                     cell_data = user_profile.prefix + '_' + cell_data
+                ep_supplier = ''
                 if cell_data:
                     supplier = SupplierMaster.objects.filter(user=user.id, id=cell_data.upper())
                     if not supplier:
@@ -2565,6 +2567,9 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     except:
                         index_status.setdefault(row_idx, set()).add('Check the date format for %s' %
                                                                     mapping_fields[key])
+                elif key == 'po_date':
+                    index_status.setdefault(row_idx, set()).add('%s is Mandatory' %
+                                                                mapping_fields[key])
             elif key == 'wms_code':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Missing WMS Code')
@@ -2609,11 +2614,12 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                         data_dict[key] = float(cell_data)
                 else:
                     data_dict[key] = ''
-                    sku_supplier = SKUSupplier.objects.filter(sku__wms_code=data_dict['sku'].wms_code, supplier_id=data_dict['supplier'].id, sku__user=user.id)
-                    if not sku_supplier.exists() :
-                        mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
-                        if mandate_supplier == 'true' and not int(data_dict['supplier'].ep_supplier):
-                            index_status.setdefault(row_idx, set()).add('Please Create Sku Supplier Mapping')
+                    if data_dict.get('sku', '') and data_dict.get('supplier', ''):
+                        sku_supplier = SKUSupplier.objects.filter(sku__wms_code=data_dict['sku'].wms_code, supplier_id=data_dict['supplier'].id, sku__user=user.id)
+                        if not sku_supplier.exists() :
+                            mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
+                            if mandate_supplier == 'true' and not int(data_dict['supplier'].ep_supplier):
+                                index_status.setdefault(row_idx, set()).add('Please Create Sku Supplier Mapping')
 
             elif key in ['po_name', 'ship_to']:
                 if isinstance(cell_data, (int, float)):

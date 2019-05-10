@@ -144,7 +144,7 @@ vm.update_cartdata_for_approval = function() {
   vm.update_customer_cart_data = function(data) {
 
     if (vm.order_exceed_stock){
-      if (data.available_stock <= data.quantity){
+      if (data.available_stock < data.quantity){
         data.quantity = 1;//data.available_stock;
         vm.service.showNoty("Order quantity can't exceed available stock.");
       }

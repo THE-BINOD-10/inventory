@@ -639,7 +639,7 @@ class ASNStockDetail(models.Model):
 
     class Meta:
         db_table = 'ASN_STOCK_DETAIL'
-        unique_together = ('asn_po_num', 'sku')
+        unique_together = ('asn_po_num', 'sku', 'status')
 
 
 class Picklist(models.Model):

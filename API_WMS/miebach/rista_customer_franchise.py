@@ -1,12 +1,12 @@
 import requests
 import jwt
-
 import time
 import json
 import csv
 import os
 import ConfigParser
 import datetime
+
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read('rest_api/views/configuration_prod.cfg')
 
@@ -22,34 +22,33 @@ branch_list = eval(LOAD_CONFIG.get('rista', 'branch_list', ''))
 def create_csv(data, branch_code):
     temp_data = []
     csv_headers = ['Customer Id', 'Customer Name', 'Customer Code', 'Credit Period', 'CST Number', 'TIN Number', 'PAN Number', 'Email', 'Phone No.', 'City', 'State', 'Country', 'Pin Code', 'Address', 'Shipping Address', 'Selling Price Type', 'Tax Type(Options: Inter State, Intra State)', 'Discount Percentage(%)', 'Markup(%)', 'SPOC Name']
-    print "Resp Data : branch_Code"
     for idx, xer in enumerate(data):
         assign_id = idx + 1
-	obj = []
-	customer_id = assign_id
-	customer_code = xer['branchCode']
-	customer_name = xer['branchName']
-	obj.append(customer_id)
-	obj.append(customer_name)
+        obj = []
+        customer_id = assign_id
+        customer_code = xer['branchCode']
+        customer_name = xer['branchName']
+        obj.append(customer_id)
+        obj.append(customer_name)
         obj.append(customer_code)
-	obj.append('')
-	obj.append('')
-	obj.append('')
-	obj.append('')
-	obj.append('')
-	obj.append('')
-	obj.append(xer['address']['city'])
-	obj.append(xer['address']['state'])
-	obj.append(xer['address']['country'])
-	obj.append(xer['address']['zip'])
-	obj.append(xer['address']['addressLine'])
-	obj.append(xer['address']['addressLine'])
-	obj.append('Type1')
-	obj.append('Intra State')
-	obj.append(0)
-	obj.append(0)
-	obj.append('')
-	temp_data.append(obj)
+        obj.append('')
+        obj.append('')
+        obj.append('')
+        obj.append('')
+        obj.append('')
+        obj.append('')
+        obj.append(xer['address'].get('city', ''))
+        obj.append(xer['address'].get('state', ''))
+        obj.append(xer['address'].get('country', ''))
+        obj.append(xer['address'].get('zip', ''))
+        obj.append(xer['address'].get('addressLine', ''))
+        obj.append(xer['address'].get('addressLine', ''))
+        obj.append('Type1')
+        obj.append('Intra State')
+        obj.append(0)
+        obj.append(0)
+        obj.append('')
+        temp_data.append(obj)
     path = '/root/aravind/rista_stockone/'
     if not os.path.exists(path):
         os.makedirs(path)
@@ -62,7 +61,7 @@ def create_csv(data, branch_code):
             thedatawriter.writerow(csv_headers)
         for data in temp_data:
             try:
-                thedatawriter.writerow(data)
+                thedatawriter.writerow([unicode(x).encode('ascii', 'ignore') for x in data])
             except:
                 print "RISTA Error"
             counter += 1

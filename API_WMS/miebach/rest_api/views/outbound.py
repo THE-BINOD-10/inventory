@@ -4471,6 +4471,16 @@ def create_central_order(request, user):
             interm_order_map['unit_price'] = cart_item.levelbase_price
             interm_order_map['sku_id'] = cart_item.sku_id
             interm_order_map['remarks'] = remarks_dict[cart_item.sku.sku_code]
+            cart_qty, inter_qty = 0, 0
+            cart_obj = CustomerCartData.objects.filter(sku=cart_item.sku_id)
+            inter_obj = IntermediateOrders.objects.filter(sku=cart_item.sku_id, status='')
+            if cart_obj:
+                cart_qty = cart_obj.aggregate(Sum('quantity'))['quantity__sum']
+            if inter_obj:
+                inter_qty = inter_obj.aggregate(Sum('quantity'))['quantity__sum']
+            blocked_qty = cart_qty + inter_qty
+            if blocked_qty > cart_item.quantity:
+                return HttpResponse('Order Cant be placed as stock not available for sku: %s' %cart_item.sku.sku_code)
             intermediate_obj =  IntermediateOrders.objects.create(**interm_order_map)
             #x = intermediate_obj.shipment_date
             order_date = intermediate_obj.creation_date.strftime("%d, %b, %Y")
@@ -6714,7 +6724,7 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
         cart_obj = CustomerCartData.objects.filter(sku=item['id'])
         inter_obj = IntermediateOrders.objects.filter(sku=item['id'], status='')
         if cart_obj:
-            cart_qty = cart_obj[0].quantity
+            cart_qty = cart_obj.aggregate(Sum('quantity'))['quantity__sum']
         if inter_obj:
             inter_qty = inter_obj.aggregate(Sum('quantity'))['quantity__sum']
         blocked_qty = cart_qty + inter_qty

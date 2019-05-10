@@ -290,7 +290,11 @@ function view_orders() {
             for( var j = 0; j < vm.model_data.data[i]['sku_imeis_map'][record.wms_code].length; j++){
               if ( vm.model_data.data[i]['sku_imeis_map'][record.wms_code][j] == record.scan) {
                 vm.model_data.data[i]['sku_imeis_map'][record.wms_code].splice(j, 1);
-                vm.record_serial_dict[record.wms_code].splice(j, 1);
+                for (var k = 0; k < vm.record_serial_dict[record.wms_code].length; k++) {
+                  if (vm.record_serial_dict[record.wms_code][k] == record.scan){
+                    vm.record_serial_dict[record.wms_code].splice(k, 1);
+                  }
+                }
               }
             }
           }
@@ -309,7 +313,11 @@ function view_orders() {
             for( var j = 0; j < vm.model_data.data[i]['sku_imeis_map'][record.wms_code].length; j++){
               if ( vm.model_data.data[i]['sku_imeis_map'][record.wms_code][j] == record.scan) {
                 vm.model_data.data[i]['sku_imeis_map'][record.wms_code].splice(j, 1);
-                vm.record_serial_dict[record.wms_code].splice(j, 1);
+                for (var k = 0; k < vm.record_serial_dict[record.wms_code].length; k++) {
+                  if (vm.record_serial_dict[record.wms_code][k] == record.scan){
+                    vm.record_serial_dict[record.wms_code].splice(k, 1);
+                  }
+                }
               }
             }
           }

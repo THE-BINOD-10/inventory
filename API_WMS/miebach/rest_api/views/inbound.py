@@ -2204,7 +2204,9 @@ def get_remaining_capacity(loc, received_quantity, put_zone, pallet_number, user
     return location_quantity, received_quantity
 
 
-def save_update_order(location_quantity, location_data, temp_dict, user_check, user):
+def save_update_order(location_quantity, location_data, temp_dict, user_check, user, created_qc_ids=None):
+    if not created_qc_ids:
+        created_qc_ids = {}
     location_data[user_check] = user
     po_loc = POLocation.objects.filter(**location_data)
     del location_data[user_check]
@@ -2234,7 +2236,9 @@ def save_update_order(location_quantity, location_data, temp_dict, user_check, u
         qc_data['po_location_id'] = po_loc.id
         qc_saved_data = QualityCheck(**qc_data)
         qc_saved_data.save()
-    return po_loc
+        created_qc_ids.setdefault(po_loc.purchase_order_id, [])
+        created_qc_ids[po_loc.purchase_order_id].append(qc_saved_data.id)
+    return po_loc, created_qc_ids
 
 
 def update_seller_summary_locs(data, location, quantity, po_received):
@@ -2274,9 +2278,11 @@ def update_seller_summary_locs(data, location, quantity, po_received):
 
 
 @csrf_exempt
-def save_po_location(put_zone, temp_dict, seller_received_list=[], run_segregation=False, batch_dict=None):
+def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segregation=False, batch_dict=None, created_qc_ids=None):
     if not batch_dict:
         batch_dict = {}
+    if not created_qc_ids:
+        created_qc_ids = {}
     data = temp_dict['data']
     user = temp_dict['user']
     pallet_number = 0
@@ -2323,7 +2329,7 @@ def save_po_location(put_zone, temp_dict, seller_received_list=[], run_segregati
                     user_check = 'purchase_order__open_po__sku__user'
                 if data.stpurchaseorder_set.filter().exists():
                     user_check = 'purchase_order__stpurchaseorder__open_st__sku__user'
-                po_loc = save_update_order(location_quantity, location_data, temp_dict, user_check, user)
+                po_loc, created_qc_ids = save_update_order(location_quantity, location_data, temp_dict, user_check, user, created_qc_ids=created_qc_ids)
                 #Batch Details Creation
                 batch_dict['transact_type'] = 'po_loc'
                 batch_dict['transact_id'] = po_loc.id
@@ -2386,7 +2392,7 @@ def save_po_location(put_zone, temp_dict, seller_received_list=[], run_segregati
                     received_quantity = confirmation_location(record, data, received_quantity)
                 if received_quantity == 0:
                     break
-
+    return created_qc_ids
 
 @csrf_exempt
 @get_admin_user
@@ -2764,6 +2770,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     data_dict = ''
     purchase_data = {}
     data = {}
+    created_qc_ids = {}
     remarks = request.POST.get('remarks', '')
     expected_date = request.POST.get('expected_date', '')
     remainder_mail = request.POST.get('remainder_mail', '')
@@ -2953,8 +2960,8 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             qc_data = copy.deepcopy(QUALITY_CHECK_FIELDS)
             qc_data['purchase_order_id'] = data.id
             temp_dict['qc_data'] = qc_data
-            save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list,
-                             batch_dict=batch_dict)
+            created_qc_ids = save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list,
+                             batch_dict=batch_dict, created_qc_ids=created_qc_ids)
             data_dict = (('Order ID', data.order_id), ('Supplier ID', purchase_data['supplier_id']),
                          ('Order Date', get_local_date(request.user, data.creation_date)),
                          ('Supplier Name', purchase_data['supplier_name']),
@@ -2966,16 +2973,8 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             continue
         else:
             is_putaway = 'true'
-        if passed_qty_dict:
-            # for one assist_sending the passed items quantity as a received quantity
-            pass_qty = len(passed_qty_dict.get(wms_code, 0))
-            seller_received_list = []
-            temp_dict['received_quantity'] = pass_qty
-            save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list, run_segregation=True, batch_dict=batch_dict)
-        if not failed_qty_dict:
-            # this condition will not allow only for one_assist failed_quantaties available
-            save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list, run_segregation=True,
-                             batch_dict=batch_dict)
+        save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list, run_segregation=True,
+                         batch_dict=batch_dict)
         create_bayarea_stock(purchase_data['wms_code'], 'BAY_AREA', temp_dict['received_quantity'], user.id)
         data_dict = (('Order ID', data.order_id), ('Supplier ID', purchase_data['supplier_id']),
                      ('Order Date', get_local_date(request.user, data.creation_date)),
@@ -2991,10 +2990,10 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                         purchase_data['order_quantity'],
                         value, price))
     create_file_po_mapping(request, user, seller_receipt_id, myDict)
-    return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id
+    return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id, created_qc_ids
 
 
-def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='', data=''):
+def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='', data='', po_id=''):
     user_id = user.id
     get_po_imei_qs = ''
     sku_master = SKUMaster.objects.filter(**{'wms_code': wms_code, 'status' : 1, 'user':user.id})
@@ -3002,10 +3001,10 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
         sku_id = sku_master[0].id
     for key, value in sku_details.items():
         if wms_code:
-            imei_mapping = {'purchase_order_id': data.id, 'imei_number': key, 'status': 1, 'sku_id': sku_id,
-            'creation_date': datetime.datetime.now(), 'updation_date': datetime.datetime.now()}
-            po_imei = POIMEIMapping(**imei_mapping)
-            po_imei.save()
+            po_imei = POIMEIMapping.objects.filter(status=1, sku__user=user_id, imei_number__in=[key], purchase_order_id=po_id)
+            po_data = po_imei[0]
+            po_data.status = 0
+            po_data.save()
             if po_imei:
                 get_po_imei_qs = po_imei
         else:
@@ -3072,14 +3071,6 @@ def confirm_grn(request, confirm_returns='', user=''):
     seller_name = user.username
     seller_address = user.userprofile.address
     seller_receipt_id = 0
-    failed_serial_number = {}
-    passed_serial_number = {}
-    if request.POST.get('imei_qc_details', ''):
-        imei_qc_details = json.loads(request.POST.get('imei_qc_details', ''))
-    if request.POST.get('passed_serial_number', ''):
-        passed_serial_number = json.loads(request.POST.get('passed_serial_number', ''))
-    if request.POST.get('failed_serial_number', ''):
-        failed_serial_number = json.loads(request.POST.get('failed_serial_number', ''))
     if user.username in MILKBASKET_USERS and (not request.POST.get('invoice_number', '') and not request.POST.get('dc_number', '')):
         return HttpResponse("Invoice/DC Number  is Mandatory")
     if user.username in MILKBASKET_USERS and (not request.POST.get('invoice_date', '') and not request.POST.get('dc_date', '')):
@@ -3107,7 +3098,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
     try:
         po_data, status_msg, all_data, order_quantity_dict, \
-        purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user,  failed_serial_number, passed_serial_number, is_confirm_receive=True)
+        purchase_data, data, data_dict, seller_receipt_id, created_qc_ids = generate_grn(myDict, request, user,  failed_serial_number={}, passed_serial_number={}, is_confirm_receive=True)
         for key, value in all_data.iteritems():
             entry_price = float(key[3]) * float(value)
             if key[10]:
@@ -3121,43 +3112,6 @@ def confirm_grn(request, confirm_returns='', user=''):
             total_received_qty += value
             total_price += entry_price
             total_tax += (key[4] + key[5] + key[6] + key[7] + key[9] + key[11])
-            if key[1] in passed_serial_number.keys():
-                send_imei_qc_details = dict(zip(passed_serial_number[key[1]], [imei_qc_details[k] for k in passed_serial_number[key[1]]]))
-                save_status = "PASS"
-                try:
-                    purchase_order_qc(user, send_imei_qc_details, '', save_status)
-                except Exception as e:
-                    import traceback
-                    receive_po_qc_log.debug(traceback.format_exc())
-                    receive_po_qc_log.info("Error in Dispatch QC - On Pass - %s - %s" % (str(user.username),  str(e)))
-            if failed_serial_number:
-                if key[1] in failed_serial_number.keys():
-                    send_imei_qc_details = dict(zip(failed_serial_number[key[1]], [imei_qc_details[k] for k in failed_serial_number[key[1]]]))
-                    save_status = "FAIL"
-                    try:
-                        purchase_order_qc(user, send_imei_qc_details, '', save_status, key[1], data)
-                        po_data = PurchaseOrder.objects.get(id=key[0])
-                        qty = len(failed_serial_number.get(data.open_po.sku.wms_code, []))
-                        if qty:
-                            put_zone = 'DAMAGED_ZONE'
-                            temp_dict = {'received_quantity': qty, 'original_quantity': qty,
-                                'rejected_quantity': qty, 'new_quantity': qty,
-                                'total_check_quantity': qty, 'user': user.id, 'data': data}
-                            save_po_location(put_zone, temp_dict)
-                            get_imeis = failed_serial_number.get(po_data.open_po.sku.wms_code, [])
-                            for imei in get_imeis:
-                                po_mapping = POIMEIMapping.objects.filter(imei_number=imei, sku__user=user.id)
-                                if po_mapping:
-                                    qc_serial_dict = copy.deepcopy(QC_SERIAL_FIELDS)
-                                    qc_serial_dict['serial_number_id'] = po_mapping[0].id
-                                    qc_serial_dict['status'] = 'rejected'
-                                    qc_serial_dict['reason'] = 'Receive PO QC Failed'
-                                    qc_serial = QCSerialMapping(**qc_serial_dict)
-                                    qc_serial.save()
-                    except Exception as e:
-                        import traceback
-                        receive_po_qc_log.debug(traceback.format_exc())
-                        receive_po_qc_log.info("Error in Dispatch QC - On Fail - %s - %s" % (str(user.username),  str(e)))
         if round_off_checkbox=='on':
             total_price = round_off_total
 
@@ -3944,7 +3898,6 @@ def validate_putaway(all_data, user):
                 if key[0]:
                     data = POLocation.objects.get(id=key[0], location__zone__user=user.id)
                     order_data = get_purchase_order_data(data.purchase_order)
-
                     if (float(data.purchase_order.received_quantity) - value) < 0:
                         status = 'Putaway quantity should be less than the Received Quantity'
 
@@ -4528,7 +4481,8 @@ def update_quality_check(myDict, request, user):
                 pallet.pallet_detail.save()
             temp_dict['pallet_number'] = pallet_code
             temp_dict['pallet_data'] = pallet
-        save_po_location(put_zone, temp_dict, seller_received_list=seller_summary_dict, run_segregation=True)
+        if float(myDict['accepted_quantity'][i]):
+            save_po_location(put_zone, temp_dict, seller_received_list=seller_summary_dict, run_segregation=True)
         create_bayarea_stock(purchase_data['sku_code'], 'BAY_AREA', temp_dict['received_quantity'], user.id)
         if temp_dict['rejected_quantity']:
             put_zone = 'DAMAGED_ZONE'
@@ -5516,8 +5470,9 @@ def check_serial_exists(request, user=''):
     return HttpResponse(status)
 
 
-def save_qc_serials(key, scan_data, user, qc_id=''):
+def save_qc_serials(key, scan_data, user, qc_id='', reason_po=''):
     try:
+        reason =''
         for scan_value in scan_data:
             try:
                 scan_value = scan_value.split(',')
@@ -5529,14 +5484,14 @@ def save_qc_serials(key, scan_data, user, qc_id=''):
             for value in scan_value:
                 if qc_id:
                     imei = value
-                    reason = ''
                     if '<<>>' in value:
                         imei, reason = value.split('<<>>')
+                        reason = reason_po
                 else:
                     imei, qc_id, reason = value.split('<<>>')
                 if not value:
                     continue
-                po_mapping = POIMEIMapping.objects.filter(imei_number=imei, sku__user=user)
+                po_mapping = POIMEIMapping.objects.filter(imei_number=imei, sku__user=user, status=1)
                 if po_mapping:
                     qc_serial_dict = copy.deepcopy(QC_SERIAL_FIELDS)
                     qc_serial_dict['quality_check_id'] = qc_id
@@ -6343,7 +6298,26 @@ def check_return_imei(request, user=''):
 
     return HttpResponse(json.dumps(return_data))
 
-
+def check_qc_serial_numbers(user, po_id, wms_code, passed_serial_number, failed_serial_number, imei_qc_details, data):
+    if wms_code in passed_serial_number.keys():
+        send_imei_qc_details = dict(zip(passed_serial_number[wms_code], [imei_qc_details[k] for k in passed_serial_number[wms_code]]))
+        save_status = "PASS"
+        try:
+            purchase_order_qc(user, send_imei_qc_details, '', save_status)
+        except Exception as e:
+            import traceback
+            receive_po_qc_log.debug(traceback.format_exc())
+            receive_po_qc_log.info("Error in Dispatch QC - On Pass - %s - %s" % (str(user.username),  str(e)))
+    if failed_serial_number:
+        if wms_code in failed_serial_number.keys():
+            send_imei_qc_details = dict(zip(failed_serial_number[wms_code], [imei_qc_details[k] for k in failed_serial_number[wms_code]]))
+            save_status = "FAIL"
+            try:
+                purchase_order_qc(user, send_imei_qc_details, '', save_status, wms_code, data, int(po_id))
+            except Exception as e:
+                import traceback
+                receive_po_qc_log.debug(traceback.format_exc())
+                receive_po_qc_log.info("Error in Dispatch QC - On Fail - %s - %s" % (str(user.username),  str(e)))
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -6365,6 +6339,8 @@ def confirm_receive_qc(request, user=''):
     btn_class = ''
     seller_receipt_id = 0
     seller_name = user.username
+    failed_serial_number = {}
+    passed_serial_number = {}
     seller_address = user.userprofile.address
     myDict = dict(request.POST.iterlists())
     if user.username in MILKBASKET_USERS and (not request.POST.get('invoice_number', '') and not request.POST.get('dc_number', '')):
@@ -6374,6 +6350,12 @@ def confirm_receive_qc(request, user=''):
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
     if request.POST.get('invoice_date', ''):
         bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
+    if request.POST.get('imei_qc_details', ''):
+        imei_qc_details = json.loads(request.POST.get('imei_qc_details', ''))
+    if request.POST.get('passed_serial_number', ''):
+        passed_serial_number = json.loads(request.POST.get('passed_serial_number', ''))
+    if request.POST.get('failed_serial_number', ''):
+        failed_serial_number = json.loads(request.POST.get('failed_serial_number', ''))
     invoice_num = request.POST.get('invoice_number', '')
     if invoice_num:
         supplier_id = ''
@@ -6384,20 +6366,22 @@ def confirm_receive_qc(request, user=''):
             return HttpResponse(inv_status)
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
     try:
+        oneassist_condition = get_misc_value('dispatch_qc_check', user.id)
         for ind in range(0, len(myDict['id'])):
             myDict.setdefault('imei_number', [])
             imeis_list = [im.split('<<>>')[0] for im in (myDict['rejected'][ind]).split(',')] + myDict['accepted'][
                 ind].split(',')
             myDict['imei_number'].append(','.join(imeis_list))
         po_data, status_msg, all_data, order_quantity_dict, \
-        purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user, failed_serial_number={}, passed_serial_number={}, is_confirm_receive=True)
+        purchase_data, data, data_dict, seller_receipt_id, created_qc_ids = generate_grn(myDict, request, user, failed_serial_number, passed_serial_number, is_confirm_receive=True)
+    
         for i in range(0, len(myDict['id'])):
             if not myDict['id'][i]:
                 continue
-            quality_checks = QualityCheck.objects.filter(purchase_order_id=myDict['id'][i],
+            created_qc_ids = created_qc_ids[int(myDict['id'][i])]
+            quality_checks = QualityCheck.objects.filter(purchase_order_id=myDict['id'][i], id__in=created_qc_ids,
                                                          po_location__location__zone__user=user.id,
                                                          status='qc_pending')
-
             for quality_check in quality_checks:
                 qc_dict = {'id': [quality_check.id], 'unit': [myDict['unit'][i]], 'accepted': [myDict['accepted'][i]],
                            'rejected': [myDict['rejected'][i]], 'accepted_quantity': [myDict['accepted_quantity'][i]],
@@ -6407,8 +6391,9 @@ def confirm_receive_qc(request, user=''):
                 if myDict.get("accepted", ''):
                     save_qc_serials('accepted', [myDict.get("accepted", '')[i]], user.id, qc_id=quality_check.id)
                 if myDict.get("rejected", ''):
-                    save_qc_serials('rejected', [myDict.get("rejected", '')[i]], user.id, qc_id=quality_check.id)
-
+                    save_qc_serials('rejected', [myDict.get("rejected", '')[i]], user.id, qc_id=quality_check.id, reason_po='Receive PO QC Failed')
+                if oneassist_condition == 'true' and (passed_serial_number or failed_serial_number):
+                    check_qc_serial_numbers(user, myDict['id'][i], myDict['wms_code'][i], passed_serial_number, failed_serial_number, imei_qc_details, data)
         for key, value in all_data.iteritems():
             entry_price = float(key[3]) * float(value)
             if key[10]:
@@ -6422,7 +6407,6 @@ def confirm_receive_qc(request, user=''):
             total_received_qty += value
             total_price += entry_price
             total_tax += (key[4] + key[5] + key[6] + key[7] + key[9] + key[11])
-
         if not status_msg:
             if not purchase_data:
                 return HttpResponse('Success')

@@ -1773,12 +1773,18 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
                                                          status='rejected').values_list('serial_number__imei_number',
                                                                                         'reason'))
         qc_damaged.update(damaged_returns)
+        accepted_imeis = list(POIMEIMapping.objects.filter(status=1, sku__user=user.id,
+                                                     **filter_params).exclude(id__in=dispatched_imeis).values_list('id', flat=True))
+        rejected_imeis = list(QCSerialMapping.objects.filter(serial_number__purchase_order__open_po__sku__user=user.id,
+                                                         status='rejected').values_list('serial_number_id', flat=True))
+        common_list = accepted_imeis + rejected_imeis
+        filter_params['id__in'] = common_list
         if search_term:
             imei_data = POIMEIMapping.objects.filter(Q(sku__sku_code__icontains=search_term) |
                                                      Q(sku__sku_desc__icontains=search_term) |
                                                      Q(sku__sku_brand__icontains=search_term) |
                                                      Q(sku__sku_category__icontains=search_term),
-                                                        sku__user=user.id,
+                                                     sku__user=user.id,
                                                      **filter_params). \
                 exclude(id__in=dispatched_imeis).values_list(*dict_list)
         else:
@@ -1789,11 +1795,12 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
         for imei in imei_data:
             col_count = 0
             for col, data in enumerate(imei):
+                if col == 4: continue
                 worksheet.write(row, col_count, data)
                 col_count += 1
             imei_status = 'Accepted'
             reason = ''
-            if imei[-1] in qc_damaged or imei[-2] == 0:
+            if imei[4] != 1:
                 imei_status = 'Rejected'
                 reason = qc_damaged.get(imei[-1], '')
             worksheet.write(row, col_count, imei_status)

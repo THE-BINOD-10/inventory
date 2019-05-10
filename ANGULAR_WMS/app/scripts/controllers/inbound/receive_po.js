@@ -28,7 +28,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $rootScope.collect_imei_details = {};
     vm.failed_serial_number = {};
     vm.passed_serial_number = {};
-
     vm.collect_imei_details = $rootScope.collect_imei_details;
     if(vm.permissions.receive_po_mandatory_fields) {
       angular.forEach(vm.permissions.receive_po_mandatory_fields.split(','), function(field){
@@ -1064,7 +1063,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.qc_details = qc_details;
     function qc_details() {
 
-      $state.go('app.inbound.RevceivePo.qc_detail');
+      // $state.go('app.inbound.RevceivePo.qc_detail');
       $timeout(function() {
         if(vm.permissions.grn_scan_option == "serial_scan") {
           focus('focusIMEI');
@@ -1080,12 +1079,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.imei_list = [];
     vm.model_data1 = {};
-    vm.po_qc_imei_scan = function(data1, index) {
-      data1.sku_details[0].fields = data1.sku_details[0].fields.toUpperCase();
+    vm.po_qc_imei_scan = function(data1, index, status) {
+      // data1.sku_details[0].fields = data1.sku_details[0].fields.toUpperCase();
       vm.current_index = index;
       vm.model_data1["sku_data"] = data1.sku_details[0].fields;
       vm.imei_list.push(data1.imei_number);
-      vm.accept_qc(data1, data1.imei_number);
+      if (status == 'pass') {
+        vm.accept_qc(data1, data1.imei_number);
+      } else {
+        vm.reject_qc(data1.imei_number);
+      }
       qc_details();
       data1.imei_number = "";
       $("input[attr-name='imei_"+data1.wms_code+"']").trigger('focus');
@@ -1200,7 +1203,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.passed_serial_number[record.wms_code] = [record.imei_number]
         }
         if (vm.po_qc) {
-          vm.po_qc_imei_scan(record, index)
+          vm.po_qc_imei_scan(record, index, status)
         } else {
           vm.po_imei_scan(record, record.imei_number)
         }
@@ -1211,6 +1214,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
         } else {
           vm.failed_serial_number[record.wms_code] = [record.imei_number]
+        }
+        if (vm.po_qc) {
+          vm.po_qc_imei_scan(record, index, status)
+        } else {
+          vm.po_imei_scan(record, record.imei_number)
         }
         vm.imei_list.push(record.imei_number);
         record.imei_number = '';
@@ -1743,7 +1751,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       fb.exists(data).then(function(po){
 
         console.log(po);
-        if(!po.status) {
+        if(!po.status || vm.permissions.dispatch_qc_check) {
           fb.push(data);
         } else {
           fb.poData = po.data;

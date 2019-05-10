@@ -1,5 +1,4 @@
 import xlsxwriter
-
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
@@ -9225,3 +9224,45 @@ def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
         log.debug(traceback.format_exc())
         log.info('Create order extra fields failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(extra_order_fields), str(e)))
+
+def get_mapping_values_po (wms_code = '',supplier_id ='',user ='') :
+    data = {}
+    try:
+        if wms_code.isdigit():
+            ean_number = wms_code
+            sku_supplier = SKUSupplier.objects.filter(Q(sku__ean_number=wms_code) | Q(sku__wms_code=wms_code),
+                                                      supplier_id=supplier_id, sku__user=user.id)
+        else:
+            ean_number = 0
+            sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, supplier_id=supplier_id, sku__user=user.id)
+        sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
+        sup_markdown = SupplierMaster.objects.get(id=supplier_id)
+        data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,
+                'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
+        if sku_supplier:
+            mrp_value = sku_master.mrp
+            if sku_supplier[0].costing_type == 'Margin Based':
+                margin_percentage = sku_supplier[0].margin_percentage
+                prefill_unit_price = mrp_value - ((mrp_value * margin_percentage)/100)
+                data['price'] = prefill_unit_price
+            else:
+                data['price'] = sku_supplier[0].price
+            data['supplier_code'] = sku_supplier[0].supplier_code
+            data['sku'] = sku_supplier[0].sku.sku_code
+            data['ean_number'] = ean_number
+            data['measurement_unit'] = sku_supplier[0].sku.measurement_type
+        else:
+            if int(sup_markdown.ep_supplier):
+                data['price'] = 0
+            mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
+            if mandate_supplier == 'true' and not int(sup_markdown.ep_supplier):
+                data['supplier_mapping'] = True
+        if sku_master.block_options == "PO":
+            if not int(sup_markdown.ep_supplier):
+                data = {}
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Getting po Values failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(wms_code), str(e)))
+    return data

@@ -82,12 +82,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.submit = function(data) {
     delete(vm.model_data.mrp)
     if (data.$valid) {
+      if(data.costing_type.$modelValue == 'Price Based' &&  data.price.$viewValue == '')
+      {
+        vm.service.pop_msg("Price  is Mandatory For Price Based");
+      }
+      else if (data.costing_type.$modelValue == 'Margin Based' &&  data.margin_percentage.$viewValue == '') {
+         vm.service.pop_msg("Margin Percentage is Mandatory For Margin Based")
+      }
+      else{
       if ("Add Supplier SKU Mapping" == vm.title) {
         vm.supplier_sku('insert_mapping/');
       } else {
         vm.model_data['data-id'] = vm.model_data.DT_RowId;
         vm.supplier_sku('update_sku_supplier_values/');
       }
+     }
     }
   }
 
@@ -121,8 +130,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.costing_type_list = data.costing_type;
         vm.model_data.costing_type = 'Price Based';
       }
-    }); 
+    });
   }
 
 }
-

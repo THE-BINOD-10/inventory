@@ -28,6 +28,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
         DTColumnBuilder.newColumn('EAN').withTitle('EAN'),
+	DTColumnBuilder.newColumn('MRP').withTitle('MRP'),
         DTColumnBuilder.newColumn('Zone').withTitle('Zone'),
         DTColumnBuilder.newColumn('Location').withTitle('Location'),
         DTColumnBuilder.newColumn('Available Quantity').withTitle('Available Quantity'),

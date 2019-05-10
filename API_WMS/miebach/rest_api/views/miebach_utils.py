@@ -2360,7 +2360,7 @@ def get_location_stock_data(search_params, user, sub_user):
     search_parameters['sku__user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
     distinct_list = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_brand']
-    lis = ['location__zone__zone', 'location__location', 'sku__ean_number', 'sku__wms_code', 'sku__sku_desc',
+    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__ean_number', 'batch_detail__mrp', 'location__zone__zone', 'location__location',
            'tsum', 'tsum', 'tsum']
     order_term = search_params.get('order_term', 0)
     col_num = search_params.get('order_index', 0)
@@ -2372,10 +2372,8 @@ def get_location_stock_data(search_params, user, sub_user):
         total_quantity = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
     if order_term:
         stock_detail = stock_detail.order_by(order_data)
-    #stock_detail = stock_detail.annotate(grouped_val=Concat('sku__sku_code', Value('<<>>'),
-    #                                                        'location__location',output_field=CharField()))
     stock_detail = OrderedDict(stock_detail.annotate(grouped_val=Concat('sku__sku_code', Value('<<>>'),
-                                                                 'location__location',output_field=CharField())).\
+                                                                 'location__location', Value('<<>>'), 'batch_detail__mrp' ,output_field=CharField())).\
                                     values_list('grouped_val').distinct().annotate(tsum=Sum('quantity')))
     results_data['recordsTotal'] = len(stock_detail)
     results_data['recordsFiltered'] = results_data['recordsTotal']
@@ -2384,18 +2382,18 @@ def get_location_stock_data(search_params, user, sub_user):
         stock_detail_keys = stock_detail_keys[start_index:stop_index]
     picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user=user.id).\
                              annotate(grouped_val=Concat('stock__sku__wms_code', Value('<<>>'),
-                                                         'stock__location__location',output_field=CharField())).\
+                             'stock__location__location', Value('<<>>'), 'stock__batch_detail__mrp', output_field=CharField())).\
                              values_list('grouped_val').distinct().annotate(reserved=Sum('reserved')))
     raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user=user.id).\
                         annotate(grouped_val=Concat('material_picklist__jo_material__material_code__wms_code',
-                                                    Value('<<>>'), 'stock__location__location',
-                                                    output_field=CharField())).values_list('grouped_val').distinct().\
+                        Value('<<>>'), 'stock__location__location', Value('<<>>'), 'stock__batch_detail__mrp',
+                        output_field=CharField())).values_list('grouped_val').distinct().\
                         annotate(rm_reserved=Sum('reserved')))
     for stock_detail_key in stock_detail_keys:
         total_stock_value = 0
         reserved = 0
         total = stock_detail[stock_detail_key]
-        sku_code, location = stock_detail_key.split('<<>>')
+        sku_code, location, mrp = stock_detail_key.split('<<>>')
         sku_master = SKUMaster.objects.get(sku_code=sku_code, user=user.id)
         location_master = LocationMaster.objects.get(location=location, zone__user=user.id)
         if stock_detail_key in picklist_reserved.keys():
@@ -2411,10 +2409,13 @@ def get_location_stock_data(search_params, user, sub_user):
             ean_num = ''
         results_data['aaData'].append(OrderedDict((('SKU Code', sku_master.sku_code), ('WMS Code', sku_master.wms_code),
                                                    ('Product Description', sku_master.sku_desc),
+                                                   ('EAN', str(ean_num)),
+                                                   ('MRP', mrp),
                                                    ('Zone', location_master.zone.zone),
                                                    ('Location', location_master.location), ('Total Quantity', total),
                                                    ('Available Quantity', quantity), ('Reserved Quantity', reserved),
-                                                   ('EAN', str(ean_num)))))
+                                                 ))
+                                     )
     return results_data, total_quantity
 
 

@@ -195,6 +195,14 @@
                             <div class="col-xs-{{html_data.totals_data.value_width}} text-right">
                               {{charge.charge_amount}}
                             </div>
+                            {% if charge.charge_tax_value %}
+                            <div class="col-xs-{{html_data.totals_data.label_width}} ">
+                              {{charge.charge_name}}{{ "  tax value"}}
+                            </div>
+                            <div class="col-xs-{{html_data.totals_data.value_width}} text-right">
+                              {{charge.charge_tax_value}}
+                            </div>
+                            {% endif %}
                           </div>
                           {% endfor %}
                           {% endif %}

@@ -4268,7 +4268,7 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
                      'description', 'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id',
                      'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected', 'is_sample',
                      'invoice_type', 'default_shipment_addr', 'manual_shipment_addr', 'sample_client_name',
-                     'mode_of_transport', 'payment_status', 'courier_name', 'order_discount']
+                     'mode_of_transport', 'payment_status', 'courier_name', 'order_discount','charge_tax_percent','charge_tax_value',]
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
     sku_master = {}
@@ -4383,6 +4383,7 @@ def construct_other_charge_amounts_map(created_order_id, myDict, creation_date, 
                 OrderCharges.objects.create(user_id=user.id, order_id=created_order_id,
                                             charge_name=myDict['charge_name'][i],
                                             charge_amount=myDict['charge_amount'][i],
+                                            charge_tax_value = myDict['charge_tax_value'][i],
                                             creation_date=creation_date)
                 other_charge_amounts += float(myDict['charge_amount'][i])
     return other_charge_amounts

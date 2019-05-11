@@ -420,6 +420,7 @@ class OrderCharges(models.Model):
     user = models.ForeignKey(User, blank=True, null=True)
     charge_name = models.CharField(max_length=128, default='')
     charge_amount = models.FloatField(default=0)
+    charge_tax_value = models.FloatField(default = 0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

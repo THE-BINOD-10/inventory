@@ -3200,10 +3200,15 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     total_invoice_amount = total_invoice
     if order_id:
         order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
-        order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'id'))
+        order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'charge_tax_value','id'))
         total_charge_amount = order_charge_obj.aggregate(Sum('charge_amount'))['charge_amount__sum']
+        total_charge_tax = order_charge_obj.aggregate(Sum('charge_tax_value'))['charge_tax_value__sum']
+
         if total_charge_amount:
             total_invoice_amount = float(total_charge_amount) + total_invoice
+        if total_charge_tax :
+            total_invoice_amount = float(total_charge_tax) + total_invoice_amount
+
 
     total_amt = "%.2f" % (float(total_invoice) - float(_total_tax))
     dispatch_through = "By Road"

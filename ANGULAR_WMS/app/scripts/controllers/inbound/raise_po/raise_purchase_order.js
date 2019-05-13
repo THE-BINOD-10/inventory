@@ -18,6 +18,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.industry_type = vm.user_profile.industry_type;
     vm.display_purchase_history_table = false;
     vm.warehouse_type = vm.user_profile.warehouse_type;
+    vm.cleared_data = true;
     vm.filters = {'datatable': 'RaisePO', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -561,7 +562,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
    }
 
    vm.get_supplier_sku_prices = function(sku) {
-
+     vm.cleared_data = true;
      var d = $q.defer();
      var data = {sku_codes: sku, suppli_id: vm.model_data.supplier_id}
      vm.service.apiCall("get_supplier_sku_prices/", "POST", data).then(function(data) {
@@ -576,8 +577,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
    }
 
    vm.get_tax_value = function(sku_data) {
-     if (sku_data.fields.supplier_Code) {
        var tax = 0;
+       if (vm.cleared_data) {
        for(var i = 0; i < sku_data.taxes.length; i++) {
 	 if(sku_data.fields.price <= sku_data.taxes[i].max_amt && sku_data.fields.price >= sku_data.taxes[i].min_amt) {
 	   if(vm.model_data.tax_type == "intra_state") {
@@ -599,9 +600,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 	   break;
          }
        }
+       }
        sku_data.tax = tax;
        return tax;
-     }
    }
 
     vm.get_sku_details = function(product, item, index) {
@@ -690,6 +691,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       product.fields.utgst_tax = "";
       product.fields.tax = "";
       product.taxes = [];
+      vm.cleared_data = false;
     }
 
     vm.key_event = function(product, item, index) {

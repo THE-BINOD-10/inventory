@@ -41,8 +41,7 @@
           <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group" ng-if="pop.permissions.increment_invoice && pop.model_data.temp_sequence_number">
               <label class="control-label">Invoice Number</label>
-              <input name="invoice_number" ng-model="pop.model_data.sequence_number" ng-if="pop.permissions.multi_warehouse" class="form-control" type="text" ng-required="true" decimal-number>
-              <input name="invoice_number" ng-model="pop.model_data.sequence_number" ng-if="!pop.permissions.multi_warehouse" class="form-control" type="text" ng-required="true" decimal-number readonly>
+              <input name="invoice_number" ng-model="pop.model_data.sequence_number"  class="form-control" type="text" ng-required="true" decimal-number readonly>
               <input name="marketplace" ng-model="pop.model_data.marketplace" value="{{pop.model_data.marketplace}}" class="form-control" type="hidden">
             </div>
           </div>

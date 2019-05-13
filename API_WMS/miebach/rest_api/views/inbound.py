@@ -2414,7 +2414,10 @@ def supplier_code_mapping(request, myDict, i, data, user=''):
             supplier_mapping.save()
         else:
             sku_supplier_create = SKUSupplier.objects.filter(sku__wms_code=myDict['wms_code'][i].upper(), sku__user=user.id).annotate(max_preference = Cast('preference', FloatField())).aggregate(Max('max_preference'))
-            sku_preference = int(sku_supplier_create.get('max_preference__max', 0) + 1)
+            sku_preference = 1
+            if sku_supplier_create['max_preference__max']:
+                sku_preference = sku_supplier_create['max_preference__max'] + 1
+            #sku_preference = int(sku_supplier_create.get('max_preference__max', 0) + 1)
             sku_mapping = {'supplier_id': data.open_po.supplier_id, 'sku': data.open_po.sku, 'preference': sku_preference, 'moq': 0,
                            'supplier_code': data.open_po.supplier_code, 'price': data.open_po.price,
                            'creation_date': datetime.datetime.now(),

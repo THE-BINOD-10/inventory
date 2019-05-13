@@ -18,6 +18,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.industry_type = vm.user_profile.industry_type;
     vm.display_purchase_history_table = false;
     vm.warehouse_type = vm.user_profile.warehouse_type;
+    vm.cleared_data = true;
     vm.filters = {'datatable': 'RaisePO', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -561,50 +562,48 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
    }
 
    vm.get_supplier_sku_prices = function(sku) {
-
+     vm.cleared_data = true;
      var d = $q.defer();
      var data = {sku_codes: sku, suppli_id: vm.model_data.supplier_id}
      vm.service.apiCall("get_supplier_sku_prices/", "POST", data).then(function(data) {
 
        if(data.message) {
-         d.resolve(data.data);
+	 if (!$.isEmptyObject(data.data)) {
+           d.resolve(data.data);
+	 }
        }
      });
      return d.promise;
    }
 
    vm.get_tax_value = function(sku_data) {
+       var tax = 0;
+       if (vm.cleared_data) {
+       for(var i = 0; i < sku_data.taxes.length; i++) {
+	 if(sku_data.fields.price <= sku_data.taxes[i].max_amt && sku_data.fields.price >= sku_data.taxes[i].min_amt) {
+	   if(vm.model_data.tax_type == "intra_state") {
+	     tax = sku_data.taxes[i].sgst_tax + sku_data.taxes[i].cgst_tax;
+	     sku_data.fields.sgst_tax = sku_data.taxes[i].sgst_tax;
+	     sku_data.fields.cgst_tax = sku_data.taxes[i].cgst_tax;
+	     sku_data.fields.igst_tax = 0;
+	     sku_data.fields.cess_tax = sku_data.taxes[i].cess_tax;
+	     sku_data.fields.apmc_tax = sku_data.taxes[i].apmc_tax;
+	   } else if (vm.model_data.tax_type == "inter_state") {
 
-     var tax = 0;
-     for(var i = 0; i < sku_data.taxes.length; i++) {
-
-       if(sku_data.fields.price <= sku_data.taxes[i].max_amt && sku_data.fields.price >= sku_data.taxes[i].min_amt) {
-
-         if(vm.model_data.tax_type == "intra_state") {
-
-           tax = sku_data.taxes[i].sgst_tax + sku_data.taxes[i].cgst_tax;
-           sku_data.fields.sgst_tax = sku_data.taxes[i].sgst_tax;
-           sku_data.fields.cgst_tax = sku_data.taxes[i].cgst_tax;
-           sku_data.fields.igst_tax = 0;
-           sku_data.fields.cess_tax = sku_data.taxes[i].cess_tax;
-           sku_data.fields.apmc_tax = sku_data.taxes[i].apmc_tax;
-         } else if (vm.model_data.tax_type == "inter_state") {
-
-           sku_data.fields.sgst_tax = 0;
-           sku_data.fields.cgst_tax = 0;
-           sku_data.fields.igst_tax = sku_data.taxes[i].igst_tax;
-           sku_data.fields.cess_tax = sku_data.taxes[i].cess_tax;
-           sku_data.fields.apmc_tax = sku_data.taxes[i].apmc_tax;
-           tax = sku_data.taxes[i].igst_tax;
+	     sku_data.fields.sgst_tax = 0;
+	     sku_data.fields.cgst_tax = 0;
+	     sku_data.fields.igst_tax = sku_data.taxes[i].igst_tax;
+	     sku_data.fields.cess_tax = sku_data.taxes[i].cess_tax;
+	     sku_data.fields.apmc_tax = sku_data.taxes[i].apmc_tax;
+	     tax = sku_data.taxes[i].igst_tax;
+	   }
+	   break;
          }
-         break;
        }
-     }
-
-     sku_data.tax = tax;
-     return tax;
+       }
+       sku_data.tax = tax;
+       return tax;
    }
-
 
     vm.get_sku_details = function(product, item, index) {
       console.log(item);
@@ -692,6 +691,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       product.fields.utgst_tax = "";
       product.fields.tax = "";
       product.taxes = [];
+      vm.cleared_data = false;
     }
 
     vm.key_event = function(product, item, index) {

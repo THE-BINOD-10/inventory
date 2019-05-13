@@ -567,7 +567,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
      vm.service.apiCall("get_supplier_sku_prices/", "POST", data).then(function(data) {
 
        if(data.message) {
-         d.resolve(data.data);
+	 if (!$.isEmptyObject(data.data)) {
+           d.resolve(data.data);
+	 }
        }
      });
      return d.promise;

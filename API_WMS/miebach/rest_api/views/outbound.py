@@ -9332,9 +9332,14 @@ def order_delete(request, user=""):
                 SellerOrder.objects.filter(order_id__in=seller_orders).update(status=0, order_status='PROCESSED')
                 order_detail_ids = list(set(order_detail_ids) - set(seller_orders))
             if order_detail_ids:
-                OrderDetail.objects.filter(id__in=order_detail_ids).delete()
-                # else:
-                #    order_detail.delete()
+                for order_detail_id in order_detail_ids:
+                    picked_qty_check = Picklist.objects.filter(order_id=order_detail_id, picked_quantity__gt=0)
+                    if not picked_qty_check.exists():
+                        OrderDetail.objects.filter(id=order_detail_id).delete()
+                    else:
+                        OrderDetail.objects.filter(id=order_detail_id).update(status=3)
+
+
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

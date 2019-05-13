@@ -1775,9 +1775,11 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
         qc_damaged.update(damaged_returns)
         accepted_imeis = list(POIMEIMapping.objects.filter(status=1, sku__user=user.id,
                                                      **filter_params).exclude(id__in=dispatched_imeis).values_list('id', flat=True))
-        rejected_imeis = list(QCSerialMapping.objects.filter(serial_number__purchase_order__open_po__sku__user=user.id,
+        po_rejected_imeis = list(QCSerialMapping.objects.filter(serial_number__purchase_order__open_po__sku__user=user.id,
                                                          status='rejected').values_list('serial_number_id', flat=True))
-        common_list = accepted_imeis + rejected_imeis
+        picklist_rejected_imeis = list(DispatchIMEIChecklist.objects.filter(final_status=0, po_imei_num__sku__user=user.id,
+                                                         qc_type='sales_order').values_list('po_imei_num_id', flat=True).distinct())
+        common_list = accepted_imeis + po_rejected_imeis + picklist_rejected_imeis
         filter_params['id__in'] = common_list
         if search_term:
             imei_data = POIMEIMapping.objects.filter(Q(sku__sku_code__icontains=search_term) |

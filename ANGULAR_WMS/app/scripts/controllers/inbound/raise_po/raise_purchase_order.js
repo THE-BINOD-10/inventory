@@ -574,35 +574,36 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
    }
 
    vm.get_tax_value = function(sku_data) {
-
+     if (sku_data.fields.supplier_Code) {
      var tax = 0;
      for(var i = 0; i < sku_data.taxes.length; i++) {
 
        if(sku_data.fields.price <= sku_data.taxes[i].max_amt && sku_data.fields.price >= sku_data.taxes[i].min_amt) {
 
-         if(vm.model_data.tax_type == "intra_state") {
+	 if(vm.model_data.tax_type == "intra_state") {
 
-           tax = sku_data.taxes[i].sgst_tax + sku_data.taxes[i].cgst_tax;
-           sku_data.fields.sgst_tax = sku_data.taxes[i].sgst_tax;
-           sku_data.fields.cgst_tax = sku_data.taxes[i].cgst_tax;
-           sku_data.fields.igst_tax = 0;
-           sku_data.fields.cess_tax = sku_data.taxes[i].cess_tax;
-           sku_data.fields.apmc_tax = sku_data.taxes[i].apmc_tax;
-         } else if (vm.model_data.tax_type == "inter_state") {
+	   tax = sku_data.taxes[i].sgst_tax + sku_data.taxes[i].cgst_tax;
+	   sku_data.fields.sgst_tax = sku_data.taxes[i].sgst_tax;
+	   sku_data.fields.cgst_tax = sku_data.taxes[i].cgst_tax;
+	   sku_data.fields.igst_tax = 0;
+	   sku_data.fields.cess_tax = sku_data.taxes[i].cess_tax;
+	   sku_data.fields.apmc_tax = sku_data.taxes[i].apmc_tax;
+	 } else if (vm.model_data.tax_type == "inter_state") {
 
-           sku_data.fields.sgst_tax = 0;
-           sku_data.fields.cgst_tax = 0;
-           sku_data.fields.igst_tax = sku_data.taxes[i].igst_tax;
-           sku_data.fields.cess_tax = sku_data.taxes[i].cess_tax;
-           sku_data.fields.apmc_tax = sku_data.taxes[i].apmc_tax;
-           tax = sku_data.taxes[i].igst_tax;
-         }
-         break;
+	   sku_data.fields.sgst_tax = 0;
+	   sku_data.fields.cgst_tax = 0;
+	   sku_data.fields.igst_tax = sku_data.taxes[i].igst_tax;
+	   sku_data.fields.cess_tax = sku_data.taxes[i].cess_tax;
+	   sku_data.fields.apmc_tax = sku_data.taxes[i].apmc_tax;
+	   tax = sku_data.taxes[i].igst_tax;
+	 }
+	 break;
        }
      }
 
      sku_data.tax = tax;
      return tax;
+     }
    }
 
 

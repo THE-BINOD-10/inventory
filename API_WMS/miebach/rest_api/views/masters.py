@@ -1261,7 +1261,10 @@ def insert_supplier(request, user=''):
             return HttpResponse('Email already exists')
         if rep_phone and request.POST['phone_number']:
             return HttpResponse('Phone Number already exists')
-
+        secondary_email_id = request.POST.get('secondary_email_id', '').split(',')
+        for mail in secondary_email_id:
+            if validate_supplier_email(mail):
+		return HttpResponse('Enter Correct Secondary Email ID')
         create_login = request.POST.get('create_login', '')
         password = request.POST.get('password', '')
         username = request.POST.get('username', '')

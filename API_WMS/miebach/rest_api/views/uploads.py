@@ -2036,12 +2036,13 @@ def validate_supplier_form(open_sheet, user_id):
                 for val in cell_data:
                     if val and validate_email(val):
                         index_status.setdefault(row_idx, set()).add('Enter Valid Secondary Email address')
+            elif key == 'account_number':
+                if not len(str(cell_data)) < 20:
+                    index_status.setdefault(row_idx, set()).add('Account Number has limit of 19')
             elif key in number_str_fields:
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % messages_dict[key])
-
-
     if not index_status:
         return 'Success'
 

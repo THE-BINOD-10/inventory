@@ -1,9 +1,10 @@
       {% load tag_extras %}
-
+  {% for title in titles %}
 <div>
   <style>
     {% include 'toggle/page1.css' %}
   </style>
+
   {% for page in data %}
   <div class="print-invoice2 mb20">
     <div class="invoice-body">
@@ -12,18 +13,20 @@
           <tr>
             <td colspan="2">
               <h3 class="m0" align="center"><b>Delivery Note</b></h3>
+              {{ title }}
             </td>
+
           </tr>
           <tr>
             <td colspan="2">
               <h3 class="m0" align="center"><b>{{company_name}}</b></h3>
-              <p class="m0" align="center"> {{company_address}} </p>
-              <p class="m0" align="center">G.S.T No: {{gstin_no}} , Tel: {{company_number}}</p>
+              <p class="m0" align="center"> {{company_address}},Email:{{email}} </p>
+              <p class="m0" align="center">G.S.T No: {{gstin_no}}, PAN No .{{ company_pan_number }}, Tel: {{company_number}}</p>
             </td>
           </tr>
           <tr>
             <td style="width: 50%" rowspan="2">
-              <div class="row m0" style="height: 100px;overflow: hidden;">
+              <div class="row m0" style="height: 150px;overflow: hidden;">
                 <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
                   <div class="col-md-12 p0">
                     <h4 class="m0"><b>To:</b></h4>
@@ -55,6 +58,10 @@
                     {% if customer_details.0.email_id %}
                     <p class="fs14 m0" m0 ng-if="showCase.pdf_data.customer_details[0].email_id">
                       <b>Email: </b>{{customer_details.0.email_id}}</p>
+                    {% endif %}
+                    {% if customer_details.0.pan_number %}
+                    <p class="fs14 m0" m0 ng-if="showCase.pdf_data.customer_details[0].pan_number">
+                      <b>PAN No.: </b>{{customer_details.0.pan_number}}</p>
                     {% endif %}
                   </div>
                   {% endif %}
@@ -165,3 +172,4 @@
   </div>
   {% endfor %}
 </div>
+{% endfor %}

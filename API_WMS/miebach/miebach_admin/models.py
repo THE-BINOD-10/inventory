@@ -3194,3 +3194,13 @@ class ClusterSkuMapping(models.Model):
 
     class Meta:
         db_table = 'CLUSTER_SKU_MAPPING'
+
+class Pofields(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    po_number = models.CharField(max_length=128, default='')
+    receipt_no = models.CharField(max_length = 34 ,default = 1)
+    name = models.CharField(max_length=256, default='')
+    value = models.CharField(max_length=256, default='')
+    class Meta:
+        db_table = 'PO_FIELDS'

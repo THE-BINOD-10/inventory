@@ -109,6 +109,19 @@
                   <span>D/C..:</span>
                 </div>
               </div>
+              <div class="row m0">
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 text-left">
+                  <span>Name Of Corrier:</span><br>
+                  <span>LR/GC NOTE NO.:</span><br>
+                  <span>VEHICLE NO.:</span><br>
+                  <span>PACKING REF.:</span>
+                </div>
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 text-right">
+                  {% for key , value in grn_extra_field_dict.items %}
+                  <span>{{key}}:</span>    {{ value }}<br>
+                  {% endfor %}
+                </div>
+              </div>
             </td>
             <td class="fs14" colspan="5">
               <div class="row m0">
@@ -131,23 +144,11 @@
                   <span class="pull-right">{{net_amount }}</span></h5>
                   </div>
                 </div>
-              </div>
-            </td>
-          </tr>
-          <tr>
-            <td class="fs14" colspan="3">
-              <div class="row m0">
-                <div class="col-xs-12 text-left">
-                  <span>NAME OF CORRIER:</span><br>
-                  <span>LR/GC NOTE NO.:</span><br>
-                  <span>VEHICLE NO.:</span><br>
-                  <span>PACKING REF.:</span>
+                <div class="row m0">
+                <h5 class="m0">For {{ company_name }}</h5></br></br>
+                <h5 class="m0">SIGNATURE OF RECIEVER</h5>
                 </div>
               </div>
-            </td>
-            <td class="fs14 text-center" colspan="5">
-              <h5 class="m0">For {{ company_name }}</h5></br></br>
-              <h5 class="m0">SIGNATURE OF RECIEVER</h5>
             </td>
           </tr>
           {% endif %}

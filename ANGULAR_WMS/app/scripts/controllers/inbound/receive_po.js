@@ -312,7 +312,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       } else {
         var shelf_life = vm.model_data.data[parent_index][index].shelf_life;
         if(!shelf_life || shelf_life=='') {
-          shelf_life = 0; 
+          shelf_life = 0;
         }
         if (shelf_life && shelf_life_ratio) {
           var res_days = (shelf_life * (shelf_life_ratio / 100));
@@ -476,6 +476,29 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
        return d.promise;
     }
+    vm.get_grn_extra_fields = function(){
+      vm.service.apiCall("get_grn_extra_fields/").then(function(data){
+        if(data.message) {
+          vm.grn_extra_fields = data.data.data;
+          if(vm.grn_extra_fields[0] == '')
+          {
+            vm.grn_fields = false
+          }
+          else{
+            vm.grn_exta_model ={}
+            vm.grn_fields = true
+             for(var i =0 ; i< vm.grn_extra_fields.length; i++)
+             {
+                vm.grn_exta_model[vm.grn_extra_fields[i]] = '';
+
+             }
+
+           }
+          }
+        })
+      }
+
+    vm.get_grn_extra_fields();
 
     vm.get_tax_value = function(sku_data) {
 
@@ -2484,7 +2507,7 @@ function receive_qcitems($scope, $http, $state, $timeout, Session, colFilters, S
     list_val['comment'] = '';
   })
   vm.serial_number_scanned = items['serial_number_scanned']
-  
+
   vm.qcitemstatus = function (keys, values){
     for(var i=0; i < Object.keys(vm.sku_details).length; i++) {
       if(Object.keys(vm.sku_details)[i] == values) {
@@ -2543,7 +2566,7 @@ function receive_qcitems($scope, $http, $state, $timeout, Session, colFilters, S
     vm.service.showNoty("success");
     $modalInstance.close(validation_status);
   }
-  
+
   vm.totalData("")
 
   vm.ok = function (msg) {

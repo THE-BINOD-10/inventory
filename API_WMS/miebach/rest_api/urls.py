@@ -194,6 +194,8 @@ urlpatterns = [
     url(r'^update_existing_grn/$', update_existing_grn),
     url(r'^confirm_central_po/$', confirm_central_po),
     url(r'^check_sku_pack_scan/$', check_sku_pack_scan),
+    url(r'^get_grn_extra_fields/$', get_grn_extra_fields),
+
 
 
     # Production
@@ -584,6 +586,8 @@ urlpatterns += [
     url(r'^update_invoice_sequence/$', update_invoice_sequence),
     url(r'^update_mail_alerts/$', update_mail_alerts),
     url(r'^pos_extra_fields/$',pos_extra_fields),
+    url(r'^save_grn_fields/$',save_grn_fields),
+
 
     # manage users
     url(r'^add_user/$', add_user),

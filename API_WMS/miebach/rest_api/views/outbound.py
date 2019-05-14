@@ -11430,6 +11430,11 @@ def generate_customer_invoice_tab(request, user=''):
         return_data = request.GET.get('data', '')
         delivery_challan = request.GET.get('delivery_challan', '')
         if delivery_challan == "true":
+            titles = ['']
+            title_dat = get_misc_value('invoice_titles', user.id)
+            if not title_dat == 'false':
+                titles = title_dat.split(",")
+            invoice_data['titles'] = titles
             invoice_data['total_items'] = len(invoice_data['data'])
             invoice_data['data'] = pagination(invoice_data['data'])
             invoice_data['username'] = user.username
@@ -11655,6 +11660,11 @@ def generate_customer_invoice(request, user=''):
         return_data = request.GET.get('data', '')
         delivery_challan = request.GET.get('delivery_challan', '')
         if delivery_challan == "true":
+            titles = ['']
+            title_dat = get_misc_value('invoice_titles', user.id)
+            if not title_dat == 'false':
+                titles = title_dat.split(",")
+            invoice_data['titles'] = titles
             invoice_data['total_items'] = len(invoice_data['data'])
             invoice_data['data'] = pagination(invoice_data['data'])
             invoice_data['username'] = user.username

@@ -3191,6 +3191,22 @@ def confirm_grn(request, confirm_returns='', user=''):
                             + '/' + str(seller_receipt_id)
             else:
                 po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id)
+            grn_extra_fields_obj = grn_extra_fields(user)
+            grn_extra_field_dict = {}
+            if grn_extra_fields_obj :
+                for field in grn_extra_fields_obj :
+                    value = request.POST.get('grn_field_'+field ,'')
+                    grn_extra_field_dict[field]= value
+                    if not seller_receipt_id :
+                        seller_receipt_id = 0
+                    grn_obj = Pofields.objects.filter(user= user.id,po_number = data.order_id,receipt_no= seller_receipt_id,name=field)
+                    if grn_obj.exists():
+                       grn_obj = grn_obj[0]
+                       grn_obj.value = value
+                       grn_obj.save()
+                    else:
+                        Pofields.objects.create(user= user.id,po_number = data.order_id,receipt_no= seller_receipt_id,name=field,value=value)
+
             dc_level_grn = request.POST.get('dc_level_grn', '')
             if dc_level_grn == 'on':
                 bill_no = request.POST.get('dc_number', '')
@@ -3206,7 +3222,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'total_price': total_price, 'total_tax': total_tax,
                                 'overall_discount':overall_discount,
                                 'net_amount':float(total_price) - float(overall_discount),
-                                'address': address,
+                                'address': address,'grn_extra_field_dict':grn_extra_field_dict,
                                 'company_name': profile.company_name, 'company_address': profile.address,
                                 'po_number': po_number, 'bill_no': bill_no,
                                 'order_date': order_date, 'order_id': order_id,
@@ -5047,7 +5063,6 @@ def confirm_add_po(request, sales_data='', user=''):
                 vendor_master = VendorMaster.objects.get(vendor_id=value['vendor_id'], user=user.id)
                 po_suggestions['vendor_id'] = vendor_master.id
                 po_suggestions['order_type'] = 'VR'
-
             data1 = OpenPO(**po_suggestions)
             data1.save()
             purchase_order = OpenPO.objects.get(id=data1.id, sku__user=user.id)
@@ -5146,6 +5161,7 @@ def confirm_add_po(request, sales_data='', user=''):
         supplier_email = purchase_order.supplier.email_id
         phone_no = purchase_order.supplier.phone_number
         gstin_no = purchase_order.supplier.tin_number
+        supplier_pan = purchase_order.supplier.pan_number
         po_exp_duration = purchase_order.supplier.po_exp_duration
         order_date = get_local_date(request.user, order.creation_date)
         if po_exp_duration:
@@ -5175,7 +5191,7 @@ def confirm_add_po(request, sales_data='', user=''):
                      'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
                      'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
                      'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number, 'wh_pan': profile.pan_number,
-                     'terms_condition': terms_condition,
+                     'terms_condition': terms_condition,'supplier_pan':supplier_pan,
                      'company_address': company_address.encode('ascii', 'ignore'),
                      'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
         if round_value:
@@ -9539,3 +9555,16 @@ def download_grn_invoice_mapping(request, user=''):
     resp = HttpResponse(stringio.getvalue(), content_type="application/x-zip-compressed")
     resp['Content-Disposition'] = 'attachment; filename=%s' % zip_filename
     return resp
+
+@login_required
+@get_admin_user
+def get_grn_extra_fields(request , user =''):
+    extra_grn_fields = grn_extra_fields(user)
+    return HttpResponse(json.dumps({'data':extra_grn_fields }))
+
+def grn_extra_fields(user):
+    extra_grn_fields = []
+    grn_field_obj = get_misc_value('grn_fields', user.id)
+    if not grn_field_obj == 'false':
+        extra_grn_fields = grn_field_obj.split(',')
+    return extra_grn_fields

@@ -2147,7 +2147,7 @@ STOCK_TRANSFER_ORDER_MAPPING = OrderedDict((
                                    ))
 
 CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((
-                                      ('Courtesy SR Number', 'original_order_id'),
+                                      ('Main SR Number', 'original_order_id'),
                                       ('Customer Name', 'customer_name'), ('Address', 'address'),
                                       ('City', 'city'), ('Pincode', 'pincode'),
                                       ('Customer primary contact', 'mobile_no'), ('Customer emailId', 'email_id'),

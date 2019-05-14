@@ -8674,7 +8674,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
                           filters={}, user_dict={}):
     un_sort_dict = {7: 'Status'}
     lis = ['interm_order_id', 'interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'project_name', 'remarks',
-           'order_assigned_wh__username', 'status', 'id','creation_date']
+           'order_assigned_wh__username', 'status', 'id','creation_date', 'sku__sku_code']
     data_dict = {'user': user.id, 'quantity__gt': 0}
     status_map = {'1': 'Accept', '0': 'Reject','2': 'Pending'}
     if not col_num: col_num = 0
@@ -8698,10 +8698,10 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
             all_orders = all_orders[start_index:stop_index]
     ord_items = all_orders.only('interm_order_id', 'order__original_order_id', 'order_assigned_wh__username',
                                    'status', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'id',
-                                   'creation_date', 'project_name', 'remarks')\
+                                   'creation_date', 'project_name', 'remarks', 'alt_sku__sku_code')\
         .values('interm_order_id', 'order__original_order_id', 'order_assigned_wh__username', 'status',
                      'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'id',
-                     'creation_date', 'project_name', 'remarks')
+                     'creation_date', 'project_name', 'remarks', 'alt_sku__sku_code')
     '''line_items_map = {}
     for item in ord_items:
         interm_order_id = item[0]
@@ -8715,6 +8715,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
     for dat in ord_items[start_index:stop_index]:
         #order_id ,loan_proposal_id, assigned_wh, status, sku_code, sku_desc, quantity, shipment_date, \
         #id, creation_date, project_name, remarks = dat[0]
+        alternate_sku = ''
         order_date = get_local_date(user, dat['creation_date'])
         shipment_date = dat['shipment_date'].strftime("%d/%m/%Y")
         status = dat['status']
@@ -8723,6 +8724,9 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
         else:
             status = 'Pending'
         if user.username == 'one_assist':
+            alternate_sku = dat['sku__sku_code']
+            if dat['alt_sku__sku_code']:
+                alternate_sku = dat['alt_sku__sku_code']
             ord_val = OrderFields.objects.filter(order_type='intermediate_order', name='original_order_id',
                                                  original_order_id=dat['interm_order_id'])
             if ord_val:
@@ -8736,7 +8740,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
                          ('Product Quantity', dat['quantity']), ('Shipment Date', shipment_date), ('data_id', dat['id']),
                          ('Project Name', dat['project_name']), ('Remarks', dat['remarks']),
                          ('Warehouse', dat['order_assigned_wh__username']), ('Status', status), ('Order Date',order_date),
-                         ('Loan Proposal ID', loan_proposal_id), ('id', index), ('DT_RowClass', 'results'))))
+                         ('Loan Proposal ID', loan_proposal_id), ('Alternative Sku', alternate_sku), ('id', index), ('DT_RowClass', 'results'))))
         index += 1
 
     col_headers = ['Order ID', 'SKU Code', 'SKU Desc', 'Product Quantity', 'Shipment Date', 'Project Name', 'Remarks',

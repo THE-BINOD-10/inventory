@@ -6448,6 +6448,8 @@ def confirm_receive_qc(request, user=''):
                                     data.order_id),
                                 'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class, 'bill_date': str(bill_date)}
+            if oneassist_condition == 'true':
+                report_data_dict['sr_number'] = myDict['main_sr_number'][0]
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')

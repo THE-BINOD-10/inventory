@@ -244,7 +244,7 @@ def get_order_mapping(reader, file_type):
     order_mapping = {}
     if get_cell_data(0, 0, reader, file_type) == 'Central Order ID':
         order_mapping = copy.deepcopy(CENTRAL_ORDER_EXCEL)
-    elif get_cell_data(0, 0, reader, file_type) == 'Courtesy SR Number':
+    elif get_cell_data(0, 0, reader, file_type) == 'Main SR Number':
         order_mapping = copy.deepcopy(CENTRAL_ORDER_EXCEL_ONE_ASSIST)
     elif get_cell_data(0, 0, reader, file_type) == 'Warehouse Name':
         order_mapping = copy.deepcopy(STOCK_TRANSFER_ORDER_EXCEL)
@@ -5848,7 +5848,7 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
             except:
                 original_order_id = str(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type))
             if not original_order_id:
-                index_status.setdefault(count, set()).add('Courtesy SR Number is mandatory')
+                index_status.setdefault(count, set()).add('Main SR Number is mandatory')
         if order_mapping.has_key('customer_name'):
             customer_name = str(get_cell_data(row_idx, order_mapping['customer_name'], reader, file_type))
             if not customer_name:

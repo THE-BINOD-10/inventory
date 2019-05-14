@@ -115,9 +115,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var toggle = DTColumnBuilder.newColumn('PO No').withTitle(' ').notSortable().notVisible();
     }
     if(vm.permissions.dispatch_qc_check) {
-      vm.dtColumns.push(DTColumnBuilder.newColumn('SR Number').withTitle('Courtesy SR Number'))
+      vm.dtColumns.push(DTColumnBuilder.newColumn('SR Number').withTitle('Main SR Number'))
     }else {
-      vm.dtColumns.pop(DTColumnBuilder.newColumn('SR Number').withTitle('Courtesy SR Number'))
+      vm.dtColumns.pop(DTColumnBuilder.newColumn('SR Number').withTitle('Main SR Number'))
     }
     vm.dtColumns.unshift(toggle);
     vm.dtInstance = {};
@@ -173,6 +173,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               // vm.supplier_id = aData['DT_RowId'];
               vm.round_off = false;
                 vm.supplier_id = aData['Supplier ID/Name'].split('/')[0];
+                if (vm.permissions.dispatch_qc_check) {
+                  vm.main_sr_number = aData['SR Number']
+                } else {
+                  vm.main_sr_number = ''
+                }
                 vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
                   if(data.message) {
                     vm.serial_numbers = [];
@@ -708,6 +713,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
           if (!$.isEmptyObject(vm.failed_serial_number)) {
             var elem_dict = {'name':'failed_serial_number', 'value': JSON.stringify(vm.failed_serial_number)}
+            elem.push(elem_dict)
+          }
+          if (vm.main_sr_number) {
+            var elem_dict = {'name':'main_sr_number', 'value': vm.main_sr_number}
             elem.push(elem_dict)
           }
         }

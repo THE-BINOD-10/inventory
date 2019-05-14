@@ -54,7 +54,7 @@
               </select>
             </div>
           </div>
-          <div class="hide" ng-if="showCase.permissions.user_type=='central_admin' || showCase.permissions.user_type=='admin_sub_user' || showCase.permissions.user_type=='sm_purchase_admin'">
+          <div class="hide" ng-if="(showCase.permissions.user_type=='central_admin' && showCase.permissions.add_networkmaster) || showCase.permissions.user_type=='admin_sub_user' || showCase.permissions.user_type=='sm_purchase_admin'">
               <select class="form-control pull-right" ng-init="showCase.g_data.view='Available+ASN'" ng-model="showCase.g_data.view" ng-change="showCase.change_datatable()">
                 <option ng-repeat="view in showCase.g_data.views" value="{{view}}" ng-selected="view == Available+ASN"> {{view}}</option>
               </select>

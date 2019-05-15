@@ -46,13 +46,21 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr ng-repeat="data in showCase.model_data.updated_skus">
+                  <tr ng-repeat="data in showCase.model_data.updated_skus" ng-init="outerIndex=$index">
                     <input type="hidden" class="form-control" value="{{data.id}}" name="id">
                     <td><input type="text" class="form-control" value="{{data.wms_code}}" name="location" disabled></td>
                     <td><input type="text" class="form-control" value="{{data.location}}" name="location" disabled></td>
                     <td><input type="number" class="form-control" value="{{data.quantity}}" name="quantity" disabled></td>
                     <td><input type="text" ng-model="data.unit" name="unit" class="form-control" readonly></td>
-                    <td><input type="text" class="form-control" ng-model="data.accepted_quantity" name="accepted_quantity" ng-class="service.get_decimal_perm()" ng-change="showCase.checkQty(data)" ng-readonly="showCase.permissions.use_imei || data.acc_qty"></td>
+                    <td><input type="text" class="form-control"
+                                            ng-model="data.accepted_quantity" name="accepted_quantity"
+                                            ng-class="service.get_decimal_perm()"
+                                            ng-change="showCase.checkQty(data)"
+                                            ng-readonly="showCase.permissions.use_imei || data.acc_qty"
+                                            ng-focus="showCase.quantity_focused=true;showCase.get_current_weight($event, showCase.model_data, outerIndex)"
+                                            ng-blur="showCase.quantity_focused=false"
+                                             >
+                    </td>
                     <td><input type="text" class="form-control" ng-model="data.rejected_quantity" name="rejected_quantity" ng-class="service.get_decimal_perm()" ng-readonly="showCase.permissions.use_imei"></td>
                     <td>
                       <input type="text" class="form-control" ng-model="data.reason" name="reason">

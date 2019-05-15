@@ -10,6 +10,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.industry_type = Session.user_profile.industry_type;
     vm.extra_width = {};
+    vm.quantity_focused = false;
 
     vm.filters = {'datatable': 'QualityCheck', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -116,6 +117,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.qc_details = qc_details;
     function qc_details() {
       $state.go('app.inbound.QualityCheck.qc_detail');
+    }
+
+    vm.get_current_weight = function(event, data, index) {
+      if(vm.permissions.weight_integration_name.length > 0) {
+        vm.service.apiCall('get_current_weight/', 'GET',{}).then(function(res_data){
+          if(res_data.message){
+            if(res_data.data.status && res_data.data.is_updated){
+              if(res_data.data.weight >data.data[index].quantity)
+              {
+                vm.service.showNoty('Weighed Quantity is Greater than QC Qunatity '+data.data[index].quantity);
+              }
+              else
+              {
+               data.data[index].accepted_quantity = res_data.data.weight;
+              }
+            }
+            if(vm.quantity_focused) {
+              setTimeout(function(){ vm.get_current_weight(event, data, index, parent_index); }, 1000);
+            }
+          }
+        });
+      }
     }
 
     vm.getSku = function (field) {

@@ -93,7 +93,7 @@ def create_update_sku(all_skus, all_users):
                         'product_type': sku.product_type, 'online_percentage': sku.online_percentage,
                         'mrp': sku.mrp, 'sequence': sku.sequence, 'status': sku.status,
                         'measurement_type': sku.measurement_type, 'sale_through': sku.sale_through,
-                        'hsn_code': sku.hsn_code,
+                        'hsn_code': sku.hsn_code, 'youtube_url': sku.youtube_url,
                         }
             new_sku_dict = copy.deepcopy(update_sku_dict)
             new_sku_dict.update({'discount_percentage': sku.discount_percentage, 'price': sku.price,

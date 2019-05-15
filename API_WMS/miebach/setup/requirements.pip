@@ -35,3 +35,4 @@ ipaddress==1.0.22
 httplib2==0.12.1
 paho-mqtt==1.4.0
 lxml==3.3.3
+idna==2.8

@@ -1,0 +1,63 @@
+<div id="page-pop">
+  <form name="FeedbackviewDetail" role="form" ui-jq="validate" ui-options="validationOpt">
+    <div class="model-custom">
+      <div class="mw60">
+        <div ng-include="'views/common/loader.html'"></div>
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="pop.ok()"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title"><i class="fa fa-youtube" style="font-size: 22px;"></i></h4>
+        </div>
+        <!-- body-->
+        <div class="mb10" style="padding: 15px;">
+          <div class="detail-list" style="border:none;">
+            <div class="detail-item mb5">
+              <div class="text-center mb15" ng-if = "pop.state_data">
+                <iframe id="youtube_iframe" frameborder="0" scrolling="no" marginheight="0" marginwidth="0"width="801" height="450" type="text/html">
+                  <div>
+                    <small>
+                      <a href="https://youtubeembedcode.com/pl/">youtubeembedcode.com/pl/</a>
+                    </small>
+                  </div>
+                  <div>
+                    <small>
+                      <a href="http://add-link-exchange.com">http://add-link-exchange.com</a>
+                    </small>
+                  </div>
+                  <div>
+                    <small>
+                      <a href="https://youtubeembedcode.com/es/">youtubeembedcode.com/es/</a>
+                    </small>
+                  </div>
+                  <div>
+                    <small>
+                      <a href="http://add-link-exchange.com">http://add-link-exchange.com</a>
+                    </small>
+                  </div>
+                  <div>
+                    <small>
+                      <a href="https://youtubeembedcode.com/de/">youtubeembedcode de</a>
+                    </small>
+                  </div>
+                  <div>
+                    <small>
+                      <a href="http://add-link-exchange.com">ranking websites</a>
+                    </small>
+                  </div>
+                </iframe>
+              </div>
+              <div class="text-center mb15" ng-if = "!pop.state_data">
+                <h4 class="modal-title" style="color: crimson;">---- NO Video FOUND ----</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- <div class="modal-footer">
+          <div class="form-group" style="margin-bottom:0px;">
+            <button type="button" class="btn pop pop-red" ng-click="pop.ok()">Close
+            </button>
+          </div>
+        </div> -->
+      </div>
+    </div>
+  </form>
+</div>

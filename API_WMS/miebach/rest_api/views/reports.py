@@ -45,7 +45,21 @@ def get_report_data(request, user=''):
                                                          .values_list('stage_name', flat=True))
             data['filters'][data_index]['values'].extend(
                 ['Picked', 'Putaway pending', 'Picklist Generated', 'Created', 'Partially Picked'])
-    elif report_name == 'order_summary_report' or report_name == 'po_report' or report_name == 'open_order_report' :
+    elif report_name in ['order_summary_report','po_report','open_order_report','stock_cover_report']  :
+        if report_name == 'order_summary_report' :
+            from common import get_misc_value
+            extra_order_fields = get_misc_value('extra_order_fields', user.id)
+            data = copy.deepcopy(data)
+            milkbasket_users = copy.deepcopy(MILKBASKET_USERS)
+            if user.username in milkbasket_users :
+                data['dt_headers'].append("Cost Price")
+            if extra_order_fields == 'false' :
+                extra_order_fields = []
+            else:
+                extra_order_fields = extra_order_fields.split(',')
+                for header in extra_order_fields :
+                    if header not in data['dt_headers'] :
+                        data['dt_headers'].append(header)
         if 'marketplace' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'marketplace' in person['name'], data['filters'])[0])
@@ -207,7 +221,6 @@ def get_dispatch_filter(request, user=''):
 def get_order_summary_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_order_summary_data(search_params, user, request.user)
-
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 
@@ -481,10 +494,8 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
     status_dict = {'0': 'Inactive', '1': 'Active'}
     temp_data['draw'] = search_params.get('draw')
     marketplace = ''
-    if 'from_date' in search_params:
-        from_date = search_params['from_date'].split('/')
-        search_parameters['creation_date__startswith'] = datetime.date(int(from_date[2]), int(from_date[0]),
-                                                                       int(from_date[1]))
+    if 'creation_date' in search_params:
+        search_parameters['creation_date__gt'] = search_params['creation_date']
     if 'sku_code' in search_params:
         search_parameters['sku__sku_code'] = search_params['sku_code'].upper()
     if 'wms_code' in search_params:
@@ -1305,6 +1316,14 @@ def get_open_order_report(request, user=''):
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_stock_cover_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_stock_cover_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt
 @login_required
@@ -1341,6 +1360,19 @@ def print_open_order_report(request, user=''):
     search_parameters = {}
     headers, search_params, filter_params = get_search_params(request)
     report_data = get_open_order_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_stock_cover_report(request, user=''):
+    html_data = {}
+    search_parameters = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_stock_cover_report_data(search_params, user, request.user)
     report_data = report_data['aaData']
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)
@@ -1612,6 +1644,46 @@ def print_bulk_to_retail_report(request, user=''):
     search_parameters = {}
     headers, search_params, filter_params = get_search_params(request)
     report_data = get_bulk_to_retail_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_stock_reconciliation_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_stock_reconciliation_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_margin_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_margin_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@get_admin_user
+def print_stock_reconciliation_report(request, user=''):
+    html_data = {}
+    search_parameters = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_stock_reconciliation_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+
+def print_margin_report(request, user=''):
+    html_data = {}
+    search_parameters = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_margin_report_data(search_params, user, request.user)
     report_data = report_data['aaData']
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)

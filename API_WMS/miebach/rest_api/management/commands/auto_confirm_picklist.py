@@ -15,7 +15,7 @@ from itertools import chain
 from miebach_admin.models import *
 from rest_api.views.common import get_exclude_zones, get_misc_value, get_picklist_number, \
     get_sku_stock, get_stock_count, save_sku_stats, change_seller_stock, check_picklist_number_created, \
-    update_stocks_data, get_max_seller_transfer_id
+    update_stocks_data, get_max_seller_transfer_id, get_financial_year
 from rest_api.views.outbound import get_seller_pick_id
 from rest_api.views.miebach_utils import MILKBASKET_USERS, PICKLIST_FIELDS, ST_ORDER_FIELDS
 
@@ -80,6 +80,7 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
         order = order_data.order
     picklist_data['picklist_number'] = picklist_number + 1
     picklist_data['remarks'] = 'Auto Confirmed Picklist'
+    financial_year = get_financial_year(datetime.datetime.now())
 
 
     combo_sku_ids = list(sku_combos.filter(parent_sku_id=order.sku_id).\
@@ -216,13 +217,14 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
             stock.save()
             if seller_order:
                 change_seller_stock(seller_order.seller_id, stock, user, stock_count, 'dec')
-            save_sku_stats(user, stock.sku_id, new_picklist.id, 'picklist', stock_count)
+            save_sku_stats(user, stock.sku_id, new_picklist.id, 'picklist', stock_count, stock)
             if not seller_pick_number:
                 seller_pick_number = get_seller_pick_id(new_picklist, user)
             if seller_order:
                 SellerOrderSummary.objects.create(picklist_id=new_picklist.id, pick_number=seller_pick_number,
                                                   quantity=stock_count, seller_order_id=seller_order.id,
-                                                  creation_date=datetime.datetime.now())
+                                                  creation_date=datetime.datetime.now(),
+                                                  financial_year=financial_year)
             if not stock_diff:
                 if seller_order:
                     seller_order.status = 0

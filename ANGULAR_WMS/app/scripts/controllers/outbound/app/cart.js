@@ -144,7 +144,7 @@ vm.update_cartdata_for_approval = function() {
   vm.update_customer_cart_data = function(data) {
 
     if (vm.order_exceed_stock){
-      if (data.available_stock <= data.quantity){
+      if (data.available_stock < data.quantity){
         data.quantity = 1;//data.available_stock;
         vm.service.showNoty("Order quantity can't exceed available stock.");
       }
@@ -220,7 +220,15 @@ vm.update_cartdata_for_approval = function() {
       } else {
         vm.order_data_insertion(data_dict);
       }
-    } else {
+    }else if(data_dict && data_dict.is_central_order){
+      if (!(vm.model_data.client_name_header)){
+        vm.service.showNoty("Project Name is mandatory")
+      } else if (!(vm.model_data.shipment_date)) {
+        vm.service.showNoty("The Shipment Date is Required. Please Select", "success", "bottomRight");
+      } else {
+        vm.order_data_insertion(data_dict);
+      }
+    }else {
       if (!(vm.model_data.shipment_date)) {
 
         vm.service.showNoty("The Shipment Date is Required. Please Select", "success", "bottomRight");
@@ -521,7 +529,7 @@ vm.update_cartdata_for_approval = function() {
             return false;
           }
           vm.place_order_loading = true;
-          var send = {'name': vm.model_data.client_name_header};
+          var send = {'name': vm.model_data.client_name_header, 'remarks': vm.model_data.remarks};
           Service.apiCall("insert_enquiry_data/", "POST", send).then(function(data){
 
             if(data.message) {

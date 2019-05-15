@@ -21,27 +21,39 @@ log = init_logger('logs/masters.log')
 
 # Create your views here.
 
-def save_image_file(image_file, data, user, extra_image='', saved_file_path='', file_name=''):
+def save_image_file(image_file, data, user, extra_image='', saved_file_path='', file_name='', image_model='sku'):
     extension = image_file.name.split('.')[-1]
     path = 'static/images/'
     folder = str(user.id)
-    image_name = str(data.wms_code).replace('/', '--')
-    if extra_image:
-        image_name = image_file.name.strip('.' + image_file.name.split('.')[-1])
-    if not os.path.exists(path + folder):
-        os.makedirs(path + folder)
-    full_filename = os.path.join(path, folder, str(image_name) + '.' + str(extension))
-    fout = open(full_filename, 'wb+')
-    file_content = ContentFile(image_file.read())
-
+    folder_in = '/cluster'
+    if image_model == 'sku':
+        image_name = str(data.wms_code).replace('/', '--')
+        if extra_image:
+            image_name = image_file.name.strip('.' + image_file.name.split('.')[-1])
+        if not os.path.exists(path + folder):
+            os.makedirs(path + folder)
+        full_filename = os.path.join(path, folder, str(image_name) + '.' + str(extension))
+        fout = open(full_filename, 'wb+')
+        file_content = ContentFile(image_file.read())
+    elif image_model == 'cluster':
+        image_name = str(data.cluster_name).replace('/', '--')
+        if extra_image:
+            image_name = image_file.name.strip('.' + image_file.name.split('.')[-1])
+        if not os.path.exists(path + folder + folder_in):
+            os.makedirs(path + folder + folder_in)
+        full_filename = os.path.join(path, folder, 'cluster', str(image_name) + '.' + str(extension))
+        fout = open(full_filename, 'wb+')
+        file_content = ContentFile(image_file.read())
     try:
-        # Iterate through the chunks.
         file_contents = file_content.chunks()
         for chunk in file_contents:
             fout.write(chunk)
         fout.close()
-        if not saved_file_path:
+        if not saved_file_path and image_model == 'sku':
             image_url = '/' + path + folder + '/' + str(image_name) + '.' + str(extension)
+            saved_file_path = image_url
+        elif not saved_file_path and image_model == 'cluster':
+            image_url = '/' + path + folder + folder_in + '/' + str(image_name) + '.' + str(extension)
             saved_file_path = image_url
         else:
             image_url = saved_file_path
@@ -305,7 +317,10 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('bank_name', data.bank_name), ('ifsc_code', data.ifsc_code),
                                                 ('branch_name', data.branch_name),
                                                 ('account_number', data.account_number),
-                                                ('account_holder_name', data.account_holder_name))))
+                                                ('account_holder_name', data.account_holder_name),
+                                                # ('markdown_percentage', data.markdown_percentage),
+                                                ('ep_supplier', data.ep_supplier)
+                                            )))
 
 
 @csrf_exempt
@@ -330,14 +345,17 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
             order_data)
 
     temp_data['recordsTotal'] = len(mapping_results)
-    temp_data['recordsFiltered'] = len(mapping_results)
-
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for result in mapping_results[start_index: stop_index]:
+        sku_preference = result.preference
+        if sku_preference:
+            sku_preference = int(sku_preference)
         temp_data['aaData'].append(OrderedDict((('supplier_id', result.supplier_id), ('wms_code', result.sku.wms_code),
                                                 ('supplier_code', result.supplier_code), ('moq', result.moq),
-                                                ('preference', int(result.preference)),
-                                                ('price', result.price), ('DT_RowClass', 'results'),
-                                                ('DT_RowId', result.id))))
+                                                ('preference', sku_preference),
+                                                ('price', result.price), ('costing_type', result.costing_type),
+                                                ('margin_percentage', result.margin_percentage), ('DT_RowClass', 'results'),
+                                                ('DT_RowId', result.id), ('mrp', result.sku.mrp))))
 
 
 @csrf_exempt
@@ -700,33 +718,8 @@ def location_master(request, user=''):
         #loc = filter_by_values(LocationMaster, filter_params,
         #                       ['location', 'max_capacity', 'fill_sequence', 'pick_sequence', 'status',
         #                        'pallet_capacity', 'lock_status', 'zone__level', 'zone__zone'])
-        loc = LocationMaster.objects.prefetch_related('zone').filter(**filter_params)
-        temp_locs = []
-        for loc_location in loc:
-            print loc_location
-            #loc_group_dict = filter(lambda person: str(loc_location['location']) == str(person['location__location']),
-            #                        location_groups)
-            #loc_groups = map(lambda d: d['group'], loc_group_dict)
-            #loc_groups = [str(x).encode('UTF8') for x in loc_groups]
-            loc_groups = list(loc_location.locationgroups_set.filter().values_list('group', flat=True))
-            location_data = {}
-            location_data['location'] = loc_location.location
-            location_data['max_capacity'] = loc_location.max_capacity
-            location_data['fill_sequence'] = loc_location.fill_sequence
-            location_data['pick_sequence'] = loc_location.pick_sequence
-            location_data['status'] = loc_location.status
-            location_data['pallet_capacity'] = loc_location.pallet_capacity
-            location_data['lock_status'] = loc_location.lock_status
-            location_data['zone__zone'] = loc_location.zone.zone
-            location_data['zone__level'] = loc_location.zone.level
-            location_data['location_group'] = loc_groups
-            sub_zone = ''
-            if loc_location.zone.level == 1:
-                sub_zone = loc_location.zone.zone
-            location_data['sub_zone'] = sub_zone
-            temp_locs.append(location_data)
-        #new_loc.append(temp_locs)
-        data.append({'zone': loc_type.zone, 'data': temp_locs})
+
+        data.append({'zone': loc_type.zone})
         #loc_location.values('location', 'max_capacity', 'fill_sequence', 'pick_sequence', 'status', 'pallet_capacity',
         #                                    'lock_status', 'zone__level', 'zone__zone'))
 
@@ -821,7 +814,11 @@ def get_sku_data(request, user=''):
     sku_data['shelf_life'] = data.shelf_life
     sku_data['measurement_type'] = data.measurement_type;
     sku_data['youtube_url'] = data.youtube_url;
-    sku_data['enable_serial_based'] = data.enable_serial_based
+    sku_data['enable_serial_based'] = data.enable_serial_based;
+    sku_data['block_options'] = 'No'
+    if data.block_options == 'PO':
+        sku_data['block_options'] = 'Yes';
+    
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
         sku_data['size_type'] = sku_fields[0].field_value
@@ -1008,6 +1005,8 @@ def update_sku(request, user=''):
     reversion.set_user(request.user)
     log.info('Update SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
+    today = datetime.datetime.now().strftime("%Y%m%d")
+    storehippo_fulfillments_log = init_logger('logs/storehippo_fulfillments_log_' + today + '.log')
     try:
         number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'ean_number',
                          'hsn_code', 'shelf_life']
@@ -1067,8 +1066,16 @@ def update_sku(request, user=''):
                 continue
             elif key == 'enable_serial_based':
                 value = 1
+            elif key == 'price':
+                wms_code = request.POST.get('wms_code', '')
+                storehippo_sync_price_value(user, {'wms_code':wms_code, 'price':value})
             if key in number_fields and not value:
                 value = 0
+            elif key == 'block_options':
+                if value == '0':
+                    value = 'PO'
+                else:
+                    value = ''
             setattr(data, key, value)
         data.save()
         update_sku_attributes(data, request)
@@ -1165,7 +1172,6 @@ def get_supplier_master_data(request, user=''):
 @get_admin_user
 def update_supplier_values(request, user=''):
     """ Update Supplier Data """
-
     log.info('Update Supplier request params for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         data_id = request.POST['id']
@@ -1183,6 +1189,11 @@ def update_supplier_values(request, user=''):
                 continue
             if key == 'status':
                 if value == 'Active':
+                    value = 1
+                else:
+                    value = 0
+            if key == 'ep_supplier' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                if value == 'yes':
                     value = 1
                 else:
                     value = 0
@@ -1248,6 +1259,11 @@ def insert_supplier(request, user=''):
                         value = 1
                     else:
                         value = 0
+                if key == 'ep_supplier' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                    if value == 'yes':
+                        value = 1
+                    else:
+                        value = 0
                 if value == '':
                     continue
                 if key in ['login_created', 'create_login', 'password', 'username']:
@@ -1299,6 +1315,8 @@ def update_sku_supplier_values(request, user=''):
     data_id = request.POST['data-id']
     data = get_or_none(SKUSupplier, {'id': data_id})
     for key, value in request.POST.iteritems():
+        if key == 'mrp':
+            continue
         if key in ('moq', 'price'):
             if not value:
                 value = 0
@@ -1761,7 +1779,8 @@ def get_supplier_list(request, user=''):
     supplier_list = []
     for supplier in suppliers:
         supplier_list.append({'id': supplier.id, 'name': supplier.name})
-    return HttpResponse(json.dumps({'suppliers': supplier_list}))
+    costing_type = ['Price Based', 'Margin Based']
+    return HttpResponse(json.dumps({'suppliers': supplier_list, 'costing_type': costing_type}))
 
 
 def validate_bom_data(all_data, product_sku, user):
@@ -2394,10 +2413,11 @@ def insert_sku(request, user=''):
                             value = 0
                         else:
                             value = 1
-                    #elif key == 'ean_number' and value:
-                    #    ean_status = check_ean_number(wms, value, user)
-                    #    if ean_status:
-                    #        return HttpResponse(ean_status)
+                    elif key == 'block_options':
+                        if value == '0':
+                            value = 'PO'
+                        else:
+                            value = ''
                     if value == '':
                         continue
                     data_dict[key] = value
@@ -2406,8 +2426,8 @@ def insert_sku(request, user=''):
             sku_master = SKUMaster(**data_dict)
             sku_master.save()
             contents = {"en": "New SKU %s is created." % data_dict['sku_code']}
-            send_push_notification(contents, notified_users)
-            update_sku_attributes(sku_master, request)
+            #send_push_notification(contents, notified_users)
+            #update_sku_attributes(sku_master, request)
             image_file = request.FILES.get('files-0', '')
             if image_file:
                 save_image_file(image_file, sku_master, user)
@@ -2454,25 +2474,42 @@ def insert_sku(request, user=''):
 @get_admin_user
 def upload_images(request, user=''):
     status = 'Uploaded Successfully'
-    image_file = request.FILES.get('file', '')
-    extra_image = ''
-    saved_file_path = ''
-    if image_file:
-        image_name = image_file.name.strip('.' + image_file.name.split('.')[-1])
-        sku_code = image_name
-        if '__' in image_name:
-            sku_code = image_name.split('__')[0]
-        sku_masters = SKUMaster.objects.filter(sku_class__iexact=sku_code, user=user.id)
-        if not sku_masters:
-            sku_masters = SKUMaster.objects.filter(sku_code__iexact=sku_code, user=user.id)
-        for sku_master in sku_masters:
-            # extra_image = 'true'
-            # if 'default-image' in sku_master.image_url or not sku_master.image_url:
-            # if not sku_master.image_url:
-            extra_image = ''
-            saved_file_path = save_image_file(image_file, sku_master, user, extra_image, saved_file_path)
-        if not sku_masters:
-            status = "SKU Code doesn't exists"
+    upload_stat = request.GET.get('data', '')
+    if upload_stat == 'skuUpload':
+        image_file = request.FILES.get('file', '')
+        extra_image = ''
+        saved_file_path = ''
+        if image_file:
+            image_name = image_file.name.strip('.' + image_file.name.split('.')[-1])
+            sku_code = image_name
+            if '__' in image_name:
+                sku_code = image_name.split('__')[0]
+            sku_masters = SKUMaster.objects.filter(sku_class__iexact=sku_code, user=user.id)
+            if not sku_masters:
+                sku_masters = SKUMaster.objects.filter(sku_code__iexact=sku_code, user=user.id)
+            for sku_master in sku_masters:
+                extra_image = ''
+                saved_file_path = save_image_file(image_file, sku_master, user, extra_image, saved_file_path)
+            if not sku_masters:
+                status = "SKU Code doesn't exists"
+    elif upload_stat == 'clusterUpload':
+        image_file = request.FILES.get('file', '')
+        extra_image = ''
+        saved_file_path = ''
+        if image_file:
+            image_name = image_file.name.split('.')[0]
+            cluster_name = image_name
+            cluster_masters = ClusterSkuMapping.objects.filter(cluster_name=cluster_name, sku__user=user.id)
+            if cluster_masters.exists():
+                saved_file_path = save_image_file(image_file, cluster_masters[0], user, extra_image, saved_file_path, image_model='cluster')
+            if saved_file_path and cluster_masters.exists():
+                for cluster_master in cluster_masters:
+                    cluster_master.image_url = saved_file_path
+                    cluster_master.save()
+            else:
+                status = "Cluster Name doesn't exists"
+    else:
+        status = 'Image Uploadedload Type Not Found'
     return HttpResponse(status)
 
 
@@ -2993,7 +3030,6 @@ def update_pricing(request, user=''):
             min_unit_range, max_unit_range = common_range
             price, discount = ui_map[(min_unit_range, max_unit_range)]
             p = price_master_data.filter(min_unit_range=min_unit_range, max_unit_range=max_unit_range)[0]
-            print p.id, min_unit_range, max_unit_range
             p.price = price
             p.discount = discount
             p.save()
@@ -3994,7 +4030,10 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
                                                 ('bank_name', data.bank_name), ('ifsc_code', data.ifsc_code),
                                                 ('branch_name', data.branch_name),
                                                 ('account_number', data.account_number),
-                                                ('account_holder_name', data.account_holder_name))))
+                                                ('account_holder_name', data.account_holder_name),
+                                                ('ep_supplier', data.ep_supplier)
+                                                # ('markdown_percentage', data.markdown_percentage)
+                                            )))
     excel_headers = ''
     if temp_data['aaData']:
         excel_headers = temp_data['aaData'][0].keys()
@@ -4111,3 +4150,84 @@ def change_warehouse_password (request ,user=''):
         return HttpResponse('Successfully changed the Password')
     else:
         return HttpResponse('Failed to change the Password')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_zone_details(request , user =''):
+    filter_params = {'user': user.id, 'level': 0}
+    zone = request.GET['zone']
+    filter_params = {'zone__zone': zone, 'zone__user': user.id}
+    try:
+        loc = LocationMaster.objects.prefetch_related('zone').filter(**filter_params)
+        temp_locs = []
+        for loc_location in loc:
+            # print loc_location
+            #loc_group_dict = filter(lambda person: str(loc_location['location']) == str(person['location__location']),
+            #                        location_groups)
+            #loc_groups = map(lambda d: d['group'], loc_group_dict)
+            #loc_groups = [str(x).encode('UTF8') for x in loc_groups]
+            loc_groups = list(loc_location.locationgroups_set.filter().values_list('group', flat=True))
+            location_data = {}
+            location_data['location'] = loc_location.location
+            location_data['max_capacity'] = loc_location.max_capacity
+            location_data['fill_sequence'] = loc_location.fill_sequence
+            location_data['pick_sequence'] = loc_location.pick_sequence
+            location_data['status'] = loc_location.status
+            location_data['pallet_capacity'] = loc_location.pallet_capacity
+            location_data['lock_status'] = loc_location.lock_status
+            location_data['zone__zone'] = loc_location.zone.zone
+            location_data['zone__level'] = loc_location.zone.level
+            location_data['location_group'] = loc_groups
+            sub_zone = ''
+            if loc_location.zone.level == 1:
+                sub_zone = loc_location.zone.zone
+            location_data['sub_zone'] = sub_zone
+            temp_locs.append(location_data)
+    except Exception as e:
+         import traceback
+         log.debug(traceback.format_exc())
+         log.info('Get Zone details failed for  %s and params are %s and error statement is %s' % (
+         str(user.username), str(request.GET.dict()), str(e)))
+    return  HttpResponse(json.dumps({'location_data': temp_locs}))
+
+def get_cluster_sku_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    excel_flag = request.POST.get('excel', '')
+    lis = ['cluster_name', 'cluster_name', 'sku__sku_code', 'sequence', 'creation_date']
+    search_params = get_filtered_params(filters, lis)
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    response_data = {'data': []}
+    if search_term:
+        cl_qs = ClusterSkuMapping.objects.filter( Q(cluster_name__icontains=search_term)| Q(sku__sku_code__icontains=search_term)
+             | Q(sequence__icontains=search_term) | Q(creation_date__regex=search_term)).order_by(order_data)
+    else:
+        cl_qs = ClusterSkuMapping.objects.filter(sku__user=request.user.id).order_by(order_data)
+    for cluster in cl_qs[start_index:stop_index]:
+        if excel_flag == 'true':
+            checkbox = ''
+            temp_data['aaData'].append(OrderedDict(
+            (('ClusterName', cluster.cluster_name), ('Skuid', cluster.sku.sku_code), ('Sequence', cluster.sequence), 
+                ('CreationDate', get_local_date(user, cluster.creation_date)), ('id', cluster.id))))
+        else:
+            checkbox = '<input type="checkbox" name="id" value="%s">' % cluster.id
+            temp_data['aaData'].append(OrderedDict(
+                (('check', checkbox), ('ClusterName', cluster.cluster_name), ('Skuid', cluster.sku.sku_code), ('Sequence', cluster.sequence), 
+                    ('CreationDate', get_local_date(user, cluster.creation_date)), ('id', cluster.id))))
+        temp_data['recordsTotal'] = cl_qs.count()
+        temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+def delete_cluster_sku (request, user=''):
+    deleted_ids = request.POST.get('data', '')
+    status = 'Cluster-sku Deletion Failed'
+    deleted_clusters = eval(deleted_ids)
+    try:
+        for cluster in deleted_clusters:
+            ClusterSkuMapping.objects.filter(id = cluster).delete()
+            status = 'success'
+    except Exception as e:
+         import traceback
+         log.debug(traceback.format_exc())
+         log.info('Cluster SKU Deletion failed for id : %s' % str(cluster))
+    return  HttpResponse(status)

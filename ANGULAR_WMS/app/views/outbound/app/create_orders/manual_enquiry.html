@@ -35,6 +35,7 @@
           <li><a ng-click="$state.go('user.App.Profile')">Profile</a></li>
           <li><a ng-click="$state.go('user.App.ManualEnquiry');">Create Custom Order</a></li>
           <li ng-if="showCase.permissions.display_sku_cust_mapping"><a ng-click="$state.go('user.App.PendingOrder');">Pending Order</a></li>
+          <li><a ng-click="$state.go('user.App.feedback');">Feedback Form</a></li>
           <li><a ng-click="showCase.logout()">Logout</a></li>
         </ul>
       </div>
@@ -89,6 +90,52 @@
             <i ng-if="Enquiry.styles_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
           </div>
           <div class="form-group" ng-if="Enquiry.model_data.sku_id">
+            <div class="col-lg-3 col-md-3"></div>
+            <div class="col-lg-2 col-md-2" ng-if="Enquiry.variant_url">
+              <img style="width: 100%; height: 150px;" ng-src="{{Enquiry.variant_url}}"/>
+            </div>
+            <div class="col-lg-7 col-md-7 col-sm-12 col-xs-12">
+              <div class="style col-md-12 col-sm-12 col-xs-12 cart-item">
+                <h4 align="center" ng-if="!Enquiry.enable_table" style="color: #b5b5b5">Loading ....</h4>
+                <table class="table table-bordered" ng-if="Enquiry.enable_table">
+                  <thead>
+                    <tr>
+                      <th>Size</th>
+                      <th>MSP</th>
+                      <th>BuyPrice</th>
+                      <th>MRP</th>
+                      <th>Stock</th>
+                      <th>Intransit</th>
+                      <th>Blocked Qty</th>
+                      <th>Quantity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr ng-repeat="variant in Enquiry.selected_style">
+                      <td>{{variant.wms_code}}</td>
+                      <td>{{variant.your_price}}</td>
+                      <td>{{variant.price_ranges[0].buy_price}}</td>
+                      <td>{{variant.mrp}}</td>
+                      <td>{{variant.style_quantity}}</td>
+                      <td>{{variant.intransit_quantity}}</td>
+                      <td>{{variant.blocked_quantity}}</td>
+                      <td>
+                      <input class="form-control" ng-model="variant.quantity" ng-change="Enquiry.change_variant_quantity(Enquiry.selected_style, variant.wms_code)" style="width: 60px;height: 25px;">
+                      </td>
+                    </tr>
+                    <tr>
+                      <td></td>
+                      <td></td>
+                      <td></td><td></td><td></td><td></td>
+                      <td><b>Total:</b>
+                      <td><b>{{Enquiry.totalQuantity | number}}</b></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <!-- <div class="form-group" ng-if="Enquiry.model_data.sku_id">
             <div class="col-sm-5"></div>
             <div class="col-sm-5 col-xs-12">
               <div class="style col-md-12 col-sm-12 col-xs-12 cart-item">
@@ -129,7 +176,7 @@
                 </div>
               </div>
             </div>
-          </div>
+          </div> -->
           <div class="form-group">
             <label class="col-sm-5 col-xs-5 control-label">Choose Customization Type *</label>
             <div class="col-sm-3 col-xs-5" ng-init="Enquiry.model_data.customization_type = 'price_custom'">
@@ -153,13 +200,14 @@
           <div class="form-group" ng-if="Enquiry.model_data.customization_type != 'product_custom'">
             <label class="col-sm-5 col-xs-5 control-label">Quantity *</label>
             <div class="col-sm-3 col-xs-5">
-              <input type="text" name="quantity" positive-number ng-model="Enquiry.model_data.quantity" class="form-control" ng-required="true">
+              <input type="text" name="quantity" positive-number ng-model="Enquiry.model_data.quantity" class="form-control" ng-required="true" readonly>
             </div>
           </div>
           <div class="form-group">
             <label class="col-sm-5 col-xs-5 control-label">Approximate Delivery Date</label>
             <div class="col-sm-3 col-xs-5">
-              <input type="date" name="expected_date" ng-model="Enquiry.model_data.expected_date" class="form-control">
+              <input name="expected_date" ui-jq="datepicker" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date='-0d' readonly ng-model="Enquiry.model_data.expected_date">
+              <!-- <input type="date" name="expected_date" ng-model="Enquiry.model_data.expected_date" class="form-control"> -->
             </div>
           </div>
           <div class="form-group" ng-if="Enquiry.model_data.customization_type != 'price_custom'" ng-init="Enquiry.custom_remarks = [{'remark': ''}]">

@@ -11,13 +11,13 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
   vm.state_name = $state.current.name;
 
   var url = "";
-  if (vm.your_orders == 'enquiry') {
-    url = "get_enquiry_data/";
-  } else if (vm.your_orders == 'manual_enquiry') {
-    url = "get_manual_enquiry_data/";
-  } else {
-    url = "get_customer_orders/";
-  }
+  // if (vm.your_orders == 'enquiry') {
+  //   url = "get_enquiry_data/";
+  // } else if (vm.your_orders == 'manual_enquiry') {
+  //   url = "get_manual_enquiry_data/";
+  // } else {
+  //   //url = "get_customer_orders/";
+  // }
 
   if (vm.state_name == 'app.inbound.AutoBackOrders') {
     Data.my_orders = [];
@@ -115,7 +115,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
   }
 
   vm.confirm_to_extend = function(order, form){
-    
+
     if (form.$valid) {
       var send = angular.element($('form'));
           send = send[0];
@@ -140,7 +140,11 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
   vm.moveToCart = function(order, index, event) {
 
     event.stopPropagation();
-    var send_data = {'enquiry_id': order.order_id};
+    if(order.order_id){
+      var send_data = {'enquiry_id': order.order_id};
+    } else {
+      var send_data = {'enquiry_id': order};
+    }
     Service.apiCall("move_enquiry_to_order/", 'POST', send_data).then(function(data) {
 
       if(data.message) {
@@ -219,11 +223,11 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
       modalInstance.result.then(function (selectedItem) {
         var data = selectedItem;
       })
-    } else {
-      $state.go('user.App.OrderDetails', data);
+    // } else {
+    //   $state.go('user.App.OrderDetails', data);
     }
   }
-  
+
 }
 
 angular

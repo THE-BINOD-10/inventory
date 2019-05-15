@@ -6164,7 +6164,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
 
         if delivered_time :
             delivered_time = int(delivered_time)
-            delivered_time = time.strftime('%d %b %Y', time.localtime(delivered_time/1e3))
+            delivered_time = time.strftime('%d %b %Y %I:%M %p', time.localtime(delivered_time/1e3))
 
         manifest_number = int(data['order_shipment__manifest_number'])
 

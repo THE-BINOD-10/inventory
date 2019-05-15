@@ -6137,11 +6137,12 @@ def shipment_info_data(request, user=''):
     alternative_mobile_no = 0
     customer_id = request.GET['customer_id']
     shipment_number = request.GET['shipment_number']
+    manifest_number = request.GET.get('manifest_number' ,0)
     gateout = request.GET.get('gateout', '')
     if gateout:
         gateout = int(gateout)
     ship_reference = ''
-    shipment_orders = ShipmentInfo.objects.filter(order_shipment__shipment_number=shipment_number,
+    shipment_orders = ShipmentInfo.objects.filter(order_shipment__shipment_number=shipment_number,order_shipment__manifest_number = manifest_number,
                                                   order_shipment__user=user.id)
     print shipment_orders.count()
     truck_number = ''
@@ -6521,7 +6522,7 @@ def get_sku_categories(request, user=''):
         corp_names = list(CorporateMaster.objects.filter(corporate_id__in=res_corps, user=user.id).values_list('name', flat=True).distinct())
 
     return HttpResponse(
-        json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list, 'Image_urls': images, 
+        json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list, 'Image_urls': images,
                     'sub_categories': sub_categories, 'colors': colors, 'customization_types': dict(CUSTOMIZATION_TYPES),\
                     'primary_details': categories_details['primary_details'], 'reseller_corporates': corp_names}))
 
@@ -9331,9 +9332,14 @@ def order_delete(request, user=""):
                 SellerOrder.objects.filter(order_id__in=seller_orders).update(status=0, order_status='PROCESSED')
                 order_detail_ids = list(set(order_detail_ids) - set(seller_orders))
             if order_detail_ids:
-                OrderDetail.objects.filter(id__in=order_detail_ids).delete()
-                # else:
-                #    order_detail.delete()
+                for order_detail_id in order_detail_ids:
+                    picked_qty_check = Picklist.objects.filter(order_id=order_detail_id, picked_quantity__gt=0)
+                    if not picked_qty_check.exists():
+                        OrderDetail.objects.filter(id=order_detail_id).delete()
+                    else:
+                        OrderDetail.objects.filter(id=order_detail_id).update(status=3)
+
+
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -12317,6 +12323,7 @@ def insert_enquiry_data(request, user=''):
     message = 'Success'
     customer_id = request.user.id
     corporate_name = request.POST.get('name', '')
+    remarks = request.POST.get('remarks', '')
     admin_user = get_priceband_admin_user(user)
     enq_limit = get_misc_value('auto_expire_enq_limit', admin_user.id)
     if enq_limit:
@@ -12337,7 +12344,8 @@ def insert_enquiry_data(request, user=''):
         customer_details = get_order_customer_details(customer_details, request)
         customer_details['customer_id'] = cm_id  # Updating Customer Master ID
         enquiry_map = {'user': user.id, 'enquiry_id': enquiry_id,
-                       'extend_date': datetime.datetime.today() + datetime.timedelta(days=enq_limit)}
+                       'extend_date': datetime.datetime.today() + datetime.timedelta(days=enq_limit),
+                       'remarks': remarks}
         if corporate_name:
             enquiry_map['corporate_name'] = corporate_name
         enquiry_map.update(customer_details)
@@ -12603,14 +12611,17 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
         dist_obj = User.objects.get(id=em_obj.user)
         distributor_name = dist_obj.username
         zone = dist_obj.userprofile.zone
+        corporate_name = em_obj.corporate_name
+        extend_status = em_obj.extend_status
         if central_admin_zone and zone != central_admin_zone:
             continue
         if search_term:
             st = search_term.lower()
-            if st not in customer_name.lower() and st not in distributor_name.lower() and st not in zone.lower() and str(st) not in str(em_obj.enquiry_id):
+            if st not in corporate_name.lower() and st not in distributor_name.lower() and \
+                    st not in zone.lower() and str(st) not in str(em_obj.enquiry_id) and \
+                    str(st) not in str(extend_status):
                 continue
         date = em_obj.creation_date.strftime('%Y-%m-%d')
-        extend_status = em_obj.extend_status
         if em_obj.extend_date:
             days_left_obj = em_obj.extend_date - datetime.datetime.today().date()
             days_left = days_left_obj.days
@@ -12618,7 +12629,7 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
             days_left = 0
         temp_data['aaData'].append(OrderedDict((('Enquiry ID', enq_id), ('Sub Distributor', customer_name),
                                                 ('Distributor', distributor_name),
-                                                ('Customer Name', em_obj.corporate_name), ('Zone', zone),
+                                                ('Customer Name', corporate_name), ('Zone', zone),
                                                 ('Quantity', total_qty), ('Date', date),
                                                 ('Customer ID', em_obj.customer_id),
                                                 ('Extend Status', extend_status), ('Days Left', days_left))))

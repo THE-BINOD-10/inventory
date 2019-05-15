@@ -529,7 +529,7 @@ vm.update_cartdata_for_approval = function() {
             return false;
           }
           vm.place_order_loading = true;
-          var send = {'name': vm.model_data.client_name_header};
+          var send = {'name': vm.model_data.client_name_header, 'remarks': vm.model_data.remarks};
           Service.apiCall("insert_enquiry_data/", "POST", send).then(function(data){
 
             if(data.message) {

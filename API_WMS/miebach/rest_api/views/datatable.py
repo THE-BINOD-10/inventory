@@ -392,6 +392,9 @@ def results_data(request, user=''):
         if request.POST.get('datatable', '') == 'StockSummarySerials':
             excel_data = get_stock_summary_serials_excel(filter_params, temp_data, headers, user, request)
             return HttpResponse(str(excel_data))
+        if request.POST.get('datatable', '') == 'SerialNumberSKU':
+            excel_data = get_warehouse_sku_serial_numbers_excel(filter_params, temp_data, headers, user, request)
+            return HttpResponse(str(excel_data))
         if request.POST.get('datatable', '') == 'CentralOrders' and request.user.username.lower() == '72networks':
             excel_data = central_orders_excel_download(filter_params, user, request)
             return HttpResponse(str(excel_data))

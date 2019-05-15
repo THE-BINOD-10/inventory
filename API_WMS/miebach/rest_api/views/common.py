@@ -548,6 +548,7 @@ data_datatable = {  # masters
     'StockSummaryAlt': 'get_stock_summary_size', 'SellerStockTable': 'get_seller_stock_data', \
     'BatchLevelStock': 'get_batch_level_stock', 'WarehouseStockAlternative': 'get_alternative_warehouse_stock',
     'Available+ASN': 'get_availasn_stock',
+    'SerialNumberSKU': 'get_warehouse_sku_serial_numbers_excel',
     'AutoSellableSuggestion': 'get_auto_sellable_suggestion_data',
     # outbound
     'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders', \

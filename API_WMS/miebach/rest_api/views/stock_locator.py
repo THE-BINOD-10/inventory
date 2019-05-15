@@ -306,7 +306,6 @@ def get_stock_summary_size_excel(filter_params, temp_data, headers, user, reques
                 stock_detail_dict[obj['sku__sku_class']].update({obj['sku__sku_size']: [obj['total_sum']]})
         else:
             stock_detail_dict.update({obj['sku__sku_class']: {obj['sku__sku_size']: [obj['total_sum']]}})
-
     all_sizes_obj = SizeMaster.objects.filter(user=user.id)
     all_size_names = list(all_sizes_obj.values_list('size_name', flat=True))
     all_size_names.append('DEFAULT')
@@ -369,6 +368,11 @@ def get_stock_summary_size_excel(filter_params, temp_data, headers, user, reques
     log.info("process completed")
     return '../' + path
 
+@csrf_exempt
+def get_warehouse_sku_serial_numbers_excel(filter_params, temp_data, headers, user, request):
+    print request
+    import pdb; pdb.set_trace()
+    print filter_params
 
 def get_stock_counts(quantity, single_sku):
     stock_count = []

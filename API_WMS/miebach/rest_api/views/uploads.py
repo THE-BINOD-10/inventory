@@ -1462,11 +1462,8 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Sequence should be in number')
             elif key == 'block_options':
-                if not cell_data:
+                if not cell_data in ['Yes', 'No', '']:
                     index_status.setdefault(row_idx, set()).add('Block For PO should be Yes/No')
-                else:
-                    if not cell_data in ['Yes', 'No']:
-                        index_status.setdefault(row_idx, set()).add('Block For PO should be Yes/No')
     if not index_status:
         return 'Success'
 
@@ -1648,7 +1645,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             elif key == 'block_options':
                 if str(cell_data).lower() == 'yes':
                     cell_data = 'PO'
-                if str(cell_data).lower() == 'no':
+                if str(cell_data).lower() in ['no', '']:
                     cell_data = ''
                 setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
@@ -1658,7 +1655,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
         if sku_data:
-	    storehippo_sync_price_value(user, {'wms_code':sku_data.wms_code, 'price':sku_data.price})
+            storehippo_sync_price_value(user, {'wms_code':sku_data.wms_code, 'price':sku_data.price})
             sku_data.save()
             all_sku_masters.append(sku_data)
         if not sku_data:
@@ -1707,7 +1704,6 @@ def sku_upload(request, user=''):
                                    attributes=attributes)
         if status != 'Success':
             return HttpResponse(status)
-
         sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type,
                          attributes=attributes)
     except Exception as e:

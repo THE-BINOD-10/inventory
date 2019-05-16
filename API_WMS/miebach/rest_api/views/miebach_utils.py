@@ -6158,6 +6158,8 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
         order_return_obj = OrderReturns.objects.filter(order__original_order_id = order_id,sku__wms_code = data['order__sku__sku_code'],sku__user=user.id)
         if order_return_obj.exists() and central_order_reassigning == 'true' :
             shipment_status = 'Returned'
+        if id_proof_number and shipment_status == 'Returned':
+            shipment_status = 'Delivered'
         serial_number = ''
         # serial_number_qs = OrderIMEIMapping.objects.filter(order_id=data['order__id'])
         # if serial_number_qs:
@@ -6168,7 +6170,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
 
         if delivered_time :
             delivered_time = int(delivered_time)
-            delivered_time = time.strftime('%d %b %Y', time.localtime(delivered_time/1e3))
+            delivered_time = time.strftime('%d %b %Y %I:%M %p', time.localtime(delivered_time/1e3))
 
         manifest_number = int(data['order_shipment__manifest_number'])
 

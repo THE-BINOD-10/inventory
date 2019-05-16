@@ -8358,6 +8358,10 @@ def get_debit_note_data(rtv_number, user):
                     data_dict_item['igst'] = temp_tax_percent
                     data_dict_item['sgst'] = 0
                     data_dict_item['cgst'] = 0
+        if obj.seller_po_summary.cess_tax:
+            data_dict_item['cess'] = obj.seller_po_summary.cess_tax
+        if obj.seller_po_summary.apmc_tax:
+            data_dict_item['apmc'] = obj.seller_po_summary.apmc_tax
         data_dict_item['total_amt'] = data_dict_item['price'] * data_dict_item['order_qty']
         data_dict_item['discount_amt'] = ((data_dict_item['total_amt'] * data_dict_item['discount'])/100)
         data_dict_item['taxable_value'] = data_dict_item['total_amt'] - data_dict_item['discount_amt']

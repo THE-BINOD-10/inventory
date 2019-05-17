@@ -368,7 +368,7 @@ def get_stock_summary_size_excel(filter_params, temp_data, headers, user, reques
     log.info("process completed")
     return '../' + path
 
-    
+
 def get_stock_counts(quantity, single_sku):
     stock_count = []
     for single_data in quantity:
@@ -1761,7 +1761,7 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
             sister_warehouses = get_sister_warehouse(user)
             sister_warehouse_list = []
             sister_warehouses = sister_warehouses.values('user_id','user__username')
-            sister_warehouse_list = [warehouse  for warehouse in sister_warehouses]
+            sister_warehouse_list = list(sister_warehouses)
             sister_warehouse_list.insert(0,user_dict)
             users_list = sister_warehouse_list
         workbook = xlsxwriter.Workbook(path)

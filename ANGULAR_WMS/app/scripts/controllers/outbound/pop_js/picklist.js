@@ -237,7 +237,7 @@ function view_orders() {
             if(data.data.status == "Success") {
               if(data.data.data.sku_code == record.wms_code) {
                 if (vm.permissions.dispatch_qc_check) {
-                  if(vm.record_serial_dict[data.data.data.sku_code].indexOf(scan_data[length-1]) > -1) {
+                  if(vm.record_serial_dict[data.data.data.sku_code].indexOf(scan_data[length-1]) > -1 || vm.permissions.allow_rejected_serials) {
                     vm.picklist_qcitems(vm.model_data, record);
                   } else {
                     vm.service.showNoty("Please Enter the Correct Serial Number !");
@@ -1258,7 +1258,7 @@ angular
   vm.canceldata = function(keys){
     vm.checkboxes = true;
     if(keys == 'true') {
-      vm.totalData("fail");  
+      vm.totalData("fail");
     } else {
       vm.totalData("");
     }

@@ -1033,6 +1033,7 @@ def switches(request, user=''):
                        'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation',
                        'rtv_prefix_code': 'rtv_prefix_code',
                        'non_transacted_skus': 'non_transacted_skus',
+                       'allow_rejected_serials':'allow_rejected_serials',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -6374,7 +6375,7 @@ def confirm_receive_qc(request, user=''):
             myDict['imei_number'].append(','.join(imeis_list))
         po_data, status_msg, all_data, order_quantity_dict, \
         purchase_data, data, data_dict, seller_receipt_id, created_qc_ids = generate_grn(myDict, request, user, failed_serial_number, passed_serial_number, is_confirm_receive=True)
-    
+
         for i in range(0, len(myDict['id'])):
             if not myDict['id'][i]:
                 continue

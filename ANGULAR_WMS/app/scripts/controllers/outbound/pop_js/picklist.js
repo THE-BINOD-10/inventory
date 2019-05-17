@@ -242,6 +242,9 @@ function view_orders() {
                     {
                      vm.picklist_qcitems(vm.model_data, record);
                     }
+                    else{
+                      vm.non_qc_increament(record);
+                    }
                   } else {
                     vm.service.showNoty("Please Enter the Correct Serial Number !");
                     record.scan = '';

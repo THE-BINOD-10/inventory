@@ -1722,8 +1722,7 @@ def get_supplier_data(request, user=''):
         if one_assist_check == 'true':
             for st in st_orders :
                 stock_transfer_list = STPurchaseOrder.objects.filter(po_id = st , open_st__sku__user= user.id).values_list('stocktransfer__id' ,flat=True)
-                for stock_transfer in stock_transfer_list :
-                    stock_transfer_serials = list(OrderIMEIMapping.objects.filter(stock_transfer_id=stock_transfer).values_list('po_imei__imei_number', flat=True))
+                stock_transfer_serials = list(OrderIMEIMapping.objects.filter(stock_transfer_id__in=stock_transfer_list).values_list('po_imei__imei_number', flat=True))
                 returnable_serials+=stock_transfer_serials
 
 

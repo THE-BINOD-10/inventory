@@ -1705,7 +1705,6 @@ def get_supplier_data(request, user=''):
     invoice_value = 0
     qc_items_qs = UserAttributes.objects.filter(user_id=user.id, attribute_model='dispatch_qc', status=1).values_list('attribute_name', flat=True)
     qc_items = list(qc_items_qs)
-
     purchase_orders = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id,
                                                    open_po__sku_id__in=sku_master_ids,
                                                    received_quantity__lt=F('open_po__order_quantity')).exclude(
@@ -1719,6 +1718,16 @@ def get_supplier_data(request, user=''):
         st_orders = STPurchaseOrder.objects.filter(po__order_id=order_id, open_st__sku__user=user.id,
                                                    open_st__sku_id__in=sku_master_ids). \
             exclude(po__status__in=['location-assigned', 'stock-transfer']).values_list('po_id', flat=True)
+        one_assist_check = get_misc_value('dispatch_qc_check', user.id)
+        if one_assist_check == 'true':
+            for st in st_orders :
+                stock_transfer_list = STPurchaseOrder.objects.filter(po_id = st , open_st__sku__user= user.id).values_list('stocktransfer__id' ,flat=True)
+                for stock_transfer in stock_transfer_list :
+                    stock_transfer_serials = list(OrderIMEIMapping.objects.filter(stock_transfer_id=stock_transfer).values_list('po_imei__imei_number', flat=True))
+                returnable_serials+=stock_transfer_serials
+
+
+
         purchase_orders = PurchaseOrder.objects.filter(id__in=st_orders)
     if not purchase_orders:
         rw_orders = RWPurchase.objects.filter(purchase_order__order_id=order_id, rwo__vendor__user=user.id,

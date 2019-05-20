@@ -122,12 +122,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var status = false;
       var field_name = "";
       var data = [];
+      var selected_customers = [];
       if (vm.user_type == 'distributor') {
         data = vm.checked_ids;
       } else {
         angular.forEach(vm.selected, function(value, key) {
           if(value) {
             var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
+            if(selected_customers.indexOf(temp['Customer Name']) == -1) {
+              selected_customers.push(temp['Customer Name']);
+            }
             /*if(!(po_number)) {
               po_number = temp[temp['check_field']];
             } else if (po_number != temp[temp['check_field']]) {
@@ -145,6 +149,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         });
       }
 
+      if(selected_customers.length > 1 && click_type != 'cancel_dc'){
+        vm.service.showNoty("Please select one customer orders only");
+        return
+      }
       if(status) {
         vm.service.showNoty("Please select same "+field_name+"'s");
       } else {

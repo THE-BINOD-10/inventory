@@ -2400,7 +2400,7 @@ def get_location_stock_data(search_params, user, sub_user):
                         annotate(rm_reserved=Sum('reserved')))
     else:
 	picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user=user.id).\
-                             annotate(grouped_val=Concat('stock__sku__wms_code', Value('<<>>'),   
+                             annotate(grouped_val=Concat('stock__sku__wms_code', Value('<<>>'),
                              'stock__location__location', output_field=CharField())).\
                              values_list('grouped_val').distinct().annotate(reserved=Sum('reserved')))
         raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user=user.id).\
@@ -6820,7 +6820,7 @@ def print_sku_wise_data(search_params, user, sub_user):
                                                 ('Total Quantity', total_quantity))))
     return temp_data
 
-    col_num = search_params.get('order_index', 0)
+
 def get_stock_transfer_report_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date
     temp_data = copy.deepcopy(AJAX_DATA)
@@ -6830,6 +6830,7 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
     status_map = ['Pick List Generated','Pending','Accepted']
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)
+    col_num = search_params.get('order_index', 0)
     if search_params.get('length', 0):
         stop_index = start_index + search_params.get('length', 0)
     else:

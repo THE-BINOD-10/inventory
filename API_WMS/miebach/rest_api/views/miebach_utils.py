@@ -3697,7 +3697,7 @@ def get_order_summary_data(search_params, user, sub_user):
         order_id = str(data['order_code']) + str(data['order_id'])
         if data['original_order_id']:
             order_id = data['original_order_id']
-        payment_type = data['payment_mode']
+        payment_type = ''
         reference_number = ''
         if  'DC'  in data['order_code'] or 'PRE' in data['order_code']:
             payment_obj = OrderFields.objects.filter(original_order_id=data['original_order_id'], \
@@ -3770,13 +3770,12 @@ def get_order_summary_data(search_params, user, sub_user):
         #payment mode
         payment_obj = OrderFields.objects.filter(user=user.id, name__icontains="payment_",\
                                       original_order_id=data['original_order_id']).values_list('name', 'value')
-
-        if payment_obj:
+        if payment_obj.exists():
             for pay in payment_obj:
-                if not 'order_' in  pay[0] :
-                    exec("%s = %s" % (pay[0],pay[1]))
-                else:
-                    payment_type +=pay[1]+","
+                if  'order_' in  pay[0] :
+                    payment_type += pay[0].replace("order_payment_","")+"-"+pay[1]+","
+                elif  'DC'  in data['order_code'] or 'PRE' in data['order_code']:
+                   exec("%s = %s" % (pay[0],pay[1]))
         #pos extra fields
         pos_extra = {}
         extra_vals = OrderFields.objects.filter(user=user.id,\

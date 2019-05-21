@@ -322,6 +322,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
     temp_data['recordsFiltered'] = len(data)
     oneassist_condition = get_misc_value('dispatch_qc_check', user.id)
     for supplier in data:
+        sr_number = ''
         order_type = 'Purchase Order'
         receive_status = 'Yet To Receive'
         order_data = get_purchase_order_data(supplier)
@@ -6466,7 +6467,7 @@ def confirm_receive_qc(request, user=''):
                                     data.order_id),
                                 'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class, 'bill_date': str(bill_date)}
-            if oneassist_condition == 'true':
+            if oneassist_condition == 'true' and 'main_sr_number' in myDict.keys():
                 report_data_dict['sr_number'] = myDict['main_sr_number'][0]
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':

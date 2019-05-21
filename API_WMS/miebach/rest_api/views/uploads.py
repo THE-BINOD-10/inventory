@@ -545,7 +545,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
         #elif isinstance(cell_data, str) and '.' in cell_data:
         #    sku_code = str(int(float(cell_data)))
         else:
-            sku_code = cell_data.upper()
+            sku_code = str(cell_data).upper()
 
         sku_codes = sku_code.split(',')
         for sku_code in sku_codes:

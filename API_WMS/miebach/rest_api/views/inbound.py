@@ -9373,7 +9373,8 @@ def confirm_central_po(request, user=''):
         address = purchase_order.supplier.address
         address = '\n'.join(address.split(','))
         if purchase_order.ship_to:
-            purchase_order.ship_to
+            ship_to_address = purchase_order.ship_to
+            company_address = user.userprofile.address
         else:
             ship_to_address, company_address = get_purchase_company_address(user_profile)
         wh_telephone = user_profile.wh_phone_number

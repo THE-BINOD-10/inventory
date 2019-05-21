@@ -4475,6 +4475,10 @@ def create_central_order(request, user):
     cart_items = CustomerCartData.objects.filter(customer_user_id=customer_id)
     if not cart_items:
         return HttpResponse('No Data in Cart')
+    stock_display_warehouse = get_misc_value('stock_display_warehouse', user.id)
+    if stock_display_warehouse and stock_display_warehouse != "false":
+        stock_display_warehouse = stock_display_warehouse.split(',')
+        stock_display_warehouse = map(int, stock_display_warehouse)
     try:
         interm_order_map = {'user_id': user.id, 'interm_order_id': interm_order_id,
                             'customer_user_id': customer_id, 'shipment_date': shipment_date,
@@ -4492,7 +4496,10 @@ def create_central_order(request, user):
             if inter_obj:
                 inter_qty = inter_obj.aggregate(Sum('quantity'))['quantity__sum']
             blocked_qty = cart_qty + inter_qty
-            if blocked_qty > cart_item.quantity:
+            stocks = StockDetail.objects.filter(sku__user__in=stock_display_warehouse, sku=cart_item.sku_id,
+                                                quantity__gt=0)
+            avail_qty = check_stock_available_quantity(stocks, user, stock_ids=None)
+            if (avail_qty - blocked_qty) > cart_item.quantity:
                 return HttpResponse('Order Cant be placed as stock not available for sku: %s' %cart_item.sku.sku_code)
             intermediate_obj =  IntermediateOrders.objects.create(**interm_order_map)
             #x = intermediate_obj.shipment_date
@@ -6718,7 +6725,7 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
         if k in asn_res_30days_qty:
             intr_30d_st[k] = intr_30d_st[k] - asn_res_30days_qty[k]
 
-    asn_100_qs = asn_qs.exclude(arriving_date__lte=thirtyday_filter).filter(arriving_date__lte=hundred_day_filter)
+    asn_100_qs = asn_qs.filter(arriving_date__gt=thirtyday_filter)
     asn_100_ids = asn_100_qs.values_list('id', flat=True)
     asn_res_100days_qs = ASNReserveDetail.objects.filter(asnstock__in=asn_100_ids)
     asn_res_100days_qty = dict(asn_res_100days_qs.values_list('asnstock__sku__sku_code').annotate(

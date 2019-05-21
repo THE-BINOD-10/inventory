@@ -4917,6 +4917,7 @@ def confirm_add_po(request, sales_data='', user=''):
     status = ''
     suggestion = ''
     terms_condition = request.POST.get('terms_condition', '')
+
     if not request.POST:
         return HttpResponse('Updated Successfully')
     sku_id = ''
@@ -5047,7 +5048,6 @@ def confirm_add_po(request, sales_data='', user=''):
             data1.save()
             purchase_order = OpenPO.objects.get(id=data1.id, sku__user=user.id)
             sup_id = purchase_order.id
-
             supplier = purchase_order.supplier_id
             if supplier not in ids_dict and not po_order_id:
                 po_id = po_id + 1
@@ -5138,7 +5138,9 @@ def confirm_add_po(request, sales_data='', user=''):
         telephone = purchase_order.supplier.phone_number
         name = purchase_order.supplier.name
         order_id = ids_dict[supplier]
-        supplier_email = purchase_order.supplier.email_id
+        supplier_email_id = purchase_order.supplier.email_id
+        supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
+        supplier_email.append(supplier_email_id)
         phone_no = purchase_order.supplier.phone_number
         gstin_no = purchase_order.supplier.tin_number
         po_exp_duration = purchase_order.supplier.po_exp_duration
@@ -5225,10 +5227,10 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
     if misc_internal_mail and internal_mail:
         internal_mail = internal_mail[0].misc_value.split(",")
         receivers.extend(internal_mail)
-
-    if supplier_email:
+    if isinstance(supplier_email, list):
+        receivers = receivers + supplier_email
+    if isinstance(supplier_email, str):
         receivers.append(supplier_email)
-
     username = user.username
     if username == 'shotang':
         username = 'SHProc'

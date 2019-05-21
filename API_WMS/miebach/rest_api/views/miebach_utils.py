@@ -2396,7 +2396,7 @@ def get_location_stock_data(search_params, user, sub_user):
                         annotate(rm_reserved=Sum('reserved')))
     else:
 	picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user=user.id).\
-                             annotate(grouped_val=Concat('stock__sku__wms_code', Value('<<>>'),   
+                             annotate(grouped_val=Concat('stock__sku__wms_code', Value('<<>>'),
                              'stock__location__location', output_field=CharField())).\
                              values_list('grouped_val').distinct().annotate(reserved=Sum('reserved')))
         raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user=user.id).\
@@ -3830,6 +3830,12 @@ def get_order_summary_data(search_params, user, sub_user):
         taxable_amount = "%.2f" % abs(float(invoice_amount) - float(tax))
         unit_price = "%.2f" % unit_price
 
+        #otherordercharges
+        order_charges_obj = OrderCharges.objects.filter(user=user.id,order_id = data['original_order_id'])
+        if order_charges_obj.exists():
+            total_charge_amount = order_charges_obj.aggregate(Sum('charge_amount'))['charge_amount__sum']
+            total_charge_tax = order_charges_obj.aggregate(Sum('charge_tax_value'))['charge_tax_value__sum']
+            invoice_amount = float(invoice_amount)+float(total_charge_amount)+float(total_charge_tax)
         #payment mode
         payment_obj = OrderFields.objects.filter(user=user.id, name__icontains="payment_",\
                                       original_order_id=data['original_order_id']).values_list('name', 'value')

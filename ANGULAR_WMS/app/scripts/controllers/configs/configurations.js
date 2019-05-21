@@ -29,8 +29,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'sku_pack_config': false, 'central_order_reassigning':false, 'po_sub_user_prefix': false,
                     'combo_allocate_stock': false, 'sno_in_invoice': false, 'unique_mrp_putaway': false,'block_expired_batches_picklist':false,
                     'generate_delivery_challan_before_pullConfiramation':false,'pos_remarks' :'',
-                    'rtv_prefix_code': false, 'dispatch_qc_check':false,
-                    'non_transacted_skus':false,'allow_rejected_serials':false,
+                    'rtv_prefix_code': false, 'dispatch_qc_check':false,'sku_less_than_threshold':false,'decimal_limit_price':2,
+                    'non_transacted_skus':false,
+                    'update_mrp_on_grn': false,
+                    'allow_rejected_serials':false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -55,7 +57,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      74: 'sku_pack_config', 75: 'po_sub_user_prefix', 76: 'combo_allocate_stock', 77:'sno_in_invoice', 78:'raisepo_terms_conditions',
                      79: 'generate_delivery_challan_before_pullConfiramation', 80: 'unique_mrp_putaway',
                      81: 'rtv_prefix_code',82:'pos_remarks', 83:'dispatch_qc_check', 84:'block_expired_batches_picklist', 85:'non_transacted_skus',
-                     86: 'allow_rejected_serials',}
+                     86:'sku_less_than_threshold', 87:'decimal_limit_price', 88: 'mandate_sku_supplier', 89: 'update_mrp_on_grn', 90: 'allow_rejected_serials'}
 
   vm.check_box_data = [
     {
@@ -479,12 +481,33 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     display: true
   },
   {
-    name: "Allow Rejected Serial Numbers",
-    model_name: "allow_rejected_serials",
+    name: "Notify SKU below Threshold",
+    model_name: "sku_less_than_threshold",
     param_no: 86,
     class_name: "fa fa-server",
     display: true
   },
+  {
+   name: "Mandate Sku Supplier Mapping in PO",
+   model_name: "mandate_sku_supplier",
+   param_no: 88,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
+   name: "Update MRP On GRN",
+   model_name: "update_mrp_on_grn",
+   param_no: 89,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
+   name: "Allow Rejected Serial Numbers",
+   model_name: "allow_rejected_serials",
+   param_no: 90,
+   class_name: "fa fa-server",
+   display: true
+  }
 ]
 
   vm.empty = {};
@@ -546,6 +569,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       value = false;
       vm.model_data[vm.switch_names[switch_num]] = value;
       Service.showNoty("Auto PO & Auto Raise Stock Transfer can't be enabled simultaneously", 'warning');
+      return
+    }
+    if(vm.switch_names[switch_num] === "sku_less_than_threshold" && vm.model_data["auto_po_switch"]) {
+      value = false;
+      vm.model_data[vm.switch_names[switch_num]] = value;
+      Service.showNoty("Auto PO & Notify SKU below Threshold can't be enabled simultaneously", 'warning');
+      return
+    }
+    if(vm.switch_names[switch_num] === "auto_po_switch" && vm.model_data["sku_less_than_threshold"]) {
+      value = false;
+      vm.model_data[vm.switch_names[switch_num]] = value;
+      Service.showNoty("Auto PO & Notify SKU below Threshold can't be enabled simultaneously", 'warning');
       return
     }
     vm.service.apiCall("switches/?"+vm.switch_names[switch_num]+"="+String(value)).then(function(data){

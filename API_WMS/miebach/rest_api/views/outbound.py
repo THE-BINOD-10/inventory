@@ -510,16 +510,16 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
                 continue
         one_assist_qc_check = get_misc_value('dispatch_qc_check', user.id)
         central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
+        manifest_date = get_local_date(user,result.order_shipment.creation_date)
         if central_order_reassigning == 'true':
             if result.order_shipment.shipment_number:
                 shipment_orders_count = ShipmentInfo.objects.filter(order_shipment__shipment_number=result.order_shipment.shipment_number,
                                                   order_shipment__user=user.id)
                 total_orders = shipment_orders_count.count()
-                manifest_date = get_local_date(user,result.order_shipment.creation_date)
                 cond = (result.order_shipment.shipment_number, 0, 0, int(result.order_shipment.manifest_number), total_orders, manifest_date)
         else:
             total_orders = 0
-            cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name, int(result.order_shipment.manifest_number), total_orders)
+            cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name, int(result.order_shipment.manifest_number), total_orders,manifest_date)
         signed_copy = ''
         if one_assist_qc_check == 'true':
             order_detail = result.order
@@ -937,9 +937,6 @@ def get_picklist_data(data_id, user_id):
                 pallet_code = stock_id.pallet_detail.pallet_code
                 pallet_detail = stock_id.pallet_detail
 
-            sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
-            for sku_code, imei_number in sku_filtered_imei_number:
-                sku_imeis_map.setdefault(sku_code, []).append(imei_number)
             zone = 'NO STOCK'
             st_id = 0
             sequence = 0
@@ -967,6 +964,9 @@ def get_picklist_data(data_id, user_id):
                         expiry_date = datetime.datetime.strftime(stock_id.batch_detail.expiry_date, "%d/%m/%Y")
                     except:
                         expiry_date =''
+            sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
+            for sku_code, imei_number in sku_filtered_imei_number:
+                sku_imeis_map.setdefault(sku_code, []).append(imei_number)
             match_condition = (location, batch_no, manufactured_date,pallet_detail, wms_code, sku_code, title)
             if match_condition not in batch_data:
                 if order.reserved_quantity == 0:
@@ -1079,10 +1079,6 @@ def get_picklist_data(data_id, user_id):
             if stock_id and stock_id.pallet_detail:
                 pallet_code = stock_id.pallet_detail.pallet_code
 
-            sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
-            for sku_code, imei_number in sku_filtered_imei_number:
-                sku_imeis_map.setdefault(sku_code, []).append(imei_number)
-
             zone = 'NO STOCK'
             st_id = 0
             sequence = 0
@@ -1114,6 +1110,10 @@ def get_picklist_data(data_id, user_id):
                                   order_by('-updation_date').values_list('location__location',
                                                                          flat=True).distinct()[:2]
                 last_picked_locs = ','.join(last_picked)
+            sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
+            for sku_code, imei_number in sku_filtered_imei_number:
+                sku_imeis_map.setdefault(sku_code, []).append(imei_number)
+
             if not original_order_id:
                 original_order_id = str(order_id) + str(order_code)
 
@@ -1144,9 +1144,6 @@ def get_picklist_data(data_id, user_id):
         return data, sku_total_quantities, courier_name
     else:
         courier_name = ''
-        sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
-        for sku_code, imei_number in sku_filtered_imei_number:
-            sku_imeis_map.setdefault(sku_code, []).append(imei_number)
         for order in picklist_orders:
             stock_id = ''
             wms_code = order.order.sku.wms_code
@@ -1212,6 +1209,10 @@ def get_picklist_data(data_id, user_id):
                                   order_by('-updation_date').values_list('location__location',
                                                                          flat=True).distinct()[:2]
                 last_picked_locs = ','.join(last_picked)
+            sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
+            for sku_code, imei_number in sku_filtered_imei_number:
+                sku_imeis_map.setdefault(sku_code, []).append(imei_number)
+
             if not original_order_id:
                 original_order_id = str(order_id) + str(order_code)
 
@@ -2294,7 +2295,7 @@ def picklist_confirmation(request, user=''):
                         temp_json = TempJson.objects.filter(model_id=int(user.id), model_name=model_name_value)
                         if temp_json:
                             rista_order_id_list.append(original_order_id_str)
-                        picking_count1 = int(picking_count1)
+                        picking_count1 = float(picking_count1)
                         if picking_count1:
                             sku_code_str = picklist.order.sku.sku_code
                             sku_code_dict = {}
@@ -2304,6 +2305,20 @@ def picklist_confirmation(request, user=''):
                             else:
                                 rista_order_dict[original_order_id_str] = []
                                 rista_order_dict[original_order_id_str].append(sku_code_dict)
+                    #StoreHippo COnfirm Picklist
+                    check_storehippo_user = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
+                    if check_storehippo_user and picklist.order:
+                        original_order_id_str = str(picklist.order.order_reference)
+                        picking_count1 = int(picking_count1)
+                        if picking_count1:
+                            sku_code_str = picklist.order.sku.sku_code
+                            sku_code_dict = {}
+                            sku_code_dict[sku_code_str] = picking_count1
+                            if original_order_id_str in storehippo_order_dict.keys():
+                                storehippo_order_dict[original_order_id_str].append(sku_code_dict)
+                            else:
+                                storehippo_order_dict[original_order_id_str] = []
+                                storehippo_order_dict[original_order_id_str].append(sku_code_dict)
                     picklist.save()
                     if user_profile.user_type == 'marketplace_user' and picklist.order:
                         create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,
@@ -4471,6 +4486,16 @@ def create_central_order(request, user):
             interm_order_map['unit_price'] = cart_item.levelbase_price
             interm_order_map['sku_id'] = cart_item.sku_id
             interm_order_map['remarks'] = remarks_dict[cart_item.sku.sku_code]
+            cart_qty, inter_qty = 0, 0
+            cart_obj = CustomerCartData.objects.filter(sku=cart_item.sku_id)
+            inter_obj = IntermediateOrders.objects.filter(sku=cart_item.sku_id, status='')
+            if cart_obj:
+                cart_qty = cart_obj.aggregate(Sum('quantity'))['quantity__sum']
+            if inter_obj:
+                inter_qty = inter_obj.aggregate(Sum('quantity'))['quantity__sum']
+            blocked_qty = cart_qty + inter_qty
+            if blocked_qty > cart_item.quantity:
+                return HttpResponse('Order Cant be placed as stock not available for sku: %s' %cart_item.sku.sku_code)
             intermediate_obj =  IntermediateOrders.objects.create(**interm_order_map)
             #x = intermediate_obj.shipment_date
             order_date = intermediate_obj.creation_date.strftime("%d, %b, %Y")
@@ -6114,11 +6139,12 @@ def shipment_info_data(request, user=''):
     alternative_mobile_no = 0
     customer_id = request.GET['customer_id']
     shipment_number = request.GET['shipment_number']
+    manifest_number = request.GET.get('manifest_number' ,0)
     gateout = request.GET.get('gateout', '')
     if gateout:
         gateout = int(gateout)
     ship_reference = ''
-    shipment_orders = ShipmentInfo.objects.filter(order_shipment__shipment_number=shipment_number,
+    shipment_orders = ShipmentInfo.objects.filter(order_shipment__shipment_number=shipment_number,order_shipment__manifest_number = manifest_number,
                                                   order_shipment__user=user.id)
     print shipment_orders.count()
     truck_number = ''
@@ -6315,7 +6341,7 @@ def app_shipment_info_data(request, user=''):
         pod_status = False
         returned = False
         loan_proposal_id = str(orders.order.original_order_id)
-        order_return_obj = OrderReturns.objects.filter(order__original_order_id = orders.order.original_order_id,sku__wms_code = orders.order.sku.sku_code)
+        order_return_obj = OrderReturns.objects.filter(order__original_order_id = orders.order.original_order_id,sku__wms_code = orders.order.sku_id)
         if order_return_obj.exists() :
             returned = True
         from firebase import firebase
@@ -6480,6 +6506,15 @@ def get_sku_categories(request, user=''):
         ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
     sub_categories = list(SKUMaster.objects.filter(user=user.id).exclude(sub_category='').values_list('sub_category',
                                                                                                       flat=True).distinct())
+    sku_brand = request.GET.get('brand', '')
+    images= []
+    if sku_brand:
+        cluster_masters = dict(list(ClusterSkuMapping.objects.filter(sku__user=user.id, sku__sku_brand=sku_brand).values_list('cluster_name', 'image_url').distinct()))
+        for url in cluster_masters:
+            if cluster_masters[url]:
+                images.append({'cluster_name':url, 'image':cluster_masters[url]})
+            else:
+                images.append({'cluster_name':url, 'image':'/static/images/categories/default.png'})
     reseller_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     corp_names = []
     if reseller_obj and price_band_flag == 'true':
@@ -6489,7 +6524,7 @@ def get_sku_categories(request, user=''):
         corp_names = list(CorporateMaster.objects.filter(corporate_id__in=res_corps, user=user.id).values_list('name', flat=True).distinct())
 
     return HttpResponse(
-        json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list,
+        json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list, 'Image_urls': images,
                     'sub_categories': sub_categories, 'colors': colors, 'customization_types': dict(CUSTOMIZATION_TYPES),\
                     'primary_details': categories_details['primary_details'], 'reseller_corporates': corp_names}))
 
@@ -6705,7 +6740,7 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
         cart_obj = CustomerCartData.objects.filter(sku=item['id'])
         inter_obj = IntermediateOrders.objects.filter(sku=item['id'], status='')
         if cart_obj:
-            cart_qty = cart_obj[0].quantity
+            cart_qty = cart_obj.aggregate(Sum('quantity'))['quantity__sum']
         if inter_obj:
             inter_qty = inter_obj.aggregate(Sum('quantity'))['quantity__sum']
         blocked_qty = cart_qty + inter_qty
@@ -7276,7 +7311,7 @@ def search_customer_data(request, user=''):
 
     lis = ['name', 'email_id', 'phone_number', 'address', 'status', 'tax_type']
     master_data = CustomerMaster.objects.filter(Q(phone_number__icontains=search_key) | Q(name__icontains=search_key) |
-                                                Q(customer_id__icontains=search_key), user=user.id)
+                                                Q(customer_id__icontains=search_key), user=user.id,status = 1)
 
     for data in master_data[:30]:
         status = 'Inactive'
@@ -9303,9 +9338,14 @@ def order_delete(request, user=""):
                 SellerOrder.objects.filter(order_id__in=seller_orders).update(status=0, order_status='PROCESSED')
                 order_detail_ids = list(set(order_detail_ids) - set(seller_orders))
             if order_detail_ids:
-                OrderDetail.objects.filter(id__in=order_detail_ids).delete()
-                # else:
-                #    order_detail.delete()
+                for order_detail_id in order_detail_ids:
+                    picked_qty_check = Picklist.objects.filter(order_id=order_detail_id, picked_quantity__gt=0)
+                    if not picked_qty_check.exists():
+                        OrderDetail.objects.filter(id=order_detail_id).delete()
+                    else:
+                        OrderDetail.objects.filter(id=order_detail_id).update(status=3)
+
+
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -11614,10 +11654,10 @@ def generate_customer_invoice(request, user=''):
             invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('pick_number__in', ''))))
         invoice_data['invoice_no'] = invoice_no
         invoice_data['pick_number'] = pick_number
-        invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         check_storehippo_user = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
         if check_storehippo_user:
             invoice_data['order_reference'] = ''
+        invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         return_data = request.GET.get('data', '')
         delivery_challan = request.GET.get('delivery_challan', '')
         if delivery_challan == "true":
@@ -12289,6 +12329,7 @@ def insert_enquiry_data(request, user=''):
     message = 'Success'
     customer_id = request.user.id
     corporate_name = request.POST.get('name', '')
+    remarks = request.POST.get('remarks', '')
     admin_user = get_priceband_admin_user(user)
     enq_limit = get_misc_value('auto_expire_enq_limit', admin_user.id)
     if enq_limit:
@@ -12309,7 +12350,8 @@ def insert_enquiry_data(request, user=''):
         customer_details = get_order_customer_details(customer_details, request)
         customer_details['customer_id'] = cm_id  # Updating Customer Master ID
         enquiry_map = {'user': user.id, 'enquiry_id': enquiry_id,
-                       'extend_date': datetime.datetime.today() + datetime.timedelta(days=enq_limit)}
+                       'extend_date': datetime.datetime.today() + datetime.timedelta(days=enq_limit),
+                       'remarks': remarks}
         if corporate_name:
             enquiry_map['corporate_name'] = corporate_name
         enquiry_map.update(customer_details)
@@ -12575,10 +12617,17 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
         dist_obj = User.objects.get(id=em_obj.user)
         distributor_name = dist_obj.username
         zone = dist_obj.userprofile.zone
+        corporate_name = em_obj.corporate_name
+        extend_status = em_obj.extend_status
         if central_admin_zone and zone != central_admin_zone:
             continue
+        if search_term:
+            st = search_term.lower()
+            if st not in corporate_name.lower() and st not in distributor_name.lower() and \
+                    st not in zone.lower() and str(st) not in str(em_obj.enquiry_id) and \
+                    str(st) not in str(extend_status):
+                continue
         date = em_obj.creation_date.strftime('%Y-%m-%d')
-        extend_status = em_obj.extend_status
         if em_obj.extend_date:
             days_left_obj = em_obj.extend_date - datetime.datetime.today().date()
             days_left = days_left_obj.days
@@ -12586,7 +12635,7 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
             days_left = 0
         temp_data['aaData'].append(OrderedDict((('Enquiry ID', enq_id), ('Sub Distributor', customer_name),
                                                 ('Distributor', distributor_name),
-                                                ('Customer Name', em_obj.corporate_name), ('Zone', zone),
+                                                ('Customer Name', corporate_name), ('Zone', zone),
                                                 ('Quantity', total_qty), ('Date', date),
                                                 ('Customer ID', em_obj.customer_id),
                                                 ('Extend Status', extend_status), ('Days Left', days_left))))
@@ -12936,6 +12985,10 @@ def save_manual_enquiry_data(request, user=''):
         user_id = request.POST.get('user_id', '')
         enq_status = request.POST.get('enq_status', '')
         admin_remarks = request.POST.get('admin_remarks', '')
+        from_flag = request.POST.get('from', '')
+        status = request.POST.get('status', '')
+        if from_flag == 'pending_approval' and status == 'marketing_pending':  # Changing the status even admin provides remarks
+            enq_status = status
         if not enquiry_id or not user_id:
             return HttpResponse("Give information insufficient")
         smd_price = request.POST.get('sm_d_price', 0)
@@ -12963,7 +13016,6 @@ def save_manual_enquiry_data(request, user=''):
         remarks = request.POST.get('remarks', '')
         if admin_remarks == 'true':
             remarks = request.POST.get('admin_remark', '')
-        status = request.POST.get('status', '')
         designer_flag = False
         if request.user.userprofile.warehouse_type == "SM_DESIGN_ADMIN":
             designer_flag = True
@@ -13541,8 +13593,8 @@ def convert_customorder_to_actualorder(request, user=''):
             dist_order_copy['email_id'] = customer_user[0].customer.email_id
             dist_order_copy['address'] = customer_user[0].customer.address
 
-        if req_stock != sum(stock_wh_map.values()):
-            resp['msg'] = 'No Available Stock to Place the Order or Total quantity is not considered'
+        if req_stock < sum(stock_wh_map.values()):
+            resp['msg'] = 'Order has been placed to more quantity'
             return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
         is_emiza_order_failed = False
         message = ''

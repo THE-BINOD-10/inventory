@@ -82,7 +82,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         load_unit_handle: "0",
                         hot_release: 0,
                         image_url:"images/wms/dflt.jpg",
-                        measurement_type: '',
+                        measurement_type: "",
+                        block_options: "No"
                       },
                       "zones":[],
                       "groups":[],
@@ -106,10 +107,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.update_data = {};
     vm.zone_id = "red";
     vm.status_data = ['Inactive','Active'];
+    vm.block_for_po_list = ['Yes', 'No'];
     vm.sku_types = ['', 'FG', 'RM'];
     vm.status = vm.status_data[0];
     vm.qc_data = ['Disable','Enable'];
-    vm.qc = vm.qc_data[0]
+    vm.qc = vm.qc_data[0];
+    vm.block_options = vm.block_for_po_list[0];
     vm.market_list = [];
     vm.market;
     vm.market_data = [];
@@ -308,7 +311,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
 
     $rootScope.process = true;
-
     $.ajax({url: Session.url+vm.url,
             data: formData,
             method: 'POST',
@@ -456,6 +458,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $timeout(function () {
       $(".insert-status > h4").text("");
     }, 3000);
+  }
+
+  vm.root_path = function(value){
+    $rootScope.type = value
+    $state.go('app.masters.ImageBulkUpload')
   }
 
   vm.change_size_type = function(item) {

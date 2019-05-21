@@ -15,7 +15,7 @@
         <div class="col-md-4 pull-right" style="height: 34px;padding:20px;padding-top: 0px !important;">
           <label class="switch switch-sm square pull-right mt5">
             <div>
-              <input type="checkbox" ng-model="showCase.invoice_number" ng-change="showCase.change_datatable()" class="ng-pristine ng-valid">
+              <input type="checkbox" ng-model="showCase.invoice_number_show" ng-change="showCase.change_datatable()" class="ng-pristine ng-valid">
               <span>
                 <i class="handle"></i>
               </span>
@@ -30,7 +30,7 @@
               <div class="col-md-4 col-sm-4 col-xs-6" ng-repeat="field in showCase.report_data.filters">
                 <div ng-include="service.get_view_url(field.type, 'inputs')"></div>
               </div>
-              <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.invoice_number">
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.invoice_number_show">
                 <label class="control-label">Invoice Number</label>
                 <div><input name="invoice_number" class="form-control" type="text" ng-model="showCase.model_data.invoice_number"></div>
               </div>

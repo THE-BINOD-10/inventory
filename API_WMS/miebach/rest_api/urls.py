@@ -72,6 +72,7 @@ urlpatterns = [
     url(r'^change_warehouse_password/$', change_warehouse_password),
     url(r'^insert_sku_pack/$',insert_sku_pack),
     url(r'^get_zone_details/$',get_zone_details),
+    url(r'^delete_cluster_sku/$',delete_cluster_sku),
 
 
 
@@ -563,6 +564,8 @@ urlpatterns += [
     url(r'^block_stock_upload/$', block_stock_upload),
     url(r'^custom_order_download/$', custom_order_download),
     url(r'^custom_order_upload/$', custom_order_upload),
+    url(r'^cluster_sku_form/$', cluster_sku_form),
+    url(r'^cluster_sku_upload/$', cluster_sku_upload),
 
 
     # configurations

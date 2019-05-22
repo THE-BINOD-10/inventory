@@ -2200,7 +2200,7 @@ def picklist_confirmation(request, user=''):
                             picklist_qc_log.info("Error in Dispatch QC - On Fail - %s - %s" % (str(user.username), str(e)))
                     if count == 0:
                         continue
-                    if 'imei' in val.keys() and val['imei'] and not picklist.order and val['imei'] != '[]':
+                    if ('imei' in val.keys() or passed_serial_number or failed_serial_number) and val['imei'] and not picklist.order and val['imei'] != '[]' :
                         order = picklist.storder_set.filter()
                         if order:
                             order = order[0]

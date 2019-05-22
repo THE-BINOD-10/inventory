@@ -113,6 +113,13 @@
                   <strong>Rep.:</strong>
                 </div>
               </div>
+              {% for key , value in extra_fields.items %}
+              <div class="row m0">
+                <div class="col-xs-6 text-left">
+                  <strong> {{key}} &nbsp;&nbsp;&nbsp;:</strong> {{value}}
+                </div>
+              </div>
+              {% endfor %}
             </td>
           </tr>
         </tbody>

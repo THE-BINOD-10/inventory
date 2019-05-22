@@ -2756,7 +2756,9 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         telephone = purchase_order.supplier.phone_number
         name = purchase_order.supplier.name
         order_id = ids_dict[supplier]
-        supplier_email = purchase_order.supplier.email_id
+        supplier_email_id = purchase_order.supplier.email_id
+        supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
+        supplier_email.append(supplier_email_id)
         phone_no = purchase_order.supplier.phone_number
         gstin_no = purchase_order.supplier.tin_number
         po_exp_duration = purchase_order.supplier.po_exp_duration
@@ -6836,7 +6838,7 @@ def validate_cluster_sku_form(request, reader, user, no_of_rows, no_of_cols, fna
                             status = 'Success'
                         else:
                             if cluster_obj_image:
-                                cluster_skus['image_url'] = cluster_obj_image[0].image_url  
+                                cluster_skus['image_url'] = cluster_obj_image[0].image_url
                             final_data = ClusterSkuMapping(**cluster_skus)
                             final_data.save()
                             status = 'Success'
@@ -6853,4 +6855,3 @@ def validate_cluster_sku_form(request, reader, user, no_of_rows, no_of_cols, fna
         log.info('Cluster sku form Upload failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Cluster sku Upload Failed")
-

@@ -1304,7 +1304,9 @@ def confirm_po(request, user=''):
     wh_telephone = user.userprofile.wh_phone_number
     telephone = purchase_order.supplier.phone_number
     name = purchase_order.supplier.name
-    supplier_email = purchase_order.supplier.email_id
+    supplier_email_id = purchase_order.supplier.email_id
+    supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
+    supplier_email.append(supplier_email_id)
     gstin_no = purchase_order.supplier.tin_number
     order_id = ids_dict[supplier]
     order_date = get_local_date(request.user, order.creation_date)
@@ -5411,7 +5413,9 @@ def confirm_po1(request, user=''):
                 ship_to_address = '\n'.join(ship_to_address.split(','))
                 telephone = purchase_orders[0].supplier.phone_number
                 name = purchase_orders[0].supplier.name
-                supplier_email = purchase_orders[0].supplier.email_id
+                supplier_email_id = purchase_orders[0].supplier.email_id
+                supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
+                supplier_email.append(supplier_email_id)
                 gstin_no = purchase_orders[0].supplier.tin_number
                 if purchase_orders[0].order_type == 'VR':
                     vendor_address = purchase_orders[0].vendor.address

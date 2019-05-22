@@ -2671,11 +2671,15 @@ def get_grn_json_data(order, user, request):
                         purchase_order.open_po.igst_tax, purchase_order.open_po.utgst_tax,
                         purchase_order.open_po.remarks))
 
+    supplier = purchase_order.open_po.supplier
     wms_code = order.open_po.sku.wms_code
     telephone = order.open_po.supplier.phone_number
     name = order.open_po.supplier.name
     order_id = order.order_id
-    supplier_email = order.open_po.supplier.email_id
+    supplier_email_id = order.open_po.supplier.email_id
+    supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
+    supplier_email.append(supplier_email_id)
+
     gstin_no = order.open_po.supplier.tin_number
     order_date = get_local_date(request.user, order.creation_date)
     address = '\n'.join(order.open_po.supplier.address.split(','))

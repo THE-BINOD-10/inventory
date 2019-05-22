@@ -354,6 +354,7 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
                                                 ('supplier_code', result.supplier_code), ('moq', result.moq),
                                                 ('preference', sku_preference),
                                                 ('price', result.price), ('costing_type', result.costing_type),
+                                                ('markup_percentage',result.markup_percentage),
                                                 ('margin_percentage', result.margin_percentage), ('DT_RowClass', 'results'),
                                                 ('DT_RowId', result.id), ('mrp', result.sku.mrp))))
 

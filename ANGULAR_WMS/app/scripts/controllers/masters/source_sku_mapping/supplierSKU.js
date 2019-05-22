@@ -89,6 +89,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       else if (data.costing_type.$modelValue == 'Margin Based' &&  data.margin_percentage.$viewValue == '') {
          vm.service.pop_msg("Margin Percentage is Mandatory For Margin Based")
       }
+      else if (data.costing_type.$modelValue == 'Markup Based' && data.markup_percentage.$viewValue == ''){
+        vm.service.pop_msg("Markup Percentage is Mandatory For Markup Based")
+
+      }
       else{
       if ("Add Supplier SKU Mapping" == vm.title) {
         vm.supplier_sku('insert_mapping/');
@@ -116,7 +120,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   // Get all supplier list
   vm.supplier_list = [];
-  vm.costing_type_list = ['Price Based', 'Margin Based'];
+  vm.costing_type_list = ['Price Based', 'Margin Based','Markup Based'];
   function get_suppliers() {
     vm.service.apiCall('get_supplier_list/').then(function(data){
       if(data.message) {

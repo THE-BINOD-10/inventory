@@ -9256,7 +9256,7 @@ def get_mapping_values_po (wms_code = '',supplier_id ='',user ='') :
                 data['price'] = prefill_unit_price
             elif sku_supplier[0].costing_type == 'Markup Based':
                  markup_percentage = sku_supplier[0].markup_percentage
-                 prefill_unit_price = mrp_value / (100+markup_percentage)
+                 prefill_unit_price = mrp_value / (1+markup_percentage)
                  data['price'] = prefill_unit_price
             else:
                 data['price'] = sku_supplier[0].price

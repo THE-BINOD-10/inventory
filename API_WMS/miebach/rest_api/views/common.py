@@ -9234,7 +9234,7 @@ def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
         log.info('Create order extra fields failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(extra_order_fields), str(e)))
 
-def get_mapping_values_po (wms_code = '',supplier_id ='',user ='') :
+def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
     data = {}
     try:
         if wms_code.isdigit():
@@ -9268,7 +9268,7 @@ def get_mapping_values_po (wms_code = '',supplier_id ='',user ='') :
                 data['supplier_mapping'] = True
         if sku_master.block_options == "PO":
             if not int(sup_markdown.ep_supplier):
-                data = {}
+                data = {'error_msg':'This SKU is Blocked for PO'}
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

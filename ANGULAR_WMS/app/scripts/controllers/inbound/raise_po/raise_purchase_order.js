@@ -642,9 +642,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       if (vm.model_data.supplier_id) {
         var supplier = vm.model_data.supplier_id;
         $http.get(Session.url+'get_mapping_values/?wms_code='+product.fields.sku.wms_code+'&supplier_id='+supplier, {withCredentials : true}).success(function(data, status, headers, config) {
-          if ($.isEmptyObject(data)) {
+          if (data.hasOwnProperty('error_msg')) {
             vm.clear_raise_po_data(product);
-            vm.service.showNoty('This SKU is Blocked for PO');
+            vm.service.showNoty(data['error_msg']);
           } else {
             if(Object.values(data).length) {
               if(data.supplier_mapping)

@@ -6304,6 +6304,7 @@ def check_imei_qc(request, user=''):
 @login_required
 @get_admin_user
 def check_return_imei(request, user=''):
+    delivered_order = True
     return_data = {'status': '', 'data': {}}
     user_profile = UserProfile.objects.get(user_id=user.id)
     try:
@@ -6328,6 +6329,21 @@ def check_return_imei(request, user=''):
                 order_id = order_imei[0].order.original_order_id
                 if not order_id:
                     order_id = order_imei[0].order.order_code + str(order_imei[0].order.order_id)
+                central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)#for 72 networks
+                if central_order_reassigning == 'true':
+                    try:
+                        from firebase import firebase
+                        firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
+                        result = firebase.get('/OrderDetails/'+str(order_id), None)
+                    except Exception as e:
+                        result = 0
+                        import traceback
+                        log.debug(traceback.format_exc())
+                        log.info('Firebase query  failed for %s and params are %s and error statement is %s' % (
+                        str(user.username), str(request.POST.dict()), str(e)))
+                    if result :
+                        return_data['status'] = 'Delivered Order Cannot be Returned '
+                        return HttpResponse(json.dumps(return_data))
                 if order_imei[0].order_reference:
                     order_id = order_imei[0].order_reference
                     order_imei_id = order_imei[0].id

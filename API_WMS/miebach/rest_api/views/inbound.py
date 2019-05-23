@@ -3066,9 +3066,14 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
 def confirm_grn(request, confirm_returns='', user=''):
     reversion.set_user(request.user)
     data_dict = ''
-    headers = (
-    'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
-    'UTGST(%)', 'Amount', 'Description', 'CESS(%)')
+    if user.userprofile.industry_type == 'FMCG':
+        headers = (
+        'WMS CODE','Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
+        'UTGST(%)', 'Amount', 'Description', 'CESS(%)','batch_no')
+    else:
+        headers = (
+        'WMS CODE','Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
+        'UTGST(%)', 'Amount', 'Description', 'CESS(%)','batch_no')
     putaway_data = {headers: []}
     total_received_qty = 0
     total_order_qty = 0
@@ -3123,8 +3128,22 @@ def confirm_grn(request, confirm_returns='', user=''):
             entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7] + float(key[9]) + float(key[11]))
             if entry_tax:
                 entry_price += (float(entry_price) / 100) * entry_tax
-            putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
-                                          key[6], key[7], entry_price, key[8], key[9]))
+            if user.userprofile.industry_type == 'FMCG':
+                j=0
+                for i in po_data:
+                    batch_value = myDict.get('batch_no')
+                    putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
+                                                  key[6], key[7], entry_price, key[8], key[9],batch_value[j]))
+                    j+=1
+            else:
+                batch_value = myDict.get('batch_no')
+                if batch_value == None:
+                    batch_value=''
+                    putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3],key[4], key[5],
+                                                  key[6], key[7], entry_price, key[8], key[9],batch_value))
+                else:
+                    putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3],key[4], key[5],
+                                                  key[6], key[7], entry_price, key[8], key[9],batch_value))
             total_order_qty += order_quantity_dict[key[0]]
             total_received_qty += value
             total_price += entry_price

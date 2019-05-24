@@ -151,10 +151,6 @@
           <input type="hidden" class="form-control" ng-model="charge.charge_id" name="charge_id">
         </div>
         <div class="col-md-2 col-sm-2 col-xs-3">
-          Tax Percent:
-          <input type="text" class="form-control" placeholder="Enter Tax Percentage" ng-model="charge.tax_percent" ng-change="pop.cal_total(charge)" decimal-number name="charge_tax_percent">
-        </div>
-        <div class="col-md-2 col-sm-2 col-xs-3">
           Tax Value:
           <input type="text" class="form-control" placeholder="Tax Value" ng-model="charge.charge_tax_value"  decimal-number name="charge_tax_value">
         </div>
@@ -175,10 +171,6 @@
           Amount:
           <input type="text" class="form-control" placeholder="Enter Amount" ng-model="charge.charge_amount"  decimal-number name="charge_amount" value="{{charge.charge_amount}}" required>
           <input type="hidden" class="form-control" ng-model="charge.charge_id" name="charge_id" value="{{charge.id}}">
-        </div>
-        <div class="col-md-2 col-sm-2 col-xs-3">
-          Tax Percent:
-          <input type="text" class="form-control" placeholder="Enter Tax Percentage" ng-model="charge.tax_percent" ng-change="pop.cal_total(charge)" decimal-number name="charge_tax_percent">
         </div>
         <div class="col-md-2 col-sm-2 col-xs-3">
           Tax Value:

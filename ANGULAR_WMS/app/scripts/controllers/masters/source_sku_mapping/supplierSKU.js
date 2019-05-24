@@ -70,6 +70,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
   // open popup for new supplier sku mapping
+  vm.get_sku_mrp = function(wms_code){
+    vm.service.apiCall('get_sku_mrp/','POST' ,{'wms_code':JSON.stringify(wms_code)}).then(function(data){
+      if(data.message)
+      {
+        vm.model_data.mrp = data.data;
+      }
+
+    })
+  }
   vm.add = function() {
 
     vm.title = "Add Supplier SKU Mapping";
@@ -80,27 +89,44 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
   vm.submit = function(data) {
-    delete(vm.model_data.mrp)
+    var valid = true;
     if (data.$valid) {
-      if(data.costing_type.$modelValue == 'Price Based' &&  data.price.$viewValue == '')
+      if(data.costing_type.$modelValue == 'Price Based')
       {
-        vm.service.pop_msg("Price  is Mandatory For Price Based");
+        if(data.price.$viewValue == '')
+        {
+           valid = false
+           vm.service.pop_msg("Price  is Mandatory For Price Based");
+
+        }
+       else {
+              if (Number(data.price.$viewValue) > Number(data.mrp.$viewValue) )
+              {
+                  valid = false
+                  vm.service.pop_msg("Cost price Should be Less than MRP");
+              }
+         }
       }
-      else if (data.costing_type.$modelValue == 'Margin Based' &&  data.margin_percentage.$viewValue == '') {
+      if (data.costing_type.$modelValue == 'Margin Based' &&  data.margin_percentage.$viewValue == '') {
+         valid = false
          vm.service.pop_msg("Margin Percentage is Mandatory For Margin Based")
       }
-      else if (data.costing_type.$modelValue == 'Markup Based' && data.markup_percentage.$viewValue == ''){
+      if (data.costing_type.$modelValue == 'Markup Based' && data.markup_percentage.$viewValue == ''){
+        valid = false
         vm.service.pop_msg("Markup Percentage is Mandatory For Markup Based")
 
+       }
+      if(valid)
+      {
+       delete(vm.model_data.mrp)
+       if ("Add Supplier SKU Mapping" == vm.title) {
+           vm.supplier_sku('insert_mapping/');
+          }
+        else {
+           vm.model_data['data-id'] = vm.model_data.DT_RowId;
+           vm.supplier_sku('update_sku_supplier_values/');
+        }
       }
-      else{
-      if ("Add Supplier SKU Mapping" == vm.title) {
-        vm.supplier_sku('insert_mapping/');
-      } else {
-        vm.model_data['data-id'] = vm.model_data.DT_RowId;
-        vm.supplier_sku('update_sku_supplier_values/');
-      }
-     }
     }
   }
 

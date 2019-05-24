@@ -2300,6 +2300,12 @@ def validate_supplier_sku_form(open_sheet, user_id):
                     cell_data_price = open_sheet.cell(row_idx, 5).value
                     if not cell_data_price :
                         index_status.setdefault(row_idx, set()).add('Price is Mandatory For Price Based')
+                    else:
+                        if isinstance(cell_data_price, (int, float)) :
+                            if cell_data_price > wms_check [0].mrp :
+                                index_status.setdefault(row_idx, set()).add('Price Should be Less than MRP')
+                        else:
+                            index_status.setdefault(row_idx, set()).add('Price Should be Number')
                 elif cell_data == 'Margin Based' :
                     cell_data_margin = open_sheet.cell(row_idx, 7).value
                     if not cell_data_margin :
@@ -2355,7 +2361,6 @@ def supplier_sku_upload(request, user=''):
         status = validate_supplier_sku_form(open_sheet, str(user.id))
         if status != 'Success':
             return HttpResponse(status)
-
         supplier_sku_instance = None
         try:
             for row_idx in range(1, open_sheet.nrows):

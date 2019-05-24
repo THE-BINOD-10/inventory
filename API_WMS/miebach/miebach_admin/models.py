@@ -2582,6 +2582,7 @@ class NetworkMaster(models.Model):
 class OrderUploads(models.Model):
     id = BigAutoField(primary_key=True)
     uploaded_user = models.ForeignKey(User)
+    generic_order_id = models.PositiveIntegerField(default=0)
     po_number = models.CharField(max_length=128, default='')
     uploaded_date = models.DateField()
     customer_name = models.CharField(max_length=256, default='')
@@ -2591,7 +2592,7 @@ class OrderUploads(models.Model):
 
     class Meta:
         db_table = 'ORDER_UPLOADS'
-        unique_together = ('uploaded_user', 'po_number', 'customer_name')
+        unique_together = ('uploaded_user', 'po_number', 'customer_name', 'generic_order_id')
 
 
 class CustomerPricetypes(models.Model):

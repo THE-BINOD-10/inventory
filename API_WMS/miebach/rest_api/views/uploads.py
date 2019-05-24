@@ -2309,11 +2309,11 @@ def validate_supplier_sku_form(open_sheet, user_id):
                 elif cell_data == 'Margin Based' :
                     cell_data_margin = open_sheet.cell(row_idx, 7).value
                     if not cell_data_margin :
-                        index_status.setdefault(row_idx, set()).add('Margin Percentage is Mandatory For Margin Based')
+                        index_status.setdefault(row_idx, set()).add('MarkDown Percentage is Mandatory For Margin Based')
                     elif not isinstance(cell_data_margin, (int, float)):
-                        index_status.setdefault(row_idx, set()).add('Margin % Should be in integer or float')
+                        index_status.setdefault(row_idx, set()).add('MarkDown % Should be in integer or float')
                     elif not float(cell_data_margin) in range(0, 100):
-                        index_status.setdefault(row_idx, set()).add('Margin % Should be in between 0 and 100')
+                        index_status.setdefault(row_idx, set()).add('MarkDown % Should be in between 0 and 100')
 
                 elif cell_data == 'Markup Based' :
                     cell_data_markup = open_sheet.cell(row_idx, 8).value

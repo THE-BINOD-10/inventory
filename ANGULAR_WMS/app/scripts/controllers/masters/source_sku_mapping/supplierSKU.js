@@ -109,7 +109,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
       if (data.costing_type.$modelValue == 'Margin Based' &&  data.margin_percentage.$viewValue == '') {
          valid = false
-         vm.service.pop_msg("Margin Percentage is Mandatory For Margin Based")
+         vm.service.pop_msg("MarkDown Percentage is Mandatory For Margin Based")
       }
       if (data.costing_type.$modelValue == 'Markup Based' && data.markup_percentage.$viewValue == ''){
         valid = false

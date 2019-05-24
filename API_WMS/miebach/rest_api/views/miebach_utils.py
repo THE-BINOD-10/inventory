@@ -3616,8 +3616,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
                                                                     'sku__sku_desc','sku__price','sellerordersummary__invoice_number','address',
                                                                     'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
-                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace',
-                                                                    'sellerordersummary__creation_date').distinct()
+                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace').distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
     else:
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size',
@@ -3865,7 +3864,7 @@ def get_order_summary_data(search_params, user, sub_user):
                             invoice_number = str(invoice_number_obj[0].seller_order.order.order_id)
 
             if data['sellerordersummary__creation_date'] :
-                invoice_date = get_local_date(user,data['sellerordersummary__creation_date'])
+                invoice_date = data['sellerordersummary__creation_date'].strftime('%d %b %Y')
             else:
                 invoice_date =''
             user_profile = UserProfile.objects.get(user_id=user.id)

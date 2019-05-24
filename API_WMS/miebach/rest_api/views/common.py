@@ -3666,10 +3666,11 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         if size_dict:
             classes = get_sku_available_stock(user, sku_master, query_string, size_dict)
             sku_master = sku_master.filter(sku_class__in=classes)
-    if quantity and not admin_user:
-        filt_ids = sku_master.values('id').annotate(stock_sum=Sum('stockdetail__quantity')).\
-                                filter(stock_sum__gt=quantity).values_list('id', flat=True).distinct()
-        sku_master = sku_master.filter(id__in=filt_ids)
+    # this code is commented because of overriding the sku_master as a empty it is checking the admin stock , always empty so commented.
+    # if quantity and not admin_user:
+    #     filt_ids = sku_master.values('id').annotate(stock_sum=Sum('stockdetail__quantity')).\
+    #                             filter(stock_sum__gt=quantity).values_list('id', flat=True).distinct()
+    #     sku_master = sku_master.filter(id__in=filt_ids)
     sku_master = sku_master.order_by('sequence')
     product_styles = sku_master.values_list('sku_class', flat=True).distinct()
     product_styles = list(OrderedDict.fromkeys(product_styles))
@@ -4731,7 +4732,6 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
         qty_dict_flag = True
     else:
         product_styles_filtered = product_styles
-
     for product in product_styles_filtered[start: stop]:
         sku_object = sku_master.filter(user=user.id, sku_class=product)
         sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id'). \

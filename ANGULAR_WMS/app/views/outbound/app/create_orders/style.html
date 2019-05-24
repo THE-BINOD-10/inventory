@@ -146,6 +146,26 @@
               <span>Stock: <b style="font-size:24px">{{Style.stock_quantity}}</b></span>
             </div>
           </div>
+
+          <div class="row" ng-if="!Style.data_loading && Style.warehouse_stock">
+            <div>
+              <table class="table table-bordered" ng-if="Style.def_lead_tm">
+                <thead>
+                  <tr>
+                    <th> Warehouse Name</th>
+                    <th> Available Quantity </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="warehouse in Style.warehouse_stock">
+                    <td>{{warehouse.ware}}</td>
+                    <td>{{warehouse.available}}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
 
         <div class="col-md-3 col-sm-3 col-xs-12 style cart-item" ng-if="Style.def_lead_tm" style="margin-top: 2.8em">

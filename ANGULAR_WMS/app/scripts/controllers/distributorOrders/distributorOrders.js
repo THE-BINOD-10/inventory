@@ -25,7 +25,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        .withPaginationType('full_numbers')
        .withOption('rowCallback', rowCallback);
     vm.dtColumns = [
-//        DTColumnBuilder.newColumn('id').withTitle('S.No'),
         DTColumnBuilder.newColumn('distributor').withTitle('Distributor'),
         DTColumnBuilder.newColumn('order_id').withTitle('Order ID'),
         DTColumnBuilder.newColumn('emizaids').withTitle('Emiza Order IDs'),
@@ -37,15 +36,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.customer_name=true;
 
-
     vm.excel = excel;
     function excel() {
       angular.copy(vm.dtColumns,colFilters.headers);
       angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
       colFilters.download_excel()
     }
-
-//    var empty_data = {"validate":"","remarks":""}
 
     function reloadData () {
         vm.dtInstance.reloadData();
@@ -55,10 +51,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
       vm.reloadData();
     });
-
-//    vm.status = [{name:'To be verified', value:'to_be_verified'},
-//                 {name:'Verified', value:'verified'},
-//                 {name:'Rejected', value:'rejected'}];
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $('td', nRow).unbind('click');
@@ -125,21 +117,3 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
 }
-
-//function distributorOrderviewDetail($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items, Data) {
-//  var vm = this;
-//  vm.service = Service;
-//  vm.permissions = Session.roles.permissions;
-//  vm.state_data = items;
-//  vm.image_url = Session.host
-//  if (vm.state_data['Feedback Image']){
-//    vm.image_path = vm.state_data['Feedback Image']
-//    vm.image = vm.image_url + vm.image_path
-//  }
-//    vm.ok = function () {
-//      $modalInstance.close("close");
-//    };
-//  }
-//angular
-//  .module('urbanApp')
-//  .controller('distributorOrderviewDetail', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', distributorOrderviewDetail]);

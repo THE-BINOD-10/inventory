@@ -15396,3 +15396,101 @@ def get_feedback_data(start_index, stop_index, temp_data, search_term, order_ter
         log.debug(traceback.format_exc())
         log.info('Exception raised while display feedback form for %s and params are %s and error statement is %s'
                  % (str(user.username), str(request.POST.dict()), str(e)))
+
+
+def get_distributors_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}):
+    filter_dict = {}
+    whs = get_same_level_warehouses(2, user)
+    dist_custs = WarehouseCustomerMapping.objects.filter(warehouse__in=whs, status=1)
+    if dist_custs:
+        cm_ids = dist_custs.values_list('customer_id', flat=True)
+        filter_dict = {'customer_id__in': cm_ids}
+    generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
+    gen_ord_qty_qs = generic_orders.values_list('generic_order_id', 'customer_id', 'orderdetail__original_order_id',
+                                                'cust_wh_id').annotate(tot_qty=Sum('quantity'),
+                                                                       date_only=Cast('creation_date', DateField()))
+    temp_data['recordsTotal'] = gen_ord_qty_qs.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    all_wh_dists_obj = UserGroups.objects.filter(admin_user=user.id)
+    orderprefix_map = dict(all_wh_dists_obj.values_list('user_id', 'user__userprofile__order_prefix'))
+    for gen_ord in gen_ord_qty_qs[start_index:stop_index]:
+        emiza_order_ids = []
+        gen_ord_id, customer_id, org_ord_id, cust_wh_id, cdate, total_qty = gen_ord
+        cust_qs = CustomerMaster.objects.filter(id=customer_id)
+        if cust_qs:
+            dist_name = cust_qs[0].name
+        else:
+            dist_name = ''
+        if cust_wh_id in orderprefix_map:
+            emiza_id = orderprefix_map[cust_wh_id] + str(org_ord_id)
+            emiza_order_ids.append(emiza_id)
+        temp_data['aaData'].append(OrderedDict(
+            (('distributor', dist_name), ('order_id', gen_ord_id), ('emizaids', emiza_order_ids),
+             ('uploaded_date', cdate.strftime('%Y-%m-%d')), ('tot_qty', total_qty), ('dist_cust_id', customer_id))))
+
+
+def get_distributor_order(request):
+    dist_cust_id = request.POST.get('distributor', '')
+    gen_ord_id = request.POST.get('gen_ord_id', '')
+    filters_dict = {'generic_order_id': gen_ord_id, 'customer_id': dist_cust_id}
+    dist_qs = CustomerMaster.objects.filter(id=dist_cust_id)
+    if dist_qs:
+        dist_name = dist_qs[0].name
+    else:
+        return HttpResponse('Something went wrong, please approach Tech Team')
+    gen_ord_qs = GenericOrderDetailMapping.objects.filter(**filters_dict)
+    gen_ord_map = []
+    for order in gen_ord_qs:
+        po = {'sku_code': order.orderdetail.sku.sku_code, 'quantity': order.orderdetail.quantity,
+              'unit_price': order.unit_price, 'sku_desc': order.orderdetail.sku.sku_desc}
+        po['amount'] = round(po['quantity'] * po['unit_price'], 2)
+        customer_summary = order.orderdetail.customerordersummary_set.values()
+        user_profile_obj = UserProfile.objects.filter(user_type='warehouse_user', user=order.orderdetail.user)
+        if user_profile_obj:
+            user_profile = user_profile_obj[0]
+            po['wharehouse_name'] = user_profile.user.username
+            total_tax = 0
+            if customer_summary:
+                customer_summary = customer_summary[0]
+                for tax in ['sgst', 'cgst', 'igst']:
+                    po[tax+'_tax'] = customer_summary[tax+'_tax']
+                    po[tax] = round((po['amount']/100)*po[tax+'_tax'], 2)
+                    total_tax += po[tax]
+            po['invoice_amt'] = po['amount'] + total_tax
+            gen_ord_map.append(po)
+    data = {'sku_quantity': gen_ord_map, 'generic_order_id': gen_ord_id, 'distributor': dist_cust_id, 'dist_name': dist_name}
+    return HttpResponse(json.dumps({'data': data}))
+
+
+@csrf_exempt
+@login_required
+def sm_cancel_distributor_order(request):
+    message = 'Success'
+    gen_ord_id = request.POST.get('gen_ord_id', '')
+    dist_cust_id = request.POST.get('distributor', '')
+    try:
+        gen_qs = GenericOrderDetailMapping.objects.filter(generic_order_id=gen_ord_id,
+                                                          customer_id=dist_cust_id)
+        is_emiza_order_failed = False
+        generic_orders = gen_qs.values('orderdetail__original_order_id', 'orderdetail__user').distinct()
+        for generic_order in generic_orders:
+            original_order_id = generic_order['orderdetail__original_order_id']
+            order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
+            resp = order_push(original_order_id, order_detail_user, "CANCEL")
+            log.info('Cancel Order Push Status done by Admin Login: %s' % (str(resp)))
+            if resp.get('Status', '') == 'Failure' or resp.get('status', '') == 'Internal Server Error':
+                is_emiza_order_failed = True
+                if resp.get('status', '') == 'Internal Server Error':
+                    message = "400 Bad Request"
+                else:
+                    message = resp['Result']['Errors'][0]['ErrorMessage']
+        if not is_emiza_order_failed:
+            order_det_ids = gen_qs.values_list('orderdetail_id', flat=True)
+            order_cancel_functionality(order_det_ids)
+            gen_qs.delete()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Order Cancellation failed for user %s and params are %s and error statement is %s' % (
+            str(request.user.username), str(request.GET.dict()), str(e)))
+    return HttpResponse(message)

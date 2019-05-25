@@ -587,6 +587,7 @@ data_datatable = {  # masters
     #invoice based payment tracker
     'PaymentTrackerInvBased': 'get_inv_based_payment_data',
     'OutboundPaymentReport': 'get_outbound_payment_report',
+    'DistributorOrdersData': 'get_distributors_orders',  # Outbound.py
 
 }
 

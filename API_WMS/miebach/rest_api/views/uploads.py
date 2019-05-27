@@ -1640,15 +1640,19 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     cell_data = 1
                 if toggle_value == "disable":
                     cell_data = 0
-                setattr(sku_data, key, cell_data)
-                data_dict[key] = cell_data
+                if not toggle_value:
+                    cell_data = 0
+                if toggle_value:
+                    setattr(sku_data, key, cell_data)
+                    data_dict[key] = cell_data
             elif key == 'block_options':
-                if str(cell_data).lower() == 'yes':
-                    cell_data = 'PO'
-                if str(cell_data).lower() in ['no', '']:
-                    cell_data = ''
-                setattr(sku_data, key, cell_data)
-                data_dict[key] = cell_data
+                if cell_data:
+                    if str(cell_data).lower() == 'yes':
+                        cell_data = 'PO'
+                    if str(cell_data).lower() in ['no', '']:
+                        cell_data = ''
+                    setattr(sku_data, key, cell_data)
+                    data_dict[key] = cell_data
             elif cell_data:
                 data_dict[key] = cell_data
                 if sku_data:

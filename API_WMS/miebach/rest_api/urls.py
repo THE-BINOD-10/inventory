@@ -394,6 +394,8 @@ urlpatterns = [
     url(r'^generate_picklist_dc/$', generate_picklist_dc),
     url(r'^get_order_extra_fields/$', get_order_extra_fields),
     url(r'^create_feedback_form/$', create_feedback_form),
+    url(r'^get_distributor_order/$', get_distributor_order),
+    url(r'^sm_cancel_distributor_order/$', sm_cancel_distributor_order),
 
 
     # Uploaded POs [SWISS MILITARY]

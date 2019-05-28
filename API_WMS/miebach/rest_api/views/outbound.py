@@ -9240,7 +9240,7 @@ def picklist_delete(request, user=""):
                         continue
                     else:
                         order_fields = OrderFields.objects.filter(original_order_id = order.original_order_id,user = user.id)
-                        if order_fields .exists():
+                        if order_fields.exists():
                             for order_field in order_fields :
                                 order_field.delete()
                         order.delete()

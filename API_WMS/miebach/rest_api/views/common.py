@@ -8854,7 +8854,7 @@ def insert_st_gst(all_data, user):
         for val in value:
             if val[6]:
                 open_st = OpenST.objects.get(id=val[6])
-                open_st.warehouse_id = User.objects.get(username__iexact=key).id
+                open_st.warehouse_id = User.objects.get(username__iexact=key[0]).id
                 open_st.sku_id = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
                 open_st.price = float(val[2])
                 open_st.order_quantity = float(val[1])
@@ -8864,7 +8864,7 @@ def insert_st_gst(all_data, user):
                 open_st.save()
                 continue
             stock_dict = copy.deepcopy(OPEN_ST_FIELDS)
-            stock_dict['warehouse_id'] = User.objects.get(username__iexact=key).id
+            stock_dict['warehouse_id'] = User.objects.get(username__iexact=key[0]).id
             stock_dict['sku_id'] = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
             stock_dict['order_quantity'] = float(val[1])
             stock_dict['price'] = float(val[2])
@@ -8877,9 +8877,10 @@ def insert_st_gst(all_data, user):
     return all_data
 
 
-def confirm_stock_transfer_gst(all_data, user, warehouse_name):
+def confirm_stock_transfer_gst(all_data, warehouse_name):
     warehouse = User.objects.get(username__iexact=warehouse_name)
     for key, value in all_data.iteritems():
+        user = User.objects.get(id=key[1])
         po_id = get_purchase_order_id(user) + 1
         stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
         if stock_transfer_obj:
@@ -9255,6 +9256,10 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
                 margin_percentage = sku_supplier[0].margin_percentage
                 prefill_unit_price = mrp_value - ((mrp_value * margin_percentage)/100)
                 data['price'] = prefill_unit_price
+            elif sku_supplier[0].costing_type == 'Markup Based':
+                 markup_percentage = sku_supplier[0].markup_percentage
+                 prefill_unit_price = mrp_value / (1+(markup_percentage/100))
+                 data['price'] = prefill_unit_price
             else:
                 data['price'] = sku_supplier[0].price
             data['supplier_code'] = sku_supplier[0].supplier_code
@@ -9276,3 +9281,14 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
         log.info('Getting po Values failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(wms_code), str(e)))
     return data
+
+@get_admin_user
+@csrf_exempt
+@login_required
+def get_sku_mrp(request ,user =''):
+    mrp = 0
+    wms_code  = json.loads(request.POST.get('wms_code',''))
+    sku_mrp = SKUMaster.objects.filter(wms_code=wms_code, user=user.id).values('mrp')
+    if sku_mrp :
+        mrp = sku_mrp[0]['mrp']
+    return HttpResponse(json.dumps({'mrp':mrp}))

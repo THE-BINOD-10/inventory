@@ -165,7 +165,7 @@
                 <tbody>
                   <tr ng-repeat="product in showCase.model_data.data" id="tab_count">
                     <td>
-                      <input type="text" autocomplete="off" name="wms_code" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)" ng-keyup="$event.keyCode == 13 ? showCase.key_event(product, $item, $index) : null" ng-readonly="product.pk > 0">
+                      <input type="text" autocomplete="off" name="wms_code" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)" ng-focus="showCase.enable_focus_flag()" ng-keyup="$event.keyCode == 13 ? showCase.key_event(product, $item, $index) : null" ng-blur="showCase.get_blur_sku_details(product, product.fields.sku.wms_code, $index, $event)" ng-readonly="product.pk > 0">
                       <input type="text" name="data-id" ng-model="product.pk" class="hide" ng-if="showCase.update">
                       <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="showCase.update">
                     </td>

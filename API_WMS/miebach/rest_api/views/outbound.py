@@ -1412,13 +1412,16 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
     return shipped_orders_dict
 
 
-def insert_st_order_serial(picklist, val, order='', shipped_orders_dict={}):
-    imei_nos = val['imei']
-    if not isinstance(val['imei'], list):
-        if ',' in val['imei']:
-            imei_nos = list(set(val['imei'].split(',')))
-        else:
-            imei_nos = list(set(val['imei'].split('\r\n')))
+def insert_st_order_serial(picklist, val, order='', shipped_orders_dict={},passed_serial_number = {}):
+    if passed_serial_number :
+        imei_nos = passed_serial_number.get(val['wms_code'],[])
+    else:
+        imei_nos = val['imei']
+        if not isinstance(val['imei'], list) :
+            if ',' in val['imei']:
+                imei_nos = list(set(val['imei'].split(',')))
+            else:
+                imei_nos = list(set(val['imei'].split('\r\n')))
     user_id = None
     for imei in imei_nos:
         imei_filter = {}
@@ -2200,11 +2203,15 @@ def picklist_confirmation(request, user=''):
                             picklist_qc_log.info("Error in Dispatch QC - On Fail - %s - %s" % (str(user.username), str(e)))
                     if count == 0:
                         continue
-                    if 'imei' in val.keys() and val['imei'] and not picklist.order and val['imei'] != '[]':
+                    if  'imei' in val.keys() and val['imei'] and not picklist.order and val['imei'] != '[]' :
                         order = picklist.storder_set.filter()
                         if order:
                             order = order[0]
                             insert_st_order_serial(picklist, val, order=order)
+                    if passed_serial_number and picklist.storder_set.filter():
+                        order = picklist.storder_set.filter()
+                        order = order[0]
+                        insert_st_order_serial(picklist, val, order=order,passed_serial_number = passed_serial_number)
                     reserved_quantity1 = picklist.reserved_quantity
                     tot_quan = 0
                     for stock in total_stock:
@@ -3183,7 +3190,7 @@ def get_customer_sku(request, user=''):
     courier_name = ''
     sku_grouping = request.GET.get('sku_grouping', 'false')
     datatable_view = request.GET.get('view', '')
-    search_params = {'user': user.id}
+    insert_st_order_serialsearch_params = {'user': user.id}
     headers = ('', 'SKU Code', 'Order Quantity', 'Shipping Quantity', 'Pack Reference', '')
     request_data = dict(request.GET.iterlists())
     picked_imeis = []

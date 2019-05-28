@@ -353,7 +353,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
             customer_name = customer_data[0].order.customer_name
         else:
             if supplier_parent:
-                    customer_name = supplier_parent.username
+                customer_name = supplier_parent.username
         if supplier.open_po:
             po_reference_no = supplier.open_po.po_name
         if customer_data and oneassist_condition == 'true':

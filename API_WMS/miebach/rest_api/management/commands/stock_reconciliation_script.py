@@ -220,12 +220,16 @@ class Command(BaseCommand):
                 seller_po_query['purchase_order__open_po__sku__user'] = user.id
                 seller_po_query['purchase_order__open_po__creation_date__startswith'] = datetime.now().date()
                 seller_po = dict(SellerPOSummary.objects.filter(**seller_po_query).values_list('purchase_order__open_po__sku__id').distinct().annotate(quantity=Sum(F('cess_tax') * F('purchase_order__open_po__price') * F('purchase_order__open_po__order_quantity') / 100)))
-
                 for sku in sku_codes:
                     opening_stock = int(stock_qty.get(sku, 0)) - (int(putaway_qty.get(sku, 0)) + int(stock_uploaded_qty.get(sku, 0)) + int(return_qty.get(sku, 0)) + int(jo_putaway_qty.get(sku, 0))) + int(picklist_qty.get(sku, 0) + int(rm_picklist_qty.get(sku, 0))) - int(inv_adjust_qty.get(sku, 0)) + int(rtv_qty.get(sku, 0))
                     if opening_stock:
-                        stock_buy_price = float(stock_price.get(sku, 0))/float(stock_sku_count.get(sku, 0))
-                        stock_tax_value = float(stock_tax.get(sku, 0))/float(stock_sku_count.get(sku, 0))
+                        stock_tax_val, stock_price_val = 0, 0
+                        if stock_tax.get(sku, 0):
+                            stock_tax_val = stock_tax.get(sku, 0)
+                        if stock_price.get(sku, 0):
+                            stock_price_val = stock_price.get(sku, 0)
+                        stock_buy_price = float(stock_price_val)/float(stock_sku_count.get(sku, 0))
+                        stock_tax_value = float(stock_tax_val)/float(stock_sku_count.get(sku, 0))
                     else:
                         stock_buy_price = 0
                         stock_tax_value = 0

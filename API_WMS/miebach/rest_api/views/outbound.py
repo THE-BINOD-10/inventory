@@ -9264,7 +9264,7 @@ def picklist_delete(request, user=""):
 
                     if picked_qty <= 0 and not seller_order:
                         order_fields = OrderFields.objects.filter(original_order_id = order.original_order_id,user = user.id)
-                        if order_fields .exists():
+                        if order_fields.exists():
                             for order_field in order_fields :
                                 order_field.delete()
                         order.delete()

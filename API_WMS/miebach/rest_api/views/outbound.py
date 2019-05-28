@@ -9334,13 +9334,6 @@ def picklist_delete(request, user=""):
                         open_st = st_po.open_st
                         open_st.delete()
                         po.delete()
-                        picklist_locations = PicklistLocation.objects.filter(picklist_id=picklist.id,
-                                                                             stock__sku__user=user.id)
-                        for pick_location in picklist_locations:
-                            pick_location.quantity = float(pick_location.quantity) - float(pick_location.reserved)
-                            pick_location.reserved = 0
-                            pick_location.status = 0
-                            pick_location.save()
                         picklist.delete()
 
 

@@ -9274,6 +9274,10 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
                 margin_percentage = sku_supplier[0].margin_percentage
                 prefill_unit_price = mrp_value - ((mrp_value * margin_percentage)/100)
                 data['price'] = prefill_unit_price
+            elif sku_supplier[0].costing_type == 'Markup Based':
+                 markup_percentage = sku_supplier[0].markup_percentage
+                 prefill_unit_price = mrp_value / (1+(markup_percentage/100))
+                 data['price'] = prefill_unit_price
             else:
                 data['price'] = sku_supplier[0].price
             data['supplier_code'] = sku_supplier[0].supplier_code
@@ -9295,6 +9299,8 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
         log.info('Getting po Values failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(wms_code), str(e)))
     return data
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -9325,3 +9331,15 @@ def save_extra_order_options(request, user=''):
        str(user), str(request.POST), str(e)))
        return HttpResponse("Something Went Wrong")
     return HttpResponse(json.dumps({'message': message}))
+
+
+@get_admin_user
+@csrf_exempt
+@login_required
+def get_sku_mrp(request ,user =''):
+    mrp = 0
+    wms_code  = json.loads(request.POST.get('wms_code',''))
+    sku_mrp = SKUMaster.objects.filter(wms_code=wms_code, user=user.id).values('mrp')
+    if sku_mrp :
+        mrp = sku_mrp[0]['mrp']
+    return HttpResponse(json.dumps({'mrp':mrp}))

@@ -881,14 +881,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       });
     }
 
-	vm.supplier_on_change = function () {
-		if(vm.permissions.show_purchase_history) {
-        $timeout( function() {
-            vm.populate_last_transaction('');
-        }, 2000 );
-      }
-	}
-
   vm.checkSupplierExist = function (sup_id) {
     console.log(sup_id);
     $http.get(Session.url + 'search_supplier?', {

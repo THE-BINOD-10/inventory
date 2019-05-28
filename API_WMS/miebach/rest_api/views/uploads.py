@@ -6066,8 +6066,8 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
         return f_name
     order_amount = 0
     interm_order_id = ''
+    all_data = {}
     for row_idx in range(1, no_of_rows):
-        all_data = {}
         for key, value in order_mapping.iteritems():
             if key == 'warehouse_name':
                 try:
@@ -6108,13 +6108,12 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                 if igst_tax == '':
                     igst_tax = 0
 
-        cond = (user.username)
+        warehouse = User.objects.get(username__iexact=warehouse)
+        cond = (user.username, warehouse.id)
         all_data.setdefault(cond, [])
         all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax, 0])
-        warehouse = User.objects.get(username=warehouse)
-        f_name = 'stock_transfer_' + warehouse_name + '_'
         all_data = insert_st_gst(all_data, warehouse)
-        status = confirm_stock_transfer_gst(all_data, warehouse, user.username)
+    status = confirm_stock_transfer_gst(all_data, user.username)
 
     if status.status_code == 200:
         return 'Success'

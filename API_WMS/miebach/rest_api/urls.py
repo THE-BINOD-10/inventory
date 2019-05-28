@@ -72,6 +72,7 @@ urlpatterns = [
     url(r'^change_warehouse_password/$', change_warehouse_password),
     url(r'^insert_sku_pack/$',insert_sku_pack),
     url(r'^get_zone_details/$',get_zone_details),
+    url(r'^delete_cluster_sku/$',delete_cluster_sku),
 
 
 
@@ -393,8 +394,9 @@ urlpatterns = [
     url(r'^generate_picklist_dc/$', generate_picklist_dc),
     url(r'^get_order_extra_fields/$', get_order_extra_fields),
     url(r'^create_feedback_form/$', create_feedback_form),
+    url(r'^get_distributor_order/$', get_distributor_order),
+    url(r'^sm_cancel_distributor_order/$', sm_cancel_distributor_order),
     url(r'^get_order_extra_options/$', get_order_extra_options),
-
 
 
     # Uploaded POs [SWISS MILITARY]
@@ -565,6 +567,8 @@ urlpatterns += [
     url(r'^block_stock_upload/$', block_stock_upload),
     url(r'^custom_order_download/$', custom_order_download),
     url(r'^custom_order_upload/$', custom_order_upload),
+    url(r'^cluster_sku_form/$', cluster_sku_form),
+    url(r'^cluster_sku_upload/$', cluster_sku_upload),
 
 
     # configurations

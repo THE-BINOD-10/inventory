@@ -51,12 +51,15 @@
         <div class="col-md-3 col-sm-3 col-xs-12" ng-if="showCase.service.check_image_url(Style.style_details.image_url) && Style.includeDesktopTemplate">
           <img ng-if="!showCase.dis_video" ng-src="{{ showCase.service.check_image_url(Style.style_details.image_url) }}" style="border:0px !important;padding: 0px;" class="img-thumbnail" ez-plus ezp-model="{thumb: showCase.service.check_image_url(Style.style_details.image_url) , small: showCase.service.check_image_url(Style.style_details.image_url), large:showCase.service.check_image_url(Style.style_details.image_url)}" ezp-options="{scrollZoom: true, easing: true, zoomWindowWidth: 600, zoomWindowHeight: 600}" id="zoom_01">
           <!-- <img ng-if="!showCase.dis_video" src="https://api.stockone.in/static/images/17/6D240_1_L.jpg" style="border:0px !important;padding: 0px;" class="img-thumbnail" ez-plus ezp-model="{thumb: showCase.service.check_image_url(Style.style_details.image_url) , small: showCase.service.check_image_url(Style.style_details.image_url), large:showCase.service.check_image_url(Style.style_details.image_url)}" ezp-options="{scrollZoom: true, easing: true, zoomWindowWidth: 600, zoomWindowHeight: 600}" id="zoom_01"> -->
-          <div ng-show="showCase.dis_video" class="youtube_video_play_elem"></div>
+          <!-- <div ng-show="showCase.dis_video" class="youtube_video_play_elem"></div>
           <div ng-show="Style.y_video_flag" class="row mt15" ng-click="showCase.dis_video = (showCase.dis_video) ? false : true">
             <div style="cursor:pointer">
               <div ng-show="!showCase.dis_video" style="pointer-events: none;" class="youtube_thumbnaile_elem"></div>
               <img ng-if="showCase.dis_video" ng-src="{{ showCase.service.check_image_url(Style.style_details.image_url) }}" width="90px" style="border:0px !important;padding: 0px;" class="img-thumbnail">
             </div>
+          </div> -->
+          <div ng-show="Style.if_youtube_url" align="center" style="padding-top: 8px;">
+            <button ng-click="Style.youtube_iframe(Style.if_youtube_url)" style="padding: 0px;"><div ng-show="!showCase.dis_video" style="pointer-events: none;    margin-bottom: -6px;" class="youtube_thumbnaile_elem"></div></button>
           </div>
           <h5 align="center"><b>{{Style.style_data.data[0].sku_class}}</b></h5>
           <p align="center" ng-if="Style.sku_spl_attrs&&Style.central_order_mgmt">Dimensions(in) : {{Style.sku_spl_attrs.length}} X {{Style.sku_spl_attrs.breadth}} X {{Style.sku_spl_attrs.height}}</p>

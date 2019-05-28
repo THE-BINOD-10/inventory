@@ -1,5 +1,4 @@
 import xlsxwriter
-
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
@@ -80,17 +79,23 @@ def get_company_logo(user, IMAGE_PATH_DICT):
     return image
 
 
-def get_decimal_value(user_id):
+def get_decimal_value(user_id ,price = ''):
     decimal_limit = 0
     if get_misc_value('float_switch', user_id) == 'true':
         decimal_limit = 1
         if get_misc_value('float_switch', user_id, number=True):
-            decimal_limit = get_misc_value('decimal_limit', user_id, number=True)
+            if price :
+                decimal_limit = get_misc_value('decimal_limit_price', user_id, number=True)
+            else:
+                decimal_limit = get_misc_value('decimal_limit', user_id, number=True)
+            if not decimal_limit :
+                decimal_limit = 2
+
     return decimal_limit
 
 
-def get_decimal_limit(user_id, value):
-    decimal_limit = get_decimal_value(user_id)
+def get_decimal_limit(user_id, value,price =''):
+    decimal_limit = get_decimal_value(user_id,price)
     return truncate_float(value, decimal_limit)
 
 
@@ -442,7 +447,6 @@ def get_search_params(request, user=''):
     Zone Code is (NORTH, EAST, WEST, SOUTH)
     Zone Id is Warehouse Zone.
     """
-    #import pdb; pdb.set_trace()
     search_params = {}
     filter_params = {}
     headers = []
@@ -519,7 +523,7 @@ data_datatable = {  # masters
     'SellerMaster': 'get_seller_master', 'SellerMarginMapping': 'get_seller_margin_mapping', \
     'TaxMaster': 'get_tax_master', 'NetworkMaster': 'get_network_master_results',\
     'StaffMaster': 'get_staff_master', 'CorporateMaster': 'get_corporate_master',\
-    'WarehouseSKUMappingMaster': 'get_wh_sku_mapping',
+    'WarehouseSKUMappingMaster': 'get_wh_sku_mapping', 'ClusterMaster': 'get_cluster_sku_results',
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
     'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data', \
@@ -577,9 +581,12 @@ data_datatable = {  # masters
     'EnquiryOrders': 'get_enquiry_orders',
     'ManualEnquiryOrders': 'get_manual_enquiry_orders',
     'Targets': 'get_distributor_targets',
+    # feedBack Details
+    'FeedbackData': 'get_feedback_data',
     #invoice based payment tracker
     'PaymentTrackerInvBased': 'get_inv_based_payment_data',
     'OutboundPaymentReport': 'get_outbound_payment_report',
+    'DistributorOrdersData': 'get_distributors_orders',  # Outbound.py
 
 }
 
@@ -1232,6 +1239,10 @@ def get_auto_po_quantity(sku, stock_quantity=''):
         if sku_stock:
             stock_quantity = sku_stock
 
+    open_po_qty = OpenPO.objects.filter(sku_id=sku.id, sku__user=sku.user,
+                                             status__in=['Automated', 1, 'Manual']).only('order_quantity').\
+        aggregate(Sum('order_quantity'))['order_quantity__sum']
+
     purchase_order = PurchaseOrder.objects.exclude(status__in=['confirmed-putaway', 'location-assigned']). \
         filter(open_po__sku__user=sku.user, open_po__sku_id=sku.id, open_po__vendor_id__isnull=True). \
         values('open_po__sku_id').annotate(total_order=Sum('open_po__order_quantity'),
@@ -1246,6 +1257,8 @@ def get_auto_po_quantity(sku, stock_quantity=''):
         qc_pending = 0
     if not putaway_pending:
         putaway_pending = 0
+    if not open_po_qty:
+        open_po_qty = 0
 
     production_orders = JobOrder.objects.filter(product_code_id=sku.id, product_code__user=sku.user). \
         exclude(status__in=['open', 'confirmed-putaway']).values('product_code_id'). \
@@ -1271,7 +1284,7 @@ def get_auto_po_quantity(sku, stock_quantity=''):
             transit_quantity = diff_quantity
         transit_quantity += (qc_pending + putaway_pending)
 
-    total_quantity = (stock_quantity + transit_quantity + production_quantity + intr_qty)
+    total_quantity = (stock_quantity + transit_quantity + production_quantity + intr_qty + open_po_qty)
     raise_quantity = int(sku.threshold_quantity) - total_quantity
     if raise_quantity < 0:
         raise_quantity = 0
@@ -1357,7 +1370,8 @@ def auto_po(wms_codes, user):
     auto_po_switch = get_misc_value('auto_po_switch', user)
     po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user)
     auto_raise_stock_transfer = get_misc_value('auto_raise_stock_transfer', user)
-    if 'true' in [auto_po_switch, auto_raise_stock_transfer]:
+    sku_less_than_threshold = get_misc_value('sku_less_than_threshold', user)
+    if 'true' in [auto_po_switch, auto_raise_stock_transfer] or sku_less_than_threshold == 'true':
         sku_codes = SKUMaster.objects.filter(wms_code__in=wms_codes, user=user, threshold_quantity__gt=0)
         price_band_flag = get_misc_value('priceband_sync', user)
         for sku in sku_codes:
@@ -1376,7 +1390,7 @@ def auto_po(wms_codes, user):
                 moq = qty + intr_qty
                 if not supplier_master_id:
                     continue
-            elif auto_po_switch == 'true':
+            elif auto_po_switch == 'true' or sku_less_than_threshold == 'true':
                 supplier_id = SKUSupplier.objects.filter(sku_id=sku.id, sku__user=user, moq__gt=0).order_by('preference')
                 if not supplier_id:
                     continue
@@ -1385,7 +1399,16 @@ def auto_po(wms_codes, user):
                     # moq = qty
                     continue
                 supplier_master_id = supplier_id[0].supplier_id
+                taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
                 price = supplier_id[0].price
+                inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
+                inter_state = inter_state_dict.get(supplier_id[0].supplier.tax_type, 2)
+                tax_master = TaxMaster.objects.filter(user_id=user, inter_state=inter_state,
+                                                      product_type=sku.product_type,
+                                                      min_amt__lte=price, max_amt__gte=price).\
+                    values('cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax')
+                if tax_master.exists():
+                    taxes = copy.deepcopy(tax_master[0])
             elif auto_raise_stock_transfer == 'true':
                 all_data = {}
                 user_obj = User.objects.get(id=user)
@@ -1402,34 +1425,48 @@ def auto_po(wms_codes, user):
 
             if moq <= 0:
                 continue
-            suggestions_data = OpenPO.objects.filter(sku_id=sku.id, sku__user=user, status__in=['Automated', 1])
-            order_quantity = max(qty,moq)
-            if not suggestions_data:
-                po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
-                po_suggestions['sku_id'] = sku.id
-                po_suggestions['supplier_id'] = supplier_master_id
-                po_suggestions['order_quantity'] = order_quantity
-                po_suggestions['status'] = 'Automated'
-                po_suggestions['price'] = price
-                po_suggestions.update(taxes)
-                po = OpenPO(**po_suggestions)
-                po.save()
-                auto_confirm_po = get_misc_value('auto_confirm_po', user)
-                if auto_confirm_po == 'true':
-                    po.status = 0
+            suggestions_data = OpenPO.objects.filter(sku_id=sku.id, sku__user=user,
+                                                     status__in=['Automated', 1, 'Manual'])
+            if not suggestions_data.exists():
+                order_quantity = max(qty,moq)
+            else:
+                order_quantity = qty
+            automated_po = OpenPO.objects.filter(sku_id=sku.id, sku__user=user,
+                                                     status='Automated')
+            if not automated_po.exists():
+                if sku_less_than_threshold == 'true' :
+                    push_notify = PushNotifications.objects.filter(user=user ,message = sku.wms_code+"  "+"quantity is below Threshold quantity")
+                    if not push_notify.exists() :
+                        PushNotifications.objects.create(user_id=user, message=sku.wms_code+"  "+"quantity is below Threshold quantity")
+                else:
+                    po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
+                    po_suggestions['sku_id'] = sku.id
+                    po_suggestions['supplier_id'] = supplier_master_id
+                    po_suggestions['order_quantity'] = order_quantity
+                    po_suggestions['status'] = 'Automated'
+                    po_suggestions['price'] = price
+                    po_suggestions['mrp'] = sku.mrp
+                    po_suggestions.update(taxes)
+                    po = OpenPO(**po_suggestions)
                     po.save()
-                    user_obj = User.objects.get(id=user)
-                    po_order_id = get_purchase_order_id(user_obj) + 1
-                    if po_sub_user_prefix == 'true':
-                        po_order_id = update_po_order_prefix(user_obj, po_order_id)
-                    user_profile = UserProfile.objects.get(user_id=sku.user)
-                    PurchaseOrder.objects.create(open_po_id=po.id, order_id=po_order_id, status='',
-                                                 received_quantity=0, po_date=datetime.datetime.now(),
-                                                 prefix=user_profile.prefix,
-                                                 creation_date=datetime.datetime.now())
-                    check_purchase_order_created(User.objects.get(id=user), po_order_id)
-    else:
-        pass
+                    auto_confirm_po = get_misc_value('auto_confirm_po', user)
+                    if auto_confirm_po == 'true':
+                        po.status = 0
+                        po.save()
+                        user_obj = User.objects.get(id=user)
+                        po_order_id = get_purchase_order_id(user_obj) + 1
+                        if po_sub_user_prefix == 'true':
+                            po_order_id = update_po_order_prefix(user_obj, po_order_id)
+                        user_profile = UserProfile.objects.get(user_id=sku.user)
+                        PurchaseOrder.objects.create(open_po_id=po.id, order_id=po_order_id, status='',
+                                                     received_quantity=0, po_date=datetime.datetime.now(),
+                                                     prefix=user_profile.prefix,
+                                                     creation_date=datetime.datetime.now())
+                        check_purchase_order_created(User.objects.get(id=user), po_order_id)
+            else:
+                automated_po = automated_po[0]
+                automated_po.order_quantity += order_quantity
+                automated_po.save()
 
 
 @csrf_exempt
@@ -3113,6 +3150,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 continue
             if math.ceil(quantity) == quantity:
                 quantity = int(quantity)
+            quantity = get_decimal_limit(user.id ,quantity)
+            invoice_amount = get_decimal_limit(user.id ,invoice_amount ,'price')
+
             count = count +1
             data.append(
                 {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
@@ -3385,6 +3425,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         request_data = request.POST
     filter_params = {'user': user.id}
     sku_class = request_data.get('sku_class', '')
+    cluster = request_data.get('cluster', '')
     sku_brand = request_data.get('brand', '')
     sku_category = request_data.get('category', '')
     sub_category = request_data.get('sub_category', '')
@@ -3471,6 +3512,10 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         filter_params1['sku__user'] = admin_user.id
     else:
         filter_params1['sku__user'] = user.id
+    if cluster:
+        cluster_sku_list = list(ClusterSkuMapping.objects.filter(cluster_name = cluster, sku__user = filter_params1['sku__user']).values_list('sku__sku_code', flat=True))
+        filter_params['sku_code__in'] = cluster_sku_list
+        filter_params1['sku__sku_code__in'] = cluster_sku_list
     start, stop = indexes.split(':')
     start, stop = int(start), int(stop)
     if sku_class:
@@ -3714,7 +3759,6 @@ def search_wms_data(request, user=''):
     search_key = request.GET.get('q', '')
     total_data = []
     limit = 10
-
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 
@@ -3763,12 +3807,14 @@ def get_supplier_sku_prices(request, user=""):
         result_data = []
         supplier_master = ""
         inter_state = 2
+        edit_tax = False
+        ep_supplier = False
         if suppli_id:
             supplier_master = SupplierMaster.objects.filter(id=suppli_id, user=user.id)
             if supplier_master:
                 tax_type = supplier_master[0].tax_type
                 inter_state = inter_state_dict.get(tax_type, 2)
-
+                ep_supplier = supplier_master[0].ep_supplier
         for sku_code in sku_codes:
             if not sku_code:
                 continue
@@ -3782,8 +3828,12 @@ def get_supplier_sku_prices(request, user=""):
             taxes_data = []
             for tax_master in tax_masters:
                 taxes_data.append(tax_master.json())
+            supplier_sku = SKUSupplier.objects.filter(sku_id=data.id, supplier_id=supplier_master[0].id)
+            mandate_sku_supplier = get_misc_value('mandate_sku_supplier', user.id)
+            if not supplier_sku and ep_supplier and mandate_sku_supplier == "true":
+                edit_tax = True
             result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'tax_type': tax_type,
-                            'taxes': taxes_data, 'mrp': data.mrp})
+                'taxes': taxes_data, 'mrp': data.mrp, 'edit_tax':edit_tax})
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -8806,7 +8856,7 @@ def insert_st_gst(all_data, user):
         for val in value:
             if val[6]:
                 open_st = OpenST.objects.get(id=val[6])
-                open_st.warehouse_id = User.objects.get(username__iexact=key).id
+                open_st.warehouse_id = User.objects.get(username__iexact=key[0]).id
                 open_st.sku_id = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
                 open_st.price = float(val[2])
                 open_st.order_quantity = float(val[1])
@@ -8816,7 +8866,7 @@ def insert_st_gst(all_data, user):
                 open_st.save()
                 continue
             stock_dict = copy.deepcopy(OPEN_ST_FIELDS)
-            stock_dict['warehouse_id'] = User.objects.get(username__iexact=key).id
+            stock_dict['warehouse_id'] = User.objects.get(username__iexact=key[0]).id
             stock_dict['sku_id'] = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
             stock_dict['order_quantity'] = float(val[1])
             stock_dict['price'] = float(val[2])
@@ -8829,9 +8879,10 @@ def insert_st_gst(all_data, user):
     return all_data
 
 
-def confirm_stock_transfer_gst(all_data, user, warehouse_name):
+def confirm_stock_transfer_gst(all_data, warehouse_name):
     warehouse = User.objects.get(username__iexact=warehouse_name)
     for key, value in all_data.iteritems():
+        user = User.objects.get(id=key[1])
         po_id = get_purchase_order_id(user) + 1
         stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
         if stock_transfer_obj:
@@ -9186,3 +9237,45 @@ def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
         log.debug(traceback.format_exc())
         log.info('Create order extra fields failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(extra_order_fields), str(e)))
+
+def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
+    data = {}
+    try:
+        if wms_code.isdigit():
+            ean_number = wms_code
+            sku_supplier = SKUSupplier.objects.filter(Q(sku__ean_number=wms_code) | Q(sku__wms_code=wms_code),
+                                                      supplier_id=supplier_id, sku__user=user.id)
+        else:
+            ean_number = 0
+            sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, supplier_id=supplier_id, sku__user=user.id)
+        sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
+        sup_markdown = SupplierMaster.objects.get(id=supplier_id)
+        data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,
+                'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
+        if sku_supplier:
+            mrp_value = sku_master.mrp
+            if sku_supplier[0].costing_type == 'Margin Based':
+                margin_percentage = sku_supplier[0].margin_percentage
+                prefill_unit_price = mrp_value - ((mrp_value * margin_percentage)/100)
+                data['price'] = prefill_unit_price
+            else:
+                data['price'] = sku_supplier[0].price
+            data['supplier_code'] = sku_supplier[0].supplier_code
+            data['sku'] = sku_supplier[0].sku.sku_code
+            data['ean_number'] = ean_number
+            data['measurement_unit'] = sku_supplier[0].sku.measurement_type
+        else:
+            if int(sup_markdown.ep_supplier):
+                data['price'] = 0
+            mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
+            if mandate_supplier == 'true' and not int(sup_markdown.ep_supplier):
+                data['supplier_mapping'] = True
+        if sku_master.block_options == "PO":
+            if not int(sup_markdown.ep_supplier):
+                data = {'error_msg':'This SKU is Blocked for PO'}
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Getting po Values failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(wms_code), str(e)))
+    return data

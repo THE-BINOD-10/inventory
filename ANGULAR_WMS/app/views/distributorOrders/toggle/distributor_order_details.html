@@ -1,0 +1,74 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate">
+  <div class="modal-dialog model-custom modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">{{showCase.title}}</h4>
+      </div>
+      <!-- body-->
+      <div class="modal-body">
+          <div class="clearfix">
+            <div class="row">
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Generic Order ID </label>
+                  <input type="text" name="serial_no" class="form-control" ng-model="showCase.model_data.data.generic_order_id" ng-readonly="showCase.update" required>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Distributor Name </label>
+                  <input type="text" name="name" class="form-control" ng-model="showCase.model_data.data.dist_name" ng-readonly="showCase.update" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-12">
+                <table class="table table-bordered">
+                  <thead>
+                    <tr>
+                      <th>SKU Code</th>
+                      <th>SKU Description</th>
+                      <th>Warehouse Name</th>
+                      <th>Qty</th>
+                      <th>Unit Rate</th>
+                      <th>Amount</th>
+                      <th>CGST</th>
+                      <th>SGST</th>
+                      <th>IGST</th>
+                      <th>Total Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr ng-repeat = "data in showCase.model_data.data.sku_quantity">
+                      <td>{{data.sku_code}}</td>
+                      <td>{{data.sku_desc}}</td>
+                      <td>{{data.wharehouse_name}}</td>
+                      <td class="text-center">{{data.quantity}}</td>
+                      <td class="text-right">{{data.unit_price}}</td>
+                      <td class="text-right">{{data.amount}}</td>
+                      <td>{{data.cgst}} <span ng-if="data.cgst_tax">(@{{data.cgst_tax}}%)</span></td>
+                      <td>{{data.sgst}} <span ng-if="data.sgst_tax">(@{{data.sgst_tax}}%)</span></td>
+                      <td>{{data.igst}} <span ng-if="data.igst_tax">(@{{data.igst_tax}}%)</span></td>
+                      <td class="text-right">{{data.invoice_amt}}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div ng-include="'views/common/msg.html'"></div>
+        </div>
+      </div>
+      <!-- body end-->
+      <div class="modal-footer">
+        <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
+        <button type="button" class="btn btn-warning pop pull-left" ng-if="showCase.user_type=='central_admin'" ng-click="showCase.sm_cancel_distributorOrder(showCase.model_data.data.generic_order_id, showCase.model_data.data.distributor)" ng-disabled = "showCase.cancelPoDisable">Cancel</button>
+      </div>
+
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+  </form>
+</div>

@@ -27,6 +27,15 @@ def upload_po(request):
     try:
         upload_po_map = {'uploaded_user_id': request.user.id, 'po_number': po_number,
                          'customer_name': customer_name}
+        customer_qs = CustomerUserMapping.objects.filter(user_id=request.user.id)
+        if not customer_qs:
+            return HttpResponse('No Customer ID Mapping')
+        customer_id = customer_qs[0].customer.id
+
+        gen_id = GenericOrderDetailMapping.objects.filter(po_number=po_number, client_name=customer_name,
+                                                          customer_id=customer_id).order_by('-id')
+        if gen_id:
+            upload_po_map['generic_order_id'] = gen_id[0].generic_order_id
         ord_obj = OrderUploads.objects.filter(**upload_po_map)
         if ord_obj:
             ord_obj = ord_obj[0]
@@ -140,10 +149,10 @@ def get_uploaded_pos_by_customers(start_index, stop_index, temp_data, search_ter
             customer_user = customer_user[0]
             dist_id = customer_user.customer.user
             distributor = UserProfile.objects.get(user=dist_id).user.username
+            generic_id = result.generic_order_id
             order_data = GenericOrderDetailMapping.objects.filter(customer_id=customer_user.customer.id,
-                         po_number=result.po_number, client_name=result.customer_name)
+                         po_number=result.po_number, client_name=result.customer_name, generic_order_id=generic_id)
             if order_data:
-                generic_id = order_data[0].generic_order_id
                 ord_det_ids = order_data.values_list('orderdetail__user', 'orderdetail__order_id')
                 for usr, org_id in ord_det_ids:
                     if usr in orderprefix_map:

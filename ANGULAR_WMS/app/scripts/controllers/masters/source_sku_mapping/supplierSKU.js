@@ -80,20 +80,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
   vm.submit = function(data) {
-
+    delete(vm.model_data.mrp)
     if (data.$valid) {
+      if(data.costing_type.$modelValue == 'Price Based' &&  data.price.$viewValue == '')
+      {
+        vm.service.pop_msg("Price  is Mandatory For Price Based");
+      }
+      else if (data.costing_type.$modelValue == 'Margin Based' &&  data.margin_percentage.$viewValue == '') {
+         vm.service.pop_msg("Margin Percentage is Mandatory For Margin Based")
+      }
+      else{
       if ("Add Supplier SKU Mapping" == vm.title) {
         vm.supplier_sku('insert_mapping/');
       } else {
         vm.model_data['data-id'] = vm.model_data.DT_RowId;
         vm.supplier_sku('update_sku_supplier_values/');
       }
+     }
     }
   }
 
   // add or update supplier sku mapping
   vm.supplier_sku = function(url) {
-
     vm.service.apiCall(url, 'POST', vm.model_data, true).then(function(data){
       if(data.message) {
         if(data.data == "Updated Successfully" || data.data == "Added Successfully") {
@@ -108,6 +116,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   // Get all supplier list
   vm.supplier_list = [];
+  vm.costing_type_list = ['Price Based', 'Margin Based'];
   function get_suppliers() {
     vm.service.apiCall('get_supplier_list/').then(function(data){
       if(data.message) {
@@ -118,9 +127,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         });
         vm.supplier_list = list;
         vm.model_data.supplier_id = vm.supplier_list[0];
+        vm.costing_type_list = data.costing_type;
+        vm.model_data.costing_type = 'Price Based';
       }
-    }); 
+    });
   }
 
 }
-

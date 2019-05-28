@@ -9289,4 +9289,4 @@ def get_sku_mrp(request ,user =''):
     sku_mrp = SKUMaster.objects.filter(wms_code=wms_code, user=user.id).values('mrp')
     if sku_mrp :
         mrp = sku_mrp[0]['mrp']
-    return HttpResponse(json.dumps(mrp))
+    return HttpResponse(json.dumps({'mrp':mrp}))

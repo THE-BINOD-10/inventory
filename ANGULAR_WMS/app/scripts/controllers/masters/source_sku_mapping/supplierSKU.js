@@ -74,7 +74,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service.apiCall('get_sku_mrp/','POST' ,{'wms_code':JSON.stringify(wms_code)}).then(function(data){
       if(data.message)
       {
-        vm.model_data.mrp = data.data;
+        vm.model_data.mrp = data.data['mrp'];
       }
 
     })
@@ -103,7 +103,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               if (Number(data.price.$viewValue) > Number(data.mrp.$viewValue) )
               {
                   valid = false
-                  vm.service.pop_msg("Cost price Should be Less than MRP");
+                  vm.service.pop_msg("Cost price Should be Less than or Equal to MRP");
               }
          }
       }

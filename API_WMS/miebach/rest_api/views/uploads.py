@@ -2294,35 +2294,36 @@ def validate_supplier_sku_form(open_sheet, user_id):
                 else:
                     preference1 = int(cell_data)
             if col_idx == 6:
-                if not cell_data in ['Price Based', 'Margin Based','Markup Based']:
-                    index_status.setdefault(row_idx, set()).add('Costing Type should be "Price Based/Margin Based/Markup Based"')
-                if cell_data == 'Price Based' :
-                    cell_data_price = open_sheet.cell(row_idx, 5).value
-                    if not cell_data_price :
-                        index_status.setdefault(row_idx, set()).add('Price is Mandatory For Price Based')
-                    else:
-                        if isinstance(cell_data_price, (int, float)) :
-                            if cell_data_price > wms_check [0].mrp :
-                                index_status.setdefault(row_idx, set()).add('Price Should be Less than MRP')
+                if cell_data :
+                    if not cell_data in ['Price Based', 'Margin Based','Markup Based']:
+                        index_status.setdefault(row_idx, set()).add('Costing Type should be "Price Based/Margin Based/Markup Based"')
+                    if cell_data == 'Price Based' :
+                        cell_data_price = open_sheet.cell(row_idx, 5).value
+                        if not cell_data_price :
+                            index_status.setdefault(row_idx, set()).add('Price is Mandatory For Price Based')
                         else:
-                            index_status.setdefault(row_idx, set()).add('Price Should be Number')
-                elif cell_data == 'Margin Based' :
-                    cell_data_margin = open_sheet.cell(row_idx, 7).value
-                    if not cell_data_margin :
-                        index_status.setdefault(row_idx, set()).add('MarkDown Percentage is Mandatory For Margin Based')
-                    elif not isinstance(cell_data_margin, (int, float)):
-                        index_status.setdefault(row_idx, set()).add('MarkDown % Should be in integer or float')
-                    elif not float(cell_data_margin) in range(0, 100):
-                        index_status.setdefault(row_idx, set()).add('MarkDown % Should be in between 0 and 100')
+                            if isinstance(cell_data_price, (int, float)) :
+                                if cell_data_price > wms_check [0].mrp :
+                                    index_status.setdefault(row_idx, set()).add('Price Should be Less than or Equal to MRP')
+                            else:
+                                index_status.setdefault(row_idx, set()).add('Price Should be Number')
+                    elif cell_data == 'Margin Based' :
+                        cell_data_margin = open_sheet.cell(row_idx, 7).value
+                        if not cell_data_margin :
+                            index_status.setdefault(row_idx, set()).add('MarkDown Percentage is Mandatory For Margin Based')
+                        elif not isinstance(cell_data_margin, (int, float)):
+                            index_status.setdefault(row_idx, set()).add('MarkDown % Should be in integer or float')
+                        elif not float(cell_data_margin) in range(0, 100):
+                            index_status.setdefault(row_idx, set()).add('MarkDown % Should be in between 0 and 100')
 
-                elif cell_data == 'Markup Based' :
-                    cell_data_markup = open_sheet.cell(row_idx, 8).value
-                    if not cell_data_markup :
-                        index_status.setdefault(row_idx, set()).add('Markup Percentage is Mandatory For Markup Based')
-                    elif not isinstance(cell_data_markup, (int, float)):
-                        index_status.setdefault(row_idx, set()).add('Markup % Should be in integer or float')
-                    elif not float(cell_data_markup) in range(0, 100):
-                        index_status.setdefault(row_idx, set()).add('Markup % Should be in between 0 and 100')
+                    elif cell_data == 'Markup Based' :
+                        cell_data_markup = open_sheet.cell(row_idx, 8).value
+                        if not cell_data_markup :
+                            index_status.setdefault(row_idx, set()).add('Markup Percentage is Mandatory For Markup Based')
+                        elif not isinstance(cell_data_markup, (int, float)):
+                            index_status.setdefault(row_idx, set()).add('Markup % Should be in integer or float')
+                        elif not float(cell_data_markup) in range(0, 100):
+                            index_status.setdefault(row_idx, set()).add('Markup % Should be in between 0 and 100')
 
 
 
@@ -2409,6 +2410,8 @@ def supplier_sku_upload(request, user=''):
                         if cell_data and supplier_sku_instance:
                             supplier_sku_instance.price = cell_data
                     elif col_idx == 6:
+                        if not cell_data :
+                            cell_data = 'Price Based'
                         supplier_data['costing_type'] = cell_data
                         if cell_data and supplier_sku_instance:
                             supplier_sku_instance.costing_type = cell_data

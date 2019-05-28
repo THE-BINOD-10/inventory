@@ -2900,13 +2900,14 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     total_quantity, total_amt, total_taxable_amt, total_invoice, total_tax, total_mrp, _total_tax = 0, 0, 0, 0, 0, 0, 0
     total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'utgst_amt': 0, 'cess_amt': 0}
     hsn_summary = {}
-    partial_order_quantity = 0
+    partial_order_quantity_price = 0
     total_order_qty = 0
+    order_charges_percent =1
     is_gst_invoice = False
     invoice_date = datetime.datetime.now()
     order_reference_date_field = ''
     order_charges = {}
-    total_order_quantity = 0
+    total_order_quantity_price = 0
     customer_id = ''
     mode_of_transport = ''
     vehicle_number = ''
@@ -3132,8 +3133,10 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 discount_percentage = "%.1f" % (float((discount * 100) / (quantity * unit_price)))
             unit_price = "%.2f" % unit_price
             total_quantity += quantity
-            partial_order_quantity += (float(unit_price) * float(quantity))
-            total_order_quantity += (float(unit_price) * dat.quantity)
+            partial_order_quantity_price += (float(unit_price) * float(quantity))
+            if not total_order_qty :
+                total_order_qty = OrderDetail.objects.filter(original_order_id = order_id,user = user.id).aggregate(Sum('quantity'))['quantity__sum']
+            total_order_quantity_price += (float(unit_price) * float(total_order_qty))
             _total_tax += _tax
             invoice_amount = _tax + amt
             total_invoice += _tax + amt
@@ -3203,7 +3206,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     if order_id:
         order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
         order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'charge_tax_value','id'))
-        order_charges_percent = (partial_order_quantity / total_order_quantity)
+        if total_order_quantity_price :
+            order_charges_percent = (partial_order_quantity_price / total_order_quantity_price)
+
         for order_chrg in order_charges :
             order_chrg['charge_amount'] = order_charges_percent * order_chrg['charge_amount']
             order_chrg['charge_tax_value'] = order_charges_percent * order_chrg['charge_tax_value']

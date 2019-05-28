@@ -317,7 +317,6 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
             suppliers = PurchaseOrder.objects.filter(id__in=rw_ids)
         for supplier in suppliers[:1]:
             data.append(supplier)
-
     temp_data['recordsTotal'] = len(data)
     temp_data['recordsFiltered'] = len(data)
     oneassist_condition = get_misc_value('dispatch_qc_check', user.id)
@@ -354,7 +353,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
             customer_name = customer_data[0].order.customer_name
         else:
             if supplier_parent:
-                customer_name = supplier_parent.username
+                    customer_name = supplier_parent.username
         if supplier.open_po:
             po_reference_no = supplier.open_po.po_name
         if customer_data and oneassist_condition == 'true':
@@ -2891,10 +2890,18 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, is_confirm_receive=F
             else:
                 purchase_data['sgst_tax'] = float(sku_row_tax_percent)/2
                 purchase_data['cgst_tax'] = float(sku_row_tax_percent)/2
-        cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
-                purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
-                purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent,
-                purchase_data['apmc_tax'])
+        if user.userprofile.industry_type != 'FMCG':
+            cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
+                    purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
+                    purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent,
+                    purchase_data['apmc_tax'])
+        else:
+            cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
+                    purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
+                    purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent,
+                    purchase_data['apmc_tax'],myDict['batch_no'][i])
+
+
         all_data.setdefault(cond, 0)
         all_data[cond] += float(value)
 
@@ -3068,12 +3075,13 @@ def confirm_grn(request, confirm_returns='', user=''):
     data_dict = ''
     if user.userprofile.industry_type == 'FMCG':
         headers = (
-        'WMS CODE','Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
-        'UTGST(%)', 'Amount', 'Description', 'CESS(%)','batch_no')
+            'WMS CODE','Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
+            'UTGST(%)', 'Amount', 'Description', 'CESS(%)','batch_no')
     else:
         headers = (
-        'WMS CODE','Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
-        'UTGST(%)', 'Amount', 'Description', 'CESS(%)','batch_no')
+            'WMS CODE','Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
+            'UTGST(%)', 'Amount', 'Description', 'CESS(%)')
+
     putaway_data = {headers: []}
     total_received_qty = 0
     total_order_qty = 0
@@ -3129,12 +3137,8 @@ def confirm_grn(request, confirm_returns='', user=''):
             if entry_tax:
                 entry_price += (float(entry_price) / 100) * entry_tax
             if user.userprofile.industry_type == 'FMCG':
-                j=0
-                for i in po_data:
-                    batch_value = myDict.get('batch_no')
-                    putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
-                                                  key[6], key[7], entry_price, key[8], key[9],batch_value[j]))
-                    j+=1
+                putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
+                                                  key[6], key[7], entry_price, key[8], key[9], key[12]))
             else:
                 batch_value = myDict.get('batch_no')
                 if batch_value == None:
@@ -3142,8 +3146,15 @@ def confirm_grn(request, confirm_returns='', user=''):
                     putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3],key[4], key[5],
                                                   key[6], key[7], entry_price, key[8], key[9],batch_value))
                 else:
-                    putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3],key[4], key[5],
-                                                  key[6], key[7], entry_price, key[8], key[9],batch_value))
+                    batch_value = myDict.get('batch_no')
+                    if batch_value == None:
+                        batch_value=''
+                        putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3],key[4], key[5],
+                                                      key[6], key[7], entry_price, key[8], key[9],batch_value))
+                    else:
+                        putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3],key[4], key[5],
+                                                      key[6], key[7], entry_price, key[8], key[9],batch_value))
+
             total_order_qty += order_quantity_dict[key[0]]
             total_received_qty += value
             total_price += entry_price

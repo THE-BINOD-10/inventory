@@ -9342,6 +9342,7 @@ def get_sku_mrp(request ,user =''):
         mrp = sku_mrp[0]['mrp']
     return HttpResponse(json.dumps({'mrp':mrp}))
 
+
 def get_firebase_order_data(order_id):
     from firebase import firebase
     firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)

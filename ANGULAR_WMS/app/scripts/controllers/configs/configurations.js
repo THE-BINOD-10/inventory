@@ -15,7 +15,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'pos_switch': false, 'auto_po_switch': false, 'no_stock_switch': false, 'online_percentage': 0,
                     'mail_alerts': 0, 'prefix': '', 'all_groups': '', 'mail_options': [{'id': 1,'name': 'Default'}],
                     'mail_inputs':[], 'report_freq':'0', 'float_switch': false, 'automate_invoice': false, 'all_stages': '','all_order_fields':'',
-                    'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,
+                    'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,'grn_fields':'',
                     'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': '',
                     'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false,
                     'invoice_remarks': '','invoice_declaration':'', 'raisepo_terms_conditions':'', 'show_disc_invoice': false, 'serial_limit': '',
@@ -701,7 +701,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $(".sku_groups").importTags(vm.model_data.all_groups);
       $(".stages").importTags(vm.model_data.all_stages);
       $(".order_fields").importTags(vm.model_data.all_order_fields);
-      // $(".order_fields_options").importTags(vm.model_data.all_order_field_options);
+      $(".grn_fields").importTags(vm.model_data.grn_fields);
       vm.model_data.all_order_fields_list = vm.model_data.all_order_fields.split(",")
       $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
       $(".invoice_types").importTags(vm.model_data.invoice_types);
@@ -829,6 +829,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       }
     });
   }
+  vm.update_grn_fields = function() {
+    var data = $(".grn_fields").val();
+    vm.service.apiCall("save_grn_fields/?grn_fields="+data).then(function(data){
+      if(data.message) {
+        msg = data.data;
+        $scope.showNoty();
+        Auth.status();
+      }
+    });
+  }
+
   vm.update_invoice_titles = function() {
     var data = $(".titles").val();
     vm.switches(data, 38);

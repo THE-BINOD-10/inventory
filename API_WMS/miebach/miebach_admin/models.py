@@ -1433,6 +1433,7 @@ class StockTransfer(models.Model):
     sku = models.ForeignKey(SKUMaster)
     invoice_amount = models.FloatField(default=0)
     quantity = models.FloatField(default=0)
+    picked_quantity = models.FloatField(default=0)
     shipment_date = models.DateTimeField(auto_now_add=True)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -3208,3 +3209,13 @@ class ClusterSkuMapping(models.Model):
 
     class Meta :
         db_table = 'CLUSTER_SKU_MAPPING'
+
+class Pofields(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    po_number = models.CharField(max_length=128, default='')
+    receipt_no = models.CharField(max_length = 34 ,default = 1)
+    name = models.CharField(max_length=256, default='')
+    value = models.CharField(max_length=256, default='')
+    class Meta:
+        db_table = 'PO_FIELDS'

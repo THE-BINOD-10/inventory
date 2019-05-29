@@ -586,6 +586,7 @@ data_datatable = {  # masters
     #invoice based payment tracker
     'PaymentTrackerInvBased': 'get_inv_based_payment_data',
     'OutboundPaymentReport': 'get_outbound_payment_report',
+    'DistributorOrdersData': 'get_distributors_orders',  # Outbound.py
 
 }
 
@@ -827,6 +828,11 @@ def configurations(request, user=''):
         config_dict['all_order_fields'] = ''
     else:
         config_dict['all_order_fields'] = extra_order_fields
+    grn_fields = get_misc_value('grn_fields', user.id)
+    if grn_fields == 'false' :
+        config_dict['grn_fields'] = ''
+    else:
+        config_dict['grn_fields'] = grn_fields
 
     if config_dict['mail_alerts'] == 'false':
         config_dict['mail_alerts'] = 0
@@ -2317,6 +2323,31 @@ def save_order_extra_fields(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def save_grn_fields(request, user=''):
+    grn_fields = request.GET.get('grn_fields', '')
+    if len(grn_fields.split(',')) <=  4 :
+        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='grn_fields')
+        try:
+            if not misc_detail.exists():
+                 MiscDetail.objects.create(user=user.id,misc_type='grn_fields',misc_value=grn_fields)
+            else:
+                misc_detail_obj = misc_detail[0]
+                misc_detail_obj.misc_value = grn_fields
+                misc_detail_obj.save()
+        except:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Issue for ' + request)
+            return HttpResponse("Something Went Wrong")
+    else:
+        return HttpResponse("Limit Exceeded Enter only Four Fields")
+
+
+    return HttpResponse("Saved Successfully")
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def search_wms_codes(request, user=''):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     data_id = request.GET.get('q', '')
@@ -2910,6 +2941,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     # Getting the values from database
     user_profile = UserProfile.objects.get(user_id=user.id)
     gstin_no = user_profile.gst_number
+    pan_number = user_profile.pan_number
     cin_no = user_profile.cin_number
     display_customer_sku = get_misc_value('display_customer_sku', user.id)
     show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
@@ -2954,11 +2986,11 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             if gen_ord_customer_id and user.userprofile.warehouse_type == 'DIST':
                 customer_details = list(CustomerMaster.objects.filter(id=gen_ord_customer_id[0]).
                                         values('id', 'customer_id', 'name', 'email_id', 'tin_number', 'address', 'shipping_address',
-                                               'credit_period', 'phone_number'))
+                                               'credit_period', 'phone_number','pan_number'))
             else:
                 customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=dat.customer_id).
                                         values('id', 'customer_id', 'name', 'email_id', 'tin_number', 'address', 'shipping_address',
-                                               'credit_period', 'phone_number'))
+                                               'credit_period', 'phone_number','pan_number'))
             if customer_details:
                 customer_id = customer_details[0]['id']
                 customer_address = customer_details[0]['name'] + '\n' + customer_details[0]['address']
@@ -2968,6 +3000,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     customer_address += ("\nCall: " + customer_details[0]['phone_number'])
                 if customer_details[0]['email_id']:
                     customer_address += ("\tEmail: " + customer_details[0]['email_id'])
+                if customer_details[0]['pan_number']:
+                    customer_address += ("\tPAN No.: " + customer_details[0]['pan_number'])
+
                 consignee = customer_address
             else:
                 customer_id = dat.customer_id
@@ -3197,6 +3232,18 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     invoice_date = invoice_date.strftime("%d %b %Y")
     order_charges = {}
 
+    #create order extra fileds
+    extra_fields ={}
+    extra_order_fields = get_misc_value('extra_order_fields', user.id)
+    if extra_order_fields == 'false' :
+        extra_order_fields = []
+    else:
+        extra_order_fields = extra_order_fields.split(',')
+    for extra in extra_order_fields :
+        order_field_obj = OrderFields.objects.filter(original_order_id=order_id,user=user.id ,name = extra)
+        if order_field_obj.exists():
+            extra_fields[order_field_obj[0].name] = order_field_obj[0].value
+
     total_invoice_amount = total_invoice
     if order_id:
         order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
@@ -3222,6 +3269,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     company_address = user_profile.address
     company_number = user_profile.phone_number
     email = user.email
+
     if seller_address:
         company_address = seller.address
         email = seller.email_id
@@ -3231,12 +3279,12 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
 
     if math.ceil(total_quantity) == total_quantity:
         total_quantity = int(total_quantity)
-    invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name,
+    invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name,'company_pan_number':pan_number,
                     'company_address': company_address, 'company_number': company_number,
                     'order_date': order_date, 'email': email, 'marketplace': marketplace, 'total_amt': total_amt,
                     'total_quantity': total_quantity, 'total_invoice': "%.2f" % total_invoice, 'order_id': order_id,
                     'customer_details': customer_details, 'order_no': order_no, 'total_tax': "%.2f" % _total_tax,
-                    'total_mrp': total_mrp,
+                    'total_mrp': total_mrp,'extra_fields':extra_fields,
                     'invoice_no': _invoice_no, 'invoice_date': invoice_date,
                     'price_in_words': number_in_words(_total_invoice),
                     'order_charges': order_charges, 'total_invoice_amount': "%.2f" % total_invoice_amount,
@@ -6721,7 +6769,6 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                         stock_status.append(str(combo.member_sku.sku_code))
                         members = {}
                         break
-
         for member, member_qty in members.iteritems():
             stock_detail, stock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
                                                                    sku_id_stocks, add_mrp_filter=add_mrp_filter,
@@ -6741,6 +6788,8 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
             #     order_quantity = float(order.quantity)
             # else:
             #     order_quantity = float(seller_order.quantity)
+            if 'st_po' in dir(order) :
+                order_quantity = order_quantity - order.picked_quantity
 
             if stock_quantity < float(order_quantity):
                 if not no_stock_switch:
@@ -6749,6 +6798,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
 
                 if stock_quantity < 0:
                     stock_quantity = 0
+                order_diff = 0
                 order_diff = order_quantity - stock_quantity
                 order_quantity -= order_diff
                 # stock_detail = []
@@ -8853,7 +8903,7 @@ def insert_st_gst(all_data, user):
         for val in value:
             if val[6]:
                 open_st = OpenST.objects.get(id=val[6])
-                open_st.warehouse_id = User.objects.get(username__iexact=key).id
+                open_st.warehouse_id = User.objects.get(username__iexact=key[0]).id
                 open_st.sku_id = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
                 open_st.price = float(val[2])
                 open_st.order_quantity = float(val[1])
@@ -8863,7 +8913,7 @@ def insert_st_gst(all_data, user):
                 open_st.save()
                 continue
             stock_dict = copy.deepcopy(OPEN_ST_FIELDS)
-            stock_dict['warehouse_id'] = User.objects.get(username__iexact=key).id
+            stock_dict['warehouse_id'] = User.objects.get(username__iexact=key[0]).id
             stock_dict['sku_id'] = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
             stock_dict['order_quantity'] = float(val[1])
             stock_dict['price'] = float(val[2])
@@ -8876,9 +8926,10 @@ def insert_st_gst(all_data, user):
     return all_data
 
 
-def confirm_stock_transfer_gst(all_data, user, warehouse_name):
+def confirm_stock_transfer_gst(all_data, warehouse_name):
     warehouse = User.objects.get(username__iexact=warehouse_name)
     for key, value in all_data.iteritems():
+        user = User.objects.get(id=key[1])
         po_id = get_purchase_order_id(user) + 1
         stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
         if stock_transfer_obj:
@@ -9254,6 +9305,10 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
                 margin_percentage = sku_supplier[0].margin_percentage
                 prefill_unit_price = mrp_value - ((mrp_value * margin_percentage)/100)
                 data['price'] = prefill_unit_price
+            elif sku_supplier[0].costing_type == 'Markup Based':
+                 markup_percentage = sku_supplier[0].markup_percentage
+                 prefill_unit_price = mrp_value / (1+(markup_percentage/100))
+                 data['price'] = prefill_unit_price
             else:
                 data['price'] = sku_supplier[0].price
             data['supplier_code'] = sku_supplier[0].supplier_code
@@ -9276,6 +9331,16 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
         str(user.username), str(wms_code), str(e)))
     return data
 
+@get_admin_user
+@csrf_exempt
+@login_required
+def get_sku_mrp(request ,user =''):
+    mrp = 0
+    wms_code  = json.loads(request.POST.get('wms_code',''))
+    sku_mrp = SKUMaster.objects.filter(wms_code=wms_code, user=user.id).values('mrp')
+    if sku_mrp :
+        mrp = sku_mrp[0]['mrp']
+    return HttpResponse(json.dumps({'mrp':mrp}))
 
 def get_firebase_order_data(order_id):
     from firebase import firebase

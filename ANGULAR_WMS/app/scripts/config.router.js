@@ -1719,6 +1719,24 @@ var app = angular.module('urbanApp')
             url: '/PO',
             templateUrl: 'views/uploadedPos/toggles/uploaded_po_update.html'
          })
+      // Distributor's Orders
+      .state('app.distributorOrders', {
+          url: '/distributorOrders',
+          templateUrl: 'views/distributorOrders/distributorOrders.html',
+          authRequired: true,
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/distributorOrders/distributorOrders.js');
+              }]
+          },
+          data: {
+            title: 'Distributor\'s Orders'
+          }
+        })
+      .state('app.distributorOrders.IndividualOrder', {
+            url: '/IndividualOrder',
+            templateUrl: 'views/distributorOrders/toggle/distributor_order_details.html'
+         })
       // feedback form
       .state('app.feedback', {
           url: '/feedback',

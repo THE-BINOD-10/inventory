@@ -274,6 +274,7 @@ class SKUSupplier(models.Model):
     price = models.FloatField(default=0)
     costing_type = models.CharField(max_length=128, default='Price Based')
     margin_percentage = models.FloatField(default=0)
+    markup_percentage = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1432,6 +1433,7 @@ class StockTransfer(models.Model):
     sku = models.ForeignKey(SKUMaster)
     invoice_amount = models.FloatField(default=0)
     quantity = models.FloatField(default=0)
+    picked_quantity = models.FloatField(default=0)
     shipment_date = models.DateTimeField(auto_now_add=True)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -2586,6 +2588,7 @@ class NetworkMaster(models.Model):
 class OrderUploads(models.Model):
     id = BigAutoField(primary_key=True)
     uploaded_user = models.ForeignKey(User)
+    generic_order_id = models.PositiveIntegerField(default=0)
     po_number = models.CharField(max_length=128, default='')
     uploaded_date = models.DateField()
     customer_name = models.CharField(max_length=256, default='')
@@ -2595,7 +2598,7 @@ class OrderUploads(models.Model):
 
     class Meta:
         db_table = 'ORDER_UPLOADS'
-        unique_together = ('uploaded_user', 'po_number', 'customer_name')
+        unique_together = ('uploaded_user', 'po_number', 'customer_name', 'generic_order_id')
 
 
 class CustomerPricetypes(models.Model):
@@ -3194,3 +3197,13 @@ class ClusterSkuMapping(models.Model):
 
     class Meta:
         db_table = 'CLUSTER_SKU_MAPPING'
+
+class Pofields(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    po_number = models.CharField(max_length=128, default='')
+    receipt_no = models.CharField(max_length = 34 ,default = 1)
+    name = models.CharField(max_length=256, default='')
+    value = models.CharField(max_length=256, default='')
+    class Meta:
+        db_table = 'PO_FIELDS'

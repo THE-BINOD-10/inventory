@@ -354,6 +354,7 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
                                                 ('supplier_code', result.supplier_code), ('moq', result.moq),
                                                 ('preference', sku_preference),
                                                 ('price', result.price), ('costing_type', result.costing_type),
+                                                ('markup_percentage',result.markup_percentage),
                                                 ('margin_percentage', result.margin_percentage), ('DT_RowClass', 'results'),
                                                 ('DT_RowId', result.id), ('mrp', result.sku.mrp))))
 
@@ -818,7 +819,7 @@ def get_sku_data(request, user=''):
     sku_data['block_options'] = 'No'
     if data.block_options == 'PO':
         sku_data['block_options'] = 'Yes';
-    
+
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
         sku_data['size_type'] = sku_fields[0].field_value
@@ -1779,7 +1780,7 @@ def get_supplier_list(request, user=''):
     supplier_list = []
     for supplier in suppliers:
         supplier_list.append({'id': supplier.id, 'name': supplier.name})
-    costing_type = ['Price Based', 'Margin Based']
+    costing_type = ['Price Based', 'Margin Based','Markup Based']
     return HttpResponse(json.dumps({'suppliers': supplier_list, 'costing_type': costing_type}))
 
 
@@ -4208,12 +4209,12 @@ def get_cluster_sku_results(start_index, stop_index, temp_data, search_term, ord
         if excel_flag == 'true':
             checkbox = ''
             temp_data['aaData'].append(OrderedDict(
-            (('ClusterName', cluster.cluster_name), ('Skuid', cluster.sku.sku_code), ('Sequence', cluster.sequence), 
+            (('ClusterName', cluster.cluster_name), ('Skuid', cluster.sku.sku_code), ('Sequence', cluster.sequence),
                 ('CreationDate', get_local_date(user, cluster.creation_date)), ('id', cluster.id))))
         else:
             checkbox = '<input type="checkbox" name="id" value="%s">' % cluster.id
             temp_data['aaData'].append(OrderedDict(
-                (('check', checkbox), ('ClusterName', cluster.cluster_name), ('Skuid', cluster.sku.sku_code), ('Sequence', cluster.sequence), 
+                (('check', checkbox), ('ClusterName', cluster.cluster_name), ('Skuid', cluster.sku.sku_code), ('Sequence', cluster.sequence),
                     ('CreationDate', get_local_date(user, cluster.creation_date)), ('id', cluster.id))))
         temp_data['recordsTotal'] = cl_qs.count()
         temp_data['recordsFiltered'] = temp_data['recordsTotal']

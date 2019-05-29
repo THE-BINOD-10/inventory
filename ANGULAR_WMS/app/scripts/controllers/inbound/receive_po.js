@@ -1283,14 +1283,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number, sku_code: data1.wms_code}).then(function(data){
                   if (data.message) {
                     if (data.data == "") {
-                      if (vm.permissions.dispatch_qc_check) {
+                      if (vm.permissions.dispatch_qc_check && vm.model_data.returnable_serials.length > 0) {
+                        var qc_serial_check = true;
                         for (let i = 0; i < vm.model_data.returnable_serials.length; i++) {
-                          if(vm.model_data.returnable_serials[i] == data1.imei_number) {
+                          if(vm.model_data.returnable_serials[i].toUpperCase() == data1.imei_number.toUpperCase()) {
+                            qc_serial_check = false
                             vm.receive_qcitems(vm, data1, index);
-                          } else {
-                            Service.showNoty("Please Verify your Serial Number ! ");
-                            data1.imei_number = "";
                           }
+                        }
+                        if(qc_serial_check)
+                        {
+                          Service.showNoty("Please Verify your Serial Number ! ");
+                          data1.imei_number = "";
                         }
                       } else {
                         if(vm.po_qc) {

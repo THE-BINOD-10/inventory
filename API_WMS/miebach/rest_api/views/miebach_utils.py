@@ -277,7 +277,7 @@ SALES_RETURN_BULK = ['Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantit
 RETURN_DATA_FIELDS = ['sales-check', 'order_id', 'sku_code', 'customer_id', 'shipping_quantity', 'return_quantity',
                       'damaged_quantity', 'delete-sales']
 
-SUPPLIER_SKU_HEADERS = ['Supplier Id', 'WMS Code', 'Supplier Code', 'Preference', 'MOQ', 'Price', 'Costing Type (Price Based/Margin Based)', 'Margin Percentage']
+SUPPLIER_SKU_HEADERS = ['Supplier Id', 'WMS Code', 'Supplier Code', 'Preference', 'MOQ', 'Price', 'Costing Type (Price Based/Margin Based/Markup Based)', 'MarkDown Percentage','Markup Percentage']
 
 MARKETPLACE_SKU_HEADERS = ['WMS Code', 'Flipkart SKU', 'Snapdeal SKU', 'Paytm SKU', 'Amazon SKU', 'HomeShop18 SKU',
                            'Jabong SKU', 'Indiatimes SKU', 'Flipkart Description', 'Snapdeal Description',
@@ -2396,7 +2396,7 @@ def get_location_stock_data(search_params, user, sub_user):
                         annotate(rm_reserved=Sum('reserved')))
     else:
 	picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user=user.id).\
-                             annotate(grouped_val=Concat('stock__sku__wms_code', Value('<<>>'),   
+                             annotate(grouped_val=Concat('stock__sku__wms_code', Value('<<>>'),
                              'stock__location__location', output_field=CharField())).\
                              values_list('grouped_val').distinct().annotate(reserved=Sum('reserved')))
         raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user=user.id).\
@@ -6154,6 +6154,8 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
         order_return_obj = OrderReturns.objects.filter(order__original_order_id = order_id,sku__wms_code = data['order__sku__sku_code'],sku__user=user.id)
         if order_return_obj.exists() and central_order_reassigning == 'true' :
             shipment_status = 'Returned'
+        if id_proof_number and shipment_status == 'Returned':
+            shipment_status = 'Delivered'
         serial_number = ''
         # serial_number_qs = OrderIMEIMapping.objects.filter(order_id=data['order__id'])
         # if serial_number_qs:
@@ -6164,7 +6166,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
 
         if delivered_time :
             delivered_time = int(delivered_time)
-            delivered_time = time.strftime('%d %b %Y', time.localtime(delivered_time/1e3))
+            delivered_time = time.strftime('%d %b %Y %I:%M %p', time.localtime(delivered_time/1e3))
 
         manifest_number = int(data['order_shipment__manifest_number'])
 
@@ -6814,7 +6816,7 @@ def print_sku_wise_data(search_params, user, sub_user):
                                                 ('Total Quantity', total_quantity))))
     return temp_data
 
-    col_num = search_params.get('order_index', 0)
+
 def get_stock_transfer_report_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date
     temp_data = copy.deepcopy(AJAX_DATA)
@@ -6824,6 +6826,7 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
     status_map = ['Pick List Generated','Pending','Accepted']
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)
+    col_num = search_params.get('order_index', 0)
     if search_params.get('length', 0):
         stop_index = start_index + search_params.get('length', 0)
     else:

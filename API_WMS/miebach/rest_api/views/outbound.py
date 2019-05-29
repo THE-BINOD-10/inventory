@@ -6350,17 +6350,7 @@ def app_shipment_info_data(request, user=''):
         order_return_obj = OrderReturns.objects.filter(order__original_order_id = orders.order.original_order_id,sku__wms_code = orders.order.sku_id)
         if order_return_obj.exists() :
             returned = True
-        from firebase import firebase
-        firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
-        try:
-            result = firebase.get('/OrderDetails/'+loan_proposal_id, None)
-
-        except Exception as e:
-            result = 0
-            import traceback
-            log.debug(traceback.format_exc())
-            log.info('Firebase query  failed for %s and params are %s and error statement is %s' % (
-            str(user.username), str(request.POST.dict()), str(e)))
+        result = get_firebase_order_data(loan_proposal_id)
         if  result :
             signed_invoice_copy = result.get('signed_invoice_copy','')
             id_type = result.get('id_type','')

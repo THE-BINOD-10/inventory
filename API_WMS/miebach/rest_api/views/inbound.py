@@ -6356,9 +6356,11 @@ def check_imei_qc(request, user=''):
 @login_required
 @get_admin_user
 def check_return_imei(request, user=''):
+    delivered_order = True
     return_data = {'status': '', 'data': {}}
     user_profile = UserProfile.objects.get(user_id=user.id)
     try:
+        central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)#for 72 networks
         for key, value in request.GET.iteritems():
             sku_code = ''
             order = None
@@ -6380,6 +6382,12 @@ def check_return_imei(request, user=''):
                 order_id = order_imei[0].order.original_order_id
                 if not order_id:
                     order_id = order_imei[0].order.order_code + str(order_imei[0].order.order_id)
+                if central_order_reassigning == 'true':
+                    result = get_firebase_order_data(order_id)
+                    id_card = result.get('id_card','')
+                    if id_card :
+                        return_data['status'] = 'Delivered Order Cannot be Returned '
+                        return HttpResponse(json.dumps(return_data))
                 if order_imei[0].order_reference:
                     order_id = order_imei[0].order_reference
                     order_imei_id = order_imei[0].id

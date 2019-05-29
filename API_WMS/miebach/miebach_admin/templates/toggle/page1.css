@@ -19,13 +19,22 @@
 .print-invoice2 .p0 {
   padding: 0px !important;
 }
+.print-invoice2 .table-custom {
+  padding: 3px 3px;
+  border: 1px solid black !important;
+}
 .print-invoice2 .table {
   padding: 3px 3px;
   border: 1px solid black !important;
 }
+.print-invoice2 .table-custom th,
+.print-invoice2 .table-custom td {
+  padding: 0px;
+  border-color: black !important;
+}
 .print-invoice2 .table th,
 .print-invoice2 .table td {
-  padding: 3px 3px;
+  padding: 3px;
   border-color: black !important;
 }
 .print-invoice2 .fs12 {
@@ -88,7 +97,7 @@
   padding: 0px !important;
 }
 .table-bordered {
-  border: 1px solid #ddd;
+  border: 1px solid #000;
 }
 .table-bordered > thead > tr > th,
 .table-bordered > tbody > tr > th,
@@ -96,9 +105,17 @@
 .table-bordered > thead > tr > td,
 .table-bordered > tbody > tr > td,
 .table-bordered > tfoot > tr > td {
-  border: 1px solid #ddd;
+  border: 1px solid #000;
 }
 .table-bordered > thead > tr > th,
 .table-bordered > thead > tr > td {
   border-bottom-width: 2px;
+}
+.print-invoice2 .table-custom {
+  padding: 3px 3px;
+  border: 1px solid black !important;
+}
+.print-invoice2 .table {
+  padding: 3px 3px;
+  border: 1px solid black !important;
 }

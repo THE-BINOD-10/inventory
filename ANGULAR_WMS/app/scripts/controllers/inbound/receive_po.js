@@ -173,6 +173,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               // vm.supplier_id = aData['DT_RowId'];
               vm.round_off = false;
                 vm.supplier_id = aData['Supplier ID/Name'].split('/')[0];
+                if(aData['Order Type']) {
+                  vm.selected_order_type = aData['Order Type']
+                }
                 if (vm.permissions.dispatch_qc_check) {
                   vm.main_sr_number = aData['SR Number']
                 } else {
@@ -719,6 +722,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             var elem_dict = {'name':'main_sr_number', 'value': vm.main_sr_number}
             elem.push(elem_dict)
           }
+          if (vm.selected_order_type == 'Stock Transfer') {
+            var elem_dict = {'name':'confirm_order_type', 'value': 'StockTransfer'}
+            elem.push(elem_dict)
+          }
         }
         $.each(elem, function(i, val) {
           form_data.append(val.name, val.value);
@@ -1198,6 +1205,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       });
       modalInstance.result.then(function (status) {
         var status = vm.sku_details['validation_status']['status'];
+        debugger
         vm.qc_add_receive_qty(vm.model_data.data[index][0], status, index);
       });
     }
@@ -1284,7 +1292,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                           for (let i = 0; i < vm.model_data.returnable_serials.length; i++) {
                             if(vm.model_data.returnable_serials[i].toUpperCase() == data1.imei_number.toUpperCase()) {
                               qc_serial_check = false;
-                              vm.receive_qcitems(vm, data1, index);
+                              if (vm.selected_order_type == 'Stock Transfer'){
+                                vm.qc_add_receive_qty(data1, 'pass', index)
+                              } else {
+                                vm.receive_qcitems(vm, data1, index);
+                              }
                             }
                           }
                           if(qc_serial_check) {

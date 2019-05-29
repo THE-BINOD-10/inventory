@@ -604,43 +604,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       sku_data.tax = tax;
       return tax;
    }
-
-    vm.get_blur_sku_details = function(product, item, index, event) {
-      setTimeout(function () {
-        if(vm.bur_function_enable) {
-          if (typeof(vm.model_data.supplier_id) == "undefined" || vm.model_data.supplier_id.length == 0 || vm.model_data.supplier_id_name == '') {
-            vm.service.showNoty('Please Enter the Supplier ID');
-          } else {
-            var type = ''
-            var notify_flag = ''
-            $http.get(Session.url+'search_wms_data/', { params: {q: item, type: type} }).then(function(response){
-              if(response.data) {
-                for (var i = 0; i < response.data.length; i++) {
-                  if(response.data[i].wms_code == item) {
-                    notify_flag = false;
-                    vm.get_sku_details(product, response.data[i], index)
-                    break;
-                  } else {
-                    notify_flag = true;
-                  }
-                }
-                if (notify_flag) {
-                  vm.service.showNoty('Invalid WMS Code');
-                  vm.clear_raise_po_data(product);
-                }
-              }
-            });
-          }
-        }
-      }, 2000);
-    }
-    vm.enable_focus_flag = function() {
-      vm.bur_function_enable = true;
-    }
     vm.get_sku_details = function(product, item, index) {
       console.log(item);
       vm.clear_raise_po_data(product);
-      vm.bur_function_enable = false;
       vm.purchase_history_wms_code = item.wms_code;
       vm.blur_focus_flag = false;
       if (!vm.model_data.supplier_id && Session.user_profile.user_type != 'marketplace_user' && Session.user_profile.industry_type != 'FMCG') {

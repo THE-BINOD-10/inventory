@@ -464,6 +464,34 @@
         <div class="col-md-1 col-sm-1 col-xs-2"><i ng-click="showCase.update_extra_central_order_fields()" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
         </div>
       </div>
+        <div class="row col-md-12" ng-repeat="fields in showCase.model_data.all_order_fields_list track by $index " style="padding-bottom: 15px">
+          <div class="col-md-5 col-sm-8 col-xs-12">
+            <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i>
+            <strong style="line-height: 34px;" class="pull-left ml20"> {{ fields }} </strong>
+          </div>
+          <div class="col-md-2">
+            <div class="row mb10" ng-repeat="field in showCase.model_data.all_order_field_options[fields]">
+              <div class="col-lg-8 col-md-8 col-sm-4 col-xs-4">
+                <input type="text" class="form-control" ng-model="field.field_name" placeholder="Field Name">
+              </div>
+              <div class="col-md-1 col-sm-1 col-xs-2">
+                <div class="btn-group pull-left">
+                  <button type="button" class="btn btn-danger" ng-click="showCase.remove_order_options(fields,$index);">
+                    <span class="icon-minus"></span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-1 col-sm-1 col-xs-2" style="position: relative">
+            <div class="btn-group pull-left">
+              <button type="button" class="btn btn-warning" ng-click="showCase.add_order_options(fields);">
+                <span class="icon-plus"></span>
+              </button>
+              <button type="button" class="btn btn-success" ng-click="showCase.save_order_options(fields)" style="position: absolute; margin-left: 20px">Save</button>
+            </div>
+          </div>
+        </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
         <div class="col-md-5 col-sm-8 col-xs-12">
           <i class="fa fa-step-forward fa-15px pull-left" style="line-height: 34px;"></i>

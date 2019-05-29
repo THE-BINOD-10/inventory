@@ -3186,6 +3186,18 @@ class StockReconciliation(models.Model):
     class Meta:
         db_table = 'STOCK_RECONCILIATION'
 
+class MiscDetailOptions(models.Model):
+    id = BigAutoField(primary_key=True)
+    misc_detail = models.ForeignKey(MiscDetail, null=True, blank=True, default=None)
+    misc_key = models.CharField(max_length=64, default='')
+    misc_value = models.CharField(max_length=255)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MISC_DETAIL_OPTIONS'
+        unique_together = ('misc_detail', 'misc_key')
+
 class ClusterSkuMapping(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster)
@@ -3195,7 +3207,7 @@ class ClusterSkuMapping(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
-    class Meta:
+    class Meta :
         db_table = 'CLUSTER_SKU_MAPPING'
 
 class Pofields(models.Model):

@@ -398,6 +398,7 @@ urlpatterns = [
     url(r'^create_feedback_form/$', create_feedback_form),
     url(r'^get_distributor_order/$', get_distributor_order),
     url(r'^sm_cancel_distributor_order/$', sm_cancel_distributor_order),
+    url(r'^get_order_extra_options/$', get_order_extra_options),
 
 
     # Uploaded POs [SWISS MILITARY]
@@ -589,6 +590,7 @@ urlpatterns += [
     url(r'^update_mail_alerts/$', update_mail_alerts),
     url(r'^pos_extra_fields/$',pos_extra_fields),
     url(r'^save_grn_fields/$',save_grn_fields),
+    url(r'^save_extra_order_options/$',save_extra_order_options),
 
 
     # manage users

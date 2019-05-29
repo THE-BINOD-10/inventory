@@ -877,6 +877,16 @@ def configurations(request, user=''):
     mandatory_receive_po = get_misc_value('receive_po_mandatory_fields', user.id)
     if mandatory_receive_po != 'false':
         config_dict['selected_receive_po_mandatory'] = mandatory_receive_po.split(',')
+    config_dict['all_order_field_options'] = {}
+    misc_options = MiscDetailOptions.objects.filter(misc_detail__user=user.id).values('misc_key','misc_value')
+    for misc in misc_options :
+        misc_list = misc.get('misc_value').split(',')
+        config_dict['all_order_field_options'][misc.get('misc_key')]=[]
+        for misc_value in misc_list :
+            temp_dict = {}
+            temp_dict['field_name'] = misc_value
+            config_dict['all_order_field_options'][misc.get('misc_key')].append(temp_dict)
+
     return HttpResponse(json.dumps(config_dict))
 
 
@@ -2309,6 +2319,14 @@ def save_order_extra_fields(request, user=''):
         if not misc_detail.exists():
              MiscDetail.objects.create(user=user.id,misc_type='extra_order_fields',misc_value=order_extra_fields)
         else:
+            misc_order_option_list = list(MiscDetailOptions.objects.filter(misc_detail__user=user.id).values_list('misc_key',flat=True))
+            order_extra_list = order_extra_fields.split(',')
+            diff_list = list(set(misc_order_option_list)- set(order_extra_list))
+            if len(diff_list) > 0 :
+                for key in diff_list :
+                    misc_records = MiscDetailOptions.objects.filter(misc_detail__user= user.id,misc_key = key)
+                    for record in misc_records :
+                        record.delete()
             misc_detail_obj = misc_detail[0]
             misc_detail_obj.misc_value = order_extra_fields
             misc_detail_obj.save()
@@ -9330,6 +9348,39 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
         log.info('Getting po Values failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(wms_code), str(e)))
     return data
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_extra_order_options(request, user=''):
+    try:
+        data_dict = json.loads(request.POST.get('data'))
+        field = data_dict.get('field','')
+        options_list = data_dict.get('order_field_options')
+        options_string = ",".join(options_list)
+        misc_obj = MiscDetail.objects.filter(user=user.id,misc_type='extra_order_fields')
+        if misc_obj.exists():
+            misc_obj = misc_obj[0]
+            misc_options = MiscDetailOptions.objects.filter(misc_detail= misc_obj,misc_key = field)
+            if misc_options.exists():
+                misc_options =  misc_options[0]
+                misc_options.misc_value = options_string
+                misc_options.save()
+            else:
+                MiscDetailOptions.objects.create(misc_detail= misc_obj,misc_key = field,misc_value = options_string)
+            message = "Success"
+        else:
+            message = "Please Enter Extra Fields"
+    except:
+       import traceback
+       log.debug(traceback.format_exc())
+       log.info('Issue for ' + request)
+       log.info('extra options Insert failed for %s and params are %s and error statement is %s' % (
+       str(user), str(request.POST), str(e)))
+       return HttpResponse("Something Went Wrong")
+    return HttpResponse(json.dumps({'message': message}))
+
 
 @get_admin_user
 @csrf_exempt

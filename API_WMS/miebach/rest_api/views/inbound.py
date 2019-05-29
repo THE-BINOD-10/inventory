@@ -6393,7 +6393,6 @@ def confirm_receive_qc(request, user=''):
             myDict['imei_number'].append(','.join(imeis_list))
         po_data, status_msg, all_data, order_quantity_dict, \
         purchase_data, data, data_dict, seller_receipt_id, created_qc_ids = generate_grn(myDict, request, user, failed_serial_number, passed_serial_number, is_confirm_receive=True)
-
         for i in range(0, len(myDict['id'])):
             if not myDict['id'][i]:
                 continue
@@ -6406,12 +6405,11 @@ def confirm_receive_qc(request, user=''):
                            'rejected': [myDict['rejected'][i]], 'accepted_quantity': [myDict['accepted_quantity'][i]],
                            'rejected_quantity': [myDict['rejected_quantity'][i]], 'reason': ['']}
                 update_quality_check(qc_dict, request, user)
-
                 if myDict.get("accepted", ''):
                     save_qc_serials('accepted', [myDict.get("accepted", '')[i]], user.id, qc_id=quality_check.id)
                 if myDict.get("rejected", ''):
                     save_qc_serials('rejected', [myDict.get("rejected", '')[i]], user.id, qc_id=quality_check.id, reason_po='Receive PO QC Failed')
-                if oneassist_condition == 'true' and (passed_serial_number or failed_serial_number):
+                if oneassist_condition == 'true' and (passed_serial_number or failed_serial_number) and ('confirm_order_type' not in myDict.keys()):
                     check_qc_serial_numbers(user, myDict['id'][i], myDict['wms_code'][i], passed_serial_number, failed_serial_number, imei_qc_details, data)
         for key, value in all_data.iteritems():
             entry_price = float(key[3]) * float(value)

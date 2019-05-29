@@ -5094,7 +5094,18 @@ def get_imei_data(request, user=''):
                                                   }
                     data.append(imei_data)
                     imei_status = 'Consumed'
-
+                elif order_mapping.stock_transfer:
+                    stock_transfer = order_mapping.stock_transfer
+                    if stock_transfer.st_po.open_st.sku.user:
+                        destination_user_id = stock_transfer.st_po.open_st.sku.user
+                        warehouse_user = User.objects.get(id=destination_user_id)
+                    imei_data['stock_transfer'] = {'stock_transfer_id': stock_transfer.order_id,
+                                                   'order_date': get_local_date(user, order_mapping.creation_date),
+                                                   'warehouse': warehouse_user.username,
+                                                   'address' : warehouse_user.userprofile.address,
+                                                   }
+                    data.append(imei_data)
+                    imei_status = 'Transfered'
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

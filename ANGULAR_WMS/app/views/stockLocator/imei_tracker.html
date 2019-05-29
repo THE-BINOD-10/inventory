@@ -131,6 +131,38 @@
             </div>
           </div>
         </div>
+        <div class="row mb20" ng-if="history.stock_transfer && showCase.scan_stock_item_type=='ST'">
+          <div class="col-md-2 col-sm-2 col-xs-4 hidden-xs">
+            <h5 align="right"><b>STOCK TRANSFER</b></h5>
+          </div>
+          <div class="col-xs-12 visible-xs">
+            <h5><b>STOCK TRANSFER</b></h5>
+          </div>
+          <div class="col-md-8 col-sm-10 col-xs-12">
+            <div class="panel">
+              <div class="panel-body" style="border: 1px solid #f0f0f0;padding: 10px !important;">
+                <div class="row">
+                  <div class="col-md-3 col-sm-2 col-xs-4">
+                    <b>Stock Transfer ID</b></br></br>
+                    {{history.stock_transfer.stock_transfer_id}}
+                  </div>
+                  <div class="col-md-3 col-sm-3 col-xs-4">
+                    <b>Order Date</b></br></br>
+                    {{history.stock_transfer.order_date}}
+                  </div>
+                  <div class="col-md-3 col-sm-2 col-xs-4">
+                    <b>Warehouse</b></br></br>
+                    {{history.stock_transfer.warehouse}}
+                  </div>
+                  <div class="col-md-3 col-sm-2 col-xs-4">
+                    <b>Address</b></br></br>
+                    {{history.stock_transfer.address}}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="row mb20" ng-if="history.order_details && showCase.scan_item_type=='PO'">
           <div class="col-md-2 col-sm-2 col-xs-4 hidden-xs">
             <h4 align="right">SALE</h4>

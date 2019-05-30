@@ -844,7 +844,7 @@ function pull_confirmation() {
        function(isConfirm){
          if (isConfirm) {
            vm.service.apiCall('picklist_delete/','GET', {key: 'delete', picklist_id: pick_id}, true).then(function(data){
-                swal("Deleted!", "picklist is deleted", "success");
+                swal("", data.data, "success");
            });
            vm.ok("done");
          }

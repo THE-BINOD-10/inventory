@@ -438,6 +438,15 @@
     </li>
     <!-- /uploaded pages -->
 
+    <!-- Distributor Orders pages -->
+    <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'admin_sub_user'">
+      <a ui-sref="app.distributorOrders">
+      <i class="fa fa-book" aria-hidden="true"></i>
+        <span>Distributor Orders</span>
+      </a>
+    </li>
+    <!-- /uploaded pages -->
+
     <!-- feedback pages -->
     <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
       <a ui-sref="app.feedback">

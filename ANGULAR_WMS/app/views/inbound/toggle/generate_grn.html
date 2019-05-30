@@ -142,12 +142,19 @@
                 <input class="form-control"  ng-model="showCase.model_data.overall_discount" type="text"  ng-keyup="showCase.change_overall_discount()" name ="overall_discount">
               </div>
             </div>
+            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-6" ng-repeat="data in showCase.grn_extra_fields track by data" ng-if ="showCase.grn_fields">
+              <div class="form-group">
+                <label class="control-label">{{data}}</label>
+                <input type="text" name=grn_field_{{data}}  ng-model="showCase.grn_exta_model[data]" class="form-control">
+              </div>
+            </div>
             <div class="col-md-3 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label for="remarks" class="control-label"> Remarks </label>
                 <textarea class="form-control" rows="2" ng-model="showCase.model_data.remarks" type="text" name="remarks" focus-on="focusSKU"></textarea>
               </div>
             </div>
+
           </div>
           <div class="row">
             <div class="col-md-12">

@@ -195,7 +195,11 @@
       <div class="col-md-4 col-sm-4 col-xs-6" ng-repeat="data in showCase.order_extra_fields track by data" ng-if ="showCase.extra_fields">
         <div class="form-group">
           <label class="control-label"><b>{{data}}</b></label>
-          <input type="text" name=order_field_{{data}}  ng-model="showCase.exta_model[data]" class="form-control">
+          <select ng-model="showCase.exta_model[data]" class="form-control" name=order_field_{{data}} ng-if = 'showCase.extra_order_options[data][0] != ""'>
+            <option value="">Select  From Below</option>
+            <option ng-repeat="order_option in showCase.extra_order_options[data]" value="{{order_option}}">{{order_option}}</option>
+          </select>
+          <input name="order_field_{{data}}" ng-model="showCase.exta_model[data]" class="form-control" type="text" ng-if = 'showCase.extra_order_options[data][0] == ""'>
         </div>
       </div>
     </div>
@@ -227,17 +231,17 @@
           <tbody>
             <tr>
               <td>
-                <select class="form-control" name="payment_mode" ng-model="showCase.model_data.payment_mode">
+                <select class="form-control"  multiple  ng-model="showCase.model_data.payment_mode" ng-change="showCase.selected_payment(showCase.model_data.payment_mode)">
                   <option value="" selected></option>
-                  <option>Credit Card</option>
-                  <option>Debit Card</option>
-                  <option>Cash</option>
-                  <option>NEFT</option>
-                  <option>RTGS</option>
-                  <option>IMPS</option>
-                  <option>Online Transfer</option>
-                  <option>Cash Remittance</option>
-                  <option>cheque</option>
+                  <option value ="Credit card Amount">Credit Card</option>
+                  <option value ="Debit card Amount" >Debit Card</option>
+                  <option value="Cash Amount">Cash</option>
+                  <option value="NEFT Amount">NEFT</option>
+                  <option value="RTGS Amount">RTGS</option>
+                  <option value="IMPS Amount">IMPS</option>
+                  <option value="Online transfer Amount">Online Transfer</option>
+                  <option value="Cash remittance Amount">Cash Remittance</option>
+                  <option value = "Cheque">cheque</option>
                 </select>
               </td>
               <td>
@@ -250,6 +254,13 @@
           </tbody>
         </table>
       </div>
+      <div class="row">
+        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6" ng-repeat="payment in showCase.model_data.payment_mode track by payment">
+           {{ payment }}
+           <input type="text"  class="form-control" ng-model="showCase.model_data.payment_amounts[payment]">
+        </div>
+      </div>
+
       <div class="row over-x" style="overflow-y: hidden;">
         <table class="table" ng-class="showCase.min_width">
           <thead>

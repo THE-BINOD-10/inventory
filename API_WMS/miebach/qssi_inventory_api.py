@@ -1,5 +1,5 @@
 activate_this = 'setup/MIEBACH/bin/activate_this.py'
-execfile(activate_this, dict(__file__ = activate_this))
+execfile(activate_this, dict(__file__=activate_this))
 import os
 import sys
 from math import ceil
@@ -13,7 +13,7 @@ from rest_api.views.common import *
 from rest_api.views.utils import *
 log = init_logger('logs/qssi_stock_check.log')
 
-def ans_stock_details(user, sku_code):
+def asn_stock_details(user, sku_code):
     # ASN Stock Related to SM
     today_filter = datetime.datetime.today()
     hundred_day_filter = today_filter + datetime.timedelta(days=100)
@@ -33,8 +33,9 @@ def update_asn_res_stock(order_obj, l3_res_stock):
     ASNReserveDetail.objects.filter(orderdetail=order_obj).update(reserved_qty=l3_res_stock)
 
 
-def update_asn_to_stock(wh, sku_code):
+def update_asn_to_stock(wh, sku_obj):
     from rest_api.views.outbound import check_stocks
+    sku_code = sku_obj.sku_code
     total_stock = StockDetail.objects.filter(sku__user=wh.id,
                                              quantity__gt=0,
                                              sku__sku_code=sku_code).only('sku__sku_code', 'quantity').values_list(
@@ -54,17 +55,19 @@ def update_asn_to_stock(wh, sku_code):
     blocked_stock = dict(blocked_stock).get(sku_code, 0)
     wh_open_stock = total_stock - res_stock - blocked_stock
 
-    order_obj = OrderDetail.objects.filter(user=wh.id, sku_code=sku_code, status=1).order_by('creation_date')[0]
-    l3_res_stock = ans_stock_details(wh, sku_code)
-    picklist_qty_map = {}
+    order_qs = OrderDetail.objects.filter(user=wh.id, sku_code=sku_code, status=1).order_by('creation_date')
+    if order_qs:
+        order_obj = order_qs[0]
+        l3_res_stock = asn_stock_details(wh, sku_code)
+        picklist_qty_map = {}
 
-    if wh_open_stock > 0 and l3_res_stock > 0:
-        wh_res_stock = min(wh_open_stock, l3_res_stock)
-        l3_res_stock = l3_res_stock - min(wh_open_stock, l3_res_stock)
-        picklist_qty_map[sku_code] = wh_res_stock
-        # Generate PickList functionality
-        check_stocks(picklist_qty_map, wh, 'false', [order_obj])
-        update_asn_res_stock(order_obj, l3_res_stock)
+        if wh_open_stock > 0 and l3_res_stock > 0:
+            wh_res_stock = min(wh_open_stock, l3_res_stock)
+            l3_res_stock = l3_res_stock - min(wh_open_stock, l3_res_stock)
+            picklist_qty_map[sku_obj] = wh_res_stock
+            # Generate PickList functionality
+            check_stocks(picklist_qty_map, wh, 'false', [order_obj])
+            update_asn_res_stock(order_obj, l3_res_stock)
 
 
 def update_inventory(company_name):
@@ -165,7 +168,7 @@ def update_inventory(company_name):
                                 StockDetail.objects.create(**new_stock_dict)
                                 log.info("New stock created for user %s for sku %s" %
                                          (user.username, str(sku.sku_code)))
-                            #update_asn_to_stock(user, sku_id)
+                            update_asn_to_stock(user, sku)
                     for sku_id, asn_inv in asn_stock_map.iteritems():
                         sku = SKUMaster.objects.filter(user=user_id, sku_code=sku_id)
                         if sku:

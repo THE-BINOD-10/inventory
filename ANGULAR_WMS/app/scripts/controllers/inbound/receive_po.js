@@ -186,6 +186,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.serial_numbers = [];
                     vm.skus_total_amount = 0;
                     angular.copy(data.data, vm.model_data);
+                    vm.get_grn_extra_fields();
                     vm.send_for_approval_check(event, vm.model_data);
                     vm.title = "Generate GRN";
                     if (vm.industry_type == 'FMCG') {
@@ -483,6 +484,29 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
        return d.promise;
     }
+    vm.get_grn_extra_fields = function(){
+      vm.service.apiCall("get_grn_extra_fields/").then(function(data){
+        if(data.message) {
+          vm.grn_extra_fields = data.data.data;
+          if(vm.grn_extra_fields[0] == '')
+          {
+            vm.grn_fields = false
+          }
+          else{
+            vm.grn_exta_model ={}
+            vm.grn_fields = true
+             for(var i =0 ; i< vm.grn_extra_fields.length; i++)
+             {
+                vm.grn_exta_model[vm.grn_extra_fields[i]] = '';
+
+             }
+
+           }
+          }
+        })
+      }
+
+    vm.get_grn_extra_fields();
 
     vm.get_tax_value = function(sku_data) {
 

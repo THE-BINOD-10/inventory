@@ -3624,6 +3624,42 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                 skumaster_qs = skumaster_qs.filter(user=user.id). \
                     filter(Q(skuattributes__attribute_name='height') &
                            Q(skuattributes__attribute_value__lte=Value(to_height)))
+        if "intfrom_Height" in dimensions:
+            if dimensions["intfrom_Height"]:
+                intfrom_Height = int(dimensions["intfrom_Height"])
+                skumaster_qs = skumaster_qs.filter(user=user.id). \
+                    filter(Q(skuattributes__attribute_name='Internal Height') &
+                           Q(skuattributes__attribute_value__gte=Value(intfrom_Height)))
+        if "intto_Height" in dimensions:
+            if dimensions["intto_Height"]:
+                intto_Height = int(dimensions["intto_Height"])
+                skumaster_qs = skumaster_qs.filter(user=user.id). \
+                    filter(Q(skuattributes__attribute_name='Internal Height') &
+                           Q(skuattributes__attribute_value__lte=Value(intto_Height)))
+        if "intfrom_Length" in dimensions:
+            if dimensions["intfrom_Length"]:
+                intfrom_Length = int(dimensions["intfrom_Length"])
+                skumaster_qs = skumaster_qs.filter(user=user.id). \
+                    filter(Q(skuattributes__attribute_name='Internal Length') &
+                           Q(skuattributes__attribute_value__gte=Value(intfrom_Length)))
+        if "intto_Length" in dimensions:
+            if dimensions["intto_Length"]:
+                intto_Length = int(dimensions["intto_Length"])
+                skumaster_qs = skumaster_qs.filter(user=user.id). \
+                    filter(Q(skuattributes__attribute_name='Internal Length') &
+                           Q(skuattributes__attribute_value__lte=Value(intto_Length)))
+        if "intfrom_Breadth" in dimensions:
+            if dimensions["intfrom_Breadth"]:
+                intfrom_Breadth = int(dimensions["intfrom_Breadth"])
+                skumaster_qs = skumaster_qs.filter(user=user.id). \
+                    filter(Q(skuattributes__attribute_name='Internal Breadth') &
+                           Q(skuattributes__attribute_value__gte=Value(intfrom_Breadth)))
+        if "intto_Breadth" in dimensions:
+            if dimensions["intto_Breadth"]:
+                intto_Breadth = int(dimensions["intto_Breadth"])
+                skumaster_qs = skumaster_qs.filter(user=user.id). \
+                    filter(Q(skuattributes__attribute_name='Internal Breadth') &
+                           Q(skuattributes__attribute_value__lte=Value(intto_Breadth)))
     all_pricing_ids = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type).values_list('sku_id',
                                                                                                        flat=True)
     if is_margin_percentage == 'true':
@@ -3696,11 +3732,11 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         if size_dict:
             classes = get_sku_available_stock(user, sku_master, query_string, size_dict)
             sku_master = sku_master.filter(sku_class__in=classes)
-
-    if quantity and not admin_user:
-        filt_ids = sku_master.values('id').annotate(stock_sum=Sum('stockdetail__quantity')).\
-                                filter(stock_sum__gt=quantity).values_list('id', flat=True).distinct()
-        sku_master = sku_master.filter(id__in=filt_ids)
+    # this code is commented because of overriding the sku_master as a empty it is checking the admin stock , always empty so commented.
+    # if quantity and not admin_user:
+    #     filt_ids = sku_master.values('id').annotate(stock_sum=Sum('stockdetail__quantity')).\
+    #                             filter(stock_sum__gt=quantity).values_list('id', flat=True).distinct()
+    #     sku_master = sku_master.filter(id__in=filt_ids)
     sku_master = sku_master.order_by('sequence')
     product_styles = sku_master.values_list('sku_class', flat=True).distinct()
     product_styles = list(OrderedDict.fromkeys(product_styles))
@@ -3758,13 +3794,20 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         asn_blk_qty = asn_blk_100days_qty.get(k, 0)
         needed_stock_data['asn_quantities'][k] = asn_qty - asn_res_qty - asn_blk_qty
         needed_stock_data['asn_blocked_quantities'][k] = asn_blk_qty
-
-    data = get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id=customer_id,
-                           customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
-                           price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
-                           is_margin_percentage=is_margin_percentage, stock_quantity=quantity,
-                           needed_stock_data=needed_stock_data, msp_min_price=msp_min_price, msp_max_price=msp_max_price)
-
+    if dimensions:
+        product_styles = skumaster_qs.values_list('sku_class', flat=True).distinct()
+        product_styles = list(OrderedDict.fromkeys(product_styles))
+        data = get_styles_data(user, product_styles, skumaster_qs, start, stop, request, customer_id=customer_id,
+                               customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
+                               price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
+                               is_margin_percentage=is_margin_percentage, stock_quantity=quantity,
+                               needed_stock_data=needed_stock_data, msp_min_price=msp_min_price, msp_max_price=msp_max_price)
+    else:
+        data = get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id=customer_id,
+                               customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
+                               price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
+                               is_margin_percentage=is_margin_percentage, stock_quantity=quantity,
+                               needed_stock_data=needed_stock_data, msp_min_price=msp_min_price, msp_max_price=msp_max_price)
     return data, start, stop
 
 
@@ -4755,7 +4798,6 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
         qty_dict_flag = True
     else:
         product_styles_filtered = product_styles
-
     for product in product_styles_filtered[start: stop]:
         sku_object = sku_master.filter(user=user.id, sku_class=product)
         sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id'). \

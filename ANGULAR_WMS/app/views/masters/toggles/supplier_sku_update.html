@@ -14,13 +14,22 @@
                 <label class="control-label"> Supplier ID *</label>
                 <input ng-if="showCase.update" type="text" name="supplier_id" class="form-control" ng-model="showCase.model_data.supplier_id" ng-readonly="showCase.update">
                 <select ng-if="!(showCase.update)" class="form-control" ng-model="showCase.model_data.supplier_id" ng-options="supplier for supplier in showCase.supplier_list" required>
-                      </select> 
+                      </select>
               </div>
             </div>
 	    <div class="col-md-4 col-sm-6 col-xs-6">
 	      <div class="form-group">
 		<label class="control-label"> WMS Code *</label>
-                <input type="text" autocomplete="off" name="sku_id" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="WMSCodesLoading" ng-model="showCase.model_data.wms_code" ng-blur="showCase.service.checkSearchValue(showCase.model_data.wms_code,'search_wms_codes?', $event, 'WMS Code', 'WMS Code')" ng-readonly="showCase.update" required>
+                <input type="text" autocomplete="off"
+                       name="sku_id" class="form-control"
+                       placeholder="Search WMS Code"
+                       typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')"
+                       typeahead-loading="WMSCodesLoading"
+                       ng-model="showCase.model_data.wms_code"
+                       ng-blur="showCase.service.checkSearchValue(showCase.model_data.wms_code,'search_wms_codes?', $event, 'WMS Code', 'WMS Code')"
+                       ng-readonly="showCase.update"
+                       typeahead-on-select = "showCase.get_sku_mrp(showCase.model_data.wms_code)"
+                       required>
 	      </div>
 	    </div>
 	    <div class="col-md-4 col-sm-6 col-xs-6">
@@ -60,8 +69,15 @@
 
       <div class="col-md-4 col-sm-6 col-xs-6">
         <div class="form-group">
-          <label class="col-md-6 control-label"> Margin Percentage </label>
+          <label class="col-md-8 control-label"> Markdown Percentage </label>
           <input type="number" min="0" max="100" name="margin_percentage" class="form-control" ng-model="showCase.model_data.margin_percentage" decimal-number>
+        </div>
+      </div>
+
+      <div class="col-md-4 col-sm-6 col-xs-6">
+        <div class="form-group">
+          <label class="col-md-6 control-label"> Markup Percentage </label>
+          <input type="number" min="0" max="100" name="markup_percentage" class="form-control" ng-model="showCase.model_data.markup_percentage" decimal-number>
         </div>
       </div>
 
@@ -76,7 +92,7 @@
           <div class="row insert-status">
             <h4 style="text-align: center;">{{showCase.service.message}}</h4>
           </div>
-          <!-- body end -->  
+          <!-- body end -->
         </div>
         <div class="modal-footer">
           <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>

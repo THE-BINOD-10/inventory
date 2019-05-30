@@ -112,7 +112,7 @@
 
       <div class="filter-box">
         <div class="box-header" ng-click="showCase.quantity_open = (showCase.quantity_open)? false: true;">
-          <span><b>Quantity: </b></span>
+          <span><b>Min Quantity: </b></span>
           <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;" ng-class="(showCase.quantity_open)? 'fa-angle-up': 'fa-angle-down'"></i>
         </div>
         <div class="box-body mt10" style="overflow: auto;" ng-if="showCase.quantity_open">
@@ -153,17 +153,19 @@
         </div>
       </div>
 
-      <!-- Dimensions start -->
+      <!-- Ext Dimensions start -->
       <div class="filter-box" ng-if="showCase.filterData.dimensions.length > 0 && showCase.user_type == 'customer' && showCase.central_order_mgmt">
         <div class="box-header">
-          <span><b>Dimensions: </b></span>
+          <span><b>Ext Dimensions: </b></span>
           <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.dimension_open)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.dimension_open = (showCase.dimension_open)? false: true;"></i>
         </div>
         <div class="box-body mt10" style="overflow: auto;" ng-if="showCase.dimension_open">
           <table class="table table-bordered filter-table">
             <tbody>
               <tr ng-repeat="dimension in showCase.filterData.dimensions">
-                <td>{{dimension}}</td>
+                <td ng-if="dimension == 'Height'">Height</td>
+                <td ng-if="dimension == 'Length'">Width</td>
+                <td ng-if="dimension == 'Breadth'">Depth</td>
                 <td style="text-align:center"><input name="{{'from_'+dimension}}" class="form-control number" type="text" placeholder="From" ng-model="showCase.filterData.dimension_filter['from_'+dimension]"/></td>
                 <td style="text-align:center"><input name="{{'to_'+dimension}}" class="form-control number" type="text" placeholder="To" ng-model="showCase.filterData.dimension_filter['to_'+dimension]"/></td>
               </tr>
@@ -171,7 +173,31 @@
           </table>
         </div>
       </div>
-      <!-- Dimensions end -->
+      <!-- Ext Dimensions end -->
+
+      <!-- Int Dimensions start -->
+      <div class="filter-box" ng-if="showCase.filterData.dimensions.length > 0 && showCase.user_type == 'customer' && showCase.central_order_mgmt">
+        <div class="box-header">
+          <span><b>Int Dimensions: </b></span>
+          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.dimension_opens)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.dimension_opens = (showCase.dimension_opens)? false: true;"></i>
+        </div>
+        <div class="box-body mt10" style="overflow: auto;" ng-if="showCase.dimension_opens">
+          <table class="table table-bordered filter-table">
+            <tbody>
+              <tr ng-repeat="dimension in showCase.filterData.dimensions">
+                <td ng-if="dimension == 'Height'">Height</td>
+                <td ng-if="dimension == 'Length'">Width</td>
+                <td ng-if="dimension == 'Breadth'">Depth</td>
+                <td style="text-align:center"><input name="{{'intfrom_'+dimension}}" class="form-control number" type="text" placeholder="From" ng-model="showCase.filterData.dimension_filter['intfrom_'+dimension]"/></td>
+                <td style="text-align:center"><input name="{{'intto_'+dimension}}" class="form-control number" type="text" placeholder="To" ng-model="showCase.filterData.dimension_filter['intto_'+dimension]"/></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Int Dimensions end -->
+
+
       <div>
         <button type="button" class="btn btn-danger pull-right" ng-click="showCase.applyFilters();">Apply</button>
         <button type="button" class="btn btn-default pull-right mr10" ng-click="showCase.clearFilters();">Clear</button>

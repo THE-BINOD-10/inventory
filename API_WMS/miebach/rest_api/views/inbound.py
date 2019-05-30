@@ -8129,7 +8129,9 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
     search_params = {}
     search_params['purchase_order__open_po__sku_id__in'] = sku_master_ids
     lis = ['purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
-            'purchase_order__order_id', 'purchase_order_date', 'invoice_number', 'invoice_date', 'total', 'total']
+            'purchase_order__order_id', 'purchase_order__order_id', 'invoice_number', 'invoice_date',
+           'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
+           'purchase_order__order_id', 'purchase_order__order_id']
     headers1, filters, filter_params1 = get_search_params(request)
     enable_dc_returns = request.POST.get("enable_dc_returns", "")
     inv_or_dc_number = 'invoice_number'
@@ -8170,34 +8172,51 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
                                         values_list('seller_po_summary_id', flat=True)
     if search_term:
         results = SellerPOSummary.objects.exclude(id__in=return_ids).filter(purchase_order__polocation__status=0,
-                                            purchase_order__open_po__sku__user=user.id, **search_params).\
-            values('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
-                   'purchase_order__order_id', inv_or_dc_number, 'invoice_date', 'challan_date',).distinct().annotate(
-            total=Sum('quantity'), purchase_order_date=Cast('purchase_order__creation_date', DateField())).order_by(order_data)
+                                            purchase_order__open_po__sku__user=user.id, **search_params). \
+            only('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
+                 'purchase_order__order_id', inv_or_dc_number, 'invoice_date', 'challan_date',
+                 'quantity', 'purchase_order__creation_date').order_by(order_data)
 
     elif order_term:
-        results = SellerPOSummary.objects.exclude(id__in=return_ids).select_related('purchase_order__open_po__supplier', 'purchase_order').\
+        db_results = SellerPOSummary.objects.exclude(id__in=return_ids).select_related('purchase_order__open_po__supplier', 'purchase_order').\
                                             filter(purchase_order__polocation__status=0, purchase_order__open_po__sku__user=user.id, **search_params).\
-            values('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
-                   'purchase_order__order_id', inv_or_dc_number, 'invoice_date', 'challan_date',).distinct().annotate(
-            total=Sum('quantity'), purchase_order_date=Cast('purchase_order__creation_date', DateField())).order_by(order_data)
+            only('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
+                   'purchase_order__order_id', inv_or_dc_number, 'invoice_date', 'challan_date',
+                   'quantity', 'purchase_order__creation_date', 'batch_detail__buy_price').order_by(order_data) #.distinct().annotate(
+            #total=Sum('quantity'), purchase_order_date=Cast('purchase_order__creation_date', DateField())).order_by(order_data)
 
-    temp_data['recordsTotal'] = results.count()
+    grouping_data = OrderedDict()
+    for result in db_results:
+        grouping_key = (result.purchase_order.open_po.supplier_id, result.purchase_order.order_id,
+                        getattr(result, inv_or_dc_number), result.invoice_date, result.challan_date)
+        supplier = result.purchase_order.open_po.supplier
+        grouping_data.setdefault(grouping_key, {'supplier_id': supplier.id,
+                                                'supplier_name': supplier.name,
+                                                'order_id': result.purchase_order.order_id,
+                                                inv_or_dc_number: getattr(result, inv_or_dc_number),
+                                                'invoice_date': result.invoice_date,
+                                                'challan_date': result.challan_date,
+                                                'total': 0, 'purchase_order_date': result.purchase_order.creation_date.date(),
+                                                'seller_summary_objs': []})
+        grouping_data[grouping_key]['total'] += result.quantity
+        grouping_data[grouping_key]['seller_summary_objs'].append(result)
+    temp_data['recordsTotal'] = len(grouping_data.keys())
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     count = 0
-    for result in results[start_index: stop_index]:
+    for result in grouping_data.values()[start_index: stop_index]:
         rem_quantity = 0
-        seller_summarys = SellerPOSummary.objects.exclude(id__in=return_ids).\
+        '''seller_summarys = SellerPOSummary.objects.exclude(id__in=return_ids).\
                                             select_related('purchase_order__open_po__sku', 'purchase_order').\
                                                     filter(purchase_order__open_po__sku__user=user.id,
                                                         purchase_order__order_id=result['purchase_order__order_id']).\
-                                                    filter(**{inv_or_dc_number: result[inv_or_dc_number]})
-        order_reference = get_po_reference(seller_summarys[0].purchase_order)
-        open_po = seller_summarys[0].purchase_order.open_po
-        data_id = '%s:%s' % (result['purchase_order__order_id'], result.get('invoice_number', ''))
+                                                    filter(**{inv_or_dc_number: result[inv_or_dc_number]})'''
+        purchase_order = result['seller_summary_objs'][0].purchase_order
+        order_reference = get_po_reference(purchase_order)
+        open_po = purchase_order.open_po
+        data_id = '%s:%s' % (purchase_order.order_id, result.get('invoice_number', ''))
         checkbox = "<input type='checkbox' name='data_id' value='%s'>" % (data_id)
-        po_date = get_local_date(request.user, seller_summarys[0].purchase_order.creation_date,
+        po_date = get_local_date(request.user, purchase_order.creation_date,
                                  send_date=True).strftime("%d %b, %Y")
         invoice_number = ''
         if result.get('invoice_number', ''):
@@ -8213,7 +8232,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
             challan_date = result['challan_date'].strftime("%d %b, %Y")
         total_amt = 0
         tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
-        for seller_summary in seller_summarys:
+        for seller_summary in result['seller_summary_objs']:
             temp_qty = float(seller_summary.quantity)
             processed_val = seller_summary.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
             if processed_val:
@@ -8225,8 +8244,8 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
             rem_quantity += temp_qty
         total_amt = total_amt + ((total_amt/100) * tax)
         temp_data['aaData'].append(OrderedDict((('', checkbox),('data_id', data_id),
-                                                ('Supplier ID', result['purchase_order__open_po__supplier_id']),
-                                                ('Supplier Name', result['purchase_order__open_po__supplier__name']),
+                                                ('Supplier ID', result['supplier_id']),
+                                                ('Supplier Name', result['supplier_name']),
                                                 ('PO Number', order_reference), ('PO Date', po_date),
                                                 ('Invoice Number', invoice_number), ('Challan Number', challan_number),
                                                 ('Invoice Date', invoice_date), ('Challan Date', challan_date),

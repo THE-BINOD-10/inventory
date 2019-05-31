@@ -281,11 +281,12 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
         values_list('purchase_order_id', flat=True)
 
     results_objs = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids).filter(**search_params). \
-        filter(purchase_order_query, open_po__sku__user=user.id).exclude(status__in=['location-assigned', 'confirmed-putaway'])
+        filter(purchase_order_query, open_po__sku__user=user.id)#.exclude(status__in=['location-assigned', 'confirmed-putaway'])
 
-    order_qtys_dict.update(dict(results_objs.values_list('order_id').distinct(). \
+    po_result_order_ids = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids, order_id__in=results_objs.values_list('order_id', flat=True))
+    order_qtys_dict.update(dict(po_result_order_ids.values_list('order_id').distinct(). \
                                 annotate(total_order_qty=Sum('open_po__order_quantity'))))
-    receive_qtys_dict.update(dict(results_objs.values_list('order_id').distinct(). \
+    receive_qtys_dict.update(dict(po_result_order_ids.values_list('order_id').distinct(). \
                                   annotate(total_received_qty=Sum('received_quantity'))))
 
     po_order_ids_list = results_objs.exclude(status__in=['location-assigned', 'confirmed-putaway']). \
@@ -355,7 +356,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         order_data = get_purchase_order_data(supplier)
         po_reference = '%s%s_%s' % (
         supplier.prefix, str(supplier.creation_date).split(' ')[0].replace('-', ''), supplier.order_id)
-        _date = get_local_date(user, supplier.po_date, True)
+        _date = get_local_date(user, supplier.creation_date, True)
         _date = _date.strftime("%d %b, %Y")
         supplier_id_name = '%s/%s' % (str(xcode(order_data['supplier_id'])), str(xcode(order_data['supplier_name'])))
 

@@ -15,7 +15,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'pos_switch': false, 'auto_po_switch': false, 'no_stock_switch': false, 'online_percentage': 0,
                     'mail_alerts': 0, 'prefix': '', 'all_groups': '', 'mail_options': [{'id': 1,'name': 'Default'}],
                     'mail_inputs':[], 'report_freq':'0', 'float_switch': false, 'automate_invoice': false, 'all_stages': '','all_order_fields':'',
-                    'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,
+                    'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,'grn_fields':'',
                     'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': '',
                     'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false,
                     'invoice_remarks': '','invoice_declaration':'', 'raisepo_terms_conditions':'', 'show_disc_invoice': false, 'serial_limit': '',
@@ -30,7 +30,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'combo_allocate_stock': false, 'sno_in_invoice': false, 'unique_mrp_putaway': false,'block_expired_batches_picklist':false,
                     'generate_delivery_challan_before_pullConfiramation':false,'pos_remarks' :'',
                     'rtv_prefix_code': false, 'dispatch_qc_check':false,'sku_less_than_threshold':false,'decimal_limit_price':2,
-                    'non_transacted_skus':false,
+                    'non_transacted_skus':false,'all_order_field_options':{},
+                    'update_mrp_on_grn': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -55,7 +56,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      74: 'sku_pack_config', 75: 'po_sub_user_prefix', 76: 'combo_allocate_stock', 77:'sno_in_invoice', 78:'raisepo_terms_conditions',
                      79: 'generate_delivery_challan_before_pullConfiramation', 80: 'unique_mrp_putaway',
                      81: 'rtv_prefix_code',82:'pos_remarks', 83:'dispatch_qc_check', 84:'block_expired_batches_picklist', 85:'non_transacted_skus',
-                     86:'sku_less_than_threshold',87:'decimal_limit_price',}
+                     86:'sku_less_than_threshold', 87:'decimal_limit_price', 88: 'mandate_sku_supplier', 89: 'update_mrp_on_grn'}
 
   vm.check_box_data = [
     {
@@ -485,6 +486,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     class_name: "fa fa-server",
     display: true
   },
+  {
+   name: "Update MRP On GRN",
+   model_name: "update_mrp_on_grn",
+   param_no: 89,
+   class_name: "fa fa-server",
+   display: true
+ },
+ {
+  name: "Mandate Sku Supplier Mapping in PO",
+  model_name: "mandate_sku_supplier",
+  param_no: 88,
+  class_name: "fa fa-server",
+  display: true
+ }
 ]
 
   vm.empty = {};
@@ -522,6 +537,27 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       })
     }
   }
+  vm.save_order_options = function(field)
+  {
+    var send_data = {}
+    send_data['order_field_options'] = []
+    angular.forEach(vm.model_data.all_order_field_options[field], function(data){
+
+      if (!data.field_name) {
+        vm.service.showNoty('Please fill all the required fields which are selected', 'success', 'topRight');
+        vm.validation_err = true;
+      } else {
+        send_data['order_field_options'].push(data.field_name);
+      }
+    });
+    if (!vm.validation_err) {
+      send_data['field'] = field
+      vm.service.apiCall("save_extra_order_options/", "POST",{'data':JSON.stringify(send_data)}).then(function(data) {
+          Service.showNoty(data.data.message);
+      })
+    }
+
+  }
 
   vm.pos_extra_fields = [{'input_type': "",'field_name': ""}];
   vm.add_pos_fields = function() {
@@ -533,6 +569,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
 
     vm.pos_extra_fields.splice(index,1);
   }
+  vm.model_data.all_order_field_options = {}
+  vm.add_order_options = function (extra) {
+    if (!vm.model_data.all_order_field_options[extra])
+    {
+       vm.model_data.all_order_field_options[extra]= []
+    }
+    vm.model_data.all_order_field_options[extra].push({field_name: ""})
+  }
+ vm.remove_order_options = function (extra,index) {
+    vm.model_data.all_order_field_options[extra].splice(index,1)
+   }
+
 
   vm.switches = switches;
   function switches(value, switch_num) {
@@ -653,6 +701,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $(".sku_groups").importTags(vm.model_data.all_groups);
       $(".stages").importTags(vm.model_data.all_stages);
       $(".order_fields").importTags(vm.model_data.all_order_fields);
+      $(".grn_fields").importTags(vm.model_data.grn_fields);
+      vm.model_data.all_order_fields_list = vm.model_data.all_order_fields.split(",")
       $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
       $(".invoice_types").importTags(vm.model_data.invoice_types);
       $(".mode_of_transport").importTags(vm.model_data.mode_of_transport||'');
@@ -771,6 +821,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.update_extra_central_order_fields = function() {
     var data = $(".order_fields").val();
     vm.service.apiCall("save_order_extra_fields/?extra_order_fields="+data).then(function(data){
+      if(data.message) {
+        msg = data.data;
+        vm.model_data.all_order_fields_list = $(".order_fields").val().split(',');
+        $scope.showNoty();
+        Auth.status();
+      }
+    });
+  }
+  vm.update_grn_fields = function() {
+    var data = $(".grn_fields").val();
+    vm.service.apiCall("save_grn_fields/?grn_fields="+data).then(function(data){
       if(data.message) {
         msg = data.data;
         $scope.showNoty();

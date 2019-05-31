@@ -1,5 +1,4 @@
 import xlsxwriter
-
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
@@ -829,6 +828,11 @@ def configurations(request, user=''):
         config_dict['all_order_fields'] = ''
     else:
         config_dict['all_order_fields'] = extra_order_fields
+    grn_fields = get_misc_value('grn_fields', user.id)
+    if grn_fields == 'false' :
+        config_dict['grn_fields'] = ''
+    else:
+        config_dict['grn_fields'] = grn_fields
 
     if config_dict['mail_alerts'] == 'false':
         config_dict['mail_alerts'] = 0
@@ -873,6 +877,16 @@ def configurations(request, user=''):
     mandatory_receive_po = get_misc_value('receive_po_mandatory_fields', user.id)
     if mandatory_receive_po != 'false':
         config_dict['selected_receive_po_mandatory'] = mandatory_receive_po.split(',')
+    config_dict['all_order_field_options'] = {}
+    misc_options = MiscDetailOptions.objects.filter(misc_detail__user=user.id).values('misc_key','misc_value')
+    for misc in misc_options :
+        misc_list = misc.get('misc_value').split(',')
+        config_dict['all_order_field_options'][misc.get('misc_key')]=[]
+        for misc_value in misc_list :
+            temp_dict = {}
+            temp_dict['field_name'] = misc_value
+            config_dict['all_order_field_options'][misc.get('misc_key')].append(temp_dict)
+
     return HttpResponse(json.dumps(config_dict))
 
 
@@ -2305,6 +2319,14 @@ def save_order_extra_fields(request, user=''):
         if not misc_detail.exists():
              MiscDetail.objects.create(user=user.id,misc_type='extra_order_fields',misc_value=order_extra_fields)
         else:
+            misc_order_option_list = list(MiscDetailOptions.objects.filter(misc_detail__user=user.id).values_list('misc_key',flat=True))
+            order_extra_list = order_extra_fields.split(',')
+            diff_list = list(set(misc_order_option_list)- set(order_extra_list))
+            if len(diff_list) > 0 :
+                for key in diff_list :
+                    misc_records = MiscDetailOptions.objects.filter(misc_detail__user= user.id,misc_key = key)
+                    for record in misc_records :
+                        record.delete()
             misc_detail_obj = misc_detail[0]
             misc_detail_obj.misc_value = order_extra_fields
             misc_detail_obj.save()
@@ -2313,6 +2335,31 @@ def save_order_extra_fields(request, user=''):
         log.debug(traceback.format_exc())
         log.info('Issue for ' + request)
         return HttpResponse("Something Went Wrong")
+
+    return HttpResponse("Saved Successfully")
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_grn_fields(request, user=''):
+    grn_fields = request.GET.get('grn_fields', '')
+    if len(grn_fields.split(',')) <=  4 :
+        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='grn_fields')
+        try:
+            if not misc_detail.exists():
+                 MiscDetail.objects.create(user=user.id,misc_type='grn_fields',misc_value=grn_fields)
+            else:
+                misc_detail_obj = misc_detail[0]
+                misc_detail_obj.misc_value = grn_fields
+                misc_detail_obj.save()
+        except:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Issue for ' + request)
+            return HttpResponse("Something Went Wrong")
+    else:
+        return HttpResponse("Limit Exceeded Enter only Four Fields")
+
 
     return HttpResponse("Saved Successfully")
 
@@ -2912,6 +2959,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     # Getting the values from database
     user_profile = UserProfile.objects.get(user_id=user.id)
     gstin_no = user_profile.gst_number
+    pan_number = user_profile.pan_number
     cin_no = user_profile.cin_number
     display_customer_sku = get_misc_value('display_customer_sku', user.id)
     show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
@@ -2956,11 +3004,11 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             if gen_ord_customer_id and user.userprofile.warehouse_type == 'DIST':
                 customer_details = list(CustomerMaster.objects.filter(id=gen_ord_customer_id[0]).
                                         values('id', 'customer_id', 'name', 'email_id', 'tin_number', 'address', 'shipping_address',
-                                               'credit_period', 'phone_number'))
+                                               'credit_period', 'phone_number','pan_number'))
             else:
                 customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=dat.customer_id).
                                         values('id', 'customer_id', 'name', 'email_id', 'tin_number', 'address', 'shipping_address',
-                                               'credit_period', 'phone_number'))
+                                               'credit_period', 'phone_number','pan_number'))
             if customer_details:
                 customer_id = customer_details[0]['id']
                 customer_address = customer_details[0]['name'] + '\n' + customer_details[0]['address']
@@ -2970,6 +3018,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     customer_address += ("\nCall: " + customer_details[0]['phone_number'])
                 if customer_details[0]['email_id']:
                     customer_address += ("\tEmail: " + customer_details[0]['email_id'])
+                if customer_details[0]['pan_number']:
+                    customer_address += ("\tPAN No.: " + customer_details[0]['pan_number'])
+
                 consignee = customer_address
             else:
                 customer_id = dat.customer_id
@@ -3199,6 +3250,18 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     invoice_date = invoice_date.strftime("%d %b %Y")
     order_charges = {}
 
+    #create order extra fileds
+    extra_fields ={}
+    extra_order_fields = get_misc_value('extra_order_fields', user.id)
+    if extra_order_fields == 'false' :
+        extra_order_fields = []
+    else:
+        extra_order_fields = extra_order_fields.split(',')
+    for extra in extra_order_fields :
+        order_field_obj = OrderFields.objects.filter(original_order_id=order_id,user=user.id ,name = extra)
+        if order_field_obj.exists():
+            extra_fields[order_field_obj[0].name] = order_field_obj[0].value
+
     total_invoice_amount = total_invoice
     if order_id:
         order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
@@ -3224,6 +3287,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     company_address = user_profile.address
     company_number = user_profile.phone_number
     email = user.email
+
     if seller_address:
         company_address = seller.address
         email = seller.email_id
@@ -3233,12 +3297,12 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
 
     if math.ceil(total_quantity) == total_quantity:
         total_quantity = int(total_quantity)
-    invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name,
+    invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name,'company_pan_number':pan_number,
                     'company_address': company_address, 'company_number': company_number,
                     'order_date': order_date, 'email': email, 'marketplace': marketplace, 'total_amt': total_amt,
                     'total_quantity': total_quantity, 'total_invoice': "%.2f" % total_invoice, 'order_id': order_id,
                     'customer_details': customer_details, 'order_no': order_no, 'total_tax': "%.2f" % _total_tax,
-                    'total_mrp': total_mrp,
+                    'total_mrp': total_mrp,'extra_fields':extra_fields,
                     'invoice_no': _invoice_no, 'invoice_date': invoice_date,
                     'price_in_words': number_in_words(_total_invoice),
                     'order_charges': order_charges, 'total_invoice_amount': "%.2f" % total_invoice_amount,
@@ -3560,6 +3624,42 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                 skumaster_qs = skumaster_qs.filter(user=user.id). \
                     filter(Q(skuattributes__attribute_name='height') &
                            Q(skuattributes__attribute_value__lte=Value(to_height)))
+        if "intfrom_Height" in dimensions:
+            if dimensions["intfrom_Height"]:
+                intfrom_Height = int(dimensions["intfrom_Height"])
+                skumaster_qs = skumaster_qs.filter(user=user.id). \
+                    filter(Q(skuattributes__attribute_name='Internal Height') &
+                           Q(skuattributes__attribute_value__gte=Value(intfrom_Height)))
+        if "intto_Height" in dimensions:
+            if dimensions["intto_Height"]:
+                intto_Height = int(dimensions["intto_Height"])
+                skumaster_qs = skumaster_qs.filter(user=user.id). \
+                    filter(Q(skuattributes__attribute_name='Internal Height') &
+                           Q(skuattributes__attribute_value__lte=Value(intto_Height)))
+        if "intfrom_Length" in dimensions:
+            if dimensions["intfrom_Length"]:
+                intfrom_Length = int(dimensions["intfrom_Length"])
+                skumaster_qs = skumaster_qs.filter(user=user.id). \
+                    filter(Q(skuattributes__attribute_name='Internal Length') &
+                           Q(skuattributes__attribute_value__gte=Value(intfrom_Length)))
+        if "intto_Length" in dimensions:
+            if dimensions["intto_Length"]:
+                intto_Length = int(dimensions["intto_Length"])
+                skumaster_qs = skumaster_qs.filter(user=user.id). \
+                    filter(Q(skuattributes__attribute_name='Internal Length') &
+                           Q(skuattributes__attribute_value__lte=Value(intto_Length)))
+        if "intfrom_Breadth" in dimensions:
+            if dimensions["intfrom_Breadth"]:
+                intfrom_Breadth = int(dimensions["intfrom_Breadth"])
+                skumaster_qs = skumaster_qs.filter(user=user.id). \
+                    filter(Q(skuattributes__attribute_name='Internal Breadth') &
+                           Q(skuattributes__attribute_value__gte=Value(intfrom_Breadth)))
+        if "intto_Breadth" in dimensions:
+            if dimensions["intto_Breadth"]:
+                intto_Breadth = int(dimensions["intto_Breadth"])
+                skumaster_qs = skumaster_qs.filter(user=user.id). \
+                    filter(Q(skuattributes__attribute_name='Internal Breadth') &
+                           Q(skuattributes__attribute_value__lte=Value(intto_Breadth)))
     all_pricing_ids = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type).values_list('sku_id',
                                                                                                        flat=True)
     if is_margin_percentage == 'true':
@@ -3632,11 +3732,11 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         if size_dict:
             classes = get_sku_available_stock(user, sku_master, query_string, size_dict)
             sku_master = sku_master.filter(sku_class__in=classes)
-
-    if quantity and not admin_user:
-        filt_ids = sku_master.values('id').annotate(stock_sum=Sum('stockdetail__quantity')).\
-                                filter(stock_sum__gt=quantity).values_list('id', flat=True).distinct()
-        sku_master = sku_master.filter(id__in=filt_ids)
+    # this code is commented because of overriding the sku_master as a empty it is checking the admin stock , always empty so commented.
+    # if quantity and not admin_user:
+    #     filt_ids = sku_master.values('id').annotate(stock_sum=Sum('stockdetail__quantity')).\
+    #                             filter(stock_sum__gt=quantity).values_list('id', flat=True).distinct()
+    #     sku_master = sku_master.filter(id__in=filt_ids)
     sku_master = sku_master.order_by('sequence')
     product_styles = sku_master.values_list('sku_class', flat=True).distinct()
     product_styles = list(OrderedDict.fromkeys(product_styles))
@@ -3694,13 +3794,20 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         asn_blk_qty = asn_blk_100days_qty.get(k, 0)
         needed_stock_data['asn_quantities'][k] = asn_qty - asn_res_qty - asn_blk_qty
         needed_stock_data['asn_blocked_quantities'][k] = asn_blk_qty
-
-    data = get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id=customer_id,
-                           customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
-                           price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
-                           is_margin_percentage=is_margin_percentage, stock_quantity=quantity,
-                           needed_stock_data=needed_stock_data, msp_min_price=msp_min_price, msp_max_price=msp_max_price)
-
+    if dimensions:
+        product_styles = skumaster_qs.values_list('sku_class', flat=True).distinct()
+        product_styles = list(OrderedDict.fromkeys(product_styles))
+        data = get_styles_data(user, product_styles, skumaster_qs, start, stop, request, customer_id=customer_id,
+                               customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
+                               price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
+                               is_margin_percentage=is_margin_percentage, stock_quantity=quantity,
+                               needed_stock_data=needed_stock_data, msp_min_price=msp_min_price, msp_max_price=msp_max_price)
+    else:
+        data = get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id=customer_id,
+                               customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
+                               price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
+                               is_margin_percentage=is_margin_percentage, stock_quantity=quantity,
+                               needed_stock_data=needed_stock_data, msp_min_price=msp_min_price, msp_max_price=msp_max_price)
     return data, start, stop
 
 
@@ -3760,7 +3867,6 @@ def search_wms_data(request, user=''):
     search_key = request.GET.get('q', '')
     total_data = []
     limit = 10
-
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 
@@ -3809,12 +3915,14 @@ def get_supplier_sku_prices(request, user=""):
         result_data = []
         supplier_master = ""
         inter_state = 2
+        edit_tax = False
+        ep_supplier = False
         if suppli_id:
             supplier_master = SupplierMaster.objects.filter(id=suppli_id, user=user.id)
             if supplier_master:
                 tax_type = supplier_master[0].tax_type
                 inter_state = inter_state_dict.get(tax_type, 2)
-
+                ep_supplier = supplier_master[0].ep_supplier
         for sku_code in sku_codes:
             if not sku_code:
                 continue
@@ -3828,8 +3936,12 @@ def get_supplier_sku_prices(request, user=""):
             taxes_data = []
             for tax_master in tax_masters:
                 taxes_data.append(tax_master.json())
+            supplier_sku = SKUSupplier.objects.filter(sku_id=data.id, supplier_id=supplier_master[0].id)
+            mandate_sku_supplier = get_misc_value('mandate_sku_supplier', user.id)
+            if not supplier_sku and ep_supplier and mandate_sku_supplier == "true":
+                edit_tax = True
             result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'tax_type': tax_type,
-                            'taxes': taxes_data, 'mrp': data.mrp})
+                'taxes': taxes_data, 'mrp': data.mrp, 'edit_tax':edit_tax})
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -4686,7 +4798,6 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
         qty_dict_flag = True
     else:
         product_styles_filtered = product_styles
-
     for product in product_styles_filtered[start: stop]:
         sku_object = sku_master.filter(user=user.id, sku_class=product)
         sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id'). \
@@ -6718,7 +6829,6 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                         stock_status.append(str(combo.member_sku.sku_code))
                         members = {}
                         break
-
         for member, member_qty in members.iteritems():
             stock_detail, stock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
                                                                    sku_id_stocks, add_mrp_filter=add_mrp_filter,
@@ -6738,6 +6848,8 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
             #     order_quantity = float(order.quantity)
             # else:
             #     order_quantity = float(seller_order.quantity)
+            if 'st_po' in dir(order) :
+                order_quantity = order_quantity - order.picked_quantity
 
             if stock_quantity < float(order_quantity):
                 if not no_stock_switch:
@@ -6746,6 +6858,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
 
                 if stock_quantity < 0:
                     stock_quantity = 0
+                order_diff = 0
                 order_diff = order_quantity - stock_quantity
                 order_quantity -= order_diff
                 # stock_detail = []
@@ -9231,3 +9344,107 @@ def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
         log.debug(traceback.format_exc())
         log.info('Create order extra fields failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(extra_order_fields), str(e)))
+
+def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
+    data = {}
+    try:
+        if wms_code.isdigit():
+            ean_number = wms_code
+            sku_supplier = SKUSupplier.objects.filter(Q(sku__ean_number=wms_code) | Q(sku__wms_code=wms_code),
+                                                      supplier_id=supplier_id, sku__user=user.id)
+        else:
+            ean_number = 0
+            sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, supplier_id=supplier_id, sku__user=user.id)
+        sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
+        sup_markdown = SupplierMaster.objects.get(id=supplier_id)
+        data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,
+                'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
+        if sku_supplier:
+            mrp_value = sku_master.mrp
+            if sku_supplier[0].costing_type == 'Margin Based':
+                margin_percentage = sku_supplier[0].margin_percentage
+                prefill_unit_price = mrp_value - ((mrp_value * margin_percentage)/100)
+                data['price'] = prefill_unit_price
+            elif sku_supplier[0].costing_type == 'Markup Based':
+                 markup_percentage = sku_supplier[0].markup_percentage
+                 prefill_unit_price = mrp_value / (1+(markup_percentage/100))
+                 data['price'] = prefill_unit_price
+            else:
+                data['price'] = sku_supplier[0].price
+            data['supplier_code'] = sku_supplier[0].supplier_code
+            data['sku'] = sku_supplier[0].sku.sku_code
+            data['ean_number'] = ean_number
+            data['measurement_unit'] = sku_supplier[0].sku.measurement_type
+        else:
+            if int(sup_markdown.ep_supplier):
+                data['price'] = 0
+            mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
+            if mandate_supplier == 'true' and not int(sup_markdown.ep_supplier):
+                data['supplier_mapping'] = True
+        if sku_master.block_options == "PO":
+            if not int(sup_markdown.ep_supplier):
+                data = {'error_msg':'This SKU is Blocked for PO'}
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Getting po Values failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(wms_code), str(e)))
+    return data
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_extra_order_options(request, user=''):
+    try:
+        data_dict = json.loads(request.POST.get('data'))
+        field = data_dict.get('field','')
+        options_list = data_dict.get('order_field_options')
+        options_string = ",".join(options_list)
+        misc_obj = MiscDetail.objects.filter(user=user.id,misc_type='extra_order_fields')
+        if misc_obj.exists():
+            misc_obj = misc_obj[0]
+            misc_options = MiscDetailOptions.objects.filter(misc_detail= misc_obj,misc_key = field)
+            if misc_options.exists():
+                misc_options =  misc_options[0]
+                misc_options.misc_value = options_string
+                misc_options.save()
+            else:
+                MiscDetailOptions.objects.create(misc_detail= misc_obj,misc_key = field,misc_value = options_string)
+            message = "Success"
+        else:
+            message = "Please Enter Extra Fields"
+    except:
+       import traceback
+       log.debug(traceback.format_exc())
+       log.info('Issue for ' + request)
+       log.info('extra options Insert failed for %s and params are %s and error statement is %s' % (
+       str(user), str(request.POST), str(e)))
+       return HttpResponse("Something Went Wrong")
+    return HttpResponse(json.dumps({'message': message}))
+
+
+@get_admin_user
+@csrf_exempt
+@login_required
+def get_sku_mrp(request ,user =''):
+    mrp = 0
+    wms_code  = json.loads(request.POST.get('wms_code',''))
+    sku_mrp = SKUMaster.objects.filter(wms_code=wms_code, user=user.id).values('mrp')
+    if sku_mrp :
+        mrp = sku_mrp[0]['mrp']
+    return HttpResponse(json.dumps({'mrp':mrp}))
+
+
+def get_firebase_order_data(order_id):
+    from firebase import firebase
+    firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
+    try:
+        result = firebase.get('/OrderDetails/'+order_id, None)
+    except Exception as e:
+        result = 0
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Firebase query  failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+    return result

@@ -128,7 +128,13 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         send.empty_data[data.name] = ""
       });
 
-      send.empty_data.from_date = ''
+      if (data.dt_url == 'get_order_summary_filter' || 'get_po_filter') {
+
+        send.empty_data.from_date = new Date(new Date().getFullYear(), new Date().getMonth() - 1, new Date().getDate()).toLocaleDateString('en-US'); 
+      } 
+    else {
+      send.empty_data.from_date = ''  
+    }
       send.empty_data.to_date = ''
 
       send.dtOptions = DTOptionsBuilder.newOptions()
@@ -411,7 +417,6 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     }
 
     vm.generate_report = function(instance, data)  {
-
       var temp = {};
       angular.copy(data, temp);
       instance.DataTable.context[0].ajax.data = temp;

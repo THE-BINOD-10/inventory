@@ -125,6 +125,7 @@ class SKUMaster(models.Model):
     shelf_life = models.IntegerField(default=0)
     youtube_url = models.CharField(max_length=64, default='')
     enable_serial_based = models.IntegerField(default=0)
+    block_options = models.CharField(max_length=5, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -251,7 +252,8 @@ class SupplierMaster(models.Model):
     branch_name = models.CharField(max_length=256, default='')
     account_number = models.BigIntegerField(default=0)
     account_holder_name = models.CharField(max_length=256, default='')
-
+    markdown_percentage = models.FloatField(default=0)
+    ep_supplier = models.IntegerField(default=0)
     class Meta:
         db_table = 'SUPPLIER_MASTER'
         index_together = ('name', 'user')
@@ -270,6 +272,9 @@ class SKUSupplier(models.Model):
     supplier_reference = models.CharField(max_length=256, default='')
     supplier_code = models.CharField(max_length=128, default='')
     price = models.FloatField(default=0)
+    costing_type = models.CharField(max_length=128, default='Price Based')
+    margin_percentage = models.FloatField(default=0)
+    markup_percentage = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1428,6 +1433,7 @@ class StockTransfer(models.Model):
     sku = models.ForeignKey(SKUMaster)
     invoice_amount = models.FloatField(default=0)
     quantity = models.FloatField(default=0)
+    picked_quantity = models.FloatField(default=0)
     shipment_date = models.DateTimeField(auto_now_add=True)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -3180,6 +3186,18 @@ class StockReconciliation(models.Model):
     class Meta:
         db_table = 'STOCK_RECONCILIATION'
 
+class MiscDetailOptions(models.Model):
+    id = BigAutoField(primary_key=True)
+    misc_detail = models.ForeignKey(MiscDetail, null=True, blank=True, default=None)
+    misc_key = models.CharField(max_length=64, default='')
+    misc_value = models.CharField(max_length=255)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MISC_DETAIL_OPTIONS'
+        unique_together = ('misc_detail', 'misc_key')
+
 class ClusterSkuMapping(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster)
@@ -3189,5 +3207,15 @@ class ClusterSkuMapping(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
-    class Meta:
+    class Meta :
         db_table = 'CLUSTER_SKU_MAPPING'
+
+class Pofields(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    po_number = models.CharField(max_length=128, default='')
+    receipt_no = models.CharField(max_length = 34 ,default = 1)
+    name = models.CharField(max_length=256, default='')
+    value = models.CharField(max_length=256, default='')
+    class Meta:
+        db_table = 'PO_FIELDS'

@@ -62,7 +62,8 @@
             <button ng-click="Style.youtube_iframe(Style.if_youtube_url)" style="padding: 0px;"><div ng-show="!showCase.dis_video" style="pointer-events: none;    margin-bottom: -6px;" class="youtube_thumbnaile_elem"></div></button>
           </div>
           <h5 align="center"><b>{{Style.style_data.data[0].sku_class}}</b></h5>
-          <p align="center" ng-if="Style.sku_spl_attrs&&Style.central_order_mgmt">Dimensions(in) : {{Style.sku_spl_attrs.length}} X {{Style.sku_spl_attrs.breadth}} X {{Style.sku_spl_attrs.height}}</p>
+          <p align="center" ng-if="Style.sku_spl_attrs&&Style.central_order_mgmt">Ext Dim(in) : {{Style.sku_spl_attrs.height}} X {{Style.sku_spl_attrs.length}} X {{Style.sku_spl_attrs.breadth}}</p>
+          <p align="center" ng-if="Style.central_order_mgmt && (Style.sku_spl_attrs['Internal Height'] || Style.sku_spl_attrs['Internal Length'] || Style.sku_spl_attrs['Internal Breadth'])">Int Dim(in) : {{Style.sku_spl_attrs['Internal Height']}} X {{Style.sku_spl_attrs['Internal Length']}} X {{Style.sku_spl_attrs['Internal Breadth']}}</p>
           <div ng-if="permissions.user_type=='customer'">
             <h5 align="center" ng-if="Style.style_data.data[0].pricing_price"><b>{{showCase.service.price_format(Style.style_data.data[0].pricing_price)}}</b></h5>
             <h5 align="center" ng-if="!(Style.style_data.data[0].pricing_price) && Style.style_data.data[0].price"><b>{{showCase.service.price_format(Style.style_data.data[0].price)}}</b></h5>
@@ -145,6 +146,26 @@
               <span>Stock: <b style="font-size:24px">{{Style.stock_quantity}}</b></span>
             </div>
           </div>
+
+          <div class="row" ng-if="!Style.data_loading && Style.warehouse_stock">
+            <div>
+              <table class="table table-bordered" ng-if="Style.def_lead_tm">
+                <thead>
+                  <tr>
+                    <th> Warehouse Name</th>
+                    <th> Available Quantity </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="warehouse in Style.warehouse_stock">
+                    <td>{{warehouse.ware}}</td>
+                    <td>{{warehouse.available}}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
 
         <div class="col-md-3 col-sm-3 col-xs-12 style cart-item" ng-if="Style.def_lead_tm" style="margin-top: 2.8em">

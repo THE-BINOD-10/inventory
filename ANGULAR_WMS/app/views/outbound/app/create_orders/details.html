@@ -1,7 +1,7 @@
 <div>
   <div class="row style-menu" style="line-height: 35px;">
     <div class="col-lg-4 col-md-4 col-sm-5 col-xs-12">
-      <div class="online-toggle ml10">
+      <div class="online-toggle ml10" ng-if= "showCase.priceband_sync != true">
         <span>Offline</span>
         <label class="switch switch-info switch-sm square">
           <input type="checkbox" ng-model="showCase.order_type" ng-change="showCase.change_order_type();">

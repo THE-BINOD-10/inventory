@@ -1229,7 +1229,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       });
       modalInstance.result.then(function (status) {
         var status = vm.sku_details['validation_status']['status'];
-        debugger
         vm.qc_add_receive_qty(vm.model_data.data[index][0], status, index);
       });
     }

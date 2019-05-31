@@ -4587,6 +4587,7 @@ def create_order_from_intermediate_order(request, user):
     message = 'Success'
     first = True
     inter_obj_data = {}
+    dispatch_qc_check = get_misc_value('dispatch_qc_check', user.id)
     central_order_reassigning =  get_misc_value('central_order_reassigning', user.id) #for 72networks
     warehouses = json.loads(request.POST.get('warehouse'))
     for wh, wh_data in warehouses.iteritems():
@@ -4640,7 +4641,7 @@ def create_order_from_intermediate_order(request, user):
                                  }
                 #inv_amt = (interm_obj.unit_price * interm_obj.quantity) + interm_obj.tax
                 if first:
-                    if interm_obj.order_id or interm_obj.order_assigned_wh:
+                    if (interm_obj.order_id or interm_obj.order_assigned_wh) and dispatch_qc_check == 'false':
                         if central_order_reassigning :
                             interm_obj.order_assigned_wh = wh_usr_obj
                             interm_obj.remarks = ''

@@ -46,7 +46,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout,$compile, $roo
          console.log("complete")
        });
     vm.dtColumns = [];
-    if(vm.permissions.central_order_reassigning) {
+    if(vm.permissions.central_order_reassigning && !vm.permissions.dispatch_qc_check) {
        vm.dtColumns.push(DTColumnBuilder.newColumn('Serial Number').withTitle('Serial Number')),
        vm.dtColumns.push(DTColumnBuilder.newColumn('Manifest Number').withTitle('Manifest Number')),
        vm.dtColumns.push(DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity')),

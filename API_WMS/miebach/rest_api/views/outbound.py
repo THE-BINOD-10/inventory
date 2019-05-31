@@ -5405,7 +5405,7 @@ def update_temp_order_detail_status(order_objs):
         order_obj.save()
 
 
-def check_stocks(order_sku, user, enable_damaged_stock, order_objs):
+def check_stocks(order_sku, user, enable_damaged_stock, order_objs, continue_flag=True):
     picklist_exclude_zones = get_exclude_zones(user)
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
@@ -5458,7 +5458,7 @@ def check_stocks(order_sku, user, enable_damaged_stock, order_objs):
     picklist_number = get_picklist_number(user)
     for order_obj in order_objs:
         is_asn_order = ASNReserveDetail.objects.filter(orderdetail=order_obj.id)
-        if is_asn_order: # We cant create Picklist for ASN Order as stock is not yet dispatched.
+        if is_asn_order and continue_flag: # We cant create Picklist for ASN Order as stock is not yet dispatched.
             update_temp_order_detail_status([order_obj])
             continue
         picklist_generation([order_obj], enable_damaged_stock, picklist_number, user, sku_combos, sku_stocks,

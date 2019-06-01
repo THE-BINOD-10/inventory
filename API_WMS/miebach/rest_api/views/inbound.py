@@ -266,6 +266,7 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
                            annotate(total_order_qty=Sum('open_st__order_quantity')))
     receive_qtys_dict = dict(stock_results_objs.values_list('po__order_id'). \
                              annotate(total_received_qty=Sum('po__received_quantity')))
+
     st_order_ids_list = stock_results_objs.filter(po__received_quantity__lt=F('open_st__order_quantity')). \
         values_list('po__id', flat=True)
     rw_results_objs = RWPurchase.objects.exclude(purchase_order__status__in=['location-assigned', 'confirmed-putaway',
@@ -281,9 +282,11 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
         values_list('purchase_order_id', flat=True)
 
     results_objs = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids).filter(**search_params). \
-        filter(purchase_order_query, open_po__sku__user=user.id)#.exclude(status__in=['location-assigned', 'confirmed-putaway'])
+        filter(purchase_order_query, open_po__sku__user=user.id).exclude(status__in=['location-assigned', 'confirmed-putaway'])
 
-    po_result_order_ids = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids, order_id__in=results_objs.values_list('order_id', flat=True))
+    po_result_order_ids = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids,
+                                                       order_id__in=results_objs.values_list('order_id', flat=True))
+
     order_qtys_dict.update(dict(po_result_order_ids.values_list('order_id').distinct(). \
                                 annotate(total_order_qty=Sum('open_po__order_quantity'))))
     receive_qtys_dict.update(dict(po_result_order_ids.values_list('order_id').distinct(). \

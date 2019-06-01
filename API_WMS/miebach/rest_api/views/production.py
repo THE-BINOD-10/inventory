@@ -2676,10 +2676,7 @@ def get_grn_json_data(order, user, request):
     telephone = order.open_po.supplier.phone_number
     name = order.open_po.supplier.name
     order_id = order.order_id
-    supplier_email_id = order.open_po.supplier.email_id
-    supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
-    supplier_email.append(supplier_email_id)
-
+    supplier_email = order.open_po.supplier.email_id
     gstin_no = order.open_po.supplier.tin_number
     order_date = get_local_date(request.user, order.creation_date)
     address = '\n'.join(order.open_po.supplier.address.split(','))
@@ -2867,7 +2864,6 @@ def confirm_back_order(request, user=''):
             write_and_mail_pdf(data_dictionary['po_reference'], rendered, request, user,
                                data_dictionary['supplier_email'], data_dictionary['telephone'], data_dictionary['data'],
                                str(data_dictionary['order_date']).split(' ')[0])
-
         if not status:
             status = "Created PO Numbers are " + str(order_id)
         else:

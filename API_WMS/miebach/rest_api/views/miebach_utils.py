@@ -1187,7 +1187,7 @@ MAIL_REPORTS_DATA = OrderedDict((('Raise PO', 'raise_po'), ('Receive PO', 'recei
                                  ('Dispatch', 'dispatch'), ('Internal Mail', 'internal_mail'),
                                  ('Raise JO', 'raise_jo'), ('Stock Transfer Note', 'stock_transfer_note'),
                                  ('Block Stock', 'enquiry'), ('Central Orders', 'central_orders'),
-                                 ('GRN Approval', 'grn_approval'),
+                                 ('GRN Approval', 'grn_approval'),('Allow Secondary Emails', 'allow_secondary_emails')
                                  ))
 
 # Configurations

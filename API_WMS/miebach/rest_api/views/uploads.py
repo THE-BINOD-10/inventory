@@ -2756,9 +2756,11 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         telephone = purchase_order.supplier.phone_number
         name = purchase_order.supplier.name
         order_id = ids_dict[supplier]
-        supplier_email_id = purchase_order.supplier.email_id
-        supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
-        supplier_email.append(supplier_email_id)
+        supplier_email = purchase_order.supplier.email_id
+        secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
+        supplier_email_id =[]
+        supplier_email_id.insert(0,supplier_email)
+        supplier_email_id.extend(secondary_supplier_email)
         phone_no = purchase_order.supplier.phone_number
         gstin_no = purchase_order.supplier.tin_number
         po_exp_duration = purchase_order.supplier.po_exp_duration
@@ -2800,6 +2802,9 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dict)
         if get_misc_value('raise_po', user.id) == 'true':
+            if get_misc_value('allow_secondary_emails', user.id) == 'true':
+                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
+                                   str(order_date).split(' ')[0], ean_flag=ean_flag)
             write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
                                str(order_date).split(' ')[0], ean_flag=ean_flag)
     except Exception as e:

@@ -1304,9 +1304,11 @@ def confirm_po(request, user=''):
     wh_telephone = user.userprofile.wh_phone_number
     telephone = purchase_order.supplier.phone_number
     name = purchase_order.supplier.name
-    supplier_email_id = purchase_order.supplier.email_id
-    supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
-    supplier_email.append(supplier_email_id)
+    supplier_email = purchase_order.supplier.email_id
+    secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
+    supplier_email_id =[]
+    supplier_email_id.insert(0,supplier_email)
+    supplier_email_id.extend(secondary_supplier_email)
     gstin_no = purchase_order.supplier.tin_number
     order_id = ids_dict[supplier]
     order_date = get_local_date(request.user, order.creation_date)
@@ -1354,6 +1356,9 @@ def confirm_po(request, user=''):
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
+        if get_misc_value('allow_secondary_emails', user.id) == 'true':
+            write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
+                               str(order_date).split(' ')[0], ean_flag=ean_flag)
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                            str(order_date).split(' ')[0], ean_flag=ean_flag)
     check_purchase_order_created(user, po_id)
@@ -5140,9 +5145,11 @@ def confirm_add_po(request, sales_data='', user=''):
         telephone = purchase_order.supplier.phone_number
         name = purchase_order.supplier.name
         order_id = ids_dict[supplier]
-        supplier_email_id = purchase_order.supplier.email_id
-        supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
-        supplier_email.append(supplier_email_id)
+        supplier_email = purchase_order.supplier.email_id
+        secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
+        supplier_email_id =[]
+        supplier_email_id.insert(0,supplier_email)
+        supplier_email_id.extend(secondary_supplier_email)
         phone_no = purchase_order.supplier.phone_number
         gstin_no = purchase_order.supplier.tin_number
         po_exp_duration = purchase_order.supplier.po_exp_duration
@@ -5182,6 +5189,9 @@ def confirm_add_po(request, sales_data='', user=''):
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dict)
         if get_misc_value('raise_po', user.id) == 'true':
+            if get_misc_value('allow_secondary_emails', user.id) == 'true':
+                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
+                                   str(order_date).split(' ')[0], ean_flag=ean_flag)
             write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
                                str(order_date).split(' ')[0], ean_flag=ean_flag)
         check_purchase_order_created(user, po_id)
@@ -5220,6 +5230,7 @@ def create_mail_attachments(f_name, html_data):
 
 def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_no, po_data, order_date, ean_flag=False,
                        internal=False, report_type='Purchase Order'):
+
     receivers = []
     attachments = ''
     if html_data:
@@ -5232,6 +5243,8 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
     if isinstance(supplier_email, list):
         receivers = receivers + supplier_email
     if isinstance(supplier_email, str):
+        receivers.append(supplier_email)
+    if isinstance(supplier_email, unicode):
         receivers.append(supplier_email)
     username = user.username
     if username == 'shotang':
@@ -5413,9 +5426,11 @@ def confirm_po1(request, user=''):
                 ship_to_address = '\n'.join(ship_to_address.split(','))
                 telephone = purchase_orders[0].supplier.phone_number
                 name = purchase_orders[0].supplier.name
-                supplier_email_id = purchase_orders[0].supplier.email_id
-                supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
-                supplier_email.append(supplier_email_id)
+                supplier_email = purchase_order.supplier.email_id
+                secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
+                supplier_email_id =[]
+                supplier_email_id.insert(0,supplier_email)
+                supplier_email_id.extend(secondary_supplier_email)
                 gstin_no = purchase_orders[0].supplier.tin_number
                 if purchase_orders[0].order_type == 'VR':
                     vendor_address = purchase_orders[0].vendor.address
@@ -5467,6 +5482,9 @@ def confirm_po1(request, user=''):
             t = loader.get_template('templates/toggle/po_download.html')
             rendered = t.render(data_dict)
             if get_misc_value('raise_po', user.id) == 'true':
+                if get_misc_value('allow_secondary_emails', user.id) == 'true':
+                    write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
+                                       str(order_date).split(' ')[0], ean_flag=ean_flag)
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                                    str(order_date).split(' ')[0], ean_flag=ean_flag)
     check_purchase_order_created(user, po_id)

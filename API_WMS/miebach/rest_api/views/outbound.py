@@ -2670,7 +2670,6 @@ def update_invoice(request, user=''):
                         discount_percentage = "%.1f" % (float((cust_obj.discount * 100) / (order_id.quantity * order_id.unit_price)))
                 order_id.unit_price = float(myDict['unit_price'][unit_price_index])
                 order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index].replace(',',''))
-                order_id.quantity = int(myDict['quantity'][unit_price_index])
                 print str(order_id.sku_id) + "= " + str(order_id.quantity)
                 order_id.save()
                 sgst_tax = float(myDict['sgst_tax'][unit_price_index])
@@ -2709,6 +2708,8 @@ def update_invoice(request, user=''):
                         else:
                             sos_updating_qty = updating_diff
                             updating_diff = 0
+                        if sos_updating_qty < 0 :
+                            sos_updating_qty = 0
 
                         sos_obj.quantity = sos_obj.quantity + sos_updating_qty
                         sos_obj.save()

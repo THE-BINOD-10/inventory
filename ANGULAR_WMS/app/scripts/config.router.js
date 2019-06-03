@@ -2783,7 +2783,18 @@ var app = angular.module('urbanApp')
               title: 'feedback'
             }
           })
-
+          .state('user.App.settings', {
+            url: '/settings',
+            templateUrl: 'views/outbound/app/create_orders/settings.html',
+            resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/outbound/app/settings.js');
+                      }]
+            },
+            data: {
+              title: 'feedback'
+            }
+          })
           .state('user.App.Style', {
             url: '/Style?styleId',
             templateUrl: 'views/outbound/app/create_orders/style.html',

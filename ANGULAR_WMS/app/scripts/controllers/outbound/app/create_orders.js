@@ -140,20 +140,26 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.brand = "";
   vm.filterData = {};
 
-  vm.disable_brands_view = function(){
-    if(Session.roles.permissions.disable_brands_view && $state.$current.name == "user.App.Brands"){
+  vm.current_state_view = function(){
+    debugger
+    if(Session.roles.permissions.customer_portal_prefered_view && Session.roles.permissions.customer_portal_prefered_view != 'None'){
+      if (Session.roles.permissions.customer_portal_prefered_view == 'Category View'){
+        $state.go('user.App.Categories');
+      }else if (Session.roles.permissions.customer_portal_prefered_view == 'Brand View'){
+        $state.go('user.App.Brands');
+      }else if (Session.roles.permissions.customer_portal_prefered_view == 'Product View'){
+        $state.go('user.App.Products');
+      }
+    }else if (Session.roles.permissions.disable_brands_view && Session.roles.permissions.disable_categories_view){
+      $state.go('user.App.Products');
+    }else if (Session.roles.permissions.disable_brands_view && $state.$current.name == "user.App.Brands"){
       $state.go('user.App.Categories');
-    }
-  }
-
-  vm.disable_categories_view = function(){
-    if(Session.roles.permissions.disable_categories_view){
+    }else if (Session.roles.permissions.disable_categories_view) {
       $state.go('user.App.Products');
     }
   }
 
-  vm.disable_brands_view();
-  vm.disable_categories_view();
+  vm.current_state_view();
 
   vm.goBack = function(){
     if(Session.roles.permissions.disable_brands_view){
@@ -380,7 +386,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
       if(response.message && response.data.search_key == vm.style || !vm.style) {
         vm.gotData = response.data;
-        console.log("done");
         canceller.resolve("done");
         vm.data_loading = false;
         vm.showFilter = false;

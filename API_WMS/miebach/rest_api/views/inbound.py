@@ -1075,6 +1075,15 @@ def switches(request, user=''):
             if user_profile and selection:
                 setattr(user_profile[0], 'prefix', selection)
                 user_profile[0].save()
+        elif key in ['customer_portal_prefered_view']:
+            data = MiscDetail.objects.filter(misc_type=key, user=request.user.id)
+            if not data:
+                misc_detail = MiscDetail(user=request.user.id, misc_type=key, misc_value=selection,
+                                         creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
+                misc_detail.save()
+            else:
+                setattr(data[0], 'misc_value', selection)
+                data[0].save()
         else:
             if toggle_field == 'tax_details':
                 tax_name = eval(selection)

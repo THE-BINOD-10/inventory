@@ -236,6 +236,9 @@ def add_user_permissions(request, response_data, user=''):
     response_data['data']['roles']['permissions']['multi_warehouse'] = multi_warehouse
     response_data['data']['roles']['permissions']['show_pull_now'] = show_pull_now
     response_data['data']['roles']['permissions']['order_manage'] = get_misc_value('order_manage', user.id)
+    response_data['data']['roles']['permissions']['customer_portal_prefered_view'] = get_misc_value('customer_portal_prefered_view', request.user.id)
+    if response_data['data']['roles']['permissions']['customer_portal_prefered_view'] == 'false':
+        response_data['data']['roles']['permissions']['customer_portal_prefered_view'] = ''
     response_data['data']['user_profile'] = {'first_name': request.user.first_name, 'last_name': request.user.last_name,
                                              'registered_date': get_local_date(request.user,
                                                                                user_profile.creation_date),

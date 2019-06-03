@@ -204,7 +204,7 @@
             <div class="col-md-4">
                 <div class="form-group">
                   <label class="control-label"> Account Number </label>
-                  <input name="account_number" type="text" class="form-control" ng-model="showCase.model_data.account_number" maxlength="20" quantity-number>
+                  <input name="account_number" type="text" class="form-control" ng-model="showCase.model_data.account_number" maxlength="19" quantity-number>
                 </div>
             </div>
             <div class="col-md-4">
@@ -213,6 +213,16 @@
                   <input type="text" name="account_holder_name" class="form-control" ng-model="showCase.model_data.account_holder_name" maxlength="256">
                 </div>
             </div>
+
+            <div class="row col-md-12" style="padding-bottom: 15px">
+              <div class="col-md-12 col-sm-12 col-xs-12">
+                Secondary Email ID
+              </div>
+              <div class="bootstrap-tagsinput col-md-8 col-sm-8 col-xs-8">
+                <input name="secondary_email_id" class="form-control" type="text" value="{{showCase.model_data.secondary_email_id}}" ui-jq="tagsInput"/>
+              </div>
+            </div>
+
             </div>
             <div class="row">
               <div class="col-md-8">

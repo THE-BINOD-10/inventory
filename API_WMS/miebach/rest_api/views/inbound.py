@@ -5192,8 +5192,11 @@ def confirm_add_po(request, sales_data='', user=''):
             if get_misc_value('allow_secondary_emails', user.id) == 'true':
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
                                    str(order_date).split(' ')[0], ean_flag=ean_flag)
-            write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
-                               str(order_date).split(' ')[0], ean_flag=ean_flag)
+            if get_misc_value('raise_po', user.id) == 'true' and get_misc_value('allow_secondary_emails', user.id) != 'true':
+                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
+                                   str(order_date).split(' ')[0], ean_flag=ean_flag)
+
+
         check_purchase_order_created(user, po_id)
     except Exception as e:
         import traceback

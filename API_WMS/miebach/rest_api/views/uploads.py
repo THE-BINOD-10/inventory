@@ -545,7 +545,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
         #elif isinstance(cell_data, str) and '.' in cell_data:
         #    sku_code = str(int(float(cell_data)))
         else:
-            sku_code = cell_data.upper()
+            sku_code = str(cell_data).upper()
 
         sku_codes = sku_code.split(',')
         for sku_code in sku_codes:
@@ -1462,11 +1462,8 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Sequence should be in number')
             elif key == 'block_options':
-                if not cell_data:
+                if not cell_data in ['Yes', 'No', '']:
                     index_status.setdefault(row_idx, set()).add('Block For PO should be Yes/No')
-                else:
-                    if not cell_data in ['Yes', 'No']:
-                        index_status.setdefault(row_idx, set()).add('Block For PO should be Yes/No')
     if not index_status:
         return 'Success'
 
@@ -1643,22 +1640,26 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     cell_data = 1
                 if toggle_value == "disable":
                     cell_data = 0
-                setattr(sku_data, key, cell_data)
-                data_dict[key] = cell_data
+                if not toggle_value:
+                    cell_data = 0
+                if toggle_value:
+                    setattr(sku_data, key, cell_data)
+                    data_dict[key] = cell_data
             elif key == 'block_options':
-                if str(cell_data).lower() == 'yes':
-                    cell_data = 'PO'
-                if str(cell_data).lower() == 'no':
-                    cell_data = ''
-                setattr(sku_data, key, cell_data)
-                data_dict[key] = cell_data
+                if cell_data:
+                    if str(cell_data).lower() == 'yes':
+                        cell_data = 'PO'
+                    if str(cell_data).lower() in ['no', '']:
+                        cell_data = ''
+                    setattr(sku_data, key, cell_data)
+                    data_dict[key] = cell_data
             elif cell_data:
                 data_dict[key] = cell_data
                 if sku_data:
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
         if sku_data:
-	    storehippo_sync_price_value(user, {'wms_code':sku_data.wms_code, 'price':sku_data.price})
+            storehippo_sync_price_value(user, {'wms_code':sku_data.wms_code, 'price':sku_data.price})
             sku_data.save()
             all_sku_masters.append(sku_data)
         if not sku_data:
@@ -1707,7 +1708,6 @@ def sku_upload(request, user=''):
                                    attributes=attributes)
         if status != 'Success':
             return HttpResponse(status)
-
         sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type,
                          attributes=attributes)
     except Exception as e:
@@ -2294,25 +2294,39 @@ def validate_supplier_sku_form(open_sheet, user_id):
                 else:
                     preference1 = int(cell_data)
             if col_idx == 6:
-                if not cell_data in ['Price Based', 'Margin Based']:
-                    index_status.setdefault(row_idx, set()).add('Costing Type should be "Price Based/Margin Based"')
-                if cell_data == 'Price Based' :
-                    cell_data_price = open_sheet.cell(row_idx, 5).value
-                    if not cell_data_price :
-                        index_status.setdefault(row_idx, set()).add('Price is Mandatory For Price Based')
-                elif cell_data == 'Margin Based' :
-                    cell_data_margin = open_sheet.cell(row_idx, 7).value
-                    if not cell_data_margin :
-                        index_status.setdefault(row_idx, set()).add('Margin Percentage is Mandatory For Margin Based')
+                if cell_data :
+                    if not cell_data in ['Price Based', 'Margin Based','Markup Based']:
+                        index_status.setdefault(row_idx, set()).add('Costing Type should be "Price Based/Margin Based/Markup Based"')
+                    if cell_data == 'Price Based' :
+                        cell_data_price = open_sheet.cell(row_idx, 5).value
+                        if not cell_data_price :
+                            index_status.setdefault(row_idx, set()).add('Price is Mandatory For Price Based')
+                        else:
+                            if isinstance(cell_data_price, (int, float)) :
+                                if cell_data_price > wms_check [0].mrp :
+                                    index_status.setdefault(row_idx, set()).add('Price Should be Less than or Equal to MRP')
+                            else:
+                                index_status.setdefault(row_idx, set()).add('Price Should be Number')
+                    elif cell_data == 'Margin Based' :
+                        cell_data_margin = open_sheet.cell(row_idx, 7).value
+                        if not cell_data_margin :
+                            index_status.setdefault(row_idx, set()).add('MarkDown Percentage is Mandatory For Margin Based')
+                        elif not isinstance(cell_data_margin, (int, float)):
+                            index_status.setdefault(row_idx, set()).add('MarkDown % Should be in integer or float')
+                        elif not float(cell_data_margin) in range(0, 100):
+                            index_status.setdefault(row_idx, set()).add('MarkDown % Should be in between 0 and 100')
 
-            if col_idx == 7:
-                if not isinstance(cell_data, (int, float)):
-                    index_status.setdefault(row_idx, set()).add('Margin % Should be in integer or float')
-                elif not float(cell_data) in range(0, 100):
-                    index_status.setdefault(row_idx, set()).add('Margin % Should be in between 0 and 100')
-            if col_idx == 8:
-                if not isinstance(cell_data, (int, float)):
-                    index_status.setdefault(row_idx, set()).add('MRP Should be in integer or float')
+                    elif cell_data == 'Markup Based' :
+                        cell_data_markup = open_sheet.cell(row_idx, 8).value
+                        if not cell_data_markup :
+                            index_status.setdefault(row_idx, set()).add('Markup Percentage is Mandatory For Markup Based')
+                        elif not isinstance(cell_data_markup, (int, float)):
+                            index_status.setdefault(row_idx, set()).add('Markup % Should be in integer or float')
+                        elif not float(cell_data_markup) in range(0, 100):
+                            index_status.setdefault(row_idx, set()).add('Markup % Should be in between 0 and 100')
+
+
+
         if wms_code1 and preference1 and row_idx > 0:
             supp_val = SKUMaster.objects.filter(wms_code=wms_code1, user=user_id)
             if supp_val:
@@ -2348,67 +2362,83 @@ def supplier_sku_upload(request, user=''):
         status = validate_supplier_sku_form(open_sheet, str(user.id))
         if status != 'Success':
             return HttpResponse(status)
-
         supplier_sku_instance = None
-        for row_idx in range(1, open_sheet.nrows):
-            sku_code = ''
-            wms_code = ''
-            supplier_data = copy.deepcopy(SUPPLIER_SKU_DATA)
-            for col_idx in range(0, len(SUPPLIER_SKU_HEADERS)):
-                cell_data = open_sheet.cell(row_idx, col_idx).value
-                if col_idx == 0:
-                    if isinstance(cell_data, (int, float)):
-                        cell_data = str(int(cell_data))
-                    supplier_data['supplier_id'] = cell_data
-                elif col_idx == 1:
-                    if isinstance(cell_data, (int, float)):
+        try:
+            for row_idx in range(1, open_sheet.nrows):
+                sku_code = ''
+                wms_code = ''
+                supplier_data = copy.deepcopy(SUPPLIER_SKU_DATA)
+                for col_idx in range(0, len(SUPPLIER_SKU_HEADERS)):
+                    cell_data = open_sheet.cell(row_idx, col_idx).value
+                    if col_idx == 0:
+                        if isinstance(cell_data, (int, float)):
+                            cell_data = str(int(cell_data))
+                        supplier_data['supplier_id'] = cell_data
+                    elif col_idx == 1:
+                        if isinstance(cell_data, (int, float)):
+                            cell_data = int(cell_data)
+                        cell_data = str(cell_data)
+                        sku_master = SKUMaster.objects.filter(wms_code=cell_data, user=user.id)
+                        if sku_master:
+                            supplier_data['sku'] = sku_master[0]
+                        supplier_sku_obj = SKUSupplier.objects.filter(supplier_id=supplier_data['supplier_id'],
+                                                                      sku_id=sku_master[0].id)
+                        if supplier_sku_obj:
+                            supplier_sku_instance = supplier_sku_obj[0]
+                    elif col_idx == 2:
+                        if isinstance(cell_data, (int, float)):
+                            cell_data = str(int(cell_data))
+                        supplier_data['supplier_code'] = cell_data
+                        if cell_data and supplier_sku_instance:
+                            supplier_sku_instance.supplier_code = cell_data
+                    elif col_idx == 3:
+                        supplier_data['preference'] = str(int(cell_data))
+                        if supplier_data['preference'] and supplier_sku_instance:
+                            supplier_sku_instance.preference = supplier_data['preference']
+                    elif col_idx == 4:
+                        if not cell_data:
+                            cell_data = 0
                         cell_data = int(cell_data)
-                    cell_data = str(cell_data)
-                    sku_master = SKUMaster.objects.filter(wms_code=cell_data, user=user.id)
-                    if sku_master:
-                        supplier_data['sku'] = sku_master[0]
-                    supplier_sku_obj = SKUSupplier.objects.filter(supplier_id=supplier_data['supplier_id'],
-                                                                  sku_id=sku_master[0].id)
-                    if supplier_sku_obj:
-                        supplier_sku_instance = supplier_sku_obj[0]
-                elif col_idx == 2:
-                    if isinstance(cell_data, (int, float)):
-                        cell_data = str(int(cell_data))
-                    supplier_data['supplier_code'] = cell_data
-                    if cell_data and supplier_sku_instance:
-                        supplier_sku_instance.supplier_code = cell_data
-                elif col_idx == 3:
-                    supplier_data['preference'] = str(int(cell_data))
-                    if supplier_data['preference'] and supplier_sku_instance:
-                        supplier_sku_instance.preference = supplier_data['preference']
-                elif col_idx == 4:
-                    if not cell_data:
-                        cell_data = 0
-                    cell_data = int(cell_data)
-                    supplier_data['moq'] = cell_data
-                    if cell_data and supplier_sku_instance:
-                        supplier_sku_instance.moq = cell_data
-                elif col_idx == 5:
-                    if not cell_data:
-                        cell_data = 0
-                    cell_data = float(cell_data)
-                    supplier_data['price'] = cell_data
-                    if cell_data and supplier_sku_instance:
-                        supplier_sku_instance.price = cell_data
-                elif col_idx == 6:
-                    supplier_data['costing_type'] = cell_data
-                    if cell_data and supplier_sku_instance:
-                        supplier_sku_instance.costing_type = cell_data
-                elif col_idx == 7:
-                    supplier_data['margin_percentage'] = cell_data
-                    if cell_data and supplier_sku_instance:
-                        supplier_sku_instance.margin_percentage = cell_data
-            supplier_sku = SupplierMaster.objects.filter(id=supplier_data['supplier_id'], user=user.id)
-            if supplier_sku and not supplier_sku_obj:
-                supplier_sku = SKUSupplier(**supplier_data)
-                supplier_sku.save()
-            elif supplier_sku_instance:
-                supplier_sku_instance.save()
+                        supplier_data['moq'] = cell_data
+                        if cell_data and supplier_sku_instance:
+                            supplier_sku_instance.moq = cell_data
+                    elif col_idx == 5:
+                        if not cell_data:
+                            cell_data = 0
+                        cell_data = float(cell_data)
+                        supplier_data['price'] = cell_data
+                        if cell_data and supplier_sku_instance:
+                            supplier_sku_instance.price = cell_data
+                    elif col_idx == 6:
+                        if not cell_data :
+                            cell_data = 'Price Based'
+                        supplier_data['costing_type'] = cell_data
+                        if cell_data and supplier_sku_instance:
+                            supplier_sku_instance.costing_type = cell_data
+                    elif col_idx == 7:
+                        if not cell_data :
+                            cell_data = 0
+                        supplier_data['margin_percentage'] = cell_data
+                        if cell_data and supplier_sku_instance:
+                            supplier_sku_instance.margin_percentage = cell_data
+                    elif col_idx == 8:
+                        if not cell_data :
+                            cell_data = 0
+                        supplier_data['markup_percentage'] = cell_data
+                        if cell_data and supplier_sku_instance:
+                            supplier_sku_instance.markup_percentage = cell_data
+                supplier_sku = SupplierMaster.objects.filter(id=supplier_data['supplier_id'], user=user.id)
+                if supplier_sku and not supplier_sku_obj:
+                    supplier_sku = SKUSupplier(**supplier_data)
+                    supplier_sku.save()
+                elif supplier_sku_instance:
+                    supplier_sku_instance.save()
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Supplier Sku Mapping Failed for  %s' % (
+            str(user.username), str(request.POST.dict()), str(e)))
+            return HttpResponse('Failed')
         return HttpResponse('Success')
     else:
         return HttpResponse('Invalid File Format')
@@ -6169,8 +6199,8 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
         return f_name
     order_amount = 0
     interm_order_id = ''
+    all_data = {}
     for row_idx in range(1, no_of_rows):
-        all_data = {}
         for key, value in order_mapping.iteritems():
             if key == 'warehouse_name':
                 try:
@@ -6211,13 +6241,12 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                 if igst_tax == '':
                     igst_tax = 0
 
-        cond = (user.username)
+        warehouse = User.objects.get(username__iexact=warehouse)
+        cond = (user.username, warehouse.id)
         all_data.setdefault(cond, [])
         all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax, 0])
-        warehouse = User.objects.get(username=warehouse)
-        f_name = 'stock_transfer_' + warehouse_name + '_'
         all_data = insert_st_gst(all_data, warehouse)
-        status = confirm_stock_transfer_gst(all_data, warehouse, user.username)
+    status = confirm_stock_transfer_gst(all_data, user.username)
 
     if status.status_code == 200:
         return 'Success'

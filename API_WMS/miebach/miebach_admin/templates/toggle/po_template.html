@@ -84,7 +84,8 @@
                     <span><b>Name :</b></span>{{ name }}<br>
                     <span><b>Address :</b></span>{{ address|linebreaks }}<br>
                     <span><b>Telephone :</b></span>{{ telephone }}<br>
-                    <span><b>GSTIN No :</b>{{ gstin_no }}</span><br>
+                    <span><b>GSTIN No. :</b>{{ gstin_no }}</span><br>
+                    <span><b>PAN No. :</b>{{ supplier_pan }}</span><br>
                   </div>
                 </div>
               </div>
@@ -98,6 +99,7 @@
                     <span><b>Address :</b></span>{{ w_address|linebreaks }}<br>
                     <span><b>Telephone :</b></span>{{ wh_telephone }}<br>
                     <span><b>GSTIN No :</b></span>{{ wh_gstin }}<br>
+                    <span><b>PAN No. :</b>{{ wh_pan }}</span><br>
                   </div>
                 </div>
               </div>
@@ -164,25 +166,25 @@
               <b>Amount in words: &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{total_amt_in_words}}</span></b>
             </td>
           </tr>
-					<td class="fs14 text-center" colspan="16">
-			  		<h5 class="m0">For {{ company_name }}</h5></br></br>
-			  		<h5 class="m0">Authorised Signatory</h5>
-					</td>
+          <td class="fs14" colspan="16">
+           {% if terms_condition %}
+           <div class= "col-lg-12 col-md-12 col-sm-12 col-xs-12 text-left" style="margin-top:10px">
+               <div class="col-md-12 col-sm-12 col-xs-12">
+                   <b>Terms and Condition :</b>
+               </div>
+               <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                   <p>{{ terms_condition|linebreaksbr }}</p></br>
+               </div>
+           {% endif %}
+           <h5 class="m0 text-right">For {{ company_name }}</h5></br>
+ 	       <h5 class="m0 text-right">Authorised Signatory</h5>
+</td>
 			  	</tr>
 			{% endif %}
           {% endfor %}
         </tbody>
       </table>
     </div>
-    {% if terms_condition %}
-    <div class= "col-lg-12 col-md-12 col-sm-12 col-xs-12" style="margin-top:10px">
-        <div class="col-md-12 col-sm-12 col-xs-12">
-            <b>Terms and Condition :</b>
-        </div>
-        <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-            <p>{{ terms_condition|linebreaksbr }}</p>
-        </div>
-    </div>
-    {% endif %}
+
   </div>
 </div>

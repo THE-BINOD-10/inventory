@@ -18,6 +18,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.industry_type = vm.user_profile.industry_type;
     vm.display_purchase_history_table = false;
     vm.warehouse_type = vm.user_profile.warehouse_type;
+    vm.cleared_data = true;
+    vm.blur_focus_flag = true;
     vm.filters = {'datatable': 'RaisePO', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -561,54 +563,52 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
    }
 
    vm.get_supplier_sku_prices = function(sku) {
-
+     vm.cleared_data = true;
      var d = $q.defer();
      var data = {sku_codes: sku, suppli_id: vm.model_data.supplier_id}
      vm.service.apiCall("get_supplier_sku_prices/", "POST", data).then(function(data) {
 
        if(data.message) {
-         d.resolve(data.data);
+	 if (!$.isEmptyObject(data.data)) {
+           d.resolve(data.data);
+	 }
        }
      });
      return d.promise;
    }
 
    vm.get_tax_value = function(sku_data) {
-
-     var tax = 0;
-     for(var i = 0; i < sku_data.taxes.length; i++) {
-
-       if(sku_data.fields.price <= sku_data.taxes[i].max_amt && sku_data.fields.price >= sku_data.taxes[i].min_amt) {
-
-         if(vm.model_data.tax_type == "intra_state") {
-
-           tax = sku_data.taxes[i].sgst_tax + sku_data.taxes[i].cgst_tax;
-           sku_data.fields.sgst_tax = sku_data.taxes[i].sgst_tax;
-           sku_data.fields.cgst_tax = sku_data.taxes[i].cgst_tax;
-           sku_data.fields.igst_tax = 0;
-           sku_data.fields.cess_tax = sku_data.taxes[i].cess_tax;
-           sku_data.fields.apmc_tax = sku_data.taxes[i].apmc_tax;
-         } else if (vm.model_data.tax_type == "inter_state") {
-
-           sku_data.fields.sgst_tax = 0;
-           sku_data.fields.cgst_tax = 0;
-           sku_data.fields.igst_tax = sku_data.taxes[i].igst_tax;
-           sku_data.fields.cess_tax = sku_data.taxes[i].cess_tax;
-           sku_data.fields.apmc_tax = sku_data.taxes[i].apmc_tax;
-           tax = sku_data.taxes[i].igst_tax;
-         }
-         break;
-       }
-     }
-
-     sku_data.tax = tax;
-     return tax;
+      var tax = 0;
+      if (vm.cleared_data) {
+            for(var i = 0; i < sku_data.taxes.length; i++) {
+                if(sku_data.fields.price <= sku_data.taxes[i].max_amt && sku_data.fields.price >= sku_data.taxes[i].min_amt) {
+                    if(vm.model_data.tax_type == "intra_state") {
+                        tax = sku_data.taxes[i].sgst_tax + sku_data.taxes[i].cgst_tax;
+                        sku_data.fields.sgst_tax = sku_data.taxes[i].sgst_tax;
+                        sku_data.fields.cgst_tax = sku_data.taxes[i].cgst_tax;
+                        sku_data.fields.igst_tax = 0;
+                        sku_data.fields.cess_tax = sku_data.taxes[i].cess_tax;
+                        sku_data.fields.apmc_tax = sku_data.taxes[i].apmc_tax;
+                    } else if (vm.model_data.tax_type == "inter_state") {
+                        sku_data.fields.sgst_tax = 0;
+                        sku_data.fields.cgst_tax = 0;
+                        sku_data.fields.igst_tax = sku_data.taxes[i].igst_tax;
+                        sku_data.fields.cess_tax = sku_data.taxes[i].cess_tax;
+                        sku_data.fields.apmc_tax = sku_data.taxes[i].apmc_tax;
+                        tax = sku_data.taxes[i].igst_tax;
+                    }
+                    break;
+                }
+            }
+        }
+      sku_data.tax = tax;
+      return tax;
    }
-
-
     vm.get_sku_details = function(product, item, index) {
       console.log(item);
+      vm.clear_raise_po_data(product);
       vm.purchase_history_wms_code = item.wms_code;
+      vm.blur_focus_flag = false;
       if (!vm.model_data.supplier_id && Session.user_profile.user_type != 'marketplace_user' && Session.user_profile.industry_type != 'FMCG') {
         product.fields.sku.wms_code = ''
         vm.service.showNoty('Fill Supplier ID');
@@ -643,9 +643,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       if (vm.model_data.supplier_id) {
         var supplier = vm.model_data.supplier_id;
         $http.get(Session.url+'get_mapping_values/?wms_code='+product.fields.sku.wms_code+'&supplier_id='+supplier, {withCredentials : true}).success(function(data, status, headers, config) {
-          if ($.isEmptyObject(data)) {
+          if (data.hasOwnProperty('error_msg')) {
             vm.clear_raise_po_data(product);
-            vm.service.showNoty('This SKU is Blocked for PO');
+            vm.service.showNoty(data['error_msg']);
           } else {
             if(Object.values(data).length) {
               if(data.supplier_mapping)
@@ -669,7 +669,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
             //sku_data["price"] = product.fields.price;
             //vm.model_data.supplier_sku_prices = sku_data;
             product["taxes"] = sku_data.taxes;
-	    product["fields"]["edit_tax"] = sku_data.edit_tax;
+            product["fields"]["edit_tax"] = sku_data.edit_tax;
             vm.get_tax_value(product);
         })
       }
@@ -692,10 +692,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       product.fields.utgst_tax = "";
       product.fields.tax = "";
       product.taxes = [];
+      vm.cleared_data = false;
     }
 
     vm.key_event = function(product, item, index) {
-      if (typeof(vm.model_data.supplier_id) == "undefined" || vm.model_data.supplier_id.length == 0) {
+      if (typeof(vm.model_data.supplier_id) == "undefined" || vm.model_data.supplier_id.length == 0 || vm.model_data.supplier_id_name == '') {
        return false;
       } else {
         var supplier = vm.model_data.supplier_id;
@@ -845,14 +846,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
         }
       });
     }
-
-	vm.supplier_on_change = function () {
-		if(vm.permissions.show_purchase_history) {
-        $timeout( function() {
-            vm.populate_last_transaction('');
-        }, 2000 );
-      }
-	}
 
   vm.checkSupplierExist = function (sup_id) {
     console.log(sup_id);

@@ -194,6 +194,8 @@ urlpatterns = [
     url(r'^update_existing_grn/$', update_existing_grn),
     url(r'^confirm_central_po/$', confirm_central_po),
     url(r'^check_sku_pack_scan/$', check_sku_pack_scan),
+    url(r'^get_grn_extra_fields/$', get_grn_extra_fields),
+
 
 
     # Production
@@ -394,6 +396,9 @@ urlpatterns = [
     url(r'^generate_picklist_dc/$', generate_picklist_dc),
     url(r'^get_order_extra_fields/$', get_order_extra_fields),
     url(r'^create_feedback_form/$', create_feedback_form),
+    url(r'^get_distributor_order/$', get_distributor_order),
+    url(r'^sm_cancel_distributor_order/$', sm_cancel_distributor_order),
+    url(r'^get_order_extra_options/$', get_order_extra_options),
 
 
     # Uploaded POs [SWISS MILITARY]
@@ -584,6 +589,9 @@ urlpatterns += [
     url(r'^update_invoice_sequence/$', update_invoice_sequence),
     url(r'^update_mail_alerts/$', update_mail_alerts),
     url(r'^pos_extra_fields/$',pos_extra_fields),
+    url(r'^save_grn_fields/$',save_grn_fields),
+    url(r'^save_extra_order_options/$',save_extra_order_options),
+
 
     # manage users
     url(r'^add_user/$', add_user),
@@ -612,6 +620,8 @@ urlpatterns += [
     url(r'delete_temp_json/$', delete_temp_json),
     url(r'^search_batches/$', search_batches),
     url(r'^save_order_extra_fields/$', save_order_extra_fields),
+    url(r'^get_sku_mrp/$', get_sku_mrp),
+
 
 
     # Retailone

@@ -179,6 +179,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.serial_numbers = [];
                     vm.skus_total_amount = 0;
                     angular.copy(data.data, vm.model_data);
+                    vm.get_grn_extra_fields();
                     vm.send_for_approval_check(event, vm.model_data);
                     vm.title = "Generate GRN";
                     if (vm.industry_type == 'FMCG') {
@@ -312,7 +313,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       } else {
         var shelf_life = vm.model_data.data[parent_index][index].shelf_life;
         if(!shelf_life || shelf_life=='') {
-          shelf_life = 0; 
+          shelf_life = 0;
         }
         if (shelf_life && shelf_life_ratio) {
           var res_days = (shelf_life * (shelf_life_ratio / 100));
@@ -476,6 +477,29 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
        return d.promise;
     }
+    vm.get_grn_extra_fields = function(){
+      vm.service.apiCall("get_grn_extra_fields/").then(function(data){
+        if(data.message) {
+          vm.grn_extra_fields = data.data.data;
+          if(vm.grn_extra_fields[0] == '')
+          {
+            vm.grn_fields = false
+          }
+          else{
+            vm.grn_exta_model ={}
+            vm.grn_fields = true
+             for(var i =0 ; i< vm.grn_extra_fields.length; i++)
+             {
+                vm.grn_exta_model[vm.grn_extra_fields[i]] = '';
+
+             }
+
+           }
+          }
+        })
+      }
+
+    vm.get_grn_extra_fields();
 
     vm.get_tax_value = function(sku_data) {
 
@@ -1259,14 +1283,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number, sku_code: data1.wms_code}).then(function(data){
                   if (data.message) {
                     if (data.data == "") {
-                      if (vm.permissions.dispatch_qc_check) {
+                      if (vm.permissions.dispatch_qc_check && vm.model_data.returnable_serials.length > 0) {
+                        var qc_serial_check = true;
                         for (let i = 0; i < vm.model_data.returnable_serials.length; i++) {
-                          if(vm.model_data.returnable_serials[i] == data1.imei_number) {
+                          if(vm.model_data.returnable_serials[i].toUpperCase() == data1.imei_number.toUpperCase()) {
+                            qc_serial_check = false
                             vm.receive_qcitems(vm, data1, index);
-                          } else {
-                            Service.showNoty("Please Verify your Serial Number ! ");
-                            data1.imei_number = "";
                           }
+                        }
+                        if(qc_serial_check)
+                        {
+                          Service.showNoty("Please Verify your Serial Number ! ");
+                          data1.imei_number = "";
                         }
                       } else {
                         if(vm.po_qc) {
@@ -2484,7 +2512,7 @@ function receive_qcitems($scope, $http, $state, $timeout, Session, colFilters, S
     list_val['comment'] = '';
   })
   vm.serial_number_scanned = items['serial_number_scanned']
-  
+
   vm.qcitemstatus = function (keys, values){
     for(var i=0; i < Object.keys(vm.sku_details).length; i++) {
       if(Object.keys(vm.sku_details)[i] == values) {
@@ -2543,7 +2571,7 @@ function receive_qcitems($scope, $http, $state, $timeout, Session, colFilters, S
     vm.service.showNoty("success");
     $modalInstance.close(validation_status);
   }
-  
+
   vm.totalData("")
 
   vm.ok = function (msg) {

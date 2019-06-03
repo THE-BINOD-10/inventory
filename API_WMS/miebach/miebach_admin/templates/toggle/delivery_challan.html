@@ -1,4 +1,5 @@
-      {% load tag_extras %}
+{% load tag_extras %}
+{% for title in titles %}
 
 <div>
   <style>
@@ -11,14 +12,14 @@
         <tbody>
           <tr>
             <td colspan="2">
-              <h3 class="m0" align="center"><b>Delivery Note</b></h3>
+              <h3 class="m0" align="center"><b>Delivery Note</b> {{title}}</h3>
             </td>
           </tr>
           <tr>
             <td colspan="2">
               <h3 class="m0" align="center"><b>{{company_name}}</b></h3>
-              <p class="m0" align="center"> {{company_address}} </p>
-              <p class="m0" align="center">G.S.T No: {{gstin_no}} , Tel: {{company_number}}</p>
+              <p class="m0" align="center"> {{company_address}}</p>
+              <p class="m0" align="center"> Email:{{email}} ,G.S.T No: {{gstin_no}} , PAN No .{{ company_pan_number }}, Tel: {{company_number}}</p>
             </td>
           </tr>
           <tr>
@@ -56,6 +57,10 @@
                     <p class="fs14 m0" m0 ng-if="showCase.pdf_data.customer_details[0].email_id">
                       <b>Email: </b>{{customer_details.0.email_id}}</p>
                     {% endif %}
+                    {% if customer_details.0.pan_number %}
+                    <p class="fs14 m0" m0 ng-if="showCase.pdf_data.customer_details[0].pan_number">
+                      <b>PAN No.: </b>{{customer_details.0.pan_number}}</p>
+                    {% endif %}
                   </div>
                   {% endif %}
                 </div>
@@ -81,6 +86,11 @@
                 <div class="col-xs-6 text-left">
                   <strong>Order No :</strong> {{order_no}}
                 </div>
+                {% for key , value in extra_fields.items %}
+                <div class="col-xs-6 text-left">
+                  <strong> {{key}} &nbsp;&nbsp;&nbsp;:</strong> {{value}}
+                </div>
+                {% endfor %}
               </div>
               <div class="row m0">
                 <div class="col-xs-6 text-left">
@@ -98,7 +108,7 @@
                   <strong>Pkgs:</strong>
                 </div>
               </div>
-              <div class="row m0">
+              <div class="row m0" style="overflow: hidden;">
                 <div class="col-xs-6 text-left">
                   <strong>Terms.. &nbsp;&nbsp;&nbsp;:</strong> CASH
                 </div>
@@ -106,6 +116,7 @@
                   <strong>Rep.:</strong>
                 </div>
               </div>
+
             </td>
           </tr>
         </tbody>
@@ -165,3 +176,4 @@
   </div>
   {% endfor %}
 </div>
+{% endfor %}

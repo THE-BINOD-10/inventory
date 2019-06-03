@@ -818,6 +818,7 @@ def print_po_reports(request, user=''):
         telephone = purchase_order.open_po.supplier.phone_number
         name = purchase_order.open_po.supplier.name
         supplier_id = purchase_order.open_po.supplier.id
+        tin_number = purchase_order.open_po.supplier.tin_number
         order_id = purchase_order.order_id
         po_reference = '%s%s_%s' % (
         purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
@@ -829,7 +830,7 @@ def print_po_reports(request, user=''):
         user_profile = UserProfile.objects.get(user_id=user.id)
         w_address, company_address = get_purchase_company_address(user_profile)#user_profile.address
         data_dict = (('Order ID', order_id), ('Supplier ID', supplier_id),
-                     ('Order Date', order_date), ('Supplier Name', name))
+                     ('Order Date', order_date), ('Supplier Name', name), ('GST NO', tin_number))
     sku_list = po_data[po_data.keys()[0]]
     sku_slices = generate_grn_pagination(sku_list)
     table_headers = (

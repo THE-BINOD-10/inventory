@@ -1245,8 +1245,8 @@ def insert_supplier(request, user=''):
         rep_phone = filter_or_none(SupplierMaster, {'phone_number': request.POST['phone_number'], 'user': user.id})
         if rep_email and request.POST['email_id']:
             return HttpResponse('Email already exists')
-        if rep_phone and request.POST['phone_number']:
-            return HttpResponse('Phone Number already exists')
+        # if rep_phone and request.POST['phone_number']:
+        #     return HttpResponse('Phone Number already exists')
 
         create_login = request.POST.get('create_login', '')
         password = request.POST.get('password', '')

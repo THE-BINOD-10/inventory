@@ -229,7 +229,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
           }
           vm.filterData.brand_size_data = ['XS','S','M', 'L', 'XL', '2XL', '3XL', '4XL'];
         }
-        vm.filterData.dimensions = ['Length', 'Breadth', 'Height'];
+        vm.filterData.dimensions = ['Height', 'Length', 'Breadth'];
         vm.filterData.brands.push("All");
         vm.filterData.categories.push("All");
         vm.filterData.colors.push("All");
@@ -594,7 +594,11 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.filterData.selectedCats = {};
       vm.filterData.selectedCats[category] = true;
     }
+    if(vm.catlog_data.index)
+    {
+      vm.catlog_data.index = ""
 
+    }
     if(!vm.filterData.subCats[category]) {
       vm.filterData.subCats[category] = {};
     }
@@ -864,7 +868,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     var sub_category = [];
     var color = [];
     var dimensions = [];
-
     angular.forEach(vm.filterData.selectedBrands, function(value, key) {
       if (value) {
         brand.push(key);
@@ -929,7 +932,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       $state.go('user.App.Products');
     }
     $window.scrollTo(0, angular.element(".app_body").offsetTop);
-  }
+  };
 
   vm.filterData.brandShow = false;
   vm.filterData.catShow = false;

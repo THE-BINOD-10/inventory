@@ -94,6 +94,9 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
         if (vm.style_details.youtube_url) {
           vm.if_youtube_url = vm.style_details.youtube_url
         }
+        if (data.data.available_warehouses_stock) {
+          vm.warehouse_stock = data.data.available_warehouses_stock
+        }
         vm.y_video_flag = vm.style_details.youtube_url ? true : false;
         $('.youtube_thumbnaile_elem').html('<object width="100" height="70" data="'+vm.style_details.youtube_url+'"></object>');
         $('.youtube_video_play_elem').html('<object style="margin-top:49px" width="100%" height="100%" data="'+vm.style_details.youtube_url+'"></object>');

@@ -1510,13 +1510,7 @@ def update_picklist_pallet(stock, picking_count1):
 def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt="", from_pos=False):
     picklist_order_ids_list = []
     reciever = []
-    internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='Internal Emails')
-    misc_internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='internal_mail', misc_value='true')
-    if misc_internal_mail and internal_mail:
-        internal_mail = internal_mail[0].misc_value.split(",")
-        if 'false' in internal_mail:
-            internal_mail.remove('false')
-        reciever.extend(internal_mail)
+
     headers = ['Product Details', 'Ordered Quantity', 'Total']
     items = []
     for picklist in picklists:
@@ -1548,6 +1542,14 @@ def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt=
     if misc_detail:
         email = picklist.order.email_id
         reciever.append(email)
+    internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='Internal Emails')
+    misc_internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='internal_mail', misc_value='true')
+    if misc_internal_mail and internal_mail:
+        internal_mail = internal_mail[0].misc_value.split(",")
+        if 'false' in internal_mail:
+            internal_mail.remove('false')
+        reciever.extend(internal_mail)
+
     if reciever:
         try:
             tmp_invoice_date = get_local_date(user, picklist.updation_date, send_date='true')

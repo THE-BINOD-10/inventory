@@ -594,7 +594,11 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.filterData.selectedCats = {};
       vm.filterData.selectedCats[category] = true;
     }
+    if(vm.catlog_data.index)
+    {
+      vm.catlog_data.index = ""
 
+    }
     if(!vm.filterData.subCats[category]) {
       vm.filterData.subCats[category] = {};
     }

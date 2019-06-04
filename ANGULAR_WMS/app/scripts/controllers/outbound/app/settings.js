@@ -15,8 +15,11 @@ function settingsForm($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.permissions = Session.roles.permissions
 
   vm.base = function(){
+    debugger
     if(vm.permissions.customer_portal_prefered_view) {
       vm.viewType = vm.permissions.customer_portal_prefered_view
+    }else if (vm.permissions.customer_portal_prefered_view == '') {
+      vm.viewType = 'None'
     }
     vm.settingsType = ['None', 'Brand View', 'Category View', 'Product View']
   }

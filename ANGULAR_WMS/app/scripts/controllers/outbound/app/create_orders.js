@@ -141,7 +141,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.filterData = {};
 
   vm.current_state_view = function(){
-    debugger
     if(Session.roles.permissions.customer_portal_prefered_view && Session.roles.permissions.customer_portal_prefered_view != 'None'){
       if (Session.roles.permissions.customer_portal_prefered_view == 'Category View'){
         $state.go('user.App.Categories');

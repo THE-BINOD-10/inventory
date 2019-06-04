@@ -2439,6 +2439,7 @@ def get_location_stock_data(search_params, user, sub_user):
 
 
 def get_receipt_filter_data(search_params, user, sub_user):
+    from datetime import * ; from dateutil.relativedelta import *
     from miebach_admin.models import *
     from rest_api.views.common import get_sku_master, get_misc_value, get_local_date
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
@@ -2457,11 +2458,15 @@ def get_receipt_filter_data(search_params, user, sub_user):
         model_obj = POIMEIMapping
         if 'from_date' in search_params:
             search_parameters[query_prefix + 'creation_date__gt'] = search_params['from_date']
+        else:
+            search_parameters[query_prefix + 'creation_date__gt'] = date.today()+relativedelta(months=-1)
         if 'to_date' in search_params:
             search_parameters[query_prefix + 'creation_date__lt'] = search_params['to_date']
     else:
         if 'from_date' in search_params:
             search_parameters[query_prefix + 'updation_date__gt'] = search_params['from_date']
+        else:
+            search_parameters[query_prefix + 'updation_date__gt'] = date.today()+relativedelta(months=-1)
         if 'to_date' in search_params:
             search_parameters[query_prefix + 'updation_date__lt'] = search_params['to_date']
     temp_data = copy.deepcopy(AJAX_DATA)
@@ -2528,6 +2533,7 @@ def get_receipt_filter_data(search_params, user, sub_user):
 
 
 def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer_view=False):
+    from datetime import * ; from dateutil.relativedelta import *
     from miebach_admin.models import *
     from miebach_admin.views import *
     from rest_api.views.common import get_sku_master, get_order_detail_objs
@@ -2569,6 +2575,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_parameters['updation_date__gt'] = search_params['from_date']
+    else:
+        search_parameters['updation_date__gt'] = date.today()+relativedelta(months=-1)
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
@@ -3307,6 +3315,7 @@ def get_stock_summary_data(search_params, user, sub_user):
 
 
 def get_daily_production_data(search_params, user, sub_user):
+    from dateutil.relativedelta import *
     from miebach_admin.models import JobOrder, ProductionStages, StatusTrackingSummary
     from rest_api.views.common import get_local_date
     from rest_api.views.common import get_sku_master
@@ -3346,6 +3355,8 @@ def get_daily_production_data(search_params, user, sub_user):
                      'status_tracking__status_id__in': job_ids}
     if 'from_date' in search_params:
         status_filter['creation_date__gte'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+    else:
+        status_filter['creation_date__gte'] = date.today()+relativedelta(months=-1)
     if 'to_date' in search_params:
         status_filter['creation_date__lte'] = datetime.datetime.combine(
             search_params['to_date'] + datetime.timedelta(1), datetime.time())

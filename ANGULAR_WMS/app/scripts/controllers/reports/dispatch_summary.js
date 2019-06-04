@@ -30,8 +30,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
   vm.dtInstance = {};
 
+  var fromDate = new Date(new Date().getFullYear(), new Date().getMonth() - 1, new Date().getDate()).toLocaleDateString('en-US');
+
   vm.empty_data = {
-                    'from_date': '',
+                    'from_date': fromDate,
                     'to_date': '',
                     'wms_code': '',
                     'sku_code': '',

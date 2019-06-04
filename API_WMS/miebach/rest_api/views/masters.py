@@ -274,11 +274,17 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
     else:
         master_data = SupplierMaster.objects.filter(user=user.id, **search_params).order_by(order_data)
 
+    filter_dict = {}
+    filter_dict['user_id'] = user.id
+    filter_dict['master_type'] = 'supplier'
+    master_email_map = MasterEmailMapping.objects.filter(**filter_dict)
+
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     for data in master_data[start_index: stop_index]:
         uploads_list = []
+        secondary_email_ids = ''
         uploads_obj = MasterDocs.objects.filter(master_id=data.id, master_type=data.__class__.__name__)\
                                 .values_list('uploaded_file', flat=True)
         if uploads_obj:
@@ -293,7 +299,9 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
         if user_role_mapping:
             login_created = True
             username = user_role_mapping[0].user.username
-
+        master_email = master_email_map.filter(master_id=data.id)
+        if master_email:
+            secondary_email_ids = ','.join(list(master_email.values_list('email_id', flat=True)))
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
         temp_data['aaData'].append(OrderedDict((('id', data.id), ('name', data.name), ('address', data.address),
@@ -319,8 +327,9 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('account_number', data.account_number),
                                                 ('account_holder_name', data.account_holder_name),
                                                 # ('markdown_percentage', data.markdown_percentage),
-                                                ('ep_supplier', data.ep_supplier)
-                                            )))
+                                                ('ep_supplier', data.ep_supplier),
+                                                ('secondary_email_id', secondary_email_ids),
+                                                )))
 
 
 @csrf_exempt
@@ -1168,6 +1177,13 @@ def get_supplier_master_data(request, user=''):
     return HttpResponse(json.dumps({'tax_data': TAX_VALUES}))
 
 
+def validate_supplier_email(email):
+    check = re.match(r"[^@]+@[^@]+\.[^@]+", email)
+    if not check:
+        return True
+    else:
+        return False
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1179,12 +1195,14 @@ def update_supplier_values(request, user=''):
         data = get_or_none(SupplierMaster, {'id': data_id, 'user': user.id})
         old_name = data.name
         upload_master_file(request, user, data.id, "SupplierMaster")
-
         create_login = request.POST.get('create_login', '')
         password = request.POST.get('password', '')
         username = request.POST.get('username', '')
         login_created = request.POST.get('login_created', '')
-
+        secondary_email_id = request.POST.get('secondary_email_id', '').split(',')
+        for mail in secondary_email_id:
+	    if validate_supplier_email(mail):
+		return HttpResponse('Enter correct Secondary Email ID')
         for key, value in request.POST.iteritems():
             if key not in data.__dict__.keys():
                 continue
@@ -1199,8 +1217,24 @@ def update_supplier_values(request, user=''):
                 else:
                     value = 0
             setattr(data, key, value)
-
         data.save()
+
+        master_data_dict = {}
+        master_data_dict['user_id'] = user.id
+        master_data_dict['master_type'] = 'supplier'
+        master_data_dict['master_id'] = data_id
+
+        master_email_map = MasterEmailMapping.objects.filter(**master_data_dict)
+        if master_email_map:
+            master_email_map.delete()
+        for mail in secondary_email_id:
+            master_data_dict = {}
+            master_data_dict['user_id'] = user.id
+            master_data_dict['email_id'] = mail
+            master_data_dict['master_id'] = data_id
+            master_data_dict['master_type'] = 'supplier'
+            MasterEmailMapping.objects.create(**master_data_dict)
+
         if create_login == 'true':
             status_msg, new_user_id = create_update_user(data.name, data.email_id, data.phone_number,
                                                          password, username, role_name='supplier')
@@ -1232,10 +1266,10 @@ def update_supplier_values(request, user=''):
 @get_admin_user
 def insert_supplier(request, user=''):
     """ Add New Supplier"""
-
     log.info('Add New Supplier request params for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         supplier_id = request.POST['id']
+        secondary_email_id = ''
         if not supplier_id:
             return HttpResponse('Missing Required Fields')
         data = filter_or_none(SupplierMaster, {'id': supplier_id})
@@ -1245,9 +1279,12 @@ def insert_supplier(request, user=''):
         rep_phone = filter_or_none(SupplierMaster, {'phone_number': request.POST['phone_number'], 'user': user.id})
         if rep_email and request.POST['email_id']:
             return HttpResponse('Email already exists')
-        if rep_phone and request.POST['phone_number']:
-            return HttpResponse('Phone Number already exists')
-
+        # if rep_phone and request.POST['phone_number']:
+        #     return HttpResponse('Phone Number already exists')
+        secondary_email_id = request.POST.get('secondary_email_id', '').split(',')
+        for mail in secondary_email_id:
+            if validate_supplier_email(mail):
+		return HttpResponse('Enter Correct Secondary Email ID')
         create_login = request.POST.get('create_login', '')
         password = request.POST.get('password', '')
         username = request.POST.get('username', '')
@@ -1267,15 +1304,27 @@ def insert_supplier(request, user=''):
                         value = 0
                 if value == '':
                     continue
-                if key in ['login_created', 'create_login', 'password', 'username']:
+                if key in ['secondary_email_id']:
+                    secondary_email_id = value.split(',')
+                if key in ['login_created', 'create_login', 'password', 'username', 'secondary_email_id']:
                     continue
                 data_dict[key] = value
-
             data_dict['user'] = user.id
             supplier_master = SupplierMaster(**data_dict)
             upload_master_file(request, user, supplier_master.id, "SupplierMaster")
             supplier_master.save()
             status_msg = 'New Supplier Added'
+
+            for mail in secondary_email_id:
+                master_email_map = {}
+                master_email_map['user'] = user
+                master_email_map['master_id'] = supplier_master.id
+                master_email_map['master_type'] = 'supplier'
+                master_email_map['email_id'] = mail
+                master_email_map['creation_date'] = datetime.datetime.now()
+                master_email_map['updation_date'] = datetime.datetime.now()
+                master_email_map = MasterEmailMapping.objects.create(**master_email_map)
+
             if create_login == 'true':
                 data = supplier_master
                 status_msg, new_user_id = create_update_user(data.name, data.email_id, data.phone_number,
@@ -1284,7 +1333,6 @@ def insert_supplier(request, user=''):
                     return HttpResponse(status_msg)
                 UserRoleMapping.objects.create(role_id=data.id, role_type='supplier', user_id=new_user_id,
                                            creation_date=datetime.datetime.now())
-
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -3993,7 +4041,13 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     temp_data['aaData'] = []
 
+    filter_dict = {}
+    filter_dict['user_id'] = user.id
+    filter_dict['master_type'] = 'supplier'
+    master_email_map = MasterEmailMapping.objects.filter(**filter_dict)
+
     for data in master_data:
+        secondary_email_ids = ''
         uploads_list = []
         uploads_obj = MasterDocs.objects.filter(master_id=data.id, master_type=data.__class__.__name__)\
                                 .values_list('uploaded_file', flat=True)
@@ -4002,16 +4056,17 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
         status = 'Inactive'
         if data.status:
             status = 'Active'
-
         login_created = False
         user_role_mapping = UserRoleMapping.objects.filter(role_id=data.id, role_type='supplier')
         username = ""
         if user_role_mapping:
             login_created = True
             username = user_role_mapping[0].user.username
-
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
+        master_email = master_email_map.filter(master_id=data.id)
+        if master_email:
+            secondary_email_ids = ','.join(list(master_email.values_list('email_id', flat=True)))
         temp_data['aaData'].append(OrderedDict((('id', data.id), ('name', data.name), ('address', data.address),
                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
                                                 ('cst_number', data.cst_number), ('tin_number', data.tin_number),
@@ -4034,6 +4089,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
                                                 ('account_holder_name', data.account_holder_name),
                                                 ('ep_supplier', data.ep_supplier)
                                                 # ('markdown_percentage', data.markdown_percentage)
+                                                ('secondary_email_id', secondary_email_ids)
                                             )))
     excel_headers = ''
     if temp_data['aaData']:
@@ -4050,7 +4106,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
     'City', 'State', 'Days To Supply', 'Fulfillment Amount', 'Credibility', 'Country', 'Pincode',
     'Status', 'Supplier Type', 'Tax Type', 'PO Exp Duration', 'Owner Name',
     'Owner Number', 'Owner Email Id', 'Spoc Name', 'Spoc Number', 'Lead Time', 'Spoc Email ID', 'Credit Period',
-    'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name']
+    'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name', 'Secondary Email ID']
     try:
         wb, ws = get_work_sheet('skus', itemgetter(*excel_headers)(headers))
     except:

@@ -3219,3 +3219,16 @@ class Pofields(models.Model):
     value = models.CharField(max_length=256, default='')
     class Meta:
         db_table = 'PO_FIELDS'
+    
+class MasterEmailMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    master_id = models.CharField(max_length=64, default='')
+    master_type = models.CharField(max_length=64, default='')
+    email_id = models.CharField(max_length=64, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MASTER_EMAIL_MAPPING'
+        unique_together = ('user', 'master_id', 'master_type', 'email_id')

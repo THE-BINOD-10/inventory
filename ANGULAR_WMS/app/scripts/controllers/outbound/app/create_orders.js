@@ -216,7 +216,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   function change_filter_data() {
     debugger;
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
-    if (!(vm.brand) && ($.isEmptyObject(Session.sagar_fab_filter))) {
+    if (!(vm.brand) && (!$.isEmptyObject(Session.sagar_fab_filter))) {
       if (Session.sagar_fab_filter['brand_filter']) {
         vm.brand = Session.sagar_fab_filter['brand_filter'];
       }
@@ -573,7 +573,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     vm.pdfDownloading = true;
     vm.catDisplay = true;
-    if (!(vm.brand) && ($.isEmptyObject(Session.sagar_fab_filter))) {
+    if (!(vm.brand) && (!$.isEmptyObject(Session.sagar_fab_filter))) {
       if (Session.sagar_fab_filter['brand_filter']) {
         vm.brand = Session.sagar_fab_filter['brand_filter'];
       }
@@ -820,7 +820,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     stock_qty['sale_through'] = vm.order_type_value;
     angular.copy(size_stock, vm.size_filter_data);
     debugger;
-    if (!(vm.brand) && ($.isEmptyObject(Session.sagar_fab_filter))) {
+    if (!(vm.brand) && (!$.isEmptyObject(Session.sagar_fab_filter))) {
       if (Session.sagar_fab_filter['brand_filter']) {
         vm.brand = Session.sagar_fab_filter['brand_filter'];
       }
@@ -858,7 +858,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     angular.copy(size_stock, vm.size_filter_data);
     debugger;
-    if (!(vm.brand) && ($.isEmptyObject(Session.sagar_fab_filter))) {
+    if (!(vm.brand) && (!$.isEmptyObject(Session.sagar_fab_filter))) {
       if (Session.sagar_fab_filter['brand_filter']) {
         vm.brand = Session.sagar_fab_filter['brand_filter'];
       }
@@ -1582,7 +1582,7 @@ angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance,
 
     var data = {brand: '', sale_through: $ctrl.marginData.sale_through};
     debugger;
-    if (!(vm.brand) && ($.isEmptyObject(Session.sagar_fab_filter))) {
+    if (!(vm.brand) && (!$.isEmptyObject(Session.sagar_fab_filter))) {
       if (Session.sagar_fab_filter['brand_filter']) {
         vm.brand = Session.sagar_fab_filter['brand_filter'];
       }

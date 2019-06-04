@@ -592,6 +592,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
           vm.categories_details = data.data.categories_details;
           vm.old_path = vm.location;
           vm.location = '/App/Categories';
+          $state.go('user.App.Categories');
         }
         vm.pdfDownloading = false;
       });

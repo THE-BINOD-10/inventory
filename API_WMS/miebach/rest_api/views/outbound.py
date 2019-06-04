@@ -7477,13 +7477,11 @@ def get_seller_order_details(request, user=''):
     central_remarks = ''
     invoice_types = get_invoice_types(user)
     invoice_type = ''
-    mrp = 0
     customer_order_summary = CustomerOrderSummary.objects.filter(order_id=row_id)
     if customer_order_summary:
         status_obj = customer_order_summary[0].status
         central_remarks = customer_order_summary[0].central_remarks
         invoice_type = customer_order_summary[0].invoice_type
-        mrp = customer_order_summary[0].mrp
 
     data_dict = []
     cus_data = []
@@ -7558,10 +7556,12 @@ def get_seller_order_details(request, user=''):
         cgst_tax = 0
         igst_tax = 0
         discount_percentage = 0
+        mrp = 0
         if customer_order:
             sgst_tax = customer_order[0].sgst_tax
             cgst_tax = customer_order[0].cgst_tax
             igst_tax = customer_order[0].igst_tax
+            mrp = customer_order[0].mrp
             discount_percentage = 0
             if (quantity * one_order.unit_price):
                 discount_percentage = float(
@@ -7730,6 +7730,7 @@ def get_view_order_details(request, user=''):
         cess_tax = 0
         payment_status = ''
         discount_percentage = 0
+        mrp = 0
         if customer_order:
             client_name = customer_order[0].client_name
             sgst_tax = customer_order[0].sgst_tax
@@ -7737,6 +7738,7 @@ def get_view_order_details(request, user=''):
             igst_tax = customer_order[0].igst_tax
             cess_tax = customer_order[0].cess_tax
             discount_percentage = 0
+            mrp = customer_order[0].mrp
             payment_status = customer_order[0].payment_status
             if (quantity * unit_price):
                 discount_percentage = float(

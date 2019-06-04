@@ -3219,9 +3219,7 @@ class Pofields(models.Model):
     value = models.CharField(max_length=256, default='')
     class Meta:
         db_table = 'PO_FIELDS'
-        db_table = 'CLUSTER_SKU_MAPPING'
-
-
+    
 class MasterEmailMapping(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)

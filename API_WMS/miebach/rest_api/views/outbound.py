@@ -4812,7 +4812,7 @@ def block_asn_stock(sku_id, qty, lead_time, ord_det_id, is_enquiry=False):
             asn_res_map['enquirydetail'] = ord_det_id  # Here ord_det_id is EnquiryDetailID when calling block_asn_stock
         if not asn_obj.asnreservedetail_set.values():
             # Create ASN Reserve Detail Object
-            if qty <= asn_obj.quantity:
+            if qty and qty <= asn_obj.quantity:
                 asn_res_map['reserved_qty'] = qty
                 ASNReserveDetail.objects.create(**asn_res_map)
                 break
@@ -4824,7 +4824,7 @@ def block_asn_stock(sku_id, qty, lead_time, ord_det_id, is_enquiry=False):
             res_stock_obj = asn_obj.asnreservedetail_set.values('asnstock').annotate(in_res=Sum('reserved_qty'))
             res_stock = res_stock_obj[0]['in_res']
             avail_stock = asn_obj.quantity - res_stock
-            if qty <= avail_stock:
+            if qty and qty <= avail_stock:
                 asn_res_map['reserved_qty'] = qty
                 ASNReserveDetail.objects.create(**asn_res_map)
                 break
@@ -5312,7 +5312,15 @@ def insert_order_data(request, user=''):
         for generic_order in generic_orders:
             original_order_id = generic_order['orderdetail__original_order_id']
             order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
-            resp = order_push(original_order_id, order_detail_user, "NEW")
+            try:
+                resp = order_push(original_order_id, order_detail_user, "NEW")
+            except Exception as e:
+                import traceback
+                log.debug('New Order Push Exception: %s' %traceback.format_exc())
+                log.info('Order Push failed for %s and params are %s and error statement is %s' % (
+                    str(user.username), str(myDict), str(e)))
+                resp = {'status': 'Internal Server Error'}
+
             log.info('New Order Push Status: %s' % (str(resp)))
             if resp.get('Status', '') == 'Failure' or resp.get('status', '') == 'Internal Server Error':
                 is_emiza_order_failed = True
@@ -5325,7 +5333,8 @@ def insert_order_data(request, user=''):
                 if picklist_number:
                     picklist_number = picklist_number[0]
                 log.info(order_detail.delete())
-                check_picklist_number_created(order_detail_user, picklist_number)
+                if picklist_number:
+                    check_picklist_number_created(order_detail_user, picklist_number)
 
         if generic_order_id and not is_emiza_order_failed:
             check_and_raise_po(generic_order_id, cm_id)
@@ -5412,7 +5421,7 @@ def update_temp_order_detail_status(order_objs):
         order_obj.save()
 
 
-def check_stocks(order_sku, user, enable_damaged_stock, order_objs):
+def check_stocks(order_sku, user, enable_damaged_stock, order_objs, continue_flag=True):
     picklist_exclude_zones = get_exclude_zones(user)
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
@@ -5463,11 +5472,10 @@ def check_stocks(order_sku, user, enable_damaged_stock, order_objs):
                 return "Order created Successfully"
 
     picklist_number = get_picklist_number(user)
-    todays_date = datetime.datetime.today().date()
     for order_obj in order_objs:
-        is_asn_order = ASNReserveDetail.objects.filter(orderdetail=order_obj.id,
-                                                       asnstock__arriving_date__gte=todays_date)
-        if is_asn_order: # We cant create Picklist for ASN Order as stock is not yet dispatched.
+        is_asn_order = ASNReserveDetail.objects.filter(orderdetail=order_obj.id)
+        if is_asn_order and continue_flag: # We cant create Picklist for ASN Order as stock is not yet dispatched.
+            update_temp_order_detail_status([order_obj])
             continue
         picklist_generation([order_obj], enable_damaged_stock, picklist_number, user, sku_combos, sku_stocks,
                             switch_vals, status='open', remarks='Auto-generated Picklist')
@@ -7065,7 +7073,9 @@ def get_sku_variants(request, user=''):
                                         po = asn_stock['PO']
                                         arriving_date = datetime.datetime.strptime(asn_stock['By'], '%d-%b-%Y')
                                         quantity = int(asn_stock['Qty'])
-                                        qc_quantity = int(math.floor(quantity*90/100))
+                                        qc_quantity = int(math.ceil(quantity*90.0/100))
+                                        if qc_quantity <= 0:
+                                            continue
                                         asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku[0].id,
                                                                                          asn_po_num=po,
                                                                                          status='open')

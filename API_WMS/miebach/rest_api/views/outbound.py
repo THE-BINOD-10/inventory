@@ -4971,7 +4971,9 @@ def insert_order_data(request, user=''):
 
     # Validate sku, quantity, stock
     valid_status, all_sku_codes, temp_distinct_skus = validate_order_form(myDict, request, user)
-    payment_modes =  json.loads(request.POST.get('payment_modes', ''))
+    payment_modes = request.POST.get('payment_modes', '')
+    if payment_modes:
+        payment_modes =  json.loads(payment_modes)
     payment_received = request.POST.get('payment_received', '')
     payment_status = request.POST.get('payment_status', '')
     tax_percent = request.POST.get('tax', '')

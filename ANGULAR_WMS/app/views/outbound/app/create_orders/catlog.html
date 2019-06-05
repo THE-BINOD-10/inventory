@@ -183,8 +183,10 @@
             <span class="style_name" style="font-size: 14px" ng-if="!(item.variants[0].pricing_price) && item.variants[0].price && !(showCase.central_order_mgmt)">{{ showCase.service.price_format(item.variants[0].price)  }}</span>
             <p class="style_name" style="font-size: 14px" style="font-size: 12px;" title="{{ item.variants[0].style_name }}">{{ item.variants[0].style_name }}</p>
             <p class="style_name" style="font-size: 14px" ng-if="showCase.central_order_mgmt" style="font-size: 12px;"> {{ item.variants[0].sku_desc }}</p>
-            <p class="style_name" style="font-size: 14px" ng-if="showCase.central_order_mgmt" style="font-size: 12px;">
-              Dimensions(in): {{ item.variants[0].length }} X {{ item.variants[0].breadth }} X {{ item.variants[0].height }}</p>
+            <p class="style_name" style="font-size: 12px" ng-if="showCase.central_order_mgmt && (item.variants[0].height || item.variants[0].length || item.variants[0].breadth)" style="font-size: 12px;">
+              Ext Dim(in): {{ item.variants[0].height }} X {{ item.variants[0].length }} X {{ item.variants[0].breadth }}</p>
+            <p class="style_name" style="font-size: 12px" ng-if="showCase.central_order_mgmt && (item.variants[0]['Internal Height'] || item.variants[0]['Internal Length'] || item.variants[0]['Internal Breadth'])" style="font-size: 12px;">
+              Int Dim(in): {{ item.variants[0]['Internal Height']}} X {{ item.variants[0]['Internal Length']}} X {{ item.variants[0]['Internal Breadth']}}</p>
             <p class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;">Stock: {{ item.style_quantity }}</p>
             <p class="style_name" style="font-size: 14px" ng-if="showCase.central_order_mgmt" style="font-size: 12px;">
                 <span ng-if="item.variants[0]['Vendor Code']"> Vendor code: {{item.variants[0]['Vendor Code']}}</span>

@@ -247,7 +247,7 @@ SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone N
                     'Credibility', 'Tax Type(Options: Inter State, Intra State)', 'PO Expiry Duration',
                     'Owner Name', 'Owner Number', 'Owner Email', 'SPOC Name', 'SPOC Number', 'SPOC Email',
                     'Lead Time', 'Credit Period', 'Bank Name', 'IFSC Code', 'Branch Name',
-                    'Account Number', 'Account Holder Name']
+                    'Account Number', 'Account Holder Name', 'Secondary Email ID']
 
 VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
 
@@ -277,7 +277,7 @@ SALES_RETURN_BULK = ['Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantit
 RETURN_DATA_FIELDS = ['sales-check', 'order_id', 'sku_code', 'customer_id', 'shipping_quantity', 'return_quantity',
                       'damaged_quantity', 'delete-sales']
 
-SUPPLIER_SKU_HEADERS = ['Supplier Id', 'WMS Code', 'Supplier Code', 'Preference', 'MOQ', 'Price', 'Costing Type (Price Based/Margin Based)', 'Margin Percentage']
+SUPPLIER_SKU_HEADERS = ['Supplier Id', 'WMS Code', 'Supplier Code', 'Preference', 'MOQ', 'Price', 'Costing Type (Price Based/Margin Based/Markup Based)', 'MarkDown Percentage','Markup Percentage']
 
 MARKETPLACE_SKU_HEADERS = ['WMS Code', 'Flipkart SKU', 'Snapdeal SKU', 'Paytm SKU', 'Amazon SKU', 'HomeShop18 SKU',
                            'Jabong SKU', 'Indiatimes SKU', 'Flipkart Description', 'Snapdeal Description',
@@ -505,14 +505,14 @@ SKU_WISE_GRN_DICT = {'filters' : [
                        "SGST", "IGST", "UTGST", "CESS", "APMC", "Post-Tax Received Value", "Invoiced Unit Rate",
                        "Overall Discount",
                        "Invoiced Total Amount", "Invoice Number", "Invoice Date", "Challan Number",
-                       "Challan Date", "Remarks", "Updated User"],
+                       "Challan Date", "Remarks", "Updated User", "GST NO"],
 		'mk_dt_headers': [ "Received Date", "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Recepient",
                            "SKU Code", "SKU Description", "HSN Code", "SKU Class", "SKU Style Name", "SKU Brand", "SKU Category",
                            "Received Qty", "Unit Rate", "MRP", "Pre-Tax Received Value", "CGST(%)", "SGST(%)",
                            "IGST(%)", "UTGST(%)", "CESS(%)", "APMC(%)", "CGST",
                             "SGST", "IGST", "UTGST", "CESS", "APMC", "Post-Tax Received Value", "Margin %",
                            "Margin", "Invoiced Unit Rate","Overall Discount", "Invoiced Total Amount", "Invoice Number", "Invoice Date",
-                           "Challan Number", "Challan Date", "Remarks", "Updated User"],
+                           "Challan Number", "Challan Date", "Remarks", "Updated User", "GST NO"],
 		'dt_url': 'get_sku_wise_po_filter', 'excel_name': 'goods_receipt', 'print_url': '',
 	   }
 
@@ -822,7 +822,7 @@ ENQUIRY_STATUS_REPORT = {
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'Warehouse Level', 'name': 'warehouse_level', 'type': 'input'},
         {'label': 'Enquiry Status', 'name': 'enquiry_status', 'type': 'select'},
-	{'label': 'Corporate Name', 'name': 'corporate_name', 'type': 'input'},
+        {'label': 'Corporate Name', 'name': 'corporate_name', 'type': 'input'},
     ],
     'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
                    'Level','Warehouse', 'Enquiry No', 'Enquiry Aging', 'Enquiry Status', 'Corporate Name', 'Remarks'],
@@ -1188,7 +1188,7 @@ MAIL_REPORTS_DATA = OrderedDict((('Raise PO', 'raise_po'), ('Receive PO', 'recei
                                  ('Dispatch', 'dispatch'), ('Internal Mail', 'internal_mail'),
                                  ('Raise JO', 'raise_jo'), ('Stock Transfer Note', 'stock_transfer_note'),
                                  ('Block Stock', 'enquiry'), ('Central Orders', 'central_orders'),
-                                 ('GRN Approval', 'grn_approval'),
+                                 ('GRN Approval', 'grn_approval'),('Allow Secondary Emails', 'allow_secondary_emails')
                                  ))
 
 # Configurations
@@ -1967,7 +1967,7 @@ SUPPLIER_EXCEL_FIELDS = OrderedDict((('id', 0), ('name', 1), ('address', 2), ('e
                                      ('spoc_name', 19), ('spoc_number', 20), ('spoc_email_id', 21),
                                      ('lead_time', 22), ('credit_period', 23), ('bank_name', 24),
                                      ('ifsc_code', 25), ('branch_name', 26), ('account_number', 27),
-                                     ('account_holder_name', 28),
+                                     ('account_holder_name', 28), ('secondary_email_id', 29),
                                      ))
 STATUS_DICT = {1: True, 0: False}
 
@@ -2872,7 +2872,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'sku_id__in': 'purchase_order__open_po__sku_id__in',
                          'prefix': 'purchase_order__prefix', 'supplier_id': 'purchase_order__open_po__supplier_id',
                          'supplier_name': 'purchase_order__open_po__supplier__name',
-                         'receipt_type': 'seller_po__receipt_type', 'invoice_number': 'invoice_number'}
+                         'receipt_type': 'seller_po__receipt_type', 'invoice_number': 'invoice_number', 'gst_num': 'purchase_order__open_po__supplier__tin_number'}
         result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier_id',
                          'purchase_order__open_po__supplier__name', 'purchase_order__open_po__supplier__tax_type',
                          'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
@@ -2887,7 +2887,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price',
                          'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number','overall_discount',
-                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks']
+                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks','purchase_order__open_po__supplier__tin_number']
     else:
         unsorted_dict = {16: 'Pre-Tax Received Value', 29: 'Post-Tax Received Value',
                          30: 'Invoiced Unit Rate',
@@ -2908,6 +2908,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                'purchase_order__open_po__cess_tax', 'purchase_order__open_po__apmc_tax',
                'id', 'seller_po__margin_percent', 'overall_discount', 'id',
                'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'remarks', 'id']
+
         field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date',
                          'order_id': 'purchase_order__order_id',
                          'wms_code': 'purchase_order__open_po__sku__wms_code__iexact',
@@ -2915,7 +2916,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'sku_id__in': 'purchase_order__open_po__sku_id__in',
                          'prefix': 'purchase_order__prefix', 'supplier_id': 'purchase_order__open_po__supplier_id',
                          'supplier_name': 'purchase_order__open_po__supplier__name',
-                         'receipt_type': 'seller_po__receipt_type', 'invoice_number': 'invoice_number'}
+                         'receipt_type': 'seller_po__receipt_type', 'invoice_number': 'invoice_number', 'gst_num': 'purchase_order__open_po__supplier__tin_number'}
         result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier_id',
                          'purchase_order__open_po__supplier__name',
                          'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
@@ -2930,7 +2931,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'seller_po__margin_percent', 'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price','overall_discount',
                          'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number',
-                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks',
+                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks', 'purchase_order__open_po__supplier__tin_number'
                          ]
     excl_status = {'purchase_order__status': ''}
     ord_quan = 'quantity'
@@ -3107,7 +3108,9 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                             ('receipt_type', data['seller_po__receipt_type']),
                             ('receipt_no', 'receipt_no'),
                             ('Remarks', remarks),
-                            ('Updated User', updated_user_name)
+                            ('Updated User', updated_user_name),
+                            ('GST NO', data[field_mapping['gst_num']])
+
 	)))
     if stop_index and custom_search:
         if temp_data['aaData']:
@@ -3619,13 +3622,13 @@ def get_order_summary_data(search_params, user, sub_user):
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
                                                                     'sku__sku_desc','sku__price','sellerordersummary__invoice_number','address',
-                                                                    'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
+                                                                    'quantity','original_order_id','order_reference','sku__sku_brand','customer_name','payment_mode',
                                                                     'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace',
                                                                     'sellerordersummary__creation_date').distinct()
     else:
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size',
-                                                                    'sku__sku_desc','sku__price','address','order_code',
+                                                                    'sku__sku_desc','sku__price','address','order_code','payment_mode',
                                                                     'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
                                                                     'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace').distinct()
     pick_filters = {}
@@ -3837,9 +3840,12 @@ def get_order_summary_data(search_params, user, sub_user):
         #payment mode
         payment_obj = OrderFields.objects.filter(user=user.id, name__icontains="payment_",\
                                       original_order_id=data['original_order_id']).values_list('name', 'value')
-        if payment_obj:
+        if payment_obj.exists():
             for pay in payment_obj:
-                exec("%s = %s" % (pay[0],pay[1]))
+                if  'order_' in  pay[0] :
+                    payment_type += pay[0].replace("order_payment_","")+"-"+pay[1]+","
+                elif  'DC'  in data['order_code'] or 'PRE' in data['order_code']:
+                   exec("%s = %s" % (pay[0],pay[1]))
         #pos extra fields
         pos_extra = {}
         extra_vals = OrderFields.objects.filter(user=user.id,\
@@ -7187,8 +7193,6 @@ def get_margin_report_data(search_params, user, sub_user):
     order_data = order_data.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('stock__batch_detail__mrp'), Value('<<>>'), F('stock__batch_detail__weight'), output_field=CharField()))
     get_all_order_ids = list(order_data.values_list('order__id',flat=True).distinct())
     get_batch_detail_ids = order_data.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('stock__batch_detail__mrp'), Value('<<>>'), F('stock__batch_detail__weight'), output_field=CharField())).values_list('group_key', 'order__id').distinct()
-
-
     cust_order_summary = CustomerOrderSummary.objects.filter(order__id__in=get_all_order_ids)
     tax_cust_order = dict(cust_order_summary.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('mrp'), output_field=CharField())).values_list('group_key').annotate(total_tax=Sum(F('cgst_tax') + F('sgst_tax') + F('igst_tax') + F('utgst_tax') + F('cess_tax'))))
     divide_tax = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(count_skus=Count(F('order__sku__sku_code'))))
@@ -7200,9 +7204,6 @@ def get_margin_report_data(search_params, user, sub_user):
     qty_data = dict(order_data.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('stock__batch_detail__mrp'), Value('<<>>'), F('stock__batch_detail__weight'), output_field=CharField())).values_list('group_key').distinct().annotate(total_quantity=Sum('picked_quantity', distinct=True)))
     weighted_avg_cost = dict(order_data.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('stock__batch_detail__mrp'), Value('<<>>'), F('stock__batch_detail__weight'), output_field=CharField())).values_list('group_key').distinct().exclude(stock__batch_detail=None).annotate(weighted_cost=Sum(F('picked_quantity') * F('stock__batch_detail__buy_price'))))
     weighted_avg_selling_price = dict(order_data.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('stock__batch_detail__mrp'), Value('<<>>'), F('stock__batch_detail__weight'), output_field=CharField())).values_list('group_key').distinct().exclude(stock__batch_detail=None).annotate(weighted_sell=Sum(F('picked_quantity') * F('order__unit_price'))))
-
-
-
 
     temp_data['recordsTotal'] = order_data_loop.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -7216,8 +7217,9 @@ def get_margin_report_data(search_params, user, sub_user):
         consolidated_margin = 0
         collect_sku_data = SKUMaster.objects.get(user=user.id, wms_code=sku_code)
         quantity = qty_data.get(wms_code, 0)
-        weighted_avg_cost_value = float(weighted_avg_cost.get(wms_code, 0)/quantity)
-        weighted_avg_selling_price_value = float(weighted_avg_selling_price.get(wms_code, 0)/quantity)
+        if quantity :
+            weighted_avg_cost_value = float(weighted_avg_cost.get(wms_code, 0)/quantity)
+            weighted_avg_selling_price_value = float(weighted_avg_selling_price.get(wms_code, 0)/quantity)
         consolidated_tax = float(tax_cust_order.get(sku_code,0)/divide_tax.get(sku_code,0))
         brand_discount = float(collect_discount.get(sku_code,0)/divide_tax.get(sku_code,0))
         if weighted_avg_cost_value:

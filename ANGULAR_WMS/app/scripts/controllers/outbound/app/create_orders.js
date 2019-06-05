@@ -69,13 +69,13 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   }
 
   vm.back_brands_button = function (filter_value) {
-    $state.go('user.App.Brands');
     vm.showFilter = false;
     if (filter_value) {
       localStorage.removeItem(filter_value);
       vm.brand = ''
     }
     change_filter_data();
+    $state.go('user.App.Brands');
   }
 
   vm.display_ratings = function() {

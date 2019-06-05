@@ -8,19 +8,16 @@
       var deferredStatus = null;
 
       this.login = function (credentials) {
-
         deferredStatus = null;
-
         $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
         return $http.post(Session.url + "wms_login/", credentials)
                     .then(function (resp) {
-
           resp = resp.data;
+	  localStorage.clear();
           update_manifest(resp.data);
           if (resp.message != "Fail") {
              //setloginStatus(resp);
              Session.set(resp.data);
-
           }
           return resp;
         });

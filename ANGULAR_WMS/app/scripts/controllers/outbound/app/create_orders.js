@@ -60,9 +60,22 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     })
   }
 
-  vm.back_button = function () {
+  vm.back_button = function (filter_value) {
     $state.go('user.App.Brands');
-    showCase.showFilter = false;
+    vm.showFilter = false;
+    if (filter_value) {
+      localStorage.removeItem(filter_value);
+    }
+  }
+
+  vm.back_brands_button = function (filter_value) {
+    $state.go('user.App.Brands');
+    vm.showFilter = false;
+    if (filter_value) {
+      localStorage.removeItem(filter_value);
+      vm.brand = ''
+    }
+    change_filter_data();
   }
 
   vm.display_ratings = function() {
@@ -218,20 +231,36 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   // vm.display_ratings();
   /*Rating module end*/
 
-  function get_brand_filter_value() {
+  function get_brand_filter_value(params_value) {
     debugger;
-    var url = $state.$current.url.sourcePath;
-    if (!(vm.brand)) {
-      if (localStorage.getItem(url)) {
-        vm.brand = localStorage.getItem(url);
+    //var url = $state.$current.url.sourcePath + params_value;
+    var url = params_value;
+    if (params_value == "category_value") {
+      if (!(vm.category)) {
+        if (localStorage.getItem(url)) {
+          vm.category = localStorage.getItem(url);
+        }
+      }
+      if (vm.category != 'All') {
+        localStorage.setItem(url, vm.category);
       }
     }
-    localStorage.setItem(url, vm.brand);
+    if (params_value == "brand_value") {
+      if (!(vm.brand)) {
+	if (localStorage.getItem(url)) {
+	  vm.brand = localStorage.getItem(url);
+	}
+      }
+      if (vm.brand != 'All') {
+        localStorage.setItem(url, vm.brand);
+      }
+    }
   }
 
   function change_filter_data() {
     debugger;
-    get_brand_filter_value();
+    get_brand_filter_value('brand_value');
+    get_brand_filter_value('category_value');
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
       if(data.message) {
@@ -344,7 +373,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     vm.catlog_data.index = ""
     debugger;
-    get_brand_filter_value();
+    get_brand_filter_value('brand_value');
+    get_brand_filter_value('category_value');
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, size_filter:size_stock}
     vm.scroll_data = false;
@@ -387,13 +417,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.gotData = {};
   vm.data_loading = false;
   vm.getingData = function(data) {
+    get_brand_filter_value('category_value');
     vm.catDisplay = false;
     if(vm.data_loading) {
-
       vm.cancel();
       vm.data_loading = false;
     }
-
     vm.data_loading = true;
     var canceller = $q.defer();
     vm.service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
@@ -453,7 +482,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       dimension_data = vm.dimensions_filter_data;
     }
     debugger;
-    get_brand_filter_value();
+    vm.category = cat_name;
+    get_brand_filter_value('brand_value');
+    get_brand_filter_value('category_value');
+    cat_name = vm.category;
     var data = {brand: vm.brand, sub_category: sub_cat_name, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, size_filter: size_stock, color: vm.color, from_price: vm.fromPrice,
                 to_price: vm.toPrice, quantity: vm.quantity, delivery_date: vm.delivery_date, is_margin_percentage: vm.marginData.is_margin_percentage,
@@ -541,8 +573,11 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.catDisplay = false;
   vm.all_cate = [];
   vm.categories_details = {};
-  vm.change_brand = function(data) {
+  vm.change_brand = function(data, filter_value) {
     vm.brand = data;
+    debugger;
+    localStorage.removeItem(filter_value);
+    vm.category = ''
     vm.catlog_data.index = "";
     vm.required_quantity = {};
     angular.copy([], vm.catlog_data.data);
@@ -550,7 +585,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.style='';
     vm.size_filter_show=false;
     vm.filterData.selectedBrands = {};
-    debugger;
     vm.filterData.selectedBrands[vm.brand] = true;
 
     angular.forEach(vm.filterData.selectedCats, function(value, key) {
@@ -581,7 +615,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.pdfDownloading = true;
     vm.catDisplay = true;
     debugger;
-    get_brand_filter_value()
+    get_brand_filter_value('brand_value');
+    get_brand_filter_value('category_value');
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
     if (vm.disable_categories && !vm.disable_brands) {
       vm.change_category('')
@@ -802,7 +837,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
   vm.sizeform = function(form) {
     var config = {};
-    get_brand_filter_value();
+    get_brand_filter_value('brand_value');
+    get_brand_filter_value('category_value');
     vm.show_no_data = false;
     if (form == "clear") {
         $('#size_form').trigger('reset');
@@ -836,7 +872,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     });
 
     } else {
-    get_brand_filter_value();
+    get_brand_filter_value('brand_value');
+    get_brand_filter_value('category_value');
     var size_stock = {};
     var stock_qty = {};
     var formdata = $('#size_form').serializeArray();
@@ -1204,6 +1241,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true, sale_through: vm.order_type_value};
 
   vm.modifyMarginEachSKU = function(item, $index) {
+    get_brand_filter_value('category_value');
     vm.catlog_data.data[$index].loading = true
     var dict_values = {};
     dict_values['margin_data'] = { 'wms_code':item.wms_code, 'price':item.your_price, 'margin' : item.margin }
@@ -1218,6 +1256,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     data['margin_data'] = JSON.stringify(data_list);
     var index_value = data['index'];
     data['index'] = '';
+    debugger;
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(data) {
       if(data.message) {
         vm.catlog_data.data[index_value] = data.data.data[0];
@@ -1572,7 +1611,8 @@ angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance,
   $ctrl.categories = [];
   $ctrl.categories_loading = true;
   $ctrl.get_categories = function() {
-    get_brand_filter_value();
+    get_brand_filter_value('brand_value');
+    get_brand_filter_value('category_value');
     var data = {brand: '', sale_through: $ctrl.marginData.sale_through};
     Service.apiCall("get_sku_categories/", "GET",data).then(function(data){
       if(data.message) {
@@ -1599,6 +1639,7 @@ angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance,
     var data = {category: category, sale_through: $ctrl.marginData.sale_through, is_catalog:true, customer_id: Session.userId}
     $ctrl.styles_loading = true;
     $ctrl.styles = [];
+    debugger;
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(data) {
       if(data.message) {
         $ctrl.styles = data.data.data;
@@ -1697,6 +1738,7 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
     data['display_stock'] = vm.pdfData.display_stock;
     data['bank_details'] = vm.pdfData.bank_details;
     data['address_details'] = vm.pdfData.address_details;
+    debugger;
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
       if(response.message) {
         window.open(Session.host + response.data, '_blank');

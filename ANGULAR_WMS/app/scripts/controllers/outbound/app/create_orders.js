@@ -30,11 +30,11 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.api_url = Session.host;
   vm.profile_name = Session.user_profile.first_name;
   vm.mark_as_delivered = Session.roles.permissions.mark_as_delivered;
-  debugger;
   vm.brand_filter = '';
   if (!$.isEmptyObject($state.params)) {
     vm.brand_filter = $state.params.brand_filter;
   }
+  //Session.sagar_fab_filter = {}
   vm.test = [{wms_code: '101', sku_desc: 'Description-1'}, {wms_code: '102', sku_desc: 'Description-2'},
              {wms_code: '103', sku_desc: 'Description-3'}, {wms_code: '104', sku_desc: 'Description-4'}];
   vm.modelData = {'profile_name': vm.profile_name, 'ordered_skus':vm.test};
@@ -60,6 +60,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     })
   }
 
+  vm.back_button = function () {
+    $state.go('user.App.Brands');
+    showCase.showFilter = false;
+  }
 
   vm.display_ratings = function() {
     var formData = {}
@@ -213,25 +217,30 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   // }
   // vm.display_ratings();
   /*Rating module end*/
-  function change_filter_data() {
+
+  function get_brand_filter_value() {
     debugger;
-    var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
-    if (!(vm.brand) && (!$.isEmptyObject(Session.sagar_fab_filter))) {
-      if (Session.sagar_fab_filter['brand_filter']) {
-        vm.brand = Session.sagar_fab_filter['brand_filter'];
+    var url = $state.$current.url.sourcePath;
+    if (!(vm.brand)) {
+      if (localStorage.getItem(url)) {
+        vm.brand = localStorage.getItem(url);
       }
     }
+    localStorage.setItem(url, vm.brand);
+  }
+
+  function change_filter_data() {
+    debugger;
+    get_brand_filter_value();
+    var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
-
       if(data.message) {
-
         vm.categories = data.data.categories;
         vm.all_cate = data.data.categories;
         vm.cluster_images = data.data.Image_urls;
         vm.get_category(true);
         Data.categories = data.data.categories;
         Data.sub_categories = data.data.sub_categories;
-
         vm.filterData = data.data;
         vm.filterData.brand_size_data = [];
         if(["reseller", "dist_customer"].indexOf(Session.roles.permissions.user_type) == -1) {
@@ -248,9 +257,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.filterData.selectedBrands = {};
         vm.filterData.subCats = {};
         vm.filterData.leastCats = {};
-
-
-
 	vm.brands = data.data.brands;
 	if (vm.brands.length === 0){
 	  vm.details = false;
@@ -338,6 +344,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     vm.catlog_data.index = ""
     debugger;
+    get_brand_filter_value();
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, size_filter:size_stock}
     vm.scroll_data = false;
@@ -446,6 +453,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       dimension_data = vm.dimensions_filter_data;
     }
     debugger;
+    get_brand_filter_value();
     var data = {brand: vm.brand, sub_category: sub_cat_name, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, size_filter: size_stock, color: vm.color, from_price: vm.fromPrice,
                 to_price: vm.toPrice, quantity: vm.quantity, delivery_date: vm.delivery_date, is_margin_percentage: vm.marginData.is_margin_percentage,
@@ -534,7 +542,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.all_cate = [];
   vm.categories_details = {};
   vm.change_brand = function(data) {
-    debugger;
     vm.brand = data;
     vm.catlog_data.index = "";
     vm.required_quantity = {};
@@ -573,12 +580,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     vm.pdfDownloading = true;
     vm.catDisplay = true;
-    if (!(vm.brand) && (!$.isEmptyObject(Session.sagar_fab_filter))) {
-      if (Session.sagar_fab_filter['brand_filter']) {
-        vm.brand = Session.sagar_fab_filter['brand_filter'];
-      }
-    }
     debugger;
+    get_brand_filter_value()
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
     if (vm.disable_categories && !vm.disable_brands) {
       vm.change_category('')
@@ -799,6 +802,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
   vm.sizeform = function(form) {
     var config = {};
+    get_brand_filter_value();
     vm.show_no_data = false;
     if (form == "clear") {
         $('#size_form').trigger('reset');
@@ -821,11 +825,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     stock_qty['sale_through'] = vm.order_type_value;
     angular.copy(size_stock, vm.size_filter_data);
     debugger;
-    if (!(vm.brand) && (!$.isEmptyObject(Session.sagar_fab_filter))) {
-      if (Session.sagar_fab_filter['brand_filter']) {
-        vm.brand = Session.sagar_fab_filter['brand_filter'];
-      }
-    }
     vm.service.apiCall("get_sku_categories/", "GET", stock_qty).then(function(data) {
             if(data.message) {
             vm.all_cate = data.data.categories;
@@ -837,6 +836,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     });
 
     } else {
+    get_brand_filter_value();
     var size_stock = {};
     var stock_qty = {};
     var formdata = $('#size_form').serializeArray();
@@ -847,7 +847,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     });
     vm.size_filter = size_stock;
     stock_qty['size_filter'] = JSON.stringify(size_stock);
-    debugger;
     stock_qty['brand'] = vm.brand;
     stock_qty['sale_through'] = vm.order_type_value;
     vm.size_filter_show = true;
@@ -856,14 +855,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
     vm.catlog_data.index = "";
     vm.catlog_data.data = [];
-
     angular.copy(size_stock, vm.size_filter_data);
-    debugger;
-    if (!(vm.brand) && (!$.isEmptyObject(Session.sagar_fab_filter))) {
-      if (Session.sagar_fab_filter['brand_filter']) {
-        vm.brand = Session.sagar_fab_filter['brand_filter'];
-      }
-    }
     vm.service.apiCall("get_sku_categories/", "GET", stock_qty).then(function(data) {
       if(data.message) {
         vm.all_cate = data.data.categories;
@@ -1580,14 +1572,8 @@ angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance,
   $ctrl.categories = [];
   $ctrl.categories_loading = true;
   $ctrl.get_categories = function() {
-
+    get_brand_filter_value();
     var data = {brand: '', sale_through: $ctrl.marginData.sale_through};
-    debugger;
-    if (!(vm.brand) && (!$.isEmptyObject(Session.sagar_fab_filter))) {
-      if (Session.sagar_fab_filter['brand_filter']) {
-        vm.brand = Session.sagar_fab_filter['brand_filter'];
-      }
-    }
     Service.apiCall("get_sku_categories/", "GET",data).then(function(data){
       if(data.message) {
         $ctrl.categories = data.data.categories;

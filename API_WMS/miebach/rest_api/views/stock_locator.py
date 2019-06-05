@@ -453,7 +453,7 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
 
         # ASN Stock Related to SM
         today_filter = datetime.datetime.today()
-        hundred_day_filter = today_filter + datetime.timedelta(days=100)
+        #hundred_day_filter = today_filter + datetime.timedelta(days=100)
         ints_filters = {'quantity__gt': 0, 'sku__user': user, 'status': 'open'}
         asn_qs = ASNStockDetail.objects.filter(**ints_filters)
         intr_obj_100days_qs = asn_qs
@@ -462,7 +462,7 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
         asn_res_100days_qs = asnres_det_qs.filter(orderdetail__isnull=False)  # Reserved Quantity
         asn_res_100days_qty = dict(
             asn_res_100days_qs.only('asnstock__sku__sku_code').values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
-        asn_blk_100days_qs = asnres_det_qs.filter(orderdetail__isnull=True)  # Blocked Quantity
+        asn_blk_100days_qs = asnres_det_qs.filter(orderdetail__isnull=True, enquirydetail__warehouse_level=3)  # Blocked Quantity
         asn_blk_100days_qty = dict(
             asn_blk_100days_qs.only('asnstock__sku__sku_code').values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
 

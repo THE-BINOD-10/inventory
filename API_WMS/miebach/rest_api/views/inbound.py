@@ -1435,6 +1435,15 @@ def get_mapping_values(request, user=''):
     data = get_mapping_values_po(wms_code ,supplier_id,user)
     return HttpResponse(json.dumps(data), content_type='application/json')
 
+def get_ep_supplier_value(request, user=''):
+    data = {}
+    supplier_id = request.POST.get('supplier_id', '')
+    supplier_obj = SupplierMaster.objects.get(id=supplier_id)
+    if int(supplier_obj.ep_supplier):
+        data['ep_supplier_status'] = int(supplier_obj.ep_supplier)
+    else:
+        data['ep_supplier_status'] = int(supplier_obj.ep_supplier)
+    return HttpResponse(json.dumps(data))
 
 def check_and_create_supplier(seller_id, user):
     seller_master = SellerMaster.objects.get(user=user.id, seller_id=seller_id)

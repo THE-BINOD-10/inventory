@@ -1914,7 +1914,11 @@ def update_putaway(request, user=''):
         for i in range(0, len(data_dict['id'])):
             po_data = {}
             if not data_dict['id'][i]:
-                if 'po_quantity' in data_dict.keys() and 'price' in data_dict.keys() and not data_dict['id'][i]:
+                try:
+                    data_dict['quantity'][i] = float(data_dict['quantity'][i])
+                except:
+                    data_dict['quantity'][i] = 0
+                if 'po_quantity' in data_dict.keys() and 'price' in data_dict.keys() and not data_dict['id'][i] and data_dict['quantity'][i]:
                     if data_dict['wms_code'][i] and data_dict['quantity'][i]:
                         sku_master = SKUMaster.objects.filter(wms_code=data_dict['wms_code'][i].upper(),
                                                               user=user.id)
@@ -1923,8 +1927,8 @@ def update_putaway(request, user=''):
                             if exist_list_id:
                                 exist_id = exist_list_ind
                                 break
-                    get_data = create_purchase_order(request, data_dict, i, exist_id=exist_id)
-                    data_dict['id'][i] = get_data
+                        get_data = create_purchase_order(request, data_dict, i, exist_id=exist_id)
+                        data_dict['id'][i] = get_data
                 else:
                     continue
             po = PurchaseOrder.objects.get(id=data_dict['id'][i])
@@ -1982,7 +1986,7 @@ def update_putaway(request, user=''):
         log.debug(traceback.format_exc())
         log.info(
             "Update Receive PO data failed for params " + str(request.POST.dict()) + " and error statement is " + str(e))
-        return HttpResponse('Updated Failed')
+        return HttpResponse('Update Failed')
     return HttpResponse('Updated Successfully')
 
 

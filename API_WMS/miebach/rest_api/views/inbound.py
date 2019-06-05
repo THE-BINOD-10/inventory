@@ -1929,6 +1929,9 @@ def update_putaway(request, user=''):
                                 break
                         get_data = create_purchase_order(request, data_dict, i, exist_id=exist_id)
                         data_dict['id'][i] = get_data
+                        po_obj = PurchaseOrder.objects.get(id=data_dict['id'][i])
+                        po_obj.open_po.status = 0
+                        po_obj.open_po.save()
                 else:
                     continue
             po = PurchaseOrder.objects.get(id=data_dict['id'][i])

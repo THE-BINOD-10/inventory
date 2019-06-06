@@ -9575,7 +9575,7 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
     if admin_user:
        get_level_based_customer_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters)
     else:
-        lis = ['order_id','quantity','Delivered Qty', 'Pending Qty', 'Order Value', 'creation_date', 'Receive Status']
+        lis = ['order_id','quantity', 'Delivered Qty', 'Pending Qty', 'Order Value', 'creation_date', 'Receive Status']
         search_params = get_filtered_params(filters, lis)
         order_data = lis[col_num]
         if order_term == 'desc':
@@ -9659,7 +9659,7 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
                 record['picked_quantity'] = picked_quantity
 
                 temp_data['aaData'].append(OrderedDict(
-                    (('Order ID', record['order_id']),('Ordered Qty', record['total_quantity']),('Emiza_order_ids', record['Emiza_ids']),
+                    (('Order ID', record['order_id']),('Ordered Qty', record['total_quantity']),
                     ('Delivered Qty',record['picked_quantity']), ('Pending Qty',record['total_quantity']-record['picked_quantity']),
                     ('Order Value', record['total_inv_amt']),('Order Date', record['date']),('Receive Status', record['status']))))
 

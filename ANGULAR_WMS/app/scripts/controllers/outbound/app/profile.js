@@ -30,6 +30,26 @@ function ProfileUpload($scope, $http, $q, Session, colFilters, Service, $state, 
     });
   }
   vm.base();
+  vm.logo_loading = false;
+  vm.remove_image = function(logo) {
+    var el = document.getElementById('logo').value;
+    var image = vm.model_data.logo;
+    var data = {'user_id': Session.userId, 'image': image};
+    Service.apiCall("remove_customer_profile_image/", "POST", data).then(function(data){
+      if (data.message) {
+        if (data.data == 'Success') {
+          vm.model_data.logo = '';
+          document.getElementById('logo').value = '';
+          Service.showNoty('Image Deleted Successfully');
+        } else {
+          Service.showNoty(data.data, 'warning');
+        }
+      } else {
+        Service.showNoty('Something went wrong', 'danger');
+      }
+    });
+  }
+
 
   vm.logo_loading = false;
   vm.submit = function(form){

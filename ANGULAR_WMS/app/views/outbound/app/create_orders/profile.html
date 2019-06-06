@@ -42,7 +42,7 @@
 
         <form name="form" role="form" id="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
           <div class="row mt20">
-            
+
             <div class="row">
               <div class="col-md-12">
                 <div class="form-group">
@@ -103,11 +103,16 @@
               <div class="col-md-12">
                 <div class="form-group">
                   <label class="control-label"> Logo </label>
+                  <button ng-if="profile.model_data.logo" class="btn btn-danger" style="position:absolute;top:20px;right:10px;" type="button" name="button" ng-click="profile.remove_image('logo')">X</button>
                   <img ng-if="!profile.logo_loading" style="width: 100%; height: auto; padding-bottom:15px" ng-src="{{profile.session.host + profile.model_data.logo}}" alt="">
                   <div ng-if="profile.logo_loading" style="height:300px;padding-top:80px">
                     <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
                   </div>
-                  <input type="file" name="file" id="logo"/>
+                  <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                    <span class="btn btn-primary up-btn pull-left" style="position: relative;overflow: hidden;width: 150px;">Choose File
+                    <input style="position: absolute;top: 0;right: 0; min-width: 100%; min-height: 100%; font-size: 100px; text-align: right; filter: alpha(opacity=0); opacity: 0; outline: none; background: white; cursor: inherit; display: block;" class="btn btn-primary" type = "file" name="files"  id="logo" />
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

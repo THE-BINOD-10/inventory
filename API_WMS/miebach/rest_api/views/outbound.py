@@ -4938,6 +4938,35 @@ def create_backorders(backorder_splitup_map, admin_user, sku_total_qty_map):
                 check_and_raise_po(generic_order_id, cm_id, order_detail.id)
 
 
+def check_backorder_compatibility(myDict, admin_user, user):
+    sku_qty_map = {}
+    sku_total_qty_map = {}
+    backorder_feasibility_flag = False
+    for i in range(len(myDict['sku_id'])):
+        sku_id = myDict['sku_id'][i]
+        qty = myDict['quantity'][i]
+        sku_qty_map.setdefault(sku_id, []).append(qty)
+
+    for sku, qties in sku_qty_map.items():
+        sku_total_qty_map[sku] = [sum(map(int, qties)), False]
+
+    for sku_code, val in sku_total_qty_map.items():
+        total_qty, flag_val = val
+        price_ranges_map = fetch_unit_price_based_ranges(user, 1, admin_user.id, sku_code)
+        if price_ranges_map.has_key('price_ranges'):
+            for index, each_map in enumerate(price_ranges_map['price_ranges']):
+                if index == 0:
+                    continue
+                min_qty, max_qty, price = each_map['min_unit_range'], each_map['max_unit_range'], each_map['price']
+                if min_qty <= total_qty <= max_qty:
+                    backorder_feasibility_flag = True
+                    sku_total_qty_map[sku_code][1] = backorder_feasibility_flag
+                    break
+        if not backorder_feasibility_flag:
+            log.info("Not Creating Back order as total qty (%s) is in Price Grid A" % total_qty)
+    return backorder_feasibility_flag, sku_total_qty_map
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -5024,6 +5053,7 @@ def insert_order_data(request, user=''):
     generic_order_id = 0
     admin_user = get_priceband_admin_user(user)
     order_detail = None
+    backorder_flag = False
     if admin_user:
         # get_order_customer_details
         user_order_ids_map = {}
@@ -5041,6 +5071,8 @@ def insert_order_data(request, user=''):
                 is_distributor = customer_obj[0].is_distributor
                 cm_id = customer_obj[0].id
                 generic_order_id = get_generic_order_id(cm_id)
+                if not is_distributor:
+                    backorder_flag, sku_total_qty_map = check_backorder_compatibility(myDict, admin_user, user)
     try:
         for i in range(0, len(myDict['sku_id'])):
             order_data = copy.deepcopy(UPLOAD_ORDER_DATA)
@@ -5162,6 +5194,10 @@ def insert_order_data(request, user=''):
                         order_data['user'] = usr
                         if qty <= 0:
                             continue
+                        if backorder_flag:
+                            bqty, bflag = sku_total_qty_map.get(order_data['sku_code'])
+                            if bflag:
+                                qty = bqty
                         order_data['quantity'] = qty
                         creation_date = datetime.datetime.now()
                         order_data['creation_date'] = creation_date
@@ -9676,13 +9712,14 @@ def construct_order_customer_order_detail(request, order, user):
             el_price = gen_ord_obj[0].el_price
             res_unit_price = gen_ord_obj[0].unit_price
             cm_id = gen_ord_obj[0].customer_id
-            qty = record['quantity']
+            qty = gen_ord_obj[0].quantity
+            record['quantity'] = qty
             user = gen_ord_obj[0].cust_wh_id
             sku_code = record['sku__sku_code']
             if el_price:
                 record['el_price'] = el_price
             if res_unit_price:
-                tax_exclusive_inv_amt = float(res_unit_price) * int(record['quantity'])
+                tax_exclusive_inv_amt = float(res_unit_price) * int(qty)
                 tax_inclusive_inv_amt = get_tax_inclusive_invoice_amt(cm_id, res_unit_price, qty, user,
                                                                       sku_code, admin_user)
                 record['invoice_amount'] = tax_inclusive_inv_amt

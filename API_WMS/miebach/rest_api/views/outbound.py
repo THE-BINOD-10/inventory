@@ -9425,8 +9425,9 @@ def get_only_date(request, date):
 
 
 def get_level_based_customer_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['generic_order_id','quantity', 'Delivered Qty', 'Pending Qty', 'Order Value', 'creation_date', 'Receive Status']
+    lis = ['generic_order_id','quantity','Emiza_order_ids', 'corporate_name', 'Delivered Qty', 'Pending Qty', 'Order Value', 'creation_date', 'Receive Status']
     search_params = get_filtered_params(filters, lis)
+    corporatae_name = ''
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -9434,10 +9435,20 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
     is_autobackorder = request.GET.get('autobackorder', 'false')
     user_profile = UserProfile.objects.get(user=user.id)
     admin_user = get_priceband_admin_user(user)
+    orderprefix_map = {}
+    all_wh_dists_obj = UserGroups.objects.filter(admin_user=admin_user)
+    if request.user.userprofile.zone:
+        all_wh_dists = all_wh_dists_obj.filter(user__userprofile__zone=request.user.userprofile.zone).values_list('user_id', flat=True)
+    else:
+        all_wh_dists = all_wh_dists_obj.values_list('user_id', flat=True)
+    orderprefix_map = dict(all_wh_dists_obj.values_list('user_id', 'user__userprofile__order_prefix'))
     if is_autobackorder == 'true':
         customer = WarehouseCustomerMapping.objects.filter(warehouse=user.id, status=1)
         if customer:
             cm_ids = CustomerUserMapping.objects.filter(customer__user=user.id).values_list('customer_id', flat=True)
+            em_qs = EnquiryMaster.objects.filter(customer_id=cm_ids,**search_params)
+            if em_qs.exists():
+                corporatae_name = em_qs[0].corporate_name
             filter_dict = {'customer_id__in': cm_ids}
     # elif user_profile.warehouse_type == 'WH':
     #     filter_dict = {'cust_wh_id__in': [user.id]}
@@ -9450,6 +9461,9 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
     else:
         cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
         cm_ids = cum_obj.values_list('customer_id', flat=True)
+        em_qs = EnquiryMaster.objects.filter(customer_id=cm_ids,**search_params)
+        if em_qs.exists():
+            corporatae_name = em_qs[0].corporate_name
         filter_dict = {'customer_id__in': cm_ids}
 
     generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
@@ -9504,6 +9518,18 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
             record['date'] = ''
         if record['generic_order_id']:
             record['order_id'] = record['generic_order_id']
+
+        record['Emiza_ids'] = ''
+        emiza_order_ids = []
+        if record['order_id']:
+            related_order_ids = generic_orders.filter(generic_order_id=record['order_id']).values_list(
+            'orderdetail__user','orderdetail__order_id')
+            for usr , org_id in related_order_ids:
+                if usr in orderprefix_map:
+                    emiza_id = orderprefix_map[usr]+'MN'+str(org_id)
+                    emiza_order_ids.append(emiza_id)
+            record['Emiza_ids'] = list(set(emiza_order_ids))
+
         record['order_detail_ids'] = list(order_details.values_list('orderdetail__order_id', flat=True).distinct())
         customer_id = record['customer_id']
         record['reseller_name'] = CustomerMaster.objects.get(id=customer_id).name
@@ -9536,7 +9562,7 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
                         if other_charges:
                             record['total_inv_amt'] += round(other_charges, 2)
         temp_data['aaData'].append(OrderedDict(
-            (('Order ID', record['order_id']), ('Ordered Qty', record['total_quantity']),
+            (('Order ID', record['order_id']), ('Ordered Qty', record['total_quantity']),('Emiza_order_ids', record['Emiza_ids']),('corporate_name', corporatae_name),
              ('Delivered Qty',record['picked_quantity']), ('Pending Qty',record['total_quantity']-record['picked_quantity']), ('Order Value', record['total_inv_amt']),('Order Date', record['date']),('Receive Status',record['status']))))
     """return response_data"""
 
@@ -9549,7 +9575,7 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
     if admin_user:
        get_level_based_customer_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters)
     else:
-        lis = ['order_id','quantity', 'Delivered Qty', 'Pending Qty', 'Order Value', 'creation_date', 'Receive Status']
+        lis = ['order_id','quantity','Delivered Qty', 'Pending Qty', 'Order Value', 'creation_date', 'Receive Status']
         search_params = get_filtered_params(filters, lis)
         order_data = lis[col_num]
         if order_term == 'desc':
@@ -9560,6 +9586,7 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
         customer = CustomerUserMapping.objects.filter(user=request.user.id)
         # lis = ['order_id', 'total_quantity', 'picked_quantity','total_quantity'-'picked_quantity', 'total_inv_amt']
         # search_params = get_filtered_params(filters, lis)
+
         intermediate_orders = []
         if customer:
             customer_id = customer[0].customer.customer_id
@@ -9592,7 +9619,6 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
                                                   date_only=Cast('creation_date', DateField()),
                                                   intermediate_order=Value(False, output_field=BooleanField())).order_by('-date_only'))
             response_data['data'] = list(chain(intermediate_orders, real_orders))
-
         response_data['data'] = response_data['data'][start_index:stop_index]
         for record in response_data['data']:
             if record['intermediate_order']:
@@ -9633,7 +9659,7 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
                 record['picked_quantity'] = picked_quantity
 
                 temp_data['aaData'].append(OrderedDict(
-                    (('Order ID', record['order_id']),('Ordered Qty', record['total_quantity']),
+                    (('Order ID', record['order_id']),('Ordered Qty', record['total_quantity']),('Emiza_order_ids', record['Emiza_ids']),
                     ('Delivered Qty',record['picked_quantity']), ('Pending Qty',record['total_quantity']-record['picked_quantity']),
                     ('Order Value', record['total_inv_amt']),('Order Date', record['date']),('Receive Status', record['status']))))
 
@@ -9749,7 +9775,6 @@ def get_level_based_customer_order_detail(request, user):
         cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
         cm_ids = cum_obj.values_list('customer_id', flat=True)
         filter_dict = {'customer_id__in': cm_ids}
-
     generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
     if customer_id:
         generic_orders = generic_orders.filter(customer_id=customer_id)

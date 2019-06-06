@@ -14,6 +14,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.display = true;
+    vm.username = Session.userName
 
     //default values
     if(!vm.permissions.grn_scan_option) {
@@ -67,12 +68,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.dtColumns = [
       DTColumnBuilder.newColumn('Order ID').withTitle('Order ID'),
       DTColumnBuilder.newColumn('Ordered Qty').withTitle('Ordered Qty').notSortable(),
+      DTColumnBuilder.newColumn('Emiza_order_ids').withTitle('Emiza Order IDs').notSortable().withOption('width', '20px'),
       DTColumnBuilder.newColumn('Delivered Qty').withTitle('Delivered Qty').notSortable(),
       DTColumnBuilder.newColumn('Pending Qty').withTitle('Pending Qty').notSortable(),
       DTColumnBuilder.newColumn('Order Value').withTitle('Order Value').notSortable(),
       DTColumnBuilder.newColumn('Order Date').withTitle('Order Date'),
       DTColumnBuilder.newColumn('Receive Status').withTitle('Receive Status').notSortable(),
     ];
+    if(vm.username == "Z1D1R1"){
+       vm.dtColumns.push(DTColumnBuilder.newColumn('corporate_name').withTitle('Corporate Name').notSortable())
+    }
     //var empty_data = {Order ID:"",Ordered Qty :"", Delivered Qty:"", Pending Qty:"", Order Value:"", Order Date:"", Receive Status:""};
      vm.model_data = {};
     var row_click_bind = 'td';

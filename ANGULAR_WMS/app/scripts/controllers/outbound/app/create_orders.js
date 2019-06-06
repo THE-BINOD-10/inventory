@@ -158,7 +158,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
   vm.categories = [];
   vm.category = "";
-  debugger;
   vm.brand = "";
   vm.filterData = {};
 
@@ -232,7 +231,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   /*Rating module end*/
 
   function get_brand_filter_value(params_value) {
-    debugger;
     //var url = $state.$current.url.sourcePath + params_value;
     var url = params_value;
     if (params_value == "category_value") {
@@ -258,7 +256,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   }
 
   function change_filter_data() {
-    debugger;
     get_brand_filter_value('brand_value');
     get_brand_filter_value('category_value');
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
@@ -372,7 +369,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
 
     vm.catlog_data.index = ""
-    debugger;
     get_brand_filter_value('brand_value');
     get_brand_filter_value('category_value');
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
@@ -481,7 +477,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     } else {
       dimension_data = vm.dimensions_filter_data;
     }
-    debugger;
     vm.category = cat_name;
     get_brand_filter_value('brand_value');
     get_brand_filter_value('category_value');
@@ -575,7 +570,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.categories_details = {};
   vm.change_brand = function(data, filter_value) {
     vm.brand = data;
-    debugger;
     localStorage.removeItem(filter_value);
     vm.category = ''
     vm.catlog_data.index = "";
@@ -614,7 +608,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     vm.pdfDownloading = true;
     vm.catDisplay = true;
-    debugger;
     get_brand_filter_value('brand_value');
     get_brand_filter_value('category_value');
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
@@ -860,7 +853,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     stock_qty['brand'] = vm.brand;
     stock_qty['sale_through'] = vm.order_type_value;
     angular.copy(size_stock, vm.size_filter_data);
-    debugger;
     vm.service.apiCall("get_sku_categories/", "GET", stock_qty).then(function(data) {
             if(data.message) {
             vm.all_cate = data.data.categories;
@@ -970,7 +962,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
 
     vm.catlog_data.index = "";
-    debugger;
     vm.brand = brand.join(",");
     vm.category = temp_primary_data.join(","); //category.join(",");
     vm.sub_category = temp_sub_cat_data.join(","); //category.join(",");
@@ -1048,7 +1039,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.filterData.selectedColors[key] = false;
       });
 
-      debugger;
       vm.brand = "";
       vm.category = "";
       vm.color = "";
@@ -1256,7 +1246,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     data['margin_data'] = JSON.stringify(data_list);
     var index_value = data['index'];
     data['index'] = '';
-    debugger;
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(data) {
       if(data.message) {
         vm.catlog_data.data[index_value] = data.data.data[0];
@@ -1267,9 +1256,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   };
 
   vm.downloadPDF = function() {
-
     var size_stock = JSON.stringify(vm.size_filter_data);
-    debugger;
     var data = {data: {brand: vm.brand, category: vm.category, sku_class: vm.style, index: "", is_catalog: true,
                 sale_through: vm.order_type_value, size_filter:size_stock, share: true, file: true,
                 color: vm.color, from_price: vm.fromPrice, to_price: vm.toPrice, quantity: vm.quantity, delivery_date: vm.delivery_date,
@@ -1639,7 +1626,6 @@ angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance,
     var data = {category: category, sale_through: $ctrl.marginData.sale_through, is_catalog:true, customer_id: Session.userId}
     $ctrl.styles_loading = true;
     $ctrl.styles = [];
-    debugger;
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(data) {
       if(data.message) {
         $ctrl.styles = data.data.data;
@@ -1738,7 +1724,6 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
     data['display_stock'] = vm.pdfData.display_stock;
     data['bank_details'] = vm.pdfData.bank_details;
     data['address_details'] = vm.pdfData.address_details;
-    debugger;
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
       if(response.message) {
         window.open(Session.host + response.data, '_blank');

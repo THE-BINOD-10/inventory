@@ -4087,7 +4087,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
                                                 ('branch_name', data.branch_name),
                                                 ('account_number', data.account_number),
                                                 ('account_holder_name', data.account_holder_name),
-                                                ('ep_supplier', data.ep_supplier)
+                                                ('ep_supplier', data.ep_supplier),
                                                 # ('markdown_percentage', data.markdown_percentage)
                                                 ('secondary_email_id', secondary_email_ids)
                                             )))

@@ -12525,7 +12525,7 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
     if search_term:
         em_qs = EnquiryMaster.objects.filter(customer_id=cm_id).filter(
                 Q(enquiry_id__icontains=search_term) | Q(creation_date__regex=search_term)
-                | Q(corporate_name__icontains=search_term),
+                | Q(enquiredsku__sku__sku_code__icontains=search_term) | Q(corporate_name__icontains=search_term),
                  customer_id=cm_id, **search_params).order_by(order_data)
     temp_data['recordsTotal'] = len(em_qs)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']

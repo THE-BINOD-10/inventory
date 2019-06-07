@@ -13941,7 +13941,7 @@ def update_cust_profile(request, user=''):
 @get_admin_user
 def remove_customer_profile_image(request, user=''):
     try:
-        resp = {'message': 'success', 'data':[]}
+        message = 'Success'
         user_id = request.POST.get('user_id', '')
         image = request.POST.get('image', '')
         filters = {'user_id': user_id}
@@ -13951,14 +13951,11 @@ def remove_customer_profile_image(request, user=''):
             return HttpResponse("Image Not Found")
         os.remove(os.path.join(settings.MEDIA_ROOT,image))
         exe_data[0].customer_logo.delete()
-        return HttpResponse("Success")
     except Exception as e:
         import traceback
         log.info("Error Occurred while Removing the Customer Profile Picture: %s" %traceback.format_exc())
-        resp['message'] = 'fail'
-        return HttpResponse("fail")
-
-
+        message = 'fail'
+    return HttpResponse(message)
 
 @csrf_exempt
 @login_required

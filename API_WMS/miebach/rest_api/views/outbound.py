@@ -2661,7 +2661,7 @@ def update_invoice(request, user=''):
             discount_percentage = 0
             unit_price_index = myDict['id'].index(str(order_id.id))
             # if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
-            if int(myDict['quantity'][unit_price_index]) == 0:
+            if float(myDict['quantity'][unit_price_index]) == 0:
                 cust_objs = CustomerOrderSummary.objects.filter(order__id=order_id.id)
                 if cust_objs:
                     cust_obj = cust_objs[0]
@@ -2680,7 +2680,7 @@ def update_invoice(request, user=''):
                         discount_percentage = "%.1f" % (float((cust_obj.discount * 100) / (order_id.quantity * order_id.unit_price)))
                 order_id.unit_price = float(myDict['unit_price'][unit_price_index])
                 order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index].replace(',',''))
-                order_id.quantity = int(myDict['quantity'][unit_price_index])
+                order_id.quantity = float(myDict['quantity'][unit_price_index])
                 print str(order_id.sku_id) + "= " + str(order_id.quantity)
                 order_id.save()
                 sgst_tax = float(myDict['sgst_tax'][unit_price_index])

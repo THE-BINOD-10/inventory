@@ -3161,8 +3161,8 @@ def get_po_filter_data(search_params, user, sub_user):
     search_parameters['received_quantity__gt'] = 0
     query_data = model_name.objects.prefetch_related('open_po__sku','open_po__supplier').select_related('open_po', 'open_po__sku','open_po__supplier').exclude(**excl_status).filter(**search_parameters)
     model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(ord_quan),
-                                                                   total_received=Sum(rec_quan),
-                                                                   grn_rec=Sum(rec_quan1))
+                                                                   total_received=Sum(rec_quan))
+                                                                   #grn_rec=Sum(rec_quan1))
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
     if order_term:
@@ -3192,8 +3192,13 @@ def get_po_filter_data(search_params, user, sub_user):
         else:
             po_number = '%s/%s' % (po_number, receipt_no)
         received_qty = data['total_received']
-        if data['grn_rec']:
-            received_qty = data['grn_rec']
+        if data.get('sellerposummary__receipt_number', ''):
+            received_qty =  po_result.filter(sellerposummary__receipt_number=data['sellerposummary__receipt_number']).aggregate(
+                Sum(rec_quan1))[rec_quan1 + '__sum']
+            if not received_qty:
+                received_qty = 0
+        #if data['grn_rec']:
+        #    received_qty = data['grn_rec']
         temp_data['aaData'].append(OrderedDict((('PO Number', po_number),
                                                 ('Supplier ID', data[field_mapping['supplier_id']]),
                                                 ('Supplier Name', data[field_mapping['supplier_name']]),

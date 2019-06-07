@@ -4087,7 +4087,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
                                                 ('branch_name', data.branch_name),
                                                 ('account_number', data.account_number),
                                                 ('account_holder_name', data.account_holder_name),
-                                                ('ep_supplier', data.ep_supplier)
+                                                ('ep_supplier', data.ep_supplier),
                                                 # ('markdown_percentage', data.markdown_percentage)
                                                 ('secondary_email_id', secondary_email_ids)
                                             )))
@@ -4106,7 +4106,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
     'City', 'State', 'Days To Supply', 'Fulfillment Amount', 'Credibility', 'Country', 'Pincode',
     'Status', 'Supplier Type', 'Tax Type', 'PO Exp Duration', 'Owner Name',
     'Owner Number', 'Owner Email Id', 'Spoc Name', 'Spoc Number', 'Lead Time', 'Spoc Email ID', 'Credit Period',
-    'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name', 'Secondary Email ID']
+    'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name', 'Extra Purchase', 'Secondary Email ID']
     try:
         wb, ws = get_work_sheet('skus', itemgetter(*excel_headers)(headers))
     except:

@@ -2661,7 +2661,7 @@ def update_invoice(request, user=''):
             discount_percentage = 0
             unit_price_index = myDict['id'].index(str(order_id.id))
             # if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
-            if int(myDict['quantity'][unit_price_index]) == 0:
+            if float(myDict['quantity'][unit_price_index]) == 0:
                 cust_objs = CustomerOrderSummary.objects.filter(order__id=order_id.id)
                 if cust_objs:
                     cust_obj = cust_objs[0]
@@ -2680,7 +2680,7 @@ def update_invoice(request, user=''):
                         discount_percentage = "%.1f" % (float((cust_obj.discount * 100) / (order_id.quantity * order_id.unit_price)))
                 order_id.unit_price = float(myDict['unit_price'][unit_price_index])
                 order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index].replace(',',''))
-                order_id.quantity = int(myDict['quantity'][unit_price_index])
+                order_id.quantity = float(myDict['quantity'][unit_price_index])
                 print str(order_id.sku_id) + "= " + str(order_id.quantity)
                 order_id.save()
                 sgst_tax = float(myDict['sgst_tax'][unit_price_index])
@@ -4971,7 +4971,9 @@ def insert_order_data(request, user=''):
 
     # Validate sku, quantity, stock
     valid_status, all_sku_codes, temp_distinct_skus = validate_order_form(myDict, request, user)
-    payment_modes =  json.loads(request.POST.get('payment_modes', ''))
+    payment_modes = request.POST.get('payment_modes', '')
+    if payment_modes:
+        payment_modes =  json.loads(payment_modes)
     payment_received = request.POST.get('payment_received', '')
     payment_status = request.POST.get('payment_status', '')
     tax_percent = request.POST.get('tax', '')
@@ -9472,7 +9474,7 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
     if  order_data :
         generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict).order_by(order_data)
     if search_term:
-        generic_orders = GenericOrderDetailMapping.objects.filter(Q(generic_order_id__icontains=search_term) | Q(creation_date__regex=search_term),**filter_dict).order_by(order_data)
+        generic_orders = GenericOrderDetailMapping.objects.filter(Q(generic_order_id__icontains=search_term) | Q(orderdetail__sku__sku_code__icontains=search_term) | Q(creation_date__regex=search_term),**filter_dict).order_by(order_data)
     temp_data['recordsTotal'] = len(generic_orders)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
@@ -12523,7 +12525,7 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
     if search_term:
         em_qs = EnquiryMaster.objects.filter(customer_id=cm_id).filter(
                 Q(enquiry_id__icontains=search_term) | Q(creation_date__regex=search_term)
-                | Q(corporate_name__icontains=search_term),
+                | Q(enquiredsku__sku__sku_code__icontains=search_term) | Q(corporate_name__icontains=search_term),
                  customer_id=cm_id, **search_params).order_by(order_data)
     temp_data['recordsTotal'] = len(em_qs)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -13949,6 +13951,27 @@ def update_cust_profile(request, user=''):
 
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def remove_customer_profile_image(request, user=''):
+    try:
+        message = 'Success'
+        user_id = request.POST.get('user_id', '')
+        image = request.POST.get('image', '')
+        filters = {'user_id': user_id}
+        exe_data = UserProfile.objects.filter(**filters)
+        exe_user_data = User.objects.filter(id=user_id)
+        if not image:
+            return HttpResponse("Image Not Found")
+        os.remove(os.path.join(settings.MEDIA_ROOT,image))
+        exe_data[0].customer_logo.delete()
+    except Exception as e:
+        import traceback
+        log.info("Error Occurred while Removing the Customer Profile Picture: %s" %traceback.format_exc())
+        message = 'fail'
+    return HttpResponse(message)
 
 @csrf_exempt
 @login_required

@@ -2061,9 +2061,6 @@ def validate_supplier_form(open_sheet, user_id):
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % messages_dict[key])
-            elif key == 'ep_supplier':
-                if str(cell_data).lower() not in ['yes', 'no']:
-                    index_status.setdefault(row_idx, set()).add('EP Supplier Should be in yes or no')
 
     if not index_status:
         return 'Success'
@@ -2078,7 +2075,7 @@ def validate_supplier_form(open_sheet, user_id):
 def supplier_excel_upload(request, open_sheet, user, demo_data=False):
     mapping_dict = copy.deepcopy(SUPPLIER_EXCEL_FIELDS)
     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-        mapping_dict['ep_supplier'] = 29
+        mapping_dict['ep_supplier'] = 30
     number_str_fields = ['pincode', 'phone_number', 'days_to_supply', 'fulfillment_amt', 'po_exp_duration',
                          'owner_number', 'spoc_number', 'lead_time', 'credit_period', 'account_number']
     rev_tax_types = dict(zip(TAX_TYPE_ATTRIBUTES.values(), TAX_TYPE_ATTRIBUTES.keys()))
@@ -2126,8 +2123,10 @@ def supplier_excel_upload(request, open_sheet, user, demo_data=False):
             elif key == 'ep_supplier':
                 if cell_data.lower() =='yes':
                     supplier_data[key] = 1
-                else:
+                elif cell_data.lower() == 'no' :
                     supplier_data[key] = 0
+                if supplier_master and cell_data.lower() in ['yes','no'] :
+                    setattr(supplier_master, key, supplier_data[key])
             else:
                 if key != "secondary_email_id":
                     supplier_data[key] = cell_data

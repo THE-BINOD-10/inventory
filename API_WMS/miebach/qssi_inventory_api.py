@@ -42,8 +42,11 @@ def get_wh_open_stock(wh, sku_code):
                                                 stock__sku__sku_code=sku_code).only(
         'stock__sku__sku_code', 'reserved').values_list('stock__sku__sku_code').distinct().annotate(
         in_reserved=Sum('reserved'))
-    asn_blocked_ids = ASNReserveDetail.objects.filter(enquirydetail__sku__user=wh.id, enquirydetail__sku__sku_code=sku_code, 
-                                    enquirydetail__isnull=False).values_list('enquirydetail_id', flat=True)
+    asn_blocked_ids = ASNReserveDetail.objects.filter(enquirydetail__sku__user=wh.id,
+                                                      enquirydetail__sku__sku_code=sku_code,
+                                                      enquirydetail__isnull=False,
+                                                      enquirydetail__warehouse_level=3).values_list('enquirydetail_id',
+                                                                                               flat=True)
     blocked_stock = EnquiredSku.objects.filter(sku__user=wh.id, sku__sku_code=sku_code).exclude(id__in=asn_blocked_ids).filter(
         ~Q(enquiry__extend_status='rejected')).only('sku__sku_code', 'quantity').values_list('sku__sku_code').annotate(
         tot_qty=Sum('quantity'))

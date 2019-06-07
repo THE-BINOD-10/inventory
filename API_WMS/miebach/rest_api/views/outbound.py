@@ -13955,6 +13955,27 @@ def update_cust_profile(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def remove_customer_profile_image(request, user=''):
+    try:
+        message = 'Success'
+        user_id = request.POST.get('user_id', '')
+        image = request.POST.get('image', '')
+        filters = {'user_id': user_id}
+        exe_data = UserProfile.objects.filter(**filters)
+        exe_user_data = User.objects.filter(id=user_id)
+        if not image:
+            return HttpResponse("Image Not Found")
+        os.remove(os.path.join(settings.MEDIA_ROOT,image))
+        exe_data[0].customer_logo.delete()
+    except Exception as e:
+        import traceback
+        log.info("Error Occurred while Removing the Customer Profile Picture: %s" %traceback.format_exc())
+        message = 'fail'
+    return HttpResponse(message)
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def print_cartons_data(request, user=''):
     request_dict = dict(request.POST.iterlists())
     company_info = user.userprofile.__dict__

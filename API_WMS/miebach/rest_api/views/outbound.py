@@ -9655,7 +9655,12 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
 
     """return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))"""
 
-
+@login_required
+@get_admin_user
+def print_pdf_my_orders_swiss(request, user=''):
+    import pdb; pdb.set_trace()
+    data = eval(request.POST['data'])['data']
+    return render(request, 'templates/toggle/print_pdf_my_orders_swiss.html',{'data':data})
 
 def construct_order_customer_order_detail(request, order, user):
     data_list = list(order.values('id', 'order_id', 'creation_date', 'status', 'quantity', 'invoice_amount',

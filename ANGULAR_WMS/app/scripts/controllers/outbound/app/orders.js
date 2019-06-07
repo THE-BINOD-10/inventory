@@ -114,6 +114,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     //  angular.copy(empty_data, vm.model_data);
       $state.go('user.App.MyOrders')
     }
+
     vm.submit = submit;
     function submit(form) {
       var data = [];
@@ -187,6 +188,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       });
      }
     }
+
+    vm.print_pdf_my_orders_swiss = function(){
+      vm.service.apiCall("print_pdf_my_orders_swiss/", "POST", {"data":JSON.stringify(vm.model_data)}).then(function(data){
+        if(data.message){
+          vm.service.print_data(data.data, vm.model_data.manifest_number);
+        }
+      })
+    }
+
 }
 
 stockone.directive('dtPoData', function() {

@@ -15705,7 +15705,7 @@ def generate_dc(request , user = ''):
                 else:
                     extra_order_fields = extra_order_fields.split(',')
                 for extra in extra_order_fields :
-                    order_field_obj = OrderFields.objects.filter(original_order_id=picklist_obj.order.original_order_id,user=user.id ,name = extra)
+                    order_field_obj = OrderFields.objects.filter(original_order_id=order.original_order_id,user=user.id ,name = extra)
                     if order_field_obj.exists():
                         extra_fields[order_field_obj[0].name] = order_field_obj[0].value
                 batch_group_data_order[original_order_id] = json.loads(batch_group_data)

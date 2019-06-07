@@ -10627,7 +10627,11 @@ def get_picklist_delivery_challan(start_index, stop_index, temp_data, search_ter
     if order_term == 'desc':
         order_by_term = '-'+lis[col_num]
     try :
-        temp_dc_objs = TempDeliveryChallan.objects.filter(Q(order__order_id__icontains=search_term)|Q(order__order_code__icontains=search_term)|Q(order__original_order_id__icontains=search_term)|Q(order__customer_name__icontains=search_term)).filter(order__sku__user = user.id).values('order__order_id','order__order_code','order__original_order_id','order__customer_name').distinct()
+        if search_term :
+            temp_dc_objs = TempDeliveryChallan.objects.filter(Q(order__order_id__icontains=search_term)|Q(order__order_code__icontains=search_term)|Q(order__original_order_id__icontains=search_term)|Q(order__customer_name__icontains=search_term)).filter(order__sku__user = user.id).values('order__order_id','order__order_code','order__original_order_id','order__customer_name').distinct()
+        else:
+            temp_dc_objs = TempDeliveryChallan.objects.filter(order__sku__user = user.id).values('order__order_id','order__order_code','order__original_order_id','order__customer_name').distinct()
+
         for dc in temp_dc_objs :
             if dc['order__original_order_id'] :
                order_id = dc['order__original_order_id']

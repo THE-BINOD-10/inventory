@@ -1608,6 +1608,7 @@ PERMISSION_DICT = OrderedDict((
                                     ('add_orderreturns', 'add_orderreturns'), ('add_pricemaster', 'add_pricemaster'),
                                     ('add_networkmaster', 'add_networkmaster'), ('add_orderlabels', 'add_orderlabels'),
                                     ('add_jomaterial', 'add_jomaterial'),
+                                    ('Intermediate Orders', 'add_intermediateorders'),
                                     ('add_sellerstocktransfer', 'add_sellerstocktransfer'),
                                     ('add_substitutionsummary', 'add_substitutionsummary'),
                                     ('add_targetmaster', 'add_targetmaster'),

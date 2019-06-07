@@ -192,6 +192,8 @@ angular
           return true;
         } else if (!(Session.roles.permissions[data])) {
           return false;
+        } else if (data == 'add_orderdetail' && Session.parent['72networks'] && Session.userName != '72Networks'){
+          return false;
         } else {
           return true;
         }

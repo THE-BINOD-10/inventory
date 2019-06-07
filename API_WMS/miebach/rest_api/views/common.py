@@ -567,6 +567,7 @@ data_datatable = {  # masters
     'CustomerInvoicesTab': 'get_customer_invoice_tab_data', 'SellerOrderView': 'get_seller_order_view', \
     'StockTransferInvoice' : 'get_stock_transfer_invoice_data',
     'StockTransferShipment' : 'get_stock_transfer_shipment_data',
+    'PicklistDeliveryChallan':'get_picklist_delivery_challan',
     'AltStockTransferOrders': 'get_stock_transfer_order_level_data', 'RatingsTable': 'get_ratings_data',\
     'MyOrdersTbl' : 'get_customer_orders',\
     'MarketEnqTbl': 'get_enquiry_data', 'CustomOrdersTbl': 'get_manual_enquiry_data',\

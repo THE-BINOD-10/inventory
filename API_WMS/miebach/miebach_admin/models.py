@@ -3219,3 +3219,14 @@ class Pofields(models.Model):
     value = models.CharField(max_length=256, default='')
     class Meta:
         db_table = 'PO_FIELDS'
+
+class TempDeliveryChallan(models.Model):
+    id  = BigAutoField(primary_key=True)
+    order = models.ForeignKey(OrderDetail)
+    picklist_number = models.PositiveIntegerField()
+    dcjson =  models.TextField(default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'TEMP_DELIVERY_CHALLAN'

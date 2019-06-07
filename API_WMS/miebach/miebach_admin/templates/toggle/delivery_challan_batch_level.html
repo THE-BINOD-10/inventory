@@ -1,5 +1,4 @@
-      {% load tag_extras %}
-
+{% load tag_extras %}
 <div>
   <style>
     {% include 'toggle/page1.css' %}
@@ -135,12 +134,10 @@
         </thead>
         <tbody>
           {% for key ,value in data.items %}
-           {% with sno=forloop.counter %}
           {% for ckey ,cvalue in value.items %}
-            {% if  forloop.counter == 1 %}
               {% if cvalue.is_combo  %}
             <tr class="fs14 rm-border">
-              <td class="text-left">{{sno}}</td>
+              <td class="text-left">{{ iterator.next|add:1 }} </td>
               <td class="text-left"><b>{{cvalue.parent_sku_code}}</b></td>
               <td class="text-left"><div class="wrap"><b>{{cvalue.parent_sku_desc}}</b></div></td>
               <td class="text-right"></td>
@@ -151,7 +148,7 @@
             </tr>
             {% else %}
             <tr class="fs14 rm-border">
-              <td class="text-left">{{sno}}</td>
+              <td class="text-left">{{ iterator.next|add:1 }}</td>
               <td class="text-left"><b>{{cvalue.sku_code}}<b></td>
               <td class="text-left"><b><div class="wrap">{{cvalue.sku_desc}}<b></div></td>
               <td class="text-right"></td>
@@ -161,7 +158,6 @@
               <td class="text-right"> {{cvalue.quantity}} </td>
             </tr>
           {% endif %}
-            {% endif %}
             {% if  cvalue.is_combo  %}
           <tr class="fs14 rm-border">
             <td class="text-left"></td>
@@ -175,7 +171,6 @@
           </tr>
           {% endif  %}
           {% endfor %}
-          {% endwith %}
           {% endfor %}
 
           {% if forloop.last %}

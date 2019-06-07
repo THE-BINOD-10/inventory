@@ -13956,6 +13956,8 @@ def remove_customer_profile_image(request, user=''):
         import traceback
         log.info("Error Occurred while Removing the Customer Profile Picture: %s" %traceback.format_exc())
         resp['message'] = 'fail'
+        return HttpResponse("fail")
+
 
 
 @csrf_exempt

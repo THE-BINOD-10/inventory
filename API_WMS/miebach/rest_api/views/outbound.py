@@ -9659,8 +9659,16 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
 @get_admin_user
 def print_pdf_my_orders_swiss(request, user=''):
     import pdb; pdb.set_trace()
-    data = eval(request.POST['data'])['data']
-    return render(request, 'templates/toggle/print_pdf_my_orders_swiss.html',{'data':data})
+    data = eval(request.POST['data'])
+    data_dict = data['data'][0]['data']
+    sku_wise_details = data['sku_wise_details']['data']
+    order_id = data['data'][0]['order_id']
+    order_quantity = data['data'][0]['sum_data']['quantity']
+    order_date = data['data'][0]['date']
+    tax = data['data'][0]['tax']
+    total_amount = data['data'][0]['sum_data']['amount']
+    order_value =  total_amount - tax
+    return render(request, 'templates/toggle/print_pdf_my_orders_swiss.html',{'data':data, 'data_dict':data_dict, 'order_id':order_id, 'order_quantity':order_quantity, 'order_value':order_value, 'tax':tax, 'total_amount':total_amount, 'order_date':order_date, 'sku_wise_details':sku_wise_details})
 
 def construct_order_customer_order_detail(request, order, user):
     data_list = list(order.values('id', 'order_id', 'creation_date', 'status', 'quantity', 'invoice_amount',

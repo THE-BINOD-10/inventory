@@ -1,0 +1,165 @@
+{%load staticfiles%}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/bootstrap-responsive.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/bootstrap.css' %}"/>
+
+ <link rel="stylesheet" type="text/css" href="{% static 'css/page.css' %}"/>
+
+<script type="text/javascript" src="{% static 'js/jquery.js' %}"></script>
+ {% load tag_extras %}
+ <div class="detail-item border-grey detail-bg-grey">
+   <div class="row">
+     <div class="col-md-6 col-sm-6 col-xs-9">
+       <h4 class="detail-black"><b>Order ID: {{ order_id }}</b></h4>
+       <div class="row border-grey no-margin">
+         <div class="col-md-4 col-sm-6 col-xs-6 no-padding">
+           <span>Order Quantity</span>
+         </div>
+         <div class="col-md-4 col-sm-6 col-xs-6 detail-black">
+           <span>: {{ order_quantity  }}</span>
+         </div>
+       </div>
+       <div class="row border-grey no-margin">
+         <div class="col-md-4 col-sm-6 col-xs-6 no-padding">
+           <span>Order Date</span>
+         </div>
+         <div class="col-md-4 col-sm-6 col-xs-6 detail-black">
+           <span>: {{ order_date }}</span>
+         </div>
+       </div>
+       <div class="row no-margin">
+         <div class="col-md-4 col-sm-6 col-xs-6 no-padding">
+           <span>Order Value</span>
+         </div>
+         <div class="col-md-6 col-sm-6 col-xs-6 detail-black">
+           <span>: Rs. {{ order_value }}</span>
+         </div>
+       </div>
+     </div>
+   </div>
+ </div><br><br>
+ <div class="row" style="padding-left: 10px;">
+   <div class="col-md-12">
+     <table class="table table-bordered picklist-table" style="width: 100%; font-size: 12px;">
+       <tr>
+           <th> SKU </th>
+           <th> SKU Description </th>
+           <th> Ordered Qty </th>
+           <th> Delivered Qty </th>
+           <th> Pending Qty </th>
+           <th> Delivery Schedule Date </th>
+           <th> Total </th>
+       </tr>
+       {% for record in data_dict %}
+         <tr>
+               <td> {{ record.sku__sku_code }} </td>
+               <td> {{ record.sku__sku_desc }} </td>
+               <td> {{ record.quantity }} </td>
+               <td> {{ record.picked_quantity }} </td>
+               <td> {{ 0 }} </td>
+               <td> {{ record.schedule_date }} </td>
+               <td> {{ record.invoice_amount }} </td>
+
+       </tr>
+      {% endfor %}
+     </table>
+   </div>
+ </div><br><br>
+ <div class="detail-item border-grey detail-bg-grey">
+   <div class="row">
+     <div class="col-md-4 col-sm-4 col-xs-3">
+     </div>
+     <div class="col-md-8 col-sm-8 col-xs-9">
+       <div class="row">
+         <div class="col-xs-8 no-padding">
+           <span class="pull-right">Sub Total:</span>
+         </div>
+         <div class="col-xs-4 detail-black">
+           <span>Rs. {{ order_value }}</span>
+         </div>
+       </div>
+       <div class="row">
+         <div class="col-xs-8 no-padding">
+           <span class="pull-right">Applicable Tax:</span>
+         </div>
+         <div class="col-xs-4 detail-black">
+           <span>Rs. {{ tax }}</span>
+         </div>
+       </div>
+       <div class="row detail-black" style="font-size: 16px;">
+         <div class="col-xs-8 no-padding">
+           <span class="pull-right"><b>Total Amount:</b></span>
+         </div>
+         <div class="col-xs-4">
+           <span><b>Rs. {{ total_amount }}</b></span>
+         </div>
+       </div>
+     </div>
+   </div>
+ </div>
+   <table class="table mw40">
+     <div class="modal-header">
+         <h4 class="modal-title" style="text-align:center;"> SKU Wise Details</h4>
+     </div>
+     <thead>
+       <tr>
+         <th><b> SKU Description </b></th>
+         <th><b>  Qty</b></th>
+         <th><b> Avg Landing Price</b></th>
+         <th><b> Amount</b></th>
+
+       </tr>
+     </thead>
+       <tbody>
+         {% for record in sku_wise_details %}
+           <tr>
+              <td>
+                  {{record.sku_code}}
+              </td>
+              <td>
+                {{record.quantity}}
+             </td>
+             <td>
+               {{record.landing_price}}
+            </td>
+            <td>
+                {{record.total_amount}}
+           </td>
+       </tr>
+       {% endfor %}
+     </tbody>
+   </table>
+
+   <div class="detail-item border-grey detail-bg-grey">
+     <div class="row">
+       <div class="col-md-4 col-sm-4 col-xs-3">
+       </div>
+       <div class="col-md-8 col-sm-8 col-xs-9">
+         <div class="row">
+           <div class="col-xs-8 no-padding">
+             <span class="pull-right">Sub Total:</span>
+           </div>
+           <div class="col-xs-4 detail-black">
+             <span>Rs. {{ order_value }}</span>
+           </div>
+         </div>
+         <div class="row">
+           <div class="col-xs-8 no-padding">
+             <span class="pull-right">Applicable Tax:</span>
+           </div>
+           <div class="col-xs-4 detail-black">
+             <span>Rs. {{ tax }}</span>
+           </div>
+         </div>
+         <div class="row detail-black" style="font-size: 16px;">
+           <div class="col-xs-8 no-padding">
+             <span class="pull-right"><b>Total Amount:</b></span>
+           </div>
+           <div class="col-xs-4">
+             <span><b>Rs. {{ total_amount }}</b></span>
+           </div>
+         </div>
+       </div>
+     </div>
+   </div>
+
+</div>

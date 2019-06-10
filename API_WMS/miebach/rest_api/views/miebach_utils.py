@@ -6851,7 +6851,7 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
     search_parameters['sku_id__in'] = sku_master_ids
     search_parameters['sku__user'] = user.id
     stock_transfer_data = StockTransfer.objects.filter(**search_parameters).\
-                                            order_by(order_data)
+                                            order_by(order_data).select_related('sku','st_po__open_st__sku')
     temp_data['recordsTotal'] = stock_transfer_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     time = str(datetime.datetime.now())

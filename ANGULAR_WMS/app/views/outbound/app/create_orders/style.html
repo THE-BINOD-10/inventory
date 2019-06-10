@@ -158,8 +158,8 @@
                 </thead>
                 <tbody>
                   <tr ng-repeat="warehouse in Style.warehouse_stock">
-                    <td>{{warehouse.ware}}</td>
-                    <td>{{warehouse.available}}</td>
+                    <td ng-if = "warehouse.ware != 'isprava_admin'">{{warehouse.ware}}</td>
+                    <td ng-if = "warehouse.ware != 'isprava_admin'">{{warehouse.available}}</td>
                   </tr>
                 </tbody>
               </table>

@@ -1,11 +1,4 @@
-{%load staticfiles%}
-    <link rel="stylesheet" type="text/css" href="{% static 'css/bootstrap-responsive.css' %}"/>
-    <link rel="stylesheet" type="text/css" href="{% static 'css/bootstrap.css' %}"/>
-
- <link rel="stylesheet" type="text/css" href="{% static 'css/page.css' %}"/>
-
-<script type="text/javascript" src="{% static 'js/jquery.js' %}"></script>
- {% load tag_extras %}
+ <div style = "position:fixed;left: 0;right: 0;top: 0;bottom: 0;border: 1px solid black;">
  <div class="detail-item border-grey detail-bg-grey">
    <div class="row">
      <div class="col-md-6 col-sm-6 col-xs-9">
@@ -36,7 +29,8 @@
        </div>
      </div>
    </div>
- </div><br><br>
+ </div>
+ <br><br><hr><br><br>
  <div class="row" style="padding-left: 10px;">
    <div class="col-md-12">
      <table class="table table-bordered picklist-table" style="width: 100%; font-size: 12px;">
@@ -46,24 +40,36 @@
            <th> Ordered Qty </th>
            <th> Delivered Qty </th>
            <th> Pending Qty </th>
+           {% if level_name_check.level_name == None %}
            <th> Delivery Schedule Date </th>
+           {% endif %}
            <th> Total </th>
        </tr>
        {% for record in data_dict %}
          <tr>
+              {% if record.level_name %}
                <td> {{ record.sku__sku_code }} </td>
-               <td> {{ record.sku__sku_desc }} </td>
+               <td> {{ record.sku__sku_desc |add:record.level_name  }} </td>
                <td> {{ record.quantity }} </td>
-               <td> {{ record.picked_quantity }} </td>
                <td> {{ 0 }} </td>
-               <td> {{ record.schedule_date }} </td>
+               <td> {{ record.quantity }} </td>
                <td> {{ record.invoice_amount }} </td>
+              {% else %}
+              <td> {{ record.sku__sku_code }} </td>
+              <td> {{ record.sku__sku_desc }} </td>
+              <td> {{ record.quantity }} </td>
+              <td> {{ record.picked_quantity }} </td>
+              <td> {{ record.pending_quantity }} </td>
+              <td> {{ record.schedule_date }} </td>
+              <td> {{ record.invoice_amount }} </td>
+              {% endif %}
 
        </tr>
       {% endfor %}
      </table>
    </div>
- </div><br><br>
+ </div>
+ <hr>
  <div class="detail-item border-grey detail-bg-grey">
    <div class="row">
      <div class="col-md-4 col-sm-4 col-xs-3">
@@ -96,9 +102,10 @@
      </div>
    </div>
  </div>
+ <br><br><hr><br><br>
    <table class="table mw40">
      <div class="modal-header">
-         <h4 class="modal-title" style="text-align:center;"> SKU Wise Details</h4>
+         <h4 class="detail-black" style="text-align:center;"> SKU Wise Details</h4>
      </div>
      <thead>
        <tr>
@@ -128,7 +135,7 @@
        {% endfor %}
      </tbody>
    </table>
-
+   <hr>
    <div class="detail-item border-grey detail-bg-grey">
      <div class="row">
        <div class="col-md-4 col-sm-4 col-xs-3">

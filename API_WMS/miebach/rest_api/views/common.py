@@ -8920,7 +8920,7 @@ def get_style_level_stock(request, user=''):
 
 def add_ean_weight_to_batch_detail(sku, batch_dict):
     ean_number = get_sku_ean_list(sku, order_by_val='desc')
-    if ean_number :
+    if ean_number and ean_number != '0' :
         batch_dict['ean_number'] = ean_number[0]
     weight_obj = sku.skuattributes_set.filter(attribute_name='weight')
     if weight_obj and not 'weight' in batch_dict.keys():

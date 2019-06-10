@@ -808,7 +808,7 @@ def get_sku_data(request, user=''):
     sku_data['mix_sku'] = data.mix_sku
     sku_data['ean_number'] = data.ean_number
     ean_numbers = list(data.eannumbers_set.values_list('ean_number', flat=True))
-    if sku_data['ean_number']:
+    if sku_data['ean_number'] and sku_data['ean_number'] != '0':
         ean_numbers.append(sku_data['ean_number'])
     if ean_numbers:
         ean_numbers = ','.join(map(str, ean_numbers))

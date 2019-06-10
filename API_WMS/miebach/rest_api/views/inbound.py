@@ -4469,7 +4469,7 @@ def check_wms_qc(request, user=''):
         ean_number = key
         if not is_receive_po:
             sku_query_dict = {'purchase_order__open_po__sku__wms_code': key}
-            if ean_number :
+            if ean_number and ean_number != '0':
                 sku_query_dict['purchase_order__open_po__sku__ean_number'] = ean_number
             sku_query = get_dictionary_query(sku_query_dict)
             filter_params = {'po_location__status': 2,
@@ -4484,7 +4484,7 @@ def check_wms_qc(request, user=''):
                              'rejected_quantity': 'data.rejected_quantity'}
         else:
             sku_query_dict = {'open_po__sku__wms_code': key}
-            if ean_number :
+            if ean_number and ean_number != '0' :
                 sku_query_dict['open_po__sku__ean_number'] = ean_number
             sku_query = get_dictionary_query(sku_query_dict)
             filter_params = {'open_po__sku__wms_code': key, 'open_po__sku__user': user.id,

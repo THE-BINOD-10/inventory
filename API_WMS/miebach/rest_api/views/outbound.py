@@ -7154,7 +7154,6 @@ def get_sku_variants(request, user=''):
         wh_lists = list(get_sister_warehouse(user).values_list('user_id', flat=True))
         sku_codes = []
         selected_sku_code = request.POST.get('sku_class', '')
-        wh_lists.append(user.id)
         sku_codes.append(selected_sku_code)
         warehouses_data = get_aggregate_data(wh_lists, sku_codes)
         _data['available_warehouses_stock'] = warehouses_data

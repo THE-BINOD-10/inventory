@@ -8566,7 +8566,7 @@ def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
     ean_status = ''
     exist_ean_list = list(data.eannumbers_set.filter().annotate(str_eans=Cast('ean_number', CharField())).\
                           values_list('str_eans', flat=True))
-    if data.ean_number :
+    if data.ean_number:
         exist_ean_list.append(str(data.ean_number))
     error_eans = []
     rem_ean_list = []
@@ -8920,7 +8920,7 @@ def get_style_level_stock(request, user=''):
 
 def add_ean_weight_to_batch_detail(sku, batch_dict):
     ean_number = get_sku_ean_list(sku, order_by_val='desc')
-    if ean_number and ean_number != '0' :
+    if ean_number and ean_number != '0':
         batch_dict['ean_number'] = ean_number[0]
     weight_obj = sku.skuattributes_set.filter(attribute_name='weight')
     if weight_obj and not 'weight' in batch_dict.keys():

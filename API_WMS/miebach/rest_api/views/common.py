@@ -8566,7 +8566,7 @@ def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
     ean_status = ''
     exist_ean_list = list(data.eannumbers_set.filter().annotate(str_eans=Cast('ean_number', CharField())).\
                           values_list('str_eans', flat=True))
-    if data.ean_number:
+    if data.ean_number :
         exist_ean_list.append(str(data.ean_number))
     error_eans = []
     rem_ean_list = []
@@ -8574,7 +8574,7 @@ def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
         rem_ean_list = list(set(exist_ean_list) - set(ean_numbers))
     for ean_number in ean_numbers:
         try:
-            ean_number = int(float(ean_number))
+            ean_number = str(ean_number)
         except:
             continue
         ean_dict = {'ean_number': ean_number, 'sku_id': data.id}
@@ -8584,8 +8584,8 @@ def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
         elif ean_status:
             error_eans.append(str(ean_number))
     for rem_ean in rem_ean_list:
-        if int(data.ean_number) == int(rem_ean):
-            data.ean_number = 0
+        if str(data.ean_number) == str(rem_ean):
+            data.ean_number = ''
             data.save()
         else:
             EANNumbers.objects.filter(sku_id=data.id, ean_number=rem_ean).delete()
@@ -8920,7 +8920,7 @@ def get_style_level_stock(request, user=''):
 
 def add_ean_weight_to_batch_detail(sku, batch_dict):
     ean_number = get_sku_ean_list(sku, order_by_val='desc')
-    if ean_number:
+    if ean_number :
         batch_dict['ean_number'] = ean_number[0]
     weight_obj = sku.skuattributes_set.filter(attribute_name='weight')
     if weight_obj and not 'weight' in batch_dict.keys():
@@ -9353,7 +9353,7 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
             sku_supplier = SKUSupplier.objects.filter(Q(sku__ean_number=wms_code) | Q(sku__wms_code=wms_code),
                                                       supplier_id=supplier_id, sku__user=user.id)
         else:
-            ean_number = 0
+            ean_number = ''
             sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, supplier_id=supplier_id, sku__user=user.id)
         sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
         sup_markdown = SupplierMaster.objects.get(id=supplier_id)

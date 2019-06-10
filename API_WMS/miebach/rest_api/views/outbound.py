@@ -7122,6 +7122,12 @@ def get_sku_variants(request, user=''):
         sku_codes.append(selected_sku_code)
         warehouses_data = get_aggregate_data(wh_lists, sku_codes)
         _data['available_warehouses_stock'] = warehouses_data
+    if cust_obj and cust_obj[0].is_distributor:
+        warehouse_obj = WarehouseCustomerMapping.objects.filter(customer = cust_obj[0])
+        if warehouse_obj.exists():
+            min_order_value = warehouse_obj[0].warehouse.userprofile.min_order_val
+            _data['is_distributor'] = True
+            _data['min_order_value'] = min_order_value
     return HttpResponse(json.dumps(_data))
 
 

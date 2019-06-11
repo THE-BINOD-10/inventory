@@ -36,11 +36,14 @@ function ProfileUpload($scope, $http, $q, Session, colFilters, Service, $state, 
     var image = vm.model_data.logo;
     var data = {'user_id': Session.userId, 'image': image};
     Service.apiCall("remove_customer_profile_image/", "POST", data).then(function(data){
-      if (data.message == 'Success') {
-        vm.model_data.logo = '';
-        document.getElementById('logo').value = '';
-        Service.showNoty('Image Deleted Successfully');
+      if (data.message) {
+        if (data.data == 'Success') {
+          vm.model_data.logo = '';
+          document.getElementById('logo').value = '';
+          Service.showNoty('Image Deleted Successfully');
+        }
       }
+      vm.image_loding[index] = false;
     });
   }
 

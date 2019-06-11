@@ -4992,6 +4992,7 @@ def order_status(request):
 @get_admin_user
 @reversion.create_revision(atomic=False)
 def confirm_add_po(request, sales_data='', user=''):
+    import pdb;pdb.set_trace()
     reversion.set_user(request.user)
     ean_flag = False
     po_order_id = ''
@@ -5311,6 +5312,7 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
                        internal=False, report_type='Purchase Order'):
 
     receivers = []
+    import pdb;pdb.set_trace()
     attachments = ''
     if html_data:
         attachments = create_mail_attachments(f_name, html_data)

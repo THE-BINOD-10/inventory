@@ -7081,6 +7081,7 @@ def confirm_po1(request, user=''):
 @login_required
 @get_admin_user
 def confirm_add_po(request, sales_data = '', user=''):
+    import pdb;pdb.set_trace()
     po_order_id = ''
     status = ''
     suggestion = ''
@@ -7202,6 +7203,7 @@ def confirm_add_po(request, sales_data = '', user=''):
     profile = UserProfile.objects.get(user=request.user.id)
 
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'user_name': request.user.username, 'total_qty': total_qty, 'company_name': profile.company_name, 'location': profile.location, 'w_address': profile.address, 'company_name': profile.company_name}
+    import pdb;pdb.set_trace()
 
     t = loader.get_template('templates/toggle/po_download.html')
     c = Context(data_dict)

@@ -6049,7 +6049,7 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
                     value = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     value = str(get_cell_data(row_idx, value, reader, file_type))
-                sku_data = SKUMaster.objects.filter(wms_code=value, user=user.id)
+                sku_data = SKUMaster.objects.filter(sku_code=value, user=user.id)
                 if sku_data:
                     order_data['sku'] = sku_data[0]
             elif key == 'customer_name':
@@ -6098,8 +6098,10 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
                 order_data['customer_id'] = customer_master.customer_id
         try:
             IntermediateOrders.objects.create(**order_data)
-        except:
-            pass
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('OneAssist Central Order Upload failed. error statement is %s'%str(e))
     return 'success'
 
 @csrf_exempt

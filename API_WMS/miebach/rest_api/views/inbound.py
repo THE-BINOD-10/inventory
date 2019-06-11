@@ -3517,7 +3517,7 @@ def create_return_order(data, user):
     user_obj = User.objects.get(id=user)
     sku_id = SKUMaster.objects.filter(sku_code=data['sku_code'], user=user)
     if not sku_id:
-        return "", "SKU Code doesn't exist"
+        return "", "", "SKU Code doesn't exist"
     return_details = copy.deepcopy(RETURN_DATA)
     user_obj = User.objects.get(id=user)
     if (data['return'] or data['damaged']) and sku_id:

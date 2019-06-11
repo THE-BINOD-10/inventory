@@ -72,7 +72,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       DTColumnBuilder.newColumn('Pending Qty').withTitle('Pending Qty').notSortable(),
       DTColumnBuilder.newColumn('Order Value').withTitle('Order Value').notSortable(),
       DTColumnBuilder.newColumn('Order Date').withTitle('Order Date').notSortable(),
-      DTColumnBuilder.newColumn('schedule_date').withTitle('Expected Delivery Data'),
+      DTColumnBuilder.newColumn('schedule_date').withTitle('Expected Delivery Date').withOption('width', '20px').notSortable(),
       DTColumnBuilder.newColumn('remarks').withTitle('Remarks').notSortable(),
     ];
     if(vm.permissions.user_type == "reseller"){

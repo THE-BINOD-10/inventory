@@ -9524,12 +9524,12 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
     if  order_data :
         generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict).order_by(order_data)
     if search_term:
-        generic_orders = GenericOrderDetailMapping.objects.filter(Q(generic_order_id__icontains=search_term) | Q(orderdetail__sku__sku_code__icontains=search_term) | Q(creation_date__regex=search_term) | Q(phone_number__icontains=search_term), **filter_dict).order_by(order_data)
+        generic_orders = GenericOrderDetailMapping.objects.filter(Q(generic_order_id__icontains=search_term) | Q(orderdetail__sku__sku_code__icontains=search_term) | Q(creation_date__regex=search_term), **filter_dict).order_by(order_data)
     temp_data['recordsTotal'] = len(generic_orders)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
     picklist = Picklist.objects.filter(order_id__in=generic_details_ids)
-    response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id','po_number', 'schedule_date').
+    response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id','po_number').
                                  annotate(total_quantity=Sum('quantity'),
                                           date_only=Cast('creation_date', DateField())).order_by('-date_only'))
     response_data['data'] = response_data['data'][start_index:stop_index]
@@ -9571,17 +9571,15 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
         if record['generic_order_id']:
             record['order_id'] = record['generic_order_id']
 
-        if record['schedule_date']:
-            record['schedule_date'] = record['schedule_date'].strftime("%d/%m/%Y")
-
         record['Emiza_ids'] = ''
         emiza_order_ids = []
 
 
         if record['order_id']:
             related_order_ids = generic_orders.filter(generic_order_id=record['order_id']).values_list(
-            'orderdetail__user','orderdetail__order_id')
-            for usr , org_id in related_order_ids:
+            'orderdetail__user','orderdetail__order_id','schedule_date')
+            for usr , org_id, expected_date in related_order_ids:
+                record['expected_date'] = expected_date.strftime("%d/%m/%y")
                 if usr in orderprefix_map:
                     emiza_id = orderprefix_map[usr]+'MN'+str(org_id)
                     emiza_order_ids.append(emiza_id)
@@ -9620,7 +9618,7 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
                         if other_charges:
                             record['total_inv_amt'] += round(other_charges, 2)
         temp_data['aaData'].append(OrderedDict(
-            (('Order ID', record['order_id']), ('Ordered Qty', record['total_quantity']),('Emiza_order_ids', record['Emiza_ids']),('corporate_name', corporatae_name), ('po_number', record['po_number']),('remarks', remarks),('schedule_date', record['schedule_date']),
+            (('Order ID', record['order_id']), ('Ordered Qty', record['total_quantity']),('Emiza_order_ids', record['Emiza_ids']),('corporate_name', corporatae_name), ('po_number', record['po_number']),('remarks', remarks),('schedule_date', record['expected_date']),
              ('Delivered Qty',record['picked_quantity']), ('Pending Qty',record['total_quantity']-record['picked_quantity']), ('Order Value', record['total_inv_amt']),('Order Date', record['date']),('Receive Status',record['status']))))
     """return response_data"""
 

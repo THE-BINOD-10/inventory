@@ -7122,12 +7122,6 @@ def get_sku_variants(request, user=''):
         sku_codes.append(selected_sku_code)
         warehouses_data = get_aggregate_data(wh_lists, sku_codes)
         _data['available_warehouses_stock'] = warehouses_data
-    if cust_obj and cust_obj[0].is_distributor:
-        warehouse_obj = WarehouseCustomerMapping.objects.filter(customer = cust_obj[0])
-        if warehouse_obj.exists():
-            min_order_value = warehouse_obj[0].warehouse.userprofile.min_order_val
-            _data['is_distributor'] = True
-            _data['min_order_value'] = min_order_value
     return HttpResponse(json.dumps(_data))
 
 
@@ -10020,7 +10014,6 @@ def get_customer_cart_data(request, user=""):
         tax = 0
         if tax_type:
             tax_type = tax_type[0]
-
         cm_obj = CustomerMaster.objects.get(id=cust_user_obj[0].customer_id)
         is_distributor = cm_obj.is_distributor
         todays_date = datetime.datetime.today().date()
@@ -10213,10 +10206,14 @@ def get_customer_cart_data(request, user=""):
             date += datetime.timedelta(days=del_days)
             del_date = date.strftime("%d/%m/%Y")
             json_record['del_date'] = del_date
-
             response['data'].append(json_record)
+    if cart_data and cm_obj.is_distributor:
+        warehouse_obj = WarehouseCustomerMapping.objects.filter(customer = cm_obj)
+        if warehouse_obj.exists():
+            min_order_value = warehouse_obj[0].warehouse.userprofile.min_order_val
+            response['is_distributor'] = True
+            response['min_order_value'] = min_order_value
     response['invoice_types'] = get_invoice_types(user)
-
     return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
 
 

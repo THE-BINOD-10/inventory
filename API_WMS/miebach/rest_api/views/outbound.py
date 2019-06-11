@@ -9477,7 +9477,7 @@ def get_only_date(request, date):
 
 
 def get_level_based_customer_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['generic_order_id','quantity','Emiza_order_ids', 'corporate_name', 'Delivered Qty', 'Pending Qty', 'Order Value', 'creation_date', 'Receive Status']
+    lis = ['generic_order_id','quantity','Emiza_order_ids', 'corporate_name', 'Delivered Qty', 'Pending Qty', 'Order Value', 'creation_date', 'Receive Status', 'po_number', 'schedule_date', 'remarks']
     search_params = get_filtered_params(filters, lis)
     corporatae_name = ''
     order_data = lis[col_num]
@@ -9524,12 +9524,12 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
     if  order_data :
         generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict).order_by(order_data)
     if search_term:
-        generic_orders = GenericOrderDetailMapping.objects.filter(Q(generic_order_id__icontains=search_term) | Q(orderdetail__sku__sku_code__icontains=search_term) | Q(creation_date__regex=search_term),**filter_dict).order_by(order_data)
+        generic_orders = GenericOrderDetailMapping.objects.filter(Q(generic_order_id__icontains=search_term) | Q(orderdetail__sku__sku_code__icontains=search_term) | Q(creation_date__regex=search_term) | Q(phone_number__icontains=search_term), **filter_dict).order_by(order_data)
     temp_data['recordsTotal'] = len(generic_orders)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
     picklist = Picklist.objects.filter(order_id__in=generic_details_ids)
-    response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id').
+    response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id','po_number', 'schedule_date').
                                  annotate(total_quantity=Sum('quantity'),
                                           date_only=Cast('creation_date', DateField())).order_by('-date_only'))
     response_data['data'] = response_data['data'][start_index:stop_index]
@@ -9571,8 +9571,13 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
         if record['generic_order_id']:
             record['order_id'] = record['generic_order_id']
 
+        if record['schedule_date']:
+            record['schedule_date'] = record['schedule_date'].strftime("%d/%m/%Y")
+
         record['Emiza_ids'] = ''
         emiza_order_ids = []
+
+
         if record['order_id']:
             related_order_ids = generic_orders.filter(generic_order_id=record['order_id']).values_list(
             'orderdetail__user','orderdetail__order_id')
@@ -9605,16 +9610,17 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
                         record['total_inv_amt'] = round(record['total_inv_amt'] + tax_inclusive_inv_amt, 2)
 
                     data = OrderDetail.objects.filter(id=ord_det_id)
-                    ord_det_qs = data.values('order_id', 'id', 'user', 'original_order_id', 'order_code')
+                    ord_det_qs = data.values('order_id', 'id', 'user', 'original_order_id', 'order_code', 'remarks')
                     if ord_det_qs:
                         order_detail_order_id = ord_det_qs[0]['original_order_id']
+                        remarks = ord_det_qs[0]['remarks']
                         if not order_detail_order_id:
                             order_detail_order_id = str(ord_det_qs[0]['order_code']) + str(ord_det_qs[0]['order_id'])
                         other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
                         if other_charges:
                             record['total_inv_amt'] += round(other_charges, 2)
         temp_data['aaData'].append(OrderedDict(
-            (('Order ID', record['order_id']), ('Ordered Qty', record['total_quantity']),('Emiza_order_ids', record['Emiza_ids']),('corporate_name', corporatae_name),
+            (('Order ID', record['order_id']), ('Ordered Qty', record['total_quantity']),('Emiza_order_ids', record['Emiza_ids']),('corporate_name', corporatae_name), ('po_number', record['po_number']),('remarks', remarks),('schedule_date', record['schedule_date']),
              ('Delivered Qty',record['picked_quantity']), ('Pending Qty',record['total_quantity']-record['picked_quantity']), ('Order Value', record['total_inv_amt']),('Order Date', record['date']),('Receive Status',record['status']))))
     """return response_data"""
 

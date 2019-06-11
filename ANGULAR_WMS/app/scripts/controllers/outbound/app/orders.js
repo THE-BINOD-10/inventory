@@ -71,11 +71,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       DTColumnBuilder.newColumn('Delivered Qty').withTitle('Delivered Qty').notSortable(),
       DTColumnBuilder.newColumn('Pending Qty').withTitle('Pending Qty').notSortable(),
       DTColumnBuilder.newColumn('Order Value').withTitle('Order Value').notSortable(),
-      DTColumnBuilder.newColumn('Order Date').withTitle('Order Date'),
+      DTColumnBuilder.newColumn('Order Date').withTitle('Order Date').notSortable(),
       DTColumnBuilder.newColumn('Receive Status').withTitle('Receive Status').notSortable(),
+      DTColumnBuilder.newColumn('schedule_date').withTitle('Expected Delivery Data').notSortable(),
+      DTColumnBuilder.newColumn('remarks').withTitle('Remarks'),
     ];
     if(vm.permissions.user_type == "reseller"){
-       vm.dtColumns.push(DTColumnBuilder.newColumn('corporate_name').withTitle('Corporate Name').notSortable())
+       vm.dtColumns.push(DTColumnBuilder.newColumn('corporate_name').withTitle('Corporate Name').notSortable()),
+       vm.dtColumns.push(DTColumnBuilder.newColumn('po_number').withTitle('Po Number'))
     }
     //var empty_data = {Order ID:"",Ordered Qty :"", Delivered Qty:"", Pending Qty:"", Order Value:"", Order Date:"", Receive Status:""};
      vm.model_data = {};

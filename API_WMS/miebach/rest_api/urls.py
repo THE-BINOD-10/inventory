@@ -399,6 +399,7 @@ urlpatterns = [
     url(r'^get_distributor_order/$', get_distributor_order),
     url(r'^sm_cancel_distributor_order/$', sm_cancel_distributor_order),
     url(r'^get_order_extra_options/$', get_order_extra_options),
+    url(r'^remove_customer_profile_image/$', remove_customer_profile_image),
 
 
     # Uploaded POs [SWISS MILITARY]

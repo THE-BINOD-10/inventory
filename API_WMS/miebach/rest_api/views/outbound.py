@@ -1510,13 +1510,7 @@ def update_picklist_pallet(stock, picking_count1):
 def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt="", from_pos=False):
     picklist_order_ids_list = []
     reciever = []
-    internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='Internal Emails')
-    misc_internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='internal_mail', misc_value='true')
-    if misc_internal_mail and internal_mail:
-        internal_mail = internal_mail[0].misc_value.split(",")
-        if 'false' in internal_mail:
-            internal_mail.remove('false')
-        reciever.extend(internal_mail)
+
     headers = ['Product Details', 'Ordered Quantity', 'Total']
     items = []
     for picklist in picklists:
@@ -1548,6 +1542,14 @@ def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt=
     if misc_detail:
         email = picklist.order.email_id
         reciever.append(email)
+    internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='Internal Emails')
+    misc_internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='internal_mail', misc_value='true')
+    if misc_internal_mail and internal_mail:
+        internal_mail = internal_mail[0].misc_value.split(",")
+        if 'false' in internal_mail:
+            internal_mail.remove('false')
+        reciever.extend(internal_mail)
+
     if reciever:
         try:
             tmp_invoice_date = get_local_date(user, picklist.updation_date, send_date='true')
@@ -2659,7 +2661,7 @@ def update_invoice(request, user=''):
             discount_percentage = 0
             unit_price_index = myDict['id'].index(str(order_id.id))
             # if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
-            if int(myDict['quantity'][unit_price_index]) == 0:
+            if float(myDict['quantity'][unit_price_index]) == 0:
                 cust_objs = CustomerOrderSummary.objects.filter(order__id=order_id.id)
                 if cust_objs:
                     cust_obj = cust_objs[0]
@@ -2678,7 +2680,7 @@ def update_invoice(request, user=''):
                         discount_percentage = "%.1f" % (float((cust_obj.discount * 100) / (order_id.quantity * order_id.unit_price)))
                 order_id.unit_price = float(myDict['unit_price'][unit_price_index])
                 order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index].replace(',',''))
-                order_id.quantity = int(myDict['quantity'][unit_price_index])
+                order_id.quantity = float(myDict['quantity'][unit_price_index])
                 print str(order_id.sku_id) + "= " + str(order_id.quantity)
                 order_id.save()
                 sgst_tax = float(myDict['sgst_tax'][unit_price_index])
@@ -7152,7 +7154,6 @@ def get_sku_variants(request, user=''):
         wh_lists = list(get_sister_warehouse(user).values_list('user_id', flat=True))
         sku_codes = []
         selected_sku_code = request.POST.get('sku_class', '')
-        wh_lists.append(user.id)
         sku_codes.append(selected_sku_code)
         warehouses_data = get_aggregate_data(wh_lists, sku_codes)
         _data['available_warehouses_stock'] = warehouses_data
@@ -7515,13 +7516,11 @@ def get_seller_order_details(request, user=''):
     central_remarks = ''
     invoice_types = get_invoice_types(user)
     invoice_type = ''
-    mrp = 0
     customer_order_summary = CustomerOrderSummary.objects.filter(order_id=row_id)
     if customer_order_summary:
         status_obj = customer_order_summary[0].status
         central_remarks = customer_order_summary[0].central_remarks
         invoice_type = customer_order_summary[0].invoice_type
-        mrp = customer_order_summary[0].mrp
 
     data_dict = []
     cus_data = []
@@ -7596,10 +7595,12 @@ def get_seller_order_details(request, user=''):
         cgst_tax = 0
         igst_tax = 0
         discount_percentage = 0
+        mrp = 0
         if customer_order:
             sgst_tax = customer_order[0].sgst_tax
             cgst_tax = customer_order[0].cgst_tax
             igst_tax = customer_order[0].igst_tax
+            mrp = customer_order[0].mrp
             discount_percentage = 0
             if (quantity * one_order.unit_price):
                 discount_percentage = float(
@@ -7768,6 +7769,7 @@ def get_view_order_details(request, user=''):
         cess_tax = 0
         payment_status = ''
         discount_percentage = 0
+        mrp = 0
         if customer_order:
             client_name = customer_order[0].client_name
             sgst_tax = customer_order[0].sgst_tax
@@ -7775,6 +7777,7 @@ def get_view_order_details(request, user=''):
             igst_tax = customer_order[0].igst_tax
             cess_tax = customer_order[0].cess_tax
             discount_percentage = 0
+            mrp = customer_order[0].mrp
             payment_status = customer_order[0].payment_status
             if (quantity * unit_price):
                 discount_percentage = float(
@@ -9506,7 +9509,7 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
     if  order_data :
         generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict).order_by(order_data)
     if search_term:
-        generic_orders = GenericOrderDetailMapping.objects.filter(Q(generic_order_id__icontains=search_term) | Q(creation_date__regex=search_term),**filter_dict).order_by(order_data)
+        generic_orders = GenericOrderDetailMapping.objects.filter(Q(generic_order_id__icontains=search_term) | Q(orderdetail__sku__sku_code__icontains=search_term) | Q(creation_date__regex=search_term),**filter_dict).order_by(order_data)
     temp_data['recordsTotal'] = len(generic_orders)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
@@ -12558,7 +12561,7 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
     if search_term:
         em_qs = EnquiryMaster.objects.filter(customer_id=cm_id).filter(
                 Q(enquiry_id__icontains=search_term) | Q(creation_date__regex=search_term)
-                | Q(corporate_name__icontains=search_term),
+                | Q(enquiredsku__sku__sku_code__icontains=search_term) | Q(corporate_name__icontains=search_term),
                  customer_id=cm_id, **search_params).order_by(order_data)
     temp_data['recordsTotal'] = len(em_qs)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -13984,6 +13987,27 @@ def update_cust_profile(request, user=''):
 
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def remove_customer_profile_image(request, user=''):
+    try:
+        message = 'Success'
+        user_id = request.POST.get('user_id', '')
+        image = request.POST.get('image', '')
+        filters = {'user_id': user_id}
+        exe_data = UserProfile.objects.filter(**filters)
+        exe_user_data = User.objects.filter(id=user_id)
+        if not image:
+            return HttpResponse("Image Not Found")
+        os.remove(os.path.join(settings.MEDIA_ROOT,image))
+        exe_data[0].customer_logo.delete()
+    except Exception as e:
+        import traceback
+        log.info("Error Occurred while Removing the Customer Profile Picture: %s" %traceback.format_exc())
+        message = 'fail'
+    return HttpResponse(message)
 
 @csrf_exempt
 @login_required

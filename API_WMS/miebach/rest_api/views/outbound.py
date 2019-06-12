@@ -10210,7 +10210,7 @@ def get_customer_cart_data(request, user=""):
         warehouse_obj = WarehouseCustomerMapping.objects.filter(customer = cm_obj)
         if warehouse_obj.exists():
             min_order_value = warehouse_obj[0].warehouse.userprofile.min_order_val
-            response['is_distributor'] = True
+            response['is_distributor'] = cm_obj.is_distributor
             response['min_order_value'] = min_order_value
     response['invoice_types'] = get_invoice_types(user)
     return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))

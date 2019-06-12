@@ -4774,6 +4774,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
     data = []
     style_quantities = eval(request.POST.get('required_quantity', '{}'))
     levels_config = get_misc_value('generic_wh_level', user.id)
+    admin_user = get_admin(user)
     central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
     sku_spl_attrs = {}
     get_values = ['wms_code', 'sku_desc', 'hsn_code', 'image_url', 'sku_class', 'cost_price', 'price', 'mrp', 'id',
@@ -4846,7 +4847,13 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
                     tax = tax[0]
                     tax_percentage = float(tax['sgst_tax']) + float(tax['igst_tax']) + float(tax['cgst_tax'])
                     sku_styles[0]['tax_percentage'] = '%.1f'%tax_percentage
-            if total_quantity >= int(stock_quantity):
+
+            is_prava_check = True
+            if admin_user.username == 'isprava_admin' :
+                if sku_styles[0]['style_quantity'] == 0 :
+                    is_prava_check = False
+
+            if total_quantity >= int(stock_quantity) and is_prava_check:
                 if msp_min_price and msp_max_price:
                     if float(msp_min_price) <= sku_variants[0]['your_price'] <= float(msp_max_price):
                         data.append(sku_styles[0])

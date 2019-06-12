@@ -7081,7 +7081,6 @@ def confirm_po1(request, user=''):
 @login_required
 @get_admin_user
 def confirm_add_po(request, sales_data = '', user=''):
-    import pdb;pdb.set_trace()
     po_order_id = ''
     status = ''
     suggestion = ''

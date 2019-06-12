@@ -235,7 +235,7 @@ vm.update_cartdata_for_approval = function() {
       if (!(vm.model_data.shipment_date)) {
         vm.service.showNoty("The Shipment Date is Required. Please Select", "success", "bottomRight");
       } else if (vm.is_distributor && vm.distributor_min_order_price > vm.final_data.total_amount){
-        vm.service.showNoty("Minimum order value is required "+ vm.distributor_min_order_price, "success", "bottomRight");
+        vm.service.showNoty("Minimum order value is required "+ vm.distributor_min_order_price, 'error');
       } else {
         vm.order_data_insertion(data_dict);
       }

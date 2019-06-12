@@ -398,7 +398,6 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
           if (data['quantity']) {
             var temp = {sku_id: data.wms_code, quantity: Number(data.quantity), invoice_amount: data.price * Number(data.quantity), price: data.price, tax: vm.tax, image_url: data.image_url, level: data.level, overall_sku_total_quantity: data.overall_sku_total_quantity}
             temp['total_amount'] = ((temp.invoice_amount / 100) * vm.tax) + temp.invoice_amount;
-
             send.push(temp);
           }
         });

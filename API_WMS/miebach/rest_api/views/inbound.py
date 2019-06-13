@@ -1363,7 +1363,6 @@ def confirm_po(request, user=''):
     #    title = 'Stock Transfer Note'
     if request.POST.get('seller_id', '') and str(request.POST.get('seller_id').split(":")[1]).lower() == 'shproc':
         company_name = 'SHPROC Procurement Pvt. Ltd.'
-
     company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
     iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
     left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO , request)
@@ -1382,6 +1381,7 @@ def confirm_po(request, user=''):
                  'total_amt_in_words' : total_amt_in_words,
                  'company_address': company_address, 'wh_gstin': profile.gst_number,
                  'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
+    data_dict_po = {'contact_no': profile.phone_number, 'contact_email': user.email, 'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name}
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value
     t = loader.get_template('templates/toggle/po_download.html')
@@ -1389,9 +1389,9 @@ def confirm_po(request, user=''):
     if get_misc_value('raise_po', user.id) == 'true':
         if get_misc_value('allow_secondary_emails', user.id) == 'true':
             write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
-                               str(order_date).split(' ')[0], ean_flag=ean_flag)
+                               str(order_date).split(' ')[0],  str(order_date), ean_flag=ean_flag, data_dict_po=data_dict_po)
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
-                           str(order_date).split(' ')[0], ean_flag=ean_flag)
+                           str(order_date).split(' ')[0], str(order_date), ean_flag=ean_flag, data_dict_po=data_dict_po)
     check_purchase_order_created(user, po_id)
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
@@ -4992,7 +4992,6 @@ def order_status(request):
 @get_admin_user
 @reversion.create_revision(atomic=False)
 def confirm_add_po(request, sales_data='', user=''):
-    import pdb;pdb.set_trace()
     reversion.set_user(request.user)
     ean_flag = False
     po_order_id = ''
@@ -5263,7 +5262,7 @@ def confirm_add_po(request, sales_data='', user=''):
                      'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
         if round_value:
             data_dict['round_total'] = "%.2f" % round_value
-        data_dict_po = {'contact_no': profile.phone_number, 'contact_email': user.email, 'gst_no': profile.gst_number}
+        data_dict_po = {'contact_no': profile.phone_number, 'contact_email': user.email, 'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name}
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dict)
         if get_misc_value('raise_po', user.id) == 'true':
@@ -5344,11 +5343,10 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
     if report_type == 'posform' :
         email_body = 'pls find the attachment'
         email_subject = 'pos order'
-    import pdb;pdb.set_trace()
     if report_type == 'Purchase Order':
 	t = loader.get_template('templates/toggle/auto_po_mail_format.html')
 	email_body = t.render(data_dict_po)
-	email_subject = 'Purchase Order from ASPL %s to %s dated %s' % (user.username, company_name, order_date_time)
+	email_subject = 'Purchase Order from ASPL %s to %s dated %s' % (user.username, data_dict_po['supplier_name'], order_date_time)
 	send_mail_attachment(receivers, email_subject, email_body, files=attachments)
     elif supplier_email or internal or internal_mail:
 	send_mail_attachment(receivers, email_subject, email_body, files=attachments)
@@ -5560,6 +5558,7 @@ def confirm_po1(request, user=''):
                          'terms_condition' : terms_condition, 'total_amt_in_words' : total_amt_in_words,
                          'show_cess_tax': show_cess_tax, 'company_address': company_address,
                          'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
+	    data_dict_po = {'contact_no': profile.phone_number, 'contact_email': user.email, 'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name}
             if round_value:
                 data_dict['round_total'] = "%.2f" % round_value
             t = loader.get_template('templates/toggle/po_download.html')
@@ -5567,9 +5566,8 @@ def confirm_po1(request, user=''):
             if get_misc_value('raise_po', user.id) == 'true':
                 if get_misc_value('allow_secondary_emails', user.id) == 'true':
                     write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
-                                       str(order_date).split(' ')[0], ean_flag=ean_flag)
-                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
-                                   str(order_date).split(' ')[0], ean_flag=ean_flag)
+                                   str(order_date).split(' ')[0], str(order_date), ean_flag=ean_flag, data_dict_po=data_dict_po)
+                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data, str(order_date).split(' ')[0], str(order_date), ean_flag=ean_flag, data_dict_po=data_dict_po)
     check_purchase_order_created(user, po_id)
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
@@ -9570,13 +9568,13 @@ def confirm_central_po(request, user=''):
                      'wh_telephone': wh_telephone, 'wh_gstin': user_profile.gst_number, 'wh_pan': user_profile.pan_number,
                      'terms_condition': terms_condition, 'show_cess_tax' : show_cess_tax,
                      'company_address': company_address}
+	data_dict_po = {'contact_no': user_profile.phone_number, 'contact_email': user.email, 'gst_no': user_profile.gst_number, 'supplier_name':purchase_order.supplier.name}
         if round_value:
             data_dict['round_total'] = "%.2f" % round_value
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dict)
         if get_misc_value('raise_po', warehouse.id) == 'true':
-            write_and_mail_pdf(po_reference, rendered, request, warehouse, supplier_email, phone_no, po_data,
-                               str(order_date).split(' ')[0], ean_flag=ean_flag)
+            write_and_mail_pdf(po_reference, rendered, request, warehouse, supplier_email, phone_no, po_data, str(order_date).split(' ')[0], str(order_date), ean_flag=ean_flag, data_dict_po=data_dict_po)
         check_purchase_order_created(warehouse, po_id)
         return render(request, 'templates/toggle/po_template.html', data_dict)
     except Exception as e:

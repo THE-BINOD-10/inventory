@@ -9481,7 +9481,7 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
     picklist = Picklist.objects.filter(order_id__in=generic_details_ids)
     response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id').
                                  annotate(total_quantity=Sum('quantity'),
-                                          date_only=Cast('creation_date', DateField())).order_by('-date_only'))
+                                          date_only=Cast('creation_date', DateField())).order_by(order_data))
     response_data['data'] = response_data['data'][start_index:stop_index]
     for record in response_data['data']:
         order_details = generic_orders.filter(generic_order_id=record['generic_order_id'],
@@ -12588,7 +12588,7 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
 
 
 def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['enquiry_id', 'creation_date', 'customer_name', 'sku__sku_class', 'sku__customization_type', 'sku__sku_code', 'sku__sku_status']
+    lis = ['enquiry_id', 'creation_date', 'customer_name', 'sku__sku_class', 'customization_type', 'sku__sku_code', 'status']
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
     if order_term == 'desc':

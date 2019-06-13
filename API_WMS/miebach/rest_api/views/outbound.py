@@ -9820,7 +9820,6 @@ def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
     response_data['sum_data'] = sum_data
     response_data['other_charges'] = other_charges
     response_data['data'].extend(res)
-
     return response_data, res
 
 
@@ -9883,8 +9882,8 @@ def get_level_based_customer_order_detail(request, user):
                      response_data['warehouse_level'] = 0
                 else:
                     response_data['warehouse_level'] = ord_usr_profile.warehouse_level
-                    response_data['level_name'] = get_level_name_with_level(user, response_data['warehouse_level'],
-                                                                         users_list=[usr_id])
+                response_data['level_name'] = get_level_name_with_level(user, response_data['warehouse_level'],
+                                                                     users_list=[usr_id])
                 if sku_code not in sku_wise_details:
                     sku_wise_details[sku_code] = {'quantity': sku_qty, 'el_price': sku_el_price,
                                                   'sku_tax_amt': sku_tax_amt}
@@ -10097,7 +10096,6 @@ def get_customer_cart_data(request, user=""):
         tax = 0
         if tax_type:
             tax_type = tax_type[0]
-
         cm_obj = CustomerMaster.objects.get(id=cust_user_obj[0].customer_id)
         is_distributor = cm_obj.is_distributor
         todays_date = datetime.datetime.today().date()
@@ -10290,10 +10288,14 @@ def get_customer_cart_data(request, user=""):
             date += datetime.timedelta(days=del_days)
             del_date = date.strftime("%d/%m/%Y")
             json_record['del_date'] = del_date
-
             response['data'].append(json_record)
+    if cart_data and cm_obj.is_distributor:
+        warehouse_obj = WarehouseCustomerMapping.objects.filter(customer = cm_obj)
+        if warehouse_obj.exists():
+            min_order_value = warehouse_obj[0].warehouse.userprofile.min_order_val
+            response['is_distributor'] = cm_obj.is_distributor
+            response['min_order_value'] = min_order_value
     response['invoice_types'] = get_invoice_types(user)
-
     return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
 
 

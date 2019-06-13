@@ -36,15 +36,15 @@ def send_mail(send_to, subject, body):
 
 def send_mail_attachment(send_to, subject, text, files=[], compressed=False):
     fromaddr = 'noreply@mieone.com'
-
     msg = MIMEMultipart()
-
     msg['From'] = fromaddr
-    msg['To'] = ', '.join(send_to)
     msg['Subject'] = subject
-
     body = text
-
+    to_add = send_to[0]
+    msg['To'] = to_add
+    if len(send_to) > 1:
+        cc = send_to[1:]
+        msg['Cc'] = ', '.join(cc)
     NAME_OF_DESTINATION_ARCHIVE = 'compressed'
     msg.attach(MIMEText(body, 'html'))
     if compressed:

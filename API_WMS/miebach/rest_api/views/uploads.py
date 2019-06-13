@@ -1378,18 +1378,20 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                         if ',' in str(cell_data):
                             ean_numbers = str(cell_data).split(',')
                         else:
-                            ean_numbers = [int(cell_data)]
+                            ean_numbers = [cell_data]
                         error_eans = []
                         for ean in ean_numbers:
-                            ean = int(float(ean))
                             ean_status, mapping_check = check_ean_number(sku_code, ean, user)
                             if ean_status:
                                 error_eans.append(str(ean))
                         if error_eans:
                             ean_error_msg = '%s EAN Numbers already mapped to Other SKUS' % ','.join(error_eans)
                             index_status.setdefault(row_idx, set()).add(ean_error_msg)
-                    except:
-                        index_status.setdefault(row_idx, set()).add('EAN must be integer')
+                    except Exception as e:
+                        import traceback
+                        log.debug(traceback.format_exc())
+                        log.info('SKU Master Upload failed for %s and params are %s and error statement is %s' % (
+                        str(user.username), str(request.POST.dict()), str(e)))
 
             elif key == 'hsn_code':
                 if cell_data:
@@ -1633,7 +1635,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     if ',' in str(cell_data):
                         ean_numbers = str(cell_data).split(',')
                     else:
-                        ean_numbers = [str(int(cell_data))]
+                        ean_numbers = [str(cell_data)]
             elif key == 'enable_serial_based':
                 toggle_value = str(cell_data).lower()
                 if toggle_value == "enable":
@@ -2049,13 +2051,18 @@ def validate_supplier_form(open_sheet, user_id):
                         cell_data = float(cell_data)
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % messages_dict[key])
+            elif key == 'secondary_email_id':
+                cell_data = cell_data.split(',')
+                for val in cell_data:
+                    if val and validate_email(val):
+                        index_status.setdefault(row_idx, set()).add('Enter Valid Secondary Email address')
+            elif key == 'account_number':
+                if not len(str(cell_data)) < 20:
+                    index_status.setdefault(row_idx, set()).add('Account Number has limit of 19')
             elif key in number_str_fields:
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % messages_dict[key])
-            elif key == 'ep_supplier':
-                if str(cell_data).lower() not in ['yes', 'no']:
-                    index_status.setdefault(row_idx, set()).add('EP Supplier Should be in yes or no')
 
     if not index_status:
         return 'Success'
@@ -2070,13 +2077,14 @@ def validate_supplier_form(open_sheet, user_id):
 def supplier_excel_upload(request, open_sheet, user, demo_data=False):
     mapping_dict = copy.deepcopy(SUPPLIER_EXCEL_FIELDS)
     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-        mapping_dict['ep_supplier'] = 29
+        mapping_dict['ep_supplier'] = 30
     number_str_fields = ['pincode', 'phone_number', 'days_to_supply', 'fulfillment_amt', 'po_exp_duration',
                          'owner_number', 'spoc_number', 'lead_time', 'credit_period', 'account_number']
     rev_tax_types = dict(zip(TAX_TYPE_ATTRIBUTES.values(), TAX_TYPE_ATTRIBUTES.keys()))
     for row_idx in range(1, open_sheet.nrows):
         sku_code = ''
         wms_code = ''
+        secondary_email_ids = []
         supplier_data = copy.deepcopy(SUPPLIER_DATA)
         supplier_master = None
         for key, value in mapping_dict.iteritems():
@@ -2105,7 +2113,9 @@ def supplier_excel_upload(request, open_sheet, user, demo_data=False):
                 supplier_data['tax_type'] = cell_data
                 if supplier_master and cell_data:
                     supplier_master.tax_type = supplier_data['tax_type']
-
+            elif key == "secondary_email_id":
+                if cell_data:
+                    secondary_email_ids = cell_data.split(',')
             elif key in number_str_fields:
                 if cell_data:
                     cell_data = int(float(cell_data))
@@ -2115,13 +2125,15 @@ def supplier_excel_upload(request, open_sheet, user, demo_data=False):
             elif key == 'ep_supplier':
                 if cell_data.lower() =='yes':
                     supplier_data[key] = 1
-                else:
+                elif cell_data.lower() == 'no' :
                     supplier_data[key] = 0
+                if supplier_master and cell_data.lower() in ['yes','no'] :
+                    setattr(supplier_master, key, supplier_data[key])
             else:
-                supplier_data[key] = cell_data
-                if supplier_master and cell_data:
-                    setattr(supplier_master, key, cell_data)
-
+                if key != "secondary_email_id":
+                    supplier_data[key] = cell_data
+                    if supplier_master and cell_data:
+                        setattr(supplier_master, key, cell_data)
         if not supplier_master:
             supplier = SupplierMaster.objects.filter(id=supplier_data['id'], user=user.id)
             if not supplier:
@@ -2131,7 +2143,21 @@ def supplier_excel_upload(request, open_sheet, user, demo_data=False):
                 supplier.save()
         else:
             supplier_master.save()
-
+        if secondary_email_ids:
+            master_data_dict = {}
+            master_data_dict['user_id'] = user.id
+            master_data_dict['master_type'] = 'supplier'
+            master_data_dict['master_id'] = supplier_data['id']
+            master_email_map = MasterEmailMapping.objects.filter(**master_data_dict)
+            if master_email_map:
+                master_email_map.delete()
+            for mail in secondary_email_ids:
+                master_data_dict = {}
+                master_data_dict['user_id'] = user.id
+                master_data_dict['email_id'] = mail
+                master_data_dict['master_id'] = supplier_data['id']
+                master_data_dict['master_type'] = 'supplier'
+                MasterEmailMapping.objects.create(**master_data_dict)
     return 'success'
 
 
@@ -2833,7 +2859,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                             total_sku_amt
                             ]
         if ean_flag:
-            ean_number = 0
+            ean_number = ''
             eans = get_sku_ean_list(data1.sku)
             if eans:
                 ean_number = eans[0]
@@ -2868,6 +2894,10 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         name = purchase_order.supplier.name
         order_id = ids_dict[supplier]
         supplier_email = purchase_order.supplier.email_id
+        secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
+        supplier_email_id =[]
+        supplier_email_id.insert(0,supplier_email)
+        supplier_email_id.extend(secondary_supplier_email)
         phone_no = purchase_order.supplier.phone_number
         gstin_no = purchase_order.supplier.tin_number
         po_exp_duration = purchase_order.supplier.po_exp_duration
@@ -2909,6 +2939,9 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dict)
         if get_misc_value('raise_po', user.id) == 'true':
+            if get_misc_value('allow_secondary_emails', user.id) == 'true':
+                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
+                                   str(order_date).split(' ')[0], ean_flag=ean_flag)
             write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
                                str(order_date).split(' ')[0], ean_flag=ean_flag)
     except Exception as e:

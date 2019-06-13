@@ -9452,6 +9452,9 @@ def order_delete(request, user=""):
                     picked_qty_check = Picklist.objects.filter(order_id=order_detail_id, picked_quantity__gt=0)
                     if not picked_qty_check.exists():
                         OrderDetail.objects.filter(id=order_detail_id).delete()
+                        admin_user = get_admin(user)
+                        if admin_user:
+                            OrderFields.objects.filter(user=admin_user.id, original_order_id=complete_id).delete()
                     else:
                         OrderDetail.objects.filter(id=order_detail_id).update(status=3)
 

@@ -6315,7 +6315,7 @@ def get_open_order_report_data(search_params, user, sub_user, serial_view=False)
         view_orders = OrderDetail.objects.filter(user= warehouse.user_id, status =1,quantity__gt=0).filter(**search_parameters)
         picked_orders = Picklist.objects.filter(status__contains='open', order__user= warehouse.user_id, reserved_quantity__gt=0).filter(**serach_picked).select_related('order')
         temp_data['recordsTotal'] += view_orders.count() + picked_orders.count()
-        temp_data['recordsFiltered'] = temp_data['recordsTotal']
+        temp_data['recordsFiltered'] += temp_data['recordsTotal']
 
         if stop_index:
             view_orders = view_orders[start_index:stop_index]

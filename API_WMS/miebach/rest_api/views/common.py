@@ -8574,10 +8574,6 @@ def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
         rem_ean_list = list(set(exist_ean_list) - set(ean_numbers))
     for ean_number in ean_numbers:
         if ean_number :
-            try:
-                ean_number = str(ean_number)
-            except:
-                continue
             ean_dict = {'ean_number': ean_number, 'sku_id': data.id}
             ean_status, mapped_check = check_ean_number(data.sku_code, ean_number, user)
             if not (ean_status or mapped_check):

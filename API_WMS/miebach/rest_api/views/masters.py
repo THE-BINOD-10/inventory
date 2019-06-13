@@ -1115,6 +1115,15 @@ def update_sku(request, user=''):
         if sync_sku_switch == 'true':
             all_users = get_related_users(user.id)
             create_update_sku([data], all_users)
+        if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
+            wh_ids = get_related_users(user.id)
+            cust_ids = CustomerUserMapping.objects.filter(customer__user__in=wh_ids).values_list('user_id', flat=True)
+            notified_users = []
+            notified_users.extend(wh_ids)
+            notified_users.extend(cust_ids)
+            notified_users = list(set(notified_users))
+            contents = {"en": " %s - SKU Fields has been updated" % (str(description))}
+            send_push_notification(contents, notified_users)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -2484,7 +2493,8 @@ def insert_sku(request, user=''):
             sku_master = SKUMaster(**data_dict)
             sku_master.save()
             contents = {"en": "New SKU %s is created." % data_dict['sku_code']}
-            #send_push_notification(contents, notified_users)
+            if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
+                send_push_notification(contents, notified_users)
             #update_sku_attributes(sku_master, request)
             image_file = request.FILES.get('files-0', '')
             if image_file:

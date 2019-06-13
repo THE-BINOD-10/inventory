@@ -4945,7 +4945,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
             mrp = batch_detail.mrp
             weight = batch_detail.weight
             if batch_detail.ean_number:
-                ean = int(batch_detail.ean_number)
+                ean = batch_detail.ean_number
         cond = str((zone, location, pallet_number, batch, mrp, ean, weight))
         zones_data.setdefault(cond,
                               {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0,

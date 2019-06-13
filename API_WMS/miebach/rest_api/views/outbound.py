@@ -9516,7 +9516,7 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
     picklist = Picklist.objects.filter(order_id__in=generic_details_ids)
     response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id').
                                  annotate(total_quantity=Sum('quantity'),
-                                          date_only=Cast('creation_date', DateField())).order_by('-date_only'))
+                                          date_only=Cast('creation_date', DateField())).order_by(order_data))
     response_data['data'] = response_data['data'][start_index:stop_index]
     for record in response_data['data']:
         order_details = generic_orders.filter(generic_order_id=record['generic_order_id'],
@@ -9691,6 +9691,23 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
     """return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))"""
 
 
+@login_required
+@get_admin_user
+def print_pdf_my_orders_swiss(request, user=''):
+    data = eval(request.POST['data'])
+    data_dict = data['data'][0]['data']
+    level_name_check = data_dict[0]
+    sku_wise_details = data['sku_wise_details']['data']
+    order_id = data['data'][0]['order_id']
+    order_quantity = data['data'][0]['sum_data']['quantity']
+    order_date = data['data'][0]['date']
+    tax = data['data'][0]['tax']
+    total_amount = data['data'][0]['sum_data']['amount']
+    order_value =  total_amount - tax
+    return render(request, 'templates/toggle/print_pdf_my_orders_swiss.html',{'data':data, 'data_dict':data_dict, 'order_id':order_id, 'order_quantity':order_quantity, 'order_value':order_value, 'tax':tax, 'total_amount':total_amount, 'order_date':order_date, 'sku_wise_details':sku_wise_details, 'level_name_check':level_name_check})
+
+
+
 
 def construct_order_customer_order_detail(request, order, user):
     data_list = list(order.values('id', 'order_id', 'creation_date', 'status', 'quantity', 'invoice_amount',
@@ -9730,6 +9747,7 @@ def construct_order_customer_order_detail(request, order, user):
             schedule_date = gen_ord_obj[0].schedule_date
             if schedule_date:
                 record['schedule_date'] = schedule_date.strftime('%d/%m/%Y')
+            record['pending_quantity'] = record['quantity'] - record['picked_quantity']
     return data_list, total_picked_quantity
 
 
@@ -12606,7 +12624,7 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
 
 
 def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['enquiry_id', 'creation_date', 'customer_name', 'sku__sku_class', 'sku__customization_type', 'sku__sku_code', 'sku__sku_status']
+    lis = ['enquiry_id', 'creation_date', 'customer_name', 'sku__sku_class', 'customization_type', 'sku__sku_code', 'status']
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
     if order_term == 'desc':

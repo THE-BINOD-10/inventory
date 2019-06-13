@@ -3534,7 +3534,7 @@ def create_return_order(data, user):
     user_obj = User.objects.get(id=user)
     sku_id = SKUMaster.objects.filter(sku_code=data['sku_code'], user=user)
     if not sku_id:
-        return "", "SKU Code doesn't exist"
+        return "", "", "SKU Code doesn't exist"
     return_details = copy.deepcopy(RETURN_DATA)
     user_obj = User.objects.get(id=user)
     if (data['return'] or data['damaged']) and sku_id:
@@ -6412,6 +6412,7 @@ def check_return_imei(request, user=''):
                     break
                 return_data['status'] = 'Success'
                 invoice_number = ''
+                id_card = ''
                 if not order_imei[0].order:
                     return HttpResponse("IMEI Mapped to Job order")
                 order_id = order_imei[0].order.original_order_id
@@ -6419,8 +6420,9 @@ def check_return_imei(request, user=''):
                     order_id = order_imei[0].order.order_code + str(order_imei[0].order.order_id)
                 if central_order_reassigning == 'true':
                     result = get_firebase_order_data(order_id)
-                    id_card = result.get('id_card','')
-                    if id_card :
+                    if result:
+                        id_card = result.get('id_card','')
+                    if id_card:
                         return_data['status'] = 'Delivered Order Cannot be Returned '
                         return HttpResponse(json.dumps(return_data))
                 if order_imei[0].order_reference:

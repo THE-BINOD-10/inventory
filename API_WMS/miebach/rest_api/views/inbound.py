@@ -5263,16 +5263,16 @@ def confirm_add_po(request, sales_data='', user=''):
                      'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
         if round_value:
             data_dict['round_total'] = "%.2f" % round_value
-        data_dict_po = {'contact_no': profile.phone_number, 'contact_email': user.email}
+        data_dict_po = {'contact_no': profile.phone_number, 'contact_email': user.email, 'gst_no': profile.gst_number}
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dict)
         if get_misc_value('raise_po', user.id) == 'true':
             if get_misc_value('allow_secondary_emails', user.id) == 'true':
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
-                                   str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po)
+                                   str(order_date).split(' ')[0], str(order_date), ean_flag=ean_flag, data_dict_po=data_dict_po)
             if get_misc_value('raise_po', user.id) == 'true' and get_misc_value('allow_secondary_emails', user.id) != 'true':
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
-                                   str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po)
+                                   str(order_date).split(' ')[0], str(order_date), ean_flag=ean_flag, data_dict_po=data_dict_po)
         check_purchase_order_created(user, po_id)
     except Exception as e:
         import traceback
@@ -5307,7 +5307,7 @@ def create_mail_attachments(f_name, html_data):
     return attachments
 
 
-def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_no, po_data, order_date, ean_flag=False,
+def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_no, po_data, order_date, order_date_time, ean_flag=False,
                        internal=False, report_type='Purchase Order', data_dict_po={}):
     receivers = []
     attachments = ''
@@ -5348,7 +5348,7 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
     if report_type == 'Purchase Order':
 	t = loader.get_template('templates/toggle/auto_po_mail_format.html')
 	email_body = t.render(data_dict_po)
-	email_subject = 'Purchase Order from ASPL %s to %s dated %s' % (user.username, company_name, order_date)
+	email_subject = 'Purchase Order from ASPL %s to %s dated %s' % (user.username, company_name, order_date_time)
 	send_mail_attachment(receivers, email_subject, email_body, files=attachments)
     elif supplier_email or internal or internal_mail:
 	send_mail_attachment(receivers, email_subject, email_body, files=attachments)

@@ -35,7 +35,6 @@ def send_mail(send_to, subject, body):
 
 
 def send_mail_attachment(send_to, subject, text, files=[], compressed=False):
-    import pdb;pdb.set_trace()
     fromaddr = 'noreply@mieone.com'
     msg = MIMEMultipart()
     msg['From'] = fromaddr

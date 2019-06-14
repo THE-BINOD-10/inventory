@@ -213,11 +213,20 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
             combo_flag = 'Yes'
         else:
             combo_flag = 'No'
+        ean_number = ''
+        if data.ean_number and data.ean_number != '0':
+            ean_number = str(data.ean_number)
+        else:
+            ean_numbers_list = data.eannumbers_set.filter().annotate(str_eans=Cast('ean_number', CharField())).\
+                            values_list('str_eans', flat=True)
+            if ean_numbers_list :
+                ean_number = ean_numbers_list[0]
+
         temp_data['aaData'].append(OrderedDict(
             (('WMS SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
              ('SKU Type', data.sku_type), ('SKU Category', data.sku_category), ('DT_RowClass', 'results'),
              ('Zone', zone), ('SKU Class', data.sku_class), ('Status', status), ('DT_RowAttr', {'data-id': data.id}),
-             ('Color', data.color), ('EAN Number', str(data.ean_number)), ('Combo Flag', combo_flag),
+             ('Color', data.color), ('EAN Number',ean_number ), ('Combo Flag', combo_flag),
              ('Creation Date', creation_date),
              ('Updation Date', updation_date)))
         )
@@ -808,7 +817,7 @@ def get_sku_data(request, user=''):
     sku_data['mix_sku'] = data.mix_sku
     sku_data['ean_number'] = data.ean_number
     ean_numbers = list(data.eannumbers_set.values_list('ean_number', flat=True))
-    if sku_data['ean_number']:
+    if sku_data['ean_number'] and sku_data['ean_number'] != '0':
         ean_numbers.append(sku_data['ean_number'])
     if ean_numbers:
         ean_numbers = ','.join(map(str, ean_numbers))

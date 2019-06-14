@@ -1378,18 +1378,20 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                         if ',' in str(cell_data):
                             ean_numbers = str(cell_data).split(',')
                         else:
-                            ean_numbers = [int(cell_data)]
+                            ean_numbers = [cell_data]
                         error_eans = []
                         for ean in ean_numbers:
-                            ean = int(float(ean))
                             ean_status, mapping_check = check_ean_number(sku_code, ean, user)
                             if ean_status:
                                 error_eans.append(str(ean))
                         if error_eans:
                             ean_error_msg = '%s EAN Numbers already mapped to Other SKUS' % ','.join(error_eans)
                             index_status.setdefault(row_idx, set()).add(ean_error_msg)
-                    except:
-                        index_status.setdefault(row_idx, set()).add('EAN must be integer')
+                    except Exception as e:
+                        import traceback
+                        log.debug(traceback.format_exc())
+                        log.info('SKU Master Upload failed for %s and params are %s and error statement is %s' % (
+                        str(user.username), str(request.POST.dict()), str(e)))
 
             elif key == 'hsn_code':
                 if cell_data:
@@ -1633,7 +1635,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     if ',' in str(cell_data):
                         ean_numbers = str(cell_data).split(',')
                     else:
-                        ean_numbers = [str(int(cell_data))]
+                        ean_numbers = [str(cell_data)]
             elif key == 'enable_serial_based':
                 toggle_value = str(cell_data).lower()
                 if toggle_value == "enable":
@@ -2857,7 +2859,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                             total_sku_amt
                             ]
         if ean_flag:
-            ean_number = 0
+            ean_number = ''
             eans = get_sku_ean_list(data1.sku)
             if eans:
                 ean_number = eans[0]
@@ -6080,7 +6082,7 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
                     value = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     value = str(get_cell_data(row_idx, value, reader, file_type))
-                sku_data = SKUMaster.objects.filter(wms_code=value, user=user.id)
+                sku_data = SKUMaster.objects.filter(sku_code=value, user=user.id)
                 if sku_data:
                     order_data['sku'] = sku_data[0]
             elif key == 'customer_name':
@@ -6129,8 +6131,10 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
                 order_data['customer_id'] = customer_master.customer_id
         try:
             IntermediateOrders.objects.create(**order_data)
-        except:
-            pass
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('OneAssist Central Order Upload failed. error statement is %s'%str(e))
     return 'success'
 
 @csrf_exempt

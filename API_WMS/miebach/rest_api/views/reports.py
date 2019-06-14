@@ -1436,7 +1436,7 @@ def print_purchase_order_form(request, user=''):
                             open_po.utgst_tax, total_sku_amt]
 
         if ean_flag:
-            ean_number = 0
+            ean_number = ''
             eans = get_sku_ean_list(open_po.sku)
             if eans:
                 ean_number = eans[0]

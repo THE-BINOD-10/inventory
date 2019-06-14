@@ -1307,7 +1307,7 @@ def confirm_po(request, user=''):
                             purchase_order.igst_tax, purchase_order.utgst_tax,
                             total_sku_amt]
         if ean_flag:
-            ean_number = 0
+            ean_number = ''
             eans = get_sku_ean_list(purchase_order.sku)
             if eans:
                 ean_number = eans[0]
@@ -1442,6 +1442,15 @@ def get_mapping_values(request, user=''):
     data = get_mapping_values_po(wms_code ,supplier_id,user)
     return HttpResponse(json.dumps(data), content_type='application/json')
 
+def get_ep_supplier_value(request, user=''):
+    data = {}
+    supplier_id = request.POST.get('supplier_id', '')
+    supplier_obj = SupplierMaster.objects.get(id=supplier_id)
+    if int(supplier_obj.ep_supplier):
+        data['ep_supplier_status'] = int(supplier_obj.ep_supplier)
+    else:
+        data['ep_supplier_status'] = int(supplier_obj.ep_supplier)
+    return HttpResponse(json.dumps(data))
 
 def check_and_create_supplier(seller_id, user):
     seller_master = SellerMaster.objects.get(user=user.id, seller_id=seller_id)
@@ -3534,7 +3543,7 @@ def create_return_order(data, user):
     user_obj = User.objects.get(id=user)
     sku_id = SKUMaster.objects.filter(sku_code=data['sku_code'], user=user)
     if not sku_id:
-        return "", "SKU Code doesn't exist"
+        return "", "", "SKU Code doesn't exist"
     return_details = copy.deepcopy(RETURN_DATA)
     user_obj = User.objects.get(id=user)
     if (data['return'] or data['damaged']) and sku_id:
@@ -4466,13 +4475,10 @@ def check_wms_qc(request, user=''):
             value = value.split('_')[-1]
             order_id = value
         ean_number = ''
-        try:
-            ean_number = int(key)
-        except:
-            pass
+        ean_number = key
         if not is_receive_po:
             sku_query_dict = {'purchase_order__open_po__sku__wms_code': key}
-            if ean_number:
+            if ean_number and ean_number != '0':
                 sku_query_dict['purchase_order__open_po__sku__ean_number'] = ean_number
             sku_query = get_dictionary_query(sku_query_dict)
             filter_params = {'po_location__status': 2,
@@ -4487,7 +4493,7 @@ def check_wms_qc(request, user=''):
                              'rejected_quantity': 'data.rejected_quantity'}
         else:
             sku_query_dict = {'open_po__sku__wms_code': key}
-            if ean_number:
+            if ean_number and ean_number != '0':
                 sku_query_dict['open_po__sku__ean_number'] = ean_number
             sku_query = get_dictionary_query(sku_query_dict)
             filter_params = {'open_po__sku__wms_code': key, 'open_po__sku__user': user.id,
@@ -5061,7 +5067,7 @@ def confirm_add_po(request, sales_data='', user=''):
             po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
             sku_id = SKUMaster.objects.filter(wms_code=key.upper(), user=user.id)
 
-            ean_number = 0
+            ean_number = ''
             if sku_id:
                 eans = get_sku_ean_list(sku_id[0])
                 if eans:
@@ -5481,7 +5487,7 @@ def confirm_po1(request, user=''):
                                     total_sku_amt
                                     ]
                 if ean_flag:
-                    ean_number = 0
+                    ean_number = ''
                     eans = get_sku_ean_list(purchase_order.sku)
                     if eans:
                         ean_number = eans[0]
@@ -6415,6 +6421,7 @@ def check_return_imei(request, user=''):
                     break
                 return_data['status'] = 'Success'
                 invoice_number = ''
+                id_card = ''
                 if not order_imei[0].order:
                     return HttpResponse("IMEI Mapped to Job order")
                 order_id = order_imei[0].order.original_order_id
@@ -6422,8 +6429,9 @@ def check_return_imei(request, user=''):
                     order_id = order_imei[0].order.order_code + str(order_imei[0].order.order_id)
                 if central_order_reassigning == 'true':
                     result = get_firebase_order_data(order_id)
-                    id_card = result.get('id_card','')
-                    if id_card :
+                    if result:
+                        id_card = result.get('id_card','')
+                    if id_card:
                         return_data['status'] = 'Delivered Order Cannot be Returned '
                         return HttpResponse(json.dumps(return_data))
                 if order_imei[0].order_reference:
@@ -9013,10 +9021,7 @@ def get_sales_return_print_json(return_id, user):
 def map_ean_sku_code(request, user=''):
     sku_code = request.GET.get('map_sku_code')
     ean_number = request.GET.get('ean_number')
-    try:
-        ean_number = int(ean_number)
-    except:
-        return HttpResponse(json.dumps({'message': 'EAN Number should be Number', 'status': 0}))
+    ean_number = str(ean_number)
     sku_master = SKUMaster.objects.filter(user=user.id, sku_code=sku_code)
     if not sku_master.exists():
         return HttpResponse(json.dumps({'message': 'Invalid SKU Code', 'status': 0}))
@@ -9385,9 +9390,9 @@ def confirm_central_po(request, user=''):
             po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
             sku_id = SKUMaster.objects.filter(wms_code=key.upper(), user=warehouse.id)
             exist_sku_master = SKUMaster.objects.filter(wms_code=key.upper(), user=user.id)
-            ean_number = 0
+            ean_number = ''
             if sku_id:
-                ean_number = int(sku_id[0].ean_number)
+                ean_number = sku_id[0].ean_number
 
             if not value['order_quantity']:
                 continue

@@ -268,7 +268,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "central_order_upload/",
                    dparam: "download-file",
                    value: "",
-                   perm: "add_suppliermaster"
+                   perm: "add_intermediateorders"
                  },
                  {
                    title: "Create Stock Transfer Order Form Download/ Upload",

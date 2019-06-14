@@ -391,28 +391,18 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
   var empty_data = {data: []}
 
   vm.add_to_cart = function(levels_data) {
-
     // if(vm.sel_items_total_price > 0) {
     if(vm.wish_data.total_qty > 0) {
-
       var send = [];
-
-      //angular.forEach(vm.levels_data, function(level_data, level_name) {
-
-      //  angular.forEach(level_data.data, function(data){
         angular.forEach(vm.wish_list, function(data, name) {
           if (data['quantity']) {
-
             var temp = {sku_id: data.wms_code, quantity: Number(data.quantity), invoice_amount: data.price * Number(data.quantity), price: data.price, tax: vm.tax, image_url: data.image_url, level: data.level, overall_sku_total_quantity: data.overall_sku_total_quantity}
             temp['total_amount'] = ((temp.invoice_amount / 100) * vm.tax) + temp.invoice_amount;
             send.push(temp);
           }
         });
-      //});
-
       vm.insert_customer_cart_data(send);
     } else {
-
       vm.service.showNoty("Please Enter Quantity", "success", "bottomRight");
     }
   }

@@ -2,7 +2,17 @@
   <div class="page-layout">
     <div class='layout-header' style="overflow: visible">
       <div class="pull-left" ng-include="'views/common/title.html'"></div>
-      <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
+      <!-- <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button> -->
+      <div class="btn-group pull-right" style="overflow: visible" dropdown>
+        <button type="button" class="btn btn-default dropdown-toggle" dropdown-toggle>Download
+          <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu" role="menu">
+          <li>
+            <a href="javascript:;" ng-click="showCase.excel()">Warehouse Stock</a>
+          </li>
+        </ul>
+      </div>
     </div>
     <div class="layout-body">
       <preloader class="preloader" ng-show="showCase.layout_loading"></preloader>
@@ -54,7 +64,7 @@
               </select>
             </div>
           </div>
-          <div class="hide" ng-if="showCase.permissions.user_type=='central_admin' || showCase.permissions.user_type=='admin_sub_user' || showCase.permissions.user_type=='sm_purchase_admin'">
+          <div class="hide" ng-if="(showCase.permissions.user_type=='central_admin' && showCase.permissions.add_networkmaster) || showCase.permissions.user_type=='admin_sub_user' || showCase.permissions.user_type=='sm_purchase_admin'">
               <select class="form-control pull-right" ng-init="showCase.g_data.view='Available+ASN'" ng-model="showCase.g_data.view" ng-change="showCase.change_datatable()">
                 <option ng-repeat="view in showCase.g_data.views" value="{{view}}" ng-selected="view == Available+ASN"> {{view}}</option>
               </select>

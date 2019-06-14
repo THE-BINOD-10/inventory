@@ -244,7 +244,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.addValidation = function(){
 
-      $('.bootstrap-tagsinput').find('input').attr("autocomplete", "off").addClass('number valid');
+      $('.bootstrap-tagsinput').find('input').attr("autocomplete", "off");
     }
 
     vm.close = function() {

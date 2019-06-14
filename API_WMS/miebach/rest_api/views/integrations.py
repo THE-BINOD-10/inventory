@@ -1076,7 +1076,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                     if exist_sku_eans.get(rem_ean, ''):
                         del exist_sku_eans[rem_ean]
             if str(sku_master.ean_number) in rem_eans:
-                sku_master.ean_number = 0
+                sku_master.ean_number = ''
                 update_sku_obj = True
                 #sku_master.save()
             for ean in create_eans:

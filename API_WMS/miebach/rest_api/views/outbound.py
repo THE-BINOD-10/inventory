@@ -7154,7 +7154,6 @@ def get_sku_variants(request, user=''):
         wh_lists = list(get_sister_warehouse(user).values_list('user_id', flat=True))
         sku_codes = []
         selected_sku_code = request.POST.get('sku_class', '')
-        wh_lists.append(user.id)
         sku_codes.append(selected_sku_code)
         warehouses_data = get_aggregate_data(wh_lists, sku_codes)
         _data['available_warehouses_stock'] = warehouses_data
@@ -9453,6 +9452,9 @@ def order_delete(request, user=""):
                     picked_qty_check = Picklist.objects.filter(order_id=order_detail_id, picked_quantity__gt=0)
                     if not picked_qty_check.exists():
                         OrderDetail.objects.filter(id=order_detail_id).delete()
+                        admin_user = get_admin(user)
+                        if admin_user:
+                            OrderFields.objects.filter(user=admin_user.id, original_order_id=complete_id).delete()
                     else:
                         OrderDetail.objects.filter(id=order_detail_id).update(status=3)
 
@@ -9477,8 +9479,9 @@ def get_only_date(request, date):
 
 
 def get_level_based_customer_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['generic_order_id','quantity', 'Delivered Qty', 'Pending Qty', 'Order Value', 'creation_date', 'Receive Status']
+    lis = ['generic_order_id','quantity','Emiza_order_ids', 'corporate_name', 'Delivered Qty', 'Pending Qty', 'Order Value', 'creation_date', 'Receive Status', 'po_number', 'schedule_date', 'remarks']
     search_params = get_filtered_params(filters, lis)
+    corporatae_name = ''
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -9486,10 +9489,20 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
     is_autobackorder = request.GET.get('autobackorder', 'false')
     user_profile = UserProfile.objects.get(user=user.id)
     admin_user = get_priceband_admin_user(user)
+    orderprefix_map = {}
+    all_wh_dists_obj = UserGroups.objects.filter(admin_user=admin_user)
+    if request.user.userprofile.zone:
+        all_wh_dists = all_wh_dists_obj.filter(user__userprofile__zone=request.user.userprofile.zone).values_list('user_id', flat=True)
+    else:
+        all_wh_dists = all_wh_dists_obj.values_list('user_id', flat=True)
+    orderprefix_map = dict(all_wh_dists_obj.values_list('user_id', 'user__userprofile__order_prefix'))
     if is_autobackorder == 'true':
         customer = WarehouseCustomerMapping.objects.filter(warehouse=user.id, status=1)
         if customer:
             cm_ids = CustomerUserMapping.objects.filter(customer__user=user.id).values_list('customer_id', flat=True)
+            em_qs = EnquiryMaster.objects.filter(customer_id=cm_ids,**search_params)
+            if em_qs.exists():
+                corporatae_name = em_qs[0].corporate_name
             filter_dict = {'customer_id__in': cm_ids}
     # elif user_profile.warehouse_type == 'WH':
     #     filter_dict = {'cust_wh_id__in': [user.id]}
@@ -9502,6 +9515,9 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
     else:
         cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
         cm_ids = cum_obj.values_list('customer_id', flat=True)
+        em_qs = EnquiryMaster.objects.filter(customer_id=cm_ids,**search_params)
+        if em_qs.exists():
+            corporatae_name = em_qs[0].corporate_name
         filter_dict = {'customer_id__in': cm_ids}
 
     generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
@@ -9510,14 +9526,14 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
     if  order_data :
         generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict).order_by(order_data)
     if search_term:
-        generic_orders = GenericOrderDetailMapping.objects.filter(Q(generic_order_id__icontains=search_term) | Q(orderdetail__sku__sku_code__icontains=search_term) | Q(creation_date__regex=search_term),**filter_dict).order_by(order_data)
+        generic_orders = GenericOrderDetailMapping.objects.filter(Q(generic_order_id__icontains=search_term) | Q(orderdetail__sku__sku_code__icontains=search_term) | Q(creation_date__regex=search_term) | Q(po_number__icontains=search_term) | Q(orderdetail__original_order_id__icontains=search_term), **filter_dict).order_by(order_data)
     temp_data['recordsTotal'] = len(generic_orders)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
     picklist = Picklist.objects.filter(order_id__in=generic_details_ids)
-    response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id').
+    response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id','po_number').
                                  annotate(total_quantity=Sum('quantity'),
-                                          date_only=Cast('creation_date', DateField())).order_by('-date_only'))
+                                          date_only=Cast('creation_date', DateField())).order_by(order_data))
     response_data['data'] = response_data['data'][start_index:stop_index]
     for record in response_data['data']:
         order_details = generic_orders.filter(generic_order_id=record['generic_order_id'],
@@ -9556,6 +9572,21 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
             record['date'] = ''
         if record['generic_order_id']:
             record['order_id'] = record['generic_order_id']
+
+        record['Emiza_ids'] = ''
+        emiza_order_ids = []
+
+
+        if record['order_id']:
+            related_order_ids = generic_orders.filter(generic_order_id=record['order_id']).values_list(
+            'orderdetail__user','orderdetail__order_id','schedule_date')
+            for usr , org_id, expected_date in related_order_ids:
+                record['expected_date'] = expected_date.strftime("%d/%m/%y")
+                if usr in orderprefix_map:
+                    emiza_id = orderprefix_map[usr]+'MN'+str(org_id)
+                    emiza_order_ids.append(emiza_id)
+            record['Emiza_ids'] = list(set(emiza_order_ids))
+
         record['order_detail_ids'] = list(order_details.values_list('orderdetail__order_id', flat=True).distinct())
         customer_id = record['customer_id']
         record['reseller_name'] = CustomerMaster.objects.get(id=customer_id).name
@@ -9579,16 +9610,17 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
                         record['total_inv_amt'] = round(record['total_inv_amt'] + tax_inclusive_inv_amt, 2)
 
                     data = OrderDetail.objects.filter(id=ord_det_id)
-                    ord_det_qs = data.values('order_id', 'id', 'user', 'original_order_id', 'order_code')
+                    ord_det_qs = data.values('order_id', 'id', 'user', 'original_order_id', 'order_code', 'remarks')
                     if ord_det_qs:
                         order_detail_order_id = ord_det_qs[0]['original_order_id']
+                        remarks = ord_det_qs[0]['remarks']
                         if not order_detail_order_id:
                             order_detail_order_id = str(ord_det_qs[0]['order_code']) + str(ord_det_qs[0]['order_id'])
                         other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
                         if other_charges:
                             record['total_inv_amt'] += round(other_charges, 2)
         temp_data['aaData'].append(OrderedDict(
-            (('Order ID', record['order_id']), ('Ordered Qty', record['total_quantity']),
+            (('Order ID', record['order_id']), ('Ordered Qty', record['total_quantity']),('Emiza_order_ids', record['Emiza_ids']),('corporate_name', corporatae_name), ('po_number', record['po_number']),('remarks', remarks),('schedule_date', record['expected_date']),
              ('Delivered Qty',record['picked_quantity']), ('Pending Qty',record['total_quantity']-record['picked_quantity']), ('Order Value', record['total_inv_amt']),('Order Date', record['date']),('Receive Status',record['status']))))
     """return response_data"""
 
@@ -9612,6 +9644,7 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
         customer = CustomerUserMapping.objects.filter(user=request.user.id)
         # lis = ['order_id', 'total_quantity', 'picked_quantity','total_quantity'-'picked_quantity', 'total_inv_amt']
         # search_params = get_filtered_params(filters, lis)
+
         intermediate_orders = []
         if customer:
             customer_id = customer[0].customer.customer_id
@@ -9644,7 +9677,6 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
                                                   date_only=Cast('creation_date', DateField()),
                                                   intermediate_order=Value(False, output_field=BooleanField())).order_by('-date_only'))
             response_data['data'] = list(chain(intermediate_orders, real_orders))
-
         response_data['data'] = response_data['data'][start_index:stop_index]
         for record in response_data['data']:
             if record['intermediate_order']:
@@ -9692,6 +9724,23 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
     """return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))"""
 
 
+@login_required
+@get_admin_user
+def print_pdf_my_orders_swiss(request, user=''):
+    data = eval(request.POST['data'])
+    data_dict = data['data'][0]['data']
+    level_name_check = data_dict[0]
+    sku_wise_details = data['sku_wise_details']['data']
+    order_id = data['data'][0]['order_id']
+    order_quantity = data['data'][0]['sum_data']['quantity']
+    order_date = data['data'][0]['date']
+    tax = data['data'][0]['tax']
+    total_amount = data['data'][0]['sum_data']['amount']
+    order_value =  total_amount - tax
+    return render(request, 'templates/toggle/print_pdf_my_orders_swiss.html',{'data':data, 'data_dict':data_dict, 'order_id':order_id, 'order_quantity':order_quantity, 'order_value':order_value, 'tax':tax, 'total_amount':total_amount, 'order_date':order_date, 'sku_wise_details':sku_wise_details, 'level_name_check':level_name_check})
+
+
+
 
 def construct_order_customer_order_detail(request, order, user):
     data_list = list(order.values('id', 'order_id', 'creation_date', 'status', 'quantity', 'invoice_amount',
@@ -9731,6 +9780,7 @@ def construct_order_customer_order_detail(request, order, user):
             schedule_date = gen_ord_obj[0].schedule_date
             if schedule_date:
                 record['schedule_date'] = schedule_date.strftime('%d/%m/%Y')
+            record['pending_quantity'] = record['quantity'] - record['picked_quantity']
     return data_list, total_picked_quantity
 
 
@@ -9773,7 +9823,6 @@ def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
     response_data['sum_data'] = sum_data
     response_data['other_charges'] = other_charges
     response_data['data'].extend(res)
-
     return response_data, res
 
 
@@ -9802,7 +9851,6 @@ def get_level_based_customer_order_detail(request, user):
         cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
         cm_ids = cum_obj.values_list('customer_id', flat=True)
         filter_dict = {'customer_id__in': cm_ids}
-
     generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
     if customer_id:
         generic_orders = generic_orders.filter(customer_id=customer_id)
@@ -9837,8 +9885,8 @@ def get_level_based_customer_order_detail(request, user):
                      response_data['warehouse_level'] = 0
                 else:
                     response_data['warehouse_level'] = ord_usr_profile.warehouse_level
-                    response_data['level_name'] = get_level_name_with_level(user, response_data['warehouse_level'],
-                                                                         users_list=[usr_id])
+                response_data['level_name'] = get_level_name_with_level(user, response_data['warehouse_level'],
+                                                                     users_list=[usr_id])
                 if sku_code not in sku_wise_details:
                     sku_wise_details[sku_code] = {'quantity': sku_qty, 'el_price': sku_el_price,
                                                   'sku_tax_amt': sku_tax_amt}
@@ -10051,7 +10099,6 @@ def get_customer_cart_data(request, user=""):
         tax = 0
         if tax_type:
             tax_type = tax_type[0]
-
         cm_obj = CustomerMaster.objects.get(id=cust_user_obj[0].customer_id)
         is_distributor = cm_obj.is_distributor
         todays_date = datetime.datetime.today().date()
@@ -10244,10 +10291,14 @@ def get_customer_cart_data(request, user=""):
             date += datetime.timedelta(days=del_days)
             del_date = date.strftime("%d/%m/%Y")
             json_record['del_date'] = del_date
-
             response['data'].append(json_record)
+    if cart_data and cm_obj.is_distributor:
+        warehouse_obj = WarehouseCustomerMapping.objects.filter(customer = cm_obj)
+        if warehouse_obj.exists():
+            min_order_value = warehouse_obj[0].warehouse.userprofile.min_order_val
+            response['is_distributor'] = cm_obj.is_distributor
+            response['min_order_value'] = min_order_value
     response['invoice_types'] = get_invoice_types(user)
-
     return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
 
 
@@ -12607,7 +12658,7 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
 
 
 def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['enquiry_id', 'creation_date', 'customer_name', 'sku__sku_class', 'sku__customization_type', 'sku__sku_code', 'sku__sku_status']
+    lis = ['enquiry_id', 'creation_date', 'customer_name', 'sku__sku_class', 'customization_type', 'sku__sku_code', 'status']
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
     if order_term == 'desc':

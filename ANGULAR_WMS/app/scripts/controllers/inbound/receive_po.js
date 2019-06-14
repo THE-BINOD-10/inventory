@@ -1294,7 +1294,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         } else {
           data1["disable"] = true;
           fb.check_imei(data1.imei_number).then(function(resp) {
-            if (resp.status) {
+            if (resp.status && vm.model_data.po_reference != resp.data.po) {
               Service.showNoty("Serial Number already Exist in other PO: "+resp.data.po);
               data1.imei_number = "";
               $("input[attr-name='imei_"+data1.wms_code+"']").trigger('focus');

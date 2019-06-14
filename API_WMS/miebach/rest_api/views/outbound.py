@@ -8847,7 +8847,7 @@ def get_central_order_detail(request, user=''):
     warehouses.values_list('user_id', flat=True)
     wh_users = warehouses.values_list('user_id', flat=True)
     stock_obj_dict = dict(StockDetail.objects.filter(sku__sku_code=sku_code, sku__user__in=wh_users,
-                                           quantity__gt=0).values_list('sku__user').distinct().annotate(in_stock=Sum('quantity')))
+                                           quantity__gt=0).exclude(location__zone__zone='DAMAGED_ZONE').values_list('sku__user').distinct().annotate(in_stock=Sum('quantity')))
     reserved_obj_dict = dict(PicklistLocation.objects.filter(stock__sku__sku_code=sku_code,stock__sku__user__in=wh_users, status=1).\
                                             values_list('stock__sku__user').distinct().annotate(in_reserved=Sum('reserved')))
     raw_reserved_dict = dict(RMLocation.objects.filter(status=1, stock__sku__user__in=wh_users, stock__sku__sku_code=sku_code). \

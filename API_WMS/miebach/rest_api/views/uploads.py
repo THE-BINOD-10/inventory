@@ -5989,8 +5989,9 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
                 original_order_id = str(int(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type)))
             except:
                 original_order_id = str(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type))
-            if not original_order_id:
-                index_status.setdefault(count, set()).add('Main SR Number is mandatory')
+            courtesy_check = OrderFields.objects.filter(user=user.id, order_type='intermediate_order', name='original_order_id', value=original_order_id)
+            if not original_order_id or courtesy_check:
+                index_status.setdefault(count, set()).add('Main SR Number is Invalid')
         if order_mapping.has_key('customer_name'):
             customer_name = str(get_cell_data(row_idx, order_mapping['customer_name'], reader, file_type))
             if not customer_name:

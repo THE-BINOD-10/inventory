@@ -59,8 +59,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout,$compile, $roo
     }
     if(vm.permissions.dispatch_qc_check) {
       vm.dtColumns.push(DTColumnBuilder.newColumn('Signed Invoice').withTitle('Signed Invoice Upload').notSortable())
-    } else {
-      vm.dtColumns.pop(DTColumnBuilder.newColumn('Signed Invoice').withTitle('Signed Invoice Upload').notSortable())
     }
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $compile(angular.element('td', nRow))($scope);

@@ -128,6 +128,7 @@ urlpatterns = [
     url(r'^confirm_add_po/$', confirm_add_po),
     url(r'^raise_po_toggle/$', raise_po_toggle),
     url(r'^get_mapping_values/$', get_mapping_values),
+    url(r'^get_ep_supplier_value/$', get_ep_supplier_value),
     url(r'^add_po/$', add_po),
     url(r'^insert_inventory_adjust/$', insert_inventory_adjust),
     url(r'^delete_po/$', delete_po),

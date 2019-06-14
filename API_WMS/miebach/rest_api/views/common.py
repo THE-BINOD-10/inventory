@@ -9359,6 +9359,10 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
         sup_markdown = SupplierMaster.objects.get(id=supplier_id)
         data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,
                 'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
+        if sku_master.block_options:
+            data['sku_block'] = sku_master.block_options
+        else:
+            data['sku_block'] = ''
         if sku_supplier:
             mrp_value = sku_master.mrp
             if sku_supplier[0].costing_type == 'Margin Based':

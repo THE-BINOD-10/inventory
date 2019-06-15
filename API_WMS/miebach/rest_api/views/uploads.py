@@ -5968,6 +5968,7 @@ def central_order_upload(request, user=''):
 def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
     log.info("order upload started")
     st_time = datetime.datetime.now()
+    main_sr_numbers = []
     index_status = {}
     order_mapping = get_order_mapping(reader, file_type)
     if not order_mapping:
@@ -5990,8 +5991,10 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
             except:
                 original_order_id = str(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type))
             courtesy_check = OrderFields.objects.filter(user=user.id, order_type='intermediate_order', name='original_order_id', value=original_order_id)
-            if not original_order_id or courtesy_check:
+            if not original_order_id or courtesy_check or original_order_id in main_sr_numbers:
                 index_status.setdefault(count, set()).add('Main SR Number is Invalid')
+            else:
+                main_sr_numbers.append(original_order_id)
         if order_mapping.has_key('customer_name'):
             customer_name = str(get_cell_data(row_idx, order_mapping['customer_name'], reader, file_type))
             if not customer_name:

@@ -23,7 +23,7 @@ We have received your order and will process in shortly. For your reference, her
     <tr>
         {% for i in item %}
             {% if forloop.counter0 == 3 %}
-                <td><img src="{{ i }}"></td>
+                <td><img src="http://{{ i }}" style="display: block;" width="100" height="50"></td>
             {% else %}
                <td>{{ i }}</td>
             {% endif %}

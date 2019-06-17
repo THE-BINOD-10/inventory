@@ -4411,6 +4411,7 @@ def construct_other_charge_amounts_map(created_order_id, myDict, creation_date, 
 def send_mail_ordered_report(order_detail, telephone, items, other_charge_amounts, order_data, user, gen_order_id=None):
     misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='order', misc_value='true')
     order_id = None
+    admin_user = get_admin(user)
     if gen_order_id:
         order_id = gen_order_id
     elif order_detail:
@@ -4420,6 +4421,8 @@ def send_mail_ordered_report(order_detail, telephone, items, other_charge_amount
     if misc_detail:
         company_name = UserProfile.objects.filter(user=user.id)[0].company_name
         headers = ['Product Details', 'Ordered Quantity', 'Total']
+        if admin_user.username == 'isprava_admin':
+            headers.append('Image')
         data_dict = {'customer_name': order_data['customer_name'], 'order_id': order_id,
                      'address': order_data['address'], 'phone_number': order_data['telephone'], 'items': items,
                      'headers': headers, 'company_name': company_name, 'user': user, 'client_name': order_data.get('client_name', '')}
@@ -4978,6 +4981,8 @@ def insert_order_data(request, user=''):
     order_id = ''
     # Sending mail and message
 
+    host_details = request.META.get('HTTP_HOST')
+
     items = []
 
     other_charge_amounts = 0
@@ -5025,6 +5030,7 @@ def insert_order_data(request, user=''):
     dist_shipment_address = request.POST.get('manual_shipment_addr', '')
     vehicle_number = request.POST.get('vehicle_num', '')
     is_central_order = request.POST.get('is_central_order', '')
+    isprava_user = get_admin(user)
     if dist_shipment_address:
         ship_to = dist_shipment_address
     created_order_id = ''
@@ -5299,9 +5305,10 @@ def insert_order_data(request, user=''):
                         dispatch_orders[order_det.id]['data'].append(
                             {'quantity': order_data['quantity'], 'location': myDict['location'][i],
                              'serials': serials})
-
                 items.append([sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)])
-
+                if isprava_user.username == 'isprava_admin':
+                    for item in items:
+                        item.append(host_details+order_detail.sku.image_url)
                 if po_number:
                     OrderPOMapping.objects.create(order_id=order_data['original_order_id'], sku_id=order_data['sku_id'],
                                                   purchase_order_id=po_number.split('_')[-1], status=1,

@@ -22,7 +22,11 @@ We have received your order and will process in shortly. For your reference, her
     {% for item in items %}
     <tr>
         {% for i in item %}
-            <td>{{ i }}</td>
+            {% if forloop.counter0 == 3 %}
+                <td><img src="{{ i }}"></td>
+            {% else %}
+               <td>{{ i }}</td>
+            {% endif %}
         {% endfor %}
     </tr>
     {% endfor %}

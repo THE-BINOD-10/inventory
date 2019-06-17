@@ -3114,7 +3114,6 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
 @reversion.create_revision(atomic=False)
 def confirm_grn(request, confirm_returns='', user=''):
     reversion.set_user(request.user)
-    import pdb;pdb.set_trace()
     data_dict = ''
     headers = (
             'WMS CODE','Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
@@ -5344,7 +5343,6 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
     if report_type == 'posform' :
         email_body = 'pls find the attachment'
         email_subject = 'pos order'
-    import pdb;pdb.set_trace()
     if report_type == 'Purchase Order' and data_dict_po:
 	t = loader.get_template('templates/toggle/auto_po_mail_format.html')
 	email_body = t.render(data_dict_po)

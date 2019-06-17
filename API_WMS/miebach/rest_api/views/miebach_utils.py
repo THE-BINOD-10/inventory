@@ -6253,15 +6253,15 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
     if stop_index:
         purchase_orders = purchase_orders[start_index:stop_index]
     po_reference_no = ''
+    admin_user = get_admin(user)
     for order in purchase_orders:
         po_reference_no = '%s%s_%s' % (
         order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
         order_data = get_purchase_order_data(order)
-        customer_name , sr_number = '', ''
+        customer_name, sr_number = '', ''
         if oneassist_condition == 'true':
             customer_data = OrderMapping.objects.filter(mapping_id=order.id, mapping_type='PO')
             if customer_data:
-                admin_user = get_admin(user)
                 customer_name = customer_data[0].order.customer_name
                 interorder_data = IntermediateOrders.objects.filter(order_id=customer_data[0].order_id, user_id=admin_user.id)
                 if interorder_data:

@@ -1389,9 +1389,9 @@ def confirm_po(request, user=''):
 	data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email, 'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name, 'billing_address': profile.address, 'shipping_address': profile.wh_address}
         if get_misc_value('allow_secondary_emails', user.id) == 'true':
             write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
-                               str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, order_date=str(order_date))
+                               str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
-                           str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, order_date=str(order_date))
+                           str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
     check_purchase_order_created(user, po_id)
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
@@ -5268,10 +5268,10 @@ def confirm_add_po(request, sales_data='', user=''):
 	    data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email, 'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name, 'billing_address': profile.address, 'shipping_address': profile.wh_address}
             if get_misc_value('allow_secondary_emails', user.id) == 'true':
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
-                                   str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, order_date=str(order_date))
+                                   str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
             if get_misc_value('raise_po', user.id) == 'true' and get_misc_value('allow_secondary_emails', user.id) != 'true':
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
-                                   str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, order_date=str(order_date))
+                                   str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
         check_purchase_order_created(user, po_id)
     except Exception as e:
         import traceback
@@ -5307,7 +5307,7 @@ def create_mail_attachments(f_name, html_data):
 
 
 def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_no, po_data, order_date, ean_flag=False,
-                       internal=False, report_type='Purchase Order', data_dict_po={}, order_date_time=''):
+                       internal=False, report_type='Purchase Order', data_dict_po={}, full_order_date=''):
     receivers = []
     attachments = ''
     if html_data:
@@ -5346,7 +5346,7 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
     if report_type == 'Purchase Order' and data_dict_po and user.username in MILKBASKET_USERS:
 	t = loader.get_template('templates/toggle/auto_po_mail_format.html')
 	email_body = t.render(data_dict_po)
-	email_subject = 'Purchase Order from ASPL %s to %s dated %s' % (user.username, data_dict_po['supplier_name'], order_date_time)
+	email_subject = 'Purchase Order from ASPL %s to %s dated %s' % (user.username, data_dict_po['supplier_name'], full_order_date)
 	send_mail_attachment(receivers, email_subject, email_body, files=attachments)
     elif supplier_email or internal or internal_mail:
 	send_mail_attachment(receivers, email_subject, email_body, files=attachments)
@@ -5566,8 +5566,8 @@ def confirm_po1(request, user=''):
 		data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email, 'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name, 'billing_address': profile.address, 'shipping_address': profile.wh_address}
                 if get_misc_value('allow_secondary_emails', user.id) == 'true':
                     write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
-                                   str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, order_date=str(order_date))
-                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data, str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, order_date=str(order_date))
+                                   str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
+                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data, str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
     check_purchase_order_created(user, po_id)
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
@@ -9574,7 +9574,7 @@ def confirm_central_po(request, user=''):
         rendered = t.render(data_dict)
         if get_misc_value('raise_po', warehouse.id) == 'true':
 	    data_dict_po = {'contact_no': user_profile.wh_phone_number, 'contact_email': user.email, 'gst_no': user_profile.gst_number, 'supplier_name':purchase_order.supplier.name, 'billing_address': user_profile.address, 'shipping_address': user_profile.wh_address}
-            write_and_mail_pdf(po_reference, rendered, request, warehouse, supplier_email, phone_no, po_data, str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, order_date=str(order_date))
+            write_and_mail_pdf(po_reference, rendered, request, warehouse, supplier_email, phone_no, po_data, str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
         check_purchase_order_created(warehouse, po_id)
         return render(request, 'templates/toggle/po_template.html', data_dict)
     except Exception as e:

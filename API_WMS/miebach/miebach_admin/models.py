@@ -3230,3 +3230,4 @@ class MasterEmailMapping(models.Model):
     class Meta:
         db_table = 'MASTER_EMAIL_MAPPING'
         unique_together = ('user', 'master_id', 'master_type', 'email_id')
+

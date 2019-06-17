@@ -6206,6 +6206,7 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
     from miebach_admin.views import *
     from common import get_admin
     from rest_api.views.common import  get_order_detail_objs,get_purchase_order_data
+    oneassist_condition = get_misc_value('dispatch_qc_check', user.id)
     lis = ['open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__order_quantity','open_po__sku__sku_code']
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
@@ -6224,7 +6225,6 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
     if 'sku_code' in search_params:
         search_parameters['open_po__sku__sku_code'] = search_params['sku_code']
 
-
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
@@ -6234,41 +6234,45 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
         warehouses = UserGroups.objects.filter(user_id=user.id)
     else:
         warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+    warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
+    sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
+    sku_master_ids = sku_master.values_list('id', flat=True)
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=warehouse_users.keys(),
+                                                   open_po__sku_id__in=sku_master_ids,
+                                                   received_quantity__lt=F('open_po__order_quantity')).exclude(status='location-assigned').filter(**search_parameters)
+    if not purchase_orders:
+        rw_orders = RWPurchase.objects.filter(rwo__vendor__user=user.id,
+                                              rwo__job_order__product_code_id__in=sku_master_ids). \
+            exclude(purchase_order__status__in=['location-assigned', 'stock-transfer']). \
+            values_list('purchase_order_id', flat=True)
+        purchase_orders = PurchaseOrder.objects.filter(id__in=rw_orders)
 
-    for warehouse in warehouses:
-        sku_master = SKUMaster.objects.filter(user=warehouse.user_id)
-        sku_master_ids = sku_master.values_list('id', flat=True)
-        purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=warehouse.user_id,
-                                                       open_po__sku_id__in=sku_master_ids,
-                                                       received_quantity__lt=F('open_po__order_quantity')).exclude(status='location-assigned').filter(**search_parameters)
-        if not purchase_orders:
-            st_orders = STPurchaseOrder.objects.filter(open_st__sku__user=user.id,
-                                                       open_st__sku_id__in=sku_master_ids). \
-                exclude(po__status__in=['location-assigned', 'stock-transfer']).values_list('po_id', flat=True)
-            purchase_orders = PurchaseOrder.objects.filter(id__in=st_orders)
-        if not purchase_orders:
-            rw_orders = RWPurchase.objects.filter(rwo__vendor__user=user.id,
-                                                  rwo__job_order__product_code_id__in=sku_master_ids). \
-                exclude(purchase_order__status__in=['location-assigned', 'stock-transfer']). \
-                values_list('purchase_order_id', flat=True)
-            purchase_orders = PurchaseOrder.objects.filter(id__in=rw_orders)
-
-        temp_data['recordsTotal'] = len(purchase_orders)
-        temp_data['recordsFiltered'] = temp_data['recordsTotal']
-
-        ship_search_params  = {}
-        if stop_index:
-            purchase_orders = purchase_orders[start_index:stop_index]
-        po_reference_no = ''
-        for order in purchase_orders:
-            po_reference_no = '%s%s_%s' % (
-            order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
-            order_data = get_purchase_order_data(order)
-
-            po_quantity = float(order_data['order_quantity']) - float(order.received_quantity)
-
-            temp_data['aaData'].append(OrderedDict((('SKU Code',order_data['wms_code'] ),('PO No',po_reference_no),
-                                                ('Quantity',po_quantity ), ('Sku Description', order_data['sku_desc']),('Location',warehouse.user.username))))
+    temp_data['recordsTotal'] = len(purchase_orders)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    ship_search_params  = {}
+    if stop_index:
+        purchase_orders = purchase_orders[start_index:stop_index]
+    po_reference_no = ''
+    for order in purchase_orders:
+        po_reference_no = '%s%s_%s' % (
+        order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
+        order_data = get_purchase_order_data(order)
+        customer_name , sr_number = '', ''
+        if oneassist_condition == 'true':
+            customer_data = OrderMapping.objects.filter(mapping_id=order.id, mapping_type='PO')
+            if customer_data:
+                admin_user = get_admin(user)
+                customer_name = customer_data[0].order.customer_name
+                interorder_data = IntermediateOrders.objects.filter(order_id=customer_data[0].order_id, user_id=admin_user.id)
+                if interorder_data:
+                    inter_order_id  = interorder_data[0].interm_order_id
+                    courtesy_sr_number = OrderFields.objects.filter(original_order_id = inter_order_id, user = admin_user.id, name = 'original_order_id')
+                    if courtesy_sr_number:
+                        sr_number = courtesy_sr_number[0].value
+        po_quantity = float(order_data['order_quantity']) - float(order.received_quantity)
+        warehouse_location = warehouse_users[order.open_po.sku.user]
+        temp_data['aaData'].append(OrderedDict((('SKU Code',order_data['wms_code']),('PO No',po_reference_no),
+                                            ('Quantity',po_quantity ), ('Sku Description', order_data['sku_desc']),('Location',warehouse_location), ('Customer Name', customer_name), ('SR Number', sr_number))))
     return temp_data
 
 

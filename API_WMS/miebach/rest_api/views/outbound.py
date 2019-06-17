@@ -4422,7 +4422,7 @@ def send_mail_ordered_report(order_detail, telephone, items, other_charge_amount
         company_name = UserProfile.objects.filter(user=user.id)[0].company_name
         headers = ['Product Details', 'Ordered Quantity', 'Total']
         if admin_user.username == 'isprava_admin':
-            headers.append('Image')
+            headers.insert(0,'Image')
         data_dict = {'customer_name': order_data['customer_name'], 'order_id': order_id,
                      'address': order_data['address'], 'phone_number': order_data['telephone'], 'items': items,
                      'headers': headers, 'company_name': company_name, 'user': user, 'client_name': order_data.get('client_name', '')}
@@ -5308,7 +5308,7 @@ def insert_order_data(request, user=''):
                 items.append([sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)])
                 if isprava_user.username == 'isprava_admin':
                     for item in items:
-                        item.append(host_details+order_detail.sku.image_url)
+                        item.insert(0, host_details+order_detail.sku.image_url)
                 if po_number:
                     OrderPOMapping.objects.create(order_id=order_data['original_order_id'], sku_id=order_data['sku_id'],
                                                   purchase_order_id=po_number.split('_')[-1], status=1,

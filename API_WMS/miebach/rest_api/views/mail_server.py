@@ -85,7 +85,7 @@ def send_mail_attachment(send_to, subject, text, files=[], compressed=False, mil
             msg.attach(part)
     try:
         server = smtplib.SMTP_SSL('smtp.gmail.com', '465')
-        server.login(username, mail_password)
+        server.login(fromaddr, mail_password)
         text = msg.as_string()
         server.sendmail(fromaddr, send_to, text)
         server.quit()

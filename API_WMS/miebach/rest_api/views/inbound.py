@@ -1442,6 +1442,15 @@ def get_mapping_values(request, user=''):
     data = get_mapping_values_po(wms_code ,supplier_id,user)
     return HttpResponse(json.dumps(data), content_type='application/json')
 
+def get_ep_supplier_value(request, user=''):
+    data = {}
+    supplier_id = request.POST.get('supplier_id', '')
+    supplier_obj = SupplierMaster.objects.get(id=supplier_id)
+    if int(supplier_obj.ep_supplier):
+        data['ep_supplier_status'] = int(supplier_obj.ep_supplier)
+    else:
+        data['ep_supplier_status'] = int(supplier_obj.ep_supplier)
+    return HttpResponse(json.dumps(data))
 
 def check_and_create_supplier(seller_id, user):
     seller_master = SellerMaster.objects.get(user=user.id, seller_id=seller_id)
@@ -3534,7 +3543,7 @@ def create_return_order(data, user):
     user_obj = User.objects.get(id=user)
     sku_id = SKUMaster.objects.filter(sku_code=data['sku_code'], user=user)
     if not sku_id:
-        return "", "SKU Code doesn't exist"
+        return "", "", "SKU Code doesn't exist"
     return_details = copy.deepcopy(RETURN_DATA)
     user_obj = User.objects.get(id=user)
     if (data['return'] or data['damaged']) and sku_id:
@@ -6415,6 +6424,7 @@ def check_return_imei(request, user=''):
                     break
                 return_data['status'] = 'Success'
                 invoice_number = ''
+                id_card = ''
                 if not order_imei[0].order:
                     return HttpResponse("IMEI Mapped to Job order")
                 order_id = order_imei[0].order.original_order_id
@@ -6422,8 +6432,9 @@ def check_return_imei(request, user=''):
                     order_id = order_imei[0].order.order_code + str(order_imei[0].order.order_id)
                 if central_order_reassigning == 'true':
                     result = get_firebase_order_data(order_id)
-                    id_card = result.get('id_card','')
-                    if id_card :
+                    if result:
+                        id_card = result.get('id_card','')
+                    if id_card:
                         return_data['status'] = 'Delivered Order Cannot be Returned '
                         return HttpResponse(json.dumps(return_data))
                 if order_imei[0].order_reference:

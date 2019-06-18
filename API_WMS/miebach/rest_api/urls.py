@@ -128,6 +128,7 @@ urlpatterns = [
     url(r'^confirm_add_po/$', confirm_add_po),
     url(r'^raise_po_toggle/$', raise_po_toggle),
     url(r'^get_mapping_values/$', get_mapping_values),
+    url(r'^get_ep_supplier_value/$', get_ep_supplier_value),
     url(r'^add_po/$', add_po),
     url(r'^insert_inventory_adjust/$', insert_inventory_adjust),
     url(r'^delete_po/$', delete_po),
@@ -400,6 +401,7 @@ urlpatterns = [
     url(r'^sm_cancel_distributor_order/$', sm_cancel_distributor_order),
     url(r'^get_order_extra_options/$', get_order_extra_options),
     url(r'^remove_customer_profile_image/$', remove_customer_profile_image),
+    url(r'^print_pdf_my_orders_swiss/$', print_pdf_my_orders_swiss),
 
 
     # Uploaded POs [SWISS MILITARY]

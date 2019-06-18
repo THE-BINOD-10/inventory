@@ -64,15 +64,30 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     //var columns = ['Order ID',, ];
     //vm.dtColumns = vm.service.build_colums(columns);
+
     vm.dtColumns = [
       DTColumnBuilder.newColumn('Order ID').withTitle('Order ID'),
+    ];
+    if(vm.permissions.priceband_sync){
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Emiza_order_ids').withTitle('Emiza Order IDs').withOption('width', '20px'))
+    }
+    vm.dtColumns.push(
       DTColumnBuilder.newColumn('Ordered Qty').withTitle('Ordered Qty').notSortable(),
       DTColumnBuilder.newColumn('Delivered Qty').withTitle('Delivered Qty').notSortable(),
       DTColumnBuilder.newColumn('Pending Qty').withTitle('Pending Qty').notSortable(),
       DTColumnBuilder.newColumn('Order Value').withTitle('Order Value').notSortable(),
-      DTColumnBuilder.newColumn('Order Date').withTitle('Order Date'),
-      DTColumnBuilder.newColumn('Receive Status').withTitle('Receive Status').notSortable(),
-    ];
+      DTColumnBuilder.newColumn('remarks').withTitle('Remarks').notSortable(),)
+    if(vm.permissions.user_type == "reseller"){
+       vm.dtColumns.push(
+        DTColumnBuilder.newColumn('corporate_name').withTitle('Corporate Name').notSortable(),
+        DTColumnBuilder.newColumn('po_number').withTitle('Po Number'))
+    }
+    vm.dtColumns.push(DTColumnBuilder.newColumn('Order Date').withTitle('Order Date').notSortable())
+    if(vm.permissions.priceband_sync){
+      vm.dtColumns.push(DTColumnBuilder.newColumn('schedule_date').withTitle('Expected Delivery Date').notSortable())
+    }
+    vm.dtColumns.push(DTColumnBuilder.newColumn('Receive Status').withTitle('Receive Status').notSortable())
+   
     //var empty_data = {Order ID:"",Ordered Qty :"", Delivered Qty:"", Pending Qty:"", Order Value:"", Order Date:"", Receive Status:""};
      vm.model_data = {};
     var row_click_bind = 'td';
@@ -114,6 +129,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     //  angular.copy(empty_data, vm.model_data);
       $state.go('user.App.MyOrders')
     }
+
     vm.submit = submit;
     function submit(form) {
       var data = [];
@@ -187,6 +203,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       });
      }
     }
+
+    vm.print_pdf_my_orders_swiss = function(){
+      vm.service.apiCall("print_pdf_my_orders_swiss/", "POST", {"data":JSON.stringify(vm.model_data)}).then(function(data){
+        if(data){
+          vm.service.print_data(data.data, '');
+        }
+      })
+    }
+
 }
 
 stockone.directive('dtPoData', function() {

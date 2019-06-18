@@ -5042,10 +5042,10 @@ def confirm_add_po(request, sales_data='', user=''):
         industry_type = user_profile[0].industry_type
         ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
                                             wms_code__in=myDict['wms_code'], user=user.id)
-	if ean_data:
-	    ean_flag = True
-	    if ean_data[0].block_options == 'PO':
-		return HttpResponse(ean_data[0].wms_code + " SKU Code Blocked for PO")
+        if ean_data:
+            ean_flag = True
+            if ean_data[0].block_options == 'PO':
+                return HttpResponse(ean_data[0].wms_code + " SKU Code Blocked for PO")
 
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
 

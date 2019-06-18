@@ -1083,7 +1083,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                 if not ean:
                     continue
                 try:
-                    ean = int(ean)
+                    ean = ean
                     new_ean_objs.append(EANNumbers(**{'ean_number': ean, 'sku_id': sku_master.id}))
                     ean_found = False
                     if exist_ean_list.get(ean, ''):

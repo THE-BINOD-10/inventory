@@ -2589,6 +2589,9 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                       'cess_tax': 'CESS Tax', 'apmc_tax': 'APMC Tax'}
     number_fields = ['mrp', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax', 'cess_tax', 'apmc_tax']
     user_profile = user.userprofile
+    if user_profile.user_type == 'marketplace_user' :
+        if 'seller_id' not in excel_mapping.keys() :
+            return 'Invalid File seller id is Mandatory', []
     for row_idx in range(1, no_of_rows):
         data_dict = {}
         print excel_mapping

@@ -2611,10 +2611,19 @@ def get_combo_sku_codes(request, user=''):
     if not seller_master:
         return HttpResponse(json.dumps({"status": False, "message":"Invalid Seller ID"}))
     seller_master_id = seller_master[0].id
+    parent_mrp = 0
+    sellable_zones = get_all_sellable_zones(user)
+    get_sku_id = SKUMaster.objects.filter(user=request.user.id, sku_code=sku_code)
+    if get_sku_id.exists():
+        parent_sku_id = get_sku_id[0].id
+        stock_detail = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sellerstock__seller_id=seller_master_id,
+                                                            sku_id=parent_sku_id, location__zone__zone__in=sellable_zones,
+                                                            batch_detail__isnull=False).only('batch_detail__mrp')
+        if stock_detail.exists():
+	    parent_mrp = stock_detail[0].batch_detail.mrp
     combo_skus = SKURelation.objects.filter(parent_sku__user=user.id, parent_sku__sku_code=sku_code)
     if not combo_skus:
         return HttpResponse(json.dumps({"status": False, "message":"No Data Found"}))
-    sellable_zones = get_all_sellable_zones(user)
     for combo in combo_skus:
         cond = (combo.member_sku.sku_code)
         child_quantity = combo.quantity
@@ -2626,7 +2635,7 @@ def get_combo_sku_codes(request, user=''):
             child_mrp = stock_detail[0].batch_detail.mrp
         all_data.append({'child_sku_qty': child_quantity, 'child_sku_code': cond, 'child_sku_batch':'', 'child_sku_desc': combo.member_sku.sku_desc,
                         'child_sku_location': '', 'child_sku_mrp': child_mrp, 'child_qty': child_quantity})
-    parent_data = {'combo_sku_code': combo_skus[0].parent_sku.sku_code, 'combo_sku_desc': combo_skus[0].parent_sku.sku_desc, 'quantity':1}
+        parent_data = {'combo_sku_code': combo_skus[0].parent_sku.sku_code, 'combo_sku_desc': combo_skus[0].parent_sku.sku_desc, 'quantity':1, 'mrp': parent_mrp}
     return HttpResponse(json.dumps({"status": True, 'parent': parent_data, 'childs': all_data}), content_type='application/json')
 
 

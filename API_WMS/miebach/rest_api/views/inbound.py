@@ -5344,10 +5344,11 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         email_body = 'pls find the attachment'
         email_subject = 'pos order'
     if report_type == 'Purchase Order' and data_dict_po and user.username in MILKBASKET_USERS:
+        milkbasket_mail_credentials = {'username':'Procurement@milkbasket.com', 'password':'anubhav@123'}
 	t = loader.get_template('templates/toggle/auto_po_mail_format.html')
 	email_body = t.render(data_dict_po)
 	email_subject = 'Purchase Order from ASPL %s to %s dated %s' % (user.username, data_dict_po['supplier_name'], full_order_date)
-	send_mail_attachment(receivers, email_subject, email_body, files=attachments)
+	send_mail_attachment(receivers, email_subject, email_body, files=attachments, milkbasket_mail_credentials)
     elif supplier_email or internal or internal_mail:
 	send_mail_attachment(receivers, email_subject, email_body, files=attachments)
     if phone_no:

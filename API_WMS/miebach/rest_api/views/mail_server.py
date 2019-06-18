@@ -34,8 +34,12 @@ def send_mail(send_to, subject, body):
         return
 
 
-def send_mail_attachment(send_to, subject, text, files=[], compressed=False):
+def send_mail_attachment(send_to, subject, text, files=[], compressed=False, milkbasket_mail_credentials={}):
     fromaddr = 'noreply@mieone.com'
+    mail_password = 'no*reply!59'
+    if milkbasket_mail_credentials:
+        fromaddr = milkbasket_mail_credentials['username']
+        mail_password = milkbasket_mail_credentials['password']
     msg = MIMEMultipart()
     msg['From'] = fromaddr
     msg['Subject'] = subject
@@ -67,7 +71,6 @@ def send_mail_attachment(send_to, subject, text, files=[], compressed=False):
         msg.attach(part)
     else:
         for f in files:
-
             if isinstance(f, dict):
                 file_path = f['path']
                 file_name = f['name']
@@ -75,19 +78,15 @@ def send_mail_attachment(send_to, subject, text, files=[], compressed=False):
                 file_path = f
                 file_name = f
             attachment = open(file_path, "rb")
-
             part = MIMEBase('application', 'octet-stream')
             part.set_payload((attachment).read())
             encoders.encode_base64(part)
             part.add_header('Content-Disposition', "attachment; filename= %s" % file_name)
-
             msg.attach(part)
-
     try:
         server = smtplib.SMTP_SSL('smtp.gmail.com', '465')
-        server.login("aravind@mieone.com", "!IndiaN..47")
+        server.login(username, mail_password)
         text = msg.as_string()
-
         server.sendmail(fromaddr, send_to, text)
         server.quit()
     except:

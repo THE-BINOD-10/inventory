@@ -3969,6 +3969,12 @@ def get_customer_sku_prices(request, user=""):
             igst_tax = tax_values[0]['igst_tax']
             sgst_tax = tax_values[0]['sgst_tax']
             cgst_tax = tax_values[0]['cgst_tax']
+        else:
+            product_type = ''
+            igst_tax = ''
+            sgst_tax = ''
+            cgst_tax = ''
+
         sku_codes = [sku_codes]
         result_data = []
         price_bands_list = []

@@ -1257,10 +1257,10 @@ def insert_supplier(request, user=''):
         sku_status = 0
         rep_email = filter_or_none(SupplierMaster, {'email_id': request.POST['email_id'], 'user': user.id})
         rep_phone = filter_or_none(SupplierMaster, {'phone_number': request.POST['phone_number'], 'user': user.id})
-        if rep_email and request.POST['email_id']:
-            return HttpResponse('Email already exists')
-        if rep_phone and request.POST['phone_number']:
-            return HttpResponse('Phone Number already exists')
+        # if rep_email and request.POST['email_id']:
+        #     return HttpResponse('Email already exists')
+        # if rep_phone and request.POST['phone_number']:
+        #     return HttpResponse('Phone Number already exists')
         secondary_email_id = request.POST.get('secondary_email_id', '').split(',')
         for mail in secondary_email_id:
             if validate_supplier_email(mail):
@@ -4234,12 +4234,12 @@ def get_cluster_sku_results(start_index, stop_index, temp_data, search_term, ord
         if excel_flag == 'true':
             checkbox = ''
             temp_data['aaData'].append(OrderedDict(
-            (('ClusterName', cluster.cluster_name), ('Skuid', cluster.sku.sku_code), ('Sequence', cluster.sequence), 
+            (('ClusterName', cluster.cluster_name), ('Skuid', cluster.sku.sku_code), ('Sequence', cluster.sequence),
                 ('CreationDate', get_local_date(user, cluster.creation_date)), ('id', cluster.id))))
         else:
             checkbox = '<input type="checkbox" name="id" value="%s">' % cluster.id
             temp_data['aaData'].append(OrderedDict(
-                (('check', checkbox), ('ClusterName', cluster.cluster_name), ('Skuid', cluster.sku.sku_code), ('Sequence', cluster.sequence), 
+                (('check', checkbox), ('ClusterName', cluster.cluster_name), ('Skuid', cluster.sku.sku_code), ('Sequence', cluster.sequence),
                     ('CreationDate', get_local_date(user, cluster.creation_date)), ('id', cluster.id))))
         temp_data['recordsTotal'] = cl_qs.count()
         temp_data['recordsFiltered'] = temp_data['recordsTotal']

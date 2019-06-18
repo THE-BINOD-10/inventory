@@ -12653,30 +12653,36 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
 
 def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     lis = ['enquiry_id', 'creation_date', 'customer_name', 'sku__sku_class', 'customization_type', 'sku__sku_code', 'status']
-    search_params = get_filtered_params(filters, lis)
+    # search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    response_data = {'data': []}
+    # response_data = {'data': []}
     if search_term:
         em_qs = ManualEnquiry.objects.filter(Q(enquiry_id__icontains=search_term)| Q(creation_date__regex=search_term)| Q(customer_name__icontains=search_term)
             | Q(sku__sku_class__icontains=search_term) | Q(customization_type__icontains=search_term) |Q(sku__sku_code__icontains=search_term) |Q(status__icontains=search_term)).order_by(order_data)
     else:
         em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by(order_data)
     for enquiry in em_qs[start_index:stop_index]:
-        res_map = {'order_id': enquiry.enquiry_id, 'customer_name': enquiry.customer_name,
-                   'date': get_only_date(request, enquiry.creation_date),
-                   'sku_code': enquiry.sku.sku_code, 'style_name': enquiry.sku.sku_class}
+        # res_map = {'order_id': enquiry.enquiry_id, 'customer_name': enquiry.customer_name,
+        #            'date': get_only_date(request, enquiry.creation_date),
+        #            'sku_code': enquiry.sku.sku_code, 'style_name': enquiry.sku.sku_class}
+        customization_type = '  Price and Product Customization'
         if enquiry.customization_type:
             if enquiry.customization_type == 'price_custom':
                 customization_type = 'Price Customization'
-            else:
-                customization_type = '  Price and Product Customization'
-        temp_data['aaData'].append(OrderedDict(
-            (('Enquiry ID', float(enquiry.enquiry_id)), ('Enquiry Date', get_only_date(request, enquiry.creation_date)),
-              ('Customer Name', enquiry.customer_name), ('Style Name', enquiry.sku.sku_class), ('Customization', customization_type),('SKU Code', enquiry.sku.sku_code), ('Status', enquiry.status))))
-        temp_data['recordsTotal'] = em_qs.count()
-        temp_data['recordsFiltered'] = temp_data['recordsTotal']
+        cm_qs = CustomerUserMapping.objects.filter(user=enquiry.user)
+        if cm_qs:
+            cm_id = cm_qs[0].customer_id
+            uniq_enq_id = str(cm_id) + str(enquiry.enquiry_id)
+            temp_data['aaData'].append(OrderedDict(
+                (('ID', float(enquiry.enquiry_id)), ('Enquiry ID', uniq_enq_id),
+                 ('Enquiry Date', get_only_date(request, enquiry.creation_date)),
+                 ('Customer Name', enquiry.customer_name), ('Style Name', enquiry.sku.sku_class),
+                 ('Customization', customization_type),('SKU Code', enquiry.sku.sku_code),
+                 ('Status', enquiry.status))))
+            temp_data['recordsTotal'] = em_qs.count()
+            temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
 @get_admin_user
 def get_customer_enquiry_detail(request, user=''):
@@ -13355,7 +13361,11 @@ def get_manual_enquiry_detail(request, user=''):
         customization_type = customization_types[manual_enq[0].customization_type]
         total_qty = manual_enq.aggregate(Sum('quantity'))
         ordered_qty = total_qty.get('quantity__sum', 0)
-        manual_eq_dict = {'enquiry_id': int(manual_enq[0].enquiry_id), 'customer_name': manual_enq[0].customer_name,
+        cm_qs = CustomerUserMapping.objects.filter(user=manual_enq[0].user)
+        if cm_qs:
+            cm_id = cm_qs[0].customer_id
+            uniq_enq_id = str(cm_id) + str(manual_enq[0].enquiry_id)
+        manual_eq_dict = {'enquiry_id': uniq_enq_id, 'customer_name': manual_enq[0].customer_name,
                           'date': manual_enq[0].creation_date.strftime('%Y-%m-%d'), 'customization_type': customization_type,
                           'quantity': ordered_qty, 'custom_remarks': manual_enq[0].custom_remarks.split("<<>>"),
                           'enq_status': manual_enq[0].status, 'enq_det_id': int(manual_enq[0].id),

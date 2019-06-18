@@ -79,7 +79,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       $(row_click_bind, nRow).bind('click', function() {
         $scope.$apply(function() {
           let url = "get_manual_enquiry_detail/?user_id="+Session.userId+"&enquiry_id=";
-          vm.service.apiCall(url+aData['Enquiry ID']).then(function(data){
+          vm.service.apiCall(url+aData['ID']).then(function(data){
             if(data.message) {
               vm.order_details = data.data;
               if(vm.order_details.data == 'Get Manual Enquiry Detail Failed'){

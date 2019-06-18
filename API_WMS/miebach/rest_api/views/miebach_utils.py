@@ -5958,7 +5958,8 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
     totals_map = {}
     for en_obj in enquired_sku_qs:
         em_obj = en_obj.enquiry
-        enq_id = int(em_obj.enquiry_id)
+        uniq_enq_id = str(em_obj.customer_id) + str(em_obj.enquiry_id)
+        #enq_id = int(em_obj.enquiry_id)
         extend_status = em_obj.extend_status
         if em_obj.extend_date:
             days_left_obj = em_obj.extend_date - datetime.datetime.today().date()
@@ -5991,7 +5992,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
                                 ('SKU Code', sku_code),
                                 ('SKU Quantity', quantity),
                                 ('Warehouse Level',warehouse_level),
-                                ('Enquiry No', enq_id),
+                                ('Enquiry No', uniq_enq_id),
                                 ('Level', warehouse_level),
                                 ('Warehouse', warehouse),
                                 ('Enquiry Aging', days_left),

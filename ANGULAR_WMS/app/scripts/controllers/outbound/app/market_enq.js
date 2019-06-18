@@ -114,7 +114,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.confirm_to_extend = function(order){
       var send = []
       $('#'+order+"_save").addClass('hide')
-      $('#'+order+"_extdate").removeClass('hide') 
+      $('#'+order+"_extdate").removeClass('hide')
       if (this.extended_date) {
         send.push({'name':'extended_date', 'value':this.extended_date})
         send.push({'name':'order_id', 'value':order})
@@ -142,6 +142,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       angular.copy(vm.dtColumns,colFilters.headers);
       angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
       colFilters.download_excel()
+    }
+
+    vm.print_pdf_my_orders_swiss = function(){
+      // vm.model_data['market_enquiry'] = true;
+      vm.service.apiCall("print_pdf_my_orders_swiss/", "POST", {"data":JSON.stringify(vm.model_data)}).then(function(data){
+        if(data){
+          vm.service.print_data(data.data, '');
+        }
+      })
     }
 }
 

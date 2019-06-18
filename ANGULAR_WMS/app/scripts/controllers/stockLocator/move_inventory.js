@@ -633,7 +633,7 @@
           sku_data.data = data.data.childs;
           sku_data.combo_sku_desc = data.data.parent.combo_sku_desc;
           sku_data.quantity = data.data.parent.quantity;
-	  sku_data.mrp = data.data.parent.mrp;
+	      sku_data.mrp = data.data.parent.mrp;
         } else {
           sku_data.data = [{"child_sku_batch": "", "child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_mrp": "", "child_sku_qty": ""}]
         }

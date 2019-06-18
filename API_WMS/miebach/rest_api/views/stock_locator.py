@@ -2620,7 +2620,7 @@ def get_combo_sku_codes(request, user=''):
                                                             sku_id=parent_sku_id, location__zone__zone__in=sellable_zones,
                                                             batch_detail__isnull=False).only('batch_detail__mrp')
         if stock_detail.exists():
-	    parent_mrp = stock_detail[0].batch_detail.mrp
+            parent_mrp = stock_detail[0].batch_detail.mrp
     combo_skus = SKURelation.objects.filter(parent_sku__user=user.id, parent_sku__sku_code=sku_code)
     if not combo_skus:
         return HttpResponse(json.dumps({"status": False, "message":"No Data Found"}))

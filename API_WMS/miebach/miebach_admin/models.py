@@ -117,7 +117,7 @@ class SKUMaster(models.Model):
     sale_through = models.CharField(max_length=32, default='')
     mix_sku = models.CharField(max_length=32, default='', db_index=True)
     color = models.CharField(max_length=64, default='')
-    ean_number = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default=0)
+    ean_number = models.CharField(max_length=64, default='')
     load_unit_handle = models.CharField(max_length=32, default='unit', db_index=True)
     hsn_code = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default=0)
     sub_category = models.CharField(max_length=64, default='')
@@ -125,6 +125,7 @@ class SKUMaster(models.Model):
     shelf_life = models.IntegerField(default=0)
     youtube_url = models.CharField(max_length=64, default='')
     enable_serial_based = models.IntegerField(default=0)
+    block_options = models.CharField(max_length=5, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -150,7 +151,7 @@ class SKUMaster(models.Model):
 
 class EANNumbers(models.Model):
     id = BigAutoField(primary_key=True)
-    ean_number = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default=0)
+    ean_number = models.CharField(max_length=64, default='')
     sku = models.ForeignKey(SKUMaster)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -158,8 +159,6 @@ class EANNumbers(models.Model):
     class Meta:
         db_table = 'EAN_NUMBERS'
         unique_together = ('ean_number', 'sku')
-        index_together = (('sku', 'ean_number'), ('sku',))
-
 
 class SKUJson(models.Model):
     id = BigAutoField(primary_key=True)
@@ -251,7 +250,8 @@ class SupplierMaster(models.Model):
     branch_name = models.CharField(max_length=256, default='')
     account_number = models.BigIntegerField(default=0)
     account_holder_name = models.CharField(max_length=256, default='')
-
+    markdown_percentage = models.FloatField(default=0)
+    ep_supplier = models.IntegerField(default=0)
     class Meta:
         db_table = 'SUPPLIER_MASTER'
         index_together = ('name', 'user')
@@ -270,6 +270,9 @@ class SKUSupplier(models.Model):
     supplier_reference = models.CharField(max_length=256, default='')
     supplier_code = models.CharField(max_length=128, default='')
     price = models.FloatField(default=0)
+    costing_type = models.CharField(max_length=128, default='Price Based')
+    margin_percentage = models.FloatField(default=0)
+    markup_percentage = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -593,7 +596,7 @@ class BatchDetail(models.Model):
     transact_id = models.IntegerField(default=0)
     transact_type = models.CharField(max_length=36, default='')
     weight = models.FloatField(default=0)
-    ean_number = models.DecimalField(max_digits=20, decimal_places=0, default=0)
+    ean_number = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -639,7 +642,7 @@ class ASNStockDetail(models.Model):
 
     class Meta:
         db_table = 'ASN_STOCK_DETAIL'
-        unique_together = ('asn_po_num', 'sku')
+        unique_together = ('asn_po_num', 'sku', 'status')
 
 
 class Picklist(models.Model):
@@ -1428,6 +1431,7 @@ class StockTransfer(models.Model):
     sku = models.ForeignKey(SKUMaster)
     invoice_amount = models.FloatField(default=0)
     quantity = models.FloatField(default=0)
+    picked_quantity = models.FloatField(default=0)
     shipment_date = models.DateTimeField(auto_now_add=True)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -2582,6 +2586,7 @@ class NetworkMaster(models.Model):
 class OrderUploads(models.Model):
     id = BigAutoField(primary_key=True)
     uploaded_user = models.ForeignKey(User)
+    generic_order_id = models.PositiveIntegerField(default=0)
     po_number = models.CharField(max_length=128, default='')
     uploaded_date = models.DateField()
     customer_name = models.CharField(max_length=256, default='')
@@ -2591,7 +2596,7 @@ class OrderUploads(models.Model):
 
     class Meta:
         db_table = 'ORDER_UPLOADS'
-        unique_together = ('uploaded_user', 'po_number', 'customer_name')
+        unique_together = ('uploaded_user', 'po_number', 'customer_name', 'generic_order_id')
 
 
 class CustomerPricetypes(models.Model):
@@ -3179,6 +3184,17 @@ class StockReconciliation(models.Model):
     class Meta:
         db_table = 'STOCK_RECONCILIATION'
 
+class MiscDetailOptions(models.Model):
+    id = BigAutoField(primary_key=True)
+    misc_detail = models.ForeignKey(MiscDetail, null=True, blank=True, default=None)
+    misc_key = models.CharField(max_length=64, default='')
+    misc_value = models.CharField(max_length=255)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MISC_DETAIL_OPTIONS'
+        unique_together = ('misc_detail', 'misc_key')
 
 class ClusterSkuMapping(models.Model):
     id = BigAutoField(primary_key=True)
@@ -3189,9 +3205,18 @@ class ClusterSkuMapping(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
-    class Meta:
+    class Meta :
         db_table = 'CLUSTER_SKU_MAPPING'
 
+class Pofields(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    po_number = models.CharField(max_length=128, default='')
+    receipt_no = models.CharField(max_length = 34 ,default = 1)
+    name = models.CharField(max_length=256, default='')
+    value = models.CharField(max_length=256, default='')
+    class Meta:
+        db_table = 'PO_FIELDS'
 
 class MasterEmailMapping(models.Model):
     id = BigAutoField(primary_key=True)
@@ -3205,4 +3230,3 @@ class MasterEmailMapping(models.Model):
     class Meta:
         db_table = 'MASTER_EMAIL_MAPPING'
         unique_together = ('user', 'master_id', 'master_type', 'email_id')
-

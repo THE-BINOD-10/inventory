@@ -157,7 +157,7 @@ function view_orders() {
           if(!vm.model_data.data[i].hasOwnProperty('sku_imeis_map')) {
             return false;
           }
-          if(angular.copy(vm.model_data.data[i]['sku_imeis_map']).hasOwnProperty(vm.model_data.data[i].wms_code)) {
+          if(vm.model_data.data[i]['sku_imeis_map'].hasOwnProperty(vm.model_data.data[i].wms_code)) {
             angular.copy(vm.model_data.data[i]['sku_imeis_map'][vm.model_data.data[i].wms_code].sort(), record_serial_data);
             record_serial_data = [...new Set(record_serial_data)]
             vm.record_serial_dict[vm.model_data.data[i].wms_code] = record_serial_data
@@ -844,7 +844,7 @@ function pull_confirmation() {
        function(isConfirm){
          if (isConfirm) {
            vm.service.apiCall('picklist_delete/','GET', {key: 'delete', picklist_id: pick_id}, true).then(function(data){
-                swal("Deleted!", "picklist is deleted", "success");
+                swal("", data.data, "success");
            });
            vm.ok("done");
          }
@@ -1240,7 +1240,7 @@ angular
   vm.canceldata = function(keys){
     vm.checkboxes = true;
     if(keys == 'true') {
-      vm.totalData("fail");  
+      vm.totalData("fail");
     } else {
       vm.totalData("");
     }

@@ -199,7 +199,8 @@ input[type="date"]:valid::before {
                 </span>
               </h4>
               <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Description: {{data.sku_desc}}</b></h4>
-              <h4 align="left" ng-if="showCase.central_order_mgmt" style="margin-bottom:0px;font-size: 14px;"><b>Dimensions: {{ data.length }} X {{ data.breadth }} X {{ data.height }}</b></h4>
+              <h4 align="left" ng-if="showCase.central_order_mgmt" style="margin-bottom:0px;font-size: 14px;"><b>Ext Dim(In): {{ data.height }} X {{ data.length }} X {{ data.breadth }}</b></h4>
+              <h4 align="left" ng-if="showCase.central_order_mgmt && (data['Internal Height'] || data['Internal Length'] || data['Internal Breadth'])" style="margin-bottom:0px;font-size: 14px;"><b>Int Dim(In): {{ data['Internal Height'] }} X {{ data['Internal Length'] }} X {{ data['Internal Breadth'] }}</b></h4>
               <h4 align="left" ng-if="showCase.central_order_mgmt" style="margin-bottom:0px;font-size: 14px;"><b>Colour: {{data.colour}}</b></h4>
               <h4 align="left" ng-if="!(showCase.central_order_mgmt)" style="margin-bottom:0px;font-size: 14px;"><b>MRP: {{data.mrp}}</b></h4>
               <h4 ng-if="!(showCase.central_order_mgmt)" align="left" style="margin-bottom:0px;font-size: 14px;"><b>

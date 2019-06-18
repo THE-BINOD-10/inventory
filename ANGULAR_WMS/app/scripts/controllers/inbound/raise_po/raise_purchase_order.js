@@ -18,6 +18,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.industry_type = vm.user_profile.industry_type;
     vm.display_purchase_history_table = false;
     vm.warehouse_type = vm.user_profile.warehouse_type;
+    vm.cleared_data = true;
+    vm.blur_focus_flag = true;
     vm.filters = {'datatable': 'RaisePO', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -561,60 +563,62 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
    }
 
    vm.get_supplier_sku_prices = function(sku) {
-
+     vm.cleared_data = true;
      var d = $q.defer();
      var data = {sku_codes: sku, suppli_id: vm.model_data.supplier_id}
      vm.service.apiCall("get_supplier_sku_prices/", "POST", data).then(function(data) {
 
        if(data.message) {
-         d.resolve(data.data);
+	 if (!$.isEmptyObject(data.data)) {
+           d.resolve(data.data);
+	 }
        }
      });
      return d.promise;
    }
 
    vm.get_tax_value = function(sku_data) {
-
-     var tax = 0;
-     for(var i = 0; i < sku_data.taxes.length; i++) {
-
-       if(sku_data.fields.price <= sku_data.taxes[i].max_amt && sku_data.fields.price >= sku_data.taxes[i].min_amt) {
-
-         if(vm.model_data.tax_type == "intra_state") {
-
-           tax = sku_data.taxes[i].sgst_tax + sku_data.taxes[i].cgst_tax;
-           sku_data.fields.sgst_tax = sku_data.taxes[i].sgst_tax;
-           sku_data.fields.cgst_tax = sku_data.taxes[i].cgst_tax;
-           sku_data.fields.igst_tax = 0;
-           sku_data.fields.cess_tax = sku_data.taxes[i].cess_tax;
-           sku_data.fields.apmc_tax = sku_data.taxes[i].apmc_tax;
-         } else if (vm.model_data.tax_type == "inter_state") {
-
-           sku_data.fields.sgst_tax = 0;
-           sku_data.fields.cgst_tax = 0;
-           sku_data.fields.igst_tax = sku_data.taxes[i].igst_tax;
-           sku_data.fields.cess_tax = sku_data.taxes[i].cess_tax;
-           sku_data.fields.apmc_tax = sku_data.taxes[i].apmc_tax;
-           tax = sku_data.taxes[i].igst_tax;
-         }
-         break;
-       }
-     }
-
-     sku_data.tax = tax;
-     return tax;
+      var tax = 0;
+      if (vm.cleared_data) {
+            for(var i = 0; i < sku_data.taxes.length; i++) {
+                if(sku_data.fields.price <= sku_data.taxes[i].max_amt && sku_data.fields.price >= sku_data.taxes[i].min_amt) {
+                    if(vm.model_data.tax_type == "intra_state") {
+                        tax = sku_data.taxes[i].sgst_tax + sku_data.taxes[i].cgst_tax;
+                        sku_data.fields.sgst_tax = sku_data.taxes[i].sgst_tax;
+                        sku_data.fields.cgst_tax = sku_data.taxes[i].cgst_tax;
+                        sku_data.fields.igst_tax = 0;
+                        sku_data.fields.cess_tax = sku_data.taxes[i].cess_tax;
+                        sku_data.fields.apmc_tax = sku_data.taxes[i].apmc_tax;
+                    } else if (vm.model_data.tax_type == "inter_state") {
+                        sku_data.fields.sgst_tax = 0;
+                        sku_data.fields.cgst_tax = 0;
+                        sku_data.fields.igst_tax = sku_data.taxes[i].igst_tax;
+                        sku_data.fields.cess_tax = sku_data.taxes[i].cess_tax;
+                        sku_data.fields.apmc_tax = sku_data.taxes[i].apmc_tax;
+                        tax = sku_data.taxes[i].igst_tax;
+                    }
+                    break;
+                }
+            }
+        }
+      sku_data.tax = tax;
+      return tax;
    }
-
-
     vm.get_sku_details = function(product, item, index) {
       console.log(item);
+      vm.clear_raise_po_data(product);
       vm.purchase_history_wms_code = item.wms_code;
+      vm.blur_focus_flag = false;
+      if (!vm.model_data.supplier_id && Session.user_profile.user_type != 'marketplace_user' && Session.user_profile.industry_type != 'FMCG') {
+        product.fields.sku.wms_code = ''
+        vm.service.showNoty('Fill Supplier ID');
+        return false;
+      }
       if(vm.permissions.show_purchase_history) {
 	    $timeout( function() {
 	        vm.populate_last_transaction('')
         }, 2000 );
       }
-
       product.fields.sku.wms_code = item.wms_code;
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.description = item.sku_desc;
@@ -623,6 +627,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       product.fields.price = 0;
       product.fields.mrp = item.mrp;
       product.fields.description = item.sku_desc;
+      product.fields.blocked_sku = "";
       product.fields.sgst_tax = "";
       product.fields.cgst_tax = "";
       product.fields.igst_tax = "";
@@ -630,24 +635,34 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       product.fields.apmc_tax = "";
       product.fields.utgst_tax = "";
       product.fields.tax = "";
+      product.fields.edit_tax = false;
       product.taxes = [];
       vm.getTotals();
-
       if(vm.model_data.receipt_type == 'Hosted Warehouse') {
         vm.model_data.supplier_id = vm.model_data.seller_supplier_map[vm.model_data.seller_type.split(":")[0]];
       }
-
-      if (!vm.model_data.supplier_id){
-        return false;
-      } else {
+      if (vm.model_data.supplier_id) {
         var supplier = vm.model_data.supplier_id;
         $http.get(Session.url+'get_mapping_values/?wms_code='+product.fields.sku.wms_code+'&supplier_id='+supplier, {withCredentials : true}).success(function(data, status, headers, config) {
-          if(Object.values(data).length) {
-            product.fields.price = data.price;
-            product.fields.supplier_code = data.supplier_code;
-
-            vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
-            vm.getTotals();
+          if (data.hasOwnProperty('error_msg')) {
+            vm.clear_raise_po_data(product);
+            vm.service.showNoty(data['error_msg']);
+          } else {
+            if(Object.values(data).length) {
+              if(data.supplier_mapping)
+              {
+                vm.clear_raise_po_data(product);
+                vm.service.showNoty('Please Create Sku Supplier Mapping');
+              }
+              else
+              {
+                product.fields.blocked_sku = data.sku_block
+                product.fields.price = data.price;
+                product.fields.supplier_code = data.supplier_code;
+                vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
+                vm.getTotals();
+              }
+            }
           }
         });
         vm.get_supplier_sku_prices(item.wms_code).then(function(sku_data){
@@ -656,13 +671,63 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
             //sku_data["price"] = product.fields.price;
             //vm.model_data.supplier_sku_prices = sku_data;
             product["taxes"] = sku_data.taxes;
+            product["fields"]["edit_tax"] = sku_data.edit_tax;
             vm.get_tax_value(product);
         })
       }
     }
+    vm.update_wms_records = function(){
+      var params_data = {}
+      var notify_flag = false;
+      if (vm.model_data.data[0].fields.sku.wms_code){
+        params_data['supplier_id'] = vm.model_data.supplier_id;
+        vm.service.apiCall('get_ep_supplier_value/', 'POST', params_data).then(function(data){
+          if(data.message){
+            vm.model_data['ep_supplier'] = data.data.ep_supplier_status
+            if (vm.model_data['ep_supplier'] == 0) {
+              for (var i = 0; i < vm.model_data.data.length; i++) {
+                if(vm.model_data.data[i].fields.blocked_sku == 'PO') {
+                  if(vm.model_data.data.length == 1){
+                    vm.clear_raise_po_data(vm.model_data.data[i])
+                    notify_flag = true;
+                  }else {
+                    vm.model_data.data.splice(i, 1);
+                    notify_flag = true;
+                  }
+                }
+              }
+              if(notify_flag) {
+                vm.service.showNoty('cleared the Blocked Sku');
+                notify_flag = false;
+              }
+            }
+          }
+        })
+      }
+    }
+    vm.clear_raise_po_data = function(product){
+      product.fields.sku.wms_code = '';
+      product.fields.measurement_unit = '';
+      product.fields.description = '';
+      product.fields.order_quantity = '';
+      product.fields.ean_number = '';
+      product.fields.price = '';
+      product.fields.mrp = '';
+      product.fields.description = '';
+      product.fields.sgst_tax = "";
+      product.fields.cgst_tax = "";
+      product.fields.igst_tax = "";
+      product.fields.cess_tax = "";
+      product.fields.apmc_tax = "";
+      product.fields.utgst_tax = "";
+      product.fields.tax = "";
+      product.fields.blocked_sku = "";
+      product.taxes = [];
+      vm.cleared_data = false;
+    }
 
     vm.key_event = function(product, item, index) {
-      if (typeof(vm.model_data.supplier_id) == "undefined" || vm.model_data.supplier_id.length == 0) {
+      if (typeof(vm.model_data.supplier_id) == "undefined" || vm.model_data.supplier_id.length == 0 || vm.model_data.supplier_id_name == '') {
        return false;
       } else {
         var supplier = vm.model_data.supplier_id;
@@ -812,14 +877,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
         }
       });
     }
-
-	vm.supplier_on_change = function () {
-		if(vm.permissions.show_purchase_history) {
-        $timeout( function() {
-            vm.populate_last_transaction('');
-        }, 2000 );
-      }
-	}
 
   vm.checkSupplierExist = function (sup_id) {
     console.log(sup_id);

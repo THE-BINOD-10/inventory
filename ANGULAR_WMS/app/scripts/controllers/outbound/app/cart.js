@@ -31,7 +31,6 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
     vm.service.apiCall("get_customer_cart_data/").then(function(data){
 
       if(data.message) {
-
         angular.copy(data.data.data,vm.model_data.data);
 
         vm.model_data.invoice_type = data.data.invoice_types[0]
@@ -67,6 +66,12 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
           vm.cal_total();
         }
         vm.place_order_loading = false;
+        if (data.data.is_distributor){
+          vm.is_distributor = data.data.is_distributor
+        }
+        if (data.data.min_order_value){
+          vm.distributor_min_order_price = data.data.min_order_value
+        }
       }
       vm.place_order_loading = false;
     })
@@ -144,7 +149,7 @@ vm.update_cartdata_for_approval = function() {
   vm.update_customer_cart_data = function(data) {
 
     if (vm.order_exceed_stock){
-      if (data.available_stock <= data.quantity){
+      if (data.available_stock < data.quantity){
         data.quantity = 1;//data.available_stock;
         vm.service.showNoty("Order quantity can't exceed available stock.");
       }
@@ -210,9 +215,7 @@ vm.update_cartdata_for_approval = function() {
   vm.data_status = false;
   vm.insert_cool = true;
   vm.insert_order_data = function(data_dict) {
-
     if (vm.user_type == 'reseller') {
-
       if (!(vm.model_data.shipment_date) || !(vm.model_data.po_number_header) || !(vm.model_data.client_name_header) || !($("#po-upload")[0].files.length)) {
         vm.service.showNoty("The Shipment Date, PO Number, Client Name and Uploaded PO's are Required Please Select", "success", "bottomRight");
       } else if (!(vm.model_data.shipment_time_slot)) {
@@ -230,8 +233,9 @@ vm.update_cartdata_for_approval = function() {
       }
     }else {
       if (!(vm.model_data.shipment_date)) {
-
         vm.service.showNoty("The Shipment Date is Required. Please Select", "success", "bottomRight");
+      } else if (vm.is_distributor && vm.distributor_min_order_price > vm.final_data.total_amount){
+        vm.service.showNoty("Minimum order value is required "+ vm.distributor_min_order_price, 'error');
       } else {
         vm.order_data_insertion(data_dict);
       }
@@ -529,7 +533,7 @@ vm.update_cartdata_for_approval = function() {
             return false;
           }
           vm.place_order_loading = true;
-          var send = {'name': vm.model_data.client_name_header};
+          var send = {'name': vm.model_data.client_name_header, 'remarks': vm.model_data.remarks};
           Service.apiCall("insert_enquiry_data/", "POST", send).then(function(data){
 
             if(data.message) {

@@ -70,7 +70,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout,$compile, $roo
         $('td:not(td:last)', nRow).bind('click', function() {
             $scope.$apply(function() {
                 console.log(aData);
-                var data = { gateout : 0 ,customer_id: aData['Customer ID'], shipment_number:aData['Shipment Number']}
+                var data = { gateout : 0 ,customer_id: aData['Customer ID'], shipment_number:aData['Shipment Number'],manifest_number:aData['Manifest Number']}
                 Data.shipment_number = aData['Shipment Number'];
                 vm.service.apiCall("shipment_info_data/","GET", data).then(function(data){
                   if(data.message) {

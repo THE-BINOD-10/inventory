@@ -50,6 +50,9 @@ def get_report_data(request, user=''):
             from common import get_misc_value
             extra_order_fields = get_misc_value('extra_order_fields', user.id)
             data = copy.deepcopy(data)
+            milkbasket_users = copy.deepcopy(MILKBASKET_USERS)
+            if user.username in milkbasket_users :
+                data['dt_headers'].append("Cost Price")
             if extra_order_fields == 'false' :
                 extra_order_fields = []
             else:
@@ -532,13 +535,14 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
 
         reasons = OrderReturnReasons.objects.filter(order_return=data.id)
         reasons_data = []
+        return_date = get_local_date(user, data.creation_date)
 
         if is_excel:
             if reasons:
                 for reason in reasons:
                     temp_data['aaData'].append(OrderedDict((('SKU Code', data.sku.sku_code), ('Order ID', order_id),
                                                             ('Customer ID', customer_id),
-                                                            ('Return Date', str(data.creation_date).split('+')[0]),
+                                                            ('Return Date', return_date),
                                                             ('Market Place', marketplace),
                                                             ('Quantity', reason.quantity), ('Reason', reason.reason),
                                                             ('Status', reason.status)
@@ -546,7 +550,7 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
             else:
                 temp_data['aaData'].append(OrderedDict((('SKU Code', data.sku.sku_code), ('Order ID', order_id),
                                                         ('Customer ID', customer_id),
-                                                        ('Return Date', str(data.creation_date).split('+')[0]),
+                                                        ('Return Date', return_date),
                                                         ('Market Place', marketplace), ('Quantity', data.quantity),
                                                         ('Reason', data.reason),
                                                         ('Status', data.status)
@@ -560,7 +564,7 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
 
             temp_data['aaData'].append(
                 OrderedDict((('sku_code', data.sku.sku_code), ('order_id', order_id), ('id', data.id),
-                             ('customer_id', customer_id), ('return_date', str(data.creation_date).split('+')[0]),
+                             ('customer_id', customer_id), ('return_date', return_date),
                              ('status', status_dict[str(data.status)]), ('marketplace', marketplace),
                              ('quantity', data.quantity), ('reasons_data', reasons_data),
                              ('customer_name', customer_name),
@@ -814,6 +818,7 @@ def print_po_reports(request, user=''):
         telephone = purchase_order.open_po.supplier.phone_number
         name = purchase_order.open_po.supplier.name
         supplier_id = purchase_order.open_po.supplier.id
+        tin_number = purchase_order.open_po.supplier.tin_number
         order_id = purchase_order.order_id
         po_reference = '%s%s_%s' % (
         purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
@@ -825,7 +830,7 @@ def print_po_reports(request, user=''):
         user_profile = UserProfile.objects.get(user_id=user.id)
         w_address, company_address = get_purchase_company_address(user_profile)#user_profile.address
         data_dict = (('Order ID', order_id), ('Supplier ID', supplier_id),
-                     ('Order Date', order_date), ('Supplier Name', name))
+                     ('Order Date', order_date), ('Supplier Name', name), ('GST NO', tin_number))
     sku_list = po_data[po_data.keys()[0]]
     sku_slices = generate_grn_pagination(sku_list)
     table_headers = (
@@ -1431,7 +1436,7 @@ def print_purchase_order_form(request, user=''):
                             open_po.utgst_tax, total_sku_amt]
 
         if ean_flag:
-            ean_number = 0
+            ean_number = ''
             eans = get_sku_ean_list(open_po.sku)
             if eans:
                 ean_number = eans[0]
@@ -1685,4 +1690,3 @@ def print_margin_report(request, user=''):
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)
     return HttpResponse(html_data)
-

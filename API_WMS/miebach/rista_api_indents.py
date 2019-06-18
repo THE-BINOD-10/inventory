@@ -82,15 +82,15 @@ def sendToStockOne(resp, branch_code):
     	try:
 	    access_token = getAuthToken(stockone_auth)
 	except:
-	    print "Error in generating Access Token"
+	    order_pull_rista_stockone_logs.info('Error in generating Access Token for Username - ' + str(branch_code))
 	try:
             user_id = get_client_secret['user_id']
-	    int_obj = Integrations.objects.filter(**{'user':user_id, 'name':'rista', 'status':0})
-	    if not int_obj:
-		Integrations.objects.create(**{'user':user_id, 'name':'rista', 'api_instance':'rista', 'status':0, 'client_id':stockone_auth['client_id'], 'secret':stockone_auth['client_secret']})
-	    write_order_resp = writeOrders(access_token, resp)
+            int_obj = Integrations.objects.filter(**{'user':user_id, 'name':'rista', 'status':0})
+            if not int_obj:
+                Integrations.objects.create(**{'user':user_id, 'name':'rista', 'api_instance':'rista', 'status':0, 'client_id':stockone_auth['client_id'], 'secret':stockone_auth['client_secret']})
+            write_order_resp = writeOrders(access_token, resp)
 	except:
-	    print "Error in Creating Orders"
+	    order_pull_rista_stockone_logs.info("Error in Creating Orders")
     return write_order_resp
 
 

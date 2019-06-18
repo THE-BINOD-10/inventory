@@ -128,6 +128,7 @@ urlpatterns = [
     url(r'^confirm_add_po/$', confirm_add_po),
     url(r'^raise_po_toggle/$', raise_po_toggle),
     url(r'^get_mapping_values/$', get_mapping_values),
+    url(r'^get_ep_supplier_value/$', get_ep_supplier_value),
     url(r'^add_po/$', add_po),
     url(r'^insert_inventory_adjust/$', insert_inventory_adjust),
     url(r'^delete_po/$', delete_po),
@@ -194,6 +195,8 @@ urlpatterns = [
     url(r'^update_existing_grn/$', update_existing_grn),
     url(r'^confirm_central_po/$', confirm_central_po),
     url(r'^check_sku_pack_scan/$', check_sku_pack_scan),
+    url(r'^get_grn_extra_fields/$', get_grn_extra_fields),
+
 
 
     # Production
@@ -394,6 +397,11 @@ urlpatterns = [
     url(r'^generate_picklist_dc/$', generate_picklist_dc),
     url(r'^get_order_extra_fields/$', get_order_extra_fields),
     url(r'^create_feedback_form/$', create_feedback_form),
+    url(r'^get_distributor_order/$', get_distributor_order),
+    url(r'^sm_cancel_distributor_order/$', sm_cancel_distributor_order),
+    url(r'^get_order_extra_options/$', get_order_extra_options),
+    url(r'^remove_customer_profile_image/$', remove_customer_profile_image),
+    url(r'^print_pdf_my_orders_swiss/$', print_pdf_my_orders_swiss),
 
 
     # Uploaded POs [SWISS MILITARY]
@@ -584,6 +592,9 @@ urlpatterns += [
     url(r'^update_invoice_sequence/$', update_invoice_sequence),
     url(r'^update_mail_alerts/$', update_mail_alerts),
     url(r'^pos_extra_fields/$',pos_extra_fields),
+    url(r'^save_grn_fields/$',save_grn_fields),
+    url(r'^save_extra_order_options/$',save_extra_order_options),
+
 
     # manage users
     url(r'^add_user/$', add_user),
@@ -612,6 +623,8 @@ urlpatterns += [
     url(r'delete_temp_json/$', delete_temp_json),
     url(r'^search_batches/$', search_batches),
     url(r'^save_order_extra_fields/$', save_order_extra_fields),
+    url(r'^get_sku_mrp/$', get_sku_mrp),
+
 
 
     # Retailone

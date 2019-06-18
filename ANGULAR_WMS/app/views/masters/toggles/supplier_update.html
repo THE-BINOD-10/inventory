@@ -231,6 +231,20 @@
                   <textarea rows="5" cols="27" class="form-control" ng-model="showCase.model_data.address" name="address" ng-required="true">{{showCase.model_data.address}}</textarea>
                 </div>
               </div>
+              <!-- <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Markdown Percentage </label>
+                  <input type="number" min="0" max="100" name="markdown_percentage" class="form-control" ng-model="showCase.model_data.markdown_percentage">
+                </div>
+              </div> -->
+              <div class="col-lg-4 col-md-4" ng-if="showCase.industry_type=='FMCG' && showCase.user_type=='marketplace_user'">
+                <label class="control-label"> Extra Purchase </label>
+                <select ng-model="showCase.model_data.ep_supplier" class="form-control" name="ep_supplier">
+                  <option value="">Select your option</option>
+                  <option value="yes">YES</option>
+                  <option value="no">NO</option>
+                </select>
+              </div>
               <div class="col-md-6" ng-if="showCase.model_data.login_created && !(showCase.model_data.create_login)">
               <div class="row">
                 <div class="col-md-12">

@@ -1355,7 +1355,7 @@ def get_mp_inventory(request):
                     mrp_dict.setdefault(open_order_grouping_key, OrderedDict(( ('mrp', open_sku_mrp),
                                                                       ('weight', open_weight), ('inventory',
                                                          OrderedDict((('sellable', 0),
-                                                                    ('on_hold', open_orders[sku_open_order]),
+                                                                    ('on_hold', 0),
                                                                     ('un_sellable', 0)))))))
                     mrp_dict[open_order_grouping_key]['inventory']['sellable'] -= open_orders[sku_open_order]
                     mrp_dict[open_order_grouping_key]['inventory']['on_hold'] += open_orders[sku_open_order]

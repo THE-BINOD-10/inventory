@@ -13315,11 +13315,18 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
             else:
                 continue
             if MANUAL_ENQUIRY_STATUS.get(em_obj.status, '') == status or status == 'Remaining Status':
-                temp_data['aaData'].append(OrderedDict((('Enquiry ID', int(em_obj.enquiry_id)), ('Sub Distributor', em_obj.user.username),
-                                                        ('Customer Name', em_obj.customer_name), ('Style Name', em_obj.sku.sku_class),
-                                                        ('Date', date), ('User ID', em_obj.user.id), ('Customization Type', customization_type),
-                                                        ('status', MANUAL_ENQUIRY_STATUS.get(em_obj.status, ''))
-                                                       )))
+                cm_qs = CustomerUserMapping.objects.filter(user=em_obj.user)
+                if cm_qs:
+                    cm_id = cm_qs[0].customer_id
+                    uniq_enq_id = str(cm_id) + str(em_obj.enquiry_id)
+                    temp_data['aaData'].append(OrderedDict((('ID', int(em_obj.enquiry_id)), ('Enquiry ID', uniq_enq_id),
+                                                            ('Sub Distributor', em_obj.user.username),
+                                                            ('Customer Name', em_obj.customer_name),
+                                                            ('Style Name', em_obj.sku.sku_class),
+                                                            ('Date', date), ('User ID', em_obj.user.id),
+                                                            ('Customization Type', customization_type),
+                                                            ('status', MANUAL_ENQUIRY_STATUS.get(em_obj.status, ''))
+                                                           )))
         temp_data['recordsTotal'] = len(temp_data['aaData'])
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
@@ -13377,7 +13384,8 @@ def get_manual_enquiry_detail(request, user=''):
         if manual_enq[0].status == 'order_placed':
             po_number = manual_enq[0].po_number
             client_name = manual_enq[0].customer_name
-            gen_qs = GenericOrderDetailMapping.objects.filter(client_name=client_name, po_number=po_number).values_list(
+            sku_code = manual_enq[0].sku.sku_code
+            gen_qs = GenericOrderDetailMapping.objects.filter(client_name=client_name, po_number=po_number, orderdetail__sku__sku_code=sku_code).values_list(
                 'orderdetail__original_order_id', 'cust_wh_id')
             for ord_id, wh_id in gen_qs:
                 emiza_ord_prefix = UserProfile.objects.get(user_id=wh_id).order_prefix

@@ -483,6 +483,7 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
     gateout = request.POST.get('gateout', '')
     if gateout:
         gateout = int(gateout)
+    one_assist_qc_check = get_misc_value('dispatch_qc_check', user.id)
     central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
     if central_order_reassigning == 'true':
         lis = ['Serial Number', 'Manifest Number', 'Total Quantity', 'Manifest Date']
@@ -499,16 +500,13 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
             filter(order_shipment__user=user.id).order_by('order_id')
     for result in results:
         tracking = ShipmentTracking.objects.filter(shipment_id=result.id, shipment__order__user=user.id).order_by(
-            '-creation_date'). \
-            values_list('ship_status', flat=True)
+            '-creation_date').values_list('ship_status', flat=True)
         if gateout:
             if tracking and tracking[0] != 'Out for Delivery':
                 continue
         else:
             if tracking and tracking[0] in ['Delivered', 'Out for Delivery']:
                 continue
-        one_assist_qc_check = get_misc_value('dispatch_qc_check', user.id)
-        central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
         manifest_date = get_local_date(user,result.order_shipment.creation_date)
         if central_order_reassigning == 'true':
             if result.order_shipment.shipment_number:
@@ -12633,11 +12631,6 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
             each_total_inv_amt = round(each_total_inv_amt, 2)
         else:
             each_total_inv_amt = 0
-        res_map = {'order_id': enq_id, 'customer_id': cm_id,
-                   'total_quantity': total_qty[enq_id],
-                   'date': get_only_date(request, em_qs.filter(enquiry_id=enq_id)[0].creation_date),
-                   'total_inv_amt': each_total_inv_amt,
-                   'extend_status': ext_status, 'days_left': days_left, 'corporate_name': corp_name}
         if ext_status == 'pending':
             input_label = '<label style="color: #33cc66;">Pending ..</label>'
             input_div = ''
@@ -12645,11 +12638,12 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
             input_label = '<a href="" id='+str(int(enq_id))+"_extdate"' class="extend_date_picker" ng-click="showCase.extend_order_date('+str(int(enq_id))+');" style="text-decoration: underline; color: #33cc66;">Extend Date</a>'
             input_div = '<div id='+str(int(enq_id))+"_save"' class="col-lg-12 col-md-12 col-sm-12 hide"><div class="col-lg-6 col-md-6"><input name="extended_date" ui-jq="datepicker" ng-model="showCase.extended_date" placeholder="Select Date" class="form-control stk-readonly" type="text" id="extended_date" data-date-today-highlight="true" data-date-autoclose="true" readonly="true" style="height: 26px;width: 100px !important;"></div><div class="col-lg-6 col-md-6"><button type="button" class="btn btn-primary" style="height: 26px;padding: 2px 5px;" ng-click="showCase.confirm_to_extend('+str(int(enq_id))+');">Save</button></div></div>'
         button = '<button type="button" class="btn btn-warning pull-right" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="orders.moveToCart('+str(int(enq_id))+', $index, $event)" ng-disabled="orders.moving">Move to Cart</button>'
+        uniq_enq_id = str(cm_id) + str(enq_id)
         if is_excel_download:
-            ord_tuple = (('Enquiry ID', enq_id),('Date',get_only_date(request, em_qs.filter(enquiry_id=enq_id)[0].creation_date)),
+            ord_tuple = (('ID', enq_id), ('Enquiry ID', uniq_enq_id),('Date',get_only_date(request, em_qs.filter(enquiry_id=enq_id)[0].creation_date)),
             ('Quantity',total_qty[enq_id]), ('Amount',each_total_inv_amt), ('Days Left', days_left),('Corporate Name',corp_name))
         else:
-            ord_tuple = (('Enquiry ID', enq_id),('Date',get_only_date(request, em_qs.filter(enquiry_id=enq_id)[0].creation_date)),
+            ord_tuple = (('ID', enq_id), ('Enquiry ID', uniq_enq_id),('Date',get_only_date(request, em_qs.filter(enquiry_id=enq_id)[0].creation_date)),
             ('Quantity',total_qty[enq_id]), ('Amount',each_total_inv_amt), ('Days Left', days_left),('Corporate Name',corp_name),
             ('Extend Date', input_label + input_div), ('Move to Cart', button))
         temp_data['aaData'].append(OrderedDict(ord_tuple))
@@ -12734,7 +12728,10 @@ def get_customer_enquiry_detail(request, user=''):
         total_tax_amt = round(tot_amt_inc_taxes - total_inv_amt, 2)
         total_qty = map(sum, [[i['quantity'] for i in em_obj.enquiredsku_set.values()]])[0]
         sum_data = {'amount': round(tot_amt_inc_taxes, 2), 'quantity': total_qty}
-        res_map = {'order_id': em_obj.enquiry_id, 'customer_id': cm_id,
+        cust_id = str(filters['customer_id'])
+        enq_id = str(em_obj.enquiry_id)
+        uniq_enq_id = cust_id + enq_id
+        res_map = {'order_id': uniq_enq_id, 'customer_id': cm_id,
                    'date': get_only_date(request, em_obj.creation_date),
                    'data': data_vals, 'sum_data': sum_data, 'tax': total_tax_amt}
         # res_map['level_name'] = ''
@@ -12783,9 +12780,11 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
     else:
         em_qs = EnquiryMaster.objects.filter(user=user.id)
     for em_obj in em_qs:
-        enq_id = int(em_obj.enquiry_id)
+        enq_id = str(em_obj.enquiry_id)
+        cust_id = str(em_obj.customer_id)
+        uniq_enq_id = cust_id + enq_id
         total_qty = map(sum, [[i['quantity'] for i in em_obj.enquiredsku_set.values()]])[0]
-        cm_obj = CustomerMaster.objects.get(id=em_obj.customer_id)
+        cm_obj = CustomerMaster.objects.get(id=cust_id)
         customer_name = cm_obj.name
         dist_obj = User.objects.get(id=em_obj.user)
         distributor_name = dist_obj.username
@@ -12798,7 +12797,7 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
             st = search_term.lower()
             if st not in corporate_name.lower() and st not in distributor_name.lower() and \
                     st not in zone.lower() and str(st) not in str(em_obj.enquiry_id) and \
-                    str(st) not in str(extend_status):
+                    str(st) not in str(extend_status) and str(st) not in cust_id and str(st) not in str(uniq_enq_id):
                 continue
         date = em_obj.creation_date.strftime('%Y-%m-%d')
         if em_obj.extend_date:
@@ -12806,7 +12805,8 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
             days_left = days_left_obj.days
         else:
             days_left = 0
-        temp_data['aaData'].append(OrderedDict((('Enquiry ID', enq_id), ('Sub Distributor', customer_name),
+        temp_data['aaData'].append(OrderedDict((('ID', enq_id), ('Enquiry ID', uniq_enq_id),
+                                                ('Sub Distributor', customer_name),
                                                 ('Distributor', distributor_name),
                                                 ('Customer Name', corporate_name), ('Zone', zone),
                                                 ('Quantity', total_qty), ('Date', date),

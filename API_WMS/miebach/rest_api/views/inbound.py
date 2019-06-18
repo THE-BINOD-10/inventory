@@ -2831,7 +2831,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
         temp_dict = {}
         if failed_qty_dict:
             wms_code = myDict['wms_code'][i]
-            failed_qty = len(failed_qty_dict.get(wms_code, 0))
+            failed_qty = len(failed_qty_dict.get(wms_code, ''))
             if int(myDict['quantity'][i]):
                 value = myDict['quantity'][i]
             else:
@@ -6454,10 +6454,10 @@ def confirm_receive_qc(request, user=''):
         po_data, status_msg, all_data, order_quantity_dict, \
         purchase_data, data, data_dict, seller_receipt_id, created_qc_ids = generate_grn(myDict, request, user, failed_serial_number, passed_serial_number, is_confirm_receive=True)
         for i in range(0, len(myDict['id'])):
-            if not myDict['id'][i]:
+            if not myDict['id'][i] or not (int(myDict['id'][i]) in created_qc_ids):
                 continue
-            created_qc_ids = created_qc_ids[int(myDict['id'][i])]
-            quality_checks = QualityCheck.objects.filter(purchase_order_id=myDict['id'][i], id__in=created_qc_ids,
+            created_qc_ids_list = created_qc_ids[int(myDict['id'][i])]
+            quality_checks = QualityCheck.objects.filter(purchase_order_id=myDict['id'][i], id__in=created_qc_ids_list,
                                                          po_location__location__zone__user=user.id,
                                                          status='qc_pending')
             for quality_check in quality_checks:

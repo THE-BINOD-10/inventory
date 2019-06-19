@@ -1035,6 +1035,7 @@ def update_sku(request, user=''):
         if not wms or not description:
             return HttpResponse('Missing Required Fields')
         data = get_or_none(SKUMaster, {'wms_code': wms, 'user': user.id})
+        youtube_update_flag = False
         image_file = request.FILES.get('files-0', '')
         if image_file:
             save_image_file(image_file, data, user)
@@ -1088,6 +1089,9 @@ def update_sku(request, user=''):
             elif key == 'price':
                 wms_code = request.POST.get('wms_code', '')
                 storehippo_sync_price_value(user, {'wms_code':wms_code, 'price':value})
+            elif key == 'youtube_url':
+                if data.youtube_url != request.POST.get('youtube_url', ''):
+                    youtube_update_flag = True
             if key in number_fields and not value:
                 value = 0
             elif key == 'block_options':
@@ -1119,11 +1123,19 @@ def update_sku(request, user=''):
             wh_ids = get_related_users(user.id)
             cust_ids = CustomerUserMapping.objects.filter(customer__user__in=wh_ids).values_list('user_id', flat=True)
             notified_users = []
+            updated_fields = ''
             notified_users.extend(wh_ids)
             notified_users.extend(cust_ids)
             notified_users = list(set(notified_users))
-            contents = {"en": " %s - SKU Fields has been updated" % (str(description))}
-            send_push_notification(contents, notified_users)
+            if youtube_update_flag and image_file:
+                updated_fields = 'Youtube Url, Image'
+            elif image_file:
+                updated_fields = 'Image'
+            elif youtube_update_flag:
+                updated_fields = 'Youtube Url'
+            if updated_fields:
+                contents = {"en": " %s - has been updated for SKU : %s" % (str(updated_fields), str(description))}
+                send_push_notification(contents, notified_users)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

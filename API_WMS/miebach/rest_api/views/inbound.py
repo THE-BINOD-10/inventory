@@ -5012,6 +5012,7 @@ def confirm_add_po(request, sales_data='', user=''):
         return HttpResponse('Updated Successfully')
     sku_id = ''
     data = copy.deepcopy(PO_DATA)
+    import pdb;pdb.set_trace()
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
     if not sales_data:
@@ -5353,7 +5354,7 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         email_body = 'pls find the attachment'
         email_subject = 'pos order'
     if report_type == 'Purchase Order' and data_dict_po and user.username in MILKBASKET_USERS:
-        milkbasket_mail_credentials = {'username':'Procurement@milkbasket.com', 'password':'anubhav@123'}
+        milkbasket_mail_credentials = {'username':'Procurement@milkbasket.com', 'password':'codwtmtnjmvarvip'}
 	t = loader.get_template('templates/toggle/auto_po_mail_format.html')
 	email_body = t.render(data_dict_po)
 	email_subject = 'Purchase Order from ASPL %s to %s dated %s' % (user.username, data_dict_po['supplier_name'], full_order_date)

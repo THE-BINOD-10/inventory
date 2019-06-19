@@ -5012,7 +5012,6 @@ def confirm_add_po(request, sales_data='', user=''):
         return HttpResponse('Updated Successfully')
     sku_id = ''
     data = copy.deepcopy(PO_DATA)
-    import pdb;pdb.set_trace()
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
     if not sales_data:

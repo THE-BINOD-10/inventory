@@ -37,7 +37,6 @@ def send_mail(send_to, subject, body):
 def send_mail_attachment(send_to, subject, text, files=[], compressed=False, milkbasket_mail_credentials={}):
     fromaddr = 'noreply@mieone.com'
     mail_password = 'no*reply!59'
-    import pdb;pdb.set_trace()
     if milkbasket_mail_credentials:
         fromaddr = milkbasket_mail_credentials['username']
         mail_password = milkbasket_mail_credentials['password']

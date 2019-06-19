@@ -117,6 +117,10 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
         var elem = angular.element($('form'));
         elem = elem[0];
         elem = $(elem).serializeArray();
+        if(!vm.model_data.payment_amounts)
+        {
+          vm.model_data.payment_amounts = {}
+        }
         elem.push({'name':'payment_modes','value':JSON.stringify(vm.model_data.payment_amounts)})
         if (is_sample == 'sample') {
           elem.push({'name':'is_sample', 'value':true});

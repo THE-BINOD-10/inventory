@@ -4814,6 +4814,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
     else:
         product_styles_filtered = product_styles
     for product in product_styles_filtered[start: stop]:
+        prd_sku_codes = sku_master.filter(sku_class=product).only('sku_code').values_list('sku_code', flat=True)
         sku_object = sku_master.filter(user=user.id, sku_class=product)
         sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id'). \
             order_by('-image_url')
@@ -4825,7 +4826,6 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
             total_quantity = product_styles_tot_qty_map[product]
         else:
             total_quantity = 0
-            prd_sku_codes = sku_master.filter(sku_class=product).only('sku_code').values_list('sku_code', flat=True)
             for prd_sku in prd_sku_codes:
                 total_quantity += needed_stock_data['stock_objs'].get(prd_sku, 0)
                 # total_quantity += needed_stock_data['asn_quantities'].get(prd_sku, 0)
@@ -4845,10 +4845,13 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
             sku_variants[0].update(sku_spl_attrs)
             sku_styles[0]['variants'] = sku_variants
             sku_styles[0]['style_quantity'] = total_quantity
-            sku_styles[0]['asn_quantity'] = needed_stock_data['asn_quantities'].get(prd_sku, 0)
-            stock_blk_qty = needed_stock_data['enquiry_res_quantities'].get(prd_sku, 0)
-            intr_blk_qty = needed_stock_data['asn_blocked_quantities'].get(prd_sku, 0)
-            sku_styles[0]['blocked_qty'] = stock_blk_qty + intr_blk_qty
+            sku_styles[0]['asn_quantity'] = 0
+            sku_styles[0]['blocked_qty'] = 0
+            for prd_sku in prd_sku_codes:
+                sku_styles[0]['asn_quantity'] += needed_stock_data['asn_quantities'].get(prd_sku, 0)
+                stock_blk_qty = needed_stock_data['enquiry_res_quantities'].get(prd_sku, 0)
+                intr_blk_qty = needed_stock_data['asn_blocked_quantities'].get(prd_sku, 0)
+                sku_styles[0]['blocked_qty'] += stock_blk_qty + intr_blk_qty
 
             sku_styles[0]['image_url'] = resize_image(sku_styles[0]['image_url'], user)
             if style_quantities.get(sku_styles[0]['sku_class'], ''):
@@ -4960,7 +4963,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
             mrp = batch_detail.mrp
             weight = batch_detail.weight
             if batch_detail.ean_number:
-                ean = int(batch_detail.ean_number)
+                ean = batch_detail.ean_number
         cond = str((zone, location, pallet_number, batch, mrp, ean, weight))
         zones_data.setdefault(cond,
                               {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0,
@@ -8588,19 +8591,16 @@ def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
     if remove_existing:
         rem_ean_list = list(set(exist_ean_list) - set(ean_numbers))
     for ean_number in ean_numbers:
-        try:
-            ean_number = int(float(ean_number))
-        except:
-            continue
-        ean_dict = {'ean_number': ean_number, 'sku_id': data.id}
-        ean_status, mapped_check = check_ean_number(data.sku_code, ean_number, user)
-        if not (ean_status or mapped_check):
-            EANNumbers.objects.create(**ean_dict)
-        elif ean_status:
-            error_eans.append(str(ean_number))
+        if ean_number :
+            ean_dict = {'ean_number': ean_number, 'sku_id': data.id}
+            ean_status, mapped_check = check_ean_number(data.sku_code, ean_number, user)
+            if not (ean_status or mapped_check):
+                EANNumbers.objects.create(**ean_dict)
+            elif ean_status:
+                error_eans.append(str(ean_number))
     for rem_ean in rem_ean_list:
-        if int(data.ean_number) == int(rem_ean):
-            data.ean_number = 0
+        if str(data.ean_number) == str(rem_ean):
+            data.ean_number = ''
             data.save()
         else:
             EANNumbers.objects.filter(sku_id=data.id, ean_number=rem_ean).delete()
@@ -8935,7 +8935,7 @@ def get_style_level_stock(request, user=''):
 
 def add_ean_weight_to_batch_detail(sku, batch_dict):
     ean_number = get_sku_ean_list(sku, order_by_val='desc')
-    if ean_number:
+    if ean_number and ean_number != '0':
         batch_dict['ean_number'] = ean_number[0]
     weight_obj = sku.skuattributes_set.filter(attribute_name='weight')
     if weight_obj and not 'weight' in batch_dict.keys():
@@ -9368,12 +9368,16 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
             sku_supplier = SKUSupplier.objects.filter(Q(sku__ean_number=wms_code) | Q(sku__wms_code=wms_code),
                                                       supplier_id=supplier_id, sku__user=user.id)
         else:
-            ean_number = 0
+            ean_number = ''
             sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, supplier_id=supplier_id, sku__user=user.id)
         sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
         sup_markdown = SupplierMaster.objects.get(id=supplier_id)
         data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,
                 'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
+        if sku_master.block_options:
+            data['sku_block'] = sku_master.block_options
+        else:
+            data['sku_block'] = ''
         if sku_supplier:
             mrp_value = sku_master.mrp
             if sku_supplier[0].costing_type == 'Margin Based':

@@ -117,7 +117,7 @@ class SKUMaster(models.Model):
     sale_through = models.CharField(max_length=32, default='')
     mix_sku = models.CharField(max_length=32, default='', db_index=True)
     color = models.CharField(max_length=64, default='')
-    ean_number = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default=0)
+    ean_number = models.CharField(max_length=64, default='')
     load_unit_handle = models.CharField(max_length=32, default='unit', db_index=True)
     hsn_code = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default=0)
     sub_category = models.CharField(max_length=64, default='')
@@ -151,7 +151,7 @@ class SKUMaster(models.Model):
 
 class EANNumbers(models.Model):
     id = BigAutoField(primary_key=True)
-    ean_number = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default=0)
+    ean_number = models.CharField(max_length=64, default='')
     sku = models.ForeignKey(SKUMaster)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -159,8 +159,6 @@ class EANNumbers(models.Model):
     class Meta:
         db_table = 'EAN_NUMBERS'
         unique_together = ('ean_number', 'sku')
-        index_together = (('sku', 'ean_number'), ('sku',))
-
 
 class SKUJson(models.Model):
     id = BigAutoField(primary_key=True)
@@ -599,7 +597,7 @@ class BatchDetail(models.Model):
     transact_id = models.IntegerField(default=0)
     transact_type = models.CharField(max_length=36, default='')
     weight = models.FloatField(default=0)
-    ean_number = models.DecimalField(max_digits=20, decimal_places=0, default=0)
+    ean_number = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -3220,3 +3218,16 @@ class Pofields(models.Model):
     value = models.CharField(max_length=256, default='')
     class Meta:
         db_table = 'PO_FIELDS'
+
+class MasterEmailMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    master_id = models.CharField(max_length=64, default='')
+    master_type = models.CharField(max_length=64, default='')
+    email_id = models.CharField(max_length=64, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MASTER_EMAIL_MAPPING'
+        unique_together = ('user', 'master_id', 'master_type', 'email_id')

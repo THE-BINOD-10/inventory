@@ -1,5 +1,5 @@
 activate_this = 'setup/MIEBACH/bin/activate_this.py'
-execfile(activate_this, dict(__file__ = activate_this))
+execfile(activate_this, dict(__file__=activate_this))
 import os
 import sys
 from math import ceil
@@ -13,7 +13,7 @@ from rest_api.views.common import *
 from rest_api.views.utils import *
 log = init_logger('logs/qssi_stock_check.log')
 
-def ans_stock_details(user, sku_code):
+def asn_stock_details(user, sku_code, order_flag=True):
     # ASN Stock Related to SM
     today_filter = datetime.datetime.today()
     hundred_day_filter = today_filter + datetime.timedelta(days=100)
@@ -22,19 +22,17 @@ def ans_stock_details(user, sku_code):
     intr_obj_100days_qs = asn_qs.filter(arriving_date__lte=hundred_day_filter)
     intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
     asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
-    asn_res_100days_qs = asnres_det_qs.filter(orderdetail__isnull=False)  # Reserved Quantity
+    if order_flag:
+        asn_res_100days_qs = asnres_det_qs.filter(orderdetail__isnull=False)  # Reserved Quantity
+    else:
+        asn_res_100days_qs = asnres_det_qs.filter(enquirydetail__isnull=False)
     asn_res_100days_qty = dict(asn_res_100days_qs.values_list('asnstock__sku__sku_code').
                                annotate(in_res=Sum('reserved_qty')))
     l3_res_stock = asn_res_100days_qty.get(sku_code, 0)
     return l3_res_stock
 
 
-def update_asn_res_stock(order_obj, l3_res_stock):
-    ASNReserveDetail.objects.filter(orderdetail=order_obj).update(reserved_qty=l3_res_stock)
-
-
-def update_asn_to_stock(wh, sku_code):
-    from rest_api.views.outbound import check_stocks
+def get_wh_open_stock(wh, sku_code):
     total_stock = StockDetail.objects.filter(sku__user=wh.id,
                                              quantity__gt=0,
                                              sku__sku_code=sku_code).only('sku__sku_code', 'quantity').values_list(
@@ -44,8 +42,12 @@ def update_asn_to_stock(wh, sku_code):
                                                 stock__sku__sku_code=sku_code).only(
         'stock__sku__sku_code', 'reserved').values_list('stock__sku__sku_code').distinct().annotate(
         in_reserved=Sum('reserved'))
-    blocked_stock = EnquiredSku.objects.filter(sku__user=wh.id,
-                                               sku__sku_code=sku_code).filter(
+    asn_blocked_ids = ASNReserveDetail.objects.filter(enquirydetail__sku__user=wh.id,
+                                                      enquirydetail__sku__sku_code=sku_code,
+                                                      enquirydetail__isnull=False,
+                                                      enquirydetail__warehouse_level=3).values_list('enquirydetail_id',
+                                                                                               flat=True)
+    blocked_stock = EnquiredSku.objects.filter(sku__user=wh.id, sku__sku_code=sku_code).exclude(id__in=asn_blocked_ids).filter(
         ~Q(enquiry__extend_status='rejected')).only('sku__sku_code', 'quantity').values_list('sku__sku_code').annotate(
         tot_qty=Sum('quantity'))
 
@@ -53,18 +55,62 @@ def update_asn_to_stock(wh, sku_code):
     res_stock = dict(res_stock).get(sku_code, 0)
     blocked_stock = dict(blocked_stock).get(sku_code, 0)
     wh_open_stock = total_stock - res_stock - blocked_stock
+    return wh_open_stock
 
-    order_obj = OrderDetail.objects.filter(user=wh.id, sku_code=sku_code, status=1).order_by('creation_date')[0]
-    l3_res_stock = ans_stock_details(wh, sku_code)
-    picklist_qty_map = {}
 
+def update_asn_res_stock(order_obj, l3_res_stock):
+    ASNReserveDetail.objects.filter(orderdetail=order_obj).update(reserved_qty=l3_res_stock)
+
+
+def update_asn_to_stock(wh, sku_obj):
+    from rest_api.views.outbound import check_stocks
+    sku_code = sku_obj.sku_code
+    #wh_open_stock = get_wh_open_stock(wh, sku_code)
+
+    # ord_ids = ASNReserveDetail.objects.filter(orderdetail__user=wh.id, orderdetail__sku__sku_code=sku_code,
+    #                                 orderdetail__status=1, reserved_qty__gt=0).values_list('orderdetail_id', flat=True)
+    # order_qs = OrderDetail.objects.filter(id__in=ord_ids).order_by('id')
+    # if order_qs:
+    #     order_obj = order_qs[0]
+    #     l3_res_stock = asn_stock_details(wh, sku_code)
+    #     picklist_qty_map = {}
+    #
+    #     if wh_open_stock > 0 and l3_res_stock > 0:
+    #         wh_res_stock = min(wh_open_stock, l3_res_stock)
+    #         l3_res_stock = l3_res_stock - min(wh_open_stock, l3_res_stock)
+    #         picklist_qty_map[sku_obj] = wh_res_stock
+    #         # Generate PickList functionality
+    #         status_msg = check_stocks(picklist_qty_map, wh, 'false', order_obj, continue_flag=False)
+    #         #update_asn_res_stock(order_obj, l3_res_stock)
+    #         asnres_qs = ASNReserveDetail.objects.filter(orderdetail_id=order_obj.id)
+    #         if l3_res_stock > 0:
+    #             asnres_qs.update(reserved_qty=l3_res_stock)
+    #         else:
+    #             asnres_qs.delete()
+
+
+    enq_ids = ASNReserveDetail.objects.filter(enquirydetail__sku__user=wh.id, enquirydetail__sku__sku_code=sku_code,
+                                              reserved_qty__gt=0).values_list('enquirydetail__enquiry_id', flat=True)
+    enq_qs = EnquiryMaster.objects.filter(id__in=enq_ids)
+    wh_open_stock = get_wh_open_stock(wh, sku_code)
+    l3_res_stock = asn_stock_details(wh, sku_code, order_flag=False)
     if wh_open_stock > 0 and l3_res_stock > 0:
+        enq_obj = enq_qs[0]
         wh_res_stock = min(wh_open_stock, l3_res_stock)
         l3_res_stock = l3_res_stock - min(wh_open_stock, l3_res_stock)
-        picklist_qty_map[sku_code] = wh_res_stock
-        # Generate PickList functionality
-        check_stocks(picklist_qty_map, wh, 'false', [order_obj])
-        update_asn_res_stock(order_obj, l3_res_stock)
+        enqsku_qs = EnquiredSku.objects.filter(enquiry_id=enq_obj.id, sku__sku_code=sku_code)
+        if enqsku_qs:
+            log.info("EnquiredSku details %s" %enqsku_qs[0].__dict__)
+            log.info("EnquiredSku id %s of sku %s with quantity %s moved from L3 to L1." %(enqsku_qs[0].id, sku_code, wh_res_stock))
+            enqsku_qs.update(warehouse_level=1)
+            enqsku_qs.update(quantity=wh_res_stock)
+        asnenq_qs = ASNReserveDetail.objects.filter(enquirydetail_id=enqsku_qs[0].id)
+        if l3_res_stock > 0:
+            log.info("ASNReserveDetail %s object reseved quantity %s updated" %(asnenq_qs[0].__dict__, l3_res_stock))
+            asnenq_qs.update(reserved_qty=l3_res_stock)
+        else:
+            log.info("ASNReserveDetail %s object got removed" %(asnenq_qs[0].__dict__))
+            asnenq_qs.delete()
 
 
 def update_inventory(company_name):
@@ -165,7 +211,7 @@ def update_inventory(company_name):
                                 StockDetail.objects.create(**new_stock_dict)
                                 log.info("New stock created for user %s for sku %s" %
                                          (user.username, str(sku.sku_code)))
-                            #update_asn_to_stock(user, sku_id)
+                            update_asn_to_stock(user, sku)
                     for sku_id, asn_inv in asn_stock_map.iteritems():
                         sku = SKUMaster.objects.filter(user=user_id, sku_code=sku_id)
                         if sku:

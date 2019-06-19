@@ -74,7 +74,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       localStorage.removeItem(filter_value);
       vm.brand = ''
     }
-    change_filter_data();
+    change_filter_data(true);
     $state.go('user.App.Brands');
   }
 
@@ -255,7 +255,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
   }
 
-  function change_filter_data() {
+  function change_filter_data(brand_value) {
     get_brand_filter_value('brand_value');
     get_brand_filter_value('category_value');
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
@@ -327,10 +327,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         'MARSH':'MARSH.jpg',
         'CORP ATTIRE': 'CORP ATTIRE.jpg',
         }
-        if (vm.location == '/App/Products') {
+        if (vm.location == '/App/Products' && !(brand_value)) {
           // vm.change_brand('');
           vm.change_category('');
-        } else if(vm.location == '/App/Categories'){
+        } else if(vm.location == '/App/Categories' && !(brand_value)) {
           // vm.change_category('');
           vm.change_brand('');
         }
@@ -805,14 +805,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     $timeout(function() {
     var height = $(window).height()
     if(angular.element(".app_scroll")) {
-
       var header = $(".layout-header").height();
       var menu = $(".style-menu").height();
       //var search = $(".search-box").height();
       //search = (search)? search+25 : 0;
       var cart = $(".cart_button:visible").outerHeight();
-
-      if(vm.location == '/App/Categories'){
+      if (vm.location == '/App/Categories') {
         $(".app_body").css('height',height-menu-cart);
         vm.location = vm.old_path;
       } else if (vm.location == '/App/Profile') {
@@ -821,7 +819,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       } else {
         $(".app_body").css('height',height-header-menu-cart);
       }
-
       $(".app_body").css('overflow-y', 'auto');
     }
     }, 500)

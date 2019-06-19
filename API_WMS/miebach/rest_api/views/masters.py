@@ -1286,8 +1286,8 @@ def insert_supplier(request, user=''):
         sku_status = 0
         rep_email = filter_or_none(SupplierMaster, {'email_id': request.POST['email_id'], 'user': user.id})
         rep_phone = filter_or_none(SupplierMaster, {'phone_number': request.POST['phone_number'], 'user': user.id})
-        if rep_email and request.POST['email_id']:
-            return HttpResponse('Email already exists')
+        # if rep_email and request.POST['email_id']:
+        #     return HttpResponse('Email already exists')
         # if rep_phone and request.POST['phone_number']:
         #     return HttpResponse('Phone Number already exists')
         secondary_email_id = request.POST.get('secondary_email_id', '').split(',')

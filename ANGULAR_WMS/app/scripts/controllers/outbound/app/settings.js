@@ -26,7 +26,7 @@ function settingsForm($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.change_config = function(switch_value, switch_name) {
     Service.apiCall("switches/?"+switch_name+"="+String(switch_value)).then(function(data){
       if(data.data == 'Success') {
-        Service.showNoty(data.data, "success")
+        $window.location.reload();
       } else {
         Service.showNoty("Something Went Wrong", "danger")
       }

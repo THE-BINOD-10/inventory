@@ -373,7 +373,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               image_url: vm.img_url, remarks: vm.remarks, unit_price: vm.unit_price, taxes: vm.taxes,
               discount_per: vm.discount_per, sgst:vm.sgst, cgst:vm.cgst, igst:vm.igst, cess:vm.cess,default_status: true, sku_status: value.sku_status, mrp:vm.mrp, invoice_amount:vm.invoice_amount})
               var record = vm.model_data.data[index]
-              vm.changeInvoiceAmt(record);
+              //vm.changeInvoiceAmt(record);
               index++;
 	        });
 	      });

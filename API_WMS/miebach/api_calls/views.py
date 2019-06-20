@@ -1201,9 +1201,12 @@ def get_mp_inventory(request):
         if not warehouse:
             return HttpResponse(json.dumps({'status': 400, 'message': 'Warehouse Name is Mandatory'}), status=400)
         token_user = user
-        sister_whs = list(get_sister_warehouse(user).values_list('user__username', flat=True))
-        sister_whs.append(token_user.username)
-        if warehouse in sister_whs:
+        sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+        sister_whs1.append(token_user.username)
+	sister_whs = []
+	for sister_wh1 in sister_whs1:
+	    sister_whs.append(str(sister_wh1).lower())
+        if warehouse.lower() in sister_whs:
             user = User.objects.get(username=warehouse)
         else:
             return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Warehouse Name'}), status=400)
@@ -1355,7 +1358,7 @@ def get_mp_inventory(request):
                     mrp_dict.setdefault(open_order_grouping_key, OrderedDict(( ('mrp', open_sku_mrp),
                                                                       ('weight', open_weight), ('inventory',
                                                          OrderedDict((('sellable', 0),
-                                                                    ('on_hold', open_orders[sku_open_order]),
+                                                                    ('on_hold', 0),
                                                                     ('un_sellable', 0)))))))
                     mrp_dict[open_order_grouping_key]['inventory']['sellable'] -= open_orders[sku_open_order]
                     mrp_dict[open_order_grouping_key]['inventory']['on_hold'] += open_orders[sku_open_order]

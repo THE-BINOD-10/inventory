@@ -63,7 +63,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ['Enquiry ID', 'Enquiry Date', 'Customer Name', 'Style Name', 'Customization', 'SKU Code', 'Status'];
+    var columns = ['Enquiry ID', 'Emiza Order Id', 'Enquiry Date', 'Customer Name', 'Style Name', 'Customization', 'SKU Code', 'Status'];
     vm.dtColumns = vm.service.build_colums(columns);
 
     var row_click_bind = 'td';

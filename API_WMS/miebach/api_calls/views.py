@@ -1179,10 +1179,9 @@ def get_mp_inventory(request):
     user = request.user
     data = []
     industry_type = user.userprofile.industry_type
-    filter_params = {'user': user.id}
+    filter_params = {}
     error_status = []
     request_data = request.body
-    picklist_exclude_zones = get_exclude_zones(user)
     try:
         try:
             request_data = json.loads(request_data)
@@ -1203,9 +1202,9 @@ def get_mp_inventory(request):
         token_user = user
         sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
         sister_whs1.append(token_user.username)
-	sister_whs = []
-	for sister_wh1 in sister_whs1:
-	    sister_whs.append(str(sister_wh1).lower())
+        sister_whs = []
+        for sister_wh1 in sister_whs1:
+            sister_whs.append(str(sister_wh1).lower())
         if warehouse.lower() in sister_whs:
             user = User.objects.get(username=warehouse)
         else:
@@ -1217,6 +1216,8 @@ def get_mp_inventory(request):
         except:
             return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Seller ID'}), status=400)
         seller_master_id = seller_master[0].id
+        picklist_exclude_zones = get_exclude_zones(user)
+        filter_params['user'] = user.id
         sku_records = SKUMaster.objects.filter(**filter_params).values('sku_code')
         error_skus = set(skus) - set(sku_records.values_list('sku_code', flat=True))
         for error_sku in error_skus:

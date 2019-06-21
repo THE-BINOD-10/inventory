@@ -4981,7 +4981,7 @@ def insert_order_data(request, user=''):
     order_id = ''
     # Sending mail and message
 
-    host_details = request.META.get('HTTP_HOST')
+    host_details = request.META.get('wsgi.url_scheme')+'://'+request.META.get('HTTP_HOST')
 
     items = []
 
@@ -5305,10 +5305,10 @@ def insert_order_data(request, user=''):
                         dispatch_orders[order_det.id]['data'].append(
                             {'quantity': order_data['quantity'], 'location': myDict['location'][i],
                              'serials': serials})
-                items.append([sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)])
+                mail_items_list = [sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)]
                 if isprava_user.username == 'isprava_admin':
-                    for item in items:
-                        item.insert(0, host_details+order_detail.sku.image_url)
+                    mail_items_list.insert(0, host_details+order_detail.sku.image_url)
+                items.append(mail_items_list)
                 if po_number:
                     OrderPOMapping.objects.create(order_id=order_data['original_order_id'], sku_id=order_data['sku_id'],
                                                   purchase_order_id=po_number.split('_')[-1], status=1,

@@ -1209,9 +1209,10 @@ def update_supplier_values(request, user=''):
         username = request.POST.get('username', '')
         login_created = request.POST.get('login_created', '')
         secondary_email_id = request.POST.get('secondary_email_id', '').split(',')
-        for mail in secondary_email_id:
-	    if validate_supplier_email(mail):
-		return HttpResponse('Enter correct Secondary Email ID')
+        if secondary_email_id[0]:
+            for mail in secondary_email_id:
+                if validate_supplier_email(mail):
+                    return HttpResponse('Enter correct Secondary Email ID')
         for key, value in request.POST.iteritems():
             if key not in data.__dict__.keys():
                 continue

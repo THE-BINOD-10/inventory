@@ -2988,7 +2988,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     if order_ids:
         sor_id = ''
         order_ids = list(set(order_ids.split(',')))
-        order_data = OrderDetail.objects.filter(id__in=order_ids).exclude(status=3)
+        order_data = OrderDetail.objects.filter(id__in=order_ids).exclude(status=3).select_related('sku')
         if user.userprofile.user_type == 'marketplace_user':
             seller_summary = SellerOrderSummary.objects.filter(seller_order__order_id__in=order_ids)
         else:
@@ -3276,13 +3276,26 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'charge_tax_value','id'))
         if total_order_quantity_price :
             order_charges_percent = (partial_order_quantity_price / total_order_quantity_price)
-
-        for order_chrg in order_charges :
-            order_chrg['charge_amount'] = order_charges_percent * order_chrg['charge_amount']
-            order_chrg['charge_tax_value'] = order_charges_percent * order_chrg['charge_tax_value']
-            total_invoice_amount += order_chrg['charge_amount']+order_chrg['charge_tax_value']
-            order_chrg['charge_amount'] = round(order_chrg['charge_amount'], 2)
-            order_chrg['charge_tax_value'] = round(order_chrg['charge_tax_value'], 2)
+        invoice_order_charge = ''
+        full_order_charge = True
+        if order_charges_percent != 1 and sell_ids :
+            if sell_ids.get('pick_number__in',0) :
+                pick_num = sell_ids.get('pick_number__in')[0]
+                invoice_order_charge = InvoiceOrderCharges.objects.filter(original_order_id = order_id , pick_number = pick_num,user = user.id)
+                if invoice_order_charge.exists():
+                    order_charges = list(invoice_order_charge.values('charge_name', 'charge_amount', 'charge_tax_value','id'))
+                    full_order_charge = False
+                    for order_chrg in order_charges :
+                        total_invoice_amount += order_chrg['charge_amount']+order_chrg['charge_tax_value']
+                        order_chrg['charge_amount'] = round(order_chrg['charge_amount'], 2)
+                        order_chrg['charge_tax_value'] = round(order_chrg['charge_tax_value'], 2)
+        if full_order_charge :
+            for order_chrg in order_charges :
+                order_chrg['charge_amount'] = order_charges_percent * order_chrg['charge_amount']
+                order_chrg['charge_tax_value'] = order_charges_percent * order_chrg['charge_tax_value']
+                total_invoice_amount += order_chrg['charge_amount']+order_chrg['charge_tax_value']
+                order_chrg['charge_amount'] = round(order_chrg['charge_amount'], 2)
+                order_chrg['charge_tax_value'] = round(order_chrg['charge_tax_value'], 2)
 
 
     total_amt = "%.2f" % (float(total_invoice) - float(_total_tax))

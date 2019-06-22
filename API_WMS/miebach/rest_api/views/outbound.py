@@ -2527,11 +2527,13 @@ def update_invoice(request, user=''):
         log.info('Request params for Update Invoice for ' + user.username + ' is ' + str(request.POST.dict()))
         resp = {"msg": "success", "data": {}}
         order_ids = request.POST.get("order_id", "")
+        pick_number = request.POST.get('pick_number',1)
         consignee = request.POST.get("ship_to", "")
         invoice_date = request.POST.get("invoice_date", "")
         invoice_number = request.POST.get("invoice_number", "")
         increment_invoice = get_misc_value('increment_invoice', user.id)
         marketplace = request.POST.get("marketplace", "")
+        partial_quantity = False
         order_reference = request.POST.get("order_reference", "")
         order_reference_date = request.POST.get("order_reference_date", "")
         ord_det_id = request.POST.get("id", "")
@@ -2680,9 +2682,8 @@ def update_invoice(request, user=''):
                         discount_percentage = "%.1f" % (float((cust_obj.discount * 100) / (order_id.quantity * order_id.unit_price)))
                 order_id.unit_price = float(myDict['unit_price'][unit_price_index])
                 order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index].replace(',',''))
-                order_id.quantity = float(myDict['quantity'][unit_price_index])
-                print str(order_id.sku_id) + "= " + str(order_id.quantity)
-                order_id.save()
+                if order_id.quantity != float(myDict['quantity'][unit_price_index]) :
+                    partial_quantity = True
                 sgst_tax = float(myDict['sgst_tax'][unit_price_index])
                 cgst_tax = float(myDict['cgst_tax'][unit_price_index])
                 igst_tax = float(myDict['igst_tax'][unit_price_index])
@@ -2730,10 +2731,21 @@ def update_invoice(request, user=''):
         for i in range(0, len(myDict.get('charge_name', []))):
             if myDict.get('charge_id') and myDict['charge_id'][i]:
                 order_charges = OrderCharges.objects.filter(id=myDict['charge_id'][i], user_id=user.id)
-                if order_charges:
+                invoice_order_charge = InvoiceOrderCharges.objects.filter(id = myDict['charge_id'][i] ,user = user.id)
+                if order_charges.exists() or  invoice_order_charge.exists():
                     if not myDict['charge_amount'][i]:
                         myDict['charge_amount'][i] = 0
-                    order_charges.update(charge_name=myDict['charge_name'][i], charge_amount=myDict['charge_amount'][i],charge_tax_value = myDict['charge_tax_value'][i])
+                    if not partial_quantity :
+                        order_charges.update(charge_name=myDict['charge_name'][i], charge_amount=myDict['charge_amount'][i],charge_tax_value = myDict['charge_tax_value'][i])
+                    else:
+                        if  invoice_order_charge.exists():
+                            invoice_order_charge = invoice_order_charge [0]
+                            invoice_order_charge.charge_tax_value = myDict['charge_tax_value'][i]
+                            invoice_order_charge.charge_amount = myDict['charge_amount'][i]
+                            invoice_order_charge.save()
+                        else:
+                            InvoiceOrderCharges.objects.create(original_order_id = order_ids , pick_number = pick_number,charge_name = myDict['charge_name'][i],charge_amount = myDict['charge_amount'][i], charge_tax_value = myDict['charge_tax_value'][i],user = user)
+
             else:
                 OrderCharges.objects.create(order_id=order_ids, charge_name=myDict['charge_name'][i],
                                             charge_amount=myDict['charge_amount'][i],

@@ -142,7 +142,9 @@ class MailReports:
         for key, report_value in report_data.items():
             for data in report_value:
                 index = 0
-                for value in data.values():
+                for header_name, value in data.items():#values():
+                    if header_name == 'Order ID':
+                        value = "'%s" % str(value)
                     ws = write_excel(ws, counter, index, value, file_type)
                     index += 1
                 if append_wh_name:

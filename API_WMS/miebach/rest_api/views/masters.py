@@ -75,7 +75,7 @@ def save_image_file(image_file, data, user, extra_image='', saved_file_path='', 
 def get_sku_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['wms_code', 'ean_number', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone',
-           'creation_date', 'updation_date', 'relation_type', 'status']
+           'creation_date', 'updation_date', 'relation_type', 'status', 'mrp', 'hsn_code', 'product_type']
     order_data = SKU_MASTER_HEADERS.values()[col_num]
     search_params1, search_params2 = get_filtered_params_search(filters, lis)
     if 'status__icontains' in search_params2.keys():
@@ -151,7 +151,7 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
                         Q(sku_code__istartswith=search_term) | Q(wms_code__istartswith=search_term) | Q(
                             sku_desc__istartswith=search_term) | Q(sku_type__istartswith=search_term) | Q(
                             sku_category__istartswith=search_term) | Q(sku_class__istartswith=search_term) | Q(
-                            zone__zone__istartswith=search_term) | Q(color__istartswith=search_term) |
+                            zone__zone__istartswith=search_term) | Q(color__istartswith=search_term) | Q(product_type=search_term)|
                             Q(ean_number__istartswith), user=user.id,
                         **item).order_by(order_data)
                 except:
@@ -159,7 +159,8 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
                         Q(sku_code__istartswith=search_term) | Q(wms_code__istartswith=search_term) | Q(
                             sku_desc__istartswith=search_term) | Q(sku_type__istartswith=search_term) | Q(
                             sku_category__istartswith=search_term) | Q(sku_class__istartswith=search_term) | Q(
-                            zone__zone__istartswith=search_term) | Q(color__istartswith=search_term), user=user.id,
+                            zone__zone__istartswith=search_term) | Q(color__istartswith=search_term)
+                            | Q(product_type=search_term), user=user.id,
                         **item).order_by(order_data)
                 ids.extend(master_data2.values_list('id', flat=True))
 
@@ -169,6 +170,8 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
                             sku_desc__icontains=search_term) | Q(sku_type__icontains=search_term) | Q(
                             sku_category__icontains=search_term) | Q(sku_class__icontains=search_term) | Q(
                             zone__zone__icontains=search_term) | Q(color__icontains=search_term) |
+                            Q(mrp__icontains=search_term) | Q(hsn_code__icontains=search_term) |
+                            Q(product_type=search_term) |
                             Q(ean_number__icontains=search_term), user=user.id,
                         **item).exclude(id__in=ids).order_by(order_data)
                 except:
@@ -176,7 +179,9 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
                         Q(sku_code__icontains=search_term) | Q(wms_code__icontains=search_term) | Q(
                             sku_desc__icontains=search_term) | Q(sku_type__icontains=search_term) | Q(
                             sku_category__icontains=search_term) | Q(sku_class__icontains=search_term) | Q(
-                            zone__zone__icontains=search_term) | Q(color__icontains=search_term), user=user.id,
+                            zone__zone__icontains=search_term) | Q(color__icontains=search_term) |
+                            Q(mrp__icontains=search_term) | Q(hsn_code__icontains=search_term) |
+                            Q(product_type=search_term), user=user.id,
                         **item).exclude(id__in=ids).order_by(order_data)
                 ids.extend(master_data3.values_list('id', flat=True))
                 master_data.extend(list(master_data1))
@@ -226,7 +231,8 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
             (('WMS SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
              ('SKU Type', data.sku_type), ('SKU Category', data.sku_category), ('DT_RowClass', 'results'),
              ('Zone', zone), ('SKU Class', data.sku_class), ('Status', status), ('DT_RowAttr', {'data-id': data.id}),
-             ('Color', data.color), ('EAN Number',ean_number ), ('Combo Flag', combo_flag),
+             ('Color', data.color), ('EAN Number',ean_number ), ('Combo Flag', combo_flag),('MRP', data.mrp),
+             ('HSN Code', str(data.hsn_code)), ('Tax Type',data.product_type),
              ('Creation Date', creation_date),
              ('Updation Date', updation_date)))
         )

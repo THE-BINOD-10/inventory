@@ -7,6 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
   var vm = this;
   vm.service = Service;
+  vm.permissions = Session.roles.permissions;
   vm.datatable = false;
 
   vm.empty_data = {};
@@ -20,6 +21,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       angular.copy(vm.empty_data, vm.model_data);
       vm.dtOptions = data.dtOptions;
       vm.dtColumns = data.dtColumns;
+      if(vm.permissions.dispatch_qc_check) {
+        vm.dtColumns.push(DTColumnBuilder.newColumn('Customer Name').withTitle('Customer Name').notSortable())
+        vm.dtColumns.push(DTColumnBuilder.newColumn('SR Number').withTitle('Main SR Number').notSortable())
+      }
       vm.datatable = true;
       vm.dtInstance = {};
     })

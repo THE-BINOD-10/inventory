@@ -24,6 +24,8 @@
             <div class="form-group">
               <label class="control-label"> Order Reference </label>
               <input name="order_reference" ng-model="pop.model_data.order_reference"  class="form-control" type="text">
+              <input type = "hidden" name="pick_number" value={{pop.model_data.pick_number}}   class="form-control">
+
             </div>
           </div>
           <div class="col-md-4 col-sm-4 col-xs-6">
@@ -135,32 +137,45 @@
 
   <div class="row mr10 ml10 mr10">
     <div class="col-md-12">
-      <a href="javascript:;" class="btn btn-success btn-xs" ng-click="pop.model_data.order_charges.push({charge_id: '', charge_name: '', charge_amount: ''}); pop.model_data.default_charge()">Add Other Charges(+)</a>
+      <a href="javascript:;" class="btn btn-success btn-xs" ng-click="pop.model_data.order_charges.push({charge_id: '', charge_name: '', charge_amount: '',tax_percent:'',charge_tax_value:'',}); pop.model_data.default_charge()">Add Other Charges(+)</a>
     </div>
 
     <div class="col-md-12" ng-if="pop.model_data.flag">
       <div class="row mt20" ng-repeat="charge in pop.model_data.order_charges">
         <div class="col-md-3 col-sm-4 col-xs-6">
+          Tax Name:
           <input type="text" class="form-control" placeholder="Enter Charge Name" ng-model="charge.charge_name" name="charge_name" required>
         </div>
         <div class="col-md-2 col-sm-2 col-xs-3">
+          Amount :
           <input type="text" class="form-control" placeholder="Enter Amount" ng-model="charge.charge_amount"  decimal-number name="charge_amount" required>
           <input type="hidden" class="form-control" ng-model="charge.charge_id" name="charge_id">
+        </div>
+        <div class="col-md-2 col-sm-2 col-xs-3">
+          Tax Value:
+          <input type="text" class="form-control" placeholder="Tax Value" ng-model="charge.charge_tax_value"  decimal-number name="charge_tax_value">
         </div>
         <div class="col-md-1 col-sm-1 col-xs-2">
           <i style="font-size: 20px;padding-top: 7px;cursor: pointer;" class="fa fa-minus-square-o" ng-click="pop.model_data.order_charges.splice($index, 1)"></i>
         </div>
+
       </div>
     </div>
 
     <div class="col-md-12" ng-if="pop.model_data.order_charges && !pop.model_data.flag">
       <div class="row mt20" ng-repeat="charge in pop.model_data.order_charges">
         <div class="col-md-3 col-sm-4 col-xs-6">
+          Tax Name:
           <input type="text" class="form-control" placeholder="Enter Charge Name" ng-model="charge.charge_name" name="charge_name" value="{{charge.charge_name}}" required>
         </div>
         <div class="col-md-2 col-sm-2 col-xs-3">
+          Amount:
           <input type="text" class="form-control" placeholder="Enter Amount" ng-model="charge.charge_amount"  decimal-number name="charge_amount" value="{{charge.charge_amount}}" required>
           <input type="hidden" class="form-control" ng-model="charge.charge_id" name="charge_id" value="{{charge.id}}">
+        </div>
+        <div class="col-md-2 col-sm-2 col-xs-3">
+          Tax Value:
+          <input type="text" class="form-control" placeholder="Tax Value" ng-model="charge.charge_tax_value"  decimal-number name="charge_tax_value">
         </div>
         <div class="col-md-1 col-sm-1 col-xs-2">
           <i style="font-size: 20px;padding-top: 7px;cursor: pointer;" class="fa fa-minus-square-o" ng-click="pop.model_data.order_charges.splice($index, 1);pop.delete_charge(charge.id);"></i>

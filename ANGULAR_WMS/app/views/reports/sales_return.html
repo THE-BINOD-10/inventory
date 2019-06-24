@@ -48,6 +48,12 @@
               </div>
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
+                  <label class="control-label">To Date</label>
+                  <input name="date" class="form-control" type="text" ng-model="showCase.model_data.to_date" ui-jq="datepicker">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
                   <label class="control-label"> Market Place </label>
                   <select class="form-control" ng-model="showCase.model_data.marketplace">
                     <option value="" ng-selected="showCase.model_data.marketplace == ''">Default</option>

@@ -484,71 +484,63 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
     if gateout:
         gateout = int(gateout)
     central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
-    if central_order_reassigning == 'true':
-        lis = ['Serial Number', 'Manifest Number', 'Total Quantity', 'Manifest Date']
+    one_assist_qc_check = get_misc_value('dispatch_qc_check', user.id)
+    if central_order_reassigning == 'true' and one_assist_qc_check != 'true':
+        #lis = ['Serial Number', 'Manifest Number', 'Total Quantity', 'Manifest Date']
+        lis = ['order_shipment__shipment_number', 'order_shipment__manifest_number', 'ship_quantity', 'order_shipment__shipment_number']
     else:
-        lis = ['Shipment Number', 'Customer ID', 'Customer Name', 'Manifest Number', 'Total Quantity', 'Total Orders', 'Serial Number']
+        lis = ['order_shipment__shipment_number', 'order__customer_id', 'order__customer_name', 'order_shipment__manifest_number', 'ship_quantity',
+                'order_shipment__shipment_number']
     all_data = OrderedDict()
+    shipment_objs = ShipmentInfo.objects.filter(order__sku_id__in=sku_master_ids, order_shipment__user=user.id).\
+                                        exclude(shipmenttracking__ship_status__in=['Delivered', 'Out for Delivery'])
     if search_term:
-        results = ShipmentInfo.objects.filter(order__sku_id__in=sku_master_ids). \
+        results = shipment_objs.\
             filter(Q(order_shipment__shipment_number__icontains=search_term) | Q(order_shipment__manifest_number__icontains=search_term) |
                    Q(order__customer_id__icontains=search_term) | Q(order__customer_name__icontains=search_term),
-                   order_shipment__user=user.id).order_by('order_id')
+                   order_shipment__user=user.id)
     else:
-        results = ShipmentInfo.objects.filter(order__sku_id__in=sku_master_ids). \
-            filter(order_shipment__user=user.id).order_by('order_id')
-    for result in results:
-        tracking = ShipmentTracking.objects.filter(shipment_id=result.id, shipment__order__user=user.id).order_by(
-            '-creation_date'). \
-            values_list('ship_status', flat=True)
-        if gateout:
-            if tracking and tracking[0] != 'Out for Delivery':
-                continue
+        results = shipment_objs
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if central_order_reassigning == 'true' and one_assist_qc_check != 'true':
+        results = results.filter(order_shipment__user=user.id).values('order_shipment__shipment_number', 'order_shipment__manifest_number').\
+                                distinct().annotate(ship_quantity=Sum('shipping_quantity')).order_by(order_data)
+    else:
+        results = results.filter(order_shipment__user=user.id).values('order_shipment__shipment_number', 'order_shipment__manifest_number',
+                                'order__customer_id', 'order__customer_name').\
+                                distinct().annotate(ship_quantity=Sum('shipping_quantity')).order_by(order_data)
+    for result in results[start_index:stop_index]:
+        shipment_obj = shipment_objs.filter(order_shipment__shipment_number=result['order_shipment__shipment_number'],
+                            order_shipment__manifest_number=result['order_shipment__manifest_number'], order_shipment__user=user.id).\
+                            only('creation_date', 'order_id', 'id')
+        shipment_creation_date = shipment_obj[0].creation_date
+        manifest_date = get_local_date(user, shipment_creation_date)
+        if central_order_reassigning == 'true' and one_assist_qc_check != 'true':
+            data_dict = OrderedDict((('Serial Number', result['order_shipment__shipment_number']),
+                                        ('Shipment Number', result['order_shipment__shipment_number']),
+                                                    ('Manifest Number', str(result['order_shipment__manifest_number'])),
+                                                    ('Total Quantity', result['ship_quantity']),
+                                                    ('Manifest Date', manifest_date)
+                                                ))
         else:
-            if tracking and tracking[0] in ['Delivered', 'Out for Delivery']:
-                continue
-        one_assist_qc_check = get_misc_value('dispatch_qc_check', user.id)
-        central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
-        manifest_date = get_local_date(user,result.order_shipment.creation_date)
-        if central_order_reassigning == 'true':
-            if result.order_shipment.shipment_number:
-                shipment_orders_count = ShipmentInfo.objects.filter(order_shipment__shipment_number=result.order_shipment.shipment_number,
-                                                  order_shipment__user=user.id)
-                total_orders = shipment_orders_count.count()
-                cond = (result.order_shipment.shipment_number, 0, 0, int(result.order_shipment.manifest_number), total_orders, manifest_date)
-        else:
-            total_orders = 0
-            cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name, int(result.order_shipment.manifest_number), total_orders,manifest_date)
-        signed_copy = ''
+            data_dict = OrderedDict((('Shipment Number', result['order_shipment__shipment_number']),
+                                        ('Manifest Number', str(result['order_shipment__manifest_number'])),
+                                        ('Customer ID', result['order__customer_id']), ('Customer Name', result['order__customer_name']),
+                                        ('Total Quantity', result['ship_quantity'])
+                                        ))
         if one_assist_qc_check == 'true':
-            order_detail = result.order
-            if order_detail:
-                pdf_obj = MasterDocs.objects.filter(master_id = order_detail.id)
-                if pdf_obj:
-                    signed_copy = '<label class="icon-check" style="font-size: 22px;color: #1fa21f;"></label>'
-                    cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name, int(result.order_shipment.manifest_number), total_orders, signed_copy)
-                else:
-                    signed_copy = '<label class="icon-cloud-upload" style="font-size: 22px;cursor: pointer;"><input type = "file" name="files" id="file-upload" style="display:none" file-uploadd single ng-click= "vm.uploaded_file_data('+"'"+str(result.id)+"'"+', '+"'"+'table'+"'"+');"/></label>'
-                    cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name, int(result.order_shipment.manifest_number), total_orders, signed_copy)
-        all_data.setdefault(cond, 0)
-        all_data[cond] += result.shipping_quantity
+            pdf_obj = MasterDocs.objects.filter(master_id = shipment_obj[0].order_id, master_type='OneAssistSignedCopies')
+            if pdf_obj.exists():
+                signed_copy = '<label class="icon-check" style="font-size: 22px;color: #1fa21f;"></label>'
+            else:
+                signed_copy = '<label class="icon-cloud-upload" style="font-size: 22px;cursor: pointer;"><input type = "file" name="files" id="file-upload" style="display:none" file-uploadd single ng-click= "vm.uploaded_file_data('+"'"+str(shipment_obj[0].id)+"'"+', '+"'"+'table'+"'"+');"/></label>'
+            data_dict['Signed Invoice'] = signed_copy
+        temp_data['aaData'].append(data_dict)
 
-    temp_data['recordsTotal'] = len(all_data)
+    temp_data['recordsTotal'] = results.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    for key, value in all_data.iteritems():
-        sno = sno+1
-        if one_assist_qc_check == 'true':
-            dt_map = {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Signed Invoice' : key[5], 'Serial Number' : sno, 'Total Quantity': value, 'DT_RowClass': 'results'}
-        else:
-            dt_map = {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2], 'Manifest Number' : key[3], 'Total Quantity' : key[4], 'Manifest Date' : key[5], 'Serial Number' : sno, 'Total Quantity': value, 'DT_RowClass': 'results'}
-        temp_data['aaData'].append(dt_map)
-    sort_col = lis[col_num]
-
-    if order_term == 'asc':
-        temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col))
-    else:
-        temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col), reverse=True)
-    temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
 
 
 def create_temp_stock(sku_code, zone, quantity, stock_detail, user):
@@ -1415,13 +1407,16 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
     return shipped_orders_dict
 
 
-def insert_st_order_serial(picklist, val, order='', shipped_orders_dict={}):
-    imei_nos = val['imei']
-    if not isinstance(val['imei'], list):
-        if ',' in val['imei']:
-            imei_nos = list(set(val['imei'].split(',')))
-        else:
-            imei_nos = list(set(val['imei'].split('\r\n')))
+def insert_st_order_serial(picklist, val, order='', shipped_orders_dict={},passed_serial_number = {}):
+    if passed_serial_number :
+        imei_nos = passed_serial_number.get(val['wms_code'],[])
+    else:
+        imei_nos = val['imei']
+        if not isinstance(val['imei'], list) :
+            if ',' in val['imei']:
+                imei_nos = list(set(val['imei'].split(',')))
+            else:
+                imei_nos = list(set(val['imei'].split('\r\n')))
     user_id = None
     for imei in imei_nos:
         imei_filter = {}
@@ -2134,7 +2129,6 @@ def picklist_confirmation(request, user=''):
         if combo_status:
             return HttpResponse(json.dumps({'message': 'Combo Quantities are not matching',
                                             'sku_codes': combo_status, 'status': 0}))
-
         for picklist_dict in final_data_list:
             picklist = picklist_dict['picklist']
             picklist_batch = picklist_dict['picklist_batch']
@@ -2155,7 +2149,7 @@ def picklist_confirmation(request, user=''):
                                                                  picklist_batch)
                 for picklist in picklist_batch:
                     save_status = ''
-                    if count == 0:
+                    if not failed_serial_number.keys() and count == 0:
                         continue
 
                     status = ''
@@ -2208,11 +2202,17 @@ def picklist_confirmation(request, user=''):
                             import traceback
                             picklist_qc_log.debug(traceback.format_exc())
                             picklist_qc_log.info("Error in Dispatch QC - On Fail - %s - %s" % (str(user.username), str(e)))
-                    if 'imei' in val.keys() and val['imei'] and not picklist.order and val['imei'] != '[]':
+                    if count == 0:
+                        continue
+                    if  'imei' in val.keys() and val['imei'] and not picklist.order and val['imei'] != '[]' :
                         order = picklist.storder_set.filter()
                         if order:
                             order = order[0]
                             insert_st_order_serial(picklist, val, order=order)
+                    if passed_serial_number and picklist.storder_set.filter():
+                        order = picklist.storder_set.filter()
+                        order = order[0]
+                        insert_st_order_serial(picklist, val, order=order,passed_serial_number = passed_serial_number)
                     reserved_quantity1 = picklist.reserved_quantity
                     tot_quan = 0
                     for stock in total_stock:
@@ -2527,11 +2527,13 @@ def update_invoice(request, user=''):
         log.info('Request params for Update Invoice for ' + user.username + ' is ' + str(request.POST.dict()))
         resp = {"msg": "success", "data": {}}
         order_ids = request.POST.get("order_id", "")
+        pick_number = request.POST.get('pick_number',1)
         consignee = request.POST.get("ship_to", "")
         invoice_date = request.POST.get("invoice_date", "")
         invoice_number = request.POST.get("invoice_number", "")
         increment_invoice = get_misc_value('increment_invoice', user.id)
         marketplace = request.POST.get("marketplace", "")
+        partial_quantity = False
         order_reference = request.POST.get("order_reference", "")
         order_reference_date = request.POST.get("order_reference_date", "")
         ord_det_id = request.POST.get("id", "")
@@ -2680,9 +2682,8 @@ def update_invoice(request, user=''):
                         discount_percentage = "%.1f" % (float((cust_obj.discount * 100) / (order_id.quantity * order_id.unit_price)))
                 order_id.unit_price = float(myDict['unit_price'][unit_price_index])
                 order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index].replace(',',''))
-                order_id.quantity = float(myDict['quantity'][unit_price_index])
-                print str(order_id.sku_id) + "= " + str(order_id.quantity)
-                order_id.save()
+                if order_id.quantity != float(myDict['quantity'][unit_price_index]) :
+                    partial_quantity = True
                 sgst_tax = float(myDict['sgst_tax'][unit_price_index])
                 cgst_tax = float(myDict['cgst_tax'][unit_price_index])
                 igst_tax = float(myDict['igst_tax'][unit_price_index])
@@ -2719,6 +2720,8 @@ def update_invoice(request, user=''):
                         else:
                             sos_updating_qty = updating_diff
                             updating_diff = 0
+                        if sos_updating_qty < 0 :
+                            sos_updating_qty = 0
 
                         sos_obj.quantity = sos_obj.quantity + sos_updating_qty
                         sos_obj.save()
@@ -2728,13 +2731,25 @@ def update_invoice(request, user=''):
         for i in range(0, len(myDict.get('charge_name', []))):
             if myDict.get('charge_id') and myDict['charge_id'][i]:
                 order_charges = OrderCharges.objects.filter(id=myDict['charge_id'][i], user_id=user.id)
-                if order_charges:
+                invoice_order_charge = InvoiceOrderCharges.objects.filter(id = myDict['charge_id'][i] ,user = user.id)
+                if order_charges.exists() or  invoice_order_charge.exists():
                     if not myDict['charge_amount'][i]:
                         myDict['charge_amount'][i] = 0
-                    order_charges.update(charge_name=myDict['charge_name'][i], charge_amount=myDict['charge_amount'][i])
+                    if not partial_quantity :
+                        order_charges.update(charge_name=myDict['charge_name'][i], charge_amount=myDict['charge_amount'][i],charge_tax_value = myDict['charge_tax_value'][i])
+                    else:
+                        if  invoice_order_charge.exists():
+                            invoice_order_charge = invoice_order_charge [0]
+                            invoice_order_charge.charge_tax_value = myDict['charge_tax_value'][i]
+                            invoice_order_charge.charge_amount = myDict['charge_amount'][i]
+                            invoice_order_charge.save()
+                        else:
+                            InvoiceOrderCharges.objects.create(original_order_id = order_ids , pick_number = pick_number,charge_name = myDict['charge_name'][i],charge_amount = myDict['charge_amount'][i], charge_tax_value = myDict['charge_tax_value'][i],user = user)
+
             else:
                 OrderCharges.objects.create(order_id=order_ids, charge_name=myDict['charge_name'][i],
                                             charge_amount=myDict['charge_amount'][i],
+                                            charge_tax_value = myDict['charge_tax_value'][i],
                                             creation_date=datetime.datetime.now(),
                                             user_id=user.id)
     except Exception as e:
@@ -3191,10 +3206,11 @@ def get_customer_sku(request, user=''):
     courier_name = ''
     sku_grouping = request.GET.get('sku_grouping', 'false')
     datatable_view = request.GET.get('view', '')
-    search_params = {'user': user.id}
+    insert_st_order_serialsearch_params = {'user': user.id}
     headers = ('', 'SKU Code', 'Order Quantity', 'Shipping Quantity', 'Pack Reference', '')
     request_data = dict(request.GET.iterlists())
     picked_imeis = []
+    search_params = {}
     if 'order_id' in request_data.keys() and not datatable_view == 'ShipmentPickedAlternative':
         search_params['id__in'] = request_data['order_id']
     elif 'order_id' in request_data.keys() and request_data['order_id']:
@@ -4278,7 +4294,7 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
                      'description', 'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id',
                      'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected', 'is_sample',
                      'invoice_type', 'default_shipment_addr', 'manual_shipment_addr', 'sample_client_name',
-                     'mode_of_transport', 'payment_status', 'courier_name', 'order_discount']
+                     'mode_of_transport', 'payment_status', 'courier_name', 'order_discount','charge_tax_percent','charge_tax_value',]
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
     sku_master = {}
@@ -4403,6 +4419,7 @@ def construct_other_charge_amounts_map(created_order_id, myDict, creation_date, 
                 OrderCharges.objects.create(user_id=user.id, order_id=created_order_id,
                                             charge_name=myDict['charge_name'][i],
                                             charge_amount=myDict['charge_amount'][i],
+                                            charge_tax_value = myDict['charge_tax_value'][i],
                                             creation_date=creation_date)
                 other_charge_amounts += float(myDict['charge_amount'][i])
     return other_charge_amounts
@@ -4411,6 +4428,7 @@ def construct_other_charge_amounts_map(created_order_id, myDict, creation_date, 
 def send_mail_ordered_report(order_detail, telephone, items, other_charge_amounts, order_data, user, gen_order_id=None):
     misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='order', misc_value='true')
     order_id = None
+    admin_user = get_admin(user)
     if gen_order_id:
         order_id = gen_order_id
     elif order_detail:
@@ -4420,6 +4438,8 @@ def send_mail_ordered_report(order_detail, telephone, items, other_charge_amount
     if misc_detail:
         company_name = UserProfile.objects.filter(user=user.id)[0].company_name
         headers = ['Product Details', 'Ordered Quantity', 'Total']
+        if admin_user.username == 'isprava_admin':
+            headers.insert(0,'Image')
         data_dict = {'customer_name': order_data['customer_name'], 'order_id': order_id,
                      'address': order_data['address'], 'phone_number': order_data['telephone'], 'items': items,
                      'headers': headers, 'company_name': company_name, 'user': user, 'client_name': order_data.get('client_name', '')}
@@ -4580,6 +4600,7 @@ def create_order_from_intermediate_order(request, user):
     message = 'Success'
     first = True
     inter_obj_data = {}
+    dispatch_qc_check = get_misc_value('dispatch_qc_check', user.id)
     central_order_reassigning =  get_misc_value('central_order_reassigning', user.id) #for 72networks
     warehouses = json.loads(request.POST.get('warehouse'))
     for wh, wh_data in warehouses.iteritems():
@@ -4633,7 +4654,7 @@ def create_order_from_intermediate_order(request, user):
                                  }
                 #inv_amt = (interm_obj.unit_price * interm_obj.quantity) + interm_obj.tax
                 if first:
-                    if interm_obj.order_id or interm_obj.order_assigned_wh:
+                    if (interm_obj.order_id or interm_obj.order_assigned_wh) and dispatch_qc_check == 'false':
                         if central_order_reassigning :
                             interm_obj.order_assigned_wh = wh_usr_obj
                             interm_obj.remarks = ''
@@ -4978,6 +4999,8 @@ def insert_order_data(request, user=''):
     order_id = ''
     # Sending mail and message
 
+    host_details = request.META.get('wsgi.url_scheme')+'://'+request.META.get('HTTP_HOST')
+
     items = []
 
     other_charge_amounts = 0
@@ -5025,6 +5048,7 @@ def insert_order_data(request, user=''):
     dist_shipment_address = request.POST.get('manual_shipment_addr', '')
     vehicle_number = request.POST.get('vehicle_num', '')
     is_central_order = request.POST.get('is_central_order', '')
+    isprava_user = get_admin(user)
     if dist_shipment_address:
         ship_to = dist_shipment_address
     created_order_id = ''
@@ -5299,9 +5323,10 @@ def insert_order_data(request, user=''):
                         dispatch_orders[order_det.id]['data'].append(
                             {'quantity': order_data['quantity'], 'location': myDict['location'][i],
                              'serials': serials})
-
-                items.append([sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)])
-
+                mail_items_list = [sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)]
+                if isprava_user.username == 'isprava_admin':
+                    mail_items_list.insert(0, host_details+order_detail.sku.image_url)
+                items.append(mail_items_list)
                 if po_number:
                     OrderPOMapping.objects.create(order_id=order_data['original_order_id'], sku_id=order_data['sku_id'],
                                                   purchase_order_id=po_number.split('_')[-1], status=1,
@@ -8780,7 +8805,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
                           filters={}, user_dict={}):
     un_sort_dict = {7: 'Status'}
     lis = ['interm_order_id', 'interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'project_name', 'remarks',
-           'order_assigned_wh__username', 'status', 'id','creation_date']
+           'order_assigned_wh__username', 'status', 'id','creation_date', 'sku__sku_code']
     data_dict = {'user': user.id, 'quantity__gt': 0}
     status_map = {'1': 'Accept', '0': 'Reject','2': 'Pending'}
     if not col_num: col_num = 0
@@ -8804,10 +8829,10 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
             all_orders = all_orders[start_index:stop_index]
     ord_items = all_orders.only('interm_order_id', 'order__original_order_id', 'order_assigned_wh__username',
                                    'status', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'id',
-                                   'creation_date', 'project_name', 'remarks')\
+                                   'creation_date', 'project_name', 'remarks', 'alt_sku__sku_code')\
         .values('interm_order_id', 'order__original_order_id', 'order_assigned_wh__username', 'status',
                      'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'id',
-                     'creation_date', 'project_name', 'remarks')
+                     'creation_date', 'project_name', 'remarks', 'alt_sku__sku_code')
     '''line_items_map = {}
     for item in ord_items:
         interm_order_id = item[0]
@@ -8821,6 +8846,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
     for dat in ord_items[start_index:stop_index]:
         #order_id ,loan_proposal_id, assigned_wh, status, sku_code, sku_desc, quantity, shipment_date, \
         #id, creation_date, project_name, remarks = dat[0]
+        alternate_sku = ''
         order_date = get_local_date(user, dat['creation_date'])
         shipment_date = dat['shipment_date'].strftime("%d/%m/%Y")
         status = dat['status']
@@ -8829,6 +8855,9 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
         else:
             status = 'Pending'
         if user.username == 'one_assist':
+            alternate_sku = dat['sku__sku_code']
+            if dat['alt_sku__sku_code']:
+                alternate_sku = dat['alt_sku__sku_code']
             ord_val = OrderFields.objects.filter(order_type='intermediate_order', name='original_order_id',
                                                  original_order_id=dat['interm_order_id'])
             if ord_val:
@@ -8842,7 +8871,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
                          ('Product Quantity', dat['quantity']), ('Shipment Date', shipment_date), ('data_id', dat['id']),
                          ('Project Name', dat['project_name']), ('Remarks', dat['remarks']),
                          ('Warehouse', dat['order_assigned_wh__username']), ('Status', status), ('Order Date',order_date),
-                         ('Loan Proposal ID', loan_proposal_id), ('id', index), ('DT_RowClass', 'results'))))
+                         ('Loan Proposal ID', loan_proposal_id), ('Alternative Sku', alternate_sku), ('id', index), ('DT_RowClass', 'results'))))
         index += 1
 
     col_headers = ['Order ID', 'SKU Code', 'SKU Desc', 'Product Quantity', 'Shipment Date', 'Project Name', 'Remarks',
@@ -8884,7 +8913,7 @@ def get_central_order_detail(request, user=''):
     warehouses.values_list('user_id', flat=True)
     wh_users = warehouses.values_list('user_id', flat=True)
     stock_obj_dict = dict(StockDetail.objects.filter(sku__sku_code=sku_code, sku__user__in=wh_users,
-                                           quantity__gt=0).values_list('sku__user').distinct().annotate(in_stock=Sum('quantity')))
+                                           quantity__gt=0).exclude(location__zone__zone='DAMAGED_ZONE').values_list('sku__user').distinct().annotate(in_stock=Sum('quantity')))
     reserved_obj_dict = dict(PicklistLocation.objects.filter(stock__sku__sku_code=sku_code,stock__sku__user__in=wh_users, status=1).\
                                             values_list('stock__sku__user').distinct().annotate(in_reserved=Sum('reserved')))
     raw_reserved_dict = dict(RMLocation.objects.filter(status=1, stock__sku__user__in=wh_users, stock__sku__sku_code=sku_code). \

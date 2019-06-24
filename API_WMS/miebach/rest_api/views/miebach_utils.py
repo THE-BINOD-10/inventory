@@ -19,6 +19,8 @@ from django.db.models.fields import DateField, CharField
 from django.db.models import Value
 from utils import init_logger, get_currency_format
 from miebach_admin.choices import SELLABLE_CHOICES
+from dateutil.relativedelta import *
+
 
 
 # from inbound import *
@@ -1079,7 +1081,7 @@ SKU_MASTER_HEADERS = OrderedDict(
     [('WMS SKU Code', 'wms_code'), ('EAN Number', 'ean_number'), ('Product Description', 'sku_desc'),
      ('SKU Type', 'sku_type'), ('SKU Category', 'sku_category'), ('SKU Class', 'sku_class'),
      ('Color', 'color'), ('Zone', 'zone_id'), ('Creation Date', 'creation_date'), ('Updation Date', 'updation_date'),
-     ('Combo Flag', 'relation_type'), ('Status', 'status')])
+     ('Combo Flag', 'relation_type'), ('Status', 'status'), ('MRP', 'mrp'), ('HSN Code', 'hsn_code'), ('Tax Type', 'product_type')])
 
 PRICING_MASTER_HEADER = OrderedDict(
     [('SKU Code', 'sku__sku_code'), ('SKU Description', 'sku__sku_desc'), ('Selling Price Type', 'price_type'),
@@ -2097,6 +2099,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'block_expired_batches_picklist': 'block_expired_batches_picklist',
                         'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation',
                         'non_transacted_skus':'non_transacted_skus',
+                        'allow_rejected_serials':'allow_rejected_serials',
                         'update_mrp_on_grn': 'update_mrp_on_grn',
                         'mandate_sku_supplier':'mandate_sku_supplier',
                         }
@@ -2160,7 +2163,7 @@ STOCK_TRANSFER_ORDER_MAPPING = OrderedDict((
                                    ))
 
 CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((
-                                      ('Courtesy SR Number', 'original_order_id'),
+                                      ('Main SR Number', 'original_order_id'),
                                       ('Customer Name', 'customer_name'), ('Address', 'address'),
                                       ('City', 'city'), ('Pincode', 'pincode'),
                                       ('Customer primary contact', 'mobile_no'), ('Customer emailId', 'email_id'),
@@ -2461,12 +2464,16 @@ def get_receipt_filter_data(search_params, user, sub_user):
         query_prefix = 'purchase_order__'
         model_obj = POIMEIMapping
         if 'from_date' in search_params:
-            search_parameters[query_prefix + 'creation_date__gt'] = search_params['from_date']
+            search_parameters[query_prefix + 'creation_date__gte'] = search_params['from_date']
+        else:
+            search_parameters[query_prefix + 'creation_date__gte'] = date.today()+relativedelta(months=-1)
         if 'to_date' in search_params:
             search_parameters[query_prefix + 'creation_date__lt'] = search_params['to_date']
     else:
         if 'from_date' in search_params:
-            search_parameters[query_prefix + 'updation_date__gt'] = search_params['from_date']
+            search_parameters[query_prefix + 'updation_date__gte'] = search_params['from_date']
+        else:
+            search_parameters[query_prefix + 'updation_date__gte'] = date.today()+relativedelta(months=-1)
         if 'to_date' in search_params:
             search_parameters[query_prefix + 'updation_date__lt'] = search_params['to_date']
     temp_data = copy.deepcopy(AJAX_DATA)
@@ -2573,7 +2580,9 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
 
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
-        search_parameters['updation_date__gt'] = search_params['from_date']
+        search_parameters['updation_date__gte'] = search_params['from_date']
+    else:
+        search_parameters['updation_date__gte'] = date.today()+relativedelta(months=-1)
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
@@ -3067,6 +3076,8 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
             if 'offer_applied' in remarks_list:
                 custom_remarks.append('Offer Applied')
             remarks = ','.join(custom_remarks)
+        if not remarks and result.remarks:
+            remarks = result.remarks
         temp_data['aaData'].append(OrderedDict((('Received Date', get_local_date(user, seller_po_summary.creation_date)),
                             ('PO Date', get_local_date(user, result.creation_date)),
                             ('PO Number', po_number),
@@ -3359,6 +3370,8 @@ def get_daily_production_data(search_params, user, sub_user):
                      'status_tracking__status_id__in': job_ids}
     if 'from_date' in search_params:
         status_filter['creation_date__gte'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+    else:
+        status_filter['creation_date__gte'] = date.today()+relativedelta(months=-1)
     if 'to_date' in search_params:
         status_filter['creation_date__lte'] = datetime.datetime.combine(
             search_params['to_date'] + datetime.timedelta(1), datetime.time())
@@ -3628,9 +3641,8 @@ def get_order_summary_data(search_params, user, sub_user):
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
                                                                     'sku__sku_desc','sku__price','sellerordersummary__invoice_number','address',
-                                                                    'quantity','original_order_id','order_reference','sku__sku_brand','customer_name','payment_mode',
-                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace',
-                                                                    'sellerordersummary__creation_date').distinct()
+                                                                    'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
+                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace').distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
     else:
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size',
@@ -3843,6 +3855,12 @@ def get_order_summary_data(search_params, user, sub_user):
         taxable_amount = "%.2f" % abs(float(invoice_amount) - float(tax))
         unit_price = "%.2f" % unit_price
 
+        #otherordercharges
+        order_charges_obj = OrderCharges.objects.filter(user=user.id,order_id = data['original_order_id'])
+        if order_charges_obj.exists():
+            total_charge_amount = order_charges_obj.aggregate(Sum('charge_amount'))['charge_amount__sum']
+            total_charge_tax = order_charges_obj.aggregate(Sum('charge_tax_value'))['charge_tax_value__sum']
+            invoice_amount = float(invoice_amount)+float(total_charge_amount)+float(total_charge_tax)
         #payment mode
         payment_obj = OrderFields.objects.filter(user=user.id, name__icontains="payment_",\
                                       original_order_id=data['original_order_id']).values_list('name', 'value')
@@ -3875,7 +3893,7 @@ def get_order_summary_data(search_params, user, sub_user):
                             invoice_number = str(invoice_number_obj[0].seller_order.order.order_id)
 
             if data['sellerordersummary__creation_date'] :
-                invoice_date = get_local_date(user,data['sellerordersummary__creation_date'])
+                invoice_date = data['sellerordersummary__creation_date'].strftime('%d %b %Y')
             else:
                 invoice_date =''
             user_profile = UserProfile.objects.get(user_id=user.id)
@@ -6216,6 +6234,7 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
     from miebach_admin.views import *
     from common import get_admin
     from rest_api.views.common import  get_order_detail_objs,get_purchase_order_data
+    oneassist_condition = get_misc_value('dispatch_qc_check', user.id)
     lis = ['open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__order_quantity','open_po__sku__sku_code']
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
@@ -6234,7 +6253,6 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
     if 'sku_code' in search_params:
         search_parameters['open_po__sku__sku_code'] = search_params['sku_code']
 
-
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
@@ -6244,41 +6262,45 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
         warehouses = UserGroups.objects.filter(user_id=user.id)
     else:
         warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+    warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
+    sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
+    sku_master_ids = sku_master.values_list('id', flat=True)
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=warehouse_users.keys(),
+                                                   open_po__sku_id__in=sku_master_ids,
+                                                   received_quantity__lt=F('open_po__order_quantity')).exclude(status='location-assigned').filter(**search_parameters)
+    if not purchase_orders:
+        rw_orders = RWPurchase.objects.filter(rwo__vendor__user=user.id,
+                                              rwo__job_order__product_code_id__in=sku_master_ids). \
+            exclude(purchase_order__status__in=['location-assigned', 'stock-transfer']). \
+            values_list('purchase_order_id', flat=True)
+        purchase_orders = PurchaseOrder.objects.filter(id__in=rw_orders)
 
-    for warehouse in warehouses:
-        sku_master = SKUMaster.objects.filter(user=warehouse.user_id)
-        sku_master_ids = sku_master.values_list('id', flat=True)
-        purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=warehouse.user_id,
-                                                       open_po__sku_id__in=sku_master_ids,
-                                                       received_quantity__lt=F('open_po__order_quantity')).exclude(status='location-assigned').filter(**search_parameters)
-        if not purchase_orders:
-            st_orders = STPurchaseOrder.objects.filter(open_st__sku__user=user.id,
-                                                       open_st__sku_id__in=sku_master_ids). \
-                exclude(po__status__in=['location-assigned', 'stock-transfer']).values_list('po_id', flat=True)
-            purchase_orders = PurchaseOrder.objects.filter(id__in=st_orders)
-        if not purchase_orders:
-            rw_orders = RWPurchase.objects.filter(rwo__vendor__user=user.id,
-                                                  rwo__job_order__product_code_id__in=sku_master_ids). \
-                exclude(purchase_order__status__in=['location-assigned', 'stock-transfer']). \
-                values_list('purchase_order_id', flat=True)
-            purchase_orders = PurchaseOrder.objects.filter(id__in=rw_orders)
-
-        temp_data['recordsTotal'] = len(purchase_orders)
-        temp_data['recordsFiltered'] = temp_data['recordsTotal']
-
-        ship_search_params  = {}
-        if stop_index:
-            purchase_orders = purchase_orders[start_index:stop_index]
-        po_reference_no = ''
-        for order in purchase_orders:
-            po_reference_no = '%s%s_%s' % (
-            order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
-            order_data = get_purchase_order_data(order)
-
-            po_quantity = float(order_data['order_quantity']) - float(order.received_quantity)
-
-            temp_data['aaData'].append(OrderedDict((('SKU Code',order_data['wms_code'] ),('PO No',po_reference_no),
-                                                ('Quantity',po_quantity ), ('Sku Description', order_data['sku_desc']),('Location',warehouse.user.username))))
+    temp_data['recordsTotal'] = len(purchase_orders)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    ship_search_params  = {}
+    if stop_index:
+        purchase_orders = purchase_orders[start_index:stop_index]
+    po_reference_no = ''
+    admin_user = get_admin(user)
+    for order in purchase_orders:
+        po_reference_no = '%s%s_%s' % (
+        order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
+        order_data = get_purchase_order_data(order)
+        customer_name, sr_number = '', ''
+        if oneassist_condition == 'true':
+            customer_data = OrderMapping.objects.filter(mapping_id=order.id, mapping_type='PO')
+            if customer_data:
+                customer_name = customer_data[0].order.customer_name
+                interorder_data = IntermediateOrders.objects.filter(order_id=customer_data[0].order_id, user_id=admin_user.id)
+                if interorder_data:
+                    inter_order_id  = interorder_data[0].interm_order_id
+                    courtesy_sr_number = OrderFields.objects.filter(original_order_id = inter_order_id, user = admin_user.id, name = 'original_order_id')
+                    if courtesy_sr_number:
+                        sr_number = courtesy_sr_number[0].value
+        po_quantity = float(order_data['order_quantity']) - float(order.received_quantity)
+        warehouse_location = warehouse_users[order.open_po.sku.user]
+        temp_data['aaData'].append(OrderedDict((('SKU Code',order_data['wms_code']),('PO No',po_reference_no),
+                                            ('Quantity',po_quantity ), ('Sku Description', order_data['sku_desc']),('Location',warehouse_location), ('Customer Name', customer_name), ('SR Number', sr_number))))
     return temp_data
 
 

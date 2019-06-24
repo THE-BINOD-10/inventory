@@ -86,7 +86,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.checked_ids.push(vm.checked_items[index].id);
       }
       // vm.checked_items[index] = data;
-      console.log(data)      
+      console.log(data)
     }
 
     vm.generateInvoice = function(){
@@ -130,11 +130,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
       var data_tr = angular.element(elem).parent().parent();
       var all_tr = angular.element(elem).parent().parent().siblings();
-      
+
       for (var i = 0; i < all_tr.length; i++) {
 
         if (all_tr[i].cells[0].children[0].className == 'fa fa-minus-square') {
-        
+
           all_tr[i].cells[0].children[0].className = 'fa fa-plus-square'
           all_tr[i].nextSibling.remove();
         }
@@ -321,6 +321,10 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
     }
   }
 
+  vm.cal_total = function(extra_charges){
+    extra_charges.charge_tax_value = (Number(extra_charges.charge_amount) * Number(extra_charges.tax_percent))/100
+  }
+
   vm.delete_charge = function(id){
 
     if (id) {
@@ -377,6 +381,7 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
       vm.process = false;
     })
   }
+
 
   vm.changeUnitPrice = function(data) {
 

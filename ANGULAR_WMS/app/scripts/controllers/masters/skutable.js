@@ -44,18 +44,36 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         }),
         DTColumnBuilder.newColumn('EAN Number').withTitle('EAN Number'),
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
-        DTColumnBuilder.newColumn('SKU Type').withTitle('SKU Type'),
-        DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
+    ];
+
+    if(!vm.permissions.add_networkmaster && !vm.permissions.priceband_sync || Session.parent.userName == 'isprava_admin'){
+      vm.dtColumns.push(DTColumnBuilder.newColumn('SKU Type').withTitle('SKU Type'))
+    }
+    vm.dtColumns.push(
+      DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
         DTColumnBuilder.newColumn('SKU Class').withTitle('SKU Class'),
-        DTColumnBuilder.newColumn('Color').withTitle('Color'),
-        DTColumnBuilder.newColumn('Zone').withTitle('Zone'),
+       )
+    if(!vm.permissions.add_networkmaster && !vm.permissions.priceband_sync || Session.parent.userName == 'isprava_admin'){
+      vm.dtColumns.push( DTColumnBuilder.newColumn('Color').withTitle('Color'),
+        DTColumnBuilder.newColumn('Zone').withTitle('Zone'),)
+    }
+    vm.dtColumns.push(
         DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
         DTColumnBuilder.newColumn('Updation Date').withTitle('Updation Date'),
-        DTColumnBuilder.newColumn('Combo Flag').withTitle('Combo Flag'),
-        DTColumnBuilder.newColumn('Status').withTitle('Status').renderWith(function(data, type, full, meta) {
+        )
+    if(!vm.permissions.add_networkmaster && !vm.permissions.priceband_sync || Session.parent.userName == 'isprava_admin'){
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Combo Flag').withTitle('Combo Flag'))
+    }
+    if(Session.parent.userName != 'isprava_admin'){
+      if(vm.permissions.add_networkmaster || vm.permissions.priceband_sync){
+          vm.dtColumns.push(DTColumnBuilder.newColumn('MRP').withTitle('MRP'),
+           DTColumnBuilder.newColumn('HSN Code').withTitle('HSN Code'),
+           DTColumnBuilder.newColumn('Tax Type').withTitle('Tax Type')
+            )
+        }}
+    vm.dtColumns.push( DTColumnBuilder.newColumn('Status').withTitle('Status').renderWith(function(data, type, full, meta) {
                           return vm.service.status(data);
-                        }).withOption('width', '80px'),
-    ];
+                        }).withOption('width', '80px'))
 
     var sku_attr_list = [];
     var empty_data = {

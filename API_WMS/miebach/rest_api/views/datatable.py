@@ -394,6 +394,9 @@ def results_data(request, user=''):
         if request.POST.get('datatable', '') == 'StockSummarySerials':
             excel_data = get_stock_summary_serials_excel(filter_params, temp_data, headers, user, request)
             return HttpResponse(str(excel_data))
+        if request.POST.get('datatable', '') == 'SerialNumberSKU':
+            excel_data = get_stock_summary_serials_excel(filter_params, temp_data, headers, user, request)
+            return HttpResponse(str(excel_data))
         if request.POST.get('datatable', '') == 'CentralOrders' and request.user.username.lower() == '72networks':
             excel_data = central_orders_excel_download(filter_params, user, request)
             return HttpResponse(str(excel_data))
@@ -417,7 +420,7 @@ def results_data(request, user=''):
     else:
         temp_data = {"recordsTotal": 0, "recordsFiltered": 0, "draw": 2, "aaData": []}
     if excel == 'true':
-        params = [temp_data, search_params.get('search_term'), search_params.get('order_term'), 
+        params = [temp_data, search_params.get('search_term'), search_params.get('order_term'),
             search_params.get('order_index'), request, user, filter_params]
         if request.POST.get('datatable', '') == 'SupplierMaster':
             temp_data = {"recordsTotal": 0, "recordsFiltered": 0, "draw": 2, "aaData": []}

@@ -68,6 +68,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                     'order_id': '',
                     'customer_id': '',
                     'creation_date': '',
+                    'to_date':'',
                     'marketplace': ''
                     };
 

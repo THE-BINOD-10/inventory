@@ -1616,7 +1616,6 @@ def add_po(request, user=''):
             else:
                 new_mapping = SKUSupplier(**sku_mapping)
                 new_mapping.save()
-
         suggestions_data = OpenPO.objects.exclude(status__exact='0').filter(sku_id=sku_id,
                                                                             supplier_id=value['supplier_id'],
                                                                             order_quantity=value['order_quantity'],
@@ -5575,9 +5574,9 @@ def confirm_po1(request, user=''):
             if get_misc_value('raise_po', user.id) == 'true':
 		data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email, 'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name, 'billing_address': profile.address, 'shipping_address': profile.wh_address}
                 if get_misc_value('allow_secondary_emails', user.id) == 'true':
-                    write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
+                    write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, str(telephone), po_data,
                                    str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
-                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data, str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
+                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, str(telephone), po_data, str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
     check_purchase_order_created(user, po_id)
     return render(request, 'templates/toggle/po_template.html', data_dict)
 

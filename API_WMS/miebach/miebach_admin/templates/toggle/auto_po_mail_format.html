@@ -1,0 +1,55 @@
+{% load tag_extras %}
+
+<div>
+  <style>
+    {% include 'toggle/page1.css' %}
+  </style>
+  <div class="print-invoice2 mb20">
+      <b>Dear Supply Partner,</b>
+      <br>
+      We would like to thank you for your recent supplies. Your last supplies fill rate and other details will be shared with you in a couple of days. Kindly Download PO Attachment present in the mail.
+      <br>
+      <br>
+      <b>Billing Details -</b>
+      <br>
+      <br>
+      <b>Bill To:</b> Aaidea Solutions Pvt Ltd.
+      <br>
+      <br>
+      <b>GST NO : :</b> {{ gst_no }}
+      <br>
+      <br>
+      <b>Billing Address : </b>
+      <br>
+      {{ billing_address }}
+      <br>
+      <br>
+      <b>Shipping Address: </b>
+      <br>
+      {{ shipping_address }}
+      <br>
+      <br>
+      <b>Our Receiving Timing is from 10 am to 5 pm</b>
+      <br>
+      <br>
+      <b>Note :</b>
+      <ul>
+        <li> Supply should be with original Tax invoice.</li>
+       
+	<li> PO to be carried along with the supply.</li>
+       
+	<li> Stock should be supplied before PO expiry Date.</li>
+       
+	<li> Confirmation on Appointment prior delivery is a must, Unscheduled delivery will be rejected</li>
+      </ul>
+      <br>
+      <br>
+        Request you to supply as per the order, if you need any correction or having any query, you can reach out to : {{ contact_email }} Or contact below mentioned person.
+      <br>
+      <br>
+        Thanks & Regards,
+      <br>
+      <b>Contact Number :</b> {{ contact_no }}
+  </div>
+</div>
+

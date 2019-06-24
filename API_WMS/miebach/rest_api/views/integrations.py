@@ -2109,6 +2109,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         order_summary_dict['consignee'] = order_details['address']
                         order_summary_dict['invoice_date'] = order_details['creation_date']
                         order_summary_dict['inter_state'] = 0
+                        order_summary_dict['mrp'] = sku_item.get('mrp', 0)
                         if order_summary_dict['igst_tax']:
                             order_summary_dict['inter_state'] = 1
                         final_data_dict = check_and_add_dict(grouping_key, 'order_summary_dict',

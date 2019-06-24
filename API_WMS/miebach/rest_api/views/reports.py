@@ -12,6 +12,7 @@ from miebach_admin.models import *
 from common import *
 from miebach_utils import *
 from inbound import generate_grn_pagination
+from dateutil.relativedelta import *
 
 
 @csrf_exempt
@@ -599,7 +600,9 @@ def get_adjust_filter_data(search_params, user, sub_user):
     temp_data['draw'] = search_params.get('draw')
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
-        search_parameters['cycle__creation_date__gt'] = search_params['from_date']
+        search_parameters['cycle__creation_date__gte'] = search_params['from_date']
+    else:
+        search_parameters['cycle__creation_date__gte'] = date.today()+relativedelta(months=-1)
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
@@ -641,7 +644,9 @@ def get_aging_filter_data(search_params, user, sub_user):
     temp_data['draw'] = search_params.get('draw')
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
-        search_parameters['receipt_date__gt'] = search_params['from_date']
+        search_parameters['receipt_date__gte'] = search_params['from_date']
+    else:
+        search_parameters['receipt_date__gte'] = date.today()+relativedelta(months=-1)
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())

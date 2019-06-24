@@ -19,6 +19,8 @@ from django.db.models.fields import DateField, CharField
 from django.db.models import Value
 from utils import init_logger, get_currency_format
 from miebach_admin.choices import SELLABLE_CHOICES
+from dateutil.relativedelta import *
+
 
 
 # from inbound import *
@@ -2457,12 +2459,16 @@ def get_receipt_filter_data(search_params, user, sub_user):
         query_prefix = 'purchase_order__'
         model_obj = POIMEIMapping
         if 'from_date' in search_params:
-            search_parameters[query_prefix + 'creation_date__gt'] = search_params['from_date']
+            search_parameters[query_prefix + 'creation_date__gte'] = search_params['from_date']
+        else:
+            search_parameters[query_prefix + 'creation_date__gte'] = date.today()+relativedelta(months=-1)
         if 'to_date' in search_params:
             search_parameters[query_prefix + 'creation_date__lt'] = search_params['to_date']
     else:
         if 'from_date' in search_params:
-            search_parameters[query_prefix + 'updation_date__gt'] = search_params['from_date']
+            search_parameters[query_prefix + 'updation_date__gte'] = search_params['from_date']
+        else:
+            search_parameters[query_prefix + 'updation_date__gte'] = date.today()+relativedelta(months=-1)
         if 'to_date' in search_params:
             search_parameters[query_prefix + 'updation_date__lt'] = search_params['to_date']
     temp_data = copy.deepcopy(AJAX_DATA)
@@ -2569,7 +2575,9 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
 
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
-        search_parameters['updation_date__gt'] = search_params['from_date']
+        search_parameters['updation_date__gte'] = search_params['from_date']
+    else:
+        search_parameters['updation_date__gte'] = date.today()+relativedelta(months=-1)
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
@@ -3355,6 +3363,8 @@ def get_daily_production_data(search_params, user, sub_user):
                      'status_tracking__status_id__in': job_ids}
     if 'from_date' in search_params:
         status_filter['creation_date__gte'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+    else:
+        status_filter['creation_date__gte'] = date.today()+relativedelta(months=-1)
     if 'to_date' in search_params:
         status_filter['creation_date__lte'] = datetime.datetime.combine(
             search_params['to_date'] + datetime.timedelta(1), datetime.time())

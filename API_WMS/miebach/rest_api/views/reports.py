@@ -497,6 +497,8 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
     marketplace = ''
     if 'creation_date' in search_params:
         search_parameters['creation_date__gt'] = search_params['creation_date']
+    if 'to_date' in search_params:
+        search_parameters['creation_date__lte'] = search_params['to_date']
     if 'sku_code' in search_params:
         search_parameters['sku__sku_code'] = search_params['sku_code'].upper()
     if 'wms_code' in search_params:

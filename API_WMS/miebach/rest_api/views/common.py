@@ -2949,10 +2949,13 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     total_quantity, total_amt, total_taxable_amt, total_invoice, total_tax, total_mrp, _total_tax = 0, 0, 0, 0, 0, 0, 0
     total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'utgst_amt': 0, 'cess_amt': 0}
     hsn_summary = {}
+    partial_order_quantity_price = 0
+    order_charges_percent =1
     is_gst_invoice = False
     invoice_date = datetime.datetime.now()
     order_reference_date_field = ''
-    order_charges = ''
+    order_charges = {}
+    total_order_quantity_price = 0
     customer_id = ''
     mode_of_transport = ''
     vehicle_number = ''
@@ -2985,7 +2988,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     if order_ids:
         sor_id = ''
         order_ids = list(set(order_ids.split(',')))
-        order_data = OrderDetail.objects.filter(id__in=order_ids).exclude(status=3)
+        order_data = OrderDetail.objects.filter(id__in=order_ids).exclude(status=3).select_related('sku')
         if user.userprofile.user_type == 'marketplace_user':
             seller_summary = SellerOrderSummary.objects.filter(seller_order__order_id__in=order_ids)
         else:
@@ -3182,6 +3185,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 discount_percentage = "%.1f" % (float((discount * 100) / (quantity * unit_price)))
             unit_price = "%.2f" % unit_price
             total_quantity += quantity
+            partial_order_quantity_price += (float(unit_price) * float(quantity))
             _total_tax += _tax
             invoice_amount = _tax + amt
             total_invoice += _tax + amt
@@ -3204,7 +3208,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 quantity = int(quantity)
             quantity = get_decimal_limit(user.id ,quantity)
             invoice_amount = get_decimal_limit(user.id ,invoice_amount ,'price')
-
             count = count +1
             data.append(
                 {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
@@ -3265,10 +3268,35 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     total_invoice_amount = total_invoice
     if order_id:
         order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
-        order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'id'))
-        total_charge_amount = order_charge_obj.aggregate(Sum('charge_amount'))['charge_amount__sum']
-        if total_charge_amount:
-            total_invoice_amount = float(total_charge_amount) + total_invoice
+        if order_charge_obj.exists():
+            total_order_qtys = OrderDetail.objects.filter(original_order_id = order_id,user = user.id ).values('sku__wms_code').annotate(total=F('quantity') * F('unit_price'))
+            for quantity in total_order_qtys :
+                total_order_quantity_price += quantity.get('total' ,0)
+
+        order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'charge_tax_value','id'))
+        if total_order_quantity_price :
+            order_charges_percent = (partial_order_quantity_price / total_order_quantity_price)
+        invoice_order_charge = ''
+        full_order_charge = True
+        if order_charges_percent != 1 and sell_ids :
+            if sell_ids.get('pick_number__in',0) :
+                pick_num = sell_ids.get('pick_number__in')[0]
+                invoice_order_charge = InvoiceOrderCharges.objects.filter(original_order_id = order_id , pick_number = pick_num,user = user.id)
+                if invoice_order_charge.exists():
+                    order_charges = list(invoice_order_charge.values('charge_name', 'charge_amount', 'charge_tax_value','id'))
+                    full_order_charge = False
+                    for order_chrg in order_charges :
+                        total_invoice_amount += order_chrg['charge_amount']+order_chrg['charge_tax_value']
+                        order_chrg['charge_amount'] = round(order_chrg['charge_amount'], 2)
+                        order_chrg['charge_tax_value'] = round(order_chrg['charge_tax_value'], 2)
+        if full_order_charge :
+            for order_chrg in order_charges :
+                order_chrg['charge_amount'] = order_charges_percent * order_chrg['charge_amount']
+                order_chrg['charge_tax_value'] = order_charges_percent * order_chrg['charge_tax_value']
+                total_invoice_amount += order_chrg['charge_amount']+order_chrg['charge_tax_value']
+                order_chrg['charge_amount'] = round(order_chrg['charge_amount'], 2)
+                order_chrg['charge_tax_value'] = round(order_chrg['charge_tax_value'], 2)
+
 
     total_amt = "%.2f" % (float(total_invoice) - float(_total_tax))
     dispatch_through = "By Road"

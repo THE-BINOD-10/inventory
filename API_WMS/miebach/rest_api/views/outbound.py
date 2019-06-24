@@ -2527,11 +2527,13 @@ def update_invoice(request, user=''):
         log.info('Request params for Update Invoice for ' + user.username + ' is ' + str(request.POST.dict()))
         resp = {"msg": "success", "data": {}}
         order_ids = request.POST.get("order_id", "")
+        pick_number = request.POST.get('pick_number',1)
         consignee = request.POST.get("ship_to", "")
         invoice_date = request.POST.get("invoice_date", "")
         invoice_number = request.POST.get("invoice_number", "")
         increment_invoice = get_misc_value('increment_invoice', user.id)
         marketplace = request.POST.get("marketplace", "")
+        partial_quantity = False
         order_reference = request.POST.get("order_reference", "")
         order_reference_date = request.POST.get("order_reference_date", "")
         ord_det_id = request.POST.get("id", "")
@@ -2680,9 +2682,8 @@ def update_invoice(request, user=''):
                         discount_percentage = "%.1f" % (float((cust_obj.discount * 100) / (order_id.quantity * order_id.unit_price)))
                 order_id.unit_price = float(myDict['unit_price'][unit_price_index])
                 order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index].replace(',',''))
-                order_id.quantity = float(myDict['quantity'][unit_price_index])
-                print str(order_id.sku_id) + "= " + str(order_id.quantity)
-                order_id.save()
+                if order_id.quantity != float(myDict['quantity'][unit_price_index]) :
+                    partial_quantity = True
                 sgst_tax = float(myDict['sgst_tax'][unit_price_index])
                 cgst_tax = float(myDict['cgst_tax'][unit_price_index])
                 igst_tax = float(myDict['igst_tax'][unit_price_index])
@@ -2719,6 +2720,8 @@ def update_invoice(request, user=''):
                         else:
                             sos_updating_qty = updating_diff
                             updating_diff = 0
+                        if sos_updating_qty < 0 :
+                            sos_updating_qty = 0
 
                         sos_obj.quantity = sos_obj.quantity + sos_updating_qty
                         sos_obj.save()
@@ -2728,13 +2731,25 @@ def update_invoice(request, user=''):
         for i in range(0, len(myDict.get('charge_name', []))):
             if myDict.get('charge_id') and myDict['charge_id'][i]:
                 order_charges = OrderCharges.objects.filter(id=myDict['charge_id'][i], user_id=user.id)
-                if order_charges:
+                invoice_order_charge = InvoiceOrderCharges.objects.filter(id = myDict['charge_id'][i] ,user = user.id)
+                if order_charges.exists() or  invoice_order_charge.exists():
                     if not myDict['charge_amount'][i]:
                         myDict['charge_amount'][i] = 0
-                    order_charges.update(charge_name=myDict['charge_name'][i], charge_amount=myDict['charge_amount'][i])
+                    if not partial_quantity :
+                        order_charges.update(charge_name=myDict['charge_name'][i], charge_amount=myDict['charge_amount'][i],charge_tax_value = myDict['charge_tax_value'][i])
+                    else:
+                        if  invoice_order_charge.exists():
+                            invoice_order_charge = invoice_order_charge [0]
+                            invoice_order_charge.charge_tax_value = myDict['charge_tax_value'][i]
+                            invoice_order_charge.charge_amount = myDict['charge_amount'][i]
+                            invoice_order_charge.save()
+                        else:
+                            InvoiceOrderCharges.objects.create(original_order_id = order_ids , pick_number = pick_number,charge_name = myDict['charge_name'][i],charge_amount = myDict['charge_amount'][i], charge_tax_value = myDict['charge_tax_value'][i],user = user)
+
             else:
                 OrderCharges.objects.create(order_id=order_ids, charge_name=myDict['charge_name'][i],
                                             charge_amount=myDict['charge_amount'][i],
+                                            charge_tax_value = myDict['charge_tax_value'][i],
                                             creation_date=datetime.datetime.now(),
                                             user_id=user.id)
     except Exception as e:
@@ -4278,7 +4293,7 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
                      'description', 'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id',
                      'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected', 'is_sample',
                      'invoice_type', 'default_shipment_addr', 'manual_shipment_addr', 'sample_client_name',
-                     'mode_of_transport', 'payment_status', 'courier_name', 'order_discount']
+                     'mode_of_transport', 'payment_status', 'courier_name', 'order_discount','charge_tax_percent','charge_tax_value',]
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
     sku_master = {}
@@ -4403,6 +4418,7 @@ def construct_other_charge_amounts_map(created_order_id, myDict, creation_date, 
                 OrderCharges.objects.create(user_id=user.id, order_id=created_order_id,
                                             charge_name=myDict['charge_name'][i],
                                             charge_amount=myDict['charge_amount'][i],
+                                            charge_tax_value = myDict['charge_tax_value'][i],
                                             creation_date=creation_date)
                 other_charge_amounts += float(myDict['charge_amount'][i])
     return other_charge_amounts

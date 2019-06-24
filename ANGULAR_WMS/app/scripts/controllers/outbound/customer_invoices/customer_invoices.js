@@ -255,6 +255,9 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
    vm.parent_user = false;
  }
 
+ vm.cal_total = function(extra_charges){
+   extra_charges.charge_tax_value = (Number(extra_charges.charge_amount) * Number(extra_charges.tax_percent))/100
+ }
 
 
   vm.delete_charge = function(id){

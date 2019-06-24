@@ -419,6 +419,7 @@ class OrderCharges(models.Model):
     user = models.ForeignKey(User, blank=True, null=True)
     charge_name = models.CharField(max_length=128, default='')
     charge_amount = models.FloatField(default=0)
+    charge_tax_value = models.FloatField(default = 0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -3230,3 +3231,17 @@ class MasterEmailMapping(models.Model):
     class Meta:
         db_table = 'MASTER_EMAIL_MAPPING'
         unique_together = ('user', 'master_id', 'master_type', 'email_id')
+
+class InvoiceOrderCharges(models.Model) :
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    original_order_id = models.CharField(max_length=64, default='')
+    pick_number = models.PositiveIntegerField(default=0)
+    charge_name = models.CharField(max_length=32, default='')
+    charge_amount = models.FloatField(default=0)
+    charge_tax_value = models.FloatField(default = 0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'INVOICE_ORDER_CHARGES'

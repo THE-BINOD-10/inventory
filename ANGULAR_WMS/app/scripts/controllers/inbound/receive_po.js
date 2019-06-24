@@ -28,7 +28,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $rootScope.collect_imei_details = {};
     vm.failed_serial_number = {};
     vm.passed_serial_number = {};
-
     vm.collect_imei_details = $rootScope.collect_imei_details;
     if(vm.permissions.receive_po_mandatory_fields) {
       angular.forEach(vm.permissions.receive_po_mandatory_fields.split(','), function(field){
@@ -116,9 +115,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var toggle = DTColumnBuilder.newColumn('PO No').withTitle(' ').notSortable().notVisible();
     }
     if(vm.permissions.dispatch_qc_check) {
-      vm.dtColumns.push(DTColumnBuilder.newColumn('SR Number').withTitle('Courtesy SR Number'))
+      vm.dtColumns.push(DTColumnBuilder.newColumn('SR Number').withTitle('Main SR Number'))
     }else {
-      vm.dtColumns.pop(DTColumnBuilder.newColumn('SR Number').withTitle('Courtesy SR Number'))
+      vm.dtColumns.pop(DTColumnBuilder.newColumn('SR Number').withTitle('Main SR Number'))
     }
     vm.dtColumns.unshift(toggle);
     vm.dtInstance = {};
@@ -174,6 +173,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               // vm.supplier_id = aData['DT_RowId'];
               vm.round_off = false;
                 vm.supplier_id = aData['Supplier ID/Name'].split('/')[0];
+                if(aData['Order Type']) {
+                  vm.selected_order_type = aData['Order Type']
+                }
+                if (vm.permissions.dispatch_qc_check) {
+                  vm.main_sr_number = aData['SR Number']
+                } else {
+                  vm.main_sr_number = ''
+                }
                 vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
                   if(data.message) {
                     vm.serial_numbers = [];
@@ -735,6 +742,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             var elem_dict = {'name':'failed_serial_number', 'value': JSON.stringify(vm.failed_serial_number)}
             elem.push(elem_dict)
           }
+          if (vm.main_sr_number) {
+            var elem_dict = {'name':'main_sr_number', 'value': vm.main_sr_number}
+            elem.push(elem_dict)
+          }
+          if (vm.selected_order_type == 'Stock Transfer') {
+            var elem_dict = {'name':'confirm_order_type', 'value': 'StockTransfer'}
+            elem.push(elem_dict)
+          }
         }
         $.each(elem, function(i, val) {
           form_data.append(val.name, val.value);
@@ -1088,7 +1103,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.qc_details = qc_details;
     function qc_details() {
 
-      $state.go('app.inbound.RevceivePo.qc_detail');
+      // $state.go('app.inbound.RevceivePo.qc_detail');
       $timeout(function() {
         if(vm.permissions.grn_scan_option == "serial_scan") {
           focus('focusIMEI');
@@ -1104,12 +1119,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.imei_list = [];
     vm.model_data1 = {};
-    vm.po_qc_imei_scan = function(data1, index) {
-      data1.sku_details[0].fields = data1.sku_details[0].fields.toUpperCase();
+    vm.po_qc_imei_scan = function(data1, index, status) {
+      // data1.sku_details[0].fields = data1.sku_details[0].fields.toUpperCase();
       vm.current_index = index;
       vm.model_data1["sku_data"] = data1.sku_details[0].fields;
       vm.imei_list.push(data1.imei_number);
-      vm.accept_qc(data1, data1.imei_number);
+      if (status == 'pass') {
+        vm.accept_qc(data1, data1.imei_number);
+      } else {
+        vm.reject_qc(data1.imei_number);
+      }
       qc_details();
       data1.imei_number = "";
       $("input[attr-name='imei_"+data1.wms_code+"']").trigger('focus');
@@ -1224,7 +1243,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.passed_serial_number[record.wms_code] = [record.imei_number]
         }
         if (vm.po_qc) {
-          vm.po_qc_imei_scan(record, index)
+          vm.po_qc_imei_scan(record, index, status)
         } else {
           vm.po_imei_scan(record, record.imei_number)
         }
@@ -1235,6 +1254,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
         } else {
           vm.failed_serial_number[record.wms_code] = [record.imei_number]
+        }
+        if (vm.po_qc) {
+          vm.po_qc_imei_scan(record, index, status)
+        } else {
+          vm.po_imei_scan(record, record.imei_number)
         }
         vm.imei_list.push(record.imei_number);
         record.imei_number = '';
@@ -1270,7 +1294,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         } else {
           data1["disable"] = true;
           fb.check_imei(data1.imei_number).then(function(resp) {
-            if (resp.status) {
+            if (resp.status && vm.model_data.po_reference != resp.data.po) {
               Service.showNoty("Serial Number already Exist in other PO: "+resp.data.po);
               data1.imei_number = "";
               $("input[attr-name='imei_"+data1.wms_code+"']").trigger('focus');
@@ -1283,18 +1307,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number, sku_code: data1.wms_code}).then(function(data){
                   if (data.message) {
                     if (data.data == "") {
-                      if (vm.permissions.dispatch_qc_check && vm.model_data.returnable_serials.length > 0) {
-                        var qc_serial_check = true;
-                        for (let i = 0; i < vm.model_data.returnable_serials.length; i++) {
-                          if(vm.model_data.returnable_serials[i].toUpperCase() == data1.imei_number.toUpperCase()) {
-                            qc_serial_check = false
-                            vm.receive_qcitems(vm, data1, index);
+                      if (vm.permissions.dispatch_qc_check) {
+                        if (vm.model_data.returnable_serials.length == 0){
+                          vm.receive_qcitems(vm, data1, index);
+                        } else {
+                          var qc_serial_check = true;
+                          for (let i = 0; i < vm.model_data.returnable_serials.length; i++) {
+                            if(vm.model_data.returnable_serials[i].toUpperCase() == data1.imei_number.toUpperCase()) {
+                              qc_serial_check = false;
+                              if (vm.selected_order_type == 'Stock Transfer'){
+                                vm.qc_add_receive_qty(data1, 'pass', index)
+                              } else {
+                                vm.receive_qcitems(vm, data1, index);
+                              }
+                            }
                           }
-                        }
-                        if(qc_serial_check)
-                        {
-                          Service.showNoty("Please Verify your Serial Number ! ");
-                          data1.imei_number = "";
+                          if(qc_serial_check) {
+                            Service.showNoty("Please Verify your Serial Number ! ");
+                            data1.imei_number = "";
+                          }
                         }
                       } else {
                         if(vm.po_qc) {
@@ -1767,7 +1798,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       fb.exists(data).then(function(po){
 
         console.log(po);
-        if(!po.status) {
+        if(!po.status || vm.permissions.dispatch_qc_check) {
           fb.push(data);
         } else {
           fb.poData = po.data;

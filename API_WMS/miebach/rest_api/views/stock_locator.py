@@ -306,7 +306,6 @@ def get_stock_summary_size_excel(filter_params, temp_data, headers, user, reques
                 stock_detail_dict[obj['sku__sku_class']].update({obj['sku__sku_size']: [obj['total_sum']]})
         else:
             stock_detail_dict.update({obj['sku__sku_class']: {obj['sku__sku_size']: [obj['total_sum']]}})
-
     all_sizes_obj = SizeMaster.objects.filter(user=user.id)
     all_size_names = list(all_sizes_obj.values_list('size_name', flat=True))
     all_size_names.append('DEFAULT')
@@ -405,7 +404,6 @@ def get_stock_counts(quantity, single_sku):
         stock_count.append(
             {'available': available, 'name': single_data['name'], 'transit': trans_quantity, 'reserved': reserved})
     return stock_count
-
 
 @fn_timer
 def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
@@ -1754,53 +1752,74 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
         path = 'static/excel_files/' + str(user.id) + '.Stock_Summary_Serials.xlsx'
         if not os.path.exists('static/excel_files/'):
             os.makedirs('static/excel_files/')
+        user_dict ={}
+        users_list = []
+        user_dict['user_id'] = user.id
+        user_dict['user__username'] = user.username
+        users_list.append(user_dict)
+        if request.POST.get('datatable','') == 'SerialNumberSKU':
+            sister_warehouses = get_sister_warehouse(user)
+            sister_warehouse_list = []
+            sister_warehouses = sister_warehouses.values('user_id','user__username')
+            sister_warehouse_list = list(sister_warehouses)
+            sister_warehouse_list.insert(0,user_dict)
+            users_list = sister_warehouse_list
         workbook = xlsxwriter.Workbook(path)
-        worksheet = workbook.add_worksheet("Stock Serials")
-        bold = workbook.add_format({'bold': True})
-        exc_headers = ['SKU Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Serial Number', 'Status',
-                       'Reason']
-        for n, header in enumerate(exc_headers):
-            worksheet.write(0, n, header, bold)
-        dict_list = ['sku__sku_code', 'sku__sku_desc',
-                     'sku__sku_brand', 'sku__sku_category',
-                     'imei_number']
+        for user_obj in users_list :
+            worksheet = workbook.add_worksheet(user_obj['user__username'])
+            bold = workbook.add_format({'bold': True})
+            exc_headers = ['SKU Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Serial Number', 'Status',
+                           'Reason']
+            for n, header in enumerate(exc_headers):
+                worksheet.write(0, n, header, bold)
+            dict_list = ['sku__sku_code', 'sku__sku_desc',
+                         'sku__sku_brand', 'sku__sku_category',
+                         'status', 'imei_number']
 
-        filter_params = get_filtered_params(filters, dict_list)
-        dispatched_imeis = OrderIMEIMapping.objects.filter(status=1, order__user=user.id, po_imei__isnull=False).values_list('po_imei_id',
-                                                                                                      flat=True)
-        damaged_returns = dict(ReturnsIMEIMapping.objects.filter(status='damaged', order_imei__order__user=user.id). \
-                               values_list('order_imei__po_imei__imei_number', 'reason'))
-        qc_damaged = dict(QCSerialMapping.objects.filter(serial_number__purchase_order__open_po__sku__user=user.id,
-                                                         status='rejected').values_list('serial_number__imei_number',
-                                                                                        'reason'))
-        qc_damaged.update(damaged_returns)
-        if search_term:
-            imei_data = POIMEIMapping.objects.filter(Q(sku__sku_code__icontains=search_term) |
-                                                     Q(sku__sku_desc__icontains=search_term) |
-                                                     Q(sku__sku_brand__icontains=search_term) |
-                                                     Q(sku__sku_category__icontains=search_term),
-                                                     status=1, sku__user=user.id,
-                                                     **filter_params). \
-                exclude(id__in=dispatched_imeis).values_list(*dict_list)
-        else:
-            imei_data = POIMEIMapping.objects.filter(status=1, sku__user=user.id,
-                                                     **filter_params). \
-                exclude(id__in=dispatched_imeis).values_list(*dict_list)
-        row = 1
-        for imei in imei_data:
-            col_count = 0
-            for col, data in enumerate(imei):
-                worksheet.write(row, col_count, data)
+            filter_params = get_filtered_params(filters, dict_list)
+            dispatched_imeis = OrderIMEIMapping.objects.filter(status=1, order__user=user_obj['user_id'], po_imei__isnull=False).values_list('po_imei_id', flat=True)
+            damaged_returns = dict(ReturnsIMEIMapping.objects.filter(status='damaged', order_imei__order__user=user_obj['user_id']). \
+                                   values_list('order_imei__po_imei__imei_number', 'reason'))
+            qc_damaged = dict(QCSerialMapping.objects.filter(serial_number__purchase_order__open_po__sku__user=user_obj['user_id'],
+                                                             status='rejected').values_list('serial_number__imei_number',
+                                                                                            'reason'))
+            qc_damaged.update(damaged_returns)
+            accepted_imeis = list(POIMEIMapping.objects.filter(status=1, sku__user=user_obj['user_id'],
+                                                         **filter_params).exclude(id__in=dispatched_imeis).values_list('id', flat=True))
+            po_rejected_imeis = list(QCSerialMapping.objects.filter(serial_number__purchase_order__open_po__sku__user=user_obj['user_id'],
+                                                             status='rejected').values_list('serial_number_id', flat=True))
+            picklist_rejected_imeis = list(DispatchIMEIChecklist.objects.filter(final_status=0, po_imei_num__sku__user=user_obj['user_id'],
+                                                             qc_type='sales_order').values_list('po_imei_num_id', flat=True).distinct())
+            common_list = accepted_imeis + po_rejected_imeis + picklist_rejected_imeis
+            filter_params['id__in'] = common_list
+            if search_term:
+                imei_data = POIMEIMapping.objects.filter(Q(sku__sku_code__icontains=search_term) |
+                                                         Q(sku__sku_desc__icontains=search_term) |
+                                                         Q(sku__sku_brand__icontains=search_term) |
+                                                         Q(sku__sku_category__icontains=search_term),
+                                                         sku__user=user_obj['user_id'],
+                                                         **filter_params). \
+                    exclude(id__in=dispatched_imeis).values_list(*dict_list)
+            else:
+                imei_data = POIMEIMapping.objects.filter(sku__user=user_obj['user_id'],
+                                                         **filter_params). \
+                    exclude(id__in=dispatched_imeis).values_list(*dict_list)
+            row = 1
+            for imei in imei_data:
+                col_count = 0
+                for col, data in enumerate(imei):
+                    if col == 4: continue
+                    worksheet.write(row, col_count, data)
+                    col_count += 1
+                imei_status = 'Accepted'
+                reason = ''
+                if imei[4] != 1:
+                    imei_status = 'Rejected'
+                    reason = qc_damaged.get(imei[-1], '')
+                worksheet.write(row, col_count, imei_status)
                 col_count += 1
-            imei_status = 'Accepted'
-            reason = ''
-            if imei[-1] in qc_damaged:
-                imei_status = 'Damaged'
-                reason = qc_damaged.get(imei[-1], '')
-            worksheet.write(row, col_count, imei_status)
-            col_count += 1
-            worksheet.write(row, col_count, reason)
-            row += 1
+                worksheet.write(row, col_count, reason)
+                row += 1
 
         workbook.close()
     except Exception as e:

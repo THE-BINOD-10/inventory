@@ -139,6 +139,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     var table_headers_dict = vm.g_data.tb_headers[vm.g_data.view]
     vm.dtColumns = vm.service.build_colums2(table_headers_dict)
+    if (vm.permissions.dispatch_qc_check) {
+      for (var i = 0; i < vm.dtColumns.length; i++) {
+        if (vm.dtColumns[i].mData == 'Order ID'){
+          vm.dtColumns[i].sTitle = 'Main SR Number';
+        }
+      }
+    }
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
       .renderWith(function(data, type, full, meta) {
         if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {

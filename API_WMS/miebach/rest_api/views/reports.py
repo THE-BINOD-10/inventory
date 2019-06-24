@@ -710,11 +710,13 @@ def print_po_reports(request, user=''):
     data_dict = ''
     bill_no = ''
     bill_date = ''
+    sr_number = ''
     #po_data = []
     headers = (
     'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
     'UTGST(%)', 'Amount', 'Description')
     po_data = {headers: []}
+    oneassist_condition = get_misc_value('dispatch_qc_check', user.id)
     if po_id:
         results = PurchaseOrder.objects.filter(order_id=po_id, open_po__sku__user=user.id)
         if receipt_no:
@@ -836,6 +838,17 @@ def print_po_reports(request, user=''):
         w_address, company_address = get_purchase_company_address(user_profile)#user_profile.address
         data_dict = (('Order ID', order_id), ('Supplier ID', supplier_id),
                      ('Order Date', order_date), ('Supplier Name', name), ('GST NO', tin_number))
+    if results and oneassist_condition == 'true':
+        purchase_order = results[0]
+        customer_data = OrderMapping.objects.filter(mapping_id=purchase_order.id, mapping_type='PO')
+        if customer_data:
+            admin_user = get_admin(user)
+            interorder_data = IntermediateOrders.objects.filter(order_id=customer_data[0].order_id, user_id=admin_user.id)
+            if interorder_data:
+                inter_order_id  = interorder_data[0].interm_order_id
+                courtesy_sr_number = OrderFields.objects.filter(original_order_id = inter_order_id, user = admin_user.id, name = 'original_order_id')
+                if courtesy_sr_number:
+                    sr_number = courtesy_sr_number[0].value
     sku_list = po_data[po_data.keys()[0]]
     sku_slices = generate_grn_pagination(sku_list)
     table_headers = (
@@ -853,7 +866,7 @@ def print_po_reports(request, user=''):
                    'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,'overall_discount':overall_discount,
                    'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': total_tax,'net_amount':net_amount,
-                   'company_address': company_address})
+                   'company_address': company_address, 'sr_number': sr_number})
 
 
 @csrf_exempt

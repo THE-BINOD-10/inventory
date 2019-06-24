@@ -1815,7 +1815,7 @@ class OrderMapping(models.Model):
 
     class Meta:
         db_table = 'ORDER_MAPPING'
-
+        index_together = ('mapping_id', 'mapping_type')
 
 class Brands(models.Model):
     user = models.ForeignKey(User)

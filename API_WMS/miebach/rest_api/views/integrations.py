@@ -1083,7 +1083,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                 if not ean:
                     continue
                 try:
-                    ean = int(ean)
+                    ean = ean
                     new_ean_objs.append(EANNumbers(**{'ean_number': ean, 'sku_id': sku_master.id}))
                     ean_found = False
                     if exist_ean_list.get(ean, ''):
@@ -1116,9 +1116,12 @@ def update_skus(skus, user='', company_name=''):
             update_error_message(failed_status, 5020, error_message, '', field_key='warehouse')
         else:
             warehouse = skus['warehouse']
-            sister_whs = list(get_sister_warehouse(user).values_list('user__username', flat=True))
-            sister_whs.append(token_user.username)
-            if warehouse in sister_whs:
+            sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+            sister_whs1.append(token_user.username)
+            sister_whs = []
+            for sister_wh1 in sister_whs1:
+                sister_whs.append(str(sister_wh1).lower())
+            if warehouse.lower() in sister_whs:
                 user = User.objects.get(username=warehouse)
             else:
                 error_message = 'Invalid Warehouse Name'
@@ -1743,8 +1746,11 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
     insert_status = []
     final_data_dict = OrderedDict()
     token_user = user
-    sister_whs = list(get_sister_warehouse(user).values_list('user__username', flat=True))
-    sister_whs.append(token_user.username)
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    sister_whs1.append(token_user.username)
+    sister_whs = []
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
     try:
         seller_master_dict, valid_order, query_params = {}, {}, {}
         failed_status = OrderedDict()
@@ -1780,7 +1786,7 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                 update_error_message(failed_status, 5021, error_message, original_order_id)
             else:
                 warehouse = order['warehouse']
-                if warehouse in sister_whs:
+                if warehouse.lower() in sister_whs:
                     user = User.objects.get(username=warehouse)
                 else:
                     error_message = 'Invalid Warehouse Name'

@@ -7,6 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 var vm = this;
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
+    vm.warehouse_type = Session.user_profile.warehouse_type
     vm.selected = {};
     vm.selectAll = false;
     vm.bt_disable = true;
@@ -49,7 +50,6 @@ var vm = this;
 
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Order ID').withTitle('Order ID'),
-        DTColumnBuilder.newColumn('Loan Proposal ID').withTitle('Loan Proposal ID'),
         DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('SKU Desc').withTitle('SKU Desc'),
         DTColumnBuilder.newColumn('Product Quantity').withTitle('Product Quantity'),
@@ -60,7 +60,16 @@ var vm = this;
         DTColumnBuilder.newColumn('Status').withTitle('Status'),
         DTColumnBuilder.newColumn('Order Date').withTitle('Order Date')
     ];
-
+    if(vm.permissions.dispatch_qc_check) {
+      vm.dtColumns.splice(1, 0, DTColumnBuilder.newColumn('Loan Proposal ID').withTitle('Main SR Number'))
+    } else {
+      vm.dtColumns.splice(1, 0, DTColumnBuilder.newColumn('Loan Proposal ID').withTitle('Loan Proposal ID'))
+    }
+    if(vm.permissions.dispatch_qc_check && vm.warehouse_type == 'CENTRAL_ADMIN') {
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Alternative Sku').withTitle('Alt Sku Code'))
+    } else {
+      vm.dtColumns.pop(DTColumnBuilder.newColumn('Alternative Sku').withTitle('Alt Sku Code'))
+    }
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
       .renderWith(function(data, type, full, meta) {
       if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {

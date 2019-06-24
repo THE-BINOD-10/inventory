@@ -75,7 +75,7 @@ def save_image_file(image_file, data, user, extra_image='', saved_file_path='', 
 def get_sku_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['wms_code', 'ean_number', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone',
-           'creation_date', 'updation_date', 'relation_type', 'status']
+           'creation_date', 'updation_date', 'relation_type', 'status', 'mrp', 'hsn_code', 'product_type']
     order_data = SKU_MASTER_HEADERS.values()[col_num]
     search_params1, search_params2 = get_filtered_params_search(filters, lis)
     if 'status__icontains' in search_params2.keys():
@@ -151,7 +151,7 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
                         Q(sku_code__istartswith=search_term) | Q(wms_code__istartswith=search_term) | Q(
                             sku_desc__istartswith=search_term) | Q(sku_type__istartswith=search_term) | Q(
                             sku_category__istartswith=search_term) | Q(sku_class__istartswith=search_term) | Q(
-                            zone__zone__istartswith=search_term) | Q(color__istartswith=search_term) |
+                            zone__zone__istartswith=search_term) | Q(color__istartswith=search_term) | Q(product_type=search_term)|
                             Q(ean_number__istartswith), user=user.id,
                         **item).order_by(order_data)
                 except:
@@ -159,7 +159,8 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
                         Q(sku_code__istartswith=search_term) | Q(wms_code__istartswith=search_term) | Q(
                             sku_desc__istartswith=search_term) | Q(sku_type__istartswith=search_term) | Q(
                             sku_category__istartswith=search_term) | Q(sku_class__istartswith=search_term) | Q(
-                            zone__zone__istartswith=search_term) | Q(color__istartswith=search_term), user=user.id,
+                            zone__zone__istartswith=search_term) | Q(color__istartswith=search_term)
+                            | Q(product_type=search_term), user=user.id,
                         **item).order_by(order_data)
                 ids.extend(master_data2.values_list('id', flat=True))
 
@@ -169,6 +170,8 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
                             sku_desc__icontains=search_term) | Q(sku_type__icontains=search_term) | Q(
                             sku_category__icontains=search_term) | Q(sku_class__icontains=search_term) | Q(
                             zone__zone__icontains=search_term) | Q(color__icontains=search_term) |
+                            Q(mrp__icontains=search_term) | Q(hsn_code__icontains=search_term) |
+                            Q(product_type=search_term) |
                             Q(ean_number__icontains=search_term), user=user.id,
                         **item).exclude(id__in=ids).order_by(order_data)
                 except:
@@ -176,7 +179,9 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
                         Q(sku_code__icontains=search_term) | Q(wms_code__icontains=search_term) | Q(
                             sku_desc__icontains=search_term) | Q(sku_type__icontains=search_term) | Q(
                             sku_category__icontains=search_term) | Q(sku_class__icontains=search_term) | Q(
-                            zone__zone__icontains=search_term) | Q(color__icontains=search_term), user=user.id,
+                            zone__zone__icontains=search_term) | Q(color__icontains=search_term) |
+                            Q(mrp__icontains=search_term) | Q(hsn_code__icontains=search_term) |
+                            Q(product_type=search_term), user=user.id,
                         **item).exclude(id__in=ids).order_by(order_data)
                 ids.extend(master_data3.values_list('id', flat=True))
                 master_data.extend(list(master_data1))
@@ -226,7 +231,8 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
             (('WMS SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
              ('SKU Type', data.sku_type), ('SKU Category', data.sku_category), ('DT_RowClass', 'results'),
              ('Zone', zone), ('SKU Class', data.sku_class), ('Status', status), ('DT_RowAttr', {'data-id': data.id}),
-             ('Color', data.color), ('EAN Number',ean_number ), ('Combo Flag', combo_flag),
+             ('Color', data.color), ('EAN Number',ean_number ), ('Combo Flag', combo_flag),('MRP', data.mrp),
+             ('HSN Code', str(data.hsn_code)), ('Tax Type',data.product_type),
              ('Creation Date', creation_date),
              ('Updation Date', updation_date)))
         )
@@ -1035,6 +1041,7 @@ def update_sku(request, user=''):
         if not wms or not description:
             return HttpResponse('Missing Required Fields')
         data = get_or_none(SKUMaster, {'wms_code': wms, 'user': user.id})
+        youtube_update_flag = False
         image_file = request.FILES.get('files-0', '')
         if image_file:
             save_image_file(image_file, data, user)
@@ -1088,6 +1095,9 @@ def update_sku(request, user=''):
             elif key == 'price':
                 wms_code = request.POST.get('wms_code', '')
                 storehippo_sync_price_value(user, {'wms_code':wms_code, 'price':value})
+            elif key == 'youtube_url':
+                if data.youtube_url != request.POST.get('youtube_url', ''):
+                    youtube_update_flag = True
             if key in number_fields and not value:
                 value = 0
             elif key == 'block_options':
@@ -1115,6 +1125,23 @@ def update_sku(request, user=''):
         if sync_sku_switch == 'true':
             all_users = get_related_users(user.id)
             create_update_sku([data], all_users)
+        if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
+            wh_ids = get_related_users(user.id)
+            cust_ids = CustomerUserMapping.objects.filter(customer__user__in=wh_ids).values_list('user_id', flat=True)
+            notified_users = []
+            updated_fields = ''
+            notified_users.extend(wh_ids)
+            notified_users.extend(cust_ids)
+            notified_users = list(set(notified_users))
+            if youtube_update_flag and image_file:
+                updated_fields = 'Youtube Url, Image'
+            elif image_file:
+                updated_fields = 'Image'
+            elif youtube_update_flag:
+                updated_fields = 'Youtube Url'
+            if updated_fields:
+                contents = {"en": " %s - has been updated for SKU : %s" % (str(updated_fields), str(description))}
+                send_push_notification(contents, notified_users)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -1209,9 +1236,10 @@ def update_supplier_values(request, user=''):
         username = request.POST.get('username', '')
         login_created = request.POST.get('login_created', '')
         secondary_email_id = request.POST.get('secondary_email_id', '').split(',')
-        for mail in secondary_email_id:
-	    if validate_supplier_email(mail):
-		return HttpResponse('Enter correct Secondary Email ID')
+        if secondary_email_id[0]:
+            for mail in secondary_email_id:
+                if validate_supplier_email(mail):
+                    return HttpResponse('Enter correct Secondary Email ID')
         for key, value in request.POST.iteritems():
             if key not in data.__dict__.keys():
                 continue
@@ -1286,8 +1314,8 @@ def insert_supplier(request, user=''):
         sku_status = 0
         rep_email = filter_or_none(SupplierMaster, {'email_id': request.POST['email_id'], 'user': user.id})
         rep_phone = filter_or_none(SupplierMaster, {'phone_number': request.POST['phone_number'], 'user': user.id})
-        if rep_email and request.POST['email_id']:
-            return HttpResponse('Email already exists')
+        # if rep_email and request.POST['email_id']:
+        #     return HttpResponse('Email already exists')
         # if rep_phone and request.POST['phone_number']:
         #     return HttpResponse('Phone Number already exists')
         secondary_email_id = request.POST.get('secondary_email_id', '').split(',')
@@ -2484,7 +2512,8 @@ def insert_sku(request, user=''):
             sku_master = SKUMaster(**data_dict)
             sku_master.save()
             contents = {"en": "New SKU %s is created." % data_dict['sku_code']}
-            #send_push_notification(contents, notified_users)
+            if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
+                send_push_notification(contents, notified_users)
             #update_sku_attributes(sku_master, request)
             image_file = request.FILES.get('files-0', '')
             if image_file:

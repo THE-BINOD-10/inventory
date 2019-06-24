@@ -2,18 +2,18 @@
   <div class='layout-header'>
     <div class="pull-left" ng-include="'views/common/title.html'"></div>
   </div>
-  <div class="layout-body">
+  <div class="layout-body" ng-init="ViewShipmentCtrl=false; GateoutCtrl=false; StockTransferShipmentCtrl=false">
     <tabset class="box-tab">
       <tab heading="Create Shipment">
         <div ng-include="'views/outbound/shipment_info/create_shipment.html'"></div>
       </tab>
-      <tab heading="View Shipment" ng-click="vm.awb_marketplace_filter_data()">
+      <tab heading="View Shipment" ng-click="vm.awb_marketplace_filter_data(); ViewShipmentCtrl=true">
         <div ng-include="'views/outbound/shipment_info/view_shipment.html'"></div>
       </tab>
-      <tab heading="Gateout Shipment">
+      <tab heading="Gateout Shipment" ng-click="GateoutCtrl=true">
         <div ng-include="'views/outbound/shipment_info/gateout.html'"></div>
       </tab>
-      <tab heading="Stock Transfer Shipment">
+      <tab heading="Stock Transfer Shipment" ng-click="StockTransferShipmentCtrl=true">
         <div ng-include="'views/outbound/shipment_info/stock_transfer_shipment.html'"></div>
       </tab>
     </tabset>

@@ -9404,12 +9404,17 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
             sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, supplier_id=supplier_id, sku__user=user.id)
         sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
         sup_markdown = SupplierMaster.objects.get(id=supplier_id)
-        data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,
+        data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,'weight':'',
                 'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
         if sku_master.block_options:
             data['sku_block'] = sku_master.block_options
         else:
             data['sku_block'] = ''
+        skuattributes = SKUAttributes.objects.filter(sku_id=sku_master.id, attribute_name = 'weight' )
+        weight = ''
+        if skuattributes.exists():
+            weight = skuattributes[0].attribute_value
+        data['weight'] = weight
         if sku_supplier:
             mrp_value = sku_master.mrp
             if sku_supplier[0].costing_type == 'Margin Based':

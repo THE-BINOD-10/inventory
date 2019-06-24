@@ -12678,7 +12678,6 @@ def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, ord
         em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by(order_data)
     cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     cm_ids = cum_obj.values_list('customer_id', flat=True)
-    em_qss = EnquiryMaster.objects.filter(customer_id=cm_ids,**search_params)
     orderprefix_map = {}
     user_profile = UserProfile.objects.get(user=user.id)
     admin_user = get_priceband_admin_user(user)
@@ -12688,8 +12687,6 @@ def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, ord
     else:
         all_wh_dists = all_wh_dists_obj.values_list('user_id', flat=True)
     orderprefix_map = dict(all_wh_dists_obj.values_list('user_id', 'user__userprofile__order_prefix'))
-    if em_qss.exists():
-        corporatae_name = em_qss[0].corporate_name
     filter_dict = {'customer_id__in': cm_ids}
     generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
     emiza_order_ids = []

@@ -5,9 +5,8 @@ function ClassificationPOP($scope, $http, $state, $timeout, Session, colFilters,
   var vm = this;
   vm.state_data = "";
   vm.service = Service;
-  vm.input_types = ['Input', 'Number', 'Textarea'];
 
-  vm.empty_data = {'id': '', 'attribute_name': '', 'attribute_type': 'Input'}
+  vm.empty_data = {'id': '', 'classifcation': '', 'units_per_day': ''}
 
   vm.pop_data = {};
   vm.status_data = "";

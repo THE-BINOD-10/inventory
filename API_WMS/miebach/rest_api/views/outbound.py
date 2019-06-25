@@ -9502,7 +9502,7 @@ def get_only_date(request, date):
 
 
 def get_level_based_customer_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['generic_order_id','quantity','Emiza_order_ids', 'corporate_name', 'Delivered Qty', 'Pending Qty', 'Order Value', 'creation_date', 'Receive Status', 'po_number', 'schedule_date', 'remarks']
+    lis = ['generic_order_id','quantity','Emiza_order_ids', 'corporate_name', 'Delivered Qty', 'Pending Qty', 'Order Value', 'creation_date', 'orderdetail__status', 'po_number', 'schedule_date', 'remarks']
     search_params = get_filtered_params(filters, lis)
     corporatae_name = ''
     order_data = lis[col_num]
@@ -9542,14 +9542,20 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
         if em_qs.exists():
             corporatae_name = em_qs[0].corporate_name
         filter_dict = {'customer_id__in': cm_ids}
-
     generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
-    #status_dict = {'open': 1, 'closed': 0}
-
     if  order_data :
         generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict).order_by(order_data)
+
     if search_term:
-        generic_orders = GenericOrderDetailMapping.objects.filter(Q(generic_order_id__icontains=search_term) | Q(orderdetail__sku__sku_code__icontains=search_term) | Q(creation_date__regex=search_term) | Q(po_number__icontains=search_term) | Q(orderdetail__original_order_id__icontains=search_term), **filter_dict).order_by(order_data)
+        if search_term == 'open':
+            generic_orders = GenericOrderDetailMapping.objects.filter(Q(orderdetail__status__icontains= '1'), **filter_dict).order_by(order_data)
+        elif search_term == 'closed':
+            generic_orders = GenericOrderDetailMapping.objects.filter(Q(orderdetail__status__icontains= '0'), **filter_dict).order_by(order_data)
+        elif search_term in corporatae_name:
+            em_qs = EnquiryMaster.objects.filter(Q(corporate_name__icontains= search_term), **filter_dict).order_by(order_data)
+        elif search_term:
+            generic_orders = GenericOrderDetailMapping.objects.filter(Q(generic_order_id__icontains=search_term) | Q(orderdetail__sku__sku_code__icontains=search_term) | Q(creation_date__regex=search_term) | Q(po_number__icontains=search_term) | Q(orderdetail__original_order_id__icontains=search_term) | Q(orderdetail__remarks__icontains=search_term) | Q(orderdetail__status__icontains=search_term), **filter_dict).order_by(order_data)
+
     temp_data['recordsTotal'] = len(generic_orders)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
@@ -9598,8 +9604,6 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
 
         record['Emiza_ids'] = ''
         emiza_order_ids = []
-
-
         if record['order_id']:
             related_order_ids = generic_orders.filter(generic_order_id=record['order_id']).values_list(
             'orderdetail__user','orderdetail__order_id','schedule_date')
@@ -9642,6 +9646,7 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
                         other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
                         if other_charges:
                             record['total_inv_amt'] += round(other_charges, 2)
+
         temp_data['aaData'].append(OrderedDict(
             (('Order ID', record['order_id']), ('Ordered Qty', record['total_quantity']),('Emiza_order_ids', record['Emiza_ids']),('corporate_name', corporatae_name), ('po_number', record['po_number']),('remarks', remarks),('schedule_date', record['expected_date']),
              ('Delivered Qty',record['picked_quantity']), ('Pending Qty',record['total_quantity']-record['picked_quantity']), ('Order Value', record['total_inv_amt']),('Order Date', record['date']),('Receive Status',record['status']))))
@@ -12640,12 +12645,12 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
                  customer_id=cm_id, **search_params).order_by(order_data)
     temp_data['recordsTotal'] = len(em_qs)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    em_vals = em_qs.values_list('enquiry_id', 'extend_status', 'extend_date', 'corporate_name').distinct()
+    em_vals = em_qs.values_list('enquiry_id', 'extend_status', 'extend_date', 'corporate_name','remarks').distinct()
     total_qty = dict(em_qs.values_list('enquiry_id').distinct().annotate(quantity=Sum('enquiredsku__quantity')))
     total_inv_amt = dict(
         em_qs.values_list('enquiry_id').distinct().annotate(inv_amt=Sum('enquiredsku__invoice_amount')))
-    for enq_id, ext_status, ext_date, corp_name in em_vals[start_index:stop_index]:
-        enq_id, ext_status, ext_date, corp_name = int(enq_id), ext_status, ext_date, corp_name
+    for enq_id, ext_status, ext_date, corp_name, remarks in em_vals[start_index:stop_index]:
+        enq_id, ext_status, ext_date, corp_name, remarks = int(enq_id), ext_status, ext_date, corp_name, remarks
         if ext_date:
             days_left_obj = ext_date - datetime.datetime.today().date()
             days_left = days_left_obj.days
@@ -12670,10 +12675,12 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
         else:
             ord_tuple = (('ID', enq_id), ('Enquiry ID', uniq_enq_id),('Date',get_only_date(request, em_qs.filter(enquiry_id=enq_id)[0].creation_date)),
             ('Quantity',total_qty[enq_id]), ('Amount',each_total_inv_amt), ('Days Left', days_left),('Corporate Name',corp_name),
-            ('Extend Date', input_label + input_div), ('Move to Cart', button))
+            ('Remarks', remarks),('Extend Date', input_label + input_div), ('Move to Cart', button))
         temp_data['aaData'].append(OrderedDict(ord_tuple))
         temp_data['recordsTotal'] = em_vals.count()
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+
 
 
 def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -12689,23 +12696,41 @@ def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, ord
             Q(status__icontains=search_term)).order_by(order_data)
     else:
         em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by(order_data)
+    cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
+    cm_ids = cum_obj.values_list('customer_id', flat=True)
+    orderprefix_map = {}
+    user_profile = UserProfile.objects.get(user=user.id)
+    admin_user = get_priceband_admin_user(user)
+    all_wh_dists_obj = UserGroups.objects.filter(admin_user=admin_user)
+    if request.user.userprofile.zone:
+        all_wh_dists = all_wh_dists_obj.filter(user__userprofile__zone=request.user.userprofile.zone).values_list('user_id', flat=True)
+    else:
+        all_wh_dists = all_wh_dists_obj.values_list('user_id', flat=True)
+    orderprefix_map = dict(all_wh_dists_obj.values_list('user_id', 'user__userprofile__order_prefix'))
+    filter_dict = {'customer_id__in': cm_ids}
+    generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
+    emiza_order_ids = []
     for enquiry in em_qs[start_index:stop_index]:
-        customization_type = '  Price and Product Customization'
+        related_order_ids = generic_orders.filter(po_number=enquiry.po_number,client_name=enquiry.customer_name,orderdetail__sku__sku_code=enquiry.sku.sku_code).values_list(
+        'po_number','client_name','orderdetail__sku__sku_code')
+        for usr , org_id in related_order_ids:
+            if usr in orderprefix_map:
+                emiza_id = orderprefix_map[usr]+'MN'+str(org_id)
+                emiza_order_ids.append(emiza_id)
+        Emiza_ids = list(set(emiza_order_ids))
+        res_map = {'order_id': enquiry.enquiry_id, 'customer_name': enquiry.customer_name,
+                   'date': get_only_date(request, enquiry.creation_date),
+                   'sku_code': enquiry.sku.sku_code, 'style_name': enquiry.sku.sku_class}
         if enquiry.customization_type:
             if enquiry.customization_type == 'price_custom':
                 customization_type = 'Price Customization'
-        cm_qs = CustomerUserMapping.objects.filter(user=enquiry.user)
-        if cm_qs:
-            cm_id = cm_qs[0].customer_id
-            uniq_enq_id = str(cm_id) + str(enquiry.enquiry_id)
-            temp_data['aaData'].append(OrderedDict(
-                (('ID', float(enquiry.enquiry_id)), ('Enquiry ID', uniq_enq_id),
-                 ('Enquiry Date', get_only_date(request, enquiry.creation_date)),
-                 ('Customer Name', enquiry.customer_name), ('Style Name', enquiry.sku.sku_class),
-                 ('Customization', customization_type),('SKU Code', enquiry.sku.sku_code),
-                 ('Status', enquiry.status))))
-            temp_data['recordsTotal'] = em_qs.count()
-            temp_data['recordsFiltered'] = temp_data['recordsTotal']
+            else:
+                customization_type = '  Price and Product Customization'
+        temp_data['aaData'].append(OrderedDict(
+            (('Enquiry ID', float(enquiry.enquiry_id)),('Emiza Order Id', Emiza_ids), ('Enquiry Date', get_only_date(request, enquiry.creation_date)),
+              ('Customer Name', enquiry.customer_name), ('Style Name', enquiry.sku.sku_class), ('Customization', customization_type),('SKU Code', enquiry.sku.sku_code), ('Status', enquiry.status))))
+        temp_data['recordsTotal'] = em_qs.count()
+        temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
 @get_admin_user
 def get_customer_enquiry_detail(request, user=''):

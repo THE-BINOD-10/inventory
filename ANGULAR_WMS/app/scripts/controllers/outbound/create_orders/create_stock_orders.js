@@ -1,12 +1,12 @@
 'use strict';
 
-function CreateStockOrders($scope, $http, $state, Session, colFilters, Service) {
+function CreateStockOrders($scope, $http, $q, $state, Session, colFilters, Service) {
 
   $scope.msg = "start";
   var vm = this;
   vm.service = Service;
   vm.model_data = {}
-  var empty_data = {data: [{wms_code: "", order_quantity: "", price: ""}], warehouse_name: ""};
+  var empty_data = {data: [{wms_code: "", order_quantity: "", price: "", capacity:0, tax_type: ""}], warehouse_name: ""};
   angular.copy(empty_data, vm.model_data);
   vm.isLast = isLast;
     function isLast(check) {
@@ -80,8 +80,72 @@ vm.changeUnitPrice = function(data){
       colFilters.showNoty("Fill Required Fields");
     }
   }
+
+  vm.update_availabe_stock = function(sku_data) {
+
+     var send = {sku_code: sku_data.sku_id, location: ""}
+     vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
+      sku_data["capacity"] = 0
+      if(data.message) {
+
+        if(data.data.available_quantity) {
+
+          sku_data["capacity"] = data.data.available_quantity;
+        }
+      }
+    });
+  }
+
+  vm.get_sku_data = function(record, item, index) {
+
+    record.sku_id = item.wms_code;
+    angular.copy(empty_data.data[0], record);
+    record.sku_id = item.wms_code;
+    record["description"] = item.sku_desc;
+
+    vm.get_customer_sku_prices(item.wms_code).then(function(data){
+      if(data.length > 0) {
+        data = data[0]
+        // record["price"] = data.mrp;
+          if(!(record.order_quantity)) {
+            record.order_quantity = 1
+          }
+          if(!(record.price)) {
+            record.price = data.mrp;
+          }
+          if(data.igst_tax){
+            record.igst = data.igst_tax;
+          }
+          if(data.sgst_tax){
+            record.sgst = data.sgst_tax;
+          }
+          if(data.cgst_tax){
+            record.cgst = data.cgst_tax;
+          }
+
+        record.invoice_amount = Number(record.price)*Number(record.quantity);
+        vm.update_availabe_stock(record)
+        vm.change_brand(data)
+
+      }
+    })
+  }
+
+  vm.get_customer_sku_prices = function(sku) {
+
+    var d = $q.defer();
+    var data = {sku_codes: sku}
+    vm.service.apiCall("get_customer_sku_prices/", "POST", data).then(function(data) {
+
+      if(data.message) {
+        d.resolve(data.data);
+      }
+    });
+    return d.promise;
+  }
+
 }
 
 angular
   .module('urbanApp')
-  .controller('CreateStockOrders', ['$scope', '$http', '$state', 'Session', 'colFilters', 'Service', CreateStockOrders]);
+  .controller('CreateStockOrders', ['$scope', '$http', '$q', '$state', 'Session', 'colFilters', 'Service', CreateStockOrders]);

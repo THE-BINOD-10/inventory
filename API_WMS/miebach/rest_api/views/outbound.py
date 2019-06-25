@@ -480,9 +480,14 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
 def get_customer_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     sno = 0
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    gateout = request.POST.get('gateout', '')
+    gateout = request.POST.get('gateout', 0)
+    filter_dict = {'order__sku_id__in': sku_master_ids, 'order_shipment__user': user.id}
+    exclude_dict = {'shipmenttracking__ship_status__in': ['Delivered', 'Out for Delivery']}
     if gateout:
         gateout = int(gateout)
+        if gateout:
+            filter_dict['shipmenttracking__ship_status__in'] = ['Delivered', 'Out for Delivery']
+            del exclude_dict['shipmenttracking__ship_status__in']
     central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
     one_assist_qc_check = get_misc_value('dispatch_qc_check', user.id)
     if central_order_reassigning == 'true' and one_assist_qc_check != 'true':
@@ -492,8 +497,8 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
         lis = ['order_shipment__shipment_number', 'order__customer_id', 'order__customer_name', 'order_shipment__manifest_number', 'ship_quantity',
                 'order_shipment__shipment_number']
     all_data = OrderedDict()
-    shipment_objs = ShipmentInfo.objects.filter(order__sku_id__in=sku_master_ids, order_shipment__user=user.id).\
-                                        exclude(shipmenttracking__ship_status__in=['Delivered', 'Out for Delivery'])
+    shipment_objs = ShipmentInfo.objects.filter(**filter_dict).\
+                                        exclude(**exclude_dict)
     if search_term:
         results = shipment_objs.\
             filter(Q(order_shipment__shipment_number__icontains=search_term) | Q(order_shipment__manifest_number__icontains=search_term) |
@@ -6267,38 +6272,46 @@ def shipment_info_data(request, user=''):
                 if not (status != 'Delivered' and status != 'Out for Delivery'):
                     continue
         interm_obj = IntermediateOrders.objects.filter(order_id=str(orders.order.id))
-        if interm_obj :
-            district_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='district')
-            if district_obj:
-                district = district_obj[0].value
-                if not district :
-                    district = ''
-            loan_proposal_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='loan_proposal_id')
-            if loan_proposal_obj :
-                loan_proposal_id = loan_proposal_obj[0].value
-                if not loan_proposal_id :
-                    loan_proposal_id = 0
-            model_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='model')
-            if model_obj :
-                model = model_obj[0].value
-                if not model :
-                    model = ''
-            mobile_no_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='mobile_no')
-            if mobile_no_obj :
-                mobile_no = mobile_no_obj[0].value
-                if not mobile_no :
-                    mobile_no = 0
-            alternative_mobile_no_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='alternative_mobile_no')
-            if alternative_mobile_no_obj :
-                alternative_mobile_no = alternative_mobile_no_obj[0].value
-                if not alternative_mobile_no :
-                    alternative_mobile_no = 0
+        if interm_obj:
+            order_fields_dict = dict(OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id),
+                                       order_type='intermediate_order', user=str(interm_obj[0].user.id)).\
+                                       values_list('name', 'value'))
+            district = order_fields_dict.get('district', '')
+            loan_proposal_id = order_fields_dict.get('loan_proposal_id', '')
+            mobile_no = order_fields_dict.get('mobile_no', '')
+            alternative_mobile_no = order_fields_dict.get('alternative_mobile_no', '')
+            model = order_fields_dict.get('model', '')
+            # district_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='district')
+            # if district_obj:
+            #     district = district_obj[0].value
+            #     if not district :
+            #         district = ''
+            # loan_proposal_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='loan_proposal_id')
+            # if loan_proposal_obj :
+            #     loan_proposal_id = loan_proposal_obj[0].value
+            #     if not loan_proposal_id :
+            #         loan_proposal_id = 0
+            # model_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='model')
+            # if model_obj :
+            #     model = model_obj[0].value
+            #     if not model :
+            #         model = ''
+            # mobile_no_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='mobile_no')
+            # if mobile_no_obj :
+            #     mobile_no = mobile_no_obj[0].value
+            #     if not mobile_no :
+            #         mobile_no = 0
+            # alternative_mobile_no_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='alternative_mobile_no')
+            # if alternative_mobile_no_obj :
+            #     alternative_mobile_no = alternative_mobile_no_obj[0].value
+            #     if not alternative_mobile_no :
+            #         alternative_mobile_no = 0
         serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =orders.order.sku.sku_code,order_id= orders.order.id,po_imei__sku__user=user.id)
         if serial_number :
             serial_number = serial_number[0].po_imei.imei_number
         else:
             serial_number = 0
-        result =''
+        result = {}
         admin_user = get_admin(user)
         if admin_user.get_username().lower() == '72Networks'.lower() :
             try:
@@ -6306,41 +6319,21 @@ def shipment_info_data(request, user=''):
                 firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
                 result = firebase.get('/OrderDetails/'+orders.order.original_order_id, None)
             except Exception as e:
-                result = 0
+                result = {}
                 import traceback
                 log.debug(traceback.format_exc())
                 log.info('Firebase query  failed for %s and params are %s and error statement is %s' % (
                 str(user.username), str(request.POST.dict()), str(e)))
-        if  result :
-            try:
-                signed_invoice_copy = result['signed_invoice_copy']
-            except:
-                signed_invoice_copy = ''
-            try :
-                id_type = result['id_type']
-            except:
-                id_type = ''
-            try :
-                id_card = result['id_card']
-            except :
-                id_card = ''
-            try :
-                id_proof_number = result['id_proof_number']
-            except :
-                id_proof_number = ''
-            try :
-                status = result['pod_status']
-                if status :
-                    status = 'Delivered'
-                else:
-                    status = 'In Transit'
-            except:
-                status = 'In Transit'
-        else:
-            signed_invoice_copy =''
-            id_type =''
-            id_card =''
-            id_proof_number = ''
+        if not result:
+            result = {}
+        signed_invoice_copy = result.get('signed_invoice_copy', '')
+        id_type = result.get('id_type', '')
+        id_card = result.get('id_card', '')
+        id_proof_number = result.get('id_proof_number', '')
+        pod_status = result.get('pod_status', '')
+        status = 'In Transit'
+        if pod_status:
+            status = 'Delivered'
         ship_status = ship_status[ship_status.index(status):]
         data.append({'id': orders.id, 'order_id': orders.order.original_order_id, 'customer_name':orders.order.customer_name,'sku_code': orders.order.sku.sku_code,
                      'ship_quantity': orders.shipping_quantity,

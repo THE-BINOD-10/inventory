@@ -2819,9 +2819,11 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
         order = None
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     if invoice_no_gen:
-        seller_order_summary = SellerOrderSummary.objects.filter(Q(order__id__in=order_ids) |
-                                                                 Q(seller_order__order__user=user.id,
-                                                                   seller_order__order_id__in=order_ids))
+        if user.userprofile.user_type == 'marketplace_user':
+            seller_order_summary = SellerOrderSummary.objects.filter(seller_order__order__user=user.id,
+                                                                   seller_order__order_id__in=order_ids)
+        else:
+            seller_order_summary = SellerOrderSummary.objects.filter(Q(order__id__in=order_ids))
         if seller_order_summary and invoice_no_gen[0].creation_date < seller_order_summary[0].creation_date:
             check_dict = {}
             prefix_key = 'order__'

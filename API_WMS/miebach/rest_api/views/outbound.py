@@ -12653,20 +12653,18 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
 
 def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     lis = ['enquiry_id', 'creation_date', 'customer_name', 'sku__sku_class', 'customization_type', 'sku__sku_code', 'status']
-    # search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    # response_data = {'data': []}
     if search_term:
-        em_qs = ManualEnquiry.objects.filter(Q(enquiry_id__icontains=search_term)| Q(creation_date__regex=search_term)| Q(customer_name__icontains=search_term)
-            | Q(sku__sku_class__icontains=search_term) | Q(customization_type__icontains=search_term) |Q(sku__sku_code__icontains=search_term) |Q(status__icontains=search_term)).order_by(order_data)
+        em_qs = ManualEnquiry.objects.filter(
+            Q(enquiry_id__icontains=search_term) | Q(creation_date__regex=search_term) |
+            Q(customer_name__icontains=search_term) | Q(sku__sku_class__icontains=search_term) |
+            Q(customization_type__icontains=search_term) | Q(sku__sku_code__icontains=search_term) |
+            Q(status__icontains=search_term)).order_by(order_data)
     else:
         em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by(order_data)
     for enquiry in em_qs[start_index:stop_index]:
-        # res_map = {'order_id': enquiry.enquiry_id, 'customer_name': enquiry.customer_name,
-        #            'date': get_only_date(request, enquiry.creation_date),
-        #            'sku_code': enquiry.sku.sku_code, 'style_name': enquiry.sku.sku_class}
         customization_type = '  Price and Product Customization'
         if enquiry.customization_type:
             if enquiry.customization_type == 'price_custom':

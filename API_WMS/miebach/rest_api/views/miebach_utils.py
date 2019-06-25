@@ -5947,8 +5947,8 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         search_parameters['enquiry__customer_id__in'] = res_ids
     if 'enquiry_status' in search_params:
         search_parameters['enquiry__extend_status__icontains'] = search_params['enquiry_status']
-    if 'enquiry_number' in search_params:
-        search_parameters['enquiry__enquiry_id__contains'] = search_params['enquiry_number']
+    # if 'enquiry_number' in search_params:
+    #     search_parameters['enquiry__enquiry_id__contains'] = search_params['enquiry_number']
     if 'sku_code' in search_params:
         search_parameters['sku__sku_code'] = search_params['sku_code']
     if 'warehouse_level' in search_params:
@@ -5976,7 +5976,10 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
     totals_map = {}
     for en_obj in enquired_sku_qs:
         em_obj = en_obj.enquiry
-        enq_id = int(em_obj.enquiry_id)
+        uniq_enq_id = str(em_obj.customer_id) + str(em_obj.enquiry_id)
+        if 'enquiry_number' in search_params:
+            if search_params['enquiry_number'] not in uniq_enq_id:
+                continue
         extend_status = em_obj.extend_status
         if em_obj.extend_date:
             days_left_obj = em_obj.extend_date - datetime.datetime.today().date()
@@ -6009,7 +6012,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
                                 ('SKU Code', sku_code),
                                 ('SKU Quantity', quantity),
                                 ('Warehouse Level',warehouse_level),
-                                ('Enquiry No', enq_id),
+                                ('Enquiry No', uniq_enq_id),
                                 ('Level', warehouse_level),
                                 ('Warehouse', warehouse),
                                 ('Enquiry Aging', days_left),

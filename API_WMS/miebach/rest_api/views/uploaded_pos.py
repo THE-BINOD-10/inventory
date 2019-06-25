@@ -132,6 +132,7 @@ def get_uploaded_pos_by_customers(start_index, stop_index, temp_data, search_ter
         customers = CustomerUserMapping.objects.filter(customer__user__in=all_wh_dists).values_list('user_id', flat=True)
         if customers:
             filter_params['uploaded_user_id__in'] = customers
+    filter_params['generic_order_id__gt'] = 0
     if search_term:
         results = OrderUploads.objects.filter(Q(uploaded_user__first_name__icontains=search_term) |
                                               Q(po_number__icontains=search_term) |

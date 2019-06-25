@@ -1179,10 +1179,9 @@ def get_mp_inventory(request):
     user = request.user
     data = []
     industry_type = user.userprofile.industry_type
-    filter_params = {'user': user.id}
+    filter_params = {}
     error_status = []
     request_data = request.body
-    picklist_exclude_zones = get_exclude_zones(user)
     try:
         try:
             request_data = json.loads(request_data)
@@ -1201,9 +1200,12 @@ def get_mp_inventory(request):
         if not warehouse:
             return HttpResponse(json.dumps({'status': 400, 'message': 'Warehouse Name is Mandatory'}), status=400)
         token_user = user
-        sister_whs = list(get_sister_warehouse(user).values_list('user__username', flat=True))
-        sister_whs.append(token_user.username)
-        if warehouse in sister_whs:
+        sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+        sister_whs1.append(token_user.username)
+        sister_whs = []
+        for sister_wh1 in sister_whs1:
+            sister_whs.append(str(sister_wh1).lower())
+        if warehouse.lower() in sister_whs:
             user = User.objects.get(username=warehouse)
         else:
             return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Warehouse Name'}), status=400)
@@ -1214,6 +1216,8 @@ def get_mp_inventory(request):
         except:
             return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Seller ID'}), status=400)
         seller_master_id = seller_master[0].id
+        picklist_exclude_zones = get_exclude_zones(user)
+        filter_params['user'] = user.id
         sku_records = SKUMaster.objects.filter(**filter_params).values('sku_code')
         error_skus = set(skus) - set(sku_records.values_list('sku_code', flat=True))
         for error_sku in error_skus:
@@ -1355,7 +1359,7 @@ def get_mp_inventory(request):
                     mrp_dict.setdefault(open_order_grouping_key, OrderedDict(( ('mrp', open_sku_mrp),
                                                                       ('weight', open_weight), ('inventory',
                                                          OrderedDict((('sellable', 0),
-                                                                    ('on_hold', open_orders[sku_open_order]),
+                                                                    ('on_hold', 0),
                                                                     ('un_sellable', 0)))))))
                     mrp_dict[open_order_grouping_key]['inventory']['sellable'] -= open_orders[sku_open_order]
                     mrp_dict[open_order_grouping_key]['inventory']['on_hold'] += open_orders[sku_open_order]

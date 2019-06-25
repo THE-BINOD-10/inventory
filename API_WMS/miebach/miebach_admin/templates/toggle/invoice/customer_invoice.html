@@ -186,18 +186,6 @@
                         {% else %}
                         <div class="col-xs-12 no-padding">
                         {% endif %}
-                          {% if order_charges %}
-                          {% for charge in order_charges %}
-                          <div class="row" ng-repeat="charge in showCase.pdf_data.order_charges" ng-if="showCase.pdf_data.order_charges">
-                            <div class="col-xs-{{html_data.totals_data.label_width}}">
-                              {{charge.charge_name}}
-                            </div>
-                            <div class="col-xs-{{html_data.totals_data.value_width}} text-right">
-                              {{charge.charge_amount}}
-                            </div>
-                          </div>
-                          {% endfor %}
-                          {% endif %}
                           <div class="row">
                             <div class="col-xs-{{html_data.totals_data.label_width}}">
                               Taxable Amount
@@ -222,6 +210,26 @@
                               {{total_tax_words}} Only
                             </div>
                           </div>
+                          {% if order_charges %}
+                          {% for charge in order_charges %}
+                          <div class="row" ng-repeat="charge in showCase.pdf_data.order_charges" ng-if="showCase.pdf_data.order_charges">
+                            <div class="col-xs-{{html_data.totals_data.label_width}}">
+                              {{charge.charge_name}}
+                            </div>
+                            <div class="col-xs-{{html_data.totals_data.value_width}} text-right">
+                              {{charge.charge_amount}}
+                            </div>
+                            {% if charge.charge_tax_value %}
+                            <div class="col-xs-{{html_data.totals_data.label_width}} ">
+                              {{charge.charge_name}}{{ "  tax"}}
+                            </div>
+                            <div class="col-xs-{{html_data.totals_data.value_width}} text-right">
+                              {{charge.charge_tax_value}}
+                            </div>
+                            {% endif %}
+                          </div>
+                          {% endfor %}
+                          {% endif %}
                           <div class="row">
                             <div class="col-xs-{{html_data.totals_data.label_width}}">
                             Invoice Total

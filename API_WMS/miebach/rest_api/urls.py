@@ -594,6 +594,12 @@ urlpatterns += [
     url(r'^pos_extra_fields/$',pos_extra_fields),
     url(r'^save_grn_fields/$',save_grn_fields),
     url(r'^save_extra_order_options/$',save_extra_order_options),
+    url(r'^get_classfication_settings/$',get_classfication_settings),
+    url(r'^save_update_classification/$',save_update_classification),
+    url(r'^delete_classification/$',delete_classification),
+
+
+
 
 
     # manage users

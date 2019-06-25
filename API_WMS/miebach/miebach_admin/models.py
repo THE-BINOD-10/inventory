@@ -3245,3 +3245,14 @@ class InvoiceOrderCharges(models.Model) :
 
     class Meta:
         db_table = 'INVOICE_ORDER_CHARGES'
+
+class ClassificationSettings(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    classification = models.CharField(max_length=128, default='')
+    units_per_day = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'CLASSIFICATION_SETTINGS'

@@ -9499,3 +9499,42 @@ def get_firebase_order_data(order_id):
         log.info('Firebase query  failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(request.POST.dict()), str(e)))
     return result
+
+@get_admin_user
+def get_classfication_settings(request, user =''):
+    classifiaction_dict = {}
+    classifiaction_dict =list(ClassificationSettings.objects.filter(user = user.id).values('id','classification','units_per_day'))
+    return HttpResponse(json.dumps({'data': classifiaction_dict}))
+
+@get_admin_user
+def save_update_classification(request , user =''):
+    data_dict = dict(request.POST)
+    try:
+        for ind in range(0, len(data_dict['id'])):
+            if(data_dict['id'][ind]):
+                classifcations = ClassificationSettings.objects.filter(id=data_dict['id'][ind])
+                if classifcations:
+                    classifcations.update(units_per_day=data_dict['units_per_day'][ind])
+            else:
+                classifcations = ClassificationSettings.objects.filter(classification=data_dict['classification'][ind] , user__id=user.id )
+                if classifcations:
+                    user_attr.update(units_per_day=data_dict['units_per_day'][ind])
+                else:
+                    ClassificationSettings.objects.create(
+                                                  classification=data_dict['classification'][ind],
+                                                  units_per_day=data_dict['units_per_day'][ind],
+                                                  creation_date=datetime.datetime.now(),
+                                                  user_id =user.id)
+        return HttpResponse(json.dumps({'message': 'Updated Successfully'}))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('classification query  failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+
+@get_admin_user
+def delete_classification(request, user=''):
+    id = request.GET.get('data_id', '')
+    if id:
+        ClassificationSettings.objects.filter(id=id).delete()
+    return HttpResponse(json.dumps({'message': 'Updated Successfully', 'status': 1}))

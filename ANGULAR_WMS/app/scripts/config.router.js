@@ -2398,7 +2398,12 @@ var app = angular.module('urbanApp')
                                 'scripts/extentions/plugins/multiselect/jquery.multi-select.js'
                             ]
                         }]).then(function () {
-                return $ocLazyLoad.load('scripts/controllers/configs/configurations.js');
+                return $ocLazyLoad.load('scripts/controllers/configs/configurations.js')
+                .then(function(){
+                return $ocLazyLoad.load([
+                    'scripts/controllers/configs/classification.js'
+                  ])
+                });
               });
                     }]
           },

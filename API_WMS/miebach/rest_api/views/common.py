@@ -552,6 +552,7 @@ data_datatable = {  # masters
     'StockSummaryAlt': 'get_stock_summary_size', 'SellerStockTable': 'get_seller_stock_data', \
     'BatchLevelStock': 'get_batch_level_stock', 'WarehouseStockAlternative': 'get_alternative_warehouse_stock',
     'Available+ASN': 'get_availasn_stock',
+    'SerialNumberSKU': 'get_stock_summary_serials_excel',
     'AutoSellableSuggestion': 'get_auto_sellable_suggestion_data',
     # outbound
     'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders', \
@@ -2818,9 +2819,11 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
         order = None
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     if invoice_no_gen:
-        seller_order_summary = SellerOrderSummary.objects.filter(Q(order__id__in=order_ids) |
-                                                                 Q(seller_order__order__user=user.id,
-                                                                   seller_order__order_id__in=order_ids))
+        if user.userprofile.user_type == 'marketplace_user':
+            seller_order_summary = SellerOrderSummary.objects.filter(seller_order__order__user=user.id,
+                                                                   seller_order__order_id__in=order_ids)
+        else:
+            seller_order_summary = SellerOrderSummary.objects.filter(Q(order__id__in=order_ids))
         if seller_order_summary and invoice_no_gen[0].creation_date < seller_order_summary[0].creation_date:
             check_dict = {}
             prefix_key = 'order__'
@@ -2949,10 +2952,13 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     total_quantity, total_amt, total_taxable_amt, total_invoice, total_tax, total_mrp, _total_tax = 0, 0, 0, 0, 0, 0, 0
     total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'utgst_amt': 0, 'cess_amt': 0}
     hsn_summary = {}
+    partial_order_quantity_price = 0
+    order_charges_percent =1
     is_gst_invoice = False
     invoice_date = datetime.datetime.now()
     order_reference_date_field = ''
-    order_charges = ''
+    order_charges = {}
+    total_order_quantity_price = 0
     customer_id = ''
     mode_of_transport = ''
     vehicle_number = ''
@@ -2985,7 +2991,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     if order_ids:
         sor_id = ''
         order_ids = list(set(order_ids.split(',')))
-        order_data = OrderDetail.objects.filter(id__in=order_ids).exclude(status=3)
+        order_data = OrderDetail.objects.filter(id__in=order_ids).exclude(status=3).select_related('sku')
         if user.userprofile.user_type == 'marketplace_user':
             seller_summary = SellerOrderSummary.objects.filter(seller_order__order_id__in=order_ids)
         else:
@@ -3182,6 +3188,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 discount_percentage = "%.1f" % (float((discount * 100) / (quantity * unit_price)))
             unit_price = "%.2f" % unit_price
             total_quantity += quantity
+            partial_order_quantity_price += (float(unit_price) * float(quantity))
             _total_tax += _tax
             invoice_amount = _tax + amt
             total_invoice += _tax + amt
@@ -3204,7 +3211,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 quantity = int(quantity)
             quantity = get_decimal_limit(user.id ,quantity)
             invoice_amount = get_decimal_limit(user.id ,invoice_amount ,'price')
-
             count = count +1
             data.append(
                 {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
@@ -3265,10 +3271,35 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     total_invoice_amount = total_invoice
     if order_id:
         order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
-        order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'id'))
-        total_charge_amount = order_charge_obj.aggregate(Sum('charge_amount'))['charge_amount__sum']
-        if total_charge_amount:
-            total_invoice_amount = float(total_charge_amount) + total_invoice
+        if order_charge_obj.exists():
+            total_order_qtys = OrderDetail.objects.filter(original_order_id = order_id,user = user.id ).values('sku__wms_code').annotate(total=F('quantity') * F('unit_price'))
+            for quantity in total_order_qtys :
+                total_order_quantity_price += quantity.get('total' ,0)
+
+        order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'charge_tax_value','id'))
+        if total_order_quantity_price :
+            order_charges_percent = (partial_order_quantity_price / total_order_quantity_price)
+        invoice_order_charge = ''
+        full_order_charge = True
+        if order_charges_percent != 1 and sell_ids :
+            if sell_ids.get('pick_number__in',0) :
+                pick_num = sell_ids.get('pick_number__in')[0]
+                invoice_order_charge = InvoiceOrderCharges.objects.filter(original_order_id = order_id , pick_number = pick_num,user = user.id)
+                if invoice_order_charge.exists():
+                    order_charges = list(invoice_order_charge.values('charge_name', 'charge_amount', 'charge_tax_value','id'))
+                    full_order_charge = False
+                    for order_chrg in order_charges :
+                        total_invoice_amount += order_chrg['charge_amount']+order_chrg['charge_tax_value']
+                        order_chrg['charge_amount'] = round(order_chrg['charge_amount'], 2)
+                        order_chrg['charge_tax_value'] = round(order_chrg['charge_tax_value'], 2)
+        if full_order_charge :
+            for order_chrg in order_charges :
+                order_chrg['charge_amount'] = order_charges_percent * order_chrg['charge_amount']
+                order_chrg['charge_tax_value'] = order_charges_percent * order_chrg['charge_tax_value']
+                total_invoice_amount += order_chrg['charge_amount']+order_chrg['charge_tax_value']
+                order_chrg['charge_amount'] = round(order_chrg['charge_amount'], 2)
+                order_chrg['charge_tax_value'] = round(order_chrg['charge_tax_value'], 2)
+
 
     total_amt = "%.2f" % (float(total_invoice) - float(_total_tax))
     dispatch_through = "By Road"
@@ -4786,6 +4817,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
     data = []
     style_quantities = eval(request.POST.get('required_quantity', '{}'))
     levels_config = get_misc_value('generic_wh_level', user.id)
+    admin_user = get_admin(user)
     central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
     sku_spl_attrs = {}
     get_values = ['wms_code', 'sku_desc', 'hsn_code', 'image_url', 'sku_class', 'cost_price', 'price', 'mrp', 'id',
@@ -4861,7 +4893,13 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
                     tax = tax[0]
                     tax_percentage = float(tax['sgst_tax']) + float(tax['igst_tax']) + float(tax['cgst_tax'])
                     sku_styles[0]['tax_percentage'] = '%.1f'%tax_percentage
-            if total_quantity >= int(stock_quantity):
+
+            is_prava_check = True
+            if admin_user.username == 'isprava_admin' :
+                if sku_styles[0]['style_quantity'] == 0 :
+                    is_prava_check = False
+
+            if total_quantity >= int(stock_quantity) and is_prava_check:
                 if msp_min_price and msp_max_price:
                     if float(msp_min_price) <= sku_variants[0]['your_price'] <= float(msp_max_price):
                         data.append(sku_styles[0])
@@ -5215,7 +5253,18 @@ def get_imei_data(request, user=''):
                                                   }
                     data.append(imei_data)
                     imei_status = 'Consumed'
-
+                elif order_mapping.stock_transfer:
+                    stock_transfer = order_mapping.stock_transfer
+                    if stock_transfer.st_po.open_st.sku.user:
+                        destination_user_id = stock_transfer.st_po.open_st.sku.user
+                        warehouse_user = User.objects.get(id=destination_user_id)
+                    imei_data['stock_transfer'] = {'stock_transfer_id': stock_transfer.order_id,
+                                                   'order_date': get_local_date(user, order_mapping.creation_date),
+                                                   'warehouse': warehouse_user.username,
+                                                   'address' : warehouse_user.userprofile.address,
+                                                   }
+                    data.append(imei_data)
+                    imei_status = 'Transfered'
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

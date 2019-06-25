@@ -244,7 +244,7 @@ def get_order_mapping(reader, file_type):
     order_mapping = {}
     if get_cell_data(0, 0, reader, file_type) == 'Central Order ID':
         order_mapping = copy.deepcopy(CENTRAL_ORDER_EXCEL)
-    elif get_cell_data(0, 0, reader, file_type) == 'Courtesy SR Number':
+    elif get_cell_data(0, 0, reader, file_type) == 'Main SR Number':
         order_mapping = copy.deepcopy(CENTRAL_ORDER_EXCEL_ONE_ASSIST)
     elif get_cell_data(0, 0, reader, file_type) == 'Warehouse Name':
         order_mapping = copy.deepcopy(STOCK_TRANSFER_ORDER_EXCEL)
@@ -2589,6 +2589,9 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                       'cess_tax': 'CESS Tax', 'apmc_tax': 'APMC Tax'}
     number_fields = ['mrp', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax', 'cess_tax', 'apmc_tax']
     user_profile = user.userprofile
+    if user_profile.user_type == 'marketplace_user' :
+        if 'seller_id' not in excel_mapping.keys() :
+            return 'Invalid File seller id is Mandatory', []
     for row_idx in range(1, no_of_rows):
         data_dict = {}
         print excel_mapping
@@ -6001,6 +6004,7 @@ def central_order_upload(request, user=''):
 def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
     log.info("order upload started")
     st_time = datetime.datetime.now()
+    main_sr_numbers = []
     index_status = {}
     order_mapping = get_order_mapping(reader, file_type)
     if not order_mapping:
@@ -6022,8 +6026,11 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
                 original_order_id = str(int(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type)))
             except:
                 original_order_id = str(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type))
-            if not original_order_id:
-                index_status.setdefault(count, set()).add('Courtesy SR Number is mandatory')
+            courtesy_check = OrderFields.objects.filter(user=user.id, order_type='intermediate_order', name='original_order_id', value=original_order_id)
+            if not original_order_id or courtesy_check or original_order_id in main_sr_numbers:
+                index_status.setdefault(count, set()).add('Main SR Number is Invalid')
+            else:
+                main_sr_numbers.append(original_order_id)
         if order_mapping.has_key('customer_name'):
             customer_name = str(get_cell_data(row_idx, order_mapping['customer_name'], reader, file_type))
             if not customer_name:

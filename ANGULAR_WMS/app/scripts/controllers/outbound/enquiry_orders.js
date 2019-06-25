@@ -53,7 +53,7 @@ function EnquiryOrdersCtrl($scope, $http, $state, $compile, Session, DTOptionsBu
 
   vm.enquiryDetails = function(data) {
 
-    var mod_data = {enquiry_id: data['Enquiry ID'], customer_id: data['Customer ID']};
+    var mod_data = {enquiry_id: data['ID'], customer_id: data['Customer ID']};
     var modalInstance = $modal.open({
       templateUrl: 'views/outbound/toggle/enquiry_order_details.html',
       controller: 'EnquiryOrderDetails',

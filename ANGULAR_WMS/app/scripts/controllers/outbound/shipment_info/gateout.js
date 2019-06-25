@@ -10,6 +10,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.selectAll = false;
     vm.toggleAll = toggleAll;
     vm.toggleOne = toggleOne;
+    vm.permissions = Session.roles.permissions;
     var titleHtml = '<input type="checkbox" class="data-select" ng-model="vm.selectAll" ng-change="vm.toggleAll(vm.selectAll, vm.selected); $event.stopPropagation();">';
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -42,7 +43,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
        console.log("complete") 
       });
 
-    vm.dtColumns = [
+    vm.dtColumns = []
         /*DTColumnBuilder.newColumn(null).withTitle(titleHtml).notSortable().withOption('width', '20px')
             .renderWith(function(data, type, full, meta) {
                 if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
@@ -51,12 +52,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                 vm.selected[meta.row] = vm.selectAll;
                 return '<input class="data-select" type="checkbox" ng-model="vm.selected[' + meta.row + ']" ng-change="vm.toggleOne(vm.selected);$event.stopPropagation();">';
             }).notSortable(),*/
-        DTColumnBuilder.newColumn('Shipment Number').withTitle('Shipment Number'),
-        DTColumnBuilder.newColumn('Customer ID').withTitle('Customer ID'),
-        DTColumnBuilder.newColumn('Customer Name').withTitle('Customer Name'),
-        DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity')
-    ];
 
+    vm.dtColumns = [];
+    if(vm.permissions.central_order_reassigning && !vm.permissions.dispatch_qc_check) {
+       vm.dtColumns.push(DTColumnBuilder.newColumn('Serial Number').withTitle('Serial Number')),
+       vm.dtColumns.push(DTColumnBuilder.newColumn('Manifest Number').withTitle('Manifest Number')),
+       vm.dtColumns.push(DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity')),
+       vm.dtColumns.push(DTColumnBuilder.newColumn('Manifest Date').withTitle('Manifest Date'))
+    } else {
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Shipment Number').withTitle('Shipment Number')),
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Customer ID').withTitle('Customer ID')),
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Customer Name').withTitle('Customer Name')),
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'))
+    }
+    if(vm.permissions.dispatch_qc_check) {
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Signed Invoice').withTitle('Signed Invoice Upload').notSortable())
+    }
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $compile(angular.element('td', nRow))($scope);
         /*$('td:not(td:first)', nRow).unbind('click');
@@ -65,7 +76,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         $('td', nRow).bind('click', function() {
             $scope.$apply(function() {
                 console.log(aData);
-                var data = { gateout : 1, customer_id: aData['Customer ID'], shipment_number:aData['Shipment Number']}
+                var data = { gateout : 1, customer_id: aData['Customer ID'], shipment_number:aData['Shipment Number'],
+                             manifest_number:aData['Manifest Number']}
                 vm.service.apiCall("shipment_info_data/","GET", data).then(function(data){
 
                   if(data.message) {

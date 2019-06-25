@@ -13319,6 +13319,7 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
         order_data = lis[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
+        uniq_ord_search_flag = False
         if search_term:
             if search_term.startswith('ad'):
                 search_term = 'pending_approval'
@@ -13330,6 +13331,10 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
                                                  Q(customization_type__icontains=search_term) |
                                                  Q(status__istartswith=search_term),
                                                  **data_filters).order_by(order_data)
+            if not em_qs.exists():
+                em_qs = ManualEnquiry.objects.filter(**data_filters).order_by(order_data)
+                if em_qs.exists():
+                    uniq_ord_search_flag = True
         else:
             em_qs = ManualEnquiry.objects.filter(**data_filters).order_by(order_data)
         if request.user.username == 'sm_purchase_admin':
@@ -13355,6 +13360,8 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
                 if cm_qs:
                     cm_id = cm_qs[0].customer_id
                     uniq_enq_id = str(cm_id) + str(em_obj.enquiry_id)
+                    if uniq_ord_search_flag and search_term not in uniq_enq_id:
+                        continue
                     temp_data['aaData'].append(OrderedDict((('ID', int(em_obj.enquiry_id)), ('Enquiry ID', uniq_enq_id),
                                                             ('Sub Distributor', em_obj.user.username),
                                                             ('Customer Name', em_obj.customer_name),
@@ -13394,8 +13401,9 @@ def get_manual_enquiry_detail(request, user=''):
         cm_qs = CustomerUserMapping.objects.filter(user=manual_enq[0].user)
         if cm_qs:
             cm_id = cm_qs[0].customer_id
-            uniq_enq_id = str(cm_id) + str(manual_enq[0].enquiry_id)
-        manual_eq_dict = {'enquiry_id': uniq_enq_id, 'customer_name': manual_enq[0].customer_name,
+            enq_id = str(manual_enq[0].enquiry_id)
+            uniq_enq_id = str(cm_id) + enq_id
+        manual_eq_dict = {'id': enq_id, 'enquiry_id': uniq_enq_id, 'customer_name': manual_enq[0].customer_name,
                           'date': manual_enq[0].creation_date.strftime('%Y-%m-%d'), 'customization_type': customization_type,
                           'quantity': ordered_qty, 'custom_remarks': manual_enq[0].custom_remarks.split("<<>>"),
                           'enq_status': manual_enq[0].status, 'enq_det_id': int(manual_enq[0].id),
@@ -13872,6 +13880,13 @@ def convert_customorder_to_actualorder(request, user=''):
                     taxes['utgst_tax'] = float(tax_master.utgst_tax)
             CustomerOrderSummary.objects.create(order=ord_obj, sgst_tax=taxes['sgst_tax'], cgst_tax=taxes['cgst_tax'],
                                                 igst_tax=taxes['igst_tax'], tax_type=customer_master.tax_type)
+            upload_po_map = {'uploaded_user_id': enq_obj.user.id, 'po_number': corporate_po_number,
+                             'customer_name': enq_obj.customer_name}
+            ord_obj = OrderUploads.objects.filter(**upload_po_map)
+            if ord_obj:
+                ord_obj = ord_obj[0]
+                ord_obj.generic_order_id = generic_order_id
+                ord_obj.save()
             generic_orders = GenericOrderDetailMapping.objects.filter(generic_order_id=generic_order_id,
                                                                       customer_id=cm_id, cust_wh_id=usr). \
                 values('orderdetail__original_order_id', 'orderdetail__user').distinct()

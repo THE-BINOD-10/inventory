@@ -483,6 +483,7 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
     gateout = request.POST.get('gateout', '')
     if gateout:
         gateout = int(gateout)
+    one_assist_qc_check = get_misc_value('dispatch_qc_check', user.id)
     central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
     one_assist_qc_check = get_misc_value('dispatch_qc_check', user.id)
     if central_order_reassigning == 'true' and one_assist_qc_check != 'true':
@@ -12662,11 +12663,6 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
             each_total_inv_amt = round(each_total_inv_amt, 2)
         else:
             each_total_inv_amt = 0
-        res_map = {'order_id': enq_id, 'customer_id': cm_id,
-                   'total_quantity': total_qty[enq_id],
-                   'date': get_only_date(request, em_qs.filter(enquiry_id=enq_id)[0].creation_date),
-                   'total_inv_amt': each_total_inv_amt,
-                   'extend_status': ext_status, 'days_left': days_left, 'corporate_name': corp_name}
         if ext_status == 'pending':
             input_label = '<label style="color: #33cc66;">Pending ..</label>'
             input_div = ''
@@ -12674,11 +12670,12 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
             input_label = '<a href="" id='+str(int(enq_id))+"_extdate"' class="extend_date_picker" ng-click="showCase.extend_order_date('+str(int(enq_id))+');" style="text-decoration: underline; color: #33cc66;">Extend Date</a>'
             input_div = '<div id='+str(int(enq_id))+"_save"' class="col-lg-12 col-md-12 col-sm-12 hide"><div class="col-lg-6 col-md-6"><input name="extended_date" ui-jq="datepicker" ng-model="showCase.extended_date" placeholder="Select Date" class="form-control stk-readonly" type="text" id="extended_date" data-date-today-highlight="true" data-date-autoclose="true" readonly="true" style="height: 26px;width: 100px !important;"></div><div class="col-lg-6 col-md-6"><button type="button" class="btn btn-primary" style="height: 26px;padding: 2px 5px;" ng-click="showCase.confirm_to_extend('+str(int(enq_id))+');">Save</button></div></div>'
         button = '<button type="button" class="btn btn-warning pull-right" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="orders.moveToCart('+str(int(enq_id))+', $index, $event)" ng-disabled="orders.moving">Move to Cart</button>'
+        uniq_enq_id = str(cm_id) + str(enq_id)
         if is_excel_download:
-            ord_tuple = (('Enquiry ID', enq_id),('Date',get_only_date(request, em_qs.filter(enquiry_id=enq_id)[0].creation_date)),
+            ord_tuple = (('ID', enq_id), ('Enquiry ID', uniq_enq_id),('Date',get_only_date(request, em_qs.filter(enquiry_id=enq_id)[0].creation_date)),
             ('Quantity',total_qty[enq_id]), ('Amount',each_total_inv_amt), ('Days Left', days_left),('Corporate Name',corp_name))
         else:
-            ord_tuple = (('Enquiry ID', enq_id),('Date',get_only_date(request, em_qs.filter(enquiry_id=enq_id)[0].creation_date)),
+            ord_tuple = (('ID', enq_id), ('Enquiry ID', uniq_enq_id),('Date',get_only_date(request, em_qs.filter(enquiry_id=enq_id)[0].creation_date)),
             ('Quantity',total_qty[enq_id]), ('Amount',each_total_inv_amt), ('Days Left', days_left),('Corporate Name',corp_name),
             ('Extend Date', input_label + input_div), ('Move to Cart', button))
         temp_data['aaData'].append(OrderedDict(ord_tuple))
@@ -12688,30 +12685,34 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
 
 def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     lis = ['enquiry_id', 'creation_date', 'customer_name', 'sku__sku_class', 'customization_type', 'sku__sku_code', 'status']
-    search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    response_data = {'data': []}
     if search_term:
-        em_qs = ManualEnquiry.objects.filter(Q(enquiry_id__icontains=search_term)| Q(creation_date__regex=search_term)| Q(customer_name__icontains=search_term)
-            | Q(sku__sku_class__icontains=search_term) | Q(customization_type__icontains=search_term) |Q(sku__sku_code__icontains=search_term) |Q(status__icontains=search_term)).order_by(order_data)
+        em_qs = ManualEnquiry.objects.filter(
+            Q(enquiry_id__icontains=search_term) | Q(creation_date__regex=search_term) |
+            Q(customer_name__icontains=search_term) | Q(sku__sku_class__icontains=search_term) |
+            Q(customization_type__icontains=search_term) | Q(sku__sku_code__icontains=search_term) |
+            Q(status__icontains=search_term)).order_by(order_data)
     else:
         em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by(order_data)
     for enquiry in em_qs[start_index:stop_index]:
-        res_map = {'order_id': enquiry.enquiry_id, 'customer_name': enquiry.customer_name,
-                   'date': get_only_date(request, enquiry.creation_date),
-                   'sku_code': enquiry.sku.sku_code, 'style_name': enquiry.sku.sku_class}
+        customization_type = '  Price and Product Customization'
         if enquiry.customization_type:
             if enquiry.customization_type == 'price_custom':
                 customization_type = 'Price Customization'
-            else:
-                customization_type = '  Price and Product Customization'
-        temp_data['aaData'].append(OrderedDict(
-            (('Enquiry ID', float(enquiry.enquiry_id)), ('Enquiry Date', get_only_date(request, enquiry.creation_date)),
-              ('Customer Name', enquiry.customer_name), ('Style Name', enquiry.sku.sku_class), ('Customization', customization_type),('SKU Code', enquiry.sku.sku_code), ('Status', enquiry.status))))
-        temp_data['recordsTotal'] = em_qs.count()
-        temp_data['recordsFiltered'] = temp_data['recordsTotal']
+        cm_qs = CustomerUserMapping.objects.filter(user=enquiry.user)
+        if cm_qs:
+            cm_id = cm_qs[0].customer_id
+            uniq_enq_id = str(cm_id) + str(enquiry.enquiry_id)
+            temp_data['aaData'].append(OrderedDict(
+                (('ID', float(enquiry.enquiry_id)), ('Enquiry ID', uniq_enq_id),
+                 ('Enquiry Date', get_only_date(request, enquiry.creation_date)),
+                 ('Customer Name', enquiry.customer_name), ('Style Name', enquiry.sku.sku_class),
+                 ('Customization', customization_type),('SKU Code', enquiry.sku.sku_code),
+                 ('Status', enquiry.status))))
+            temp_data['recordsTotal'] = em_qs.count()
+            temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
 @get_admin_user
 def get_customer_enquiry_detail(request, user=''):
@@ -12763,7 +12764,10 @@ def get_customer_enquiry_detail(request, user=''):
         total_tax_amt = round(tot_amt_inc_taxes - total_inv_amt, 2)
         total_qty = map(sum, [[i['quantity'] for i in em_obj.enquiredsku_set.values()]])[0]
         sum_data = {'amount': round(tot_amt_inc_taxes, 2), 'quantity': total_qty}
-        res_map = {'order_id': em_obj.enquiry_id, 'customer_id': cm_id,
+        cust_id = str(filters['customer_id'])
+        enq_id = str(em_obj.enquiry_id)
+        uniq_enq_id = cust_id + enq_id
+        res_map = {'order_id': uniq_enq_id, 'customer_id': cm_id,
                    'date': get_only_date(request, em_obj.creation_date),
                    'data': data_vals, 'sum_data': sum_data, 'tax': total_tax_amt}
         # res_map['level_name'] = ''
@@ -12812,9 +12816,11 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
     else:
         em_qs = EnquiryMaster.objects.filter(user=user.id)
     for em_obj in em_qs:
-        enq_id = int(em_obj.enquiry_id)
+        enq_id = str(em_obj.enquiry_id)
+        cust_id = str(em_obj.customer_id)
+        uniq_enq_id = cust_id + enq_id
         total_qty = map(sum, [[i['quantity'] for i in em_obj.enquiredsku_set.values()]])[0]
-        cm_obj = CustomerMaster.objects.get(id=em_obj.customer_id)
+        cm_obj = CustomerMaster.objects.get(id=cust_id)
         customer_name = cm_obj.name
         dist_obj = User.objects.get(id=em_obj.user)
         distributor_name = dist_obj.username
@@ -12827,7 +12833,7 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
             st = search_term.lower()
             if st not in corporate_name.lower() and st not in distributor_name.lower() and \
                     st not in zone.lower() and str(st) not in str(em_obj.enquiry_id) and \
-                    str(st) not in str(extend_status):
+                    str(st) not in str(extend_status) and str(st) not in cust_id and str(st) not in str(uniq_enq_id):
                 continue
         date = em_obj.creation_date.strftime('%Y-%m-%d')
         if em_obj.extend_date:
@@ -12835,7 +12841,8 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
             days_left = days_left_obj.days
         else:
             days_left = 0
-        temp_data['aaData'].append(OrderedDict((('Enquiry ID', enq_id), ('Sub Distributor', customer_name),
+        temp_data['aaData'].append(OrderedDict((('ID', enq_id), ('Enquiry ID', uniq_enq_id),
+                                                ('Sub Distributor', customer_name),
                                                 ('Distributor', distributor_name),
                                                 ('Customer Name', corporate_name), ('Zone', zone),
                                                 ('Quantity', total_qty), ('Date', date),
@@ -13312,6 +13319,7 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
         order_data = lis[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
+        uniq_ord_search_flag = False
         if search_term:
             if search_term.startswith('ad'):
                 search_term = 'pending_approval'
@@ -13323,6 +13331,10 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
                                                  Q(customization_type__icontains=search_term) |
                                                  Q(status__istartswith=search_term),
                                                  **data_filters).order_by(order_data)
+            if not em_qs.exists():
+                em_qs = ManualEnquiry.objects.filter(**data_filters).order_by(order_data)
+                if em_qs.exists():
+                    uniq_ord_search_flag = True
         else:
             em_qs = ManualEnquiry.objects.filter(**data_filters).order_by(order_data)
         if request.user.username == 'sm_purchase_admin':
@@ -13344,11 +13356,20 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
             else:
                 continue
             if MANUAL_ENQUIRY_STATUS.get(em_obj.status, '') == status or status == 'Remaining Status':
-                temp_data['aaData'].append(OrderedDict((('Enquiry ID', int(em_obj.enquiry_id)), ('Sub Distributor', em_obj.user.username),
-                                                        ('Customer Name', em_obj.customer_name), ('Style Name', em_obj.sku.sku_class),
-                                                        ('Date', date), ('User ID', em_obj.user.id), ('Customization Type', customization_type),
-                                                        ('status', MANUAL_ENQUIRY_STATUS.get(em_obj.status, ''))
-                                                       )))
+                cm_qs = CustomerUserMapping.objects.filter(user=em_obj.user)
+                if cm_qs:
+                    cm_id = cm_qs[0].customer_id
+                    uniq_enq_id = str(cm_id) + str(em_obj.enquiry_id)
+                    if uniq_ord_search_flag and search_term not in uniq_enq_id:
+                        continue
+                    temp_data['aaData'].append(OrderedDict((('ID', int(em_obj.enquiry_id)), ('Enquiry ID', uniq_enq_id),
+                                                            ('Sub Distributor', em_obj.user.username),
+                                                            ('Customer Name', em_obj.customer_name),
+                                                            ('Style Name', em_obj.sku.sku_class),
+                                                            ('Date', date), ('User ID', em_obj.user.id),
+                                                            ('Customization Type', customization_type),
+                                                            ('status', MANUAL_ENQUIRY_STATUS.get(em_obj.status, ''))
+                                                           )))
         temp_data['recordsTotal'] = len(temp_data['aaData'])
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
@@ -13377,7 +13398,12 @@ def get_manual_enquiry_detail(request, user=''):
         customization_type = customization_types[manual_enq[0].customization_type]
         total_qty = manual_enq.aggregate(Sum('quantity'))
         ordered_qty = total_qty.get('quantity__sum', 0)
-        manual_eq_dict = {'enquiry_id': int(manual_enq[0].enquiry_id), 'customer_name': manual_enq[0].customer_name,
+        cm_qs = CustomerUserMapping.objects.filter(user=manual_enq[0].user)
+        if cm_qs:
+            cm_id = cm_qs[0].customer_id
+            enq_id = str(manual_enq[0].enquiry_id)
+            uniq_enq_id = str(cm_id) + enq_id
+        manual_eq_dict = {'id': enq_id, 'enquiry_id': uniq_enq_id, 'customer_name': manual_enq[0].customer_name,
                           'date': manual_enq[0].creation_date.strftime('%Y-%m-%d'), 'customization_type': customization_type,
                           'quantity': ordered_qty, 'custom_remarks': manual_enq[0].custom_remarks.split("<<>>"),
                           'enq_status': manual_enq[0].status, 'enq_det_id': int(manual_enq[0].id),
@@ -13406,7 +13432,8 @@ def get_manual_enquiry_detail(request, user=''):
         if manual_enq[0].status == 'order_placed':
             po_number = manual_enq[0].po_number
             client_name = manual_enq[0].customer_name
-            gen_qs = GenericOrderDetailMapping.objects.filter(client_name=client_name, po_number=po_number).values_list(
+            sku_code = manual_enq[0].sku.sku_code
+            gen_qs = GenericOrderDetailMapping.objects.filter(client_name=client_name, po_number=po_number, orderdetail__sku__sku_code=sku_code).values_list(
                 'orderdetail__original_order_id', 'cust_wh_id')
             for ord_id, wh_id in gen_qs:
                 emiza_ord_prefix = UserProfile.objects.get(user_id=wh_id).order_prefix
@@ -13853,6 +13880,13 @@ def convert_customorder_to_actualorder(request, user=''):
                     taxes['utgst_tax'] = float(tax_master.utgst_tax)
             CustomerOrderSummary.objects.create(order=ord_obj, sgst_tax=taxes['sgst_tax'], cgst_tax=taxes['cgst_tax'],
                                                 igst_tax=taxes['igst_tax'], tax_type=customer_master.tax_type)
+            upload_po_map = {'uploaded_user_id': enq_obj.user.id, 'po_number': corporate_po_number,
+                             'customer_name': enq_obj.customer_name}
+            ord_obj = OrderUploads.objects.filter(**upload_po_map)
+            if ord_obj:
+                ord_obj = ord_obj[0]
+                ord_obj.generic_order_id = generic_order_id
+                ord_obj.save()
             generic_orders = GenericOrderDetailMapping.objects.filter(generic_order_id=generic_order_id,
                                                                       customer_id=cm_id, cust_wh_id=usr). \
                 values('orderdetail__original_order_id', 'orderdetail__user').distinct()

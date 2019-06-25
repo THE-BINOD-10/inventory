@@ -643,7 +643,8 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
                         var[header] += val
                     else:
                         var[header] = val
-
+                net_open = var['Total WH'] - var['Total WH Res'] - var['Total WH Blocked']
+                var['WH Net Open'] = net_open
                 asn_open = var['ASN Total'] - var['ASN Res'] - var['ASN Blocked']
                 var['ASN Open'] = asn_open
         var['Net Open'] = var['WH Net Open'] + var['ASN Open']

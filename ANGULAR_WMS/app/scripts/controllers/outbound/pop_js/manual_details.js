@@ -351,7 +351,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
             vm.model_data.r_c_price = vm.order_details.md_approved_details.rc_price;
           }
         } else {
-          Service.showNoty(data.data.data, 'warning');
+          Service.showNoty(data.data, 'warning');
           $modalInstance.close();
         }
       }
@@ -402,7 +402,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
       return false;
     }
     vm.disable_btn = true;
-    vm.model_data['enquiry_id'] = vm.order_details.order.enquiry_id;
+    vm.model_data['enquiry_id'] = vm.order_details.order.id;
     vm.model_data['enq_status'] = 'marketing_pending';
     vm.model_data['status'] = "marketing_pending";
     Service.apiCall('save_manual_enquiry_data/', 'POST', vm.model_data).then(function(data) {

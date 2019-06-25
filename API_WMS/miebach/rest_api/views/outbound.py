@@ -12690,10 +12690,9 @@ def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, ord
     filter_dict = {'customer_id__in': cm_ids}
     generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
     emiza_order_ids = []
-
     for enquiry in em_qs[start_index:stop_index]:
-        related_order_ids = generic_orders.filter(po_number=enquiry.po_number,client_name=enquiry.customer_name,orderdetail__sku_id=enquiry.sku_id).values_list(
-        'po_number','client_name','orderdetail__sku_id')
+        related_order_ids = generic_orders.filter(po_number=enquiry.po_number,client_name=enquiry.customer_name,orderdetail__sku__sku_code=enquiry.sku.sku_code).values_list(
+        'po_number','client_name','orderdetail__sku__sku_code')
         for usr , org_id in related_order_ids:
             if usr in orderprefix_map:
                 emiza_id = orderprefix_map[usr]+'MN'+str(org_id)

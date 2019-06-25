@@ -6996,6 +6996,7 @@ def get_po_segregation_data(request, user=''):
                 data_dict['mrp'] = batch_detail.mrp
                 data_dict['buy_price'] = batch_detail.buy_price
                 data_dict['mfg_date'] = ''
+                data_dict['weight'] = batch_detail.weight
                 if batch_detail.manufactured_date:
                     data_dict['mfg_date'] = batch_detail.manufactured_date.strftime('%m/%d/%Y')
                 data_dict['exp_date'] = ''

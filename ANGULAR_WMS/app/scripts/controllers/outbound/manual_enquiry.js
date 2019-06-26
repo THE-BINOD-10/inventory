@@ -53,7 +53,7 @@ function ManualEnquiryCtrl($scope, $http, $state, $compile, Session, DTOptionsBu
 
   vm.enquiryDetails = function(data) {
 
-    var mod_data = {enquiry_id: data['Enquiry ID'], user_id: data['User ID'],
+    var mod_data = {enquiry_id: data['ID'], user_id: data['User ID'],
                     customization_type: data['Customization Type'], from: 'custom_order'};
     var modalInstance = $modal.open({
       templateUrl: 'views/outbound/toggle/manual_enquiry_order_details.html',

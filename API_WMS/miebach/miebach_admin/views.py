@@ -7198,11 +7198,8 @@ def confirm_add_po(request, sales_data = '', user=''):
     order_date = get_local_date(request.user, data['creation_date'])
     po_reference = '%s%s_%s' % (order.prefix, str(data['creation_date']).split(' ')[0].replace('-', ''), order_id)
     table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Unit Price', 'Amount')
-
     profile = UserProfile.objects.get(user=request.user.id)
-
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'user_name': request.user.username, 'total_qty': total_qty, 'company_name': profile.company_name, 'location': profile.location, 'w_address': profile.address, 'company_name': profile.company_name}
-
     t = loader.get_template('templates/toggle/po_download.html')
     c = Context(data_dict)
     rendered = t.render(c)

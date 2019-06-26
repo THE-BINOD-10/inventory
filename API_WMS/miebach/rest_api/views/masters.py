@@ -532,6 +532,28 @@ def get_replenushment_master(start_index, stop_index, temp_data, search_term, or
 
 
 @csrf_exempt
+def get_skuclassification(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['classification', 'classification','classification']
+
+    search_params = get_filtered_params(filters, lis)
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+            master_data = SkuClassification.objects.filter(
+                Q(sku__wms_code__icontains=search_term)).order_by(order_data)
+    else:
+        master_data = SkuClassification.objects.filter(**search_params).order_by(order_data)
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = len(master_data)
+    for data in master_data[start_index: stop_index]:
+        temp_data['aaData'].append(
+            OrderedDict((('Sku Code', data.sku.sku_code),('classification', data.classification), ('avg_sales_day', data.avg_sales_day),
+                          ('min_units', data.min_units),('max_units', data.max_units))))
+
+
+
+@csrf_exempt
 def get_corporate_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     lis = ['corporate_id', 'name', 'email_id', 'phone_number', 'address', 'status']
     search_params = get_filtered_params(filters, lis)
@@ -1819,6 +1841,48 @@ def insert_replenushment(request, user=''):
                                                                                                    str(request.POST.dict()),
                                                                                                    str(e)))
     return HttpResponse('Added Successfully')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def insert_skuclassification(request, user=''):
+    skuclassification = copy.deepcopy(SKUCLASSIFICATION_DATA)
+    sku_code = request.POST['sku_code']
+    classification = request.POST['classification']
+    avg_sales_day = request.POST['avg_sales_day']
+    min_units = request.POST['min_units']
+    max_units = request.POST['max_units']
+    sku_obj = SKUMaster.objects.filter(wms_code=sku_code.upper(), user=user.id)
+    if not sku_obj:
+        return HttpResponse('Wrong WMS Code')
+    if not classification:
+        return HttpResponse('Enter Classification')
+    skuclassification_obj = SkuClassification.objects.filter(sku__wms_code = sku_code,sku__user = user.id)
+    if skuclassification_obj.exists() :
+        skuclassification_obj = skuclassification_obj[0]
+        skuclassification_obj.classification = classification
+        skuclassification_obj.avg_sales_day = avg_sales_day
+        skuclassification_obj.min_units = min_units
+        skuclassification_obj.max_units = max_units
+        skuclassification_obj.save()
+    else:
+        skuclassification['sku'] = sku_obj[0]
+        skuclassification['classification'] = classification
+        skuclassification ['avg_sales_day'] = avg_sales_day
+        skuclassification ['min_units'] = min_units
+        skuclassification['max_units'] = max_units
+
+        try:
+            SkuClassification.objects.create(**skuclassification)
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Insert New skuclassification failed for %s and params are %s and error statement is %s' % (str(user.username), \
+                                                                                                   str(request.POST.dict()),
+                                                                                                   str(e)))
+    return HttpResponse('Added Successfully')
+
 
 @csrf_exempt
 @login_required

@@ -3268,7 +3268,7 @@ class ReplenushmentMaster(models.Model):
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'REPLENUSHMNENT MASTER'
+        db_table = 'REPLENUSHMNENT_MASTER'
 
 class SkuClassification(models.Model):
     id = BigAutoField(primary_key=True)
@@ -3281,4 +3281,4 @@ class SkuClassification(models.Model):
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'SKU CLASSIFICATION'
+        db_table = 'SKU_CLASSIFICATION'

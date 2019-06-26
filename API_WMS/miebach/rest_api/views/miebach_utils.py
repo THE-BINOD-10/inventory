@@ -128,6 +128,7 @@ SKU_PACK_DATA = {'sku': '','pack_id':'', 'pack_quantity': '','creation_date':dat
 
 REPLENUSHMNENT_DATA = {'classification': '','size':'', 'max_days': 0,'min_days':0, 'creation_date':datetime.datetime.now()}
 
+SKUCLASSIFICATION_DATA = {'sku': '','classification': '','avg_sales_day':'', 'max_units': 0,'min_units':0, 'creation_date':datetime.datetime.now()}
 
 WAREHOUSE_SKU_DATA = {'warehouse': '', 'sku': '', 'priority': '', 'moq': '', 'price': ''}
 

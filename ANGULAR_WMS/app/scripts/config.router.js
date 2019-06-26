@@ -438,6 +438,24 @@ var app = angular.module('urbanApp')
                    templateUrl: 'views/masters/toggles/replenushment_update.html'
                  })
 
+              .state('app.masters.SkuClassification',{
+                url:'/SkuClassification',
+                templateUrl: 'views/masters/skuclassification_datatable.html',
+                resolve: {
+                  deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                      return $ocLazyLoad.load('scripts/controllers/masters/skuclassification.js');
+                          }]
+                },
+                data: {
+                  title: 'SkuClassification Master'
+                }
+              })
+                .state('app.masters.SkuClassification.update', {
+                   url: '/SkuClassificationUpdate',
+                   templateUrl: 'views/masters/toggles/skuclassification_update.html'
+                 })
+
+
 
         .state('app.masters.Customer-SKUMapping', {
           url: '/Customer-SKUMapping',

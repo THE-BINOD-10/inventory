@@ -79,7 +79,8 @@ class EasyopsAPI:
             response = requests.get(url, headers=self.headers, verify=False)
 
         try:
-            response = response.json()
+            if not isinstance(response, dict):
+                response = response.json()
         except:
             if is_first:
                 self.get_access_token(self.user)

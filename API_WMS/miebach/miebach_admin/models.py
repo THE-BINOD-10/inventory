@@ -408,7 +408,8 @@ class OrderFields(models.Model):
 
     class Meta:
         db_table = 'ORDER_FIELDS'
-        index_together = (('user', 'original_order_id'), ('user', 'original_order_id', 'name'))
+        index_together = (('user', 'original_order_id'), ('user', 'original_order_id', 'name'),
+                          ('original_order_id', 'order_type', 'user'))
 
     def __unicode__(self):
         return str(self.original_order_id)

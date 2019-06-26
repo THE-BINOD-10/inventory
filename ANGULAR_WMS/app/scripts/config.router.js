@@ -420,7 +420,23 @@ var app = angular.module('urbanApp')
                 templateUrl: 'views/masters/toggles/sku_pack_update.html'
               })
 
-
+              .state('app.masters.Replenushment', {
+                url: '/Replenushment',
+                // permission: 'sku_pack_config',
+                templateUrl: 'views/masters/replenushment_datatable.html',
+                resolve: {
+                  deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                      return $ocLazyLoad.load('scripts/controllers/masters/Replenushment.js');
+                          }]
+                },
+                data: {
+                  title: 'Replenushment Master',
+                }
+              })
+                .state('app.masters.Replenushment.update', {
+                   url: '/replenushmentupdate',
+                   templateUrl: 'views/masters/toggles/replenushment_update.html'
+                 })
 
 
         .state('app.masters.Customer-SKUMapping', {

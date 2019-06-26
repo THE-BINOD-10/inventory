@@ -3256,3 +3256,29 @@ class ClassificationSettings(models.Model):
 
     class Meta:
         db_table = 'CLASSIFICATION_SETTINGS'
+
+class ReplenushmentMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    classification = models.CharField(max_length=64, default='')
+    size = models.CharField(max_length=32, default='')
+    min_days = models.FloatField(default=0)
+    max_days = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'REPLENUSHMNENT MASTER'
+
+class SkuClassification(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster)
+    classification = models.CharField(max_length=64, default='')
+    avg_sales_day = models.FloatField(default=0)
+    min_units = models.FloatField(default=0)
+    max_units = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SKU CLASSIFICATION'

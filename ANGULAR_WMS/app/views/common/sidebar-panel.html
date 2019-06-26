@@ -79,6 +79,11 @@
             <span>SKU Pack Master</span>
           </a>
         </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.masters.Replenushment">
+            <span>Replenushment Master</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-if="permissions.user_type != 'central_admin'">
           <a ui-sref="app.masters.CorporateMaster" ng-show="show_tab('add_corporatemaster')">
             <span>Project Master</span>

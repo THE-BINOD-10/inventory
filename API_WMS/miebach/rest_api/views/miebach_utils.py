@@ -126,6 +126,9 @@ SUPPLIER_SKU_DATA = {'supplier_id': '', 'supplier_type': '',
 
 SKU_PACK_DATA = {'sku': '','pack_id':'', 'pack_quantity': '','creation_date':datetime.datetime.now()}
 
+REPLENUSHMNENT_DATA = {'classification': '','size':'', 'max_days': 0,'min_days':0, 'creation_date':datetime.datetime.now()}
+
+
 WAREHOUSE_SKU_DATA = {'warehouse': '', 'sku': '', 'priority': '', 'moq': '', 'price': ''}
 
 UPLOAD_ORDER_DATA = {'order_id': '', 'title': '', 'user': '',

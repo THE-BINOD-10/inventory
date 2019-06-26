@@ -7895,8 +7895,13 @@ def write_excel(ws, data_count, ind, val, file_type='xls'):
     if file_type == 'xls':
         ws.write(data_count, ind, val)
     else:
-        val = str(val).replace(',', '  ').replace('\n', '').replace('"', "\'")
-        ws = ws + val + ','
+        try:
+            val = str(val).replace(',', '  ').replace('\n', '').replace('"', "\'")
+            ws = ws + val + ','
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Writing Data to excel failed for %s ' % val)
     return ws
 
 

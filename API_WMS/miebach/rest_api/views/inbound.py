@@ -2913,10 +2913,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                           'tax_percent': myDict['tax_percent'][i],
                           'mrp': myDict['mrp'][i], 'buy_price': myDict['buy_price'][i]
                          }
-            try:
-                batch_dict['weight'] = float(''.join(re.findall('\d+', str(myDict['weight'][i]))))
-            except:
-                batch_dict['weight'] = 0
+            batch_dict['weight'] = myDict['weight'][i]
             add_ean_weight_to_batch_detail(purchase_data['sku'], batch_dict)
         temp_quantity = data.received_quantity
         unit = ''
@@ -5014,6 +5011,8 @@ def confirm_add_po(request, sales_data='', user=''):
         if industry_type == 'FMCG':
             table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+            if user.username in MILKBASKET_USERS:
+                table_headers.insert(4, 'Weight')
         else:
             table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
@@ -5143,6 +5142,13 @@ def confirm_add_po(request, sales_data='', user=''):
                             purchase_order.utgst_tax,
                             total_sku_amt
                             ]
+                if user.username in MILKBASKET_USERS:
+                    weight_obj = purchase_order.sku.skuattributes_set.filter(attribute_name='weight').\
+                        only('attribute_value')
+                    weight = ''
+                    if weight_obj.exists():
+                        weight = weight_obj[0].attribute_value
+                    po_temp_data.insert(4, weight)
             else:
                 total_tax_amt = (purchase_order.utgst_tax + purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.cess_tax + purchase_order.apmc_tax + purchase_order.utgst_tax) * (amount/100)
                 total_sku_amt = total_tax_amt + amount
@@ -5236,7 +5242,10 @@ def confirm_add_po(request, sales_data='', user=''):
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dict)
         if get_misc_value('raise_po', user.id) == 'true':
-	    data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email, 'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name, 'billing_address': profile.address, 'shipping_address': profile.wh_address}
+            data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email,
+                            'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name,
+                            'billing_address': profile.address, 'shipping_address': profile.wh_address,
+                            'table_headers': table_headers}
             if get_misc_value('allow_secondary_emails', user.id) == 'true':
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
                                    str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
@@ -5316,15 +5325,16 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         email_subject = 'pos order'
     if report_type == 'Purchase Order' and data_dict_po and user.username in MILKBASKET_USERS:
         milkbasket_mail_credentials = {'username':'Procurement@milkbasket.com', 'password':'codwtmtnjmvarvip'}
-	t = loader.get_template('templates/toggle/auto_po_mail_format.html')
-	email_body = t.render(data_dict_po)
-	email_subject = 'Purchase Order from ASPL %s to %s dated %s' % (user.username, data_dict_po['supplier_name'], full_order_date)
-	send_mail_attachment(receivers, email_subject, email_body, files=attachments, milkbasket_mail_credentials=milkbasket_mail_credentials)
+        t = loader.get_template('templates/toggle/auto_po_mail_format.html')
+        email_body = t.render(data_dict_po)
+        email_subject = 'Purchase Order from ASPL %s to %s dated %s' % (user.username, data_dict_po['supplier_name'], full_order_date)
+        send_mail_attachment(receivers, email_subject, email_body, files=attachments, milkbasket_mail_credentials=milkbasket_mail_credentials)
     elif supplier_email or internal or internal_mail:
-	send_mail_attachment(receivers, email_subject, email_body, files=attachments)
+        send_mail_attachment(receivers, email_subject, email_body, files=attachments)
+    table_headers = data_dict_po.get('table_headers', None)
     if phone_no:
         if report_type == 'Purchase Order':
-            po_message(po_data, phone_no, username, f_name, order_date, ean_flag)
+            po_message(po_data, phone_no, username, f_name, order_date, ean_flag, table_headers)
         elif report_type == 'Goods Receipt Note':
             grn_message(po_data, phone_no, username, f_name, order_date)
         elif report_type == 'Job Order':

@@ -3282,3 +3282,4 @@ class SkuClassification(models.Model):
 
     class Meta:
         db_table = 'SKU_CLASSIFICATION'
+        unique_together = ('sku', 'classification')

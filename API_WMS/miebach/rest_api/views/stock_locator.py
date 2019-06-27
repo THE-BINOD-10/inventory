@@ -1118,7 +1118,9 @@ def insert_move_inventory(request, user=''):
     seller_id = request.GET.get('seller_id', '')
     batch_no = request.GET.get('batch_number', '')
     mrp =request.GET.get('mrp', '')
-    status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id, batch_no=batch_no, mrp=mrp)
+    weight = request.GET.get('weight', '')
+    status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id, batch_no=batch_no, mrp=mrp,
+                                 weight=weight)
     if 'success' in status.lower():
         update_filled_capacity([source_loc, dest_loc], user.id)
 
@@ -2233,7 +2235,8 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                              filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'batch_detail__batch_no',
-           'batch_detail__mrp', 'batch_detail__manufactured_date', 'batch_detail__expiry_date', 'location__zone__zone', 'location__location', 'pallet_detail__pallet_code',
+           'batch_detail__mrp', 'batch_detail__weight', 'batch_detail__manufactured_date', 'batch_detail__expiry_date',
+           'location__zone__zone', 'location__location', 'pallet_detail__pallet_code',
            'quantity', 'receipt_type']
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -2270,9 +2273,11 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
         _date = _date.strftime("%d %b, %Y")
         batch_no = manufactured_date = expiry_date = ''
         mrp = 0
+        weight = ''
         if data.batch_detail:
             batch_no = data.batch_detail.batch_no
             mrp = data.batch_detail.mrp
+            weight = data.batch_detail.weight
             manufactured_date = data.batch_detail.manufactured_date.strftime("%d %b %Y") if data.batch_detail.manufactured_date else ''
             expiry_date = data.batch_detail.expiry_date.strftime("%d %b %Y") if data.batch_detail.expiry_date else ''
         if pallet_switch == 'true':
@@ -2284,7 +2289,8 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                                     ('WMS Code', data.sku.wms_code),
                                                     ('Product Description', data.sku.sku_desc),
                                                     ('Batch Number', batch_no),
-                                                    ('MRP', mrp), ('Manufactured Date', manufactured_date), ('Expiry Date', expiry_date),
+                                                    ('MRP', mrp), ('Weight', weight),
+                                                    ('Manufactured Date', manufactured_date), ('Expiry Date', expiry_date),
                                                     ('Zone', data.location.zone.zone),
                                                     ('Location', data.location.location),
                                                     ('Quantity', get_decimal_limit(user.id, data.quantity)),
@@ -2295,7 +2301,8 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                                     ('WMS Code', data.sku.wms_code),
                                                     ('Product Description', data.sku.sku_desc),
                                                     ('Batch Number', batch_no),
-                                                    ('MRP', mrp),('Manufactured Date', manufactured_date), ('Expiry Date', expiry_date),
+                                                    ('MRP', mrp), ('Weight', weight), ('Manufactured Date', manufactured_date),
+                                                    ('Expiry Date', expiry_date),
                                                     ('Zone', data.location.zone.zone),
                                                     ('Location', data.location.location),
                                                     ('Quantity', get_decimal_limit(user.id, data.quantity)),
@@ -2306,20 +2313,26 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
 @get_admin_user
 def get_sku_batches(request, user=''):
     sku_batches = defaultdict(list)
+    sku_weights = defaultdict(list)
     sku_batch_details = {}
+    sku_weight_details = {}
     sku_code = request.GET.get('sku_code')
     sku_id = SKUMaster.objects.filter(user=user.id, sku_code=sku_code).only('id')
     if sku_id:
         sku_id = sku_id[0].id
-        batch_obj = BatchDetail.objects.filter(stockdetail__sku=sku_id).values('batch_no', 'mrp', 'buy_price', 'manufactured_date', 'expiry_date', 'tax_percent', 'transact_type', 'transact_id').distinct()
+        batch_obj = BatchDetail.objects.filter(stockdetail__sku=sku_id).values('batch_no', 'mrp', 'buy_price', 'manufactured_date', 'expiry_date', 'tax_percent', 'transact_type', 'transact_id', 'weight').distinct()
         for batch in batch_obj:
             sku_batches[batch['batch_no']].append(batch['mrp'])
             sku_batches[batch['batch_no']] = list(set(sku_batches[batch['batch_no']]))
+            sku_weights[batch['batch_no']].append(batch['weight'])
+            sku_weights[batch['batch_no']] = list(set(sku_weights[batch['batch_no']]))
             batch['manufactured_date'] = str(batch['manufactured_date'])
             batch['expiry_date'] = str(batch['expiry_date'])
             sku_batch_details.setdefault("%s_%s" % (batch['batch_no'], str(int(batch['mrp']))), []).append(batch)
+            sku_weight_details.setdefault("%s_%s" % (batch['batch_no'], batch['weight']), []).append(batch)
 
-    return HttpResponse(json.dumps({"sku_batches": sku_batches, "sku_batch_details": sku_batch_details}))
+    return HttpResponse(json.dumps({"sku_batches": sku_batches, "sku_batch_details": sku_batch_details,
+                                    'sku_weights': sku_weights, 'sku_weight_details': sku_weight_details }))
 
 
 @csrf_exempt

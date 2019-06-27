@@ -106,6 +106,7 @@ def get_inventory_excel_upload_headers(user):
         del excel_headers["MRP"]
         del excel_headers["Manufactured Date(YYYY-MM-DD)"]
         del excel_headers["Expiry Date(YYYY-MM-DD)"]
+        del excel_headers["Weight"]
     return excel_headers
 
 
@@ -117,6 +118,7 @@ def get_move_inventory_excel_upload_headers(user):
     if not userprofile.industry_type == 'FMCG':
         del excel_headers["Batch Number"]
         del excel_headers["MRP"]
+        del excel_headers["Weight"]
     return excel_headers
 
 
@@ -157,6 +159,7 @@ def get_inventory_adjustment_excel_upload_headers(user):
     if not userprofile.industry_type == 'FMCG':
         del excel_headers["Batch Number"]
         del excel_headers["MRP"]
+        del excel_headers["Weight"]
     return excel_headers
 
 
@@ -1806,6 +1809,10 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                         data_dict['seller_id'] = seller_master[0].id
                 except:
                     index_status.setdefault(row_idx, set()).add('Seller ID Should be number')
+            elif key == 'weight':
+                data_dict['weight'] = cell_data
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
             elif key in number_fields:
                 try:
                     data_dict[key] = float(cell_data)
@@ -1874,6 +1881,9 @@ def inventory_excel_upload(request, user, data_list):
             batch_no = inventory_data.get('batch_no', '')
             if 'batch_no' in inventory_data.keys():
                 del inventory_data['batch_no']
+            weight = inventory_data.get('weight', '')
+            if 'weight' in inventory_data.keys():
+                del inventory_data['weight']
             mrp = inventory_data.get('mrp', 0)
             if 'mrp' in inventory_data.keys():
                 del inventory_data['mrp']
@@ -1896,7 +1906,7 @@ def inventory_excel_upload(request, user, data_list):
                 pallet_detail.save()
                 stock_query_filter['pallet_detail_id'] = pallet_detail.id
                 inventory_data['pallet_detail_id'] = pallet_detail.id
-            if mrp or batch_no or mfg_date or exp_date:
+            if mrp or batch_no or mfg_date or exp_date or weight:
                 try:
                     mrp = float(mrp)
                 except:
@@ -1908,6 +1918,8 @@ def inventory_excel_upload(request, user, data_list):
                     batch_dict['manufactured_date'] = mfg_date
                 if exp_date:
                     batch_dict['expiry_date'] = exp_date
+                if weight:
+                    batch_dict['weight'] = weight
                 add_ean_weight_to_batch_detail(SKUMaster.objects.get(id=inventory_data['sku_id']), batch_dict)
                 batch_obj = BatchDetail(**batch_dict)
                 batch_obj.save()
@@ -3130,6 +3142,10 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                 if isinstance(cell_data, float):
                     cell_data = str(int(cell_data))
                     data_dict[key] = cell_data
+            elif key == 'weight':
+                if isinstance(cell_data, float):
+                    cell_data = str(int(cell_data))
+                data_dict[key] = cell_data
             elif key in number_fields:
                 if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % fields_mapping[key])
@@ -3157,6 +3173,11 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                 stock_dict["batch_detail__mrp"] = mrp
                 reserved_dict["stock__batch_detail__mrp"] = mrp
                 raw_reserved_dict["stock__batch_detail__mrp"] = mrp
+            if data_dict.get('weight', ''):
+                weight = data_dict['weight']
+                stock_dict["batch_detail__weight"] = weight
+                reserved_dict["stock__batch_detail__weight"] = weight
+                raw_reserved_dict["stock__batch_detail__weight"] = weight
             if data_dict.get('seller_master_id', ''):
                 stock_dict['sellerstock__seller_id'] = data_dict['seller_master_id']
                 stock_dict['sellerstock__quantity__gt'] = 0
@@ -3221,7 +3242,7 @@ def move_inventory_upload(request, user=''):
         cycle_id = cycle_count[0].cycle + 1
     mod_locations = []
     for data_dict in data_list:
-        extra_dict = {}
+        extra_dict = OrderedDict()
         wms_code = data_dict['wms_code']
         source_loc = data_dict['source']
         dest_loc = data_dict['destination']
@@ -3232,6 +3253,8 @@ def move_inventory_upload(request, user=''):
             extra_dict['batch_no'] = data_dict['batch_no']
         if data_dict.get('mrp', ''):
             extra_dict['mrp'] = data_dict['mrp']
+        if data_dict.get('weight', ''):
+            extra_dict['weight'] = data_dict['weight']
         move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, **extra_dict)
         mod_locations.append(source_loc)
         mod_locations.append(dest_loc)
@@ -3643,15 +3666,17 @@ def inventory_adjust_upload(request, user=''):
         loc = final_dict['location_master'].location
         quantity = final_dict['quantity']
         reason = final_dict['reason']
-        seller_master_id, batch_no, mrp = '', '', 0
+        seller_master_id, batch_no, mrp, weight = '', '', 0, ''
         if final_dict.get('seller_master', ''):
             seller_master_id = final_dict['seller_master'].id
         if final_dict.get('batch_no', ''):
             batch_no = final_dict['batch_no']
         if final_dict.get('mrp', 0):
             mrp = final_dict['mrp']
+        if final_dict.get('weight', ''):
+            weight = final_dict['weight']
         adjust_location_stock(cycle_id, wms_code, loc, quantity, reason, user, batch_no=batch_no, mrp=mrp,
-                              seller_master_id=seller_master_id)
+                              seller_master_id=seller_master_id, weight=weight)
     check_and_update_stock(sku_codes, user)
     return HttpResponse('Success')
 

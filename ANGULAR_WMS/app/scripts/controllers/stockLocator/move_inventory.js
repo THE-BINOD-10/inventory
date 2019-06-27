@@ -19,6 +19,7 @@
       vm.user_type = Session.user_profile.user_type;
       vm.batch_nos = [];
       vm.batches = {};
+      vm.weights = {};
 
       vm.dtOptions = DTOptionsBuilder.newOptions()
          .withOption('ajax', {
@@ -122,6 +123,8 @@
             if(data.message) {
               vm.batches = data.data.sku_batches;
               vm.batch_nos = Object.keys(vm.batches);
+              vm.weights = data.data.sku_weights;
+              vm.weight_list = Object.keys(vm.weights);
             }
           });
         }
@@ -328,6 +331,7 @@
     $ctrl.model_data.dest_info = [{dest_sku_code:'', dest_quantity:'', dest_location:'', batch_number:'', mrp:''}];
     $ctrl.batch_nos = [];
     $ctrl.batches = {};
+    $ctrl.weights = {};
     $ctrl.cols = 2;
     if (!$ctrl.industry_type) {
       $ctrl.cols = 3;
@@ -345,6 +349,7 @@
             $ctrl.model_data.mfg_date = $ctrl.batch_details[key][0]['manufactured_date'];
             $ctrl.model_data.exp_date = $ctrl.batch_details[key][0]['expiry_date'];
             $ctrl.model_data.tax_percent = $ctrl.batch_details[key][0]['tax_percent'];
+            $ctrl.model_data.weight = $ctrl.batch_details[key][0]['weight'];
         }
     }
     $ctrl.get_sku_batches = function(sku_code){
@@ -354,6 +359,8 @@
               $ctrl.batch_details = data.data.sku_batch_details
               $ctrl.batches = data.data.sku_batches;
               $ctrl.batch_nos = Object.keys($ctrl.batches);
+              $ctrl.weights = data.data.sku_weights;
+              $ctrl.weight_list = Object.keys($ctrl.weights);
             }
           });
         }

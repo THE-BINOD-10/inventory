@@ -8018,13 +8018,19 @@ def allocate_order_returns(user, sku_data, request):
     return data
 
 
-def update_sku_attributes_data(data, key, value):
-    sku_attr_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name=key)
-    if not sku_attr_obj and value:
-        SKUAttributes.objects.create(sku_id=data.id, attribute_name=key, attribute_value=value,
-                                     creation_date=datetime.datetime.now())
-    else:
-        sku_attr_obj.update(attribute_value=value)
+def update_sku_attributes_data(data, key, value, is_bulk_create=False, create_sku_attrs=None):
+    if not value == '':
+        sku_attr_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name=key)
+        if not sku_attr_obj and value:
+            if not is_bulk_create:
+                SKUAttributes.objects.create(sku_id=data.id, attribute_name=key, attribute_value=value,
+                                             creation_date=datetime.datetime.now())
+            else:
+                create_sku_attrs.append(SKUAttributes(**{'sku_id': data.id, 'attribute_name': key, 'attribute_value': value,
+                                             'creation_date': datetime.datetime.now()}))
+        elif sku_attr_obj and sku_attr_obj[0].attribute_value != value:
+            sku_attr_obj.update(attribute_value=value)
+    return create_sku_attrs
 
 
 def update_sku_attributes(data, request):

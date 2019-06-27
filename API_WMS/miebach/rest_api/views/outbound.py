@@ -9815,6 +9815,7 @@ def construct_order_customer_order_detail(request, order, user):
 def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
     response_data = {}
     other_charges = 0
+    central_order_mgmt = get_misc_value('central_order_mgmt', usr_id)
     tax = CustomerOrderSummary.objects.filter(order_id__in=det_ids,
                                               order__user=usr_id).aggregate(Sum('tax_value'))[
         'tax_value__sum']
@@ -9833,6 +9834,10 @@ def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
     response_data['date'] = get_only_date(request, order[0].creation_date)
     response_data['order_id'] = order[0].order_id
     response_data['data'] = []
+    if central_order_mgmt == 'true':
+        sku = order[0].sku
+        response_data['sku_spl_attrs'] = dict(SKUAttributes.objects.filter(sku_id__sku_code=sku.sku_code, sku__user =usr_id).
+                                         values_list('attribute_name', 'attribute_value'))
     res, total_picked_quantity = construct_order_customer_order_detail(request, order, usr_id)
     total_inv_amt = map(sum, [[x['invoice_amount'] for x in res]])
     total_qty = map(sum, [[x['quantity'] for x in res]])

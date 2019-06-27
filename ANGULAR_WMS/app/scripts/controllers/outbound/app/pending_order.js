@@ -11,6 +11,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.priceband_sync = vm.session_roles.permissions.priceband_sync;
     vm.display_sku_cust_mapping = vm.session_roles.permissions.display_sku_cust_mapping;
     vm.user_role = vm.session_roles.user_role;
+    vm.user_type = Session.roles.permissions.user_type
     vm.model_data = {};
     vm.is_portal_lite = Session.roles.permissions.is_portal_lite;
     vm.date = new Date();

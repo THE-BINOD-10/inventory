@@ -5034,10 +5034,18 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
 
 def check_ean_number(sku_code, ean_number, user):
     ''' Check ean number exists'''
-    ean_objs = SKUMaster.objects.filter(Q(ean_number=ean_number) | Q(eannumbers__ean_number=ean_number),
-                                         user=user.id)
-    ean_check = list(ean_objs.exclude(sku_code=sku_code).values_list('sku_code', flat=True))
-    mapped_check = list(ean_objs.filter(sku_code=sku_code).values_list('sku_code', flat=True))
+    sku_ean_objs = SKUMaster.objects.filter(ean_number=ean_number, user=user.id).only('ean_number', 'sku_code')
+    ean_objs = EANNumbers.objects.filter(sku__user=user.id, ean_number=ean_number)
+    sku_ean_check = list(sku_ean_objs.exclude(sku_code=sku_code).values_list('sku_code', flat=True)[:2])
+    ean_number_check = list(ean_objs.exclude(sku__sku_code=sku_code).values_list('sku__sku_code', flat=True)[:2])
+    ean_check = []
+    mapped_check = []
+    ean_check.extend(sku_ean_check)
+    ean_check.extend(ean_number_check)
+    if sku_ean_objs.exists():
+        mapped_check.append(sku_ean_objs[0].ean_number)
+    if ean_objs.exists():
+        mapped_check.append(ean_objs[0].ean_number)
     #if ean_check:
     #    status = 'Ean Number is already mapped for sku codes ' + ', '.join(ean_check)
     return ean_check, mapped_check

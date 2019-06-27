@@ -1381,6 +1381,8 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                         if ',' in str(cell_data):
                             ean_numbers = str(cell_data).split(',')
                         else:
+                            if isinstance(cell_data, float):
+                                cell_data = int(cell_data)
                             ean_numbers = [cell_data]
                         error_eans = []
                         for ean in ean_numbers:

@@ -66,6 +66,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       DTColumnBuilder.newColumn('Amount').withTitle('Amount').notSortable(),
       DTColumnBuilder.newColumn('Days Left').withTitle('Days Left').notSortable(),
       DTColumnBuilder.newColumn('Corporate Name').withTitle('Corporate Name'),
+      DTColumnBuilder.newColumn('Remarks').withTitle('Remarks'),
       DTColumnBuilder.newColumn('Extend Date').withTitle('Extend Date').notSortable(),
       // DTColumnBuilder.newColumn('Input Div').withTitle('Extend Date').notSortable(),
       DTColumnBuilder.newColumn('Move to Cart').withTitle('Move to Cart').notSortable(),
@@ -95,7 +96,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $('td:not(td:last)', nRow).bind('click', function() {
             $scope.$apply(function() {
               console.log("markets")
-                vm.service.apiCall('get_customer_enquiry_detail/', 'GET', {enquiry_id: aData['Enquiry ID']}).then(function(data){
+                vm.service.apiCall('get_customer_enquiry_detail/', 'GET', {enquiry_id: aData['ID']}).then(function(data){
                   if(data.message) {
                     angular.copy(data.data, vm.model_data);
                     vm.title = "Market Enquiry";

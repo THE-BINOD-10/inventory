@@ -63,7 +63,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ['Enquiry ID', 'Enquiry Date', 'Customer Name', 'Style Name', 'Customization', 'SKU Code', 'Status'];
+    var columns = ['Enquiry ID', 'Emiza Order Id', 'Enquiry Date', 'Customer Name', 'Style Name', 'Customization', 'SKU Code', 'Status'];
     vm.dtColumns = vm.service.build_colums(columns);
 
     var row_click_bind = 'td';
@@ -79,13 +79,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       $(row_click_bind, nRow).bind('click', function() {
         $scope.$apply(function() {
           let url = "get_manual_enquiry_detail/?user_id="+Session.userId+"&enquiry_id=";
-          vm.service.apiCall(url+aData['Enquiry ID']).then(function(data){
+          vm.service.apiCall(url+aData['ID']).then(function(data){
             if(data.message) {
               vm.order_details = data.data;
               if(vm.order_details.data == 'Get Manual Enquiry Detail Failed'){
                 Service.showNoty(vm.order_details.data, 'warning');
               }else {
-                vm.order_id = vm.order_details.order.enquiry_id;
+                vm.order_id = vm.order_details.order.id;
                 vm.status = 'manual_enquiry';
                 vm.title = "Custom Order";
                 $state.go('user.App.MyOrders.CustomOrder');
@@ -111,7 +111,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
     vm.disable_btn = true;
     vm.model_data['user_id'] = Session.userId;
-    vm.model_data['enquiry_id'] = vm.order_details.order.enquiry_id;
+    vm.model_data['enquiry_id'] = vm.order_details.order.id;
     vm.model_data['enq_status'] = 'marketing_pending';
     Service.apiCall('save_manual_enquiry_data/', 'POST', vm.model_data).then(function(data) {
       if (data.message) {

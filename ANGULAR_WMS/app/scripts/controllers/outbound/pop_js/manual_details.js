@@ -351,7 +351,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
             vm.model_data.r_c_price = vm.order_details.md_approved_details.rc_price;
           }
         } else {
-          Service.showNoty(data.data.data, 'warning');
+          Service.showNoty(data.data, 'warning');
           $modalInstance.close();
         }
       }
@@ -382,12 +382,20 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
   vm.cal_wh_qty = function(wh_data, data){
     if (vm.tot_quantity) {
       var tem_total_qty = 0;
+      var tem_order_qty = 0;
       angular.forEach(data, function(level_data){
-        tem_total_qty += Number(level_data.quantity);
+        tem_order_qty += Number(level_data.quantity);
+        if (level_data.warehouse == wh_data.warehouse) {
+          tem_total_qty = (level_data.wh_open + level_data.intr_open) - (level_data.wh_blocked + level_data.intr_blocked)
+          if (tem_total_qty < parseInt(wh_data.quantity)) {
+            wh_data.quantity = 0;
+            Service.showNoty("Unable to place order from this warehouse, Available Quantity - <b>"+tem_total_qty+"</b>");
+          }
+        }
       });
-      if (tem_total_qty > vm.tot_quantity) {
+      if (tem_order_qty > vm.tot_quantity) {
         wh_data.quantity = 0;
-        Service.showNoty("You are already reached available(<b>"+vm.tot_quantity+"</b>) quantity");
+        Service.showNoty("Your ordered quantity - <b>"+vm.tot_quantity+"</b>");
       }
     } else {
       Service.showNoty("You don't have quantity to place order");
@@ -402,7 +410,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
       return false;
     }
     vm.disable_btn = true;
-    vm.model_data['enquiry_id'] = vm.order_details.order.enquiry_id;
+    vm.model_data['enquiry_id'] = vm.order_details.order.id;
     vm.model_data['enq_status'] = 'marketing_pending';
     vm.model_data['status'] = "marketing_pending";
     Service.apiCall('save_manual_enquiry_data/', 'POST', vm.model_data).then(function(data) {

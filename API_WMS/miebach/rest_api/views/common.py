@@ -552,6 +552,7 @@ data_datatable = {  # masters
     'StockSummaryAlt': 'get_stock_summary_size', 'SellerStockTable': 'get_seller_stock_data', \
     'BatchLevelStock': 'get_batch_level_stock', 'WarehouseStockAlternative': 'get_alternative_warehouse_stock',
     'Available+ASN': 'get_availasn_stock',
+    'SerialNumberSKU': 'get_stock_summary_serials_excel',
     'AutoSellableSuggestion': 'get_auto_sellable_suggestion_data',
     # outbound
     'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders', \
@@ -996,20 +997,28 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
     return HttpResponse(path_to_file)
 
 
-def po_message(po_data, phone_no, user_name, f_name, order_date, ean_flag):
+def po_message(po_data, phone_no, user_name, f_name, order_date, ean_flag, table_headers=None):
     data = '%s Orders for %s dated %s' % (user_name, f_name, order_date)
     total_quantity = 0
     total_amount = 0
     if ean_flag:
         for po in po_data:
             data += '\nD.NO: %s, Qty: %s' % (po[2], po[4])
-            total_quantity += int(po[4])
-            total_amount += float(po[6])
+            if table_headers:
+                total_quantity += int(po[table_headers.index('Qty')])
+                total_amount += float(po[table_headers.index('Amt')])
+            else:
+                total_quantity += int(po[4])
+                total_amount += float(po[6])
     else:
         for po in po_data:
             data += '\nD.NO: %s, Qty: %s' % (po[1], po[3])
-            total_quantity += int(po[3])
-            total_amount += float(po[5])
+            if table_headers:
+                total_quantity += int(po[table_headers.index('Qty')])
+                total_amount += float(po[table_headers.index('Amt')])
+            else:
+                total_quantity += int(po[3])
+                total_amount += float(po[5])
     data += '\nTotal Qty: %s, Total Amount: %s\nPlease check WhatsApp for Images' % (total_quantity, total_amount)
     send_sms(phone_no, data)
 
@@ -1673,6 +1682,11 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                            'location_id': dest[0].id, 'sku_id': sku_id}
             if mrp_dict:
                 mrp_dict['creation_date'] = datetime.datetime.now()
+                # if user.username in MILKBASKET_USERS:
+                #     sku_obj = SKUMaster.objects.get(id=sku_id)
+                #     weight = get_sku_weight(sku_obj)
+                #     if weight:
+                #         mrp_dict['batch_detail__weight'] = weight
                 new_batch = BatchDetail.objects.create(**mrp_dict)
                 dict_values['batch_detail_id'] = new_batch.id
                 dest_batch = new_batch
@@ -1699,6 +1713,12 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                 change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
         else:
             dest_stocks = dest_stocks[0]
+            if user.username in MILKBASKET_USERS and dest_stocks.batch_detail and dest_stocks.batch_detail.weight in ['', '0']:
+                weight = get_sku_weight(dest_stocks.sku)
+                if weight:
+                    batch_obj = dest_stocks.batch_detail
+                    batch_obj.weight = weight
+                    batch_obj.save()
             dest_stocks.quantity += float(quantity)
             dest_stocks.save()
             change_seller_stock(dest_seller_id, dest_stocks, user, quantity, 'inc')
@@ -1706,7 +1726,8 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                 dest_batch = dest_stocks.batch_detail
     return dest_batch
 
-def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp=''):
+def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp='',
+                        weight=''):
     # sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
     sku = check_and_return_mapping_id(wms_code, "", user, False)
     if sku:
@@ -1745,6 +1766,10 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
         stock_dict["batch_detail__mrp"] = mrp
         reserved_dict["stock__batch_detail__mrp"] = mrp
         raw_reserved_dict["stock__batch_detail__mrp"] = mrp
+    if weight:
+        stock_dict["batch_detail__weight"] =  weight
+        reserved_dict["stock__batch_detail__weight"] =  weight
+        raw_reserved_dict["stock__batch_detail__weight"] = weight
     if seller_id:
         stock_dict['sellerstock__seller_id'] = seller_id
         reserved_dict["stock__sellerstock__seller_id"] = seller_id
@@ -1829,7 +1854,7 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
 
 
 def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet='', batch_no='', mrp='',
-                          seller_master_id=''):
+                          seller_master_id='', weight=''):
     now_date = datetime.datetime.now()
     now = str(now_date)
     if wmscode:
@@ -1861,9 +1886,10 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         stock_dict["batch_detail__batch_no"] =  batch_no
     if mrp:
         stock_dict["batch_detail__mrp"] = mrp
+    if weight:
+        stock_dict["batch_detail__weight"] = weight
     if seller_master_id:
         stock_dict['sellerstock__seller_id'] = seller_master_id
-
     total_stock_quantity = 0
     dest_stocks = ''
 
@@ -1894,6 +1920,12 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
             total_stock_quantity = 0
         remaining_quantity = total_stock_quantity - quantity
         for stock in stocks:
+            if user.username in MILKBASKET_USERS and stock.batch_detail and stock.batch_detail.weight in ['', '0']:
+                weight = get_sku_weight(stock.sku)
+                if weight:
+                    batch_obj = stock.batch_detail
+                    batch_obj.weight = weight
+                    batch_obj.save()
             if total_stock_quantity < quantity:
                 stock.quantity += abs(remaining_quantity)
                 save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', remaining_quantity, stock)
@@ -1925,6 +1957,9 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
             if mrp:
                 batch_dict['mrp'] = mrp
                 del stock_dict["batch_detail__mrp"]
+            if weight:
+                batch_dict['weight'] = weight
+                del stock_dict["batch_detail__weight"]
             if 'sellerstock__seller_id' in stock_dict.keys():
                 del stock_dict['sellerstock__seller_id']
             if batch_dict.keys():
@@ -2818,9 +2853,11 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
         order = None
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     if invoice_no_gen:
-        seller_order_summary = SellerOrderSummary.objects.filter(Q(order__id__in=order_ids) |
-                                                                 Q(seller_order__order__user=user.id,
-                                                                   seller_order__order_id__in=order_ids))
+        if user.userprofile.user_type == 'marketplace_user':
+            seller_order_summary = SellerOrderSummary.objects.filter(seller_order__order__user=user.id,
+                                                                   seller_order__order_id__in=order_ids)
+        else:
+            seller_order_summary = SellerOrderSummary.objects.filter(Q(order__id__in=order_ids))
         if seller_order_summary and invoice_no_gen[0].creation_date < seller_order_summary[0].creation_date:
             check_dict = {}
             prefix_key = 'order__'
@@ -2949,10 +2986,13 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     total_quantity, total_amt, total_taxable_amt, total_invoice, total_tax, total_mrp, _total_tax = 0, 0, 0, 0, 0, 0, 0
     total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'utgst_amt': 0, 'cess_amt': 0}
     hsn_summary = {}
+    partial_order_quantity_price = 0
+    order_charges_percent =1
     is_gst_invoice = False
     invoice_date = datetime.datetime.now()
     order_reference_date_field = ''
-    order_charges = ''
+    order_charges = {}
+    total_order_quantity_price = 0
     customer_id = ''
     mode_of_transport = ''
     vehicle_number = ''
@@ -2985,7 +3025,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     if order_ids:
         sor_id = ''
         order_ids = list(set(order_ids.split(',')))
-        order_data = OrderDetail.objects.filter(id__in=order_ids).exclude(status=3)
+        order_data = OrderDetail.objects.filter(id__in=order_ids).exclude(status=3).select_related('sku')
         if user.userprofile.user_type == 'marketplace_user':
             seller_summary = SellerOrderSummary.objects.filter(seller_order__order_id__in=order_ids)
         else:
@@ -3182,6 +3222,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 discount_percentage = "%.1f" % (float((discount * 100) / (quantity * unit_price)))
             unit_price = "%.2f" % unit_price
             total_quantity += quantity
+            partial_order_quantity_price += (float(unit_price) * float(quantity))
             _total_tax += _tax
             invoice_amount = _tax + amt
             total_invoice += _tax + amt
@@ -3204,7 +3245,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 quantity = int(quantity)
             quantity = get_decimal_limit(user.id ,quantity)
             invoice_amount = get_decimal_limit(user.id ,invoice_amount ,'price')
-
             count = count +1
             data.append(
                 {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
@@ -3265,10 +3305,35 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     total_invoice_amount = total_invoice
     if order_id:
         order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
-        order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'id'))
-        total_charge_amount = order_charge_obj.aggregate(Sum('charge_amount'))['charge_amount__sum']
-        if total_charge_amount:
-            total_invoice_amount = float(total_charge_amount) + total_invoice
+        if order_charge_obj.exists():
+            total_order_qtys = OrderDetail.objects.filter(original_order_id = order_id,user = user.id ).values('sku__wms_code').annotate(total=F('quantity') * F('unit_price'))
+            for quantity in total_order_qtys :
+                total_order_quantity_price += quantity.get('total' ,0)
+
+        order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'charge_tax_value','id'))
+        if total_order_quantity_price :
+            order_charges_percent = (partial_order_quantity_price / total_order_quantity_price)
+        invoice_order_charge = ''
+        full_order_charge = True
+        if order_charges_percent != 1 and sell_ids :
+            if sell_ids.get('pick_number__in',0) :
+                pick_num = sell_ids.get('pick_number__in')[0]
+                invoice_order_charge = InvoiceOrderCharges.objects.filter(original_order_id = order_id , pick_number = pick_num,user = user.id)
+                if invoice_order_charge.exists():
+                    order_charges = list(invoice_order_charge.values('charge_name', 'charge_amount', 'charge_tax_value','id'))
+                    full_order_charge = False
+                    for order_chrg in order_charges :
+                        total_invoice_amount += order_chrg['charge_amount']+order_chrg['charge_tax_value']
+                        order_chrg['charge_amount'] = round(order_chrg['charge_amount'], 2)
+                        order_chrg['charge_tax_value'] = round(order_chrg['charge_tax_value'], 2)
+        if full_order_charge :
+            for order_chrg in order_charges :
+                order_chrg['charge_amount'] = order_charges_percent * order_chrg['charge_amount']
+                order_chrg['charge_tax_value'] = order_charges_percent * order_chrg['charge_tax_value']
+                total_invoice_amount += order_chrg['charge_amount']+order_chrg['charge_tax_value']
+                order_chrg['charge_amount'] = round(order_chrg['charge_amount'], 2)
+                order_chrg['charge_tax_value'] = round(order_chrg['charge_tax_value'], 2)
+
 
     total_amt = "%.2f" % (float(total_invoice) - float(_total_tax))
     dispatch_through = "By Road"
@@ -3958,11 +4023,23 @@ def get_customer_sku_prices(request, user=""):
     cust_id = request.POST.get('cust_id', '')
     sku_codes = request.POST.get('sku_codes', '')
     tax_type = request.POST.get('tax_type', '')
-
     log.info('Get Customer SKU Prices data for ' + user.username + ' is ' + str(request.POST.dict()))
 
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     try:
+        if sku_codes:
+            sku_values = SKUMaster.objects.filter(wms_code=sku_codes, user=user.id).values()
+            product_type = sku_values[0]['product_type']
+            tax_values = TaxMaster.objects.filter(product_type=product_type, user=user.id).values()
+            igst_tax = tax_values[0]['igst_tax']
+            sgst_tax = tax_values[0]['sgst_tax']
+            cgst_tax = tax_values[0]['cgst_tax']
+        else:
+            product_type = ''
+            igst_tax = ''
+            sgst_tax = ''
+            cgst_tax = ''
+
         sku_codes = [sku_codes]
         result_data = []
         price_bands_list = []
@@ -4013,7 +4090,7 @@ def get_customer_sku_prices(request, user=""):
                     discount = price_master_objs[0].discount
             result_data.append(
                 {'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': price, 'discount': discount,
-                 'taxes': taxes_data, 'price_bands_map': price_bands_list, 'mrp': data.mrp})
+                 'taxes': taxes_data, 'price_bands_map': price_bands_list, 'mrp': data.mrp, 'product_type': product_type, 'igst_tax': igst_tax, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax})
 
     except Exception as e:
         import traceback
@@ -4774,6 +4851,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
     data = []
     style_quantities = eval(request.POST.get('required_quantity', '{}'))
     levels_config = get_misc_value('generic_wh_level', user.id)
+    admin_user = get_admin(user)
     central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
     sku_spl_attrs = {}
     get_values = ['wms_code', 'sku_desc', 'hsn_code', 'image_url', 'sku_class', 'cost_price', 'price', 'mrp', 'id',
@@ -4849,7 +4927,13 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
                     tax = tax[0]
                     tax_percentage = float(tax['sgst_tax']) + float(tax['igst_tax']) + float(tax['cgst_tax'])
                     sku_styles[0]['tax_percentage'] = '%.1f'%tax_percentage
-            if total_quantity >= int(stock_quantity):
+
+            is_prava_check = True
+            if admin_user.username == 'isprava_admin' :
+                if sku_styles[0]['style_quantity'] == 0 :
+                    is_prava_check = False
+
+            if total_quantity >= int(stock_quantity) and is_prava_check:
                 if msp_min_price and msp_max_price:
                     if float(msp_min_price) <= sku_variants[0]['your_price'] <= float(msp_max_price):
                         data.append(sku_styles[0])
@@ -5203,7 +5287,18 @@ def get_imei_data(request, user=''):
                                                   }
                     data.append(imei_data)
                     imei_status = 'Consumed'
-
+                elif order_mapping.stock_transfer:
+                    stock_transfer = order_mapping.stock_transfer
+                    if stock_transfer.st_po.open_st.sku.user:
+                        destination_user_id = stock_transfer.st_po.open_st.sku.user
+                        warehouse_user = User.objects.get(id=destination_user_id)
+                    imei_data['stock_transfer'] = {'stock_transfer_id': stock_transfer.order_id,
+                                                   'order_date': get_local_date(user, order_mapping.creation_date),
+                                                   'warehouse': warehouse_user.username,
+                                                   'address' : warehouse_user.userprofile.address,
+                                                   }
+                    data.append(imei_data)
+                    imei_status = 'Transfered'
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -8005,7 +8100,7 @@ def get_batch_dict(transact_id, transact_type):
     batch_dict = {}
     batch_obj = BatchDetail.objects.filter(transact_id=transact_id, transact_type=transact_type)
     if batch_obj:
-        batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date')[0]
+        batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date','weight')[0]
         if batch_dict['expiry_date']:
             batch_dict['expiry_date'] = batch_dict['expiry_date'].strftime('%m/%d/%Y')
         if batch_dict['manufactured_date']:
@@ -8630,7 +8725,7 @@ def get_linked_warehouse_names(request, user=''):
 
 def get_sku_ean_list(sku, order_by_val=''):
     eans_list = []
-    if sku.ean_number:
+    if sku.ean_number not in ['', '0']:
         eans_list.append(str(sku.ean_number))
     multi_eans = sku.eannumbers_set.filter().annotate(str_eans=Cast('ean_number', CharField())).\
                     values_list('str_eans', flat=True)
@@ -8924,10 +9019,7 @@ def add_ean_weight_to_batch_detail(sku, batch_dict):
         batch_dict['ean_number'] = ean_number[0]
     weight_obj = sku.skuattributes_set.filter(attribute_name='weight')
     if weight_obj and not 'weight' in batch_dict.keys():
-        try:
-            batch_dict['weight'] = float(''.join(re.findall('\d+', str(weight_obj[0].attribute_value))))
-        except:
-            batch_dict['weight'] = 0
+        batch_dict['weight'] = weight_obj[0].attribute_value
 
 
 def check_and_create_duplicate_batch(batch_detail_obj, model_obj):
@@ -9357,12 +9449,17 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
             sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, supplier_id=supplier_id, sku__user=user.id)
         sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
         sup_markdown = SupplierMaster.objects.get(id=supplier_id)
-        data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,
+        data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,'weight':'',
                 'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
         if sku_master.block_options:
             data['sku_block'] = sku_master.block_options
         else:
             data['sku_block'] = ''
+        skuattributes = SKUAttributes.objects.filter(sku_id=sku_master.id, attribute_name = 'weight' )
+        weight = ''
+        if skuattributes.exists():
+            weight = skuattributes[0].attribute_value
+        data['weight'] = weight
         if sku_supplier:
             mrp_value = sku_master.mrp
             if sku_supplier[0].costing_type == 'Margin Based':
@@ -9452,3 +9549,12 @@ def get_firebase_order_data(order_id):
         log.info('Firebase query  failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(request.POST.dict()), str(e)))
     return result
+
+
+def get_sku_weight(sku):
+    """ Returns SKU Weight"""
+    weight = ''
+    weight_obj = sku.skuattributes_set.filter(attribute_name='weight')
+    if weight_obj.exists():
+        weight = weight_obj[0].attribute_value
+    return weight

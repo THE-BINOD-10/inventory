@@ -659,6 +659,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                 product.fields.blocked_sku = data.sku_block
                 product.fields.price = data.price;
                 product.fields.supplier_code = data.supplier_code;
+                product.fields.weight = data.weight;
                 vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
                 vm.getTotals();
               }

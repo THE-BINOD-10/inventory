@@ -38,6 +38,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('status').withTitle('Status'),
         DTColumnBuilder.newColumn(' ').withTitle('').notSortable(),
       ]
+    if(vm.permissions.add_subzonemapping)
+    {
+      vm.dtColumns.push(DTColumnBuilder.newColumn('sub_zone').withTitle('SubZone'))
+    }
+
+
     vm.status_data = ["Inactive","Active"];
     vm.lock_fields =  ['Inbound', 'Outbound','Inbound and Outbound']
 

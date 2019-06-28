@@ -4248,18 +4248,22 @@ def get_zone_details(start_index, stop_index, temp_data, search_term, order_term
         else:
             loc = LocationMaster.objects.prefetch_related('zone').filter(**filter_params).order_by(order_data)
         sub_zone = ''
-        # if loc_location.zone.level == 1:
-        #     sub_zone = loc_location.zone.zone
         temp_data['recordsTotal'] = loc.count()
         temp_data['recordsFiltered'] = loc.count()
         for loc_location in loc[start_index:stop_index]:
+            if loc_location.zone.level == 1:
+                sub_zone = loc_location.zone.zone
             loc_groups = list(loc_location.locationgroups_set.filter().values_list('group', flat=True))
+            button = ''
+            if not request.POST.get('excel'):
+                button = '<button type="button" name="edit_zone" ng-click="showCase.edit_zone("'" loc_location.zone.zone"'")" ng-disabled="showCase.button_edit"  class="btn btn-primary ng-click-active" >Edit Zone</button>'
+
 
             temp_data['aaData'].append(
                 OrderedDict((('zone',loc_location.zone.zone),('location', loc_location.location), ('max_capacity', loc_location.max_capacity),('lock_status',loc_location.lock_status),
                              ('fill_sequence', loc_location.fill_sequence),('pick_sequence',loc_location.pick_sequence),('status',loc_location.status),
                              ('all_groups',all_groups),('location_group',loc_groups),('pallet_capacity',loc_location.pallet_capacity),('sub_zone',sub_zone),
-                              (' ', '<button type="button" name="edit_zone" ng-click="showCase.edit_zone("'" loc_location.zone.zone"'")" ng-disabled="showCase.button_edit"  class="btn btn-primary ng-click-active" >Edit Zone</button>') )))
+                              (' ',button ))))
 
     except Exception as e:
          import traceback

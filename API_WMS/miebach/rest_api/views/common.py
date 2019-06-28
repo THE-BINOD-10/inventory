@@ -998,20 +998,28 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
     return HttpResponse(path_to_file)
 
 
-def po_message(po_data, phone_no, user_name, f_name, order_date, ean_flag):
+def po_message(po_data, phone_no, user_name, f_name, order_date, ean_flag, table_headers=None):
     data = '%s Orders for %s dated %s' % (user_name, f_name, order_date)
     total_quantity = 0
     total_amount = 0
     if ean_flag:
         for po in po_data:
             data += '\nD.NO: %s, Qty: %s' % (po[2], po[4])
-            total_quantity += int(po[4])
-            total_amount += float(po[6])
+            if table_headers:
+                total_quantity += int(po[table_headers.index('Qty')])
+                total_amount += float(po[table_headers.index('Amt')])
+            else:
+                total_quantity += int(po[4])
+                total_amount += float(po[6])
     else:
         for po in po_data:
             data += '\nD.NO: %s, Qty: %s' % (po[1], po[3])
-            total_quantity += int(po[3])
-            total_amount += float(po[5])
+            if table_headers:
+                total_quantity += int(po[table_headers.index('Qty')])
+                total_amount += float(po[table_headers.index('Amt')])
+            else:
+                total_quantity += int(po[3])
+                total_amount += float(po[5])
     data += '\nTotal Qty: %s, Total Amount: %s\nPlease check WhatsApp for Images' % (total_quantity, total_amount)
     send_sms(phone_no, data)
 
@@ -1708,7 +1716,8 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                 dest_batch = dest_stocks.batch_detail
     return dest_batch
 
-def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp=''):
+def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp='',
+                        weight=''):
     # sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
     sku = check_and_return_mapping_id(wms_code, "", user, False)
     if sku:
@@ -1747,6 +1756,10 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
         stock_dict["batch_detail__mrp"] = mrp
         reserved_dict["stock__batch_detail__mrp"] = mrp
         raw_reserved_dict["stock__batch_detail__mrp"] = mrp
+    if weight:
+        stock_dict["batch_detail__weight"] =  weight
+        reserved_dict["stock__batch_detail__weight"] =  weight
+        raw_reserved_dict["stock__batch_detail__weight"] = weight
     if seller_id:
         stock_dict['sellerstock__seller_id'] = seller_id
         reserved_dict["stock__sellerstock__seller_id"] = seller_id
@@ -1831,7 +1844,7 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
 
 
 def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet='', batch_no='', mrp='',
-                          seller_master_id=''):
+                          seller_master_id='', weight=''):
     now_date = datetime.datetime.now()
     now = str(now_date)
     if wmscode:
@@ -1863,9 +1876,10 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         stock_dict["batch_detail__batch_no"] =  batch_no
     if mrp:
         stock_dict["batch_detail__mrp"] = mrp
+    if weight:
+        stock_dict["batch_detail__weight"] = weight
     if seller_master_id:
         stock_dict['sellerstock__seller_id'] = seller_master_id
-
     total_stock_quantity = 0
     dest_stocks = ''
 
@@ -1927,6 +1941,9 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
             if mrp:
                 batch_dict['mrp'] = mrp
                 del stock_dict["batch_detail__mrp"]
+            if weight:
+                batch_dict['weight'] = weight
+                del stock_dict["batch_detail__weight"]
             if 'sellerstock__seller_id' in stock_dict.keys():
                 del stock_dict['sellerstock__seller_id']
             if batch_dict.keys():
@@ -5015,10 +5032,18 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
 
 def check_ean_number(sku_code, ean_number, user):
     ''' Check ean number exists'''
-    ean_objs = SKUMaster.objects.filter(Q(ean_number=ean_number) | Q(eannumbers__ean_number=ean_number),
-                                         user=user.id)
-    ean_check = list(ean_objs.exclude(sku_code=sku_code).values_list('sku_code', flat=True))
-    mapped_check = list(ean_objs.filter(sku_code=sku_code).values_list('sku_code', flat=True))
+    sku_ean_objs = SKUMaster.objects.filter(ean_number=ean_number, user=user.id).only('ean_number', 'sku_code')
+    ean_objs = EANNumbers.objects.filter(sku__user=user.id, ean_number=ean_number)
+    sku_ean_check = list(sku_ean_objs.exclude(sku_code=sku_code).values_list('sku_code', flat=True)[:2])
+    ean_number_check = list(ean_objs.exclude(sku__sku_code=sku_code).values_list('sku__sku_code', flat=True)[:2])
+    ean_check = []
+    mapped_check = []
+    ean_check.extend(sku_ean_check)
+    ean_check.extend(ean_number_check)
+    if sku_ean_objs.exists():
+        mapped_check.append(sku_ean_objs[0].ean_number)
+    if ean_objs.exists():
+        mapped_check.append(ean_objs[0].ean_number)
     #if ean_check:
     #    status = 'Ean Number is already mapped for sku codes ' + ', '.join(ean_check)
     return ean_check, mapped_check
@@ -7999,13 +8024,19 @@ def allocate_order_returns(user, sku_data, request):
     return data
 
 
-def update_sku_attributes_data(data, key, value):
-    sku_attr_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name=key)
-    if not sku_attr_obj and value:
-        SKUAttributes.objects.create(sku_id=data.id, attribute_name=key, attribute_value=value,
-                                     creation_date=datetime.datetime.now())
-    else:
-        sku_attr_obj.update(attribute_value=value)
+def update_sku_attributes_data(data, key, value, is_bulk_create=False, create_sku_attrs=None):
+    if not value == '':
+        sku_attr_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name=key)
+        if not sku_attr_obj and value:
+            if not is_bulk_create:
+                SKUAttributes.objects.create(sku_id=data.id, attribute_name=key, attribute_value=value,
+                                             creation_date=datetime.datetime.now())
+            else:
+                create_sku_attrs.append(SKUAttributes(**{'sku_id': data.id, 'attribute_name': key, 'attribute_value': value,
+                                             'creation_date': datetime.datetime.now()}))
+        elif sku_attr_obj and sku_attr_obj[0].attribute_value != value:
+            sku_attr_obj.update(attribute_value=value)
+    return create_sku_attrs
 
 
 def update_sku_attributes(data, request):
@@ -8067,7 +8098,7 @@ def get_batch_dict(transact_id, transact_type):
     batch_dict = {}
     batch_obj = BatchDetail.objects.filter(transact_id=transact_id, transact_type=transact_type)
     if batch_obj:
-        batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date')[0]
+        batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date','weight')[0]
         if batch_dict['expiry_date']:
             batch_dict['expiry_date'] = batch_dict['expiry_date'].strftime('%m/%d/%Y')
         if batch_dict['manufactured_date']:
@@ -8452,7 +8483,7 @@ def update_stock_detail(stocks, quantity, user, rtv_id):
 
 
 def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet='', batch_no='', mrp='',
-                          seller_master_id=''):
+                          seller_master_id='', weight=''):
     now_date = datetime.datetime.now()
     now = str(now_date)
     if wmscode:
@@ -8483,6 +8514,8 @@ def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         stock_dict["batch_detail__batch_no"] =  batch_no
     if mrp:
         stock_dict["batch_detail__mrp"] = mrp
+    if weight:
+        stock_dict["batch_detail__weight"] = weight
     if seller_master_id:
         stock_dict['sellerstock__seller_id'] = seller_master_id
 
@@ -8495,24 +8528,24 @@ def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
             return 'No Stocks Found'
         elif total_stock_quantity < quantity:
             return 'Reducing quantity is more than total quantity'
-	data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
-	data_dict['cycle'] = cycle_id
-	data_dict['sku_id'] = sku_id
-	data_dict['location_id'] = location[0].id
-	data_dict['quantity'] = total_stock_quantity
-	data_dict['seen_quantity'] = total_stock_quantity - quantity
-	data_dict['status'] = 0
-	data_dict['creation_date'] = now
-	data_dict['updation_date'] = now
-	cycle_obj = CycleCount.objects.filter(cycle=cycle_id, sku_id=sku_id, location_id=data_dict['location_id'])
-	if cycle_obj:
-	    cycle_obj = cycle_obj[0]
-	    cycle_obj.seen_quantity += quantity
-	    cycle_obj.save()
-	    dat = cycle_obj
-	else:
-	    dat = CycleCount(**data_dict)
-	    dat.save()
+        data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
+        data_dict['cycle'] = cycle_id
+        data_dict['sku_id'] = sku_id
+        data_dict['location_id'] = location[0].id
+        data_dict['quantity'] = total_stock_quantity
+        data_dict['seen_quantity'] = total_stock_quantity - quantity
+        data_dict['status'] = 0
+        data_dict['creation_date'] = now
+        data_dict['updation_date'] = now
+        cycle_obj = CycleCount.objects.filter(cycle=cycle_id, sku_id=sku_id, location_id=data_dict['location_id'])
+        if cycle_obj:
+            cycle_obj = cycle_obj[0]
+            cycle_obj.seen_quantity += quantity
+            cycle_obj.save()
+            dat = cycle_obj
+        else:
+            dat = CycleCount(**data_dict)
+            dat.save()
         remaining_quantity = quantity
         for stock in stocks:
             if remaining_quantity == 0:
@@ -8692,7 +8725,7 @@ def get_linked_warehouse_names(request, user=''):
 
 def get_sku_ean_list(sku, order_by_val=''):
     eans_list = []
-    if sku.ean_number:
+    if sku.ean_number not in ['', '0']:
         eans_list.append(str(sku.ean_number))
     multi_eans = sku.eannumbers_set.filter().annotate(str_eans=Cast('ean_number', CharField())).\
                     values_list('str_eans', flat=True)
@@ -8986,10 +9019,7 @@ def add_ean_weight_to_batch_detail(sku, batch_dict):
         batch_dict['ean_number'] = ean_number[0]
     weight_obj = sku.skuattributes_set.filter(attribute_name='weight')
     if weight_obj and not 'weight' in batch_dict.keys():
-        try:
-            batch_dict['weight'] = float(''.join(re.findall('\d+', str(weight_obj[0].attribute_value))))
-        except:
-            batch_dict['weight'] = 0
+        batch_dict['weight'] = weight_obj[0].attribute_value
 
 
 def check_and_create_duplicate_batch(batch_detail_obj, model_obj):
@@ -9419,12 +9449,17 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
             sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, supplier_id=supplier_id, sku__user=user.id)
         sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
         sup_markdown = SupplierMaster.objects.get(id=supplier_id)
-        data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,
+        data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,'weight':'',
                 'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
         if sku_master.block_options:
             data['sku_block'] = sku_master.block_options
         else:
             data['sku_block'] = ''
+        skuattributes = SKUAttributes.objects.filter(sku_id=sku_master.id, attribute_name = 'weight' )
+        weight = ''
+        if skuattributes.exists():
+            weight = skuattributes[0].attribute_value
+        data['weight'] = weight
         if sku_supplier:
             mrp_value = sku_master.mrp
             if sku_supplier[0].costing_type == 'Margin Based':
@@ -9514,3 +9549,12 @@ def get_firebase_order_data(order_id):
         log.info('Firebase query  failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(request.POST.dict()), str(e)))
     return result
+
+
+def get_sku_weight(sku):
+    """ Returns SKU Weight"""
+    weight = ''
+    weight_obj = sku.skuattributes_set.filter(attribute_name='weight')
+    if weight_obj.exists():
+        weight = weight_obj[0].attribute_value
+    return weight

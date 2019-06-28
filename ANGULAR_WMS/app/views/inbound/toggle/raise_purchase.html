@@ -151,6 +151,7 @@
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Measurement</th>
                     <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
                     <th>Unit Price</th>
+                    <th ng-if="showCase.industry_type=='FMCG' && user.user_profile.user_type == 'marketplace_user'">Weight</th>
                     <th class="w10_">SGST(%)</th>
                     <th class="w10_">CGST(%)</th>
                     <th class="w10_">IGST(%)</th>
@@ -195,6 +196,9 @@
                     <td>
                       <input type="text"  ng-model="product.fields.price" name="price" class="form-control detectTab" decimal-number
                              ng-readonly="showCase.default_status" ng-keyup="showCase.getTotals()" size="12">
+                    </td>
+                    <td ng-if="showCase.industry_type=='FMCG' && user.user_profile.user_type == 'marketplace_user'">
+                      <input name="weight" ng-model="product.fields.weight" type="text" class="form-control detectTab" readonly size="12">
                     </td>
                     <td>
 			<input ng-show="product.fields.edit_tax" type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">

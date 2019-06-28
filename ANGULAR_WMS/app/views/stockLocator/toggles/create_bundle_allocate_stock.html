@@ -39,12 +39,14 @@
                     <th>Location</th>
                     <th>Batch</th>
                     <th>MRP</th>
+                    <th>Weight</th>
                     <th>Qty</th>
                     <th>Child SKU Code</th>
                     <th>Child SKU Desc</th>
                     <th>Child SKU Location</th>
                     <th>Child SKU Batch</th>
                     <th>Child SKU MRP</th>
+                    <th>Child SKU Weight</th>
                     <th>Child SKU Qty</th>
                   </tr>
                 </thead>
@@ -69,7 +71,9 @@
         <td>
                       <input type="number" name="mrp" min=0 class="form-control" ng-model="data.mrp" ng-show="$first">
                     </td>
-
+                    <td>
+                      <input type="text" name="weight" min=0 class="form-control" ng-model="data.weight" ng-show="$first">
+                    </td>
                     <td>
                       <input type="text" d-perm="true" name="quantity" ng-model="data.quantity" class="form-control number" ng-class="service.get_decimal_perm()" ng-show="$first" ng-keyup="bundleObj.change_child_quantity(data)">
                     </td>
@@ -92,6 +96,10 @@
 
                     <td>
                       <input type="number" name="child_mrp" min=0 class="form-control" ng-model="item.child_sku_mrp">
+                    </td>
+
+                    <td>
+                      <input type="text" name="child_weight" min=0 class="form-control" ng-model="item.child_sku_weight">
                     </td>
 
                     <td>

@@ -1909,12 +1909,6 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
             total_stock_quantity = 0
         remaining_quantity = total_stock_quantity - quantity
         for stock in stocks:
-            if user.username in MILKBASKET_USERS and stock.batch_detail and stock.batch_detail.weight in ['', '0']:
-                weight = get_sku_weight(stock.sku)
-                if weight:
-                    batch_obj = stock.batch_detail
-                    batch_obj.weight = weight
-                    batch_obj.save()
             if total_stock_quantity < quantity:
                 stock.quantity += abs(remaining_quantity)
                 save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', remaining_quantity, stock)

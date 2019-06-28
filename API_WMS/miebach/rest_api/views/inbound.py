@@ -3521,13 +3521,18 @@ def create_return_order(data, user):
         if data.get('sor_id', ''):
             sor_id = data['sor_id']
         seller_id = ''
-        if data.get('seller_id', ''):
-            temp_seller = data['seller_id']
-            if ':' in temp_seller:
-                seller_val_id = temp_seller.split(':')[0]
-                seller_obj = SellerMaster.objects.filter(user=user_obj.id, seller_id=seller_val_id)
-                if seller_obj.exists():
-                    seller_id = seller_obj[0].id
+        if user_obj.username in MILKBASKET_USERS:
+            seller_obj = SellerMaster.objects.filter(user=user_obj.id, seller_id=1)
+            if seller_obj.exists():
+                seller_id = seller_obj[0].id
+        else:
+            if data.get('seller_id', ''):
+                temp_seller = data['seller_id']
+                if ':' in temp_seller:
+                    seller_val_id = temp_seller.split(':')[0]
+                    seller_obj = SellerMaster.objects.filter(user=user_obj.id, seller_id=seller_val_id)
+                    if seller_obj.exists():
+                        seller_id = seller_obj[0].id
         if data.get('order_imei_id', ''):
             order_map_ins = OrderIMEIMapping.objects.get(id=data['order_imei_id'])
             data['order_id'] = order_map_ins.order.original_order_id
@@ -3786,7 +3791,6 @@ def update_return_reasons(order_return, reasons_list=[]):
 @get_admin_user
 def confirm_sales_return(request, user=''):
     """ Creating and Confirming the Sales Returns"""
-
     data_dict = dict(request.POST.iterlists())
     return_type = request.POST.get('return_type', '')
     return_process = request.POST.get('return_process')
@@ -3863,7 +3867,6 @@ def confirm_sales_return(request, user=''):
         log.debug(traceback.format_exc())
         log.info('Confirm Sales return for ' + str(user.username) + ' is failed for ' + str(
             request.POST.dict()) + ' error statement is ' + str(e))
-
     created_return_ids = list(set(created_return_ids))
     if created_return_ids:
         return_sales_print = []

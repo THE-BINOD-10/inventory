@@ -7999,7 +7999,7 @@ def allocate_order_returns(user, sku_data, request):
                                 annotate(ret=Sum(F('orderreturns__quantity')),
                                         dam=Sum(F('orderreturns__damaged_quantity'))).annotate(tot=F('ret')+F('dam')). \
                                 filter(Q(tot__isnull=True) | Q(quantity__gt=F('tot')))
-    if user.username == 'milkbasket':
+    if user.username in MILKBASKET_USERS:
         orders = orders.order_by('-creation_date')
     if orders:
         order = orders[0]

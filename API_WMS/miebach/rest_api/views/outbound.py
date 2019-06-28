@@ -841,10 +841,10 @@ def get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_sku
 def get_picklist_data(data_id, user_id):
     courier_name = ''
     sku_total_quantities = {}
-    sku_imeis_map = {}
+    # sku_imeis_map = {}
     is_combo_picklist = False
-    manufactured_date =''
-    st_order =''
+    # manufactured_date =''
+    # st_order =''
     picklist_orders = Picklist.objects.filter(Q(order__sku__user=user_id) | Q(stock__sku__user=user_id),
                                               picklist_number=data_id)
     pick_stocks = StockDetail.objects.filter(sku__user=user_id)
@@ -856,10 +856,10 @@ def get_picklist_data(data_id, user_id):
     stock_skus = map(lambda d: d['sku__wms_code'], stocks)
     reserved_skus = map(lambda d: d['stock__sku__wms_code'], reserved_instances)
     data = []
-    dispatched_imeis = OrderIMEIMapping.objects.filter(status=1, order__user=user_id, po_imei__isnull=False).values_list(
+    dispatched_imeis = OrderIMEIMapping.objects.filter(status=1, order__user=user_id, po_imei__isnull=False).only('po_imei_id').values_list(
         'po_imei_id', flat=True)
     dict_list = ['sku__sku_code', 'imei_number']
-    imei_qs = POIMEIMapping.objects.filter(status=1, sku__user=user_id).exclude(id__in=dispatched_imeis).values_list(
+    imei_qs = POIMEIMapping.objects.filter(status=1, sku__user=user_id).exclude(id__in=dispatched_imeis).only(*dict_list).values_list(
         *dict_list).distinct().order_by('creation_date')
     sku_imeis_map = {}
     #for sku_code, imei_number in imei_qs:
@@ -1023,12 +1023,12 @@ def get_picklist_data(data_id, user_id):
             stock_id = ''
             customer_name = ''
             remarks = ''
-            load_unit_handle = ''
-            category = ''
-            customer_address = ''
+            #load_unit_handle = ''
+            #category = ''
+            #customer_address = ''
             original_order_id = ''
             order_code = ''
-            order_id = ''
+            #order_id = ''
             mrp = ''
             batch_no = ''
             manufactured_date = ''
@@ -4784,7 +4784,12 @@ def create_order_from_intermediate_order(request, user):
                     interm_obj.save()
                     cust_ord_dict = {'order_id': ord_obj.id, 'sgst_tax': interm_obj.sgst_tax, 'cgst_tax': interm_obj.cgst_tax,
                                      'igst_tax': interm_obj.igst_tax}
-                    CustomerOrderSummary.objects.create(**cust_ord_dict)
+                    cos_qs = CustomerOrderSummary.objects.filter(order_id=ord_obj.id)
+                    if cos_qs:
+                        cos_qs.update(**cust_ord_dict)
+                    else:
+                        cos_obj = CustomerOrderSummary(**cust_ord_dict)
+                        cos_obj.save()
 
                     #mail to Admin and normal user
                     central_orders_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='central_orders', misc_value='true')
@@ -14934,16 +14939,16 @@ def do_delegate_orders(request, user=''):
         created_order_objs = []
         result_data = {}
         status_map = {'Accept' : '1', 'Reject' : '0', 'Pending' : '2'}
-        message = 'Success'
-        first = True
-        inter_obj_data = {}
+        #message = 'Success'
+        #first = True
+        #inter_obj_data = {}
         output_list = []
         reserved_obj_dict, raw_reserved_dict = {}, {}
         interm_obj_filter = IntermediateOrders.objects.filter(id=obj_data['interm_det_id'], user=user.id)
         interm_obj = interm_obj_filter[0]
         warehouses = UserGroups.objects.filter(admin_user_id=interm_obj.user, user__username=interm_obj.order_assigned_wh.username)
         wh_users = warehouses.values_list('user_id', flat=True)
-        warehouse_names = warehouses.values_list('user__username', flat=True)
+        #warehouse_names = warehouses.values_list('user__username', flat=True)
         for wh in warehouses:
             stock_obj_dict = dict(StockDetail.objects.filter(sku__sku_code=obj_data['alt_sku_code'],
                 sku__user__in=wh_users, quantity__gt=0).values_list('sku__user').distinct().annotate(in_stock=Sum('quantity')))
@@ -15223,7 +15228,12 @@ def do_delegate_orders(request, user=''):
                                     'cgst_tax': interm_obj.cgst_tax, 'igst_tax': interm_obj.igst_tax,
                                     'vehicle_number': '', 'tax_value': tax_value,
                                     'invoice_date': datetime.datetime.now()}
-                    CustomerOrderSummary.objects.create(**cust_ord_dict)
+                    cos_qs = CustomerOrderSummary.objects.filter(order_id=ord_obj.id)
+                    if cos_qs:
+                        cos_qs.update(**cust_ord_dict)
+                    else:
+                        cos_obj = CustomerOrderSummary(**cust_ord_dict)
+                        cos_obj.save()
                     #mail to Admin and normal user
                     central_orders_mail = MiscDetail.objects.filter(user=request.user.id,
                         misc_type='central_orders', misc_value='true')

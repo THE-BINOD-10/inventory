@@ -46,7 +46,7 @@ MILKBASKET_USERS = ['milkbasket', 'milkbasket_noida', 'milkbasket_test', 'milkba
 ADJUST_INVENTORY_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('WMS Code', 'wms_code'),
                                             ('Location', 'location'),
                                             ('Physical Quantity', 'quantity'), ('Batch Number', 'batch_no'),
-                                            ('MRP', 'mrp'), ('Reason', 'reason')))
+                                            ('MRP', 'mrp'), ('Weight', 'weight'), ('Reason', 'reason')))
 
 SUB_CATEGORIES = OrderedDict((('mens_polo', 'MENS POLO'), ('ladies_polo', 'LADIES POLO'),
                               ('round_neck', 'ROUND NECK'), ('hoodie', 'HOODIE'), ('jackets', 'JACKETS'),
@@ -232,7 +232,7 @@ MOVE_INVENTORY_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('WMS Co
                                             ('Source Location', 'source'),
                                             ('Destination Location', 'destination'),
                                             ('Quantity', 'quantity'), ('Batch Number', 'batch_no'),
-                                            ('MRP', 'mrp')))
+                                            ('MRP', 'mrp'), ('Weight', 'weight')))
 
 SKU_SUBSTITUTION_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('Source SKU Code', 'source_sku_code'),
                                               ('Source Location', 'source_location'),
@@ -1001,7 +1001,8 @@ INVENTORY_EXCEL_MAPPING = OrderedDict(( ('Seller ID', 'seller_id'), ('Receipt Da
                               ('Receipt Type', 'receipt_type'), ('Pallet Number', 'pallet_number'),
                               ('Batch Number', 'batch_no'), ('MRP', 'mrp'),
                               ('Manufactured Date(YYYY-MM-DD)', 'manufactured_date'),
-                              ('Expiry Date(YYYY-MM-DD)', 'expiry_date')
+                              ('Expiry Date(YYYY-MM-DD)', 'expiry_date'),
+                              ('Weight', 'weight')
                             ))
 
 SKU_EXCEL = (

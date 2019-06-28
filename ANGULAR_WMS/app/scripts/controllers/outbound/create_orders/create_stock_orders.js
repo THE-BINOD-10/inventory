@@ -125,7 +125,7 @@ vm.changeUnitPrice = function(data){
 
         record.invoice_amount = Number(record.price)*Number(record.quantity);
         vm.update_availabe_stock(record)
-        vm.change_brand(data)
+//        vm.change_brand(data)
 
       }
     })

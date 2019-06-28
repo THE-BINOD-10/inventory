@@ -140,7 +140,7 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
         if stock_quantity < float(order_quantity):
             is_seller_stock_updated = False
             if seller_order:
-                src_stocks = temp_sku_stocks.filter(sellerstock__seller__name='ASPL', **sku_id_stock_filter)
+                src_stocks = temp_sku_stocks.filter(sellerstock__seller__seller_id=1, **sku_id_stock_filter)
                 if src_stocks:
                     src_sku_id_stocks = src_stocks.values('id', 'sku_id').annotate(total=Sum('quantity')).\
                                                                                     order_by(order_by)
@@ -249,13 +249,13 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write("Started Updating")
-        users = User.objects.filter(username='milkbasket_test')
+        users = User.objects.filter(username__in=['NOIDA02'])
         log.info(str(datetime.datetime.now()))
         for user in users:
             picklist_exclude_zones = get_exclude_zones(user)
             open_orders = OrderDetail.objects.prefetch_related('sku').\
                                             filter(user=user.id, status=1, sellerorder__isnull=False,
-                                                                             quantity__gt=0)
+                                                                             quantity__gt=0, sellerorder__seller__seller_id=2)
             picklist_number = ''
             if open_orders.exists():
                 picklist_number = get_picklist_number(user)

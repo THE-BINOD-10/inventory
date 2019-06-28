@@ -8485,7 +8485,7 @@ def update_stock_detail(stocks, quantity, user, rtv_id):
 
 
 def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet='', batch_no='', mrp='',
-                          seller_master_id=''):
+                          seller_master_id='', weight=''):
     now_date = datetime.datetime.now()
     now = str(now_date)
     if wmscode:
@@ -8516,6 +8516,8 @@ def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         stock_dict["batch_detail__batch_no"] =  batch_no
     if mrp:
         stock_dict["batch_detail__mrp"] = mrp
+    if weight:
+        stock_dict["batch_detail__weight"] = weight
     if seller_master_id:
         stock_dict['sellerstock__seller_id'] = seller_master_id
 
@@ -8528,24 +8530,24 @@ def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
             return 'No Stocks Found'
         elif total_stock_quantity < quantity:
             return 'Reducing quantity is more than total quantity'
-	data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
-	data_dict['cycle'] = cycle_id
-	data_dict['sku_id'] = sku_id
-	data_dict['location_id'] = location[0].id
-	data_dict['quantity'] = total_stock_quantity
-	data_dict['seen_quantity'] = total_stock_quantity - quantity
-	data_dict['status'] = 0
-	data_dict['creation_date'] = now
-	data_dict['updation_date'] = now
-	cycle_obj = CycleCount.objects.filter(cycle=cycle_id, sku_id=sku_id, location_id=data_dict['location_id'])
-	if cycle_obj:
-	    cycle_obj = cycle_obj[0]
-	    cycle_obj.seen_quantity += quantity
-	    cycle_obj.save()
-	    dat = cycle_obj
-	else:
-	    dat = CycleCount(**data_dict)
-	    dat.save()
+        data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
+        data_dict['cycle'] = cycle_id
+        data_dict['sku_id'] = sku_id
+        data_dict['location_id'] = location[0].id
+        data_dict['quantity'] = total_stock_quantity
+        data_dict['seen_quantity'] = total_stock_quantity - quantity
+        data_dict['status'] = 0
+        data_dict['creation_date'] = now
+        data_dict['updation_date'] = now
+        cycle_obj = CycleCount.objects.filter(cycle=cycle_id, sku_id=sku_id, location_id=data_dict['location_id'])
+        if cycle_obj:
+            cycle_obj = cycle_obj[0]
+            cycle_obj.seen_quantity += quantity
+            cycle_obj.save()
+            dat = cycle_obj
+        else:
+            dat = CycleCount(**data_dict)
+            dat.save()
         remaining_quantity = quantity
         for stock in stocks:
             if remaining_quantity == 0:

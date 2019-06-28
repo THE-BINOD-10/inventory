@@ -2649,11 +2649,10 @@ def get_combo_sku_codes(request, user=''):
     get_sku_id = SKUMaster.objects.filter(user=request.user.id, sku_code=sku_code)
     if get_sku_id.exists():
         parent_sku_id = get_sku_id[0].id
+        parent_mrp = get_sku_id[0].mrp
         stock_detail = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sellerstock__seller_id=seller_master_id,
                                                             sku_id=parent_sku_id, location__zone__zone__in=sellable_zones,
                                                             batch_detail__isnull=False).only('batch_detail__mrp')
-        if stock_detail.exists():
-            parent_mrp = stock_detail[0].batch_detail.mrp
     combo_skus = SKURelation.objects.filter(parent_sku__user=user.id, parent_sku__sku_code=sku_code)
     if not combo_skus:
         return HttpResponse(json.dumps({"status": False, "message":"No Data Found"}))
@@ -2667,8 +2666,10 @@ def get_combo_sku_codes(request, user=''):
         if stock_detail.exists():
             child_mrp = stock_detail[0].batch_detail.mrp
         all_data.append({'child_sku_qty': child_quantity, 'child_sku_code': cond, 'child_sku_batch':'', 'child_sku_desc': combo.member_sku.sku_desc,
-                        'child_sku_location': '', 'child_sku_mrp': child_mrp, 'child_qty': child_quantity})
-    parent_data = {'combo_sku_code': combo_skus[0].parent_sku.sku_code, 'combo_sku_desc': combo_skus[0].parent_sku.sku_desc, 'quantity':1, 'mrp': parent_mrp}
+                        'child_sku_location': '', 'child_sku_mrp': child_mrp, 'child_qty': child_quantity,
+                         'child_sku_weight': get_sku_weight(combo.member_sku)})
+    parent_data = {'combo_sku_code': combo_skus[0].parent_sku.sku_code, 'combo_sku_desc': combo_skus[0].parent_sku.sku_desc,
+                   'quantity':1, 'mrp': parent_mrp, 'weight': get_sku_weight(combo_skus[0].parent_sku)}
     return HttpResponse(json.dumps({"status": True, 'parent': parent_data, 'childs': all_data}), content_type='application/json')
 
 
@@ -2689,9 +2690,11 @@ def confirm_combo_allocation(request, user=''):
         for ind in range(0, len(data_dict['combo_sku_code'])):
             combo_batch_no = data_dict['batch'][ind]
             combo_mrp = data_dict['mrp'][ind]
+            combo_weight = data_dict['weight'][ind]
             combo_qty = data_dict['quantity'][ind]
             child_batch_no = data_dict['child_batch'][ind]
             child_mrp = data_dict['child_mrp'][ind]
+            child_weight = data_dict['child_weight'][ind]
             child_qty = data_dict['child_quantity'][ind]
             if not combo_qty:
                 return HttpResponse(json.dumps({'status':False, 'message':'Child Quantity should be number'}))
@@ -2733,6 +2736,8 @@ def confirm_combo_allocation(request, user=''):
                 stock_dict['batch_detail__batch_no'] = child_batch_no
             if child_mrp:
                 stock_dict['batch_detail__mrp'] = child_mrp
+            if child_weight:
+                stock_dict['batch_detail__weight'] = child_weight
             child_stocks = StockDetail.objects.filter(**stock_dict)
             child_stock_count = child_stocks.aggregate(Sum('quantity'))['quantity__sum']
             if not child_stock_count:
@@ -2747,20 +2752,24 @@ def confirm_combo_allocation(request, user=''):
             if combo_mrp:
                 mrp_dict['mrp'] = combo_mrp
                 combo_filter['batch_detail__mrp'] = combo_mrp
+            if combo_weight:
+                mrp_dict['weight'] = combo_weight
+                combo_filter['batch_detail__weight'] = combo_weight
             add_ean_weight_to_batch_detail(combo_sku[0], mrp_dict)
             if seller_id:
                 combo_filter['sellerstock__seller_id'] = seller_id
             combo_stocks = StockDetail.objects.filter(**combo_filter)
-            group_key = '%s<<>>%s<<>>%s<<>>%s' % (str(combo_sku[0].sku_code), str(combo_loc[0].location),
-                                                  str(combo_batch_no), str(combo_mrp))
+            group_key = '%s<<>>%s<<>>%s<<>>%s<<>>%s' % (str(combo_sku[0].sku_code), str(combo_loc[0].location),
+                                                  str(combo_batch_no), str(combo_mrp), str(combo_weight))
             final_data.setdefault(group_key, {'combo_sku': combo_sku[0], 'combo_loc': combo_loc[0],
                                               'combo_batch_no': combo_batch_no, 'combo_mrp': combo_mrp,
                                               'combo_qty': combo_qty, 'combo_mrp_dict': mrp_dict,
-                                              'combo_stocks': combo_stocks,
+                                              'combo_stocks': combo_stocks, 'combo_weight': combo_weight,
                                               'childs': []})
             final_data[group_key]['childs'].append({'child_sku': child_sku[0], 'child_loc': child_loc[0],
                                                     'child_batch_no': child_batch_no, 'child_mrp': child_mrp,
-                                                    'child_qty': child_qty, 'child_stocks': child_stocks})
+                                                    'child_qty': child_qty, 'child_stocks': child_stocks,
+                                                    'child_mrp': child_mrp})
         final_data = final_data.values()
         source_updated=False
 

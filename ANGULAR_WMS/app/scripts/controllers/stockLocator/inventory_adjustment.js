@@ -16,6 +16,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.industry_type = Session.user_profile.industry_type;
     vm.batch_nos = [];
     vm.batches = {};
+    vm.weight_list = [];
+    vm.weights = {};
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -194,6 +196,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         if(data.message) {
           vm.batches = data.data.sku_batches;
           vm.batch_nos = Object.keys(vm.batches);
+          vm.weights = data.data.sku_weights;
+          vm.weight_list = Object.keys(vm.weights);
         }
       });
     }

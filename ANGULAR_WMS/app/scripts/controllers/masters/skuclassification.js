@@ -31,6 +31,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('Sku Code').withTitle('Sku Code'),
         DTColumnBuilder.newColumn('classification').withTitle('Classification'),
         DTColumnBuilder.newColumn('avg_sales_day').withTitle('Avg Sales/Day'),
+        DTColumnBuilder.newColumn('avail_qty').withTitle('SA Available/Qty'),
         DTColumnBuilder.newColumn('min_units').withTitle('Min Units'),
         DTColumnBuilder.newColumn('max_units').withTitle('Max Units'),
 

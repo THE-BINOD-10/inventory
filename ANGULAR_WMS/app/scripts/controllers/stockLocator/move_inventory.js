@@ -293,7 +293,7 @@
 
     vm.combo_allocate_stock = function() {
 	
-	vm.allocate_empty_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": ""}] } ] }
+	vm.allocate_empty_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "weight": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": "", "child_sku_weight": ""}] } ] }
 	angular.copy(vm.allocate_empty_data, vm.model_data);
 	var mod_data = vm.model_data;
         var modalInstance = $modal.open({
@@ -571,8 +571,8 @@
     bundleObj.bundle_skus_list = [];
     bundleObj.marginData = items;
     bundleObj.service = Service;
-    bundleObj.bundle_model_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": ""}] } ] }
-    bundleObj.empty_bundle_model_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": ""}] } ] }
+    bundleObj.bundle_model_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "weight": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_weight": "", "child_sku_qty": ""}] } ] }
+    bundleObj.empty_bundle_model_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "weight": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": "", "child_sku_weight": ""}] } ] }
     bundleObj.cssClass = "fa fa-plus-square-o";
     bundleObj.last = true;
     bundleObj.first = false;
@@ -641,8 +641,10 @@
           sku_data.combo_sku_desc = data.data.parent.combo_sku_desc;
           sku_data.quantity = data.data.parent.quantity;
 	      sku_data.mrp = data.data.parent.mrp;
+          sku_data.weight = data.data.parent.weight;
         } else {
-          sku_data.data = [{"child_sku_batch": "", "child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_mrp": "", "child_sku_qty": ""}]
+          sku_data.data = [{"child_sku_batch": "", "child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_mrp": "",
+                            "child_sku_qty": "", "child_sku_weight": ""}]
         }
       });
     }
@@ -696,7 +698,7 @@
     bundleObj.bundle_update_data = function(data, index, last, first) {
       if (last) {
         var prefill_data = data.data[index]
-        data.data.splice(index+1, 0, {"child_sku_batch": prefill_data['child_sku_batch'], "child_sku_code": prefill_data['child_sku_code'], "child_sku_desc": prefill_data['child_sku_desc'], "child_sku_location": "", "child_sku_mrp": prefill_data['child_sku_mrp'], "child_sku_qty": prefill_data['child_sku_qty'], "child_qty": prefill_data['child_qty'], "new_sku" : true});
+        data.data.splice(index+1, 0, {"child_sku_batch": prefill_data['child_sku_batch'], "child_sku_code": prefill_data['child_sku_code'], "child_sku_desc": prefill_data['child_sku_desc'], "child_sku_location": "", "child_sku_mrp": prefill_data['child_sku_mrp'], "child_sku_qty": prefill_data['child_sku_qty'], "child_qty": prefill_data['child_qty'], "new_sku" : true, "child_sku_weight": prefill_data['child_sku_weight']});
       } else {
         data.data.splice(index,1);
       }

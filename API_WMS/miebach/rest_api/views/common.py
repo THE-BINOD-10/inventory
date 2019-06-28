@@ -525,7 +525,7 @@ data_datatable = {  # masters
     'StaffMaster': 'get_staff_master', 'CorporateMaster': 'get_corporate_master',\
     'WarehouseSKUMappingMaster': 'get_wh_sku_mapping', 'ClusterMaster': 'get_cluster_sku_results',
     'ReplenushmentMaster':'get_replenushment_master',
-    'SkuClassification':'get_skuclassification',
+
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
     'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data', \
@@ -556,6 +556,7 @@ data_datatable = {  # masters
     'Available+ASN': 'get_availasn_stock',
     'SerialNumberSKU': 'get_stock_summary_serials_excel',
     'AutoSellableSuggestion': 'get_auto_sellable_suggestion_data',
+    'SkuClassification':'get_skuclassification',
     # outbound
     'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders', \
     'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders', \

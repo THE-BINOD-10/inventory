@@ -438,24 +438,6 @@ var app = angular.module('urbanApp')
                    templateUrl: 'views/masters/toggles/replenushment_update.html'
                  })
 
-              .state('app.masters.SkuClassification',{
-                url:'/SkuClassification',
-                templateUrl: 'views/masters/skuclassification_datatable.html',
-                resolve: {
-                  deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                      return $ocLazyLoad.load('scripts/controllers/masters/skuclassification.js');
-                          }]
-                },
-                data: {
-                  title: 'SkuClassification Master'
-                }
-              })
-                .state('app.masters.SkuClassification.update', {
-                   url: '/SkuClassificationUpdate',
-                   templateUrl: 'views/masters/toggles/skuclassification_update.html'
-                 })
-
-
 
         .state('app.masters.Customer-SKUMapping', {
           url: '/Customer-SKUMapping',
@@ -1161,6 +1143,27 @@ var app = angular.module('urbanApp')
             title: 'Stock Summary',
           }
         })
+
+        .state('app.stockLocator.SkuClassification',{
+          url:'/SkuClassification',
+          templateUrl: 'views/stockLocator/skuclassification_datatable.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/stockLocator/skuclassification.js');
+                    }]
+          },
+          data: {
+            title: 'SkuClassification Master'
+          }
+        })
+          // .state('app.stockLocator.SkuClassification.update', {
+          //    url: '/SkuClassificationUpdate',
+          //    templateUrl: 'views/stockLocator/toggles/skuclassification_update.html'
+          //  })
+
+
+
+
           .state('app.stockLocator.StockSummary.Detail', {
             url: '/Detail',
             templateUrl: 'views/stockLocator/toggles/detail.html'

@@ -72,7 +72,6 @@ urlpatterns = [
     url(r'^change_warehouse_password/$', change_warehouse_password),
     url(r'^insert_sku_pack/$',insert_sku_pack),
     url(r'^insert_replenushment/$',insert_replenushment),
-    url(r'^insert_skuclassification/$',insert_skuclassification),
     url(r'^get_zone_details/$',get_zone_details),
     url(r'^delete_cluster_sku/$',delete_cluster_sku),
 
@@ -265,6 +264,7 @@ urlpatterns = [
     url(r'^get_style_level_stock/$', get_style_level_stock),
     url(r'^get_combo_sku_codes/$', get_combo_sku_codes),
     url(r'^confirm_combo_allocation/$', confirm_combo_allocation),
+    url(r'^insert_skuclassification/$',insert_skuclassification),
 
     # OutBound
     url(r'^batch_generate_picklist/$', batch_generate_picklist),

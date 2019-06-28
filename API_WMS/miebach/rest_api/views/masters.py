@@ -532,44 +532,6 @@ def get_replenushment_master(start_index, stop_index, temp_data, search_term, or
 
 
 @csrf_exempt
-def get_skuclassification(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['sku_code']
-    search_params = get_filtered_params(filters, lis)
-    order_data = lis[col_num]
-    if order_term == 'desc':
-        order_data = '-%s' % order_data
-    if search_term:
-            master_data = SKUMaster.objects.filter(
-                Q(sku__wms_code__icontains=search_term), user=user.id).only('sku_code', 'id').order_by(order_data)
-    else:
-        master_data = SKUMaster.objects.filter(user=user.id, **search_params).only('sku_code', 'id').order_by(order_data)
-    temp_data['recordsTotal'] = master_data.count()
-    temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    avail_qty = 0
-    sellable_zones = get_all_sellable_zones(user)
-    for data in master_data[start_index: stop_index]:
-        import pdb; pdb.set_trace()
-        avail_qty_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku_id=data.id,
-        quantity__gt=0, location__zone__zone__in=sellable_zones).only('quantity').aggregate(total=Sum('quantity'))['total']
-        res_qty = PicklistLocation.objects.filter(stock__sku_id=data.id, status=1, picklist__order__user=user.id,
-                                                    stock__location__zone__zone__in=sellable_zones). \
-            aggregate(Sum('reserved'))['reserved__sum']
-        if not res_qty:
-            res_qty = 0
-        if not avail_qty_obj:
-            avail_qty_obj = 0
-        avail_qty = avail_qty_obj - res_qty
-        order_detail_obj = OrderDetail.objects.filter(user = user.id, sku_id = data.id).\
-                                annotate(creation_date_only=Cast('creation_date', DateField())).values('creation_date_only').distinct().\
-                                order_by('-creation_date_only').annotate(Sum('quantity'))[:7]
-        stock_stats_obj = StockStats.objects.filter(sku_id = data.id).exclude(Q(closing_stock=0))
-        temp_data['aaData'].append(
-            OrderedDict((('Sku Code', data.sku_code),('classification', ''), ('avg_sales_day', ''),('avail_qty', avail_qty),
-                          ('min_units', ''),('max_units', ''))))
-
-
-
-@csrf_exempt
 def get_corporate_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     lis = ['corporate_id', 'name', 'email_id', 'phone_number', 'address', 'status']
     search_params = get_filtered_params(filters, lis)
@@ -1854,47 +1816,6 @@ def insert_replenushment(request, user=''):
             import traceback
             log.debug(traceback.format_exc())
             log.info('Insert New Replenushment failed for %s and params are %s and error statement is %s' % (str(user.username), \
-                                                                                                   str(request.POST.dict()),
-                                                                                                   str(e)))
-    return HttpResponse('Added Successfully')
-
-
-@csrf_exempt
-@login_required
-@get_admin_user
-def insert_skuclassification(request, user=''):
-    skuclassification = copy.deepcopy(SKUCLASSIFICATION_DATA)
-    sku_code = request.POST['sku_code']
-    classification = request.POST['classification']
-    avg_sales_day = request.POST['avg_sales_day']
-    min_units = request.POST['min_units']
-    max_units = request.POST['max_units']
-    sku_obj = SKUMaster.objects.filter(wms_code=sku_code.upper(), user=user.id)
-    if not sku_obj:
-        return HttpResponse('Wrong WMS Code')
-    if not classification:
-        return HttpResponse('Enter Classification')
-    skuclassification_obj = SkuClassification.objects.filter(sku__wms_code = sku_code,sku__user = user.id)
-    if skuclassification_obj.exists() :
-        skuclassification_obj = skuclassification_obj[0]
-        skuclassification_obj.classification = classification
-        skuclassification_obj.avg_sales_day = avg_sales_day
-        skuclassification_obj.min_units = min_units
-        skuclassification_obj.max_units = max_units
-        skuclassification_obj.save()
-    else:
-        skuclassification['sku'] = sku_obj[0]
-        skuclassification['classification'] = classification
-        skuclassification ['avg_sales_day'] = avg_sales_day
-        skuclassification ['min_units'] = min_units
-        skuclassification['max_units'] = max_units
-
-        try:
-            SkuClassification.objects.create(**skuclassification)
-        except Exception as e:
-            import traceback
-            log.debug(traceback.format_exc())
-            log.info('Insert New skuclassification failed for %s and params are %s and error statement is %s' % (str(user.username), \
                                                                                                    str(request.POST.dict()),
                                                                                                    str(e)))
     return HttpResponse('Added Successfully')

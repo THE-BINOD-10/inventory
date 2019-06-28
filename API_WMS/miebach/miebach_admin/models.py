@@ -3273,10 +3273,14 @@ class ReplenushmentMaster(models.Model):
 class SkuClassification(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster)
-    classification = models.CharField(max_length=64, default='')
     avg_sales_day = models.FloatField(default=0)
-    min_units = models.FloatField(default=0)
-    max_units = models.FloatField(default=0)
+    cumulative_contribution = models.FloatField(default=0)
+    classification = models.CharField(max_length=64, default='')
+    mrp = models.FloatField(default=0)
+    source_location = models.ForeignKey(LocationMaster)
+    dest_location = models.ForeignKey(LocationMaster, related_name='destination_location')
+    replenushment_qty = models.FloatField(default=0)
+    status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

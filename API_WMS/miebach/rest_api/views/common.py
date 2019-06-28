@@ -1682,11 +1682,6 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                            'location_id': dest[0].id, 'sku_id': sku_id}
             if mrp_dict:
                 mrp_dict['creation_date'] = datetime.datetime.now()
-                # if user.username in MILKBASKET_USERS:
-                #     sku_obj = SKUMaster.objects.get(id=sku_id)
-                #     weight = get_sku_weight(sku_obj)
-                #     if weight:
-                #         mrp_dict['batch_detail__weight'] = weight
                 new_batch = BatchDetail.objects.create(**mrp_dict)
                 dict_values['batch_detail_id'] = new_batch.id
                 dest_batch = new_batch
@@ -1713,12 +1708,6 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                 change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
         else:
             dest_stocks = dest_stocks[0]
-            if user.username in MILKBASKET_USERS and dest_stocks.batch_detail and dest_stocks.batch_detail.weight in ['', '0']:
-                weight = get_sku_weight(dest_stocks.sku)
-                if weight:
-                    batch_obj = dest_stocks.batch_detail
-                    batch_obj.weight = weight
-                    batch_obj.save()
             dest_stocks.quantity += float(quantity)
             dest_stocks.save()
             change_seller_stock(dest_seller_id, dest_stocks, user, quantity, 'inc')

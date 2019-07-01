@@ -9156,6 +9156,10 @@ def update_order_data(request, user=""):
             order_obj, created = OrderDetail.objects.update_or_create(
                 order_id=order_id, order_code=order_code, sku=sku_id, defaults=default_dict
             )
+            if not created and order_obj.sellerorder_set.filter().exists():
+                seller_order = order_obj.sellerorder_set.filter()[0]
+                seller_order.quantity = order_obj.quantity
+                seller_order.save()
             sgst_tax = myDict['sgst'][i]
             cgst_tax = myDict['cgst'][i]
             igst_tax = myDict['igst'][i]

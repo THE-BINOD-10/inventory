@@ -7999,7 +7999,7 @@ def allocate_order_returns(user, sku_data, request):
                                 annotate(ret=Sum(F('orderreturns__quantity')),
                                         dam=Sum(F('orderreturns__damaged_quantity'))).annotate(tot=F('ret')+F('dam')). \
                                 filter(Q(tot__isnull=True) | Q(quantity__gt=F('tot')))
-    if user.username == 'milkbasket':
+    if user.username in MILKBASKET_USERS:
         orders = orders.order_by('-creation_date')
     if orders:
         order = orders[0]
@@ -8023,7 +8023,7 @@ def allocate_order_returns(user, sku_data, request):
     return data
 
 
-def update_sku_attributes_data(data, key, value, is_bulk_create=False, create_sku_attrs=None):
+def update_sku_attributes_data(data, key, value, is_bulk_create=False, create_sku_attrs=None, sku_attr_mapping=None):
     if not value == '':
         sku_attr_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name=key)
         if not sku_attr_obj and value:
@@ -8031,11 +8031,14 @@ def update_sku_attributes_data(data, key, value, is_bulk_create=False, create_sk
                 SKUAttributes.objects.create(sku_id=data.id, attribute_name=key, attribute_value=value,
                                              creation_date=datetime.datetime.now())
             else:
-                create_sku_attrs.append(SKUAttributes(**{'sku_id': data.id, 'attribute_name': key, 'attribute_value': value,
-                                             'creation_date': datetime.datetime.now()}))
+                grp_key = '%s:%s' % (str(data.id), str(key))
+                if grp_key not in sku_attr_mapping:
+                    create_sku_attrs.append(SKUAttributes(**{'sku_id': data.id, 'attribute_name': key, 'attribute_value': value,
+                                                 'creation_date': datetime.datetime.now()}))
+                    sku_attr_mapping.append(grp_key)
         elif sku_attr_obj and sku_attr_obj[0].attribute_value != value:
             sku_attr_obj.update(attribute_value=value)
-    return create_sku_attrs
+    return create_sku_attrs, sku_attr_mapping
 
 
 def update_sku_attributes(data, request):

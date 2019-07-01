@@ -9156,6 +9156,10 @@ def update_order_data(request, user=""):
             order_obj, created = OrderDetail.objects.update_or_create(
                 order_id=order_id, order_code=order_code, sku=sku_id, defaults=default_dict
             )
+            if not created and order_obj.sellerorder_set.filter().exists():
+                seller_order = order_obj.sellerorder_set.filter()[0]
+                seller_order.quantity = order_obj.quantity
+                seller_order.save()
             sgst_tax = myDict['sgst'][i]
             cgst_tax = myDict['cgst'][i]
             igst_tax = myDict['igst'][i]
@@ -12053,9 +12057,13 @@ def seller_generate_picklist(request, user=''):
                        'no_stock_switch': get_misc_value('no_stock_switch', user.id),
                        'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
         sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-            location__zone__zone__in=picklist_exclude_zones). \
-            filter(sku__user=user.id, quantity__gt=0)
+        if enable_damaged_stock =='true' :
+            sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(
+                        sku__user=user.id, quantity__gt=0,location__zone__zone='DAMAGED_ZONE')
+        else:
+            sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
+                            location__zone__zone__in=picklist_exclude_zones). \
+                             filter(sku__user=user.id, quantity__gt=0)
         all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**order_filter)
 
         if switch_vals['fifo_switch'] == 'true':

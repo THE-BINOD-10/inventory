@@ -1059,7 +1059,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
     if sku_master and ean_numbers:
         try:
             ean_numbers = ean_numbers.split(',')
-            exist_eans = list(sku_master.eannumbers_set.filter(ean_number__gt=0).\
+            exist_eans = list(sku_master.eannumbers_set.exclude(ean_number='').\
                               annotate(str_eans=Cast('ean_number', CharField())).\
                           values_list('str_eans', flat=True))
             if sku_master.ean_number:
@@ -1132,6 +1132,7 @@ def update_skus(skus, user='', company_name=''):
         user_attr_list = list(user_attr_list.values_list('attribute_name', flat=True))
         user_profile = user.userprofile
         sku_ids = []
+        added_sku_eans = []
         all_sku_masters = []
         if not skus:
             skus = {}
@@ -1145,10 +1146,10 @@ def update_skus(skus, user='', company_name=''):
         columns = ['sku_id', 'attribute_name', 'attribute_value']
         new_ean_objs = []
 
-        exist_sku_eans = dict(SKUMaster.objects.filter(user=user.id, ean_number__gt=0, status=1).only('ean_number', 'sku_code').annotate(
-            ean_str=Cast('ean_number', output_field=CharField())).values_list('ean_str', 'sku_code'))
-        exist_ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1).only('ean_number', 'sku__sku_code').annotate(
-            ean_str=Cast('ean_number', output_field=CharField())).values_list('ean_str', 'sku__sku_code'))
+        exist_sku_eans = dict(SKUMaster.objects.filter(user=user.id, status=1).exclude(ean_number='').\
+                              only('ean_number', 'sku_code').values_list('ean_number', 'sku_code'))
+        exist_ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1).\
+                              only('ean_number', 'sku__sku_code').values_list('ean_number', 'sku__sku_code'))
         for sku_data in skus:
             sku_master, insert_status, new_ean_objs = sku_master_insert_update(sku_data, user, sku_mapping, insert_status,
                                                                  failed_status, user_attr_list, sizes_dict,
@@ -1184,7 +1185,12 @@ def update_skus(skus, user='', company_name=''):
                             sku_relation.save()
                         all_sku_masters.append(child_obj)
         if new_ean_objs:
-            EANNumbers.objects.bulk_create(new_ean_objs)
+            try:
+                EANNumbers.objects.bulk_create(new_ean_objs)
+            except Exception as e:
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info("Ean Numbers update failed")
         insert_update_brands(user)
 
         all_users = get_related_users(user.id)

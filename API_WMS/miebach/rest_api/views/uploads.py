@@ -1337,6 +1337,7 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
     sku_data = []
     wms_data = []
     index_status = {}
+    upload_file_skus = []
     sku_file_mapping = get_sku_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
     product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type', flat=True).distinct())
     if not sku_file_mapping:
@@ -1357,6 +1358,10 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 sku_code = cell_data
                 if isinstance(cell_data, float):
                     sku_code = str(int(cell_data))
+                if sku_code in upload_file_skus:
+                    index_status.setdefault(row_idx, set()).add('Duplicate SKU Code found in File')
+                else:
+                    upload_file_skus.append(sku_code)
                 # index_status = check_duplicates(data_set, data_type, cell_data, index_status, row_idx)
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('WMS Code missing')
@@ -1509,6 +1514,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
     zones = map(lambda d: str(d['zone']).upper(), zone_master)
     zone_ids = map(lambda d: d['id'], zone_master)
     create_sku_attrs = []
+    sku_attr_mapping = []
     sku_file_mapping = get_sku_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
     for row_idx in range(1, no_of_rows):
         if not sku_file_mapping:
@@ -1685,8 +1691,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             hot_release = 1 if (hot_release == 'enable') else 0
             check_update_hot_release(sku_data, hot_release)
         for attr_key, attr_val in attr_dict.iteritems():
-            create_sku_attrs = update_sku_attributes_data(sku_data, attr_key, attr_val, is_bulk_create=True,
-                                       create_sku_attrs=create_sku_attrs)
+            create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(sku_data, attr_key, attr_val, is_bulk_create=True,
+                                       create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping)
 
         if ean_numbers:
             update_ean_sku_mapping(user, ean_numbers, sku_data, remove_existing=True)

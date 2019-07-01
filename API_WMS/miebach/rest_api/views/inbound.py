@@ -3446,8 +3446,15 @@ def check_sku(request, user=''):
     sku_id = check_and_return_mapping_id(sku_code, '', user, check)
     if not sku_id:
         try:
-            sku_id = SKUMaster.objects.filter(Q(ean_number=sku_code) | Q(eannumbers__ean_number=sku_code),
-                                              user=user.id)
+            sku_ean_objs = SKUMaster.objects.filter(ean_number=sku_code, user=user.id).only('ean_number', 'sku_code')
+            if sku_ean_objs.exists():
+                sku_id = sku_ean_objs[0].id
+            else:
+                ean_obj = EANNumbers.objects.filter(sku__user=user.id, ean_number=sku_code)
+                if ean_obj.exists():
+                    sku_id = ean_obj[0].sku_id
+            #sku_id = SKUMaster.objects.filter(Q(ean_number=sku_code) | Q(eannumbers__ean_number=sku_code),
+            #                                  user=user.id)
         except:
             sku_id = ''
     if sku_id:
@@ -3521,13 +3528,18 @@ def create_return_order(data, user):
         if data.get('sor_id', ''):
             sor_id = data['sor_id']
         seller_id = ''
-        if data.get('seller_id', ''):
-            temp_seller = data['seller_id']
-            if ':' in temp_seller:
-                seller_val_id = temp_seller.split(':')[0]
-                seller_obj = SellerMaster.objects.filter(user=user_obj.id, seller_id=seller_val_id)
-                if seller_obj.exists():
-                    seller_id = seller_obj[0].id
+        if user_obj.username in MILKBASKET_USERS:
+            seller_obj = SellerMaster.objects.filter(user=user_obj.id, seller_id=1)
+            if seller_obj.exists():
+                seller_id = seller_obj[0].id
+        else:
+            if data.get('seller_id', ''):
+                temp_seller = data['seller_id']
+                if ':' in temp_seller:
+                    seller_val_id = temp_seller.split(':')[0]
+                    seller_obj = SellerMaster.objects.filter(user=user_obj.id, seller_id=seller_val_id)
+                    if seller_obj.exists():
+                        seller_id = seller_obj[0].id
         if data.get('order_imei_id', ''):
             order_map_ins = OrderIMEIMapping.objects.get(id=data['order_imei_id'])
             data['order_id'] = order_map_ins.order.original_order_id
@@ -3786,7 +3798,6 @@ def update_return_reasons(order_return, reasons_list=[]):
 @get_admin_user
 def confirm_sales_return(request, user=''):
     """ Creating and Confirming the Sales Returns"""
-
     data_dict = dict(request.POST.iterlists())
     return_type = request.POST.get('return_type', '')
     return_process = request.POST.get('return_process')
@@ -3863,7 +3874,6 @@ def confirm_sales_return(request, user=''):
         log.debug(traceback.format_exc())
         log.info('Confirm Sales return for ' + str(user.username) + ' is failed for ' + str(
             request.POST.dict()) + ' error statement is ' + str(e))
-
     created_return_ids = list(set(created_return_ids))
     if created_return_ids:
         return_sales_print = []
@@ -5684,7 +5694,13 @@ def returns_putaway_data(request, user=''):
         if not status:
             sku_id = returns_data.returns.sku_id
             return_wms_codes.append(returns_data.returns.sku.wms_code)
-            seller_id = get_return_seller_id(returns_data.returns, user)
+            seller_id = ''
+            if user.username in MILKBASKET_USERS:
+                seller_obj = SellerMaster.objects.filter(seller_id=1, user=user.id).only('id')
+                if seller_obj.exists():
+                    seller_id = seller_obj[0].id
+            if not seller_id:
+                seller_id = get_return_seller_id(returns_data.returns, user)
             if seller_id:
                 if seller_id in seller_receipt_mapping.keys():
                     receipt_number = seller_receipt_mapping[seller_id]

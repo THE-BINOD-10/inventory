@@ -1337,6 +1337,7 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
     sku_data = []
     wms_data = []
     index_status = {}
+    upload_file_skus = []
     sku_file_mapping = get_sku_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
     product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type', flat=True).distinct())
     if not sku_file_mapping:
@@ -1357,6 +1358,10 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 sku_code = cell_data
                 if isinstance(cell_data, float):
                     sku_code = str(int(cell_data))
+                if sku_code in upload_file_skus:
+                    index_status.setdefault(row_idx, set()).add('Duplicate SKU Code found in File')
+                else:
+                    upload_file_skus.append(sku_code)
                 # index_status = check_duplicates(data_set, data_type, cell_data, index_status, row_idx)
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('WMS Code missing')

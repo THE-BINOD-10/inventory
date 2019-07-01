@@ -5694,7 +5694,13 @@ def returns_putaway_data(request, user=''):
         if not status:
             sku_id = returns_data.returns.sku_id
             return_wms_codes.append(returns_data.returns.sku.wms_code)
-            seller_id = get_return_seller_id(returns_data.returns, user)
+            seller_id = ''
+            if user.username in MILKBASKET_USERS:
+                seller_obj = SellerMaster.objects.filter(seller_id=1, user=user.id).only('id')
+                if seller_obj.exists():
+                    seller_id = seller_obj[0].id
+            if not seller_id:
+                seller_id = get_return_seller_id(returns_data.returns, user)
             if seller_id:
                 if seller_id in seller_receipt_mapping.keys():
                     receipt_number = seller_receipt_mapping[seller_id]

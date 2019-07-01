@@ -264,7 +264,7 @@ urlpatterns = [
     url(r'^get_style_level_stock/$', get_style_level_stock),
     url(r'^get_combo_sku_codes/$', get_combo_sku_codes),
     url(r'^confirm_combo_allocation/$', confirm_combo_allocation),
-    url(r'^insert_skuclassification/$',insert_skuclassification),
+    url(r'^cal_ba_to_sa/$',cal_ba_to_sa),
 
     # OutBound
     url(r'^batch_generate_picklist/$', batch_generate_picklist),

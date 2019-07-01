@@ -6,7 +6,7 @@
       </div>
       <div class="col-md-6 col-sm-12 col-xs-12">
         <div class="row">
-          <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-4" ng-click="showCase.add()">Calculate Now</button>
+          <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-4" >Calculate Now</button>
           <div ng-include="'views/common/excel_button.html'"></div>
         </div>
       </div>
@@ -14,6 +14,6 @@
   </div>
   <div ng-include="'views/common/master-datatable.html'"></div>
   <div class="panel-footer">
-    <button type="submit" class="btn btn-danger pull-right" ng-click="">Confirm</button>
+    <button type="submit" class="btn btn-danger pull-right" ng-click="showCase.ba_to_sa_cal()">Confirm</button>
   </div>
 </div>

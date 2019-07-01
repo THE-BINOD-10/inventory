@@ -2812,16 +2812,21 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
         #                         annotate(creation_date_only=Cast('creation_date', DateField())).values('creation_date_only').distinct().\
         #                         order_by('-creation_date_only').annotate(Sum('quantity'))[:7]
         # stock_stats_obj = StockStats.objects.filter(sku_id = data.id).exclude(Q(closing_stock=0))
+        sku_code = ''
+        if data.sku_id:
+            sku_code = data.sku_id
+        checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data.id, sku_code)
         temp_data['aaData'].append(
-            OrderedDict((('Sku Code', data.sku_id), ('avg_sales_day', data.avg_sales_day), ('cumulative_contribution', data.cumulative_contribution), ('classification', data.classification), ('mrp', data.mrp),
-                          ('source_location', data.source_location.location),('dest_location', data.source_location.location), ('replenushment_qty', data.replenushment_qty), ('status', data.status))))
+            OrderedDict((('', checkbox), ('sku_code', sku_code), ('avg_sales_day', data.avg_sales_day), ('cumulative_contribution', data.cumulative_contribution), ('classification', data.classification), ('mrp', data.mrp),
+                          ('source_location', data.source_location.location),('dest_location', data.source_location.location), ('replenushment_qty', data.replenushment_qty), ('status', data.status),
+                          ('DT_RowAttr', {'sku_code':sku_code}))))
 
 
 
 @csrf_exempt
 @login_required
 @get_admin_user
-def insert_skuclassification(request, user=''):
+def cal_ba_to_sa(request, user=''):
     skuclassification = copy.deepcopy(SKUCLASSIFICATION_DATA)
     sku_code = request.POST['sku_code']
     classification = request.POST['classification']

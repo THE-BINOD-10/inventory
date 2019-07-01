@@ -1156,11 +1156,6 @@ var app = angular.module('urbanApp')
             title: 'SkuClassification Master'
           }
         })
-          // .state('app.stockLocator.SkuClassification.update', {
-          //    url: '/SkuClassificationUpdate',
-          //    templateUrl: 'views/stockLocator/toggles/skuclassification_update.html'
-          //  })
-
 
 
 

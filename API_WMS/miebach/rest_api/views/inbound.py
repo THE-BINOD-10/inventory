@@ -3446,8 +3446,15 @@ def check_sku(request, user=''):
     sku_id = check_and_return_mapping_id(sku_code, '', user, check)
     if not sku_id:
         try:
-            sku_id = SKUMaster.objects.filter(Q(ean_number=sku_code) | Q(eannumbers__ean_number=sku_code),
-                                              user=user.id)
+            sku_ean_objs = SKUMaster.objects.filter(ean_number=sku_code, user=user.id).only('ean_number', 'sku_code')
+            if sku_ean_objs.exists():
+                sku_id = sku_ean_objs[0].id
+            else:
+                ean_obj = EANNumbers.objects.filter(sku__user=user.id, ean_number=sku_code)
+                if ean_obj.exists():
+                    sku_id = ean_obj[0].sku_id
+            #sku_id = SKUMaster.objects.filter(Q(ean_number=sku_code) | Q(eannumbers__ean_number=sku_code),
+            #                                  user=user.id)
         except:
             sku_id = ''
     if sku_id:

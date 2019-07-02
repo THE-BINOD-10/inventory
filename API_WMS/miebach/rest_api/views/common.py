@@ -7475,7 +7475,10 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
 
         sku_code = order_data1['sku_code']
         qty = order_data1['quantity']
-        total_qty = sku_total_qty_map[sku_code]
+        if isinstance(sku_total_qty_map[sku_code], list):
+            total_qty = sku_total_qty_map[sku_code][0]
+        else:
+            total_qty = sku_total_qty_map[sku_code]
         price_ranges_map = fetch_unit_price_based_ranges(user_id, order_data1['warehouse_level'],
                                                          admin_user.id, sku_code)
         if price_ranges_map.has_key('price_ranges'):

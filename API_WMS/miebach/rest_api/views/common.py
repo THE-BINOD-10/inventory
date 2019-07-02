@@ -5108,7 +5108,7 @@ def get_order_detail_objs(order_id, user, search_params={}, all_order_objs=[]):
     order_id_search = ''.join(re.findall('\d+', order_id))
     order_code_search = ''.join(re.findall('\D+', order_id))
     order_detail_objs = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) |
-                                                   Q(original_order_id=order_id), **search_param).exclude(status=3)
+                                                   Q(original_order_id=order_id), **search_param)
     return order_detail_objs
 
 

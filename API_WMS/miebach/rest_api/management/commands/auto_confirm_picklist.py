@@ -15,7 +15,7 @@ from itertools import chain
 from miebach_admin.models import *
 from rest_api.views.common import get_exclude_zones, get_misc_value, get_picklist_number, \
     get_sku_stock, get_stock_count, save_sku_stats, change_seller_stock, check_picklist_number_created, \
-    update_stocks_data, get_max_seller_transfer_id, get_financial_year
+    update_stocks_data, get_max_seller_transfer_id, get_financial_year, get_stock_receipt_number
 from rest_api.views.outbound import get_seller_pick_id
 from rest_api.views.miebach_utils import MILKBASKET_USERS, PICKLIST_FIELDS, ST_ORDER_FIELDS
 
@@ -50,7 +50,7 @@ def prepare_picklist_val_dict(user, sku_id_stocks,  is_seller_order, add_mrp_fil
     return val_dict
 
 def execute_picklist_confirm_process(order_data, picklist_number, user,
-                                     sku_combos, sku_stocks, switch_vals,
+                                     sku_combos, sku_stocks, switch_vals, receipt_number,
                                      is_seller_order=False):
     stock_status = []
     is_marketplace_model = False
@@ -152,9 +152,10 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
                     if src_stock_quantity >= float(order_quantity):
                         source_seller = src_stocks[0].sellerstock_set.filter()[0].seller
                         src_sku_id = src_stock_detail[0].sku_id
-                        update_stocks_data(src_stocks, order_quantity, src_stock_detail,
+                        update_stocks_data(src_stocks, order_quantity, None,
                                            order_quantity, user, [src_stocks[0].location], src_sku_id,
-                                           src_seller_id=source_seller.id, dest_seller_id=seller_order.seller_id)
+                                           src_seller_id=source_seller.id, dest_seller_id=seller_order.seller_id,
+                                           receipt_type='seller-seller transfer', receipt_number=receipt_number)
                         trans_id = get_max_seller_transfer_id(user)
                         seller_transfer = SellerTransfer.objects.create(source_seller_id=source_seller.id,
                                                                         dest_seller_id=seller_order.seller.id,
@@ -253,6 +254,7 @@ class Command(BaseCommand):
         log.info(str(datetime.datetime.now()))
         for user in users:
             picklist_exclude_zones = get_exclude_zones(user)
+            receipt_number = get_stock_receipt_number(user)
             open_orders = OrderDetail.objects.prefetch_related('sku').\
                                             filter(user=user.id, status=1, sellerorder__isnull=False,
                                                                              quantity__gt=0, sellerorder__seller__seller_id=2)
@@ -285,10 +287,11 @@ class Command(BaseCommand):
                         sku_stocks = all_sku_stocks
                         #sku_stocks = all_sku_stocks.filter(sellerstock__seller_id=seller_order.seller_id)
                         execute_picklist_confirm_process(seller_order, picklist_number, user, sku_combos,
-                                                         sku_stocks, switch_vals, is_seller_order=True)
+                                                         sku_stocks, switch_vals, receipt_number, is_seller_order=True)
                 else:
-                    execute_picklist_confirm_process(seller_order, picklist_number, user, sku_combos,
-                                                     sku_stocks, switch_vals, is_seller_order=False)
+                    log.info("Not Auto Processing %s" % str(open_order.original_order_id))
+                    #execute_picklist_confirm_process(seller_order, picklist_number, user, sku_combos,
+                    #                                 sku_stocks, switch_vals, is_seller_order=False)
             if picklist_number:
                 check_picklist_number_created(user, picklist_number + 1)
         log.info(str(datetime.datetime.now()))

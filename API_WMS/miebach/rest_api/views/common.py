@@ -1651,7 +1651,8 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
 
 
 def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id='',
-                       dest_seller_id='', source_updated=False, mrp_dict=None, dest_updated=False):
+                       dest_seller_id='', source_updated=False, mrp_dict=None, dest_updated=False,
+                       receipt_type='', receipt_number=1):
     batch_obj = ''
     dest_batch = ''
     if not source_updated:
@@ -1675,11 +1676,12 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
         batch_obj = stocks[0].batch_detail
     if not dest_updated:
         if not dest_stocks:
-            dict_values = {'receipt_number': 1, 'receipt_date': datetime.datetime.now(),
+            dict_values = {'receipt_number': receipt_number, 'receipt_date': datetime.datetime.now(),
                            'quantity': float(quantity), 'status': 1,
                            'creation_date': datetime.datetime.now(),
                            'updation_date': datetime.datetime.now(),
-                           'location_id': dest[0].id, 'sku_id': sku_id}
+                           'location_id': dest[0].id, 'sku_id': sku_id,
+                           'receipt_type': receipt_type}
             if mrp_dict:
                 mrp_dict['creation_date'] = datetime.datetime.now()
                 new_batch = BatchDetail.objects.create(**mrp_dict)

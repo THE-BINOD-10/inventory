@@ -2878,5 +2878,34 @@ def cal_ba_to_sa(request, user=''):
 @login_required
 @get_admin_user
 def ba_to_sa_calculate_now(request, user=''):
+    master_data = SKUMaster.objects.filter(user = user.id)
+    avail_qty = 0
+    sellable_zones = get_all_sellable_zones(user)
+    total_val = 0
+    for data in master_data:
+        avail_qty_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku_id=data.id,
+        quantity__gt=0, location__zone__zone__in=sellable_zones).only('quantity').aggregate(total=Sum('quantity'))['total']
+        res_qty = PicklistLocation.objects.filter(stock__sku_id=data.id, status=1, picklist__order__user=user.id,
+                                                    stock__location__zone__zone__in=sellable_zones). \
+            aggregate(Sum('reserved'))['reserved__sum']
+        if not res_qty:
+            res_qty = 0
+        if not avail_qty_obj:
+            avail_qty_obj = 0
+        avail_qty = avail_qty_obj - res_qty
+        stock_stats_obj = StockStats.objects.filter(sku__sku_code = data.sku_code).exclude(Q(closing_stock=0)).\
+                                annotate(creation_date_only=Cast('creation_date', DateField())).values('creation_date_only').distinct().\
+                                order_by('-creation_date_only')
+        stock_val = stock_stats_obj[:7]
+        startdate = stock_val[0]['creation_date_only']
+        stopdate = stock_val[6]['creation_date_only']
+        enddate = stopdate + datetime.timedelta(days=1)
+        order_detail_obj = OrderDetail.objects.filter(user = user.id, sku__sku_code = data.sku_code, creation_date__range=[startdate, enddate]).\
+                                distinct().\
+                                order_by('-creation_date').annotate(Sum('quantity'))[:7]
+        for sku_total in order_detail_obj:
+            value = sku_total['quantity__sum']
+            total_val  = total_val + value
+        Avg_sale_per_day = total_val/7
 
-    return HttpResponse('Calculated Successfully')
+    return HttpResponse('Claculated Successfully')

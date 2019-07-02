@@ -3,7 +3,7 @@ Dear {{ customer_name }},<br>
 
 <p>
 You have placed an order and will process in shortly. Order ID is {{order_id}}.
- For your reference, here are the details of your order:
+ For your reference, here are the details of your order:   test
 </p>
 
 <p>Item(s) details:</p>
@@ -19,7 +19,11 @@ You have placed an order and will process in shortly. Order ID is {{order_id}}.
     {% for item in items %}
     <tr>
         {% for i in item %}
-            <td>{{ i }}</td>
+           {% if forloop.counter == 1 %}
+                <td><img src="{{ i }}" style="display: block;" width="100" height="50"></td>
+            {% else %}
+               <td>{{ i }}</td>
+            {% endif %}
         {% endfor %}
     </tr>
     {% endfor %}

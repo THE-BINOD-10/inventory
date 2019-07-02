@@ -4509,6 +4509,7 @@ def create_central_order(request, user):
     mail_ids, user_mail_id, items = [], [], []
     message = 'Success'
     customer_id = request.user.id
+    host_details = request.META.get('wsgi.url_scheme')+'://'+request.META.get('HTTP_HOST')
     interm_order_id = get_central_order_id(customer_id)
     ship_date = request.POST.get('shipment_date', '')
     myDict = dict(request.POST.iterlists())
@@ -4552,8 +4553,7 @@ def create_central_order(request, user):
             order_date = intermediate_obj.creation_date.strftime("%d, %b, %Y")
             #order_date =  intermediate_obj.shipment_date.day + "/"+intermediate_obj.shipment_date.month+"/"+intermediate_obj.shipment_date.year
             inv_amt = (cart_item.levelbase_price * cart_item.quantity) + cart_item.tax
-            items.append([intermediate_obj.interm_order_id,cart_item.sku.sku_code,cart_item.sku.sku_desc,cart_item.quantity, inv_amt,intermediate_obj.project_name,order_date])
-
+            items.append([host_details +cart_item.sku.image_url, intermediate_obj.interm_order_id,cart_item.sku.sku_code,cart_item.sku.sku_desc,cart_item.quantity, inv_amt,intermediate_obj.project_name,order_date])
 
         #mail to Admin and normal user
         central_orders_mail = MiscDetail.objects.filter(user=user.id, misc_type='central_orders', misc_value='true')
@@ -4566,7 +4566,7 @@ def create_central_order(request, user):
                     mail_ids = [admin_users[0].admin_user.userprofile.email]"""
             mail_ids = [user.email]
             user_mail_id = [request.user.email]
-            headers = ['Order number','isprava code','Product Details', 'Ordered Quantity', 'Total','Project name','Order Date']
+            headers = ['Image', 'Order number','isprava code','Product Details', 'Ordered Quantity', 'Total','Project name','Order Date']
             data_dict = {'customer_name': request.user.username, 'items': items,
                          'headers': headers, 'role': 'Admin', 'order_id': interm_order_id}
             t = loader.get_template('templates/central_order/order_for_approval.html')

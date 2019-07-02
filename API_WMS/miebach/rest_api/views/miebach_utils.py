@@ -6078,7 +6078,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
                                            'order_shipment__manifest_number',
                                            'order_shipment__creation_date',
                                            'order__customerordersummary__payment_status',
-                                           'order_packaging__package_reference')
+                                           'order_packaging__package_reference').exclude(order__status = 3)
 
     ship_search_params  = {}
     for key, value in search_parameters.iteritems():

@@ -4006,22 +4006,23 @@ def get_customer_sku_prices(request, user=""):
     cust_id = request.POST.get('cust_id', '')
     sku_codes = request.POST.get('sku_codes', '')
     tax_type = request.POST.get('tax_type', '')
+    igst_tax = ''
+    sgst_tax = ''
+    cgst_tax = ''
+    product_type = ''
     log.info('Get Customer SKU Prices data for ' + user.username + ' is ' + str(request.POST.dict()))
 
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     try:
         if sku_codes:
             sku_values = SKUMaster.objects.filter(wms_code=sku_codes, user=user.id).values()
-            product_type = sku_values[0]['product_type']
+            if len(sku_values) > 0 :
+                product_type = sku_values[0]['product_type']
             tax_values = TaxMaster.objects.filter(product_type=product_type, user=user.id).values()
-            igst_tax = tax_values[0]['igst_tax']
-            sgst_tax = tax_values[0]['sgst_tax']
-            cgst_tax = tax_values[0]['cgst_tax']
-        else:
-            product_type = ''
-            igst_tax = ''
-            sgst_tax = ''
-            cgst_tax = ''
+            if tax_values.exists():
+                igst_tax = tax_values[0]['igst_tax']
+                sgst_tax = tax_values[0]['sgst_tax']
+                cgst_tax = tax_values[0]['cgst_tax']
 
         sku_codes = [sku_codes]
         result_data = []

@@ -2544,7 +2544,6 @@ def update_invoice(request, user=''):
         order_reference_date = request.POST.get("order_reference_date", "")
         ord_det_id = request.POST.get("id", "")
         cm_id = request.POST.get("customer_id", "")
-
         myDict = dict(request.POST.iterlists())
         if invoice_date:
             invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
@@ -2690,6 +2689,7 @@ def update_invoice(request, user=''):
                 order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index].replace(',',''))
                 if order_id.quantity != float(myDict['quantity'][unit_price_index]) :
                     partial_quantity = True
+                order_id.save()
                 sgst_tax = float(myDict['sgst_tax'][unit_price_index])
                 cgst_tax = float(myDict['cgst_tax'][unit_price_index])
                 igst_tax = float(myDict['igst_tax'][unit_price_index])
@@ -9449,6 +9449,7 @@ def order_delete(request, user=""):
     log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
     log.info("deletion of order process started")
     complete_id = request.GET.get("order_id", "")
+    admin_user = get_admin(user)
 
     order_id = ''.join(re.findall('\d+', complete_id))
     order_code = ''.join(re.findall('\D+', complete_id))
@@ -9472,14 +9473,13 @@ def order_delete(request, user=""):
                 order_detail_ids = list(set(order_detail_ids) - set(seller_orders))
             if order_detail_ids:
                 for order_detail_id in order_detail_ids:
-                    picked_qty_check = Picklist.objects.filter(order_id=order_detail_id, picked_quantity__gt=0)
+                    picked_qty_check = Picklist.objects.filter(order_id=order_detail_id).annotate(total_quantity=Sum('picked_quantity'))
                     if not picked_qty_check.exists():
                         OrderDetail.objects.filter(id=order_detail_id).delete()
-                        admin_user = get_admin(user)
                         if admin_user:
                             OrderFields.objects.filter(user=admin_user.id, original_order_id=complete_id).delete()
                     else:
-                        OrderDetail.objects.filter(id=order_detail_id).update(status=3)
+                        OrderDetail.objects.filter(id=order_detail_id).update(quantity=picked_qty_check[0].total_quantity,status = 3)
 
 
     except Exception as e:
@@ -10842,7 +10842,7 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
                 else:
                     invoice_number = ''
                 ordered_quantity = orders.filter(original_order_id=data['order__original_order_id'])\
-                                         .exclude(status=3).aggregate(Sum('quantity'))['quantity__sum']
+                                         .aggregate(Sum('quantity'))['quantity__sum']
                 picked_amount = order_summaries.filter(order__original_order_id=data['order__original_order_id'])\
                                                .values('order__sku_id', 'order__invoice_amount', 'order__quantity', 'delivered_flag')\
                                                .distinct().annotate(pic_qty=Sum('quantity'))\

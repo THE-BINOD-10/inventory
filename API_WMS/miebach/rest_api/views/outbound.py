@@ -4260,7 +4260,7 @@ def split_orders(**order_data):
             **pick_filter_map).values_list('stock__sku__user').annotate(total=Sum('reserved')))
         blocked_qtys = dict(EnquiredSku.objects.filter(sku__user__in=source_whs, sku_code=sku_code,
                                                        warehouse_level=warehouse_level).filter(
-            ~Q(enquiry__extend_status='rejected')).values_list('sku__user', 'quantity'))
+            ~Q(enquiry__extend_status='rejected')).values_list('sku__user').annotate(Sum('quantity')))
         if warehouse_level == 0 and user_id not in source_whs:  # Resellers wont have NETWORK MASTER
             source_whs.insert(0, user_id)
 
@@ -12443,16 +12443,6 @@ def save_custom_order_images(user, request, sku_class):
                 print 'not saved'
             print file_name
     return image_data
-    '''
-    import base64
-    for work_type, work_data in image_data.iteritems():
-        for place, data in work_data.iteritems():
-            with open(path + place + ".png", "wb") as fh:
-                fh.write(base64.decodestring(data + "=="))
-            #fh = open(path + place + ".png", "wb")
-            #fh.write(data.decode('base64'))
-            #fh.close()
-    '''
 
 
 @csrf_exempt
@@ -12532,6 +12522,7 @@ def create_custom_skus(request, user=''):
 @login_required
 @get_admin_user
 def insert_enquiry_data(request, user=''):
+    log.info("Inserting Enquiry Order: %s" % str(request.POST))
     message = 'Success'
     customer_id = request.user.id
     corporate_name = request.POST.get('name', '')
@@ -12567,6 +12558,8 @@ def insert_enquiry_data(request, user=''):
             enquiry_data = {'customer_id': customer_id, 'warehouse_level': cart_item.warehouse_level,
                             'user': user.id, 'quantity': cart_item.quantity, 'sku_id': cart_item.sku.id}
             stock_wh_map = split_orders(**enquiry_data)
+            if not stock_wh_map:
+                return HttpResponse('Stock not present for sku:%s.' %cart_item.sku.sku_code)
             if cart_item.warehouse_level == 3:
                 for lt, stc_wh_map in stock_wh_map.items():
                     for wh_code, qty in stc_wh_map.items():
@@ -14029,7 +14022,7 @@ def convert_customorder_to_enquiryorder(request, user=''):
         res_qtys = dict(PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(status=1).filter(
             **pick_filter_map).values_list('stock__sku__user').annotate(total=Sum('reserved')))
         blocked_qtys = dict(EnquiredSku.objects.filter(sku__user__in=source_whs, sku_code=sku_code).filter(
-            ~Q(enquiry__extend_status='rejected')).values_list('sku__user', 'quantity'))
+            ~Q(enquiry__extend_status='rejected')).values_list('sku__user').annotate(Sum('quantity')))
         stk_dtl_obj = dict(StockDetail.objects.filter(
             sku__user__in=source_whs, sku__wms_code=sku_code, quantity__gt=0).values_list(
             'sku__user').distinct().annotate(in_stock=Sum('quantity')))

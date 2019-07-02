@@ -77,6 +77,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     });
 
     vm.process = false;
+    vm.calculate_now = calculate_now;
+    function calculate_now() {
+      console.log(vm.selected);
+      var data = [];
+      vm.process = true;
+      vm.service.apiCall('ba_to_sa_calculate_now/', 'POST', data).then(function(data){
+        if(data.message) {
+          console.log(data.data);
+          colFilters.showNoty(data.data);
+          reloadData();
+          vm.process = false;
+        }
+      })
+    }
+
+    vm.process = false;
     vm.ba_to_sa_cal = ba_to_sa_cal;
     function ba_to_sa_cal() {
       console.log(vm.selected);
@@ -105,6 +121,4 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         }
       })
     }
-
-
 }

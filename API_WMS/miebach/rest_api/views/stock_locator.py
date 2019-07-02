@@ -2831,8 +2831,11 @@ def cal_ba_to_sa(request, user=''):
     sku_code = request.POST['sku_code']
     classification = request.POST['classification']
     avg_sales_day = request.POST['avg_sales_day']
-    min_units = request.POST['min_units']
-    max_units = request.POST['max_units']
+    cumulative_contribution = request.POST['cumulative_contribution']
+    mrp = request.POST['mrp']
+    source_location = request.POST['source_location']
+    dest_location = request.POST['dest_location']
+    replenushment_qty = request.POST['replenushment_qty']
     sku_obj = SKUMaster.objects.filter(wms_code=sku_code.upper(), user=user.id)
     if not sku_obj:
         return HttpResponse('Wrong WMS Code')
@@ -2843,15 +2846,21 @@ def cal_ba_to_sa(request, user=''):
         skuclassification_obj = skuclassification_obj[0]
         skuclassification_obj.classification = classification
         skuclassification_obj.avg_sales_day = avg_sales_day
-        skuclassification_obj.min_units = min_units
-        skuclassification_obj.max_units = max_units
+        skuclassification_obj.cumulative_contribution = cumulative_contribution
+        skuclassification_obj.mrp = mrp
+        skuclassification_obj.source_location = source_location
+        skuclassification_obj.dest_location = dest_location
+        skuclassification_obj.replenushment_qty = replenushment_qty
         skuclassification_obj.save()
     else:
         skuclassification['sku'] = sku_obj[0]
         skuclassification['classification'] = classification
         skuclassification ['avg_sales_day'] = avg_sales_day
-        skuclassification ['min_units'] = min_units
-        skuclassification['max_units'] = max_units
+        skuclassification ['cumulative_contribution'] = cumulative_contribution
+        skuclassification['mrp'] = mrp
+        skuclassification['source_location'] = source_location
+        skuclassification['dest_location'] = dest_location
+        skuclassification['replenushment_qty'] = replenushment_qty
 
         try:
             SkuClassification.objects.create(**skuclassification)
@@ -2862,3 +2871,12 @@ def cal_ba_to_sa(request, user=''):
                                                                                                    str(request.POST.dict()),
                                                                                                    str(e)))
     return HttpResponse('Added Successfully')
+
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def ba_to_sa_calculate_now(request, user=''):
+
+    return HttpResponse('Calculated Successfully')

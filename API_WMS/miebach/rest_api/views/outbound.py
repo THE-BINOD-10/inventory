@@ -9073,24 +9073,7 @@ def order_category_generate_picklist(request, user=''):
 @get_admin_user
 def delete_order_data(request, user=""):
     """ This code is used to delete the orders when that coloumn in deleted from view order """
-    complete_id = request.GET.get('order_id_code', '')
-    sku_code = request.GET.get("item_code", "")
-
-    if complete_id:
-        order_id = ''.join(re.findall('\d+', complete_id))
-        order_code = ''.join(re.findall('\D+', complete_id))
-        ord_obj = OrderDetail.objects.filter(order_id=order_id, order_code=order_code, sku__sku_code=sku_code,
-                                             user=user.id, status=1)
-        if ord_obj:
-            seller_order = SellerOrder.objects.filter(order_id=ord_obj[0].id, order_status='DELIVERY_RESCHEDULED',
-                                                      status=1)
-            if not seller_order:
-                ord_obj.delete()
-            else:
-                seller_order_ids = list(ord_obj.values_list('id', flat=True))
-                OrderDetail.objects.filter(id__in=seller_order_ids).update(status=5)
-                SellerOrder.objects.filter(order_id__in=seller_order_ids).update(status=0, order_status='PROCESSED')
-
+    order_delete(request, user="")
     return HttpResponse("Order Deleted")
 
 
@@ -9444,22 +9427,30 @@ def picklist_delete(request, user=""):
 @get_admin_user
 def order_delete(request, user=""):
     """ This code will delete the order selected"""
-
     st_time = datetime.datetime.now()
     log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
     log.info("deletion of order process started")
     complete_id = request.GET.get("order_id", "")
+    wms_code = ''
+    if not complete_id :
+        complete_id =  request.GET.get('order_id_code', '')
+    wms_code = request.GET.get("item_code", "")
+
     admin_user = get_admin(user)
+    search_params = {}
 
     order_id = ''.join(re.findall('\d+', complete_id))
     order_code = ''.join(re.findall('\D+', complete_id))
+
     try:
-        order_detail = OrderDetail.objects.filter(order_id=order_id, order_code=order_code, user=user.id, status=1)
+        if wms_code :
+            search_params['sku__wms_code'] = wms_code
+        order_detail = OrderDetail.objects.filter(order_id=order_id, order_code=order_code, user=user.id, status=1).filter(**search_params)
         if not order_detail:
             complete_id = request.GET.get("order_id_code", "")
             order_id = ''.join(re.findall('\d+', complete_id))
             order_code = ''.join(re.findall('\D+', complete_id))
-            order_detail = OrderDetail.objects.filter(order_id=order_id, order_code=order_code, user=user.id, status=1)
+            order_detail = OrderDetail.objects.filter(order_id=order_id, order_code=order_code, user=user.id, status=1).filter(**search_params)
         if order_detail:
             order_detail_ids = order_detail.values_list('id', flat=True)
             seller_orders = list(

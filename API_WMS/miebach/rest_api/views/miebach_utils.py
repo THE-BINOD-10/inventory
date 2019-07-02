@@ -6069,8 +6069,8 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    model_data = ShipmentInfo.objects.filter(**search_parameters).\
-                                    values('order_shipment__shipment_number', 'order__order_id', 'id',
+    model_data = ShipmentInfo.objects.filter(**search_parameters).exclude(order__status = 3)\
+                                    .values('order_shipment__shipment_number', 'order__order_id', 'id',
                                            'order__original_order_id', 'order__id','order__order_code', 'order__sku__sku_code',
                                            'order__title', 'order__customer_name', 'order__quantity', 'shipping_quantity',
                                            'order_shipment__truck_number', 'creation_date',
@@ -6078,7 +6078,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
                                            'order_shipment__manifest_number',
                                            'order_shipment__creation_date',
                                            'order__customerordersummary__payment_status',
-                                           'order_packaging__package_reference').exclude(order__status = 3)
+                                           'order_packaging__package_reference')
 
     ship_search_params  = {}
     for key, value in search_parameters.iteritems():

@@ -5370,10 +5370,12 @@ def update_seller_transer_upload(user, data_list):
     trans_mapping = {}
     stock_transfer_objs = []
     grouping_data = []
+    receipt_number = get_stock_receipt_number(user)
     for data_dict in data_list:
         update_stocks_data(data_dict['src_stocks'], data_dict['quantity'], data_dict.get('dest_stocks', ''),
                            data_dict['quantity'], user, data_dict['dest_location'], data_dict['sku_id'],
-                           src_seller_id=data_dict['source_seller'], dest_seller_id=data_dict['dest_seller'])
+                           src_seller_id=data_dict['source_seller'], dest_seller_id=data_dict['dest_seller'],
+                           receipt_type='seller-seller transfer', receipt_number=receipt_number)
         group_key = '%s:%s' % (str(data_dict['source_seller']), str(data_dict['dest_seller']))
         if group_key not in trans_mapping.keys():
             trans_id = get_max_seller_transfer_id(user)

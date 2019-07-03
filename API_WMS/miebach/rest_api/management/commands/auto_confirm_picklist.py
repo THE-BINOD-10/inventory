@@ -149,13 +149,18 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
                     src_stock_detail, src_stock_quantity, src_sku_code = get_sku_stock(member, src_stocks,
                                                                                        user, src_val_dict,
                                                                                        src_sku_id_stocks)
-                    if src_stock_quantity >= float(order_quantity):
+                    total_sellers_qty = src_stock_quantity + stock_quantity
+                    sellers_diff_qty = order_quantity - stock_quantity
+                    if sellers_diff_qty <= 0:
+                        log.info("Found the sellers quantity difference")
+                        continue
+                    if total_sellers_qty >= float(order_quantity):
                         source_seller = src_stocks[0].sellerstock_set.filter()[0].seller
                         src_sku_id = src_stock_detail[0].sku_id
-                        update_stocks_data(src_stocks, order_quantity, None,
-                                           order_quantity, user, [src_stocks[0].location], src_sku_id,
+                        update_stocks_data(src_stocks, sellers_diff_qty, None,
+                                           sellers_diff_qty, user, [src_stocks[0].location], src_sku_id,
                                            src_seller_id=source_seller.id, dest_seller_id=seller_order.seller_id,
-                                           receipt_type='seller-seller transfer', receipt_number=receipt_number)
+                                           receipt_type='auto seller-seller transfer', receipt_number=receipt_number)
                         trans_id = get_max_seller_transfer_id(user)
                         seller_transfer = SellerTransfer.objects.create(source_seller_id=source_seller.id,
                                                                         dest_seller_id=seller_order.seller.id,

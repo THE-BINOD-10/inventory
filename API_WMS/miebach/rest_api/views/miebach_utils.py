@@ -6031,7 +6031,11 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
     from rest_api.views.common import get_sku_master, get_order_detail_objs, get_linked_user_objs, get_misc_value, \
         get_local_date
     #sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    admin_user = get_admin(user)
+    invoice_date = ''
+    payment_status = ''
     central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
+    increment_invoice = get_misc_value('increment_invoice', user.id)
     search_parameters = {}
     sister_whs = [user.id]
     if user.username == '72Networks':
@@ -6065,19 +6069,17 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
             search_parameters['order_id__in'] = order_detail.values_list('id', flat=True)
         else:
             search_parameters['order_id__in'] = []
-
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    model_data = ShipmentInfo.objects.filter(**search_parameters).\
-                                    values('order_shipment__shipment_number', 'order__order_id', 'id',
+    model_data = ShipmentInfo.objects.filter(**search_parameters)\
+                                    .values('order_shipment__shipment_number', 'order__order_id', 'id','order__status',
                                            'order__original_order_id', 'order__id','order__order_code', 'order__sku__sku_code',
                                            'order__title', 'order__customer_name', 'order__quantity', 'shipping_quantity',
                                            'order_shipment__truck_number', 'creation_date',
                                            'order_shipment__courier_name',
                                            'order_shipment__manifest_number',
                                            'order_shipment__creation_date',
-                                           'order__customerordersummary__payment_status',
                                            'order_packaging__package_reference')
 
     ship_search_params  = {}
@@ -6097,7 +6099,6 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
     if stop_index:
         model_data = model_data[start_index:stop_index]
 
-    admin_user = get_admin(user)
     seventytwo_networks = False
     ord_det_ids = [i['order__id'] for i in model_data]
     ord_invoice_map = dict(SellerOrderSummary.objects.filter(order_id__in=ord_det_ids).values_list('order_id', 'invoice_number'))
@@ -6131,19 +6132,20 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
                     log.info('Firebase query  failed for %s and params are  and error statement is %s' % (
                     str(user.username),str(e)))
         delivered_time =''
-        central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
+        if data['order__original_order_id'] :
+            order = OrderDetail.objects.filter(original_order_id = data['order__original_order_id'] ,user = user.id).exclude(status=3)
+            payment_status = order.values('customerordersummary__payment_status')[0].get('customerordersummary__payment_status','')
+
         if ord_invoice_map and central_order_reassigning == 'true':
             creation_date = ord_inv_dates_map.get(data['order__id'], '')
             if creation_date:
                 invoice_date = get_local_date(user, creation_date)
                 invoice_number = ord_invoice_map.get(data['order__id'], '')
-                order = OrderDetail.objects.filter(original_order_id = data['order__original_order_id'] ,user = user.id)
                 if order.exists():
                     invoice_number = get_full_invoice_number(user,invoice_number,order[0],creation_date ,'')
             else:
                 invoice_number = '%s' % data['order__original_order_id']
         else:
-            increment_invoice = get_misc_value('increment_invoice', user.id)
             if data['order__id'] in ord_invoice_map and increment_invoice == 'true':
                 invoice_number = ord_invoice_map.get(data['order__id'], '')
                 creation_date = ord_inv_dates_map.get(data['order__id'], '')
@@ -6155,10 +6157,8 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
                     creation_date = ord_inv_dates_map.get(data['order__id'], '')
                     if creation_date:
                         invoice_date = get_local_date(user, creation_date)
-                else:
-                    invoice_date = ''
             else:
-                invoice_number = invoice_date = ''
+                invoice_number = ''
         if result :
            signed_invoice_copy = result.get('signed_invoice_copy','')
            id_type = result.get('id_type','')
@@ -6225,7 +6225,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
                                                 ('Invoice Number',invoice_number),
                                                 ('Invoice Date', invoice_date),
                                                 ('Courier Name', data['order_shipment__courier_name']),
-                                                ('Payment Status', data['order__customerordersummary__payment_status']),
+                                                ('Payment Status', payment_status),
                                                 ('Pack Reference', data['order_packaging__package_reference']))))
     return temp_data
 

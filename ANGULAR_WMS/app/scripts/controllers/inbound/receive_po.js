@@ -16,8 +16,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.industry_type = Session.user_profile.industry_type;
     vm.user_type = Session.user_profile.user_type;
     vm.parent_username = Session.parent.userName;
-    vm.milkbasket_users = ['milkbasket', 'milkbasket_noida', 'milkbasket_test', 'milkbasket_bangalore', 'milkbasket_hyderabad', 'NOIDA02', 'NOIDA01'];
-    vm.milkbasket_file_check = ['milkbasket'];
+    vm.milkbasket_users = ['milkbasket_test', 'NOIDA02', 'NOIDA01', 'GGN01', 'HYD01', 'BLR01'];
+    vm.milkbasket_file_check = ['GGN01'];
     vm.display_approval_button = false;
     vm.supplier_id = '';
     vm.order_id = 0;

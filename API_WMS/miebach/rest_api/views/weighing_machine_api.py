@@ -1,10 +1,10 @@
 import time
 import paho.mqtt.client as paho
 weight_topic = 'hdrn/weight/values'
-weight_broker = 'm24.cloudmqtt.com'
-weight_username = 'deiqblox'
-weight_password = 'jq2RLMfhpRTG'
-weight_port = 15853
+weight_broker = 'postman.cloudmqtt.com'
+weight_username = 'vrreheje'
+weight_password = '8EsCEEP9VZ4L'
+weight_port = 12915
 test_val = 0
 is_updated = False
 

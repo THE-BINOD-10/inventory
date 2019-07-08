@@ -2770,6 +2770,8 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     if user_profile.industry_type == 'FMCG':
         table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+        if user.username in MILKBASKET_USERS:
+            table_headers.insert(4, 'Weight')
     else:
         table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
@@ -2880,6 +2882,13 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                             data1.utgst_tax,
                             total_sku_amt
                             ]
+            if user.username in MILKBASKET_USERS:
+                weight_obj = data1.sku.skuattributes_set.filter(attribute_name='weight'). \
+                    only('attribute_value')
+                weight = ''
+                if weight_obj.exists():
+                    weight = weight_obj[0].attribute_value
+                po_temp_data.insert(4, weight)
         else:
             po_temp_data = [data1.sku.wms_code, data1.supplier_code, data1.sku.sku_desc,
                             data1.order_quantity,
@@ -2970,11 +2979,18 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dict)
         if get_misc_value('raise_po', user.id) == 'true':
+            data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email,
+                            'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name,
+                            'billing_address': profile.address, 'shipping_address': profile.wh_address,
+                            'table_headers': table_headers}
             if get_misc_value('allow_secondary_emails', user.id) == 'true':
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
-                                   str(order_date).split(' ')[0], ean_flag=ean_flag)
-            write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
-                               str(order_date).split(' ')[0], ean_flag=ean_flag)
+                                   str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po,
+                                   full_order_date=str(order_date))
+            elif get_misc_value('raise_po', user.id) == 'true':
+                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
+                                   str(order_date).split(' ')[0], ean_flag=ean_flag,
+                                   data_dict_po=data_dict_po, full_order_date=str(order_date))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -3676,6 +3692,8 @@ def inventory_adjust_upload(request, user=''):
     else:
         cycle_id = cycle_count[0].cycle + 1
 
+    receipt_number = get_stock_receipt_number(user)
+    seller_receipt_dict = {}
     for final_dict in data_list:
         # location_data = ''
         wms_code = final_dict['sku_master'].wms_code
@@ -3691,8 +3709,14 @@ def inventory_adjust_upload(request, user=''):
             mrp = final_dict['mrp']
         if final_dict.get('weight', ''):
             weight = final_dict['weight']
+        if str(seller_master_id) in seller_receipt_dict.keys():
+            receipt_number = seller_receipt_dict[str(seller_master_id)]
+        else:
+            receipt_number = get_stock_receipt_number(user)
+            seller_receipt_dict[str(seller_master_id)] = receipt_number
         adjust_location_stock(cycle_id, wms_code, loc, quantity, reason, user, batch_no=batch_no, mrp=mrp,
-                              seller_master_id=seller_master_id, weight=weight)
+                              seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
+                              receipt_type='inventory-adjustment')
     check_and_update_stock(sku_codes, user)
     return HttpResponse('Success')
 

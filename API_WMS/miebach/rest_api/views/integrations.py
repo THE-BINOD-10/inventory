@@ -956,7 +956,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
         elif key == 'ean_number':
             if value:
                 try:
-                    ean_numbers = str(value.encode('utf-8').replace('\xc2\xa0', ''))
+                    ean_numbers = str(value.encode('utf-8').replace('\xc2\xa0', '').replace('\\xE2\\x80\\x8B', ''))
                 except:
                     ean_numbers = ''
                 for temp_ean in ean_numbers.split(','):
@@ -1038,6 +1038,22 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                 continue
             if option['name'] in option_not_created:
                 continue
+            try:
+                option['name'] = str(option['name'])
+            except:
+                log.info(option['name'])
+                log.info("Ascii Code Error Name for %s" % str(sku_master.sku_code))
+                error_message = 'Ascii code characters Name found'
+                update_error_message(failed_status, 5033, error_message, sku_code,
+                                     field_key='sku_code')
+            try:
+                option['value'] = str(option['value'])
+            except:
+                log.info(option['value'])
+                log.info("Ascii Code Error Value for %s" % str(sku_master.sku_code))
+                error_message = 'Ascii code characters Value found'
+                update_error_message(failed_status, 5033, error_message, sku_code,
+                                     field_key='sku_code')
             column_vals = [str(sku_master.id), option['name'], option['value']]
             update_string = "sku_id=%s, attribute_name='%s',updation_date=NOW()" % (str(sku_master.id), str(option['name']))
             date_string = 'NOW(), NOW()'
@@ -1200,8 +1216,10 @@ def update_skus(skus, user='', company_name=''):
             create_update_sku(all_sku_masters, all_users)
         return insert_status, failed_status.values()
 
-    except:
-        traceback.print_exc()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.debug("Update SKU Failed")
         return insert_status, failed_status.values()
 
 

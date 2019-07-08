@@ -1424,6 +1424,8 @@ def print_purchase_order_form(request, user=''):
     if user.userprofile.industry_type == 'FMCG':
         table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP',
                          'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+        if user.username in MILKBASKET_USERS:
+            table_headers.insert(4, 'Weight')
     else:
         table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price',
                          'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
@@ -1449,6 +1451,13 @@ def print_purchase_order_form(request, user=''):
                             open_po.order_quantity, open_po.measurement_unit, open_po.price, open_po.mrp,amount,
                             open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax,
                             open_po.utgst_tax, total_sku_amt]
+            if user.username in MILKBASKET_USERS:
+                weight_obj = open_po.sku.skuattributes_set.filter(attribute_name='weight'). \
+                    only('attribute_value')
+                weight = ''
+                if weight_obj.exists():
+                    weight = weight_obj[0].attribute_value
+                po_temp_data.insert(4, weight)
         else:
             po_temp_data = [open_po.sku.sku_code, open_po.supplier_code, open_po.sku.sku_desc,
                             open_po.order_quantity, open_po.measurement_unit, open_po.price, amount,

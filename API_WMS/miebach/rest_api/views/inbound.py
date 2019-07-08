@@ -1691,6 +1691,7 @@ def insert_inventory_adjust(request, user=''):
     seller_id = request.GET.get('seller_id', '')
     reduce_stock = request.GET.get('inv_shrinkage', 'false')
     seller_master_id = ''
+    receipt_number = get_stock_receipt_number(user)
     if seller_id:
         seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
         if not seller_master:
@@ -1701,7 +1702,8 @@ def insert_inventory_adjust(request, user=''):
                                        seller_master_id=seller_master_id, weight=weight)
     else:
         status = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,
-                                       seller_master_id=seller_master_id, weight=weight)
+                                       seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
+                                       receipt_type='inventory-adjustment')
     update_filled_capacity([loc], user.id)
     check_and_update_stock([wmscode], user)
 
@@ -8503,17 +8505,16 @@ def get_debit_note_data(rtv_number, user):
         if batch_detail:
             if batch_detail.buy_price:
                 data_dict_item['price'] = batch_detail.buy_price
-            if batch_detail.tax_percent:
-                temp_tax_percent = batch_detail.tax_percent
-                if get_po.supplier.tax_type == 'intra_state':
-                    temp_tax_percent = temp_tax_percent/ 2
-                    data_dict_item['cgst'] = truncate_float(temp_tax_percent, 1)
-                    data_dict_item['sgst'] = truncate_float(temp_tax_percent, 1)
-                    data_dict_item['igst'] = 0
-                else:
-                    data_dict_item['igst'] = temp_tax_percent
-                    data_dict_item['sgst'] = 0
-                    data_dict_item['cgst'] = 0
+            temp_tax_percent = batch_detail.tax_percent
+            if get_po.supplier.tax_type == 'intra_state':
+                temp_tax_percent = temp_tax_percent/ 2
+                data_dict_item['cgst'] = truncate_float(temp_tax_percent, 1)
+                data_dict_item['sgst'] = truncate_float(temp_tax_percent, 1)
+                data_dict_item['igst'] = 0
+            else:
+                data_dict_item['igst'] = temp_tax_percent
+                data_dict_item['sgst'] = 0
+                data_dict_item['cgst'] = 0
         if obj.seller_po_summary.cess_tax:
             data_dict_item['cess'] = obj.seller_po_summary.cess_tax
         if obj.seller_po_summary.apmc_tax:

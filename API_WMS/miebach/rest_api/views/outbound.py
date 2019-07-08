@@ -13765,6 +13765,7 @@ def confirm_or_hold_custom_order(request, user=''):
 @get_admin_user
 def convert_customorder_to_actualorder(request, user=''):
     stock_wh_map = {}
+    user_id_obj_map = {}
     try:
         warehouse_data = json.loads(request.POST['warehouse_data'])
         remarks_value = request.POST.get('remarks', '')
@@ -13773,6 +13774,7 @@ def convert_customorder_to_actualorder(request, user=''):
                 if warehouse['quantity']:
                     wh_user_obj = User.objects.get(username=warehouse['warehouse'])
                     stock_wh_map[wh_user_obj.id] = float(warehouse['quantity'])
+                    user_id_obj_map[wh_user_obj.id] = wh_user_obj
     except:
         return HttpResponse(json.dumps({'msg': 'Something Went Wrong', 'data': []}))
     resp = {'msg': 'Success', 'data': []}
@@ -13845,6 +13847,8 @@ def convert_customorder_to_actualorder(request, user=''):
             return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
         is_emiza_order_failed = False
         message = ''
+        order_objs = []
+        order_sku = {}
         for usr, qty in stock_wh_map.items():
             if qty <= 0:
                 continue
@@ -13857,7 +13861,7 @@ def convert_customorder_to_actualorder(request, user=''):
                                  'original_order_id': org_ord_id, 'user': usr,
                                  'shipment_date': exp_date, 'unit_price': smd_price, 'invoice_amount': invoice_amount,
                                  'creation_date': datetime.datetime.now(), 'status': 1,
-                                 'order_code': 'MN', 'remarks' : remarks_value}
+                                 'order_code': 'MN', 'remarks' : remarks_value, 'marketplace': 'Offline'}
             order_detail_dict.update(dist_order_copy)
             ord_qs = OrderDetail.objects.filter(sku_id=mapped_sku_id, order_id=order_id, user=usr)
             if not ord_qs:
@@ -13899,12 +13903,19 @@ def convert_customorder_to_actualorder(request, user=''):
             CustomerOrderSummary.objects.create(order=ord_obj, sgst_tax=taxes['sgst_tax'], cgst_tax=taxes['cgst_tax'],
                                                 igst_tax=taxes['igst_tax'], tax_type=customer_master.tax_type)
             upload_po_map = {'uploaded_user_id': enq_obj.user.id, 'po_number': corporate_po_number,
-                             'customer_name': enq_obj.customer_name}
-            ord_obj = OrderUploads.objects.filter(**upload_po_map)
-            if ord_obj:
-                ord_obj = ord_obj[0]
-                ord_obj.generic_order_id = generic_order_id
-                ord_obj.save()
+                             'customer_name': enq_obj.customer_name, 'generic_order_id': 0}
+            ordupload_obj = OrderUploads.objects.filter(**upload_po_map)
+            if ordupload_obj:
+                ordupload_obj = ordupload_obj[0]
+                ordupload_obj.generic_order_id = generic_order_id
+                ordupload_obj.save()
+
+            order_objs.append(ord_obj)
+            order_sku.update({ord_obj.sku: qty})
+            auto_picklist_signal = get_misc_value('auto_generate_picklist', usr)
+            if auto_picklist_signal == 'true':
+                message = check_stocks(order_sku, user_id_obj_map[usr], request, order_objs)
+
             generic_orders = GenericOrderDetailMapping.objects.filter(generic_order_id=generic_order_id,
                                                                       customer_id=cm_id, cust_wh_id=usr). \
                 values('orderdetail__original_order_id', 'orderdetail__user').distinct()
@@ -13920,15 +13931,15 @@ def convert_customorder_to_actualorder(request, user=''):
                             message = "400 Bad Request"
                         else:
                             message = order_push_status['Result']['Errors'][0]['ErrorMessage']
-                        # order_detail = OrderDetail.objects.filter(original_order_id=original_order_id,
-                        #                                           user=order_detail_user.id)
-                        # picklist_number = order_detail.values_list('picklist__picklist_number', flat=True)
-                        # if picklist_number:
-                        #     picklist_number = picklist_number[0]
-                        #log.info(order_detail.delete())
-                        # check_picklist_number_created(order_detail_user, picklist_number)
-                        # if message:
-                        #     return HttpResponse(message)
+                        order_detail = OrderDetail.objects.filter(original_order_id=original_order_id,
+                                                                  user=order_detail_user.id)
+                        picklist_number = order_detail.values_list('picklist__picklist_number', flat=True)
+                        if picklist_number:
+                            picklist_number = picklist_number[0]
+                        log.info(order_detail.delete())
+                        check_picklist_number_created(order_detail_user, picklist_number)
+                        if message:
+                            return HttpResponse(message)
                     if generic_order_id and not is_emiza_order_failed:
                         check_and_raise_po(generic_order_id, cm_id)
                 except Exception as e:

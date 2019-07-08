@@ -2770,6 +2770,8 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     if user_profile.industry_type == 'FMCG':
         table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+        if user.username in MILKBASKET_USERS:
+            table_headers.insert(4, 'Weight')
     else:
         table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
@@ -2880,6 +2882,13 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                             data1.utgst_tax,
                             total_sku_amt
                             ]
+            if user.username in MILKBASKET_USERS:
+                weight_obj = data1.sku.skuattributes_set.filter(attribute_name='weight'). \
+                    only('attribute_value')
+                weight = ''
+                if weight_obj.exists():
+                    weight = weight_obj[0].attribute_value
+                po_temp_data.insert(4, weight)
         else:
             po_temp_data = [data1.sku.wms_code, data1.supplier_code, data1.sku.sku_desc,
                             data1.order_quantity,
@@ -2970,11 +2979,18 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dict)
         if get_misc_value('raise_po', user.id) == 'true':
+            data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email,
+                            'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name,
+                            'billing_address': profile.address, 'shipping_address': profile.wh_address,
+                            'table_headers': table_headers}
             if get_misc_value('allow_secondary_emails', user.id) == 'true':
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
-                                   str(order_date).split(' ')[0], ean_flag=ean_flag)
-            write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
-                               str(order_date).split(' ')[0], ean_flag=ean_flag)
+                                   str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po,
+                                   full_order_date=str(order_date))
+            elif get_misc_value('raise_po', user.id) == 'true':
+                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
+                                   str(order_date).split(' ')[0], ean_flag=ean_flag,
+                                   data_dict_po=data_dict_po, full_order_date=str(order_date))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

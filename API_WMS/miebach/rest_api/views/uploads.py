@@ -3676,6 +3676,8 @@ def inventory_adjust_upload(request, user=''):
     else:
         cycle_id = cycle_count[0].cycle + 1
 
+    receipt_number = get_stock_receipt_number(user)
+    seller_receipt_dict = {}
     for final_dict in data_list:
         # location_data = ''
         wms_code = final_dict['sku_master'].wms_code
@@ -3691,8 +3693,14 @@ def inventory_adjust_upload(request, user=''):
             mrp = final_dict['mrp']
         if final_dict.get('weight', ''):
             weight = final_dict['weight']
+        if str(seller_master_id) in seller_receipt_dict.keys():
+            receipt_number = seller_receipt_dict[str(seller_master_id)]
+        else:
+            receipt_number = get_stock_receipt_number(user)
+            seller_receipt_dict[str(seller_master_id)] = receipt_number
         adjust_location_stock(cycle_id, wms_code, loc, quantity, reason, user, batch_no=batch_no, mrp=mrp,
-                              seller_master_id=seller_master_id, weight=weight)
+                              seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
+                              receipt_type='inventory-adjustment')
     check_and_update_stock(sku_codes, user)
     return HttpResponse('Success')
 

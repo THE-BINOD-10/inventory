@@ -6133,7 +6133,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
                     str(user.username),str(e)))
         delivered_time =''
         if data['order__original_order_id'] :
-            order = OrderDetail.objects.filter(original_order_id = data['order__original_order_id'] ,user = user.id).exclude(status=3)
+            order = OrderDetail.objects.filter(original_order_id = data['order__original_order_id'] ,user = user.id)
             payment_status = order.values('customerordersummary__payment_status')[0].get('customerordersummary__payment_status','')
 
         if ord_invoice_map and central_order_reassigning == 'true':

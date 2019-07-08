@@ -1845,7 +1845,7 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
 
 
 def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet='', batch_no='', mrp='',
-                          seller_master_id='', weight=''):
+                          seller_master_id='', weight='', receipt_number=1, receipt_type=''):
     now_date = datetime.datetime.now()
     now = str(now_date)
     if wmscode:
@@ -1953,7 +1953,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
             if pallet:
                 del stock_dict['pallet_detail_id']
             del stock_dict["sku__user"]
-            stock_dict.update({"receipt_number": 1, "receipt_date": now_date,
+            stock_dict.update({"receipt_number": receipt_number, "receipt_date": now_date, "receipt_type": receipt_type,
                                "quantity": quantity, "status": 1, "creation_date": now_date,
                                "updation_date": now_date
                               })

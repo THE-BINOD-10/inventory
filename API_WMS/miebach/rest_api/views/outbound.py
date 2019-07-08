@@ -12707,25 +12707,27 @@ def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, ord
     orderprefix_map = dict(all_wh_dists_obj.values_list('user_id', 'user__userprofile__order_prefix'))
     filter_dict = {'customer_id__in': cm_ids}
     generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
-    emiza_order_ids = []
     for enquiry in em_qs[start_index:stop_index]:
-        related_order_ids = generic_orders.filter(po_number=enquiry.po_number,client_name=enquiry.customer_name,orderdetail__sku__sku_code=enquiry.sku.sku_code).values_list(
-        'po_number','client_name','orderdetail__sku__sku_code')
+        customization_type = '  Price and Product Customization'
+        emiza_order_ids = []
+        related_order_ids = generic_orders.filter(po_number=enquiry.po_number,client_name=enquiry.customer_name,orderdetail__sku__sku_code=enquiry.sku.sku_code).values_list('cust_wh_id', 'orderdetail__original_order_id')
         for usr , org_id in related_order_ids:
             if usr in orderprefix_map:
-                emiza_id = orderprefix_map[usr]+'MN'+str(org_id)
+                emiza_id = orderprefix_map[usr]+str(org_id)
                 emiza_order_ids.append(emiza_id)
         Emiza_ids = list(set(emiza_order_ids))
-        res_map = {'order_id': enquiry.enquiry_id, 'customer_name': enquiry.customer_name,
-                   'date': get_only_date(request, enquiry.creation_date),
-                   'sku_code': enquiry.sku.sku_code, 'style_name': enquiry.sku.sku_class}
+        #res_map = {'order_id': enquiry.enquiry_id, 'customer_name': enquiry.customer_name,
+        #           'date': get_only_date(request, enquiry.creation_date),
+        #           'sku_code': enquiry.sku.sku_code, 'style_name': enquiry.sku.sku_class}
         if enquiry.customization_type:
             if enquiry.customization_type == 'price_custom':
                 customization_type = 'Price Customization'
-            else:
-                customization_type = '  Price and Product Customization'
-        temp_data['aaData'].append(OrderedDict(
-            (('Enquiry ID', float(enquiry.enquiry_id)),('Emiza Order Id', Emiza_ids), ('Enquiry Date', get_only_date(request, enquiry.creation_date)),
+        cm_qs = CustomerUserMapping.objects.filter(user=enquiry.user)
+        if cm_qs:
+            cm_id = cm_qs[0].customer_id
+            uniq_enq_id = str(cm_id) + str(enquiry.enquiry_id)
+            temp_data['aaData'].append(OrderedDict(
+                (('ID', float(enquiry.enquiry_id)), ('Enquiry ID', uniq_enq_id), ('Emiza Order Id', Emiza_ids), ('Enquiry Date', get_only_date(request, enquiry.creation_date)),
               ('Customer Name', enquiry.customer_name), ('Style Name', enquiry.sku.sku_class), ('Customization', customization_type),('SKU Code', enquiry.sku.sku_code), ('Status', enquiry.status))))
         temp_data['recordsTotal'] = em_qs.count()
         temp_data['recordsFiltered'] = temp_data['recordsTotal']

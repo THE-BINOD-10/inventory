@@ -6070,7 +6070,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
     if 'order_id' in search_params:
         order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={'user__in': sister_whs}, all_order_objs=[])
         if order_detail:
-            search_parameters['order_id__in'] = order_detail.values_list('id', flat=True)
+            search_parameters['order_id__in'] = order_detail.exclude(status=3).values_list('id', flat=True)
         else:
             search_parameters['order_id__in'] = []
     start_index = search_params.get('start', 0)

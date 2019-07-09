@@ -133,6 +133,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                data.data[index].accepted_quantity = res_data.data.weight;
               }
             }
+            if (data.data[index].accepted_quantity){
+              data.data[index].rejected_quantity = data.data[index].quantity - data.data[index].accepted_quantity 
+            }
+            else{
+              data.data[index].rejected_quantity = 0
+            }
             if(vm.quantity_focused) {
               setTimeout(function(){ vm.get_current_weight(event, data, index, parent_index); }, 1000);
             }
@@ -211,6 +217,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
         sku.accepted_quantity = sku.quantity;
         vm.service.showNoty("You will enter only <b>"+sku.quantity+"</b> quantity");
+      }
+      if (Number(sku.accepted_quantity)){
+        sku.rejected_quantity = sku.quantity - sku.accepted_quantity
+      }
+      else{
+        sku.rejected_quantity = 0
       }
     }
 
@@ -359,6 +371,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
         }
       });
+       vm.confirm_grn();
+    }
+
+    vm.confirm_grn = function(){
+      var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      vm.service.apiCall('confirm_grn/', 'POST', elem, true, true).then(function(data){
+        pop_msg(data.data);
+      });
+
     }
 
     vm.confirm_btn = false;

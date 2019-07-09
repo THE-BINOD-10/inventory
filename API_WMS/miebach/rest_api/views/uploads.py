@@ -5375,7 +5375,8 @@ def validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols,
                 stocks = stock_detail
             data_dict['src_stocks'] = stocks
             if stocks:
-                avail_qty = check_stock_available_quantity(stocks, user, stock_ids=stock_ids)
+                avail_qty = check_stock_available_quantity(stocks, user, stock_ids=stock_ids,
+                                                           seller_master_id=data_dict['source_seller'])
             else:
                 avail_qty = 0
             #avail_qty = check_auto_stock_availability(stocks, user)

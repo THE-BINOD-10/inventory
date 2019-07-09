@@ -6868,8 +6868,10 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         picklist_data = copy.deepcopy(PICKLIST_FIELDS)
         # order_quantity = float(order.quantity)
         seller_order = None
+        seller_master_id = ''
         if is_seller_order:
             seller_order = order
+            seller_master_id = seller_order.seller_id
             order = order.order
         picklist_data['picklist_number'] = picklist_number + 1
         if remarks:
@@ -6885,8 +6887,12 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
             if 'st_po' not in dir(order) and order.customerordersummary_set.filter().exists():
                 needed_mrp_filter = order.customerordersummary_set.filter()[0].mrp
                 sku_id_stock_filter['batch_detail__mrp'] = needed_mrp_filter
-        sku_id_stocks = sku_stocks.filter(**sku_id_stock_filter).values('id', 'sku_id').\
-                                    annotate(total=Sum('quantity')).order_by(order_by)
+        if seller_master_id:
+            sku_id_stocks = sku_stocks.filter(sellerstock__seller_id=seller_master_id, **sku_id_stock_filter).values('id', 'sku_id').\
+                                        annotate(total=Sum('sellerstock__quantity')).order_by(order_by)
+        else:
+            sku_id_stocks = sku_stocks.filter(**sku_id_stock_filter).values('id', 'sku_id').\
+                                        annotate(total=Sum('quantity')).order_by(order_by)
         val_dict = {}
         val_dict['sku_ids'] = map(lambda d: d['sku_id'], sku_id_stocks)
         val_dict['stock_ids'] = map(lambda d: d['id'], sku_id_stocks)
@@ -8598,13 +8604,17 @@ def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
     return 'Added Successfully'
 
 
-def check_stock_available_quantity(stocks, user, stock_ids=None):
+def check_stock_available_quantity(stocks, user, stock_ids=None, seller_master_id=''):
     stock_detail = stocks
     if stock_ids:
         stock_detail = StockDetail.objects.filter(id__in=stock_ids)
     else:
         stock_ids = list(stock_detail.values_list('id', flat=True))
-    stock_qty = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
+    if seller_master_id:
+        stock_qty = stock_detail.filter(sellerstock__seller_id=seller_master_id).\
+            aggregate(quantity__sum=Sum('sellerstock__quantity'))['quantity__sum']
+    else:
+        stock_qty = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
     if not stock_qty:
         return 0
     res_qty = PicklistLocation.objects.filter(stock_id__in=stock_ids, status=1, picklist__order__user=user.id).\

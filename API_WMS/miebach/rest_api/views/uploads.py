@@ -2754,7 +2754,6 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     show_cess_tax = False
     show_apmc_tax = False
     ean_flag = False
-    total_qty = 0
     wms_codes_list = list(set(map(lambda d: d['sku'].wms_code, data_list)))
     ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
                                         wms_code__in=wms_codes_list, user=user.id)
@@ -2782,7 +2781,10 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     if show_apmc_tax:
         table_headers.insert(table_headers.index('UTGST (%)'), 'APMC (%)')
     po_data = []
+    send_mail_data = OrderedDict()
     for final_dict in data_list:
+        total_qty = 0
+        total = 0
         order_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
         data = copy.deepcopy(PO_DATA)
         order_data['supplier_id'] = final_dict['supplier'].id
@@ -2845,7 +2847,6 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         else:
             po_id = order_ids[group_key]
         ids_dict = {}
-        total = 0
         order_data['status'] = 0
         data1 = OpenPO(**order_data)
         data1.save()
@@ -2872,6 +2873,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         total_tax_amt = (data1.utgst_tax + data1.sgst_tax + data1.cgst_tax + data1.igst_tax + data1.cess_tax + data1.apmc_tax + data1.utgst_tax) * (
                                     amount / 100)
         total_sku_amt = total_tax_amt + amount
+        total += total_sku_amt
         if user_profile.industry_type == 'FMCG':
             po_temp_data = [data1.sku.wms_code, data1.supplier_code, data1.sku.sku_desc,
                             data1.order_quantity,
@@ -2909,93 +2911,102 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         if show_apmc_tax:
             po_temp_data.insert(table_headers.index('APMC (%)'), data1.apmc_tax)
         po_data.append(po_temp_data)
+        send_mail_data.setdefault(str(order.order_id), {'purchase_order': order, 'po_data': [],
+                                  'data1': data1, 'total_qty': 0, 'total': 0})
+        send_mail_data[str(order.order_id)]['po_data'].append(po_temp_data)
+        send_mail_data[str(order.order_id)]['total_qty'] += total_qty
+        send_mail_data[str(order.order_id)]['total'] += total
 
         #mail_result_data = purchase_order_dict(data1, data_req, purchase_order, user, order)
-    try:
-        purchase_order = data1
-        address = purchase_order.supplier.address
-        address = '\n'.join(address.split(','))
-        if purchase_order.ship_to:
-            ship_to_address = purchase_order.ship_to
-            company_address = user.userprofile.address
-        else:
-            ship_to_address, company_address = get_purchase_company_address(user.userprofile)
-        wh_telephone = user.userprofile.wh_phone_number
-        ship_to_address = '\n'.join(ship_to_address.split(','))
-        vendor_name = ''
-        vendor_address = ''
-        vendor_telephone = ''
-        if purchase_order.order_type == 'VR':
-            vendor_address = purchase_order.vendor.address
-            vendor_address = '\n'.join(vendor_address.split(','))
-            vendor_name = purchase_order.vendor.name
-            vendor_telephone = purchase_order.vendor.phone_number
-        telephone = purchase_order.supplier.phone_number
-        name = purchase_order.supplier.name
-        order_id = ids_dict[supplier]
-        supplier_email = purchase_order.supplier.email_id
-        secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
-        supplier_email_id =[]
-        supplier_email_id.insert(0,supplier_email)
-        supplier_email_id.extend(secondary_supplier_email)
-        phone_no = purchase_order.supplier.phone_number
-        gstin_no = purchase_order.supplier.tin_number
-        po_exp_duration = purchase_order.supplier.po_exp_duration
-        order_date = get_local_date(request.user, order.creation_date)
-        if po_exp_duration:
-            expiry_date = order.creation_date + datetime.timedelta(days=po_exp_duration)
-        else:
-            expiry_date = ''
-        po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
-        profile = UserProfile.objects.get(user=user.id)
-        company_name = profile.company_name
-        title = 'Purchase Order'
-        receipt_type = request.GET.get('receipt_type', '')
-        if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
-            company_name = 'SHPROC Procurement Pvt. Ltd.'
+    for key, send_mail_dat in send_mail_data.iteritems():
+        try:
+            purchase_order = send_mail_dat['data1']
+            po_data = send_mail_dat['po_data']
+            total_qty = send_mail_dat['total_qty']
+            total = send_mail_dat['total']
+            address = purchase_order.supplier.address
+            address = '\n'.join(address.split(','))
+            if purchase_order.ship_to:
+                ship_to_address = purchase_order.ship_to
+                company_address = user.userprofile.address
+            else:
+                ship_to_address, company_address = get_purchase_company_address(user.userprofile)
+            wh_telephone = user.userprofile.wh_phone_number
+            ship_to_address = '\n'.join(ship_to_address.split(','))
+            vendor_name = ''
+            vendor_address = ''
+            vendor_telephone = ''
+            if purchase_order.order_type == 'VR':
+                vendor_address = purchase_order.vendor.address
+                vendor_address = '\n'.join(vendor_address.split(','))
+                vendor_name = purchase_order.vendor.name
+                vendor_telephone = purchase_order.vendor.phone_number
+            telephone = purchase_order.supplier.phone_number
+            name = purchase_order.supplier.name
+            order_id = ids_dict[supplier]
+            supplier_email = purchase_order.supplier.email_id
+            secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
+            supplier_email_id =[]
+            supplier_email_id.insert(0,supplier_email)
+            supplier_email_id.extend(secondary_supplier_email)
+            phone_no = purchase_order.supplier.phone_number
+            gstin_no = purchase_order.supplier.tin_number
+            po_exp_duration = purchase_order.supplier.po_exp_duration
+            order_date = get_local_date(request.user, order.creation_date)
+            if po_exp_duration:
+                expiry_date = order.creation_date + datetime.timedelta(days=po_exp_duration)
+            else:
+                expiry_date = ''
+            po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+            profile = UserProfile.objects.get(user=user.id)
+            company_name = profile.company_name
             title = 'Purchase Order'
-        total_amt_in_words = number_in_words(round(total)) + ' ONLY'
-        round_value = float(round(total) - float(total))
-        company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
-        iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
-        left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO, request)
-        data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address.encode('ascii', 'ignore'),
-                     'order_id': order_id,
-                     'telephone': str(telephone), 'ship_to_address': ship_to_address.encode('ascii', 'ignore'),
-                     'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,
-                     'user_name': request.user.username, 'total_amt_in_words': total_amt_in_words,
-                     'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
-                     'w_address': ship_to_address.encode('ascii', 'ignore'),
-                     'vendor_name': vendor_name, 'vendor_address': vendor_address.encode('ascii', 'ignore'),
-                     'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
-                     'gstin_no': gstin_no, 'industry_type': user_profile.industry_type, 'expiry_date': expiry_date,
-                     'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number, 'wh_pan': profile.pan_number,
-                     'terms_condition': '',
-                     'company_address': company_address.encode('ascii', 'ignore'),
-                     'company_logo': company_logo, 'iso_company_logo': iso_company_logo,
-                     'left_side_logo': left_side_logo}
-        if round_value:
-            data_dict['round_total'] = "%.2f" % round_value
-        t = loader.get_template('templates/toggle/po_download.html')
-        rendered = t.render(data_dict)
-        if get_misc_value('raise_po', user.id) == 'true':
-            data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email,
-                            'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name,
-                            'billing_address': profile.address, 'shipping_address': profile.wh_address,
-                            'table_headers': table_headers}
-            if get_misc_value('allow_secondary_emails', user.id) == 'true':
-                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
-                                   str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po,
-                                   full_order_date=str(order_date))
-            elif get_misc_value('raise_po', user.id) == 'true':
-                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
-                                   str(order_date).split(' ')[0], ean_flag=ean_flag,
-                                   data_dict_po=data_dict_po, full_order_date=str(order_date))
-    except Exception as e:
-        import traceback
-        log.debug(traceback.format_exc())
-        log.info('Purchase Order send mail failed for %s and params are %s and error statement is %s' % (
-        str(user.username), str(request.POST.dict()), str(e)))
+            receipt_type = request.GET.get('receipt_type', '')
+            if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
+                company_name = 'SHPROC Procurement Pvt. Ltd.'
+                title = 'Purchase Order'
+            total_amt_in_words = number_in_words(round(total)) + ' ONLY'
+            round_value = float(round(total) - float(total))
+            company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
+            iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
+            left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO, request)
+            data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address.encode('ascii', 'ignore'),
+                         'order_id': order_id,
+                         'telephone': str(telephone), 'ship_to_address': ship_to_address.encode('ascii', 'ignore'),
+                         'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,
+                         'user_name': request.user.username, 'total_amt_in_words': total_amt_in_words,
+                         'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
+                         'w_address': ship_to_address.encode('ascii', 'ignore'),
+                         'vendor_name': vendor_name, 'vendor_address': vendor_address.encode('ascii', 'ignore'),
+                         'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
+                         'gstin_no': gstin_no, 'industry_type': user_profile.industry_type, 'expiry_date': expiry_date,
+                         'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number, 'wh_pan': profile.pan_number,
+                         'terms_condition': '',
+                         'company_address': company_address.encode('ascii', 'ignore'),
+                         'company_logo': company_logo, 'iso_company_logo': iso_company_logo,
+                         'left_side_logo': left_side_logo}
+            if round_value:
+                data_dict['round_total'] = "%.2f" % round_value
+            t = loader.get_template('templates/toggle/po_download.html')
+            rendered = t.render(data_dict)
+            if get_misc_value('raise_po', user.id) == 'true':
+                data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email,
+                                'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name,
+                                'billing_address': profile.address, 'shipping_address': profile.wh_address,
+                                'table_headers': table_headers}
+                if get_misc_value('allow_secondary_emails', user.id) == 'true':
+                    write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
+                                       str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po,
+                                       full_order_date=str(order_date))
+                elif get_misc_value('raise_po', user.id) == 'true':
+                    write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
+                                       str(order_date).split(' ')[0], ean_flag=ean_flag,
+                                       data_dict_po=data_dict_po, full_order_date=str(order_date))
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Purchase Order send mail failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(request.POST.dict()), str(e)))
     for key, value in order_ids.iteritems():
         if value:
             check_purchase_order_created(user, value)

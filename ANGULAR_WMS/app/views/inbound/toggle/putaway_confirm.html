@@ -58,6 +58,7 @@
                     <th> Putaway Quantity </th>
                     <th ng-if="showCase.industry_type=='FMCG'">PO Unit Price</th>
                     <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
+                    <th ng-if="showCase.industry_type=='FMCG' && user.user_profile.user_type == 'marketplace_user'">Weight</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Batch No</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Mfg. Date</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Exp. Date</th>
@@ -78,6 +79,7 @@
                     <td><input type="text" name="quantity" class="form-control" ng-model="sku.quantity" ng-class="service.get_decimal_perm()" ng-change="showCase.count_sku_quantity();showCase.cal_quantity(sku, data);"></td>
                     <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.buy_price" size="22" title="{{ data.buy_price }}" name="buy_price" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.buy_price}}" readonly></td>
                     <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.mrp" size="22" title="{{ data.mrp }}" name="mrp" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.mrp}}" readonly></td>
+                    <td ng-if="showCase.industry_type=='FMCG' && user.user_profile.user_type == 'marketplace_user'"><input type="text" ng-model="data.weight" size="22" title="{{ data.weight }}" name="weight" class="form-control"  value="{{data.weight}}" readonly></td>
                     <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.batch_no" title="{{ data.batch_no }}" name="batch_no" class="form-control" value="{{data.batch_no}}" readonly></td>
                     <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.manufactured_date" size="33" title="{{ data.manufactured_date }}" name="manufactured_date" class="form-control" value="{{data.manufactured_date}}" readonly></td>
                     <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.expiry_date" size="33" title="{{ data.expiry_date }}" name="expiry_date" class="form-control" value="{{data.expiry_date}}" readonly></td>

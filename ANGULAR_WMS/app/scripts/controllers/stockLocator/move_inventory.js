@@ -19,6 +19,7 @@
       vm.user_type = Session.user_profile.user_type;
       vm.batch_nos = [];
       vm.batches = {};
+      vm.weights = {};
 
       vm.dtOptions = DTOptionsBuilder.newOptions()
          .withOption('ajax', {
@@ -122,6 +123,8 @@
             if(data.message) {
               vm.batches = data.data.sku_batches;
               vm.batch_nos = Object.keys(vm.batches);
+              vm.weights = data.data.sku_weights;
+              vm.weight_list = Object.keys(vm.weights);
             }
           });
         }
@@ -290,7 +293,7 @@
 
     vm.combo_allocate_stock = function() {
 	
-	vm.allocate_empty_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": ""}] } ] }
+	vm.allocate_empty_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "weight": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": "", "child_sku_weight": ""}] } ] }
 	angular.copy(vm.allocate_empty_data, vm.model_data);
 	var mod_data = vm.model_data;
         var modalInstance = $modal.open({
@@ -328,6 +331,7 @@
     $ctrl.model_data.dest_info = [{dest_sku_code:'', dest_quantity:'', dest_location:'', batch_number:'', mrp:''}];
     $ctrl.batch_nos = [];
     $ctrl.batches = {};
+    $ctrl.weights = {};
     $ctrl.cols = 2;
     if (!$ctrl.industry_type) {
       $ctrl.cols = 3;
@@ -345,6 +349,7 @@
             $ctrl.model_data.mfg_date = $ctrl.batch_details[key][0]['manufactured_date'];
             $ctrl.model_data.exp_date = $ctrl.batch_details[key][0]['expiry_date'];
             $ctrl.model_data.tax_percent = $ctrl.batch_details[key][0]['tax_percent'];
+            $ctrl.model_data.weight = $ctrl.batch_details[key][0]['weight'];
         }
     }
     $ctrl.get_sku_batches = function(sku_code){
@@ -354,6 +359,8 @@
               $ctrl.batch_details = data.data.sku_batch_details
               $ctrl.batches = data.data.sku_batches;
               $ctrl.batch_nos = Object.keys($ctrl.batches);
+              $ctrl.weights = data.data.sku_weights;
+              $ctrl.weight_list = Object.keys($ctrl.weights);
             }
           });
         }
@@ -564,8 +571,8 @@
     bundleObj.bundle_skus_list = [];
     bundleObj.marginData = items;
     bundleObj.service = Service;
-    bundleObj.bundle_model_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": ""}] } ] }
-    bundleObj.empty_bundle_model_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": ""}] } ] }
+    bundleObj.bundle_model_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "weight": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_weight": "", "child_sku_qty": ""}] } ] }
+    bundleObj.empty_bundle_model_data = {"title": "Combo Allocate Stock", "results": [{"combo_sku_code": "", "combo_sku_desc":"", "location":"", "batch":"", "mrp": "", "quantity": "", "weight": "", "data": [{"child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_batch": "", "child_sku_mrp":"", "child_sku_qty": "", "child_sku_weight": ""}] } ] }
     bundleObj.cssClass = "fa fa-plus-square-o";
     bundleObj.last = true;
     bundleObj.first = false;
@@ -634,8 +641,10 @@
           sku_data.combo_sku_desc = data.data.parent.combo_sku_desc;
           sku_data.quantity = data.data.parent.quantity;
 	      sku_data.mrp = data.data.parent.mrp;
+          sku_data.weight = data.data.parent.weight;
         } else {
-          sku_data.data = [{"child_sku_batch": "", "child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_mrp": "", "child_sku_qty": ""}]
+          sku_data.data = [{"child_sku_batch": "", "child_sku_code": "", "child_sku_desc": "", "child_sku_location": "", "child_sku_mrp": "",
+                            "child_sku_qty": "", "child_sku_weight": ""}]
         }
       });
     }
@@ -689,7 +698,7 @@
     bundleObj.bundle_update_data = function(data, index, last, first) {
       if (last) {
         var prefill_data = data.data[index]
-        data.data.splice(index+1, 0, {"child_sku_batch": prefill_data['child_sku_batch'], "child_sku_code": prefill_data['child_sku_code'], "child_sku_desc": prefill_data['child_sku_desc'], "child_sku_location": "", "child_sku_mrp": prefill_data['child_sku_mrp'], "child_sku_qty": prefill_data['child_sku_qty'], "child_qty": prefill_data['child_qty'], "new_sku" : true});
+        data.data.splice(index+1, 0, {"child_sku_batch": prefill_data['child_sku_batch'], "child_sku_code": prefill_data['child_sku_code'], "child_sku_desc": prefill_data['child_sku_desc'], "child_sku_location": "", "child_sku_mrp": prefill_data['child_sku_mrp'], "child_sku_qty": prefill_data['child_sku_qty'], "child_qty": prefill_data['child_qty'], "new_sku" : true, "child_sku_weight": prefill_data['child_sku_weight']});
       } else {
         data.data.splice(index,1);
       }

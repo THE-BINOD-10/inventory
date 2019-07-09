@@ -1687,9 +1687,11 @@ def insert_inventory_adjust(request, user=''):
     pallet_code = request.GET.get('pallet', '')
     batch_no = request.GET.get('batch_no', '')
     mrp = request.GET.get('mrp', '')
+    weight = request.GET.get('weight', '')
     seller_id = request.GET.get('seller_id', '')
     reduce_stock = request.GET.get('inv_shrinkage', 'false')
     seller_master_id = ''
+    receipt_number = get_stock_receipt_number(user)
     if seller_id:
         seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
         if not seller_master:
@@ -1697,10 +1699,11 @@ def insert_inventory_adjust(request, user=''):
         seller_master_id = seller_master[0].id
     if reduce_stock == 'true':
         status = reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,
-                                       seller_master_id=seller_master_id)
+                                       seller_master_id=seller_master_id, weight=weight)
     else:
         status = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,
-                                       seller_master_id=seller_master_id)
+                                       seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
+                                       receipt_type='inventory-adjustment')
     update_filled_capacity([loc], user.id)
     check_and_update_stock([wmscode], user)
 
@@ -2913,10 +2916,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                           'tax_percent': myDict['tax_percent'][i],
                           'mrp': myDict['mrp'][i], 'buy_price': myDict['buy_price'][i]
                          }
-            try:
-                batch_dict['weight'] = float(''.join(re.findall('\d+', str(myDict['weight'][i]))))
-            except:
-                batch_dict['weight'] = 0
+            batch_dict['weight'] = myDict['weight'][i]
             add_ean_weight_to_batch_detail(purchase_data['sku'], batch_dict)
         temp_quantity = data.received_quantity
         unit = ''
@@ -3448,8 +3448,15 @@ def check_sku(request, user=''):
     sku_id = check_and_return_mapping_id(sku_code, '', user, check)
     if not sku_id:
         try:
-            sku_id = SKUMaster.objects.filter(Q(ean_number=sku_code) | Q(eannumbers__ean_number=sku_code),
-                                              user=user.id)
+            sku_ean_objs = SKUMaster.objects.filter(ean_number=sku_code, user=user.id).only('ean_number', 'sku_code')
+            if sku_ean_objs.exists():
+                sku_id = sku_ean_objs[0].id
+            else:
+                ean_obj = EANNumbers.objects.filter(sku__user=user.id, ean_number=sku_code)
+                if ean_obj.exists():
+                    sku_id = ean_obj[0].sku_id
+            #sku_id = SKUMaster.objects.filter(Q(ean_number=sku_code) | Q(eannumbers__ean_number=sku_code),
+            #                                  user=user.id)
         except:
             sku_id = ''
     if sku_id:
@@ -3523,13 +3530,18 @@ def create_return_order(data, user):
         if data.get('sor_id', ''):
             sor_id = data['sor_id']
         seller_id = ''
-        if data.get('seller_id', ''):
-            temp_seller = data['seller_id']
-            if ':' in temp_seller:
-                seller_val_id = temp_seller.split(':')[0]
-                seller_obj = SellerMaster.objects.filter(user=user_obj.id, seller_id=seller_val_id)
-                if seller_obj.exists():
-                    seller_id = seller_obj[0].id
+        if user_obj.username in MILKBASKET_USERS:
+            seller_obj = SellerMaster.objects.filter(user=user_obj.id, seller_id=1)
+            if seller_obj.exists():
+                seller_id = seller_obj[0].id
+        else:
+            if data.get('seller_id', ''):
+                temp_seller = data['seller_id']
+                if ':' in temp_seller:
+                    seller_val_id = temp_seller.split(':')[0]
+                    seller_obj = SellerMaster.objects.filter(user=user_obj.id, seller_id=seller_val_id)
+                    if seller_obj.exists():
+                        seller_id = seller_obj[0].id
         if data.get('order_imei_id', ''):
             order_map_ins = OrderIMEIMapping.objects.get(id=data['order_imei_id'])
             data['order_id'] = order_map_ins.order.original_order_id
@@ -3788,7 +3800,6 @@ def update_return_reasons(order_return, reasons_list=[]):
 @get_admin_user
 def confirm_sales_return(request, user=''):
     """ Creating and Confirming the Sales Returns"""
-
     data_dict = dict(request.POST.iterlists())
     return_type = request.POST.get('return_type', '')
     return_process = request.POST.get('return_process')
@@ -3865,7 +3876,6 @@ def confirm_sales_return(request, user=''):
         log.debug(traceback.format_exc())
         log.info('Confirm Sales return for ' + str(user.username) + ' is failed for ' + str(
             request.POST.dict()) + ' error statement is ' + str(e))
-
     created_return_ids = list(set(created_return_ids))
     if created_return_ids:
         return_sales_print = []
@@ -5014,6 +5024,8 @@ def confirm_add_po(request, sales_data='', user=''):
         if industry_type == 'FMCG':
             table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+            if user.username in MILKBASKET_USERS:
+                table_headers.insert(4, 'Weight')
         else:
             table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
@@ -5143,6 +5155,13 @@ def confirm_add_po(request, sales_data='', user=''):
                             purchase_order.utgst_tax,
                             total_sku_amt
                             ]
+                if user.username in MILKBASKET_USERS:
+                    weight_obj = purchase_order.sku.skuattributes_set.filter(attribute_name='weight').\
+                        only('attribute_value')
+                    weight = ''
+                    if weight_obj.exists():
+                        weight = weight_obj[0].attribute_value
+                    po_temp_data.insert(4, weight)
             else:
                 total_tax_amt = (purchase_order.utgst_tax + purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.cess_tax + purchase_order.apmc_tax + purchase_order.utgst_tax) * (amount/100)
                 total_sku_amt = total_tax_amt + amount
@@ -5236,7 +5255,10 @@ def confirm_add_po(request, sales_data='', user=''):
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dict)
         if get_misc_value('raise_po', user.id) == 'true':
-	    data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email, 'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name, 'billing_address': profile.address, 'shipping_address': profile.wh_address}
+            data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email,
+                            'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name,
+                            'billing_address': profile.address, 'shipping_address': profile.wh_address,
+                            'table_headers': table_headers}
             if get_misc_value('allow_secondary_emails', user.id) == 'true':
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
                                    str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
@@ -5316,15 +5338,16 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         email_subject = 'pos order'
     if report_type == 'Purchase Order' and data_dict_po and user.username in MILKBASKET_USERS:
         milkbasket_mail_credentials = {'username':'Procurement@milkbasket.com', 'password':'codwtmtnjmvarvip'}
-	t = loader.get_template('templates/toggle/auto_po_mail_format.html')
-	email_body = t.render(data_dict_po)
-	email_subject = 'Purchase Order from ASPL %s to %s dated %s' % (user.username, data_dict_po['supplier_name'], full_order_date)
-	send_mail_attachment(receivers, email_subject, email_body, files=attachments, milkbasket_mail_credentials=milkbasket_mail_credentials)
+        t = loader.get_template('templates/toggle/auto_po_mail_format.html')
+        email_body = t.render(data_dict_po)
+        email_subject = 'Purchase Order from ASPL %s to %s dated %s' % (user.username, data_dict_po['supplier_name'], full_order_date)
+        send_mail_attachment(receivers, email_subject, email_body, files=attachments, milkbasket_mail_credentials=milkbasket_mail_credentials)
     elif supplier_email or internal or internal_mail:
-	send_mail_attachment(receivers, email_subject, email_body, files=attachments)
+        send_mail_attachment(receivers, email_subject, email_body, files=attachments)
+    table_headers = data_dict_po.get('table_headers', None)
     if phone_no:
         if report_type == 'Purchase Order':
-            po_message(po_data, phone_no, username, f_name, order_date, ean_flag)
+            po_message(po_data, phone_no, username, f_name, order_date, ean_flag, table_headers)
         elif report_type == 'Goods Receipt Note':
             grn_message(po_data, phone_no, username, f_name, order_date)
         elif report_type == 'Job Order':
@@ -5673,7 +5696,13 @@ def returns_putaway_data(request, user=''):
         if not status:
             sku_id = returns_data.returns.sku_id
             return_wms_codes.append(returns_data.returns.sku.wms_code)
-            seller_id = get_return_seller_id(returns_data.returns, user)
+            seller_id = ''
+            if user.username in MILKBASKET_USERS:
+                seller_obj = SellerMaster.objects.filter(seller_id=1, user=user.id).only('id')
+                if seller_obj.exists():
+                    seller_id = seller_obj[0].id
+            if not seller_id:
+                seller_id = get_return_seller_id(returns_data.returns, user)
             if seller_id:
                 if seller_id in seller_receipt_mapping.keys():
                     receipt_number = seller_receipt_mapping[seller_id]
@@ -6996,6 +7025,7 @@ def get_po_segregation_data(request, user=''):
                 data_dict['mrp'] = batch_detail.mrp
                 data_dict['buy_price'] = batch_detail.buy_price
                 data_dict['mfg_date'] = ''
+                data_dict['weight'] = batch_detail.weight
                 if batch_detail.manufactured_date:
                     data_dict['mfg_date'] = batch_detail.manufactured_date.strftime('%m/%d/%Y')
                 data_dict['exp_date'] = ''
@@ -8475,17 +8505,16 @@ def get_debit_note_data(rtv_number, user):
         if batch_detail:
             if batch_detail.buy_price:
                 data_dict_item['price'] = batch_detail.buy_price
-            if batch_detail.tax_percent:
-                temp_tax_percent = batch_detail.tax_percent
-                if get_po.supplier.tax_type == 'intra_state':
-                    temp_tax_percent = temp_tax_percent/ 2
-                    data_dict_item['cgst'] = truncate_float(temp_tax_percent, 1)
-                    data_dict_item['sgst'] = truncate_float(temp_tax_percent, 1)
-                    data_dict_item['igst'] = 0
-                else:
-                    data_dict_item['igst'] = temp_tax_percent
-                    data_dict_item['sgst'] = 0
-                    data_dict_item['cgst'] = 0
+            temp_tax_percent = batch_detail.tax_percent
+            if get_po.supplier.tax_type == 'intra_state':
+                temp_tax_percent = temp_tax_percent/ 2
+                data_dict_item['cgst'] = truncate_float(temp_tax_percent, 1)
+                data_dict_item['sgst'] = truncate_float(temp_tax_percent, 1)
+                data_dict_item['igst'] = 0
+            else:
+                data_dict_item['igst'] = temp_tax_percent
+                data_dict_item['sgst'] = 0
+                data_dict_item['cgst'] = 0
         if obj.seller_po_summary.cess_tax:
             data_dict_item['cess'] = obj.seller_po_summary.cess_tax
         if obj.seller_po_summary.apmc_tax:

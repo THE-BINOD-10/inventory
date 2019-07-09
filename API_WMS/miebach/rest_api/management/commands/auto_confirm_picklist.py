@@ -15,7 +15,7 @@ from itertools import chain
 from miebach_admin.models import *
 from rest_api.views.common import get_exclude_zones, get_misc_value, get_picklist_number, \
     get_sku_stock, get_stock_count, save_sku_stats, change_seller_stock, check_picklist_number_created, \
-    update_stocks_data, get_max_seller_transfer_id, get_financial_year
+    update_stocks_data, get_max_seller_transfer_id, get_financial_year, get_stock_receipt_number
 from rest_api.views.outbound import get_seller_pick_id
 from rest_api.views.miebach_utils import MILKBASKET_USERS, PICKLIST_FIELDS, ST_ORDER_FIELDS
 
@@ -50,7 +50,7 @@ def prepare_picklist_val_dict(user, sku_id_stocks,  is_seller_order, add_mrp_fil
     return val_dict
 
 def execute_picklist_confirm_process(order_data, picklist_number, user,
-                                     sku_combos, sku_stocks, switch_vals,
+                                     sku_combos, sku_stocks, switch_vals, receipt_number,
                                      is_seller_order=False):
     stock_status = []
     is_marketplace_model = False
@@ -140,7 +140,7 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
         if stock_quantity < float(order_quantity):
             is_seller_stock_updated = False
             if seller_order:
-                src_stocks = temp_sku_stocks.filter(sellerstock__seller__name='ASPL', **sku_id_stock_filter)
+                src_stocks = temp_sku_stocks.filter(sellerstock__seller__seller_id=1, **sku_id_stock_filter)
                 if src_stocks:
                     src_sku_id_stocks = src_stocks.values('id', 'sku_id').annotate(total=Sum('quantity')).\
                                                                                     order_by(order_by)
@@ -149,12 +149,18 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
                     src_stock_detail, src_stock_quantity, src_sku_code = get_sku_stock(member, src_stocks,
                                                                                        user, src_val_dict,
                                                                                        src_sku_id_stocks)
-                    if src_stock_quantity >= float(order_quantity):
+                    total_sellers_qty = src_stock_quantity + stock_quantity
+                    sellers_diff_qty = order_quantity - stock_quantity
+                    if sellers_diff_qty <= 0:
+                        log.info("Found the sellers quantity difference")
+                        continue
+                    if total_sellers_qty >= float(order_quantity):
                         source_seller = src_stocks[0].sellerstock_set.filter()[0].seller
                         src_sku_id = src_stock_detail[0].sku_id
-                        update_stocks_data(src_stocks, order_quantity, src_stock_detail,
-                                           order_quantity, user, [src_stocks[0].location], src_sku_id,
-                                           src_seller_id=source_seller.id, dest_seller_id=seller_order.seller_id)
+                        update_stocks_data(src_stocks, sellers_diff_qty, None,
+                                           sellers_diff_qty, user, [src_stocks[0].location], src_sku_id,
+                                           src_seller_id=source_seller.id, dest_seller_id=seller_order.seller_id,
+                                           receipt_type='auto seller-seller transfer', receipt_number=receipt_number)
                         trans_id = get_max_seller_transfer_id(user)
                         seller_transfer = SellerTransfer.objects.create(source_seller_id=source_seller.id,
                                                                         dest_seller_id=seller_order.seller.id,
@@ -249,13 +255,14 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write("Started Updating")
-        users = User.objects.filter(username='milkbasket_test')
+        users = User.objects.filter(username__in=['NOIDA02'])
         log.info(str(datetime.datetime.now()))
         for user in users:
             picklist_exclude_zones = get_exclude_zones(user)
+            receipt_number = get_stock_receipt_number(user)
             open_orders = OrderDetail.objects.prefetch_related('sku').\
                                             filter(user=user.id, status=1, sellerorder__isnull=False,
-                                                                             quantity__gt=0)
+                                                                             quantity__gt=0, sellerorder__seller__seller_id=2)
             picklist_number = ''
             if open_orders.exists():
                 picklist_number = get_picklist_number(user)
@@ -285,10 +292,11 @@ class Command(BaseCommand):
                         sku_stocks = all_sku_stocks
                         #sku_stocks = all_sku_stocks.filter(sellerstock__seller_id=seller_order.seller_id)
                         execute_picklist_confirm_process(seller_order, picklist_number, user, sku_combos,
-                                                         sku_stocks, switch_vals, is_seller_order=True)
+                                                         sku_stocks, switch_vals, receipt_number, is_seller_order=True)
                 else:
-                    execute_picklist_confirm_process(seller_order, picklist_number, user, sku_combos,
-                                                     sku_stocks, switch_vals, is_seller_order=False)
+                    log.info("Not Auto Processing %s" % str(open_order.original_order_id))
+                    #execute_picklist_confirm_process(seller_order, picklist_number, user, sku_combos,
+                    #                                 sku_stocks, switch_vals, is_seller_order=False)
             if picklist_number:
                 check_picklist_number_created(user, picklist_number + 1)
         log.info(str(datetime.datetime.now()))

@@ -55,6 +55,7 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
     stock_status = []
     is_marketplace_model = False
     all_zone_mappings = []
+    seller_master_id = ''
     if switch_vals['marketplace_model'] == 'true':
         all_zone_mappings = ZoneMarketplaceMapping.objects.filter(zone__user=user.id, status=1)
         is_marketplace_model = True
@@ -77,6 +78,7 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
     picklist_data = copy.deepcopy(PICKLIST_FIELDS)
     if is_seller_order:
         seller_order = order_data
+        seller_master_id = seller_order.seller_id
         order = order_data.order
     picklist_data['picklist_number'] = picklist_number + 1
     picklist_data['remarks'] = 'Auto Confirmed Picklist'
@@ -95,8 +97,12 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
     if seller_order:
         temp_sku_stocks = sku_stocks
         sku_stocks = sku_stocks.filter(sellerstock__seller_id=seller_order.seller_id)
-    sku_id_stocks = sku_stocks.filter(**sku_id_stock_filter).values('id', 'sku_id'). \
-        annotate(total=Sum('quantity')).order_by(order_by)
+    if seller_master_id:
+        sku_id_stocks = sku_stocks.filter(sellerstock__seller_id=seller_master_id, **sku_id_stock_filter).values('id', 'sku_id'). \
+            annotate(total=Sum('sellerstock__quantity')).order_by(order_by)
+    else:
+        sku_id_stocks = sku_stocks.filter(**sku_id_stock_filter).values('id', 'sku_id'). \
+            annotate(total=Sum('quantity')).order_by(order_by)
     val_dict = prepare_picklist_val_dict(user, sku_id_stocks,  is_seller_order, add_mrp_filter)
 
     if not seller_order:

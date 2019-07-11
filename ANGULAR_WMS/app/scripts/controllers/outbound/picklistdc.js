@@ -41,6 +41,7 @@ var vm = this;
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Order ID').withTitle('Order ID'),
         DTColumnBuilder.newColumn('Customer Name').withTitle('Customer Name'),
+        DTColumnBuilder.newColumn('dc_number').withTitle('DC Number'),
     ];
 
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')

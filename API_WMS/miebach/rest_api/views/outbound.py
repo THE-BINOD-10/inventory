@@ -10633,10 +10633,9 @@ def get_picklist_delivery_challan(start_index, stop_index, temp_data, search_ter
         order_by_term = '-'+lis[col_num]
     try :
         if search_term :
-            temp_dc_objs = TempDeliveryChallan.objects.filter(Q(order__order_id__icontains=search_term)|Q(order__order_code__icontains=search_term)|Q(order__original_order_id__icontains=search_term)|Q(order__customer_name__icontains=search_term)).filter(order__sku__user = user.id).values('order__order_id','order__order_code','order__original_order_id','order__customer_name').distinct()
+            temp_dc_objs = TempDeliveryChallan.objects.filter(Q(order__order_id__icontains=search_term)|Q(order__order_code__icontains=search_term)|Q(order__original_order_id__icontains=search_term)|Q(order__customer_name__icontains=search_term)|Q(dc_number=search_term)).filter(order__sku__user = user.id).values('order__order_id','order__order_code','order__original_order_id','order__customer_name','dc_number').distinct()
         else:
-            temp_dc_objs = TempDeliveryChallan.objects.filter(order__sku__user = user.id).values('order__order_id','order__order_code','order__original_order_id','order__customer_name').distinct()
-
+            temp_dc_objs = TempDeliveryChallan.objects.filter(order__sku__user = user.id).values('order__order_id','order__order_code','order__original_order_id','order__customer_name','dc_number').distinct()
         for dc in temp_dc_objs :
             if dc['order__original_order_id'] :
                order_id = dc['order__original_order_id']
@@ -10644,7 +10643,7 @@ def get_picklist_delivery_challan(start_index, stop_index, temp_data, search_ter
                order_id = dc['order__order_code'] + dc['order__order_id']
 
             temp_data['aaData'].append({'Order ID' : order_id ,
-                 'Customer Name': dc['order__customer_name']})
+                 'Customer Name': dc['order__customer_name'],'dc_number': dc['dc_number']})
 
         temp_data['recordsTotal'] = temp_dc_objs.count()
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -15463,6 +15462,7 @@ def generate_picklist_dc(request, user=''):
             delivery_challan_dict = {}
             challan_num = get_challan_number_for_dc(order , user)
             delivery_challan_dict['dc_number'] = challan_num
+            invoice_data['dc_number'] = challan_num
             delivery_challan_dict['order'] = value.values()[0].get('order','')
             delivery_challan_dict['picklist_number'] = picklist_number
             for val in value.values() :
@@ -15694,6 +15694,7 @@ def generate_dc(request , user = ''):
             if temp_dc_objs.exists() :
                 order = temp_dc_objs[0].order
                 batch_group_data = temp_dc_objs[0].dcjson
+                dc_number_obj = temp_dc_objs[0].dc_number
 
 
                 customer_address =[]
@@ -15742,5 +15743,7 @@ def generate_dc(request , user = ''):
                 invoice_data['customer_address'] = customer_address
                 invoice_data['consignee'] = consignee
                 invoice_data['iterator'] = iterator
+                invoice_data['dc_number'] = dc_number_obj
+
 
     return render(request, 'templates/toggle/delivery_challan_batch_level.html', invoice_data)

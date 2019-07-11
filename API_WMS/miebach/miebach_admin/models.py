@@ -3225,6 +3225,7 @@ class TempDeliveryChallan(models.Model):
     order = models.ForeignKey(OrderDetail)
     picklist_number = models.PositiveIntegerField()
     dcjson =  models.TextField(default='')
+    dc_number = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

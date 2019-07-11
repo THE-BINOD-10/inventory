@@ -9449,3 +9449,22 @@ def get_firebase_order_data(order_id):
         log.info('Firebase query  failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(request.POST.dict()), str(e)))
     return result
+
+
+
+def get_challan_number_for_dc(order , user):
+    challan_sequence = ChallanSequence.objects.filter(user=user.id, status=1, marketplace=order.marketplace)
+    if not challan_sequence:
+        challan_sequence = ChallanSequence.objects.filter(user=user.id, marketplace='')
+    if challan_sequence:
+        challan_sequence = challan_sequence[0]
+        challan_num = int(challan_sequence.value)
+        order_no = challan_sequence.prefix + str(challan_num).zfill(3)
+        challan_sequence.value = challan_num + 1
+        challan_sequence.save()
+    else:
+        ChallanSequence.objects.create(marketplace='', prefix='CHN', value=1, status=1, user_id=user.id,
+                                       creation_date=datetime.datetime.now())
+        order_no = '001'
+        challan_num = int(order_no)
+    return challan_num

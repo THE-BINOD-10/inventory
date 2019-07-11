@@ -362,12 +362,12 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
         header = OPEN_PICK_LIST_HEADERS
     all_picks = Picklist.objects.select_related('order', 'stock').\
                                 filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id), **filter_params)
-
     if search_term:
         master_data = all_picks.filter(
             Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).filter(
             Q(picklist_number__icontains=search_term) | Q(remarks__icontains=search_term) | Q(
-                order__marketplace__icontains=search_term) | Q(order__customer_name__icontains=search_term))
+                order__marketplace__icontains=search_term) | Q(order__customer_name__icontains=search_term)
+                | Q(order__tempdeliverychallan__dc_number=search_term))
 
     elif order_term:
         # col_num = col_num - 1
@@ -449,6 +449,11 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
                 od_id = int(picklist_obj[0].order.id)
                 od_order_id = str(picklist_obj[0].order.order_code) + str(picklist_obj[0].order.order_id)
             picklist_id = picklist_obj[0].picklist_number
+            dc_number_obj = TempDeliveryChallan.objects.filter(order__sku__user = user.id , picklist_number = picklist_id ).values('dc_number')
+            if not dc_number_obj:
+                dc_num = ''
+            else:
+                dc_num = dc_number_obj[0]['dc_number']
 
             first_ord_obj = picklist_obj.exclude(order__shipment_date__isnull=True).values_list('order__id',
                                                                                                 flat=True).order_by(
@@ -462,12 +467,12 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
                 time_slot = get_shipment_time(first_ord_obj[0], user)
                 if time_slot:
                     shipment_date = shipment_date + ', ' + time_slot
-
         result_data = OrderedDict((('DT_RowAttr', {'data-id': picklist_id}), ('picklist_note', remarks),
                                    ('reserved_quantity', reserved_quantity_sum_value),
                                    ('picked_quantity', picked_quantity_sum_value),
                                    ('customer', prepare_str), ('shipment_date', shipment_date),
-                                   ('date', create_date_value), ('id', count), ('DT_RowClass', 'results'),
+                                   ('date', create_date_value), ('dc_number', dc_num),
+                                   ('id', count), ('DT_RowClass', 'results'),
                                    ('od_id', od_id), ('od_order_id', od_order_id)))
         dat = 'picklist_id'
         count += 1
@@ -15444,17 +15449,27 @@ def generate_picklist_dc(request, user=''):
     invoice_data['customer_address'] = customer_address
     invoice_data['consignee'] = consignee
     invoice_data['iterator'] = iterator
-
     for key , value in batch_group_data_order_wise.items() :
         tempdc = TempDeliveryChallan.objects.filter(order = value.values()[0].get('order'))
+        if tempdc.exists():
+            invoice_data['dc_number'] =  tempdc[0].dc_number
+            if not tempdc[0].dc_number:
+                challan_num = get_challan_number_for_dc(order , user)
+                temp = tempdc[0]
+                temp.dc_number = challan_num
+                temp.save()
+                invoice_data['dc_number'] = challan_num
         if not tempdc.exists():
             delivery_challan_dict = {}
+            challan_num = get_challan_number_for_dc(order , user)
+            delivery_challan_dict['dc_number'] = challan_num
             delivery_challan_dict['order'] = value.values()[0].get('order','')
             delivery_challan_dict['picklist_number'] = picklist_number
             for val in value.values() :
                 val['order'] = ''
             delivery_challan_dict['dcjson'] = json.dumps(value)
             TempDeliveryChallan.objects.create(**delivery_challan_dict)
+
 
     return render(request, 'templates/toggle/delivery_challan_batch_level.html', invoice_data)
 

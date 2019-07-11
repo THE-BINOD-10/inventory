@@ -238,10 +238,12 @@ SKU_SUBSTITUTION_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('Sour
                                               ('Source Location', 'source_location'),
                                               ('Source Batch Number', 'source_batch_no'),
                                               ('Source MRP', 'source_mrp'), ('Source Quantity', 'source_quantity'),
+                                              ('Source Weight','source_weight'),
                                               ('Destination SKU Code', 'dest_sku_code'),
                                               ('Destination Location', 'dest_location'),
                                               ('Destination Batch Number', 'dest_batch_no'),
-                                              ('Destination MRP', 'dest_mrp'), ('Destination Quantity', 'dest_quantity'),
+                                              ('Destination MRP', 'dest_mrp'), ('Destination Weight', 'dest_weight'),
+                                              ('Destination Quantity', 'dest_quantity'),
                                             ))
 
 SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'GSTIN Number', 'PAN Number',

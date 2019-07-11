@@ -130,8 +130,10 @@ def get_sku_substitution_excel_headers(user):
     if not userprofile.industry_type == 'FMCG':
         del excel_headers["Source Batch Number"]
         del excel_headers["Source MRP"]
+        del excel_headers["Source Weight"]
         del excel_headers["Destination Batch Number"]
         del excel_headers["Destination MRP"]
+        del excel_headers["Destination Weight"]
     return excel_headers
 
 
@@ -5472,7 +5474,7 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
     if not set(['source_sku_code', 'source_location', 'source_quantity', 'dest_sku_code',
                 'dest_location', 'dest_quantity']).issubset(excel_mapping.keys()):
         return 'Invalid File'
-    number_fields = ['source_quantity', 'source_mrp', 'dest_quantity', 'dest_mrp']
+    number_fields = ['source_quantity', 'source_mrp','dest_quantity', 'dest_mrp']
     prev_data_dict = {}
     for row_idx in range(1, no_of_rows):
         data_dict = {'source_updated': False}
@@ -5540,6 +5542,11 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                 if isinstance(cell_data, float):
                     cell_data = str(int(cell_data))
                     data_dict[key] = cell_data
+            elif key in ['source_weight','dest_weight'] :
+                if isinstance(cell_data, (int, float)):
+                    data_dict[key] = str(int(cell_data))
+                else:
+                    data_dict[key] = str(cell_data)
             elif key in number_fields:
                 if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
@@ -5566,6 +5573,10 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                     mrp = 0
                 stock_dict["batch_detail__mrp"] = mrp
                 reserved_dict["stock__batch_detail__mrp"] = mrp
+            if data_dict.get('source_weight', ''):
+                weight = data_dict.get('source_weight' ,'')
+                stock_dict["batch_detail__weight"] = weight
+                reserved_dict["stock__batch_detail__weight"] = weight
             if data_dict.get('seller_master_id', ''):
                 stock_dict['sellerstock__seller_id'] = data_dict['seller_master_id']
                 stock_dict['sellerstock__quantity__gt'] = 0
@@ -5640,6 +5651,9 @@ def sku_substitution_upload(request, user=''):
         if data_dict.get('dest_mrp', 0):
             dest_filter['batch_detail__mrp'] = data_dict['dest_mrp']
             mrp_dict['mrp'] = data_dict['dest_mrp']
+        if data_dict.get('dest_weight','') :
+            dest_filter['batch_detail__weight'] = data_dict['dest_weight']
+            mrp_dict['weight'] = data_dict['dest_weight']
         if data_dict.get('seller_master_id', 0):
             dest_filter['sellerstock__seller_id'] = data_dict['seller_master_id']
             mrp_dict['mrp'] = data_dict['dest_mrp']

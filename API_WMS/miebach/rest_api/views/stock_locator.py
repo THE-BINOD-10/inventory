@@ -1850,6 +1850,7 @@ def confirm_sku_substitution(request, user=''):
     src_batch_no = request.POST.get('src_batch_number', '')
     src_mrp = request.POST.get('src_mrp', 0)
     seller_id = request.POST.get('seller_id', '')
+    weight = request.POST.get('src_weight', '')
     if user.userprofile.user_type == 'marketplace_user' and not seller_id:
         return HttpResponse('Seller ID is Mandatory')
     if not src_sku and not dest_sku and not src_qty and not dest_qty and not src_loc and not dest_loc:
@@ -1883,6 +1884,8 @@ def confirm_sku_substitution(request, user=''):
         stock_dict['batch_detail__batch_no'] = src_batch_no
     if src_mrp:
         stock_dict['batch_detail__mrp'] = src_mrp
+    if weight :
+        stock_dict['batch_detail__weight'] = weight
     src_stocks = StockDetail.objects.filter(**stock_dict)
     src_stock_count = src_stocks.aggregate(Sum('quantity'))['quantity__sum']
     if not src_stock_count:
@@ -1915,6 +1918,11 @@ def confirm_sku_substitution(request, user=''):
             if data_dict['dest_mrp'][ind]:
                 mrp_dict['mrp'] = data_dict['dest_mrp'][ind]
                 dest_filter['batch_detail__mrp'] = data_dict['dest_mrp'][ind]
+            if data_dict['dest_weight'][ind]:
+                mrp_dict['weight'] = data_dict['dest_weight'][ind]
+                dest_filter['batch_detail__weight'] = data_dict['dest_weight'][ind]
+
+
         if seller_id:
             dest_filter['sellerstock__seller_id'] = seller_id
         dest_stocks = StockDetail.objects.filter(**dest_filter)

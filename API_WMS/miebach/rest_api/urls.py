@@ -671,7 +671,7 @@ urlpatterns += [
     url(r'^picklist_delete/$', picklist_delete),
     url(r'^delete_order_data/$', delete_order_data),
     url(r'^order_delete/$', order_delete),
-
+    url(r'^delete_central_order/$', delete_central_order),
     # uploads
     url(r'sales_returns_upload/$', sales_returns_upload),
     url(r'sales_returns_form/$', sales_returns_form),

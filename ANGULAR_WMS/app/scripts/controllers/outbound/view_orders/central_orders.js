@@ -342,4 +342,38 @@ var vm = this;
         })
       }
     }
+    vm.delete_order = function() {
+      vm.delete_order_data = [];
+      var rejected_orders = true;
+      for (var key in vm.selected) {
+        if (vm.selected[key]) {
+          var delete_row = vm.dtInstance.DataTable.context[0].aoData[key]._aData
+          var elem = {
+            'status': delete_row['Status'], 'interm_id': delete_row['data_id'], 'interm_order_id': delete_row['Order ID']
+          }
+          if (delete_row['Status'] == 'Reject') {
+            Service.showNoty('Rejected orders Not possible');
+            rejected_orders = false;
+            vm.delete_order_data = [];
+          }else {
+            vm.delete_order_data.push(elem);
+          }
+        }
+      }
+      if (vm.delete_order_data.length && rejected_orders) {
+        vm.service.apiCall('delete_central_order/', 'POST', {'delete_order_data': JSON.stringify(vm.delete_order_data)}).then(function(resp) {
+          if (resp.message) {
+            vm.reloadData()
+            SweetAlert.swal({
+              title: 'Deleted Orders',
+              text: resp.data.output_msg,
+              type: 'success',
+              confirmButtonColor: '#33cc66',
+              confirmButtonText: 'Ok',
+              closeOnConfirm: true,
+            })
+          }
+        })
+      }
+    }
 }

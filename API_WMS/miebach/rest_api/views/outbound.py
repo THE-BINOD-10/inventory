@@ -14951,6 +14951,27 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
                                         'courier_name': ''}, cls=DjangoJSONEncoder))
     return HttpResponse(json.dumps({'status': 'No Orders found'}))
 
+@login_required
+@get_admin_user
+def delete_central_order(request, user=''):
+    delete_orders = eval(request.POST.get('delete_order_data', ''))
+    for del_obj in delete_orders:
+        try:
+            inter_obj = IntermediateOrders.objects.filter(id=del_obj['interm_id'])
+            import pdb; pdb.set_trace()
+            if del_obj['status'] == 'Pending' and not inter_obj[0].order:
+                h = inter_obj
+                v= OrderFields.objects.filter(user=user.id, original_order_id=del_obj['interm_order_id'])
+                print v
+                print h
+            if del_obj['status'] == 'Accept' and inter_obj[0].order:
+                print inter_obj
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            # log.info('downloading excel  failed for %s and params are %s and error statement is %s' % (
+            # str(user.username), str(request.POST.dict()), str(e)))
+    return HttpResponse('Success')
 
 @login_required
 @get_admin_user

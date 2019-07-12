@@ -351,7 +351,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         customer_data = OrderMapping.objects.filter(mapping_id=supplier.id, mapping_type='PO')
         customer_name = ''
         if customer_data:
-            customer_name = customer_data[0].order.customer_name
+            customer_name = ''
         else:
             if supplier_parent:
                 customer_name = supplier_parent.username
@@ -3214,6 +3214,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                 overall_discount = float(request.POST['overall_discount'])
             except:
                 overall_discount = 0
+            # import pdb; pdb.set_trace()
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': total_tax,
@@ -3237,6 +3238,9 @@ def confirm_grn(request, confirm_returns='', user=''):
         log.debug(traceback.format_exc())
         log.info("Check Generating GRN failed for params " + str(myDict) + " and error statement is " + str(e))
         return HttpResponse("Generate GRN Failed")
+
+# def confirm_qc_grn(request, user=''):
+
 
 
 def generate_grn_pagination(sku_list):
@@ -4569,6 +4573,7 @@ def update_quality_check(myDict, request, user):
 @login_required
 @get_admin_user
 def confirm_quality_check(request, user=''):
+    # import pdb; pdb.set_trace()
     myDict = dict(request.POST.iterlists())
     if len(myDict['rejected_quantity']):
         if not myDict['rejected_quantity'][0]:
@@ -4587,8 +4592,37 @@ def confirm_quality_check(request, user=''):
         save_qc_serials('accepted', myDict.get("accepted", ''), user.id)
     if myDict.get("rejected", ''):
         save_qc_serials('rejected', myDict.get("rejected", ''), user.id)
-
-    return HttpResponse('Updated Successfully')
+    try:
+        misc_detail = get_misc_value('quality_check', user.id)
+        if misc_detail == 'false':
+            profile = UserProfile.objects.get(user=user.id)
+            seller_name = user.username
+            seller_address = user.userprofile.address
+            bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
+            acc_qty = myDict['accepted_quantity']
+            rej_qty = myDict['rejected_quantity']
+            datas = json.loads(myDict['headers'][0])
+            # import pdb; pdb.set_trace()
+            report_data_dict = {'accepted_quantity': acc_qty, 
+                                'rejected_quantity': rej_qty,
+                                'wms_code':myDict['wms_code'],
+                                'company_name': profile.company_name, 
+                                'company_address': profile.address,
+                                'seller_name': seller_name,
+                                'seller_address': seller_address,
+                                'bill_date': bill_date,
+                                'supplier_id':datas['Supplier ID'],
+                                'supplier_name':datas['Supplier Name'],
+                                'total_qty': datas['Total Quantity']
+            }
+            # t = loader.get_template('templates/toggle/qc_putaway_toggle.html')
+            # import pdb; pdb.set_trace()
+            return render(request, 'templates/toggle/qc_putaway_toggle.html', report_data_dict)
+        else:
+            return HttpResponse('Updated Successfully')
+    except Exception as e:
+        import traceback
+        return HttpResponse("Generate GRN Failed")
 
 
 @csrf_exempt

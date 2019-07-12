@@ -1,0 +1,150 @@
+      {% load tag_extras %}
+
+<div>
+  <style>
+    {% include 'toggle/page1.css' %}
+  </style>
+  <div class="print-invoice2 mb20">
+    <div class="invoice-body">
+      <table class="table table-bordered m0">
+        <tbody>
+          <tr>
+            <td colspan="2">
+              <h3 class="m0" align="center"><b>GOODS RECEIPT INVOICE NOTE</b></h3>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2">
+              <h3 class="m0" align="center"><b>{{ company_name }}</b></h3>
+              <p class="m0" align="center">{{ company_address }}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="width: 50%">
+              <div class="row m0" style="height: 105px;overflow: hidden;">
+                <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+                  <div class="col-md-12 p0">
+                    <h4 class="m0"><b>Received From:</b></h4>
+                  </div>
+                  <div class="col-md-12 p0">
+                    <span><b>Supplier ID: </b>{{supplier_id}}</span><br>
+                    <span><b>Supplier Name: </b>{{supplier_name}}</span><br>
+                    <span>{{ address }}</span>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td class="fs14">
+              <div class="row m0">
+                <div class="col-xs-6 text-left">
+                  <strong>GRN NO:</strong>{{ po_number }}
+                </div>
+                <div class="col-xs-6 text-left">
+                  <strong>Date:</strong>{{ order_date }}
+                </div>
+              </div>
+              <div class="row m0">
+                <div class="col-xs-6 text-left">
+                  <strong>Bill NO:</strong> {{ bill_no }}
+                </div>
+                <div class="col-xs-6 text-left">
+                  <strong>Bill Date:</strong>{{ bill_date }}
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <table class="table table-bordered bl br cal-table m0">
+        <thead>
+          <tr class="fs14">
+            <th class="w5"><center>SL NO</center></th>
+            <th><center>WMS_CODE</center></th>
+            <th><center>PARTICULARS</center></th>
+            <th class="w6"><center>PKNG</center></th>
+            <th class="w6"><center>QTY ACCP</center></th>
+            <th class="w6"><center>QTY REJE</center></th>
+            <th class="w6"><center>RATE</center></th>
+            <th class="w9"><center>AMOUNT</center></th>
+          </tr>
+        </thead>
+        <tbody>
+          <!--'WMS CODE', 'Order Qty', 'Received Qty', 'Measurement', 'Unit Price', 'CSGT', 'SGST', 'IGST, UTGST, Amt, Desc, Ser. No'-->
+          <tr class="fs14 rm-border">
+            <td class="text-left"></td>
+            <td class="text-left">{{wms_code}}</td>
+            <td class="text-left"><div class="wrap"></div></td>
+            <td class="text-left"><div class="wrap"></div></td>
+            <td class="text-right">{{accepted_quantity}}</td>
+            <td class="text-left">{{rejected_quantity}}</td>
+            <td class="text-right"> </td>
+            <td class="text-right"></td>
+            <td class="text-right"></td>
+          </tr>
+          <tr style="border-top: 1px solid black;">
+            <td class="fs14" colspan="3">
+              <div class="row m0">
+                <div class="col-xs-6 text-left">
+                  <span>GROSS:</span>
+                  <span class="pull-right">{{ total_price }}</span>
+                </div>
+                <div class="col-xs-6 text-left">
+                  <span>TAXES:</span>
+                  <span class="pull-right">{{ total_tax }}</span>
+                </div>
+              </div>
+              <div class="row m0">
+                <div class="col-xs-6 text-left">
+                  <span>DISC:</span>
+                  <span class="pull-right"></span>
+                </div>
+                <div class="col-xs-6 text-left">
+                  <span>D/C..:</span>
+                </div>
+              </div>
+            </td>
+            <td class="fs14" colspan="5">
+              <div class="row m0">
+                <div class="col-xs-6 text-left">
+                  <span>Total Qty:</span>
+                  <span class="pull-right">{{ total_qty }}</span>
+                </div>
+                <div class="col-xs-6 text-left">
+                </div>
+              </div>
+              <div class="row m0">
+                <div class="col-xs-6 text-left">
+                </div>
+                <div class="col-xs-6 text-left">
+                Total:
+                  <span class="pull-right">{{ total_price }}</span>
+               OverallDiscount:
+                  <span class="pull-right">{{ overall_discount }}</span>
+                 <h5> Net Amount:
+                  <span class="pull-right">{{net_amount }}</span></h5>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="fs14" colspan="3">
+              <div class="row m0">
+                <div class="col-xs-12 text-left">
+                  <span>NAME OF CORRIER:</span><br>
+                  <span>LR/GC NOTE NO.:</span><br>
+                  <span>VEHICLE NO.:</span><br>
+                  <span>PACKING REF.:</span>
+                </div>
+              </div>
+            </td>
+            <td class="fs14 text-center" colspan="5">
+              <h5 class="m0">For {{ company_name }}</h5></br></br>
+              <h5 class="m0">SIGNATURE OF RECIEVER</h5>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

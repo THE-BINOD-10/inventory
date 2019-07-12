@@ -10,6 +10,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.industry_type = Session.user_profile.industry_type;
     vm.extra_width = {};
+    vm.qc_invoice_data = {}
     vm.quantity_focused = false;
 
     vm.filters = {'datatable': 'QualityCheck', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''}
@@ -50,6 +51,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             $scope.$apply(function() {
                 vm.service.apiCall('quality_check_data/', 'GET', {order_id: aData.DT_RowId}).then(function(data){
                   if(data.message) {
+                    vm.qc_invoice_data = {}
+                    vm.qc_invoice_data = aData
                     if(vm.industry_type == 'FMCG'){
                       vm.extra_width = {
                         'width': '1200px'
@@ -348,13 +351,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.message = "";
       }, 2000);
     }
-
+    vm.print_enable = false;
+    
     vm.confirm = function() {
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
       //var qc_scan = JSON.stringify(vm.qc_scan);
       //elem.push({name:'qc_scan', value: qc_scan})
+      elem.push({name:'headers', value: JSON.stringify(vm.qc_invoice_data)})
+      // debugger
       vm.service.apiCall('confirm_quality_check/', 'POST', elem, true).then(function(data){
         if(data.message) {
           if (data.data == "Updated Successfully") {
@@ -366,22 +372,35 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               fb.remove_po(fb.poData["id"]);
             }
             vm.close();
-          } else {
+          } 
+          else if (data.data.search("<div") != -1){
+            vm.html = $(data.data);
+            vm.extra_width = {}
+            angular.element(".modal-body").html($(data.data));
+            vm.print_enable = true;
+            vm.service.refresh(vm.dtInstance);
+          }
+            else {
             pop_msg(data.data);
           }
         }
       });
-       vm.confirm_grn();
+       // vm.confirm_qc_grn();
     }
 
-    vm.confirm_grn = function(){
-      var elem = angular.element($('form'));
-      elem = elem[0];
-      elem = $(elem).serializeArray();
-      vm.service.apiCall('confirm_grn/', 'POST', elem, true, true).then(function(data){
-        pop_msg(data.data);
-      });
+    // debugger
+    // vm.confirm_qc_grn = function(){
+    //   var elem = angular.element($('form'));
+    //   elem = elem[0];
+    //   elem = $(elem).serializeArray();
+    //   vm.service.apiCall('confirm_qc_grn/', 'POST', elem, true).then(function(data){
+    //     pop_msg(data.data);
+    //   });
 
+    // }
+
+    vm.print_grn = function() {
+      vm.service.print_data(vm.html, "Quality Check");
     }
 
     vm.confirm_btn = false;

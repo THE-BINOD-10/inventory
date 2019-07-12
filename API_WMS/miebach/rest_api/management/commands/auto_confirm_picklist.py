@@ -148,7 +148,7 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
             if seller_order:
                 src_stocks = temp_sku_stocks.filter(sellerstock__seller__seller_id=1, **sku_id_stock_filter)
                 if src_stocks:
-                    src_sku_id_stocks = src_stocks.values('id', 'sku_id').annotate(total=Sum('quantity')).\
+                    src_sku_id_stocks = src_stocks.values('id', 'sku_id').annotate(total=Sum('sellerstock__quantity')).\
                                                                                     order_by(order_by)
                     src_val_dict = prepare_picklist_val_dict(user, src_sku_id_stocks,
                                                              is_seller_order, add_mrp_filter)
@@ -161,7 +161,7 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
                         log.info("Found the sellers quantity difference")
                         continue
                     if total_sellers_qty >= float(order_quantity):
-                        source_seller = src_stocks[0].sellerstock_set.filter()[0].seller
+                        source_seller = SellerMaster.objects.filter(user=user.id, seller_id=1)[0]
                         src_sku_id = src_stock_detail[0].sku_id
                         update_stocks_data(src_stocks, sellers_diff_qty, None,
                                            sellers_diff_qty, user, [src_stocks[0].location], src_sku_id,

@@ -12714,7 +12714,13 @@ def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, ord
     for enquiry in em_qs[start_index:stop_index]:
         customization_type = '  Price and Product Customization'
         emiza_order_ids = []
-        related_order_ids = generic_orders.filter(po_number=enquiry.po_number,client_name=enquiry.customer_name,orderdetail__sku__sku_code=enquiry.sku.sku_code).values_list('cust_wh_id', 'orderdetail__original_order_id')
+        generic_order_id = enquiry.generic_order_id
+        if generic_order_id:
+            related_order_ids = generic_orders.filter(generic_order_id=generic_order_id).values_list('cust_wh_id', 'orderdetail__original_order_id')
+        else:
+            related_order_ids = generic_orders.filter(po_number=enquiry.po_number,
+                                                      client_name=enquiry.customer_name,
+                                                      orderdetail__sku__sku_code=enquiry.sku.sku_code).values_list('cust_wh_id', 'orderdetail__original_order_id')
         for usr , org_id in related_order_ids:
             if usr in orderprefix_map:
                 emiza_id = orderprefix_map[usr]+str(org_id)
@@ -13414,7 +13420,7 @@ def get_manual_enquiry_detail(request, user=''):
         manual_enq = ManualEnquiry.objects.filter(**filters)
         if not manual_enq:
             return HttpResponse("No Enquiry Data for Id")
-        smd_price = manual_enq[0].smd_price
+        smd_approved_price = manual_enq[0].smd_price
         rc_price= manual_enq[0].rc_price
         customization_types = dict(CUSTOMIZATION_TYPES)
         customization_type = customization_types[manual_enq[0].customization_type]
@@ -13455,8 +13461,16 @@ def get_manual_enquiry_detail(request, user=''):
             po_number = manual_enq[0].po_number
             client_name = manual_enq[0].customer_name
             sku_code = manual_enq[0].sku.sku_code
-            gen_qs = GenericOrderDetailMapping.objects.filter(client_name=client_name, po_number=po_number, orderdetail__sku__sku_code=sku_code).values_list(
-                'orderdetail__original_order_id', 'cust_wh_id')
+            generic_order_id = manual_enq[0].generic_order_id
+            if generic_order_id:
+                gen_qs = GenericOrderDetailMapping.objects.filter(generic_order_id=generic_order_id,
+                                                                  customer_id=cm_id). values_list(
+                    'orderdetail__original_order_id', 'cust_wh_id')
+            else:
+                gen_qs = GenericOrderDetailMapping.objects.filter(client_name=client_name,
+                                                                  po_number=po_number,
+                                                                  orderdetail__sku__sku_code=sku_code).values_list(
+                    'orderdetail__original_order_id', 'cust_wh_id')
             for ord_id, wh_id in gen_qs:
                 emiza_ord_prefix = UserProfile.objects.get(user_id=wh_id).order_prefix
                 emiza_ord_id = '%s%s' %(emiza_ord_prefix, ord_id)
@@ -13490,10 +13504,10 @@ def get_manual_enquiry_detail(request, user=''):
 
             enq_dict = {'ask_price': enquiry.ask_price, 'remarks': enquiry.remarks, 'date': date,
                         'expected_date': expected_date, 'username': user.user.username, 'status': enquiry.status,
-                        'sm_d_price': smd_price, 'r_c_price': rc_price}
+                        'sm_d_price': smd_approved_price, 'r_c_price': rc_price}
 
             if enquiry.status == 'pending_approved':
-                enq_dict['smd_price'] = smd_price
+                enq_dict['smd_price'] = smd_approved_price
                 enq_dict['rc_price'] = rc_price
 
             enquiry_dict.append(enq_dict)
@@ -13512,7 +13526,7 @@ def get_manual_enquiry_detail(request, user=''):
             else:
                 expected_date = ''
             md_approved_details = {'ask_price': md_approved_details.ask_price, 'remarks': md_approved_details.remarks,
-                                   'expected_date': expected_date, 'smd_price': smd_price,
+                                   'expected_date': expected_date, 'smd_price': smd_approved_price,
                                    'rc_price': rc_price}
         far_wh_lt = 0
         cust_obj = CustomerUserMapping.objects.filter(user_id=user_id)
@@ -13953,6 +13967,7 @@ def convert_customorder_to_actualorder(request, user=''):
 
         if not is_emiza_order_failed:
             enq_obj.status = 'order_placed'
+            enq_obj.generic_order_id = generic_order_id
             enq_obj.save()
         else:
             log.info("Order Push failed for order:%s : Customer Id:%s : Error: %s" %(generic_order_id, cm_id, message))

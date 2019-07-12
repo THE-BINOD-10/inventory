@@ -2597,6 +2597,8 @@ class OrderUploads(models.Model):
     uploaded_file = models.FileField(upload_to='static/customer_uploads/')
     verification_flag = models.CharField(max_length=54, default='to_be_verified')
     remarks = models.CharField(max_length=256, default='')
+    created_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'ORDER_UPLOADS'
@@ -2784,6 +2786,7 @@ class ManualEnquiry(models.Model):
     smd_price = models.FloatField(default=0)
     rc_price = models.FloatField(default=0)
     client_po_rate = models.FloatField(default=0)
+    generic_order_id = models.PositiveIntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

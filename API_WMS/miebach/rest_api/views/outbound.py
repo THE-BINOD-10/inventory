@@ -4509,6 +4509,7 @@ def create_central_order(request, user):
     mail_ids, user_mail_id, items = [], [], []
     message = 'Success'
     customer_id = request.user.id
+    host_details = request.META.get('wsgi.url_scheme')+'://'+request.META.get('HTTP_HOST')
     interm_order_id = get_central_order_id(customer_id)
     ship_date = request.POST.get('shipment_date', '')
     myDict = dict(request.POST.iterlists())
@@ -4552,8 +4553,7 @@ def create_central_order(request, user):
             order_date = intermediate_obj.creation_date.strftime("%d, %b, %Y")
             #order_date =  intermediate_obj.shipment_date.day + "/"+intermediate_obj.shipment_date.month+"/"+intermediate_obj.shipment_date.year
             inv_amt = (cart_item.levelbase_price * cart_item.quantity) + cart_item.tax
-            items.append([intermediate_obj.interm_order_id,cart_item.sku.sku_code,cart_item.sku.sku_desc,cart_item.quantity, inv_amt,intermediate_obj.project_name,order_date])
-
+            items.append([host_details +cart_item.sku.image_url, intermediate_obj.interm_order_id,cart_item.sku.sku_code,cart_item.sku.sku_desc,cart_item.quantity, inv_amt,intermediate_obj.project_name,order_date])
 
         #mail to Admin and normal user
         central_orders_mail = MiscDetail.objects.filter(user=user.id, misc_type='central_orders', misc_value='true')
@@ -4566,7 +4566,7 @@ def create_central_order(request, user):
                     mail_ids = [admin_users[0].admin_user.userprofile.email]"""
             mail_ids = [user.email]
             user_mail_id = [request.user.email]
-            headers = ['Order number','isprava code','Product Details', 'Ordered Quantity', 'Total','Project name','Order Date']
+            headers = ['Image', 'Order number','isprava code','Product Details', 'Ordered Quantity', 'Total','Project name','Order Date']
             data_dict = {'customer_name': request.user.username, 'items': items,
                          'headers': headers, 'role': 'Admin', 'order_id': interm_order_id}
             t = loader.get_template('templates/central_order/order_for_approval.html')
@@ -9815,6 +9815,7 @@ def construct_order_customer_order_detail(request, order, user):
 def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
     response_data = {}
     other_charges = 0
+    central_order_mgmt = get_misc_value('central_order_mgmt', usr_id)
     tax = CustomerOrderSummary.objects.filter(order_id__in=det_ids,
                                               order__user=usr_id).aggregate(Sum('tax_value'))[
         'tax_value__sum']
@@ -9833,6 +9834,10 @@ def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
     response_data['date'] = get_only_date(request, order[0].creation_date)
     response_data['order_id'] = order[0].order_id
     response_data['data'] = []
+    if central_order_mgmt == 'true':
+        sku = order[0].sku
+        response_data['sku_spl_attrs'] = dict(SKUAttributes.objects.filter(sku_id__sku_code=sku.sku_code, sku__user =usr_id).
+                                         values_list('attribute_name', 'attribute_value'))
     res, total_picked_quantity = construct_order_customer_order_detail(request, order, usr_id)
     total_inv_amt = map(sum, [[x['invoice_amount'] for x in res]])
     total_qty = map(sum, [[x['quantity'] for x in res]])
@@ -12709,7 +12714,13 @@ def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, ord
     for enquiry in em_qs[start_index:stop_index]:
         customization_type = '  Price and Product Customization'
         emiza_order_ids = []
-        related_order_ids = generic_orders.filter(po_number=enquiry.po_number,client_name=enquiry.customer_name,orderdetail__sku__sku_code=enquiry.sku.sku_code).values_list('cust_wh_id', 'orderdetail__original_order_id')
+        generic_order_id = enquiry.generic_order_id
+        if generic_order_id:
+            related_order_ids = generic_orders.filter(generic_order_id=generic_order_id).values_list('cust_wh_id', 'orderdetail__original_order_id')
+        else:
+            related_order_ids = generic_orders.filter(po_number=enquiry.po_number,
+                                                      client_name=enquiry.customer_name,
+                                                      orderdetail__sku__sku_code=enquiry.sku.sku_code).values_list('cust_wh_id', 'orderdetail__original_order_id')
         for usr , org_id in related_order_ids:
             if usr in orderprefix_map:
                 emiza_id = orderprefix_map[usr]+str(org_id)
@@ -13409,7 +13420,7 @@ def get_manual_enquiry_detail(request, user=''):
         manual_enq = ManualEnquiry.objects.filter(**filters)
         if not manual_enq:
             return HttpResponse("No Enquiry Data for Id")
-        smd_price = manual_enq[0].smd_price
+        smd_approved_price = manual_enq[0].smd_price
         rc_price= manual_enq[0].rc_price
         customization_types = dict(CUSTOMIZATION_TYPES)
         customization_type = customization_types[manual_enq[0].customization_type]
@@ -13450,8 +13461,16 @@ def get_manual_enquiry_detail(request, user=''):
             po_number = manual_enq[0].po_number
             client_name = manual_enq[0].customer_name
             sku_code = manual_enq[0].sku.sku_code
-            gen_qs = GenericOrderDetailMapping.objects.filter(client_name=client_name, po_number=po_number, orderdetail__sku__sku_code=sku_code).values_list(
-                'orderdetail__original_order_id', 'cust_wh_id')
+            generic_order_id = manual_enq[0].generic_order_id
+            if generic_order_id:
+                gen_qs = GenericOrderDetailMapping.objects.filter(generic_order_id=generic_order_id,
+                                                                  customer_id=cm_id). values_list(
+                    'orderdetail__original_order_id', 'cust_wh_id')
+            else:
+                gen_qs = GenericOrderDetailMapping.objects.filter(client_name=client_name,
+                                                                  po_number=po_number,
+                                                                  orderdetail__sku__sku_code=sku_code).values_list(
+                    'orderdetail__original_order_id', 'cust_wh_id')
             for ord_id, wh_id in gen_qs:
                 emiza_ord_prefix = UserProfile.objects.get(user_id=wh_id).order_prefix
                 emiza_ord_id = '%s%s' %(emiza_ord_prefix, ord_id)
@@ -13485,10 +13504,10 @@ def get_manual_enquiry_detail(request, user=''):
 
             enq_dict = {'ask_price': enquiry.ask_price, 'remarks': enquiry.remarks, 'date': date,
                         'expected_date': expected_date, 'username': user.user.username, 'status': enquiry.status,
-                        'sm_d_price': smd_price, 'r_c_price': rc_price}
+                        'sm_d_price': smd_approved_price, 'r_c_price': rc_price}
 
             if enquiry.status == 'pending_approved':
-                enq_dict['smd_price'] = smd_price
+                enq_dict['smd_price'] = smd_approved_price
                 enq_dict['rc_price'] = rc_price
 
             enquiry_dict.append(enq_dict)
@@ -13507,7 +13526,7 @@ def get_manual_enquiry_detail(request, user=''):
             else:
                 expected_date = ''
             md_approved_details = {'ask_price': md_approved_details.ask_price, 'remarks': md_approved_details.remarks,
-                                   'expected_date': expected_date, 'smd_price': smd_price,
+                                   'expected_date': expected_date, 'smd_price': smd_approved_price,
                                    'rc_price': rc_price}
         far_wh_lt = 0
         cust_obj = CustomerUserMapping.objects.filter(user_id=user_id)
@@ -13948,6 +13967,7 @@ def convert_customorder_to_actualorder(request, user=''):
 
         if not is_emiza_order_failed:
             enq_obj.status = 'order_placed'
+            enq_obj.generic_order_id = generic_order_id
             enq_obj.save()
         else:
             log.info("Order Push failed for order:%s : Customer Id:%s : Error: %s" %(generic_order_id, cm_id, message))

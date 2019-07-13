@@ -360,7 +360,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       //var qc_scan = JSON.stringify(vm.qc_scan);
       //elem.push({name:'qc_scan', value: qc_scan})
       elem.push({name:'headers', value: JSON.stringify(vm.qc_invoice_data)})
-      // debugger
       vm.service.apiCall('confirm_quality_check/', 'POST', elem, true).then(function(data){
         if(data.message) {
           if (data.data == "Updated Successfully") {
@@ -371,7 +370,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               //fb.stop_listening(fb.poData);
               fb.remove_po(fb.poData["id"]);
             }
-            // vm.close();
           }
           else if (data.data.search("<div") != -1){
             vm.pdf_data = data.data;
@@ -379,27 +377,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             $timeout(function () {
               $(".modal-body:visible").html(vm.pdf_data)
               }, 3000);
-            // vm.print_enable = true;
-            // vm.service.refresh(vm.dtInstance);
           }
             else {
             pop_msg(data.data);
           }
         }
       });
-       // vm.confirm_qc_grn();
+
     }
 
-    // debugger
-    // vm.confirm_qc_grn = function(){
-    //   var elem = angular.element($('form'));
-    //   elem = elem[0];
-    //   elem = $(elem).serializeArray();
-    //   vm.service.apiCall('confirm_qc_grn/', 'POST', elem, true).then(function(data){
-    //     pop_msg(data.data);
-    //   });
 
-    // }
 
     vm.print_grn = function() {
       vm.service.print_data(vm.html, "Quality Check");

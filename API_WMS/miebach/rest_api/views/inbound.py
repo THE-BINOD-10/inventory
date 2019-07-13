@@ -3214,7 +3214,6 @@ def confirm_grn(request, confirm_returns='', user=''):
                 overall_discount = float(request.POST['overall_discount'])
             except:
                 overall_discount = 0
-            # import pdb; pdb.set_trace()
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': total_tax,
@@ -4573,7 +4572,6 @@ def update_quality_check(myDict, request, user):
 @login_required
 @get_admin_user
 def confirm_quality_check(request, user=''):
-    # import pdb; pdb.set_trace()
     myDict = dict(request.POST.iterlists())
     if len(myDict['rejected_quantity']):
         if not myDict['rejected_quantity'][0]:
@@ -4612,7 +4610,6 @@ def confirm_quality_check(request, user=''):
             num = len(myDict['wms_code'])
             total_amount = 0
             overall_discount = 0
-            import pdb; pdb.set_trace()
             for i in range(num):
                 seller_po_obj = SellerPOSummary.objects.filter(purchase_order_id= po_creation_date_full[i].id , purchase_order__open_po__sku__user = 3)
                 discount = seller_po_obj[0].discount_percent
@@ -4642,8 +4639,6 @@ def confirm_quality_check(request, user=''):
                                 'overall_discount':overall_discount,
                                 'net_pay':total_amount-net_pay_dis,
             }
-            # t = loader.get_template('templates/toggle/qc_putaway_toggle.html')
-            # import pdb; pdb.set_trace()
             return render(request, 'templates/toggle/qc_putaway_toggle.html', report_data_dict)
         else:
             return HttpResponse('Updated Successfully')

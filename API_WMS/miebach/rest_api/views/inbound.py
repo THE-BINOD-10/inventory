@@ -4602,18 +4602,45 @@ def confirm_quality_check(request, user=''):
             acc_qty = myDict['accepted_quantity']
             rej_qty = myDict['rejected_quantity']
             datas = json.loads(myDict['headers'][0])
-            # import pdb; pdb.set_trace()
-            report_data_dict = {'accepted_quantity': acc_qty, 
-                                'rejected_quantity': rej_qty,
-                                'wms_code':myDict['wms_code'],
-                                'company_name': profile.company_name, 
+            po_number_trim = datas['Purchase Order ID']
+            po_num = po_number_trim.split("_")
+            if po_num[1]:
+                po_creation_date_full = PurchaseOrder.objects.filter(order_id = po_num[1], open_po__sku__user = user.id)
+                po_creation_date = po_creation_date_full[0].creation_date.strftime('%d-%m-%Y')
+
+            data = {}
+            num = len(myDict['wms_code'])
+            total_amount = 0
+            overall_discount = 0
+            import pdb; pdb.set_trace()
+            for i in range(num):
+                seller_po_obj = SellerPOSummary.objects.filter(purchase_order_id= po_creation_date_full[i].id , purchase_order__open_po__sku__user = 3)
+                discount = seller_po_obj[0].discount_percent
+                sku_particulars = SKUMaster.objects.filter(sku_code=myDict['wms_code'][i], user=user.id)[0]
+                total_amt = float(po_creation_date_full[i].open_po.price) * float(acc_qty[i])
+                overall_discount = float(overall_discount) + float(discount)
+                total_amount = total_amount + total_amt
+                data[i] = {'accepted_quantity': acc_qty[i],
+                                    'rejected_quantity': rej_qty[i],
+                                    'wms_code':myDict['wms_code'][i],
+                                    'particulars':sku_particulars.sku_desc,
+                                    'rate':po_creation_date_full[i].open_po.price,
+                                    'price':float(po_creation_date_full[i].open_po.price) * float(acc_qty[i])}
+            net_pay_dis = overall_discount * total_amount/100
+            report_data_dict = {'data':data,
+                                'company_name': profile.company_name,
                                 'company_address': profile.address,
                                 'seller_name': seller_name,
+                                'po_creation_date':po_creation_date,
                                 'seller_address': seller_address,
                                 'bill_date': bill_date,
+                                'grn_no':datas['Purchase Order ID'],
                                 'supplier_id':datas['Supplier ID'],
                                 'supplier_name':datas['Supplier Name'],
-                                'total_qty': datas['Total Quantity']
+                                'total_qty': datas['Total Quantity'],
+                                'total_amount': total_amount,
+                                'overall_discount':overall_discount,
+                                'net_pay':total_amount-net_pay_dis,
             }
             # t = loader.get_template('templates/toggle/qc_putaway_toggle.html')
             # import pdb; pdb.set_trace()

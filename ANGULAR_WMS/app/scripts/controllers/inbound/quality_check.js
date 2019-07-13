@@ -137,7 +137,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               }
             }
             if (data.data[index].accepted_quantity){
-              data.data[index].rejected_quantity = data.data[index].quantity - data.data[index].accepted_quantity 
+              data.data[index].rejected_quantity = data.data[index].quantity - data.data[index].accepted_quantity
             }
             else{
               data.data[index].rejected_quantity = 0
@@ -352,7 +352,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }, 2000);
     }
     vm.print_enable = false;
-    
+
     vm.confirm = function() {
       var elem = angular.element($('form'));
       elem = elem[0];
@@ -371,14 +371,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               //fb.stop_listening(fb.poData);
               fb.remove_po(fb.poData["id"]);
             }
-            vm.close();
-          } 
+            // vm.close();
+          }
           else if (data.data.search("<div") != -1){
-            vm.html = $(data.data);
-            vm.extra_width = {}
-            angular.element(".modal-body").html($(data.data));
-            vm.print_enable = true;
-            vm.service.refresh(vm.dtInstance);
+            vm.pdf_data = data.data;
+            $state.go("app.inbound.QualityCheck.qc_print");
+            $timeout(function () {
+              $(".modal-body:visible").html(vm.pdf_data)
+              }, 3000);
+            // vm.print_enable = true;
+            // vm.service.refresh(vm.dtInstance);
           }
             else {
             pop_msg(data.data);

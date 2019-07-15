@@ -3632,6 +3632,9 @@ def save_return_locations(order_returns, all_data, damaged_quantity, request, us
                      'pallet_number': '',
                      'wms_code': order_returns.sku.wms_code, 'sku_group': order_returns.sku.sku_group,
                      'sku': order_returns.sku}
+        received_quantity = data['received_quantity']
+        if not received_quantity:
+            continue
         if batch_dict and not data['put_zone'] == 'DAMAGED_ZONE':
             data = get_return_segregation_locations(order_returns, batch_dict, data, user)
         if is_rto and not data['put_zone'] == 'DAMAGED_ZONE':
@@ -3643,9 +3646,6 @@ def save_return_locations(order_returns, all_data, damaged_quantity, request, us
 
         if not locations:
             return 'Locations not Found'
-        received_quantity = data['received_quantity']
-        if not received_quantity:
-            continue
         for location in locations:
             total_quantity = POLocation.objects.filter(location_id=location.id, status=1,
                                                        location__zone__user=user.id).aggregate(Sum('quantity'))[

@@ -13,6 +13,7 @@ LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
 log = init_logger('logs/integrations.log')
 dm_rista = init_logger('logs/dm_rista.log')
+log_err = init_logger('logs/integration_errors.log')
 
 def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, is_list=False):
     final_data_dict.setdefault(grouping_key, {})
@@ -2507,42 +2508,54 @@ def update_order_dicts_skip_errors(orders, failed_status, user='', company_name=
                 order_created = True
             except Exception as e:
                 import traceback
-                log.info(str(order['order_details']))
-                log.debug(traceback.format_exc())
+                log_err.info(str(order['order_details']))
+                log_err.debug(traceback.format_exc())
 
-        if order.get('order_summary_dict', {}) and order_created:
-            order['order_summary_dict']['order_id'] = order_detail.id
+        try:
+            if order.get('order_summary_dict', {}) and order_created:
+                order['order_summary_dict']['order_id'] = order_detail.id
 
-            #if order['order_summary_dict']['invoice_date']:
-            #    order['order_summary_dict']['invoice_date'] = order['order_summary_dict']['invoice_date'].strftime("%Y-%m-%d %H:%M:%S")
-            cod_column_vals = order['order_summary_dict'].values()
-            cod_column_vals = map(str, cod_column_vals)
-            cod_columns = order['order_summary_dict'].keys()
-            update_string = "order_id=%s, updation_date=NOW()" % (order_detail.id)
-            date_string = 'NOW(), NOW()'
-            mysql_query_to_file(cod_load_file, 'CUSTOMER_ORDER_SUMMARY', cod_columns,
-                                cod_column_vals, date_string=date_string, update_string=update_string)
-            '''customer_order_summary = CustomerOrderSummary.objects.create(**order['order_summary_dict'])'''
-        if order.get('seller_order_dict', {}) and order_created:
-            seller_order_dict = order['seller_order_dict']
-            seller_order_dict['order_id'] = order_detail.id
-            if seller_order_dict.get('seller_id', ''):
-                so_column_vals = seller_order_dict.values()
-                so_column_vals = map(str, so_column_vals)
-                so_columns = seller_order_dict.keys()
+                #if order['order_summary_dict']['invoice_date']:
+                #    order['order_summary_dict']['invoice_date'] = order['order_summary_dict']['invoice_date'].strftime("%Y-%m-%d %H:%M:%S")
+                cod_column_vals = order['order_summary_dict'].values()
+                cod_column_vals = map(str, cod_column_vals)
+                cod_columns = order['order_summary_dict'].keys()
                 update_string = "order_id=%s, updation_date=NOW()" % (order_detail.id)
                 date_string = 'NOW(), NOW()'
-                mysql_query_to_file(so_load_file, 'SELLER_ORDER', so_columns,
-                                    so_column_vals, date_string=date_string, update_string=update_string)
-            '''trans_mapping = check_create_seller_order(order['seller_order_dict'], order_detail, user,
-                                                      order.get('swx_mappings', []), trans_mapping=trans_mapping)'''
-        if order.get('shipping_charge', 0) and order_created:
-            oc_columns = ['order_id', 'user_id', 'charge_name', 'charge_amount']
-            oc_column_vals = [str(order_detail.original_order_id), str(user.id), 'Shipping Charge', str(order['shipping_charge'])]
-            update_string = "order_id=%s, updation_date=NOW()" % (order_detail.original_order_id)
-            date_string = 'NOW(), NOW()'
-            mysql_query_to_file(oc_load_file, 'ORDER_CHARGES', oc_columns,
-                                oc_column_vals, date_string=date_string, update_string=update_string)
+                mysql_query_to_file(cod_load_file, 'CUSTOMER_ORDER_SUMMARY', cod_columns,
+                                    cod_column_vals, date_string=date_string, update_string=update_string)
+        except Exception as e:
+            import traceback
+            log_err.info("COD Creation Failed for Order ID %s" % str(order['original_order_id']))
+            log_err.debug(traceback.format_exc())
+        try:
+            if order.get('seller_order_dict', {}) and order_created:
+                seller_order_dict = order['seller_order_dict']
+                seller_order_dict['order_id'] = order_detail.id
+                if seller_order_dict.get('seller_id', ''):
+                    so_column_vals = seller_order_dict.values()
+                    so_column_vals = map(str, so_column_vals)
+                    so_columns = seller_order_dict.keys()
+                    update_string = "order_id=%s, updation_date=NOW()" % (order_detail.id)
+                    date_string = 'NOW(), NOW()'
+                    mysql_query_to_file(so_load_file, 'SELLER_ORDER', so_columns,
+                                        so_column_vals, date_string=date_string, update_string=update_string)
+        except Exception as e:
+            import traceback
+            log_err.info("Seller Order Creation Failed for Order ID %s" % str(order['original_order_id']))
+            log_err.debug(traceback.format_exc())
+        try:
+            if order.get('shipping_charge', 0) and order_created:
+                oc_columns = ['order_id', 'user_id', 'charge_name', 'charge_amount']
+                oc_column_vals = [str(order_detail.original_order_id), str(user.id), 'Shipping Charge', str(order['shipping_charge'])]
+                update_string = "order_id=%s, updation_date=NOW()" % (order_detail.original_order_id)
+                date_string = 'NOW(), NOW()'
+                mysql_query_to_file(oc_load_file, 'ORDER_CHARGES', oc_columns,
+                                    oc_column_vals, date_string=date_string, update_string=update_string)
+        except Exception as e:
+            import traceback
+            log_err.info("Other Charges Creation Failed for Order ID %s" % str(order['original_order_id']))
+            log_err.debug(traceback.format_exc())
         order_sku = {}
         #sku_obj = SKUMaster.objects.filter(id=order_det_dict['sku_id'])
         sku_obj = order.get('sku_obj', None)
@@ -2558,20 +2571,20 @@ def update_order_dicts_skip_errors(orders, failed_status, user='', company_name=
            load_by_file(cod_load_file_path, 'CUSTOMER_ORDER_SUMMARY', cod_columns)
         except Exception as e:
             import traceback
-            log.info("Customer Order Summary Bulk Creation Failed")
-            log.debug(traceback.format_exc())
+            log_err.info("Customer Order Summary Bulk Creation Failed")
+            log_err.debug(traceback.format_exc())
     if so_columns:
         try:
             load_by_file(so_load_file_path, 'SELLER_ORDER', so_columns)
         except Exception as e:
             import traceback
-            log.info("Seller Order Bulk Creation Failed")
-            log.debug(traceback.format_exc())
+            log_err.info("Seller Order Bulk Creation Failed")
+            log_err.debug(traceback.format_exc())
     if oc_columns:
         try:
             load_by_file(oc_load_file_path, 'ORDER_CHARGES', oc_columns)
         except Exception as e:
             import traceback
-            log.info("Order Charges Bulk Creation Failed")
-            log.debug(traceback.format_exc())
+            log_err.info("Order Charges Bulk Creation Failed")
+            log_err.debug(traceback.format_exc())
     return status

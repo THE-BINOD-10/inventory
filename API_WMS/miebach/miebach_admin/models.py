@@ -117,7 +117,7 @@ class SKUMaster(models.Model):
     sale_through = models.CharField(max_length=32, default='')
     mix_sku = models.CharField(max_length=32, default='', db_index=True)
     color = models.CharField(max_length=64, default='')
-    ean_number = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default=0)
+    ean_number = models.CharField(max_length=64, default='')
     load_unit_handle = models.CharField(max_length=32, default='unit', db_index=True)
     hsn_code = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default=0)
     sub_category = models.CharField(max_length=64, default='')
@@ -151,7 +151,7 @@ class SKUMaster(models.Model):
 
 class EANNumbers(models.Model):
     id = BigAutoField(primary_key=True)
-    ean_number = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default=0)
+    ean_number = models.CharField(max_length=64, default='')
     sku = models.ForeignKey(SKUMaster)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -159,8 +159,6 @@ class EANNumbers(models.Model):
     class Meta:
         db_table = 'EAN_NUMBERS'
         unique_together = ('ean_number', 'sku')
-        index_together = (('sku', 'ean_number'), ('sku',))
-
 
 class SKUJson(models.Model):
     id = BigAutoField(primary_key=True)
@@ -407,10 +405,13 @@ class OrderFields(models.Model):
     name = models.CharField(max_length=256, default='')
     value = models.CharField(max_length=256, default='')
     order_type = models.CharField(max_length=256, default='order')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'ORDER_FIELDS'
-        index_together = (('user', 'original_order_id'), ('user', 'original_order_id', 'name'))
+        index_together = (('user', 'original_order_id'), ('user', 'original_order_id', 'name'),
+                          ('original_order_id', 'order_type', 'user'))
 
     def __unicode__(self):
         return str(self.original_order_id)
@@ -421,6 +422,7 @@ class OrderCharges(models.Model):
     user = models.ForeignKey(User, blank=True, null=True)
     charge_name = models.CharField(max_length=128, default='')
     charge_amount = models.FloatField(default=0)
+    charge_tax_value = models.FloatField(default = 0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -597,8 +599,8 @@ class BatchDetail(models.Model):
     tax_percent = models.FloatField(default=0)
     transact_id = models.IntegerField(default=0)
     transact_type = models.CharField(max_length=36, default='')
-    weight = models.FloatField(default=0)
-    ean_number = models.DecimalField(max_digits=20, decimal_places=0, default=0)
+    weight = models.CharField(max_length=64, default='')
+    ean_number = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1816,7 +1818,7 @@ class OrderMapping(models.Model):
 
     class Meta:
         db_table = 'ORDER_MAPPING'
-
+        index_together = ('mapping_id', 'mapping_type')
 
 class Brands(models.Model):
     user = models.ForeignKey(User)
@@ -2595,6 +2597,8 @@ class OrderUploads(models.Model):
     uploaded_file = models.FileField(upload_to='static/customer_uploads/')
     verification_flag = models.CharField(max_length=54, default='to_be_verified')
     remarks = models.CharField(max_length=256, default='')
+    created_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'ORDER_UPLOADS'
@@ -2782,6 +2786,7 @@ class ManualEnquiry(models.Model):
     smd_price = models.FloatField(default=0)
     rc_price = models.FloatField(default=0)
     client_po_rate = models.FloatField(default=0)
+    generic_order_id = models.PositiveIntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -3219,6 +3224,33 @@ class Pofields(models.Model):
     value = models.CharField(max_length=256, default='')
     class Meta:
         db_table = 'PO_FIELDS'
+
+class MasterEmailMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    master_id = models.CharField(max_length=64, default='')
+    master_type = models.CharField(max_length=64, default='')
+    email_id = models.CharField(max_length=64, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MASTER_EMAIL_MAPPING'
+        unique_together = ('user', 'master_id', 'master_type', 'email_id')
+
+class InvoiceOrderCharges(models.Model) :
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    original_order_id = models.CharField(max_length=64, default='')
+    pick_number = models.PositiveIntegerField(default=0)
+    charge_name = models.CharField(max_length=32, default='')
+    charge_amount = models.FloatField(default=0)
+    charge_tax_value = models.FloatField(default = 0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'INVOICE_ORDER_CHARGES'
 
 class TempDeliveryChallan(models.Model):
     id  = BigAutoField(primary_key=True)

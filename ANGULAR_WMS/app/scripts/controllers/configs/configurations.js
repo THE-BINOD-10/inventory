@@ -32,6 +32,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'rtv_prefix_code': false, 'dispatch_qc_check':false,'sku_less_than_threshold':false,'decimal_limit_price':2,
                     'non_transacted_skus':false,'all_order_field_options':{},
                     'update_mrp_on_grn': false,
+                    'allow_rejected_serials':false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -56,7 +57,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      74: 'sku_pack_config', 75: 'po_sub_user_prefix', 76: 'combo_allocate_stock', 77:'sno_in_invoice', 78:'raisepo_terms_conditions',
                      79: 'generate_delivery_challan_before_pullConfiramation', 80: 'unique_mrp_putaway',
                      81: 'rtv_prefix_code',82:'pos_remarks', 83:'dispatch_qc_check', 84:'block_expired_batches_picklist', 85:'non_transacted_skus',
-                     86:'sku_less_than_threshold', 87:'decimal_limit_price', 88: 'mandate_sku_supplier', 89: 'update_mrp_on_grn'}
+                     86:'sku_less_than_threshold', 87:'decimal_limit_price', 88: 'mandate_sku_supplier', 89: 'update_mrp_on_grn', 90: 'allow_rejected_serials'}
 
   vm.check_box_data = [
     {
@@ -487,19 +488,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     display: true
   },
   {
+   name: "Mandate Sku Supplier Mapping in PO",
+   model_name: "mandate_sku_supplier",
+   param_no: 88,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
    name: "Update MRP On GRN",
    model_name: "update_mrp_on_grn",
    param_no: 89,
    class_name: "fa fa-server",
    display: true
- },
- {
-  name: "Mandate Sku Supplier Mapping in PO",
-  model_name: "mandate_sku_supplier",
-  param_no: 88,
-  class_name: "fa fa-server",
-  display: true
- }
+  },
+  {
+   name: "Allow Rejected Serial Numbers",
+   model_name: "allow_rejected_serials",
+   param_no: 90,
+   class_name: "fa fa-server",
+   display: true
+  }
 ]
 
   vm.empty = {};

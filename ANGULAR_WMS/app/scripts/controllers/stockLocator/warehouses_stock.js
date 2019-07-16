@@ -101,6 +101,18 @@ angular.module('urbanApp', ['datatables'])
         colFilters.download_excel()
       }
 
+      vm.sku_serial_download = sku_serial_download;
+      function sku_serial_download() {
+        var temp_data_table = vm.dtInstance.DataTable.context[0].ajax.data.datatable
+        vm.dtInstance.DataTable.context[0].ajax.data.datatable = 'SerialNumberSKU'
+        angular.copy(vm.dtColumns,colFilters.headers);
+        angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
+        colFilters.download_excel()
+        setTimeout(function() {
+          vm.dtInstance.DataTable.context[0].ajax.data.datatable = temp_data_table
+        }, 1000);
+      }
+
       if (Data.warehouse_toggle_value) {
           vm.filters = {'datatable': 'WarehouseStockAlternative', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
         'from_date' : vm.from_date, 'to_date' : vm.to_date, 'size_type_value' : vm.size_type_value, 'warehouse_name' : vm.warehouse_value, 'view_type' : vm.g_data.view }

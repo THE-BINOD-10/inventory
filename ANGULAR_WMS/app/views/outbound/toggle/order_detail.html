@@ -1,4 +1,4 @@
-<div id="page-pop" class="modal fade in over-x">
+<div id="page-pop" class="modal fade in over-x" ng-app = "myApp">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
     <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width">
       <div class="modal-content mw80">
@@ -67,7 +67,9 @@
                   </div>
                   <div class="widget-details col-md-7 col-sm-7 col-xs-8 text-left">
                     <small class="order-label">SKU Description</small>
-                    <p class="no-margin order-bold detail-black" style="font-size:12px">{{value.sku__sku_desc}} <strong ng-if="value.level_name">({{value.level_name}})</strong></p><br>
+                    <p class="no-margin order-bold detail-black" style="font-size:12px">{{value.sku__sku_desc}} <strong ng-if="value.level_name">({{value.level_name}})</strong><strong ng-if="records['level_name']">({{records['level_name']}})</strong></p><br>
+                    <p class="no-margin order-bold detail-black" ng-if="(showCase.model_data.data[0].sku_spl_attrs['height'] || showCase.model_data.data[0].sku_spl_attrs['length'] || showCase.model_data.data[0].sku_spl_attrs['breadth'])" style="font-size:12px"><b>Ext Dim(In)</b>:{{showCase.model_data.data[0].sku_spl_attrs["height"]}} X {{showCase.model_data.data[0].sku_spl_attrs["length"]}} X {{showCase.model_data.data[0].sku_spl_attrs["breadth"]}}</p>
+                    <p class="no-margin order-bold detail-black" ng-if="(showCase.model_data.data[0].sku_spl_attrs['Internal Height'] || showCase.model_data.data[0].sku_spl_attrs['Internal Length'] || showCase.model_data.data[0].sku_spl_attrs['Internal Breadth'])" style="font-size:12px"><br><b>Int Dim(In)</b>:{{showCase.model_data.data[0].sku_spl_attrs["Internal Height"]}} X {{showCase.model_data.data[0].sku_spl_attrs["Internal Length"]}} X {{showCase.model_data.data[0].sku_spl_attrs["Internal Breadth"]}}</br></p>
                     <small class="order-label" ng-if="value.schedule_date"><b>Delivery Schedule Date</b></small>
                     <p class="no-margin order-bold detail-black" style="font-size:12px"><b>{{value.schedule_date}}</b></p>
                   </div>
@@ -254,12 +256,12 @@
           <div ng-include="'views/outbound/app/create_orders/order_detail.html'"></div>
 		    </div> -->
 
-        <!-- <div class="modal-footer">
-          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop {{showCase.permissions.change_openpo?'pop-normal':'pop-green'}}" ng-click="showCase.save_raise_po(form)">{{showCase.permissions.change_openpo?'Save':'Send for Approval'}}</button>
+        <div class="modal-footer">
+          <!-- <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop {{showCase.permissions.change_openpo?'pop-normal':'pop-green'}}" ng-click="showCase.save_raise_po(form)">{{showCase.permissions.change_openpo?'Save':'Send for Approval'}}</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)">Confirm PO</button>
-          <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
-          <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print_grn()">Print</button>
-        </div> -->
+          <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button> -->
+          <button  type="button" class="btn pop pop-green" ng-click="showCase.print_pdf_my_orders_swiss()">Print</button>
+        </div>
       </div>
     </div>
   </form>

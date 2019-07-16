@@ -19,11 +19,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
     angular.copy(data, vm.report_data);
     vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(data){
-
       vm.empty_data = data.empty_data;
       angular.copy(vm.empty_data, vm.model_data);
       vm.dtOptions = data.dtOptions;
       vm.dtColumns = data.dtColumns;
+      if (vm.permissions.dispatch_qc_check) {
+        for (var i = 0; i < vm.dtColumns.length; i++) {
+          if (vm.dtColumns[i].mData == 'Order ID'){
+            vm.dtColumns[i].sTitle = 'Main SR Number';
+          }
+        }
+      }
       if(vm.permissions.central_order_reassigning)
       {
         vm.dtColumns.push(DTColumnBuilder.newColumn('Serial Number').withTitle('Serial Number'))

@@ -6,6 +6,7 @@ function AppNotifications($scope, $http, $q, Session, colFilters, Service, $stat
 
   var vm = this;
   vm.service = Service;
+  vm.user_type = Session.roles.permissions.user_type;
   var req_data = {}
   vm.load_notifications = function(){
     Service.apiCall("list_notifications/", "GET", req_data).then(function(resp){

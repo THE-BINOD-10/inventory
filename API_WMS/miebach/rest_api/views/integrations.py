@@ -956,7 +956,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
         elif key == 'ean_number':
             if value:
                 try:
-                    ean_numbers = str(value.encode('utf-8').replace('\xc2\xa0', ''))
+                    ean_numbers = str(value.encode('utf-8').replace('\xc2\xa0', '').replace('\\xE2\\x80\\x8B', ''))
                 except:
                     ean_numbers = ''
                 for temp_ean in ean_numbers.split(','):
@@ -1038,6 +1038,22 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                 continue
             if option['name'] in option_not_created:
                 continue
+            try:
+                option['name'] = str(option['name'])
+            except:
+                log.info(option['name'])
+                log.info("Ascii Code Error Name for %s" % str(sku_master.sku_code))
+                error_message = 'Ascii code characters Name found'
+                update_error_message(failed_status, 5033, error_message, sku_code,
+                                     field_key='sku_code')
+            try:
+                option['value'] = str(option['value'])
+            except:
+                log.info(option['value'])
+                log.info("Ascii Code Error Value for %s" % str(sku_master.sku_code))
+                error_message = 'Ascii code characters Value found'
+                update_error_message(failed_status, 5033, error_message, sku_code,
+                                     field_key='sku_code')
             column_vals = [str(sku_master.id), option['name'], option['value']]
             update_string = "sku_id=%s, attribute_name='%s',updation_date=NOW()" % (str(sku_master.id), str(option['name']))
             date_string = 'NOW(), NOW()'
@@ -1059,7 +1075,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
     if sku_master and ean_numbers:
         try:
             ean_numbers = ean_numbers.split(',')
-            exist_eans = list(sku_master.eannumbers_set.filter(ean_number__gt=0).\
+            exist_eans = list(sku_master.eannumbers_set.exclude(ean_number='').\
                               annotate(str_eans=Cast('ean_number', CharField())).\
                           values_list('str_eans', flat=True))
             if sku_master.ean_number:
@@ -1076,14 +1092,14 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                     if exist_sku_eans.get(rem_ean, ''):
                         del exist_sku_eans[rem_ean]
             if str(sku_master.ean_number) in rem_eans:
-                sku_master.ean_number = 0
+                sku_master.ean_number = ''
                 update_sku_obj = True
                 #sku_master.save()
             for ean in create_eans:
                 if not ean:
                     continue
                 try:
-                    ean = int(ean)
+                    ean = ean
                     new_ean_objs.append(EANNumbers(**{'ean_number': ean, 'sku_id': sku_master.id}))
                     ean_found = False
                     if exist_ean_list.get(ean, ''):
@@ -1116,9 +1132,12 @@ def update_skus(skus, user='', company_name=''):
             update_error_message(failed_status, 5020, error_message, '', field_key='warehouse')
         else:
             warehouse = skus['warehouse']
-            sister_whs = list(get_sister_warehouse(user).values_list('user__username', flat=True))
-            sister_whs.append(token_user.username)
-            if warehouse in sister_whs:
+            sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+            sister_whs1.append(token_user.username)
+            sister_whs = []
+            for sister_wh1 in sister_whs1:
+                sister_whs.append(str(sister_wh1).lower())
+            if warehouse.lower() in sister_whs:
                 user = User.objects.get(username=warehouse)
             else:
                 error_message = 'Invalid Warehouse Name'
@@ -1129,6 +1148,7 @@ def update_skus(skus, user='', company_name=''):
         user_attr_list = list(user_attr_list.values_list('attribute_name', flat=True))
         user_profile = user.userprofile
         sku_ids = []
+        added_sku_eans = []
         all_sku_masters = []
         if not skus:
             skus = {}
@@ -1142,10 +1162,10 @@ def update_skus(skus, user='', company_name=''):
         columns = ['sku_id', 'attribute_name', 'attribute_value']
         new_ean_objs = []
 
-        exist_sku_eans = dict(SKUMaster.objects.filter(user=user.id, ean_number__gt=0, status=1).only('ean_number', 'sku_code').annotate(
-            ean_str=Cast('ean_number', output_field=CharField())).values_list('ean_str', 'sku_code'))
-        exist_ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1).only('ean_number', 'sku__sku_code').annotate(
-            ean_str=Cast('ean_number', output_field=CharField())).values_list('ean_str', 'sku__sku_code'))
+        exist_sku_eans = dict(SKUMaster.objects.filter(user=user.id, status=1).exclude(ean_number='').\
+                              only('ean_number', 'sku_code').values_list('ean_number', 'sku_code'))
+        exist_ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1).\
+                              only('ean_number', 'sku__sku_code').values_list('ean_number', 'sku__sku_code'))
         for sku_data in skus:
             sku_master, insert_status, new_ean_objs = sku_master_insert_update(sku_data, user, sku_mapping, insert_status,
                                                                  failed_status, user_attr_list, sizes_dict,
@@ -1181,7 +1201,12 @@ def update_skus(skus, user='', company_name=''):
                             sku_relation.save()
                         all_sku_masters.append(child_obj)
         if new_ean_objs:
-            EANNumbers.objects.bulk_create(new_ean_objs)
+            try:
+                EANNumbers.objects.bulk_create(new_ean_objs)
+            except Exception as e:
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info("Ean Numbers update failed")
         insert_update_brands(user)
 
         all_users = get_related_users(user.id)
@@ -1191,8 +1216,10 @@ def update_skus(skus, user='', company_name=''):
             create_update_sku(all_sku_masters, all_users)
         return insert_status, failed_status.values()
 
-    except:
-        traceback.print_exc()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.debug("Update SKU Failed")
         return insert_status, failed_status.values()
 
 
@@ -1743,8 +1770,11 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
     insert_status = []
     final_data_dict = OrderedDict()
     token_user = user
-    sister_whs = list(get_sister_warehouse(user).values_list('user__username', flat=True))
-    sister_whs.append(token_user.username)
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    sister_whs1.append(token_user.username)
+    sister_whs = []
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
     try:
         seller_master_dict, valid_order, query_params = {}, {}, {}
         failed_status = OrderedDict()
@@ -1780,7 +1810,7 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                 update_error_message(failed_status, 5021, error_message, original_order_id)
             else:
                 warehouse = order['warehouse']
-                if warehouse in sister_whs:
+                if warehouse.lower() in sister_whs:
                     user = User.objects.get(username=warehouse)
                 else:
                     error_message = 'Invalid Warehouse Name'
@@ -2103,6 +2133,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         order_summary_dict['consignee'] = order_details['address']
                         order_summary_dict['invoice_date'] = order_details['creation_date']
                         order_summary_dict['inter_state'] = 0
+                        order_summary_dict['mrp'] = sku_item.get('mrp', 0)
                         if order_summary_dict['igst_tax']:
                             order_summary_dict['inter_state'] = 1
                         final_data_dict = check_and_add_dict(grouping_key, 'order_summary_dict',

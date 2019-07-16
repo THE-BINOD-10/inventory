@@ -16,7 +16,7 @@ from rest_api.views.miebach_utils import *
 from miebach_admin.models import *
 from rest_api.views.utils import *
 
-log = init_logger('logs/stockone_report_mail.log')
+log = init_logger('logs/72network_report_mail.log')
 
 reports_list = {'SKU List': get_sku_filter_data, 'Location Wise Stock': get_location_stock_data,
                 'Receipt Summary': get_receipt_filter_data, 'Dispatch Summary': get_dispatch_data,
@@ -48,8 +48,6 @@ class MailReports:
                 if frequency_range == "Days":
                     frequency_value *= 24
             log.info(("Report config. : user= %s, frequency= %s hrs") % (str(user.id), str(frequency_value)))
-            #date_difference = (datetime.datetime.now().date() - report_date.date()).days
-            #if (frequency_value in (0, 1) or (date_difference % frequency_value) != 0) and not mail_now:
             if ((frequency_value in (0,) or (date_difference % frequency_value) != 0) and not mail_now):
                 log.info("Came to this if condition ::%s ::%s" %(frequency_value, date_difference))
                 return
@@ -82,13 +80,12 @@ class MailReports:
             mail_report_data = {}
             for each_wh in sister_whs:
                 try:
-                    if report_misc_data == 'shipment_report':
-                       wh_report_data = report({}, each_wh, each_wh, serial_view=False, firebase_response=firebase_response)
-                    else:
-                       wh_report_data = report({}, each_wh, each_wh)
+                    wh_report_data = report({}, each_wh, each_wh, serial_view=False, firebase_response=firebase_response)
                 except Exception as e:
+                    print "Error Occurred"
+                    print datetime.datetime.now()
                     import traceback
-                    log.debug(traceback.format_exc())
+                    print traceback.format_exc()
                     wh_report_data = {}
                 if isinstance(wh_report_data, tuple):
                     wh_report_data = wh_report_data[0]
@@ -114,7 +111,7 @@ class MailReports:
                 subject = '%s Reports dated %s' % (user.username, datetime.datetime.now().date())
                 text = 'Please find the scheduled reports in the attachment dated: %s' % str(
                     datetime.datetime.now().date())
-                send_mail_attachment(send_to, subject, text, files=self.report_file_names)
+                send_mail_attachment(send_to, subject, text, files=self.report_file_names, compressed=True)
 
     def write_report_excel(self, report_data, report_name, user, append_wh_name=False):
         from rest_api.views.common import folder_check, get_work_sheet, write_excel
@@ -145,7 +142,9 @@ class MailReports:
         for key, report_value in report_data.items():
             for data in report_value:
                 index = 0
-                for value in data.values():
+                for header_name, value in data.items():#values():
+                    if header_name == 'Order ID':
+                        value = "'%s" % str(value)
                     ws = write_excel(ws, counter, index, value, file_type)
                     index += 1
                 if append_wh_name:
@@ -166,10 +165,8 @@ class MailReports:
 if __name__ == "__main__":
 
     log.info("Started cronjob for report sending\n")
-    users = User.objects.all()
+    users = User.objects.filter(username='72Networks')
     for user in users:
-        if user.username == '72Networks':
-           continue
         log.info("user : %s"%(str(user.id)))
         OBJ = MailReports()
-        OBJ.send_reports_mail(user)
+        OBJ.send_reports_mail(user, mail_now=True)

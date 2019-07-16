@@ -306,7 +306,6 @@ def get_stock_summary_size_excel(filter_params, temp_data, headers, user, reques
                 stock_detail_dict[obj['sku__sku_class']].update({obj['sku__sku_size']: [obj['total_sum']]})
         else:
             stock_detail_dict.update({obj['sku__sku_class']: {obj['sku__sku_size']: [obj['total_sum']]}})
-
     all_sizes_obj = SizeMaster.objects.filter(user=user.id)
     all_size_names = list(all_sizes_obj.values_list('size_name', flat=True))
     all_size_names.append('DEFAULT')
@@ -406,7 +405,6 @@ def get_stock_counts(quantity, single_sku):
             {'available': available, 'name': single_data['name'], 'transit': trans_quantity, 'reserved': reserved})
     return stock_count
 
-
 @fn_timer
 def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
     ret_list = []
@@ -453,16 +451,16 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
 
         # ASN Stock Related to SM
         today_filter = datetime.datetime.today()
-        hundred_day_filter = today_filter + datetime.timedelta(days=100)
+        #hundred_day_filter = today_filter + datetime.timedelta(days=100)
         ints_filters = {'quantity__gt': 0, 'sku__user': user, 'status': 'open'}
         asn_qs = ASNStockDetail.objects.filter(**ints_filters)
-        intr_obj_100days_qs = asn_qs.filter(arriving_date__lte=hundred_day_filter)
+        intr_obj_100days_qs = asn_qs
         intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
         asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
         asn_res_100days_qs = asnres_det_qs.filter(orderdetail__isnull=False)  # Reserved Quantity
         asn_res_100days_qty = dict(
             asn_res_100days_qs.only('asnstock__sku__sku_code').values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
-        asn_blk_100days_qs = asnres_det_qs.filter(orderdetail__isnull=True)  # Blocked Quantity
+        asn_blk_100days_qs = asnres_det_qs.filter(orderdetail__isnull=True, enquirydetail__warehouse_level=3)  # Blocked Quantity
         asn_blk_100days_qty = dict(
             asn_blk_100days_qs.only('asnstock__sku__sku_code').values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
 
@@ -645,7 +643,8 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
                         var[header] += val
                     else:
                         var[header] = val
-
+                net_open = var['Total WH'] - var['Total WH Res'] - var['Total WH Blocked']
+                var['WH Net Open'] = net_open
                 asn_open = var['ASN Total'] - var['ASN Res'] - var['ASN Blocked']
                 var['ASN Open'] = asn_open
         var['Net Open'] = var['WH Net Open'] + var['ASN Open']
@@ -1119,7 +1118,9 @@ def insert_move_inventory(request, user=''):
     seller_id = request.GET.get('seller_id', '')
     batch_no = request.GET.get('batch_number', '')
     mrp =request.GET.get('mrp', '')
-    status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id, batch_no=batch_no, mrp=mrp)
+    weight = request.GET.get('weight', '')
+    status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id, batch_no=batch_no, mrp=mrp,
+                                 weight=weight)
     if 'success' in status.lower():
         update_filled_capacity([source_loc, dest_loc], user.id)
 
@@ -1754,53 +1755,74 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
         path = 'static/excel_files/' + str(user.id) + '.Stock_Summary_Serials.xlsx'
         if not os.path.exists('static/excel_files/'):
             os.makedirs('static/excel_files/')
+        user_dict ={}
+        users_list = []
+        user_dict['user_id'] = user.id
+        user_dict['user__username'] = user.username
+        users_list.append(user_dict)
+        if request.POST.get('datatable','') == 'SerialNumberSKU':
+            sister_warehouses = get_sister_warehouse(user)
+            sister_warehouse_list = []
+            sister_warehouses = sister_warehouses.values('user_id','user__username')
+            sister_warehouse_list = list(sister_warehouses)
+            sister_warehouse_list.insert(0,user_dict)
+            users_list = sister_warehouse_list
         workbook = xlsxwriter.Workbook(path)
-        worksheet = workbook.add_worksheet("Stock Serials")
-        bold = workbook.add_format({'bold': True})
-        exc_headers = ['SKU Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Serial Number', 'Status',
-                       'Reason']
-        for n, header in enumerate(exc_headers):
-            worksheet.write(0, n, header, bold)
-        dict_list = ['sku__sku_code', 'sku__sku_desc',
-                     'sku__sku_brand', 'sku__sku_category',
-                     'imei_number']
+        for user_obj in users_list :
+            worksheet = workbook.add_worksheet(user_obj['user__username'])
+            bold = workbook.add_format({'bold': True})
+            exc_headers = ['SKU Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Serial Number', 'Status',
+                           'Reason']
+            for n, header in enumerate(exc_headers):
+                worksheet.write(0, n, header, bold)
+            dict_list = ['sku__sku_code', 'sku__sku_desc',
+                         'sku__sku_brand', 'sku__sku_category',
+                         'status', 'imei_number']
 
-        filter_params = get_filtered_params(filters, dict_list)
-        dispatched_imeis = OrderIMEIMapping.objects.filter(status=1, order__user=user.id, po_imei__isnull=False).values_list('po_imei_id',
-                                                                                                      flat=True)
-        damaged_returns = dict(ReturnsIMEIMapping.objects.filter(status='damaged', order_imei__order__user=user.id). \
-                               values_list('order_imei__po_imei__imei_number', 'reason'))
-        qc_damaged = dict(QCSerialMapping.objects.filter(serial_number__purchase_order__open_po__sku__user=user.id,
-                                                         status='rejected').values_list('serial_number__imei_number',
-                                                                                        'reason'))
-        qc_damaged.update(damaged_returns)
-        if search_term:
-            imei_data = POIMEIMapping.objects.filter(Q(sku__sku_code__icontains=search_term) |
-                                                     Q(sku__sku_desc__icontains=search_term) |
-                                                     Q(sku__sku_brand__icontains=search_term) |
-                                                     Q(sku__sku_category__icontains=search_term),
-                                                     status=1, sku__user=user.id,
-                                                     **filter_params). \
-                exclude(id__in=dispatched_imeis).values_list(*dict_list)
-        else:
-            imei_data = POIMEIMapping.objects.filter(status=1, sku__user=user.id,
-                                                     **filter_params). \
-                exclude(id__in=dispatched_imeis).values_list(*dict_list)
-        row = 1
-        for imei in imei_data:
-            col_count = 0
-            for col, data in enumerate(imei):
-                worksheet.write(row, col_count, data)
+            filter_params = get_filtered_params(filters, dict_list)
+            dispatched_imeis = OrderIMEIMapping.objects.filter(status=1, order__user=user_obj['user_id'], po_imei__isnull=False).values_list('po_imei_id', flat=True)
+            damaged_returns = dict(ReturnsIMEIMapping.objects.filter(status='damaged', order_imei__order__user=user_obj['user_id']). \
+                                   values_list('order_imei__po_imei__imei_number', 'reason'))
+            qc_damaged = dict(QCSerialMapping.objects.filter(serial_number__purchase_order__open_po__sku__user=user_obj['user_id'],
+                                                             status='rejected').values_list('serial_number__imei_number',
+                                                                                            'reason'))
+            qc_damaged.update(damaged_returns)
+            accepted_imeis = list(POIMEIMapping.objects.filter(status=1, sku__user=user_obj['user_id'],
+                                                         **filter_params).exclude(id__in=dispatched_imeis).values_list('id', flat=True))
+            po_rejected_imeis = list(QCSerialMapping.objects.filter(serial_number__purchase_order__open_po__sku__user=user_obj['user_id'],
+                                                             status='rejected').values_list('serial_number_id', flat=True))
+            picklist_rejected_imeis = list(DispatchIMEIChecklist.objects.filter(final_status=0, po_imei_num__sku__user=user_obj['user_id'],
+                                                             qc_type='sales_order').values_list('po_imei_num_id', flat=True).distinct())
+            common_list = accepted_imeis + po_rejected_imeis + picklist_rejected_imeis
+            filter_params['id__in'] = common_list
+            if search_term:
+                imei_data = POIMEIMapping.objects.filter(Q(sku__sku_code__icontains=search_term) |
+                                                         Q(sku__sku_desc__icontains=search_term) |
+                                                         Q(sku__sku_brand__icontains=search_term) |
+                                                         Q(sku__sku_category__icontains=search_term),
+                                                         sku__user=user_obj['user_id'],
+                                                         **filter_params). \
+                    exclude(id__in=dispatched_imeis).values_list(*dict_list)
+            else:
+                imei_data = POIMEIMapping.objects.filter(sku__user=user_obj['user_id'],
+                                                         **filter_params). \
+                    exclude(id__in=dispatched_imeis).values_list(*dict_list)
+            row = 1
+            for imei in imei_data:
+                col_count = 0
+                for col, data in enumerate(imei):
+                    if col == 4: continue
+                    worksheet.write(row, col_count, data)
+                    col_count += 1
+                imei_status = 'Accepted'
+                reason = ''
+                if imei[4] != 1:
+                    imei_status = 'Rejected'
+                    reason = qc_damaged.get(imei[-1], '')
+                worksheet.write(row, col_count, imei_status)
                 col_count += 1
-            imei_status = 'Accepted'
-            reason = ''
-            if imei[-1] in qc_damaged:
-                imei_status = 'Damaged'
-                reason = qc_damaged.get(imei[-1], '')
-            worksheet.write(row, col_count, imei_status)
-            col_count += 1
-            worksheet.write(row, col_count, reason)
-            row += 1
+                worksheet.write(row, col_count, reason)
+                row += 1
 
         workbook.close()
     except Exception as e:
@@ -2213,7 +2235,8 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                              filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'batch_detail__batch_no',
-           'batch_detail__mrp', 'batch_detail__manufactured_date', 'batch_detail__expiry_date', 'location__zone__zone', 'location__location', 'pallet_detail__pallet_code',
+           'batch_detail__mrp', 'batch_detail__weight', 'batch_detail__manufactured_date', 'batch_detail__expiry_date',
+           'location__zone__zone', 'location__location', 'pallet_detail__pallet_code',
            'quantity', 'receipt_type']
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -2250,9 +2273,11 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
         _date = _date.strftime("%d %b, %Y")
         batch_no = manufactured_date = expiry_date = ''
         mrp = 0
+        weight = ''
         if data.batch_detail:
             batch_no = data.batch_detail.batch_no
             mrp = data.batch_detail.mrp
+            weight = data.batch_detail.weight
             manufactured_date = data.batch_detail.manufactured_date.strftime("%d %b %Y") if data.batch_detail.manufactured_date else ''
             expiry_date = data.batch_detail.expiry_date.strftime("%d %b %Y") if data.batch_detail.expiry_date else ''
         if pallet_switch == 'true':
@@ -2264,7 +2289,8 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                                     ('WMS Code', data.sku.wms_code),
                                                     ('Product Description', data.sku.sku_desc),
                                                     ('Batch Number', batch_no),
-                                                    ('MRP', mrp), ('Manufactured Date', manufactured_date), ('Expiry Date', expiry_date),
+                                                    ('MRP', mrp), ('Weight', weight),
+                                                    ('Manufactured Date', manufactured_date), ('Expiry Date', expiry_date),
                                                     ('Zone', data.location.zone.zone),
                                                     ('Location', data.location.location),
                                                     ('Quantity', get_decimal_limit(user.id, data.quantity)),
@@ -2275,7 +2301,8 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                                     ('WMS Code', data.sku.wms_code),
                                                     ('Product Description', data.sku.sku_desc),
                                                     ('Batch Number', batch_no),
-                                                    ('MRP', mrp),('Manufactured Date', manufactured_date), ('Expiry Date', expiry_date),
+                                                    ('MRP', mrp), ('Weight', weight), ('Manufactured Date', manufactured_date),
+                                                    ('Expiry Date', expiry_date),
                                                     ('Zone', data.location.zone.zone),
                                                     ('Location', data.location.location),
                                                     ('Quantity', get_decimal_limit(user.id, data.quantity)),
@@ -2286,20 +2313,26 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
 @get_admin_user
 def get_sku_batches(request, user=''):
     sku_batches = defaultdict(list)
+    sku_weights = defaultdict(list)
     sku_batch_details = {}
+    sku_weight_details = {}
     sku_code = request.GET.get('sku_code')
     sku_id = SKUMaster.objects.filter(user=user.id, sku_code=sku_code).only('id')
     if sku_id:
         sku_id = sku_id[0].id
-        batch_obj = BatchDetail.objects.filter(stockdetail__sku=sku_id).values('batch_no', 'mrp', 'buy_price', 'manufactured_date', 'expiry_date', 'tax_percent', 'transact_type', 'transact_id').distinct()
+        batch_obj = BatchDetail.objects.filter(stockdetail__sku=sku_id).values('batch_no', 'mrp', 'buy_price', 'manufactured_date', 'expiry_date', 'tax_percent', 'transact_type', 'transact_id', 'weight').distinct()
         for batch in batch_obj:
             sku_batches[batch['batch_no']].append(batch['mrp'])
             sku_batches[batch['batch_no']] = list(set(sku_batches[batch['batch_no']]))
+            sku_weights[batch['batch_no']].append(batch['weight'])
+            sku_weights[batch['batch_no']] = list(set(sku_weights[batch['batch_no']]))
             batch['manufactured_date'] = str(batch['manufactured_date'])
             batch['expiry_date'] = str(batch['expiry_date'])
             sku_batch_details.setdefault("%s_%s" % (batch['batch_no'], str(int(batch['mrp']))), []).append(batch)
+            sku_weight_details.setdefault("%s_%s" % (batch['batch_no'], batch['weight']), []).append(batch)
 
-    return HttpResponse(json.dumps({"sku_batches": sku_batches, "sku_batch_details": sku_batch_details}))
+    return HttpResponse(json.dumps({"sku_batches": sku_batches, "sku_batch_details": sku_batch_details,
+                                    'sku_weights': sku_weights, 'sku_weight_details': sku_weight_details }))
 
 
 @csrf_exempt
@@ -2611,10 +2644,18 @@ def get_combo_sku_codes(request, user=''):
     if not seller_master:
         return HttpResponse(json.dumps({"status": False, "message":"Invalid Seller ID"}))
     seller_master_id = seller_master[0].id
+    parent_mrp = 0
+    sellable_zones = get_all_sellable_zones(user)
+    get_sku_id = SKUMaster.objects.filter(user=request.user.id, sku_code=sku_code)
+    if get_sku_id.exists():
+        parent_sku_id = get_sku_id[0].id
+        parent_mrp = get_sku_id[0].mrp
+        stock_detail = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sellerstock__seller_id=seller_master_id,
+                                                            sku_id=parent_sku_id, location__zone__zone__in=sellable_zones,
+                                                            batch_detail__isnull=False).only('batch_detail__mrp')
     combo_skus = SKURelation.objects.filter(parent_sku__user=user.id, parent_sku__sku_code=sku_code)
     if not combo_skus:
         return HttpResponse(json.dumps({"status": False, "message":"No Data Found"}))
-    sellable_zones = get_all_sellable_zones(user)
     for combo in combo_skus:
         cond = (combo.member_sku.sku_code)
         child_quantity = combo.quantity
@@ -2625,8 +2666,10 @@ def get_combo_sku_codes(request, user=''):
         if stock_detail.exists():
             child_mrp = stock_detail[0].batch_detail.mrp
         all_data.append({'child_sku_qty': child_quantity, 'child_sku_code': cond, 'child_sku_batch':'', 'child_sku_desc': combo.member_sku.sku_desc,
-                        'child_sku_location': '', 'child_sku_mrp': child_mrp, 'child_qty': child_quantity})
-    parent_data = {'combo_sku_code': combo_skus[0].parent_sku.sku_code, 'combo_sku_desc': combo_skus[0].parent_sku.sku_desc, 'quantity':1}
+                        'child_sku_location': '', 'child_sku_mrp': child_mrp, 'child_qty': child_quantity,
+                         'child_sku_weight': get_sku_weight(combo.member_sku)})
+    parent_data = {'combo_sku_code': combo_skus[0].parent_sku.sku_code, 'combo_sku_desc': combo_skus[0].parent_sku.sku_desc,
+                   'quantity':1, 'mrp': parent_mrp, 'weight': get_sku_weight(combo_skus[0].parent_sku)}
     return HttpResponse(json.dumps({"status": True, 'parent': parent_data, 'childs': all_data}), content_type='application/json')
 
 
@@ -2647,9 +2690,11 @@ def confirm_combo_allocation(request, user=''):
         for ind in range(0, len(data_dict['combo_sku_code'])):
             combo_batch_no = data_dict['batch'][ind]
             combo_mrp = data_dict['mrp'][ind]
+            combo_weight = data_dict['weight'][ind]
             combo_qty = data_dict['quantity'][ind]
             child_batch_no = data_dict['child_batch'][ind]
             child_mrp = data_dict['child_mrp'][ind]
+            child_weight = data_dict['child_weight'][ind]
             child_qty = data_dict['child_quantity'][ind]
             if not combo_qty:
                 return HttpResponse(json.dumps({'status':False, 'message':'Child Quantity should be number'}))
@@ -2691,6 +2736,8 @@ def confirm_combo_allocation(request, user=''):
                 stock_dict['batch_detail__batch_no'] = child_batch_no
             if child_mrp:
                 stock_dict['batch_detail__mrp'] = child_mrp
+            if child_weight:
+                stock_dict['batch_detail__weight'] = child_weight
             child_stocks = StockDetail.objects.filter(**stock_dict)
             child_stock_count = child_stocks.aggregate(Sum('quantity'))['quantity__sum']
             if not child_stock_count:
@@ -2705,20 +2752,24 @@ def confirm_combo_allocation(request, user=''):
             if combo_mrp:
                 mrp_dict['mrp'] = combo_mrp
                 combo_filter['batch_detail__mrp'] = combo_mrp
+            if combo_weight:
+                mrp_dict['weight'] = combo_weight
+                combo_filter['batch_detail__weight'] = combo_weight
             add_ean_weight_to_batch_detail(combo_sku[0], mrp_dict)
             if seller_id:
                 combo_filter['sellerstock__seller_id'] = seller_id
             combo_stocks = StockDetail.objects.filter(**combo_filter)
-            group_key = '%s<<>>%s<<>>%s<<>>%s' % (str(combo_sku[0].sku_code), str(combo_loc[0].location),
-                                                  str(combo_batch_no), str(combo_mrp))
+            group_key = '%s<<>>%s<<>>%s<<>>%s<<>>%s' % (str(combo_sku[0].sku_code), str(combo_loc[0].location),
+                                                  str(combo_batch_no), str(combo_mrp), str(combo_weight))
             final_data.setdefault(group_key, {'combo_sku': combo_sku[0], 'combo_loc': combo_loc[0],
                                               'combo_batch_no': combo_batch_no, 'combo_mrp': combo_mrp,
                                               'combo_qty': combo_qty, 'combo_mrp_dict': mrp_dict,
-                                              'combo_stocks': combo_stocks,
+                                              'combo_stocks': combo_stocks, 'combo_weight': combo_weight,
                                               'childs': []})
             final_data[group_key]['childs'].append({'child_sku': child_sku[0], 'child_loc': child_loc[0],
                                                     'child_batch_no': child_batch_no, 'child_mrp': child_mrp,
-                                                    'child_qty': child_qty, 'child_stocks': child_stocks})
+                                                    'child_qty': child_qty, 'child_stocks': child_stocks,
+                                                    'child_mrp': child_mrp})
         final_data = final_data.values()
         source_updated=False
 

@@ -106,6 +106,7 @@ def get_inventory_excel_upload_headers(user):
         del excel_headers["MRP"]
         del excel_headers["Manufactured Date(YYYY-MM-DD)"]
         del excel_headers["Expiry Date(YYYY-MM-DD)"]
+        del excel_headers["Weight"]
     return excel_headers
 
 
@@ -117,6 +118,7 @@ def get_move_inventory_excel_upload_headers(user):
     if not userprofile.industry_type == 'FMCG':
         del excel_headers["Batch Number"]
         del excel_headers["MRP"]
+        del excel_headers["Weight"]
     return excel_headers
 
 
@@ -157,6 +159,7 @@ def get_inventory_adjustment_excel_upload_headers(user):
     if not userprofile.industry_type == 'FMCG':
         del excel_headers["Batch Number"]
         del excel_headers["MRP"]
+        del excel_headers["Weight"]
     return excel_headers
 
 
@@ -244,7 +247,7 @@ def get_order_mapping(reader, file_type):
     order_mapping = {}
     if get_cell_data(0, 0, reader, file_type) == 'Central Order ID':
         order_mapping = copy.deepcopy(CENTRAL_ORDER_EXCEL)
-    elif get_cell_data(0, 0, reader, file_type) == 'Courtesy SR Number':
+    elif get_cell_data(0, 0, reader, file_type) == 'Main SR Number':
         order_mapping = copy.deepcopy(CENTRAL_ORDER_EXCEL_ONE_ASSIST)
     elif get_cell_data(0, 0, reader, file_type) == 'Warehouse Name':
         order_mapping = copy.deepcopy(STOCK_TRANSFER_ORDER_EXCEL)
@@ -1334,6 +1337,7 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
     sku_data = []
     wms_data = []
     index_status = {}
+    upload_file_skus = []
     sku_file_mapping = get_sku_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
     product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type', flat=True).distinct())
     if not sku_file_mapping:
@@ -1354,6 +1358,10 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 sku_code = cell_data
                 if isinstance(cell_data, float):
                     sku_code = str(int(cell_data))
+                if sku_code in upload_file_skus:
+                    index_status.setdefault(row_idx, set()).add('Duplicate SKU Code found in File')
+                else:
+                    upload_file_skus.append(sku_code)
                 # index_status = check_duplicates(data_set, data_type, cell_data, index_status, row_idx)
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('WMS Code missing')
@@ -1378,18 +1386,22 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                         if ',' in str(cell_data):
                             ean_numbers = str(cell_data).split(',')
                         else:
-                            ean_numbers = [int(cell_data)]
+                            if isinstance(cell_data, float):
+                                cell_data = int(cell_data)
+                            ean_numbers = [cell_data]
                         error_eans = []
                         for ean in ean_numbers:
-                            ean = int(float(ean))
                             ean_status, mapping_check = check_ean_number(sku_code, ean, user)
                             if ean_status:
                                 error_eans.append(str(ean))
                         if error_eans:
                             ean_error_msg = '%s EAN Numbers already mapped to Other SKUS' % ','.join(error_eans)
                             index_status.setdefault(row_idx, set()).add(ean_error_msg)
-                    except:
-                        index_status.setdefault(row_idx, set()).add('EAN must be integer')
+                    except Exception as e:
+                        import traceback
+                        log.debug(traceback.format_exc())
+                        log.info('SKU Master Upload failed for %s and params are %s and error statement is %s' % (
+                        str(user.username), str(request.POST.dict()), str(e)))
 
             elif key == 'hsn_code':
                 if cell_data:
@@ -1501,6 +1513,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
     zone_master = ZoneMaster.objects.filter(user=user.id).values('id', 'zone')
     zones = map(lambda d: str(d['zone']).upper(), zone_master)
     zone_ids = map(lambda d: d['id'], zone_master)
+    create_sku_attrs = []
+    sku_attr_mapping = []
     sku_file_mapping = get_sku_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
     for row_idx in range(1, no_of_rows):
         if not sku_file_mapping:
@@ -1633,7 +1647,9 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     if ',' in str(cell_data):
                         ean_numbers = str(cell_data).split(',')
                     else:
-                        ean_numbers = [str(int(cell_data))]
+                        if isinstance(cell_data, float):
+                            cell_data = int(cell_data)
+                        ean_numbers = [str(cell_data)]
             elif key == 'enable_serial_based':
                 toggle_value = str(cell_data).lower()
                 if toggle_value == "enable":
@@ -1675,12 +1691,17 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             hot_release = 1 if (hot_release == 'enable') else 0
             check_update_hot_release(sku_data, hot_release)
         for attr_key, attr_val in attr_dict.iteritems():
-            update_sku_attributes_data(sku_data, attr_key, attr_val)
+            create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(sku_data, attr_key, attr_val, is_bulk_create=True,
+                                       create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping)
 
         if ean_numbers:
             update_ean_sku_mapping(user, ean_numbers, sku_data, remove_existing=True)
     # get_user_sku_data(user)
     insert_update_brands(user)
+
+    #Bulk Create SKU Attributes
+    if create_sku_attrs:
+        SKUAttributes.objects.bulk_create(create_sku_attrs)
 
     # Sync sku's with sister warehouses
     sync_sku_switch = get_misc_value('sku_sync', user.id)
@@ -1804,6 +1825,10 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                         data_dict['seller_id'] = seller_master[0].id
                 except:
                     index_status.setdefault(row_idx, set()).add('Seller ID Should be number')
+            elif key == 'weight':
+                data_dict['weight'] = cell_data
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
             elif key in number_fields:
                 try:
                     data_dict[key] = float(cell_data)
@@ -1872,6 +1897,9 @@ def inventory_excel_upload(request, user, data_list):
             batch_no = inventory_data.get('batch_no', '')
             if 'batch_no' in inventory_data.keys():
                 del inventory_data['batch_no']
+            weight = inventory_data.get('weight', '')
+            if 'weight' in inventory_data.keys():
+                del inventory_data['weight']
             mrp = inventory_data.get('mrp', 0)
             if 'mrp' in inventory_data.keys():
                 del inventory_data['mrp']
@@ -1894,7 +1922,7 @@ def inventory_excel_upload(request, user, data_list):
                 pallet_detail.save()
                 stock_query_filter['pallet_detail_id'] = pallet_detail.id
                 inventory_data['pallet_detail_id'] = pallet_detail.id
-            if mrp or batch_no or mfg_date or exp_date:
+            if mrp or batch_no or mfg_date or exp_date or weight:
                 try:
                     mrp = float(mrp)
                 except:
@@ -1906,6 +1934,8 @@ def inventory_excel_upload(request, user, data_list):
                     batch_dict['manufactured_date'] = mfg_date
                 if exp_date:
                     batch_dict['expiry_date'] = exp_date
+                if weight:
+                    batch_dict['weight'] = weight
                 add_ean_weight_to_batch_detail(SKUMaster.objects.get(id=inventory_data['sku_id']), batch_dict)
                 batch_obj = BatchDetail(**batch_dict)
                 batch_obj.save()
@@ -2049,13 +2079,18 @@ def validate_supplier_form(open_sheet, user_id):
                         cell_data = float(cell_data)
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % messages_dict[key])
+            elif key == 'secondary_email_id':
+                cell_data = cell_data.split(',')
+                for val in cell_data:
+                    if val and validate_email(val):
+                        index_status.setdefault(row_idx, set()).add('Enter Valid Secondary Email address')
+            elif key == 'account_number':
+                if not len(str(cell_data)) < 20:
+                    index_status.setdefault(row_idx, set()).add('Account Number has limit of 19')
             elif key in number_str_fields:
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % messages_dict[key])
-            elif key == 'ep_supplier':
-                if str(cell_data).lower() not in ['yes', 'no']:
-                    index_status.setdefault(row_idx, set()).add('EP Supplier Should be in yes or no')
 
     if not index_status:
         return 'Success'
@@ -2070,13 +2105,14 @@ def validate_supplier_form(open_sheet, user_id):
 def supplier_excel_upload(request, open_sheet, user, demo_data=False):
     mapping_dict = copy.deepcopy(SUPPLIER_EXCEL_FIELDS)
     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-        mapping_dict['ep_supplier'] = 29
+        mapping_dict['ep_supplier'] = 30
     number_str_fields = ['pincode', 'phone_number', 'days_to_supply', 'fulfillment_amt', 'po_exp_duration',
                          'owner_number', 'spoc_number', 'lead_time', 'credit_period', 'account_number']
     rev_tax_types = dict(zip(TAX_TYPE_ATTRIBUTES.values(), TAX_TYPE_ATTRIBUTES.keys()))
     for row_idx in range(1, open_sheet.nrows):
         sku_code = ''
         wms_code = ''
+        secondary_email_ids = []
         supplier_data = copy.deepcopy(SUPPLIER_DATA)
         supplier_master = None
         for key, value in mapping_dict.iteritems():
@@ -2105,7 +2141,9 @@ def supplier_excel_upload(request, open_sheet, user, demo_data=False):
                 supplier_data['tax_type'] = cell_data
                 if supplier_master and cell_data:
                     supplier_master.tax_type = supplier_data['tax_type']
-
+            elif key == "secondary_email_id":
+                if cell_data:
+                    secondary_email_ids = cell_data.split(',')
             elif key in number_str_fields:
                 if cell_data:
                     cell_data = int(float(cell_data))
@@ -2115,13 +2153,15 @@ def supplier_excel_upload(request, open_sheet, user, demo_data=False):
             elif key == 'ep_supplier':
                 if cell_data.lower() =='yes':
                     supplier_data[key] = 1
-                else:
+                elif cell_data.lower() == 'no' :
                     supplier_data[key] = 0
+                if supplier_master and cell_data.lower() in ['yes','no'] :
+                    setattr(supplier_master, key, supplier_data[key])
             else:
-                supplier_data[key] = cell_data
-                if supplier_master and cell_data:
-                    setattr(supplier_master, key, cell_data)
-
+                if key != "secondary_email_id":
+                    supplier_data[key] = cell_data
+                    if supplier_master and cell_data:
+                        setattr(supplier_master, key, cell_data)
         if not supplier_master:
             supplier = SupplierMaster.objects.filter(id=supplier_data['id'], user=user.id)
             if not supplier:
@@ -2131,7 +2171,21 @@ def supplier_excel_upload(request, open_sheet, user, demo_data=False):
                 supplier.save()
         else:
             supplier_master.save()
-
+        if secondary_email_ids:
+            master_data_dict = {}
+            master_data_dict['user_id'] = user.id
+            master_data_dict['master_type'] = 'supplier'
+            master_data_dict['master_id'] = supplier_data['id']
+            master_email_map = MasterEmailMapping.objects.filter(**master_data_dict)
+            if master_email_map:
+                master_email_map.delete()
+            for mail in secondary_email_ids:
+                master_data_dict = {}
+                master_data_dict['user_id'] = user.id
+                master_data_dict['email_id'] = mail
+                master_data_dict['master_id'] = supplier_data['id']
+                master_data_dict['master_type'] = 'supplier'
+                MasterEmailMapping.objects.create(**master_data_dict)
     return 'success'
 
 
@@ -2563,6 +2617,9 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                       'cess_tax': 'CESS Tax', 'apmc_tax': 'APMC Tax'}
     number_fields = ['mrp', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax', 'cess_tax', 'apmc_tax']
     user_profile = user.userprofile
+    if user_profile.user_type == 'marketplace_user' :
+        if 'seller_id' not in excel_mapping.keys() :
+            return 'Invalid File seller id is Mandatory', []
     for row_idx in range(1, no_of_rows):
         data_dict = {}
         print excel_mapping
@@ -2697,7 +2754,6 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     show_cess_tax = False
     show_apmc_tax = False
     ean_flag = False
-    total_qty = 0
     wms_codes_list = list(set(map(lambda d: d['sku'].wms_code, data_list)))
     ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
                                         wms_code__in=wms_codes_list, user=user.id)
@@ -2713,6 +2769,8 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     if user_profile.industry_type == 'FMCG':
         table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+        if user.username in MILKBASKET_USERS:
+            table_headers.insert(4, 'Weight')
     else:
         table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
@@ -2723,7 +2781,10 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     if show_apmc_tax:
         table_headers.insert(table_headers.index('UTGST (%)'), 'APMC (%)')
     po_data = []
+    send_mail_data = OrderedDict()
     for final_dict in data_list:
+        total_qty = 0
+        total = 0
         order_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
         data = copy.deepcopy(PO_DATA)
         order_data['supplier_id'] = final_dict['supplier'].id
@@ -2786,7 +2847,6 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         else:
             po_id = order_ids[group_key]
         ids_dict = {}
-        total = 0
         order_data['status'] = 0
         data1 = OpenPO(**order_data)
         data1.save()
@@ -2813,6 +2873,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         total_tax_amt = (data1.utgst_tax + data1.sgst_tax + data1.cgst_tax + data1.igst_tax + data1.cess_tax + data1.apmc_tax + data1.utgst_tax) * (
                                     amount / 100)
         total_sku_amt = total_tax_amt + amount
+        total += total_sku_amt
         if user_profile.industry_type == 'FMCG':
             po_temp_data = [data1.sku.wms_code, data1.supplier_code, data1.sku.sku_desc,
                             data1.order_quantity,
@@ -2823,6 +2884,13 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                             data1.utgst_tax,
                             total_sku_amt
                             ]
+            if user.username in MILKBASKET_USERS:
+                weight_obj = data1.sku.skuattributes_set.filter(attribute_name='weight'). \
+                    only('attribute_value')
+                weight = ''
+                if weight_obj.exists():
+                    weight = weight_obj[0].attribute_value
+                po_temp_data.insert(4, weight)
         else:
             po_temp_data = [data1.sku.wms_code, data1.supplier_code, data1.sku.sku_desc,
                             data1.order_quantity,
@@ -2833,7 +2901,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                             total_sku_amt
                             ]
         if ean_flag:
-            ean_number = 0
+            ean_number = ''
             eans = get_sku_ean_list(data1.sku)
             if eans:
                 ean_number = eans[0]
@@ -2843,79 +2911,102 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         if show_apmc_tax:
             po_temp_data.insert(table_headers.index('APMC (%)'), data1.apmc_tax)
         po_data.append(po_temp_data)
+        send_mail_data.setdefault(str(order.order_id), {'purchase_order': order, 'po_data': [],
+                                  'data1': data1, 'total_qty': 0, 'total': 0})
+        send_mail_data[str(order.order_id)]['po_data'].append(po_temp_data)
+        send_mail_data[str(order.order_id)]['total_qty'] += total_qty
+        send_mail_data[str(order.order_id)]['total'] += total
 
         #mail_result_data = purchase_order_dict(data1, data_req, purchase_order, user, order)
-    try:
-        purchase_order = data1
-        address = purchase_order.supplier.address
-        address = '\n'.join(address.split(','))
-        if purchase_order.ship_to:
-            ship_to_address = purchase_order.ship_to
-            company_address = user.userprofile.address
-        else:
-            ship_to_address, company_address = get_purchase_company_address(user.userprofile)
-        wh_telephone = user.userprofile.wh_phone_number
-        ship_to_address = '\n'.join(ship_to_address.split(','))
-        vendor_name = ''
-        vendor_address = ''
-        vendor_telephone = ''
-        if purchase_order.order_type == 'VR':
-            vendor_address = purchase_order.vendor.address
-            vendor_address = '\n'.join(vendor_address.split(','))
-            vendor_name = purchase_order.vendor.name
-            vendor_telephone = purchase_order.vendor.phone_number
-        telephone = purchase_order.supplier.phone_number
-        name = purchase_order.supplier.name
-        order_id = ids_dict[supplier]
-        supplier_email = purchase_order.supplier.email_id
-        phone_no = purchase_order.supplier.phone_number
-        gstin_no = purchase_order.supplier.tin_number
-        po_exp_duration = purchase_order.supplier.po_exp_duration
-        order_date = get_local_date(request.user, order.creation_date)
-        if po_exp_duration:
-            expiry_date = order.creation_date + datetime.timedelta(days=po_exp_duration)
-        else:
-            expiry_date = ''
-        po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
-        profile = UserProfile.objects.get(user=user.id)
-        company_name = profile.company_name
-        title = 'Purchase Order'
-        receipt_type = request.GET.get('receipt_type', '')
-        if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
-            company_name = 'SHPROC Procurement Pvt. Ltd.'
+    for key, send_mail_dat in send_mail_data.iteritems():
+        try:
+            purchase_order = send_mail_dat['data1']
+            po_data = send_mail_dat['po_data']
+            total_qty = send_mail_dat['total_qty']
+            total = send_mail_dat['total']
+            address = purchase_order.supplier.address
+            address = '\n'.join(address.split(','))
+            if purchase_order.ship_to:
+                ship_to_address = purchase_order.ship_to
+                company_address = user.userprofile.address
+            else:
+                ship_to_address, company_address = get_purchase_company_address(user.userprofile)
+            wh_telephone = user.userprofile.wh_phone_number
+            ship_to_address = '\n'.join(ship_to_address.split(','))
+            vendor_name = ''
+            vendor_address = ''
+            vendor_telephone = ''
+            if purchase_order.order_type == 'VR':
+                vendor_address = purchase_order.vendor.address
+                vendor_address = '\n'.join(vendor_address.split(','))
+                vendor_name = purchase_order.vendor.name
+                vendor_telephone = purchase_order.vendor.phone_number
+            telephone = purchase_order.supplier.phone_number
+            name = purchase_order.supplier.name
+            order_id = ids_dict[supplier]
+            supplier_email = purchase_order.supplier.email_id
+            secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
+            supplier_email_id =[]
+            supplier_email_id.insert(0,supplier_email)
+            supplier_email_id.extend(secondary_supplier_email)
+            phone_no = purchase_order.supplier.phone_number
+            gstin_no = purchase_order.supplier.tin_number
+            po_exp_duration = purchase_order.supplier.po_exp_duration
+            order_date = get_local_date(request.user, order.creation_date)
+            if po_exp_duration:
+                expiry_date = order.creation_date + datetime.timedelta(days=po_exp_duration)
+            else:
+                expiry_date = ''
+            po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+            profile = UserProfile.objects.get(user=user.id)
+            company_name = profile.company_name
             title = 'Purchase Order'
-        total_amt_in_words = number_in_words(round(total)) + ' ONLY'
-        round_value = float(round(total) - float(total))
-        company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
-        iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
-        left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO, request)
-        data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address.encode('ascii', 'ignore'),
-                     'order_id': order_id,
-                     'telephone': str(telephone), 'ship_to_address': ship_to_address.encode('ascii', 'ignore'),
-                     'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,
-                     'user_name': request.user.username, 'total_amt_in_words': total_amt_in_words,
-                     'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
-                     'w_address': ship_to_address.encode('ascii', 'ignore'),
-                     'vendor_name': vendor_name, 'vendor_address': vendor_address.encode('ascii', 'ignore'),
-                     'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
-                     'gstin_no': gstin_no, 'industry_type': user_profile.industry_type, 'expiry_date': expiry_date,
-                     'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number, 'wh_pan': profile.pan_number,
-                     'terms_condition': '',
-                     'company_address': company_address.encode('ascii', 'ignore'),
-                     'company_logo': company_logo, 'iso_company_logo': iso_company_logo,
-                     'left_side_logo': left_side_logo}
-        if round_value:
-            data_dict['round_total'] = "%.2f" % round_value
-        t = loader.get_template('templates/toggle/po_download.html')
-        rendered = t.render(data_dict)
-        if get_misc_value('raise_po', user.id) == 'true':
-            write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
-                               str(order_date).split(' ')[0], ean_flag=ean_flag)
-    except Exception as e:
-        import traceback
-        log.debug(traceback.format_exc())
-        log.info('Purchase Order send mail failed for %s and params are %s and error statement is %s' % (
-        str(user.username), str(request.POST.dict()), str(e)))
+            receipt_type = request.GET.get('receipt_type', '')
+            if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
+                company_name = 'SHPROC Procurement Pvt. Ltd.'
+                title = 'Purchase Order'
+            total_amt_in_words = number_in_words(round(total)) + ' ONLY'
+            round_value = float(round(total) - float(total))
+            company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
+            iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
+            left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO, request)
+            data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address.encode('ascii', 'ignore'),
+                         'order_id': order_id,
+                         'telephone': str(telephone), 'ship_to_address': ship_to_address.encode('ascii', 'ignore'),
+                         'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,
+                         'user_name': request.user.username, 'total_amt_in_words': total_amt_in_words,
+                         'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
+                         'w_address': ship_to_address.encode('ascii', 'ignore'),
+                         'vendor_name': vendor_name, 'vendor_address': vendor_address.encode('ascii', 'ignore'),
+                         'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
+                         'gstin_no': gstin_no, 'industry_type': user_profile.industry_type, 'expiry_date': expiry_date,
+                         'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number, 'wh_pan': profile.pan_number,
+                         'terms_condition': '',
+                         'company_address': company_address.encode('ascii', 'ignore'),
+                         'company_logo': company_logo, 'iso_company_logo': iso_company_logo,
+                         'left_side_logo': left_side_logo}
+            if round_value:
+                data_dict['round_total'] = "%.2f" % round_value
+            t = loader.get_template('templates/toggle/po_download.html')
+            rendered = t.render(data_dict)
+            if get_misc_value('raise_po', user.id) == 'true':
+                data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email,
+                                'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name,
+                                'billing_address': profile.address, 'shipping_address': profile.wh_address,
+                                'table_headers': table_headers}
+                if get_misc_value('allow_secondary_emails', user.id) == 'true':
+                    write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
+                                       str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po,
+                                       full_order_date=str(order_date))
+                elif get_misc_value('raise_po', user.id) == 'true':
+                    write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
+                                       str(order_date).split(' ')[0], ean_flag=ean_flag,
+                                       data_dict_po=data_dict_po, full_order_date=str(order_date))
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Purchase Order send mail failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(request.POST.dict()), str(e)))
     for key, value in order_ids.iteritems():
         if value:
             check_purchase_order_created(user, value)
@@ -3094,6 +3185,10 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                 if isinstance(cell_data, float):
                     cell_data = str(int(cell_data))
                     data_dict[key] = cell_data
+            elif key == 'weight':
+                if isinstance(cell_data, float):
+                    cell_data = str(int(cell_data))
+                data_dict[key] = cell_data
             elif key in number_fields:
                 if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % fields_mapping[key])
@@ -3121,6 +3216,11 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                 stock_dict["batch_detail__mrp"] = mrp
                 reserved_dict["stock__batch_detail__mrp"] = mrp
                 raw_reserved_dict["stock__batch_detail__mrp"] = mrp
+            if data_dict.get('weight', ''):
+                weight = data_dict['weight']
+                stock_dict["batch_detail__weight"] = weight
+                reserved_dict["stock__batch_detail__weight"] = weight
+                raw_reserved_dict["stock__batch_detail__weight"] = weight
             if data_dict.get('seller_master_id', ''):
                 stock_dict['sellerstock__seller_id'] = data_dict['seller_master_id']
                 stock_dict['sellerstock__quantity__gt'] = 0
@@ -3185,7 +3285,7 @@ def move_inventory_upload(request, user=''):
         cycle_id = cycle_count[0].cycle + 1
     mod_locations = []
     for data_dict in data_list:
-        extra_dict = {}
+        extra_dict = OrderedDict()
         wms_code = data_dict['wms_code']
         source_loc = data_dict['source']
         dest_loc = data_dict['destination']
@@ -3196,6 +3296,8 @@ def move_inventory_upload(request, user=''):
             extra_dict['batch_no'] = data_dict['batch_no']
         if data_dict.get('mrp', ''):
             extra_dict['mrp'] = data_dict['mrp']
+        if data_dict.get('weight', ''):
+            extra_dict['weight'] = data_dict['weight']
         move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, **extra_dict)
         mod_locations.append(source_loc)
         mod_locations.append(dest_loc)
@@ -3601,21 +3703,31 @@ def inventory_adjust_upload(request, user=''):
     else:
         cycle_id = cycle_count[0].cycle + 1
 
+    receipt_number = get_stock_receipt_number(user)
+    seller_receipt_dict = {}
     for final_dict in data_list:
         # location_data = ''
         wms_code = final_dict['sku_master'].wms_code
         loc = final_dict['location_master'].location
         quantity = final_dict['quantity']
         reason = final_dict['reason']
-        seller_master_id, batch_no, mrp = '', '', 0
+        seller_master_id, batch_no, mrp, weight = '', '', 0, ''
         if final_dict.get('seller_master', ''):
             seller_master_id = final_dict['seller_master'].id
         if final_dict.get('batch_no', ''):
             batch_no = final_dict['batch_no']
         if final_dict.get('mrp', 0):
             mrp = final_dict['mrp']
+        if final_dict.get('weight', ''):
+            weight = final_dict['weight']
+        if str(seller_master_id) in seller_receipt_dict.keys():
+            receipt_number = seller_receipt_dict[str(seller_master_id)]
+        else:
+            receipt_number = get_stock_receipt_number(user)
+            seller_receipt_dict[str(seller_master_id)] = receipt_number
         adjust_location_stock(cycle_id, wms_code, loc, quantity, reason, user, batch_no=batch_no, mrp=mrp,
-                              seller_master_id=seller_master_id)
+                              seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
+                              receipt_type='inventory-adjustment')
     check_and_update_stock(sku_codes, user)
     return HttpResponse('Success')
 
@@ -5274,7 +5386,8 @@ def validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols,
                 stocks = stock_detail
             data_dict['src_stocks'] = stocks
             if stocks:
-                avail_qty = check_stock_available_quantity(stocks, user, stock_ids=stock_ids)
+                avail_qty = check_stock_available_quantity(stocks, user, stock_ids=stock_ids,
+                                                           seller_master_id=data_dict['source_seller'])
             else:
                 avail_qty = 0
             #avail_qty = check_auto_stock_availability(stocks, user)
@@ -5293,10 +5406,12 @@ def update_seller_transer_upload(user, data_list):
     trans_mapping = {}
     stock_transfer_objs = []
     grouping_data = []
+    receipt_number = get_stock_receipt_number(user)
     for data_dict in data_list:
         update_stocks_data(data_dict['src_stocks'], data_dict['quantity'], data_dict.get('dest_stocks', ''),
                            data_dict['quantity'], user, data_dict['dest_location'], data_dict['sku_id'],
-                           src_seller_id=data_dict['source_seller'], dest_seller_id=data_dict['dest_seller'])
+                           src_seller_id=data_dict['source_seller'], dest_seller_id=data_dict['dest_seller'],
+                           receipt_type='seller-seller transfer', receipt_number=receipt_number)
         group_key = '%s:%s' % (str(data_dict['source_seller']), str(data_dict['dest_seller']))
         if group_key not in trans_mapping.keys():
             trans_id = get_max_seller_transfer_id(user)
@@ -5968,6 +6083,7 @@ def central_order_upload(request, user=''):
 def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
     log.info("order upload started")
     st_time = datetime.datetime.now()
+    main_sr_numbers = []
     index_status = {}
     order_mapping = get_order_mapping(reader, file_type)
     if not order_mapping:
@@ -5989,8 +6105,11 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
                 original_order_id = str(int(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type)))
             except:
                 original_order_id = str(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type))
-            if not original_order_id:
-                index_status.setdefault(count, set()).add('Courtesy SR Number is mandatory')
+            courtesy_check = OrderFields.objects.filter(user=user.id, order_type='intermediate_order', name='original_order_id', value=original_order_id)
+            if not original_order_id or courtesy_check or original_order_id in main_sr_numbers:
+                index_status.setdefault(count, set()).add('Main SR Number is Invalid')
+            else:
+                main_sr_numbers.append(original_order_id)
         if order_mapping.has_key('customer_name'):
             customer_name = str(get_cell_data(row_idx, order_mapping['customer_name'], reader, file_type))
             if not customer_name:
@@ -6049,7 +6168,7 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
                     value = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     value = str(get_cell_data(row_idx, value, reader, file_type))
-                sku_data = SKUMaster.objects.filter(wms_code=value, user=user.id)
+                sku_data = SKUMaster.objects.filter(sku_code=value, user=user.id)
                 if sku_data:
                     order_data['sku'] = sku_data[0]
             elif key == 'customer_name':
@@ -6098,8 +6217,10 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
                 order_data['customer_id'] = customer_master.customer_id
         try:
             IntermediateOrders.objects.create(**order_data)
-        except:
-            pass
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('OneAssist Central Order Upload failed. error statement is %s'%str(e))
     return 'success'
 
 @csrf_exempt

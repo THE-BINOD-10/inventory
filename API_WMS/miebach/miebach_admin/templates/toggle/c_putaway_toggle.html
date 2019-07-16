@@ -40,6 +40,7 @@ tr,td{
             <div class="col-md-12 p0">
               <span><b>Supplier ID: </b>{{ data_dict.1.1 }}</span><br>
               <span><b>Supplier Name: </b>{{ data_dict.3.1 }}</span><br>
+              <span><b>GST NO: </b>{{ data_dict.4.1 }}</span><br>
               <span>{{ address }}</span>
             </div>
           </div>
@@ -62,6 +63,13 @@ tr,td{
             <strong>Bill Date:</strong>{{ bill_date }}
           </div>
         </div>
+        {% if sr_number %}
+          <div class="row m0">
+            <div class="col-xs-6 text-left">
+              <strong>Main SR Number:</strong> {{ sr_number }}
+            </div>
+          </div>
+        {% endif %}
       </td>
     </tr>
   </tbody>

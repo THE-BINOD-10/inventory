@@ -19,9 +19,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               }
            })
            .withDataProp('data')
-           .withOption('drawCallback', function(settings) {
-             vm.service.make_selected(settings, vm.selected);
-           })
+           // .withOption('drawCallback', function(settings) {
+           //   vm.service.make_selected(settings, vm.selected);
+           // })
            .withOption('processing', true)
            .withOption('serverSide', true)
            .withOption('createdRow', function(row, data, dataIndex) {

@@ -1317,7 +1317,7 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
         pic_check_data['batch_detail__mrp'] = mrp
     if val.get('batchno', ''):
         pic_check_data['batch_detail__batch_no'] = val['batchno']
-    if val.get('manufactured_date', ''):
+    if val.get('manufactured_date', '') and not user.username in MILKBASKET_USERS:
         try:
             pic_check_data['batch_detail__manufactured_date__regex'] = datetime.datetime.strptime(val['manufactured_date'], '%d/%m/%Y').strftime('%Y-%m-%d')
         except:

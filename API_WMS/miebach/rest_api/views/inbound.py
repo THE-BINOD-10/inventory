@@ -3093,6 +3093,7 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
             for dict_obj in value:
                 for key_obj, value_obj in dict_obj.items():
                     disp_imei_map = {}
+
                     disp_imei_map['po_imei_num'] = get_po_imei_qs
                     disp_imei_map['qc_name'] = key_obj
                     dispatch_checklist = DispatchIMEIChecklist.objects.filter(**disp_imei_map)
@@ -3109,6 +3110,8 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
                         disp_imei_map['final_status'] = validation_status
                         disp_imei_map['remarks'] = value_obj[0]
                         disp_imei_map['qc_type'] = 'purchase_order'
+                        disp_imei_map['order_id'] = po_id
+
                         try:
                             disp_imei_obj = DispatchIMEIChecklist.objects.create(**disp_imei_map)
                         except Exception as e:
@@ -3120,6 +3123,7 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
                         dispatch_checklist.qc_status = value_obj[1]
                         dispatch_checklist.final_status = validation_status
                         dispatch_checklist.remarks = value_obj[0]
+                        dispatch_checklist.order_id = po_id
                         dispatch_checklist.qc_type = 'purchase_order'
                         dispatch_checklist.save()
 

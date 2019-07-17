@@ -254,6 +254,15 @@ def get_stock_summary_report(request, user=''):
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_order_flow_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_orderflow_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
 
 @get_admin_user
 def print_stock_summary_report(request, user=''):

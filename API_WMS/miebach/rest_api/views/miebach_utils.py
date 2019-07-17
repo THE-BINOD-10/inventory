@@ -629,6 +629,22 @@ OPEN_ORDER_REPORT_DICT = {
      'dt_url': 'get_open_order_report', 'excel_name': 'get_open_order_report',
      'print_url': 'print_open_order_report',
   }
+ORDER_FLOW_REPORT_DICT = {
+     'filters': [
+         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+     ],
+     'dt_headers': ['Main SR Number','SKU Code','SKU Description',
+                    'Customer Name', 'Address',	'Phone No',
+                    'Email Id',	'Alt SKU', 'Central order status',
+                    'Central Order cancellation remarks','Hub location','Hub location',
+                    'Order status','Order cancellation remarks','Outbound Qc params',
+                    'Serial Number','Shipment Status',	'Acknowledgement status','Receive PO status'
+                    'PO cancellation remarks',	'Inbound Qc params','SKU damage payment remarks', 'Putaway confirmation'],
+     'dt_url': 'get_order_flow_report', 'excel_name': 'get_order_flow_report',
+     'print_url': 'print_order_flow_report',
+  }
 STOCK_COVER_REPORT_DICT = {
        'filters': [
            {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
@@ -937,6 +953,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'shipment_report': SHIPMENT_REPORT_DICT, 'dist_sales_report': DIST_SALES_REPORT_DICT,
                      'po_report':PO_REPORT_DICT,
                      'open_order_report':OPEN_ORDER_REPORT_DICT,
+                     'order_flow_report':ORDER_FLOW_REPORT_DICT,
                      'reseller_sales_report': RESELLER_SALES_REPORT_DICT,
                      'dist_target_summary_report': DIST_TARGET_SUMMARY_REPORT,
                      'dist_target_detailed_report': DIST_TARGET_DETAILED_REPORT,
@@ -6815,6 +6832,50 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
         quantity = data.quantity
         net_value = quantity * price
         total = (quantity * price) +cgst+sgst+igst
+
+
+        temp_data['aaData'].append(OrderedDict((('Date',date),('SKU Code', data.sku.sku_code), ('SKU Description',data.sku.sku_desc),('Invoice Number',data.order_id),\
+                                                ('Quantity',quantity ),('Status',status),('Net Value',net_value),\
+                                                ('CGST',cgst),('SGST',sgst),('IGST',igst),('Price',price),('Total Value',total),\
+                                                ('Source Location',user.username),('Destination',destination))))
+    return temp_data
+
+def get_orderflow_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date
+    temp_data = copy.deepcopy(AJAX_DATA)
+    lis = ['creation_date','st_po__open_st__sku__user','st_po__open_st__sku__user','st_po__open_st__sku__user','sku__sku_code','sku__sku_desc',\
+           'quantity', 'st_po__open_st__price','st_po__open_st__sku__user','st_po__open_st__cgst_tax','st_po__open_st__sgst_tax','st_po__open_st__igst_tax','st_po__open_st__price','status']
+    status_map = ['Pick List Generated','Pending','Accepted']
+    order_term = search_params.get('order_term', 'asc')
+    start_index = search_params.get('start', 0)
+    col_num = search_params.get('order_index', 0)
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
+    else:
+        stop_index = None
+    search_parameters = {}
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        if search_params['sku_code']:
+            search_parameters['sku__sku_code'] = search_params['sku_code']
+    search_parameters['user'] = user.id
+    import pdb;pdb.set_trace()
+    order_flow_data = IntermediateOrders.objects.filter(**search_parameters).\
+                                            order_by(order_data).select_related('order','sku','alt_sku').values('order_assigned_wh__username','sku__wms_code','alt_sku__wms_code','order__original_order_id','order__status','order__id')
+
+    temp_data['recordsTotal'] = order_flow_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for data in  (order_flow_data[start_index:stop_index]):
+        if data['order__id'] :
+            dispatch_imei_check_list = DispatchIMEIChecklist.filter(order_id =data['order__id'],qc_type = 'purchase_order')
+            po_obj = OrderMapping.objects.filter(order_id = data['order__id'])
+
 
 
         temp_data['aaData'].append(OrderedDict((('Date',date),('SKU Code', data.sku.sku_code), ('SKU Description',data.sku.sku_desc),('Invoice Number',data.order_id),\

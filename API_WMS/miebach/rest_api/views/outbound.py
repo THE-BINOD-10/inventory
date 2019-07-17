@@ -2187,7 +2187,7 @@ def picklist_confirmation(request, user=''):
                         insert_order_serial(picklist, val)
                     if 'labels' in val.keys() and val['labels'] and picklist.order:
                         update_order_labels(picklist, val)
-                    order_id = picklist.order
+                    order_id = picklist.order.id
                     if picklist.order and picklist.order.sku.wms_code in passed_serial_number.keys():
                         send_imei_qc_details = dict(zip(passed_serial_number[picklist.order.sku.wms_code], [imei_qc_details[k] for k in passed_serial_number[picklist.order.sku.wms_code]]))
                         save_status = "PASS"

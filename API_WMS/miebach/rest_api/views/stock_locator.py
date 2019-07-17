@@ -2878,34 +2878,112 @@ def cal_ba_to_sa(request, user=''):
 @login_required
 @get_admin_user
 def ba_to_sa_calculate_now(request, user=''):
-    master_data = SKUMaster.objects.filter(user = user.id)
-    avail_qty = 0
+    master_data = SKUMaster.objects.filter(user = user.id).order_by('id').only('id', 'sku_code')
+    total_sum = 0
     sellable_zones = get_all_sellable_zones(user)
-    total_val = 0
-    for data in master_data:
-        avail_qty_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku_id=data.id,
-        quantity__gt=0, location__zone__zone__in=sellable_zones).only('quantity').aggregate(total=Sum('quantity'))['total']
-        res_qty = PicklistLocation.objects.filter(stock__sku_id=data.id, status=1, picklist__order__user=user.id,
-                                                    stock__location__zone__zone__in=sellable_zones). \
-            aggregate(Sum('reserved'))['reserved__sum']
-        if not res_qty:
-            res_qty = 0
-        if not avail_qty_obj:
-            avail_qty_obj = 0
-        avail_qty = avail_qty_obj - res_qty
-        stock_stats_obj = StockStats.objects.filter(sku__sku_code = data.sku_code).exclude(Q(closing_stock=0)).\
+    total_avg_sale_per_day = 0
+    sku_avg_sale_mapping = OrderedDict()
+    sku_avail_qty = OrderedDict()
+    sku_res_qty = OrderedDict()
+    zones = get_all_sellable_zones(user)
+    locations = LocationMaster.objects.filter(zone__user=user.id, zone__zone__in=zones)
+    if not locations:
+        return HttpResponse("Sellable Locations not found")
+    all_stocks = StockDetail.objects.exclude(receipt_number=0).\
+                                        filter(sku__user=user.id, quantity__gt=0,
+                                        location__zone__zone__in=sellable_zones,
+                                               sellerstock__seller__seller_id=1).\
+                                        values('sku_id', 'sellerstock__quantity')
+    print "SKU Stock Start %s" % str(datetime.datetime.now())
+    for sku_stock in all_stocks:
+        sku_avail_qty.setdefault(sku_stock['sku_id'], 0)
+        sku_avail_qty[sku_stock['sku_id']] += sku_stock['sellerstock__quantity']
+    print "SKU Stock End %s" % str(datetime.datetime.now())
+    all_reserved = PicklistLocation.objects.filter(stock__sku__user=user.id,
+                                                   stock__location__zone__zone__in=sellable_zones,
+                                                   stock__sellerstock__seller__seller_id=1 ,status=1).\
+                                            only('stock__sku_id', 'reserved')
+    print "SKU Res Start %s" % str(datetime.datetime.now())
+    for all_res in all_reserved:
+        sku_res_qty.setdefault(all_res.stock.sku_id, 0)
+        sku_res_qty[all_res.stock.sku_id] += all_res.reserved
+    print "SKU Res End %s" % str(datetime.datetime.now())
+    for data in master_data[:100]:
+        print data.id
+        stock_qty = sku_avail_qty.get(data.id, 0)
+        res_qty = sku_res_qty.get(data.id, 0)
+        avail_qty = stock_qty - res_qty
+        no_stock_days = list(StockStats.objects.filter(sku_id = data.id, closing_stock=0).\
                                 annotate(creation_date_only=Cast('creation_date', DateField())).values('creation_date_only').distinct().\
-                                order_by('-creation_date_only')
-        stock_val = stock_stats_obj[:7]
-        startdate = stock_val[0]['creation_date_only']
-        stopdate = stock_val[6]['creation_date_only']
-        enddate = stopdate + datetime.timedelta(days=1)
-        order_detail_obj = OrderDetail.objects.filter(user = user.id, sku__sku_code = data.sku_code, creation_date__range=[startdate, enddate]).\
-                                distinct().\
-                                order_by('-creation_date').annotate(Sum('quantity'))[:7]
-        for sku_total in order_detail_obj:
-            value = sku_total['quantity__sum']
-            total_val  = total_val + value
-        Avg_sale_per_day = total_val/7
+                                order_by('-creation_date_only').values_list('creation_date_only', flat=True)[:7])
+        order_detail_objs = OrderDetail.objects.filter(user = user.id, sku_id = data.id).\
+                               annotate(creation_date_only=Cast('creation_date', DateField())).\
+                               exclude(creation_date_only__in=no_stock_days).values('creation_date_only').distinct().\
+                               order_by('-creation_date_only').annotate(Sum('quantity'))[:7]
+        sku_sales = 0
+        for order_detail_obj in order_detail_objs:
+            value = order_detail_obj['quantity__sum']
+            sku_sales += value
+            total_sum += value
+        avg_sale_per_day = sku_sales/7
+        total_avg_sale_per_day += avg_sale_per_day
+        sku_avg_sale_mapping[data.id] = {'avg_sale_per_day': avg_sale_per_day, 'avail_qty': avail_qty}
 
-    return HttpResponse('Claculated Successfully')
+    sku_classification_objs = []
+    for data in master_data[:100]:
+        if not total_avg_sale_per_day:
+            break
+        sku_avg_sale_mapping_data = sku_avg_sale_mapping[data.id]
+        sku_avg_sale_per_day = sku_avg_sale_mapping_data['avg_sale_per_day']
+        sku_avail_qty = sku_avg_sale_mapping_data['avg_sale_per_day']
+        avg_more_sales = {key:val for (key, val) in sku_avg_sale_mapping_data.items() if val >= sku_avg_sale_per_day}
+        sum_avg_more_sales = sum(avg_more_sales.values())
+        cumulative_contribution = (sum_avg_more_sales/total_avg_sale_per_day) * 100
+        if cumulative_contribution <= 40:
+            classification = 'Fast'
+        elif cumulative_contribution > 80:
+            classification = 'Slow'
+        else:
+            classification = 'Medium'
+        replenishment_obj = ReplenushmentMaster.objects.filter(user_id=user.id, classification=classification,
+                                                               size=data.sku_size)
+        if not replenishment_obj.exists():
+            continue
+        min_stock = replenishment_obj[0].min_days
+        max_stock = replenishment_obj[0].max_days
+        if sku_avail_qty > min_stock:
+            continue
+        replenishment_qty = max_stock - sku_avail_qty
+        ba_stock_objs = StockDetail.objects.filter(location__zone__zone='Bulk Zone', sku_id=data.id,
+                                              sellerstock__seller__seller_id=1, quantity__gt=0,
+                                              sellerstock__quantity__gt=0)
+        needed_qty = replenishment_qty
+        if ba_stock_objs.exists():
+            total_ba_stock = ba_stock_objs.aggregate(Sum('sellerstock__quantity'))['sellerstock__quantity__sum']
+            if total_ba_stock < replenishment_qty:
+                needed_qty = total_ba_stock
+            else:
+                needed_qty = replenishment_qty
+            for ba_stock_obj in ba_stock_objs:
+                if not needed_qty:
+                    continue
+                if ba_stock_obj.quantity < needed_qty:
+                    avail_quantity = ba_stock_obj.quantity
+                    needed_qty -=  ba_stock_obj.quantity
+                else:
+                    avail_quantity = needed_qty
+                    needed_qty = 0
+                sku_classification_dict = {'sku_id': data.id, 'avg_sales_day': sku_avg_sale_per_day,
+                                           'cumulative_contribution': cumulative_contribution,
+                                           'classification': classification, 'source_stock_id': ba_stock_obj.id,
+                                           'replenushment_qty': replenishment_qty, 'reserved': avail_quantity,
+                                           'avail_quantity': avail_quantity,
+                                           'dest_location_id': locations[0].id,'status': 1}
+                exist_obj = SkuClassification.objects.filter(sku_id=data.id, classification=classification,
+                                                             source_stock_id=ba_stock_obj.id, status=1)
+                if not exist_obj:
+                    sku_classification_objs.append(SkuClassification(**sku_classification_dict))
+    if sku_classification_objs:
+        SkuClassification.objects.bulk_create(sku_classification_objs)
+
+    return HttpResponse('Calculated Successfully')

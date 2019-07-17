@@ -2718,7 +2718,7 @@ class StockStats(models.Model):
 
     class Meta:
         db_table = 'STOCK_STATS'
-        index_together = (('sku',))
+        index_together = (('sku',), ('sku', 'closing_stock'))
 
 
 class IntransitOrders(models.Model):
@@ -3269,6 +3269,7 @@ class ReplenushmentMaster(models.Model):
 
     class Meta:
         db_table = 'REPLENUSHMNENT_MASTER'
+        unique_together = ('user', 'classification', 'size')
 
 class SkuClassification(models.Model):
     id = BigAutoField(primary_key=True)
@@ -3276,14 +3277,15 @@ class SkuClassification(models.Model):
     avg_sales_day = models.FloatField(default=0)
     cumulative_contribution = models.FloatField(default=0)
     classification = models.CharField(max_length=64, default='')
-    mrp = models.FloatField(default=0)
-    source_location = models.ForeignKey(LocationMaster)
     dest_location = models.ForeignKey(LocationMaster, related_name='destination_location')
+    source_stock = models.ForeignKey(BatchDetail)
     replenushment_qty = models.FloatField(default=0)
+    reserved = models.FloatField(default=0)
+    avail_quantity = models.FloatField(default=0)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'SKU_CLASSIFICATION'
-        unique_together = ('sku', 'classification')
+        unique_together = ('sku', 'classification', 'source_stock', 'status')

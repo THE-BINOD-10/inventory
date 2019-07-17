@@ -15802,6 +15802,8 @@ def sm_cancel_distributor_order(request):
         log.info('Order Cancellation failed for user %s and params are %s and error statement is %s' % (
             str(request.user.username), str(request.GET.dict()), str(e)))
     return HttpResponse(message)
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -15818,3 +15820,31 @@ def get_order_extra_options(request, user=''):
         log.info('Exception raised for getting extra order options for  %s and error statement is %s'
                  % (str(user.username), str(e)))
     return HttpResponse(json.dumps(options_dict), content_type='application/json')
+
+
+@get_admin_user
+@csrf_exempt
+@login_required
+def sm_custom_order_cancel(request, user=''):
+    import pdb; pdb.set_trace()
+    message = 'Success'
+    enq_id = request.POST.get('enquiry_id')
+    usr_id = request.POST.get('user_id')
+    try:
+        manual_enquiry_object = ManualEnquiry.objects.filter(enquiry_id=enq_id,
+                                                          user_id=usr_id)
+        manual_enquiry_details_object = ManualEnquiryDetails.objects.filter(enquiry_id=enq_id,
+                                                          remarks_user_id=usr_id)
+
+        if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
+            manual_enquiry_object[0].delete()
+            manual_enquiry_details_object[0].delete()
+        else :
+            message = 'Fail'
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Order Cancellation failed for user %s and params are %s and error statement is %s' % (
+            str(request.user.username), str(request.GET.dict()), str(e)))
+    return HttpResponse(message)

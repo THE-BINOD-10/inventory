@@ -376,7 +376,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     vm.unique_warehouse_skucodes = vm.temp_sku_check.filter( onlyUnique );
     vm.unique_warehouses = vm.temp_warehouses.filter(onlyUnique);
   }
-  function onlyUnique(value, index, self) { 
+  function onlyUnique(value, index, self) {
     return self.indexOf(value) === index;
   }
   vm.cal_wh_qty = function(wh_data, data){
@@ -455,6 +455,37 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
       vm.disable_btn = false;
     });
   }
+
+  vm.custom_cancel = function() {
+  event.stopPropagation();
+  vm.service.alert_msg("Do you want to cancel Order").then(function(msg) {
+    vm.cancelPoDisable = true;
+    var sendData = vm.model_data
+    if (msg == "true") {
+      Service.apiCall("sm_custom_order_cancel/", "POST", sendData, true).then(function(data) {
+        if(data.message) {
+          if(data.data == 'Success') {
+            Service.showNoty('Successfully Cancelled the Order');
+            vm.cancelPoDisable = false;
+            vm.close();
+            reloadData();
+          } else {
+            Service.showNoty(data.data, 'warning');
+            vm.cancelPoDisable = false;
+          }
+        } else {
+          Service.showNoty('Something Went Wrong', 'warning');
+          vm.cancelPoDisable = false;
+        }
+      });
+    } else {
+      vm.cancelPoDisable = false;
+    }
+  });
+}
+
+
+
 };
 
 angular

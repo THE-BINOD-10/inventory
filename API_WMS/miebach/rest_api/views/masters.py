@@ -1795,14 +1795,31 @@ def insert_replenushment(request, user=''):
 
     if not classification:
         return HttpResponse('Enter Classification')
-
     replenushment_obj = ReplenushmentMaster.objects.filter(classification= classification,user = user.id)
     if replenushment_obj.exists() :
-        replenushment_obj = replenushment_obj[0]
-        replenushment_obj.size = size
-        replenushment_obj.min_days = min_days
-        replenushment_obj.max_days = max_days
-        replenushment_obj.save()
+        obj_classifi = replenushment_obj[0].classification
+        obj_size = replenushment_obj[0].size
+        if obj_classifi.lower() == classification.lower() and obj_size.lower() == size.lower():
+            replenushment_obj = replenushment_obj[0]
+            replenushment_obj.size = size
+            replenushment_obj.min_days = min_days
+            replenushment_obj.max_days = max_days
+            replenushment_obj.save()
+        else:
+            replenushment['classification'] = classification
+            replenushment ['size'] = size
+            replenushment ['min_days'] = min_days
+            replenushment['max_days'] = max_days
+            replenushment['user'] = user
+
+            try:
+                ReplenushmentMaster.objects.create(**replenushment)
+            except Exception as e:
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info('Insert New Replenushment failed for %s and params are %s and error statement is %s' % (str(user.username), \
+                                                                                                       str(request.POST.dict()),
+                                                                                                       str(e)))
     else:
         replenushment['classification'] = classification
         replenushment ['size'] = size

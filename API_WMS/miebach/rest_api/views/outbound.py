@@ -4606,6 +4606,7 @@ def create_order_from_intermediate_order(request, user):
     message = 'Success'
     first = True
     inter_obj_data = {}
+    host_details = request.META.get('wsgi.url_scheme')+'://'+request.META.get('HTTP_HOST')
     dispatch_qc_check = get_misc_value('dispatch_qc_check', user.id)
     central_order_reassigning =  get_misc_value('central_order_reassigning', user.id) #for 72networks
     warehouses = json.loads(request.POST.get('warehouse'))
@@ -4763,7 +4764,7 @@ def create_order_from_intermediate_order(request, user):
 
                     if first:
                         inv_amt = (interm_obj.unit_price * interm_obj.quantity) + interm_obj.tax
-                        items.append([interm_obj.sku.sku_desc, interm_obj.quantity, inv_amt])
+                        items.append([host_details+interm_obj.sku.image_url, interm_obj.interm_order_id,interm_obj.sku.sku_code, interm_obj.sku.sku_desc,interm_obj.quantity, inv_amt, interm_obj.project_name])
                         inter_obj_data = {'interm_order_id': interm_obj.interm_order_id,
                                           'unit_price': interm_obj.unit_price,
                                           'tax': interm_obj.tax,
@@ -4803,7 +4804,7 @@ def create_order_from_intermediate_order(request, user):
                         mail_ids = [request.user.email]
                         interm_qs = interm_qs[0]
                         user_mail_id = [interm_qs.customer_user.email]
-                        headers = ['Product Details', 'Ordered Quantity', 'Total']
+                        headers = ['Image', 'Order number','isprava code','Product Details', 'Ordered Quantity', 'Total','Project name']
                         mail_order_id = order_dict['order_code'] + str(order_dict['order_id']) + ' ('\
                                         + str(interm_qs.order_id) + ')'
                         data_dict = {'customer_name': interm_qs.customer_user.username, 'items': items,

@@ -15826,7 +15826,6 @@ def get_order_extra_options(request, user=''):
 @csrf_exempt
 @login_required
 def sm_custom_order_cancel(request, user=''):
-    import pdb; pdb.set_trace()
     message = 'Success'
     enq_id = request.POST.get('enquiry_id')
     usr_id = request.POST.get('user_id')
@@ -15835,12 +15834,12 @@ def sm_custom_order_cancel(request, user=''):
                                                           user_id=usr_id)
         manual_enquiry_details_object = ManualEnquiryDetails.objects.filter(enquiry_id=enq_id,
                                                           remarks_user_id=usr_id)
-
-        if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
+        order_status = manual_enquiry_object[0].status
+        if user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and order_status.lower() != 'order_placed':
             manual_enquiry_object[0].delete()
             manual_enquiry_details_object[0].delete()
         else :
-            message = 'Fail'
+            message = 'Placed Orders Can Not Be Deleted '
 
     except Exception as e:
         import traceback

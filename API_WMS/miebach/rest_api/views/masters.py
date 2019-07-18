@@ -1792,7 +1792,6 @@ def insert_replenushment(request, user=''):
     size = request.POST['size']
     min_days = request.POST['min_days']
     max_days = request.POST['max_days']
-
     if not classification:
         return HttpResponse('Enter Classification')
     replenushment_obj = ReplenushmentMaster.objects.filter(classification= classification,user = user.id)
@@ -1801,7 +1800,6 @@ def insert_replenushment(request, user=''):
         obj_size = replenushment_obj[0].size
         if obj_classifi.lower() == classification.lower() and obj_size.lower() == size.lower():
             replenushment_obj = replenushment_obj[0]
-            replenushment_obj.size = size
             replenushment_obj.min_days = min_days
             replenushment_obj.max_days = max_days
             replenushment_obj.save()

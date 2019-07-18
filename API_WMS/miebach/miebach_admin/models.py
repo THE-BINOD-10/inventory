@@ -742,6 +742,7 @@ class CycleCount(models.Model):
     class Meta:
         db_table = 'CYCLE_COUNT'
         unique_together = ('cycle', 'sku', 'location', 'creation_date')
+        index_together = (('cycle',))
 
     def __unicode__(self):
         return str(self.cycle)

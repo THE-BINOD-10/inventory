@@ -9,6 +9,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.service = Service;
   vm.service.print_enable = false;
   vm.g_data = Data.dispatch_summary_report;
+  vm.parent_username = Session.parent.userName
   vm.dispatch_summary_view_types = Data.dispatch_summary_view_types;
   vm.model_data = {'datatable': vm.g_data.view}
   vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -27,6 +28,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
      .withPaginationType('full_numbers');
 
   vm.dtColumns = vm.service.build_colums(vm.g_data.tb_headers[vm.g_data.view]);
+  if(vm.parent_username == 'isprava_admin'){
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse Name'))
+    }
 
   vm.dtInstance = {};
 
@@ -39,8 +43,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                     'sku_code': '',
                     'order_id': '',
                     'imei_number': '',
+                    'sister_warehouse': '',
                     'datatable': vm.g_data.view
                     };
+  vm.warehouse_groups = [];
+  vm.service.apiCall('sku_category_list/').then(function(data){
+    if(data.message) {
+      vm.warehouse_groups = data.data.sister_warehouses;
+    }
+  })
 
   vm.model_data = {};
   angular.copy(vm.empty_data, vm.model_data);

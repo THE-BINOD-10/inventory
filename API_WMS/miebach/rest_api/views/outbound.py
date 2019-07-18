@@ -9699,7 +9699,7 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
             temp_data['recordsTotal'] = len(orders)
             temp_data['recordsFiltered'] = temp_data['recordsTotal']
             picklist = Picklist.objects.filter(**pick_dict)
-            real_orders = list(orders.values('order_id', 'order_code', 'original_order_id', 'intermediateorders__interm_order_id')\
+            real_orders = list(orders.values('order_id', 'order_code', 'original_order_id', 'intermediateorders__interm_order_id', 'intermediateorders__project_name')\
                                          .distinct()\
                                          .annotate(total_quantity=Sum('quantity'), total_inv_amt=Sum('invoice_amount'),
                                                   date_only=Cast('creation_date', DateField()),
@@ -9747,7 +9747,7 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
                 temp_data['aaData'].append(OrderedDict(
                     (('Order ID', record['order_id']),('Ordered Qty', record['total_quantity']),
                     ('Delivered Qty',record['picked_quantity']), ('Pending Qty',record['total_quantity']-record['picked_quantity']),
-                    ('Order Value', record['total_inv_amt']),('Order Date', record['date']),('Receive Status', record['status']))))
+                    ('Order Value', record['total_inv_amt']),('Order Date', record['date']), ('Project Name', record['intermediateorders__project_name']), ('Receive Status', record['status']))))
 
     """return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))"""
 

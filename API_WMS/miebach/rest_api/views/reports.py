@@ -693,7 +693,6 @@ def get_aging_filter_data(search_params, user, sub_user):
         temp_data['aaData'].append(
             OrderedDict((('SKU Code', data[0]), ('SKU Description', data[1]), ('SKU Category', data[2]),
                          ('Location', data[4]), ('Quantity', temp[data]), ('As on Date(Days)', data[3]), ('Warehouse', warehouse_users.get(data[5])))))
-    # import pdb; pdb.set_trace()
     return temp_data
 
 

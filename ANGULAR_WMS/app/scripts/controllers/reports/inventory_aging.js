@@ -50,6 +50,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     angular.copy(vm.empty_data, vm.model_data);
 
     vm.sku_groups = [];
+    vm.warehouse_groups = [];
     vm.service.apiCall('sku_category_list/').then(function(data){
       if(data.message) {
         vm.sku_groups = data.data.categories;

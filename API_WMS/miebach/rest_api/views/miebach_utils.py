@@ -2544,14 +2544,14 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters = {}
     if customer_view:
-        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc']#'order__quantity', 'picked_quantity']
+        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__user']#'order__quantity', 'picked_quantity']
         model_obj = Picklist
         param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
         search_parameters.update({'status__in': ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched'],
                                   #'picked_quantity__gt': 0,
                                   'stock__gt': 0,
-                                  'order__user': user.id,
-                                  'order__sku_id__in': sku_master_ids
+                                  # 'order__user': user.id,
+                                  # 'order__sku_id__in': sku_master_ids
                                 })
     else:
         if serial_view:
@@ -2561,8 +2561,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
             model_obj = OrderIMEIMapping
             param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
             search_parameters['status'] = 1
-            search_parameters['order__user'] = user.id
-            search_parameters['order__sku_id__in'] = sku_master_ids
+            # search_parameters['order__user'] = user.id
+            # search_parameters['order__sku_id__in'] = sku_master_ids
         else:
             lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__sku_desc', 'stock__location__location',
                    'picked_quantity', 'picked_quantity', 'updation_date', 'updation_date', 'order__customer_name', 'stock__batch_detail__batch_no', 'stock__batch_detail__mrp', 'stock__batch_detail__manufactured_date', 'stock__batch_detail__expiry_date']
@@ -2571,8 +2571,6 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
             search_parameters['status__in'] = ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched']
             search_parameters['picked_quantity__gt'] = 0
             #search_parameters['stock__gt'] = 0
-            search_parameters['order__user'] = user.id
-            search_parameters['order__sku_id__in'] = sku_master_ids
 
     temp_data = copy.deepcopy(AJAX_DATA)
 
@@ -2593,6 +2591,20 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
         search_parameters['order__customer_id'] = search_params['customer_id']
     if 'imei_number' in search_params and serial_view:
         search_parameters['po_imei__imei_number'] = search_params['imei_number']
+    warehouse_users = {}
+    if user.username == 'isprava_admin':
+        if 'sister_warehouse' in search_params:
+            sister_warehouse_name = search_params['sister_warehouse']
+            user = User.objects.get(username=sister_warehouse_name)
+            warehouses = UserGroups.objects.filter(user_id=user.id)
+        else:
+            warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+        warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
+        sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
+        sku_master_ids = sku_master.values_list('id', flat=True)
+    else:
+        search_parameters['order__user'] = user.id
+    search_parameters['order__sku_id__in'] = sku_master_ids
     if 'order_id' in search_params:
         order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])
         if order_detail:
@@ -2633,7 +2645,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                     ('WMS Code', data['order__sku__wms_code']),
                                                     ('Description', data['order__sku__sku_desc']),
                                                     ('Quantity', data['qty']),
-                                                    ('Picked Quantity', data['qty'] - data['res_qty'])
+                                                    ('Picked Quantity', data['qty'] - data['res_qty']),
+                                                    ('Warehouse', warehouse_users.get(data['order__sku__user']))
                                                   )))
         else:
             if not serial_view:
@@ -2661,7 +2674,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Picked Quantity', data.picked_quantity),
                                                             ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])), ('Customer Name', customer_name),
                                                             ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
-                                                            ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate))))
+                                                            ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate),
+                                                            ('Warehouse', warehouse_users.get(data.order.user)))))
                 pick_locs = data.picklistlocation_set.exclude(reserved=0, quantity=0)
                 for pick_loc in pick_locs:
                     picked_quantity = float(pick_loc.quantity) - float(pick_loc.reserved)
@@ -2683,7 +2697,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Picked Quantity', picked_quantity),
                                                             ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])), ('Customer Name', customer_name),
                                                             ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
-                                                            ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate))))
+                                                            ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate),
+                                                            ('Warehouse', warehouse_users.get(data.order.user)))))
             else:
                 order_id = data.order.original_order_id
                 if not order_id:
@@ -2700,7 +2715,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                         ('Description', data.order.sku.sku_desc),
                                                         ('Customer Name', data.order.customer_name),
                                                         ('Serial Number', serial_number),
-                                                        ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])))))
+                                                        ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])),
+                                                        ('Warehouse', warehouse_users.get(data.order.user)))))
     return temp_data
 
 

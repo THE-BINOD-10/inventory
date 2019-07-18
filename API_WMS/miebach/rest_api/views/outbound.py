@@ -12938,8 +12938,8 @@ def move_enquiry_to_order(request, user=''):
             em_qs.delete()  # Removing item from Enquiry Table after converting it to Order
     return HttpResponse(message)
 
-
-def extend_enquiry_date(request):
+@get_admin_user
+def extend_enquiry_date(request, user = ''):
     message = 'Success'
     extended_date = request.GET.get('extended_date', '')
     enquiry_id = request.GET.get('order_id', '')
@@ -12958,7 +12958,16 @@ def extend_enquiry_date(request):
         cm_id = cum_obj[0].customer_id
     try:
         enq_qs = EnquiryMaster.objects.filter(enquiry_id=enquiry_id, customer_id=cm_id)
+        date_ext_days = int(get_misc_value('auto_raise_stock_transfer', user.id))*2
         if enq_qs:
+            ext_dt = datetime.datetime.strptime(extended_date, '%m/%d/%Y')
+            ct_dtt = enq_qs[0].creation_date
+            ct_dt = ct_dtt.replace(tzinfo=None)
+            dt_days = ext_dt - ct_dt
+            days = dt_days.days
+            username = request.user.username
+            if days > date_ext_days and username.lower() != 'sm_admin':
+                return HttpResponse('Admin')
             enq_qs[0].extend_status = extend_status
             enq_qs[0].extend_date = datetime.datetime.strptime(extended_date, '%m/%d/%Y')
             enq_qs[0].save()

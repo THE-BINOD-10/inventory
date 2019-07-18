@@ -19,14 +19,18 @@ function EnquiryOrderDetails ($scope, Service, $modalInstance, items, Session) {
   }
 
   vm.confirm_to_extend = function(){
-    
+
     if (vm.order_details.extend_status && vm.order_details.extend_date) {
       vm.model_data['extend_status'] = vm.order_details.extend_status;
       vm.model_data['extended_date'] = vm.order_details.extend_date;
 
       Service.apiCall('extend_enquiry_date/', 'GET', vm.model_data).then(function(data) {
         if (data.message) {
-          Service.showNoty('Extend status changed');
+          if (data.data == 'Admin'){
+            Service.showNoty('Only Admin can process ');
+          } else {
+              Service.showNoty('Extend status changed');
+          }
         } else {
           Service.showNoty('Something went wrong');
         }
@@ -48,9 +52,9 @@ function EnquiryOrderDetails ($scope, Service, $modalInstance, items, Session) {
           var date = vm.order_details.extend_date.split("-")
           vm.order_details.extend_date = date[1]+"/"+date[2]+"/"+date[0];
         }
-      }   
+      }
       vm.loading = false;
-    })  
+    })
   }
   vm.getDetails();
 

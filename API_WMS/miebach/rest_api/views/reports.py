@@ -659,16 +659,28 @@ def get_aging_filter_data(search_params, user, sub_user):
         search_parameters['sku__sku_category'] = search_params['sku_category']
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-    search_parameters['sku__user'] = user.id
+    warehouse_users = {}
+    if user.username == 'isprava_admin':
+        if 'sister_warehouse' in search_params:
+            sister_warehouse_name = search_params['sister_warehouse']
+            user = User.objects.get(username=sister_warehouse_name)
+            warehouses = UserGroups.objects.filter(user_id=user.id)
+        else:
+            warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+        warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
+        sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
+        sku_master_ids = sku_master.values_list('id', flat=True)
+    else:
+        search_parameters['sku__user'] = user.id
     search_parameters['quantity__gt'] = 0
     search_parameters['sku_id__in'] = sku_master_ids
     filtered = StockDetail.objects.filter(**search_parameters). \
-        values('receipt_date', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'location__location'). \
+        values('receipt_date', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'location__location', 'sku__user'). \
         annotate(total=Sum('quantity'))
 
     for stock in filtered:
         cond = (stock['sku__sku_code'], stock['sku__sku_desc'], stock['sku__sku_category'],
-                (datetime.datetime.now().date() - stock['receipt_date'].date()).days, stock['location__location'])
+                (datetime.datetime.now().date() - stock['receipt_date'].date()).days, stock['location__location'], stock['sku__user'])
         all_data.setdefault(cond, 0)
         all_data[cond] += stock['total']
     temp_data['recordsTotal'] = len(all_data)
@@ -680,7 +692,8 @@ def get_aging_filter_data(search_params, user, sub_user):
     for data in all_data:
         temp_data['aaData'].append(
             OrderedDict((('SKU Code', data[0]), ('SKU Description', data[1]), ('SKU Category', data[2]),
-                         ('Location', data[4]), ('Quantity', temp[data]), ('As on Date(Days)', data[3]))))
+                         ('Location', data[4]), ('Quantity', temp[data]), ('As on Date(Days)', data[3]), ('Warehouse', warehouse_users.get(data[5])))))
+    # import pdb; pdb.set_trace()
     return temp_data
 
 
@@ -698,7 +711,9 @@ def get_inventory_aging_filter(request, user=''):
 def sku_category_list(request, user=''):
     categories = list(SKUMaster.objects.exclude(sku_category='').filter(user=user.id).values_list('sku_category',
                                                                                                   flat=True).distinct())
-    return HttpResponse(json.dumps({'categories': categories}))
+    sister_warehouses1 = list(
+                UserGroups.objects.filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',flat=True).distinct())
+    return HttpResponse(json.dumps({'categories': categories, 'sister_warehouses': sister_warehouses1}))
 
 
 @csrf_exempt

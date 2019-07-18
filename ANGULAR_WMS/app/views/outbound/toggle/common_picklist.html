@@ -141,8 +141,8 @@
                   <th></th>
                 </tr>
               </thead>
-              <tbody ng-repeat="data in pop.model_data.data">
-                <tr class="field" ng-repeat="record in data.sub_data">
+              <tbody ng-repeat="data in pop.model_data.data" ng-init="outerIndex=$index">
+                <tr class="field" ng-repeat="record in data.sub_data" ng-init="innerIndex=$index">
                   <input ng-if="pop.model_data.order_status == 'batch_open'" type="hidden" name="order_id_{{data.id}}" value="">
                   <input ng-if="pop.model_data.order_status == 'open'" type="hidden" name="order_id_{{data.id}}" value="">
                   <input type="hidden" name="stock_id_{{data.id}}" value="{{data.stock_id}}">
@@ -173,7 +173,16 @@
 		  <td ng-if="pop.industry_type=='FMCG'"><input name="mrp_{{data.id}}" ng-model="data.mrp" class="form-control" type="text" readonly></td>
                   <td ng-if="pop.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" ng-model="record.pallet_code" class="form-control" type="text" ng-blur="pop.checkCapacity($index, data, 'pallet_code', $event);"></td>
                   <td><input name="reserved_quantity_{{data.id}}" ng-model="data.reserved_quantity" class="form-control" type="text" readonly></td>
-                  <td><input name="picked_quantity_{{data.id}}" ng-model="record.picked_quantity" class="form-control" type="text" ng-change="pop.count_sku_quantity();pop.cal_quantity(record, data)" ng-class="service.get_decimal_perm()" ng-readonly = "pop.permissions.scan_picklist_option != 'scan_sku_location' && pop.permissions.scan_picklist_option != 'scan_sku' && pop.permissions.scan_picklist_option != 'scan_none'" ng-style="(pop.validate_skus[data.order_id][data.wms_code] == data.wms_code) ? pop.qty_validation : ''"></td>
+                  <td><input name="picked_quantity_{{data.id}}"
+                     ng-model="record.picked_quantity"
+                     class="form-control"
+                     type="text"
+                     ng-focus="pop.quantity_focused=true;pop.get_current_weight($event, pop.model_data.data, innerIndex, outerIndex)"
+                     ng-blur="pop.quantity_focused=false"
+                     ng-change="pop.count_sku_quantity();pop.cal_quantity(record, data)"
+                     ng-class="service.get_decimal_perm()"
+                     ng-readonly = "pop.permissions.scan_picklist_option != 'scan_sku_location' && pop.permissions.scan_picklist_option != 'scan_sku' && pop.permissions.scan_picklist_option != 'scan_none'"
+                     ng-style="(pop.validate_skus[data.order_id][data.wms_code] == data.wms_code) ? pop.qty_validation : ''"></td>
                   <td ng-if="pop.permissions.scan_picklist_option == 'scan_serial'">
                     <textarea class="form-control" name="scan_imei_{{data.id}}" rows="1" ng-model="record.scan" ng-keydown="pop.serial_scan($event,record.scan, data, record)"></textarea>
                   </td>

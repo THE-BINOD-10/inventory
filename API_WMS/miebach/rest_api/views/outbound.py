@@ -12965,7 +12965,8 @@ def extend_enquiry_date(request, user = ''):
             ct_dt = ct_dtt.replace(tzinfo=None)
             dt_days = ext_dt - ct_dt
             days = dt_days.days
-            if days > date_ext_days and request.user.id != 1388:
+            username = request.user.username
+            if days > date_ext_days and username.lower() != 'sm_admin':
                 return HttpResponse('Admin')
             enq_qs[0].extend_status = extend_status
             enq_qs[0].extend_date = datetime.datetime.strptime(extended_date, '%m/%d/%Y')

@@ -405,10 +405,13 @@ class OrderFields(models.Model):
     name = models.CharField(max_length=256, default='')
     value = models.CharField(max_length=256, default='')
     order_type = models.CharField(max_length=256, default='order')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'ORDER_FIELDS'
-        index_together = (('user', 'original_order_id'), ('user', 'original_order_id', 'name'))
+        index_together = (('user', 'original_order_id'), ('user', 'original_order_id', 'name'),
+                          ('original_order_id', 'order_type', 'user'))
 
     def __unicode__(self):
         return str(self.original_order_id)
@@ -596,7 +599,7 @@ class BatchDetail(models.Model):
     tax_percent = models.FloatField(default=0)
     transact_id = models.IntegerField(default=0)
     transact_type = models.CharField(max_length=36, default='')
-    weight = models.FloatField(default=0)
+    weight = models.CharField(max_length=64, default='')
     ean_number = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -2594,6 +2597,8 @@ class OrderUploads(models.Model):
     uploaded_file = models.FileField(upload_to='static/customer_uploads/')
     verification_flag = models.CharField(max_length=54, default='to_be_verified')
     remarks = models.CharField(max_length=256, default='')
+    created_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'ORDER_UPLOADS'
@@ -2781,6 +2786,7 @@ class ManualEnquiry(models.Model):
     smd_price = models.FloatField(default=0)
     rc_price = models.FloatField(default=0)
     client_po_rate = models.FloatField(default=0)
+    generic_order_id = models.PositiveIntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

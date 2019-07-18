@@ -25,7 +25,7 @@ def asn_stock_details(user, sku_code, order_flag=True):
     if order_flag:
         asn_res_100days_qs = asnres_det_qs.filter(orderdetail__isnull=False)  # Reserved Quantity
     else:
-        asn_res_100days_qs = asnres_det_qs.filter(enquirydetail__isnull=False)
+        asn_res_100days_qs = asnres_det_qs.filter(enquirydetail__isnull=False, enquirydetail__warehouse_level=3)
     asn_res_100days_qty = dict(asn_res_100days_qs.values_list('asnstock__sku__sku_code').
                                annotate(in_res=Sum('reserved_qty')))
     l3_res_stock = asn_res_100days_qty.get(sku_code, 0)

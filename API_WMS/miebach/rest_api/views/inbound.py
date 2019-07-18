@@ -5194,7 +5194,17 @@ def confirm_add_po(request, sales_data='', user=''):
         address = '\n'.join(address.split(','))
         if purchase_order.ship_to:
             ship_to_address = purchase_order.ship_to
-            company_address = user.userprofile.address
+            if user.userprofile.wh_address:
+                company_address = user.userprofile.wh_address
+                if user.username in MILKBASKET_USERS:
+                    if user.userprofile.user.email:
+                        company_address = ("%s, Email:%s") % (company_address, user.userprofile.user.email)
+                    if user.userprofile.phone_number:
+                        company_address = ("%s, Phone:%s") % (company_address, user.userprofile.phone_number)
+                    if user.userprofile.gst_number:
+                        company_address = ("%s, GSTINo:%s") % (company_address, user.userprofile.gst_number)
+            else:
+                company_address = user.userprofile.address
         else:
             ship_to_address, company_address = get_purchase_company_address(user.userprofile)
         wh_telephone = user.userprofile.wh_phone_number
@@ -5257,7 +5267,7 @@ def confirm_add_po(request, sales_data='', user=''):
         if get_misc_value('raise_po', user.id) == 'true':
             data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email,
                             'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name,
-                            'billing_address': profile.address, 'shipping_address': profile.wh_address,
+                            'billing_address': profile.address, 'shipping_address': ship_to_address,
                             'table_headers': table_headers}
             if get_misc_value('allow_secondary_emails', user.id) == 'true':
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,

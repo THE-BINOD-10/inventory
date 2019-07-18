@@ -6864,24 +6864,43 @@ def get_orderflow_data(search_params, user, sub_user):
     if 'sku_code' in search_params:
         if search_params['sku_code']:
             search_parameters['sku__sku_code'] = search_params['sku_code']
+    
     search_parameters['user'] = user.id
-    import pdb;pdb.set_trace()
+
     order_flow_data = IntermediateOrders.objects.filter(**search_parameters).\
-                                            order_by(order_data).select_related('order','sku','alt_sku').values('order_assigned_wh__username','sku__wms_code','alt_sku__wms_code','order__original_order_id','order__status','order__id')
+                                            order_by(order_data).select_related('order','sku','alt_sku').values('order_assigned_wh__username','customer_name','status',
+                                                                                                                'sku__wms_code','alt_sku__wms_code','order__original_order_id','order__status','order__id')
 
     temp_data['recordsTotal'] = order_flow_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    outbound_qc,inbound_qc,serial_number ,shipment_status  = '','','','open'
     for data in  (order_flow_data[start_index:stop_index]):
         if data['order__id'] :
-            dispatch_imei_check_list = DispatchIMEIChecklist.filter(order_id =data['order__id'],qc_type = 'purchase_order')
-            po_obj = OrderMapping.objects.filter(order_id = data['order__id'])
+           outbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id =data['order__id'],qc_type = 'sales_order')         
+           if outbound_dispatch_imei.exists():
+               serial_number = outbound_dispatch_imei[0].po_imei_num.imei_number
+               outbound_qc = ''.join(outbound_dispatch_imei.values_list('remarks',flat = True))
+           shipment = ShipmentInfo.objects.filter(order_id = data['order__id'])
+           if shipment.exists():
+               shipment_status = 'Dispatched'
+             
+           po_obj = OrderMapping.objects.filter(order_id = data['order__id'])
+           if po_obj.exists():
+              inbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id =po_obj[0].mapping_id,qc_type = 'purchase_order')
+              if inbound_dispatch_imei.exists():
+                  inbound_qc = ''.join(outbound_dispatch_imei.values_list('remarks',flat = True))
+               
 
 
 
-        temp_data['aaData'].append(OrderedDict((('Date',date),('SKU Code', data.sku.sku_code), ('SKU Description',data.sku.sku_desc),('Invoice Number',data.order_id),\
-                                                ('Quantity',quantity ),('Status',status),('Net Value',net_value),\
-                                                ('CGST',cgst),('SGST',sgst),('IGST',igst),('Price',price),('Total Value',total),\
-                                                ('Source Location',user.username),('Destination',destination))))
+        temp_data['aaData'].append(OrderedDict((('Main SR Number',data['order__original_order_id']),('SKU Code', data['sku__wms_code']),
+                                                ('SKU Description',data['sku__wms_code']),('Customer Name',data['customer_name']),\
+                                                ('Address','' ),('Phone No',''),('Email Id',''),\
+                                                ('Alt SKU',data['alt_sku__wms_code']),('Central order status',data['status']),('Central Order cancellation remarks',''),
+                                                ('Hub location',data['order_assigned_wh__username']),('Hub location order status',data['order__status']),\
+                                                ('Order cancellation remarks',''),('Outbound Qc params',outbound_qc),('Serial Number',serial_number),
+                                                ('Shipment Status',shipment_status),('Acknowledgement status',''),('Receive PO status',''),('Inbound Qc params',inbound_qc),
+                                                ('PO cancellation remarks',''),('SKU damage payment remarks',''),('Putaway confirmation',''))))
     return temp_data
 
 def get_current_stock_report_data(search_params, user, sub_user):

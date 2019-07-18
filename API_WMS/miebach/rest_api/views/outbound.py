@@ -2187,7 +2187,7 @@ def picklist_confirmation(request, user=''):
                         insert_order_serial(picklist, val)
                     if 'labels' in val.keys() and val['labels'] and picklist.order:
                         update_order_labels(picklist, val)
-                    order_id = picklist.order.id
+                    order_id = picklist.order
                     if picklist.order and picklist.order.sku.wms_code in passed_serial_number.keys():
                         send_imei_qc_details = dict(zip(passed_serial_number[picklist.order.sku.wms_code], [imei_qc_details[k] for k in passed_serial_number[picklist.order.sku.wms_code]]))
                         save_status = "PASS"
@@ -15345,7 +15345,7 @@ def dispatch_qc(user, sku_details, order_id, validation_status):
             for dict_obj in value:
                 for key_obj, value_obj in dict_obj.items():
                     disp_imei_map = {}
-                    disp_imei_map['order_id'] = order_id
+                    disp_imei_map['order_id'] = order_id.id
                     disp_imei_map['po_imei_num'] = get_po_imei_qs
                     disp_imei_map['qc_name'] = key_obj
                     dispatch_checklist = DispatchIMEIChecklist.objects.filter(**disp_imei_map)

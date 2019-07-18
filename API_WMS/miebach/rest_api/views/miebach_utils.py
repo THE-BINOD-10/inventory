@@ -2543,6 +2543,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
     from rest_api.views.common import get_sku_master, get_order_detail_objs
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters = {}
+    warehouse_users = {}
+    central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
     if customer_view:
         lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__user']#'order__quantity', 'picked_quantity']
         model_obj = Picklist
@@ -2591,8 +2593,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
         search_parameters['order__customer_id'] = search_params['customer_id']
     if 'imei_number' in search_params and serial_view:
         search_parameters['po_imei__imei_number'] = search_params['imei_number']
-    warehouse_users = {}
-    if user.username == 'isprava_admin':
+    if central_order_mgmt == 'true':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
             user = User.objects.get(username=sister_warehouse_name)

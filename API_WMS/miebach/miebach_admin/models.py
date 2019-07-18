@@ -405,10 +405,13 @@ class OrderFields(models.Model):
     name = models.CharField(max_length=256, default='')
     value = models.CharField(max_length=256, default='')
     order_type = models.CharField(max_length=256, default='order')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'ORDER_FIELDS'
-        index_together = (('user', 'original_order_id'), ('user', 'original_order_id', 'name'))
+        index_together = (('user', 'original_order_id'), ('user', 'original_order_id', 'name'),
+                          ('original_order_id', 'order_type', 'user'))
 
     def __unicode__(self):
         return str(self.original_order_id)
@@ -596,7 +599,7 @@ class BatchDetail(models.Model):
     tax_percent = models.FloatField(default=0)
     transact_id = models.IntegerField(default=0)
     transact_type = models.CharField(max_length=36, default='')
-    weight = models.FloatField(default=0)
+    weight = models.CharField(max_length=64, default='')
     ean_number = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -739,6 +742,7 @@ class CycleCount(models.Model):
     class Meta:
         db_table = 'CYCLE_COUNT'
         unique_together = ('cycle', 'sku', 'location', 'creation_date')
+        index_together = (('cycle',))
 
     def __unicode__(self):
         return str(self.cycle)
@@ -2594,6 +2598,8 @@ class OrderUploads(models.Model):
     uploaded_file = models.FileField(upload_to='static/customer_uploads/')
     verification_flag = models.CharField(max_length=54, default='to_be_verified')
     remarks = models.CharField(max_length=256, default='')
+    created_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'ORDER_UPLOADS'
@@ -2718,7 +2724,7 @@ class StockStats(models.Model):
 
     class Meta:
         db_table = 'STOCK_STATS'
-        index_together = (('sku',))
+        index_together = (('sku',), ('sku', 'closing_stock'))
 
 
 class IntransitOrders(models.Model):
@@ -2781,6 +2787,7 @@ class ManualEnquiry(models.Model):
     smd_price = models.FloatField(default=0)
     rc_price = models.FloatField(default=0)
     client_po_rate = models.FloatField(default=0)
+    generic_order_id = models.PositiveIntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -3269,6 +3276,7 @@ class ReplenushmentMaster(models.Model):
 
     class Meta:
         db_table = 'REPLENUSHMNENT_MASTER'
+        unique_together = ('user', 'classification', 'size')
 
 class SkuClassification(models.Model):
     id = BigAutoField(primary_key=True)
@@ -3276,14 +3284,17 @@ class SkuClassification(models.Model):
     avg_sales_day = models.FloatField(default=0)
     cumulative_contribution = models.FloatField(default=0)
     classification = models.CharField(max_length=64, default='')
-    mrp = models.FloatField(default=0)
-    source_location = models.ForeignKey(LocationMaster)
     dest_location = models.ForeignKey(LocationMaster, related_name='destination_location')
+    seller = models.ForeignKey(SellerMaster, blank=True, null=True)
+    source_stock = models.ForeignKey(StockDetail)
     replenushment_qty = models.FloatField(default=0)
+    reserved = models.FloatField(default=0)
+    suggested_qty = models.FloatField(default=0)
+    avail_quantity = models.FloatField(default=0)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'SKU_CLASSIFICATION'
-        unique_together = ('sku', 'classification')
+        unique_together = ('sku', 'classification', 'source_stock', 'seller', 'status')

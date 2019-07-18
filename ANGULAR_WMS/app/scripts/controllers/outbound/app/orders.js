@@ -75,8 +75,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       DTColumnBuilder.newColumn('Ordered Qty').withTitle('Ordered Qty').notSortable(),
       DTColumnBuilder.newColumn('Delivered Qty').withTitle('Delivered Qty').notSortable(),
       DTColumnBuilder.newColumn('Pending Qty').withTitle('Pending Qty').notSortable(),
-      DTColumnBuilder.newColumn('Order Value').withTitle('Order Value').notSortable(),
-      DTColumnBuilder.newColumn('remarks').withTitle('Remarks').notSortable(),)
+      DTColumnBuilder.newColumn('Order Value').withTitle('Order Value').notSortable(),)
+    if(vm.permissions.priceband_sync){
+     vm.dtColumns.push(DTColumnBuilder.newColumn('remarks').withTitle('Remarks').notSortable())
+    }
     if(vm.permissions.user_type == "reseller"){
        vm.dtColumns.push(
         DTColumnBuilder.newColumn('corporate_name').withTitle('Corporate Name').notSortable(),

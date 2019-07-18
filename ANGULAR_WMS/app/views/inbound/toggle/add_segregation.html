@@ -33,6 +33,7 @@
                     <th>Offer?</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Buy Price</th>
                     <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
+                    <th ng-if="showCase.industry_type=='FMCG'&& user.user_profile.user_type == 'marketplace_user'">Weight</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Batch No</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Mfg. Date</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Exp. Date</th>
@@ -67,6 +68,9 @@
                     </td>
                     <td ng-if="showCase.industry_type=='FMCG'">
                       <input type="text" ng-model="data.mrp" size="22" title="{{ data.mrp }}" name="mrp" class="form-control" value="{{data.mrp}}" ng-readonly="true">
+                    </td>
+                    <td ng-if="showCase.industry_type=='FMCG'&& user.user_profile.user_type == 'marketplace_user'">
+                      <input type="text" ng-model="data.weight" title="{{ data.weight }}" name="weight" class="form-control" value="{{data.weight}}" ng-readonly="true">
                     </td>
                     <td ng-if="showCase.industry_type=='FMCG'">
                       <input type="text" ng-model="data.batch_no" title="{{ data.batch_no }}" name="batch_no" class="form-control" value="{{data.batch_no}}" ng-readonly="true">

@@ -2783,43 +2783,42 @@ def confirm_combo_allocation(request, user=''):
 
 @csrf_exempt
 def get_skuclassification(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['sku__sku_code']
+    lis = ['sku__sku_code', 'sku__sku_code', 'avg_sales_day', 'cumulative_contribution', 'classification',
+           'source_stock__batch_detail__mrp', 'source_stock__batch_detail__weight', 'replenushment_qty',
+           '','source_stock__location__location',
+           'dest_location__location',
+           'reserved']
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
-            master_data = SkuClassification.objects.filter(
-                Q(sku__wms_code__icontains=search_term), sku__user=user.id).order_by(order_data)
+        master_data = SkuClassification.objects.filter(
+                Q(sku__wms_code__icontains=search_term), sku__user=user.id, status=1).order_by(order_data)
     else:
-        master_data = SkuClassification.objects.filter(**search_params).order_by(order_data)
+        master_data = SkuClassification.objects.filter(sku__user=user.id, status=1, **search_params).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    avail_qty = 0
-    sellable_zones = get_all_sellable_zones(user)
     for data in master_data[start_index: stop_index]:
-        # avail_qty_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku_id=data.id,
-        # quantity__gt=0, location__zone__zone__in=sellable_zones).only('quantity').aggregate(total=Sum('quantity'))['total']
-        # res_qty = PicklistLocation.objects.filter(stock__sku_id=data.id, status=1, picklist__order__user=user.id,
-        #                                             stock__location__zone__zone__in=sellable_zones). \
-        #     aggregate(Sum('reserved'))['reserved__sum']
-        # if not res_qty:
-        #     res_qty = 0
-        # if not avail_qty_obj:
-        #     avail_qty_obj = 0
-        # avail_qty = avail_qty_obj - res_qty
-        # order_detail_obj = OrderDetail.objects.filter(user = user.id, sku_id = data.id).\
-        #                         annotate(creation_date_only=Cast('creation_date', DateField())).values('creation_date_only').distinct().\
-        #                         order_by('-creation_date_only').annotate(Sum('quantity'))[:7]
-        # stock_stats_obj = StockStats.objects.filter(sku_id = data.id).exclude(Q(closing_stock=0))
-        sku_code = ''
-        if data.sku_id:
-            sku_code = data.sku_id
-        checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data.id, sku_code)
+        checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data.id, data.sku_id)
+        mrp = 0
+        weight = ''
+        if data.source_stock.batch_detail:
+            mrp = data.source_stock.batch_detail.mrp
+            weight = data.source_stock.batch_detail.weight
         temp_data['aaData'].append(
-            OrderedDict((('', checkbox), ('sku_code', sku_code), ('avg_sales_day', data.avg_sales_day), ('cumulative_contribution', data.cumulative_contribution), ('classification', data.classification), ('mrp', data.mrp),
-                          ('source_location', data.source_location.location),('dest_location', data.source_location.location), ('replenushment_qty', data.replenushment_qty), ('status', data.status),
-                          ('DT_RowAttr', {'sku_code':sku_code}))))
+            OrderedDict((('', checkbox), ('sku_code', data.sku.sku_code), ('avg_sales_day', data.avg_sales_day),
+                         ('cumulative_contribution', data.cumulative_contribution),
+                         ('classification', data.classification), ('mrp', mrp),
+                         ('weight', weight),
+                         ('replenushment_qty', data.replenushment_qty),
+                         ('avail_qty', data.avail_quantity),
+                         ('source_location', data.source_stock.location.location),
+                         ('dest_location', data.dest_location.location),
+                         ('suggested_qty', data.reserved),
+                         ('status', data.status),
+                         ('data_id', data.id),
+                         ('DT_RowAttr', {'data_id': data.id}))))
 
 
 
@@ -2828,48 +2827,31 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
 @get_admin_user
 def cal_ba_to_sa(request, user=''):
     skuclassification = copy.deepcopy(SKUCLASSIFICATION_DATA)
-    sku_code = request.POST['sku_code']
-    classification = request.POST['classification']
-    avg_sales_day = request.POST['avg_sales_day']
-    cumulative_contribution = request.POST['cumulative_contribution']
-    mrp = request.POST['mrp']
-    source_location = request.POST['source_location']
-    dest_location = request.POST['dest_location']
-    replenushment_qty = request.POST['replenushment_qty']
-    sku_obj = SKUMaster.objects.filter(wms_code=sku_code.upper(), user=user.id)
-    if not sku_obj:
-        return HttpResponse('Wrong WMS Code')
-    if not classification:
-        return HttpResponse('Enter Classification')
-    skuclassification_obj = SkuClassification.objects.filter(sku__wms_code = sku_code,sku__user = user.id)
-    if skuclassification_obj.exists() :
-        skuclassification_obj = skuclassification_obj[0]
-        skuclassification_obj.classification = classification
-        skuclassification_obj.avg_sales_day = avg_sales_day
-        skuclassification_obj.cumulative_contribution = cumulative_contribution
-        skuclassification_obj.mrp = mrp
-        skuclassification_obj.source_location = source_location
-        skuclassification_obj.dest_location = dest_location
-        skuclassification_obj.replenushment_qty = replenushment_qty
-        skuclassification_obj.save()
-    else:
-        skuclassification['sku'] = sku_obj[0]
-        skuclassification['classification'] = classification
-        skuclassification ['avg_sales_day'] = avg_sales_day
-        skuclassification ['cumulative_contribution'] = cumulative_contribution
-        skuclassification['mrp'] = mrp
-        skuclassification['source_location'] = source_location
-        skuclassification['dest_location'] = dest_location
-        skuclassification['replenushment_qty'] = replenushment_qty
-
+    import pdb;pdb.set_trace()
+    data_dict = dict(request.POST.iterlists())
+    confirm_data_list = []
+    for ind in range(0, len(data_dict['data_id'])):
+        classification_obj = SkuClassification.objects.filter(id=data_dict['data_id'][ind], status=1)
+        if not classification_obj:
+            continue
+        classification_obj = classification_obj[0]
+        dest_location = data_dict['dest_location'][ind]
+        dest_loc_obj = LocationMaster.objects.filter(zone__user=user.id, location=dest_location)
+        if not dest_loc_obj.exists():
+            return HttpResponse("Invalid Location for SKU Code %s" % str(data_dict['sku_code'][ind]))
         try:
-            SkuClassification.objects.create(**skuclassification)
-        except Exception as e:
-            import traceback
-            log.debug(traceback.format_exc())
-            log.info('Insert New skuclassification failed for %s and params are %s and error statement is %s' % (str(user.username), \
-                                                                                                   str(request.POST.dict()),
-                                                                                                   str(e)))
+            suggested_qty = float(data_dict['suggested_qty'][ind])
+        except:
+            suggested_qty = 0
+        if not suggested_qty:
+            continue
+        if classification_obj.suggested_qty < suggested_qty:
+            return HttpResponse("Entered Quantity exceeding the suggested quantity for SKU Code %s" % str(data_dict['sku_code'][ind]))
+        seller = classification_obj.seller
+        confirm_data_list.append({'classification_obj': classification_obj, 'dest_loc': dest_loc_obj[0],
+                                  'suggested_qty': suggested_qty, 'seller': seller})
+    for final_data in confirm_data_list:
+        print final_data
     return HttpResponse('Added Successfully')
 
 
@@ -2889,6 +2871,10 @@ def ba_to_sa_calculate_now(request, user=''):
     locations = LocationMaster.objects.filter(zone__user=user.id, zone__zone__in=zones)
     if not locations:
         return HttpResponse("Sellable Locations not found")
+    seller_master = SellerMaster.objects.filter(seller_id=1, user=user.id)
+    if not seller_master.exists():
+        return HttpResponse("Seller id 1 not found")
+    seller_master = seller_master[0]
     all_stocks = StockDetail.objects.exclude(receipt_number=0).\
                                         filter(sku__user=user.id, quantity__gt=0,
                                         location__zone__zone__in=sellable_zones,
@@ -2908,7 +2894,7 @@ def ba_to_sa_calculate_now(request, user=''):
         sku_res_qty.setdefault(all_res.stock.sku_id, 0)
         sku_res_qty[all_res.stock.sku_id] += all_res.reserved
     print "SKU Res End %s" % str(datetime.datetime.now())
-    for data in master_data[:100]:
+    for data in master_data:
         print data.id
         stock_qty = sku_avail_qty.get(data.id, 0)
         res_qty = sku_res_qty.get(data.id, 0)
@@ -2930,7 +2916,7 @@ def ba_to_sa_calculate_now(request, user=''):
         sku_avg_sale_mapping[data.id] = {'avg_sale_per_day': avg_sale_per_day, 'avail_qty': avail_qty}
 
     sku_classification_objs = []
-    for data in master_data[:100]:
+    for data in master_data:
         if not total_avg_sale_per_day:
             break
         sku_avg_sale_mapping_data = sku_avg_sale_mapping[data.id]
@@ -2968,17 +2954,19 @@ def ba_to_sa_calculate_now(request, user=''):
                 if not needed_qty:
                     continue
                 if ba_stock_obj.quantity < needed_qty:
-                    avail_quantity = ba_stock_obj.quantity
+                    suggested_qty = ba_stock_obj.quantity
                     needed_qty -=  ba_stock_obj.quantity
                 else:
-                    avail_quantity = needed_qty
+                    suggested_qty = needed_qty
                     needed_qty = 0
                 sku_classification_dict = {'sku_id': data.id, 'avg_sales_day': sku_avg_sale_per_day,
                                            'cumulative_contribution': cumulative_contribution,
                                            'classification': classification, 'source_stock_id': ba_stock_obj.id,
-                                           'replenushment_qty': replenishment_qty, 'reserved': avail_quantity,
-                                           'avail_quantity': avail_quantity,
-                                           'dest_location_id': locations[0].id,'status': 1}
+                                           'replenushment_qty': replenishment_qty, 'reserved': suggested_qty,
+                                           'suggested_qty': suggested_qty,
+                                           'avail_quantity': total_ba_stock,
+                                           'dest_location_id': locations[0].id, 'seller_id': seller_master.id,
+                                           'status': 1}
                 exist_obj = SkuClassification.objects.filter(sku_id=data.id, classification=classification,
                                                              source_stock_id=ba_stock_obj.id, status=1)
                 if not exist_obj:

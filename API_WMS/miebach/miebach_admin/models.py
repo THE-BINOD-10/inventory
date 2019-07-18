@@ -3278,9 +3278,11 @@ class SkuClassification(models.Model):
     cumulative_contribution = models.FloatField(default=0)
     classification = models.CharField(max_length=64, default='')
     dest_location = models.ForeignKey(LocationMaster, related_name='destination_location')
-    source_stock = models.ForeignKey(BatchDetail)
+    seller = models.ForeignKey(SellerMaster, blank=True, null=True)
+    source_stock = models.ForeignKey(StockDetail)
     replenushment_qty = models.FloatField(default=0)
     reserved = models.FloatField(default=0)
+    suggested_qty = models.FloatField(default=0)
     avail_quantity = models.FloatField(default=0)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -3288,4 +3290,4 @@ class SkuClassification(models.Model):
 
     class Meta:
         db_table = 'SKU_CLASSIFICATION'
-        unique_together = ('sku', 'classification', 'source_stock', 'status')
+        unique_together = ('sku', 'classification', 'source_stock', 'seller', 'status')

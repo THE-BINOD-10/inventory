@@ -49,6 +49,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         DTColumnBuilder.newColumn('cumulative_contribution').withTitle('Cumulative Contribution'),
         DTColumnBuilder.newColumn('classification').withTitle('Classification'),
         DTColumnBuilder.newColumn('mrp').withTitle('MRP'),
+        DTColumnBuilder.newColumn('weight').withTitle('Weight'),
+        DTColumnBuilder.newColumn('replenushment_qty').withTitle('Replenushment Qty'),
+        DTColumnBuilder.newColumn('avail_qty').withTitle('Avail Qty'),
         DTColumnBuilder.newColumn('source_location').withTitle('Source Location')
         .renderWith(function(data, type, full, meta) {
           return "<input type='text' class='form-control' name='source_location' value='"+full.source_location+"' class='smallbox' readonly>"
@@ -57,9 +60,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         .renderWith(function(data, type, full, meta) {
           return "<input type='text' name='dest_location' value='"+full.dest_location+"' class='smallbox'>"
         }),
-        DTColumnBuilder.newColumn('replenushment_qty').withTitle('Replenushment Qtyt')
+        DTColumnBuilder.newColumn('suggested_qty').withTitle('Suggested Qty')
         .renderWith(function(data, type, full, meta) {
-          return "<input type='text' name='replenushment_qty' value='"+full.replenushment_qty+"' class='smallbox'>"
+          return "<input type='text' name='suggested_qty' value='"+full.suggested_qty+"' class='smallbox'>"
         }),
     ];
 
@@ -100,7 +103,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       angular.forEach(vm.selected, function(k,v){
         if(k) {
           var row = rows[v];
-          data.push({name: 'sku_code', value: $(row).find("input[name='id']").val()})
+          data.push({name: 'data_id', value: vm.dtInstance.DataTable.context[0].aoData[v]._aData.data_id})
+          data.push({name: 'sku_code', value: vm.dtInstance.DataTable.context[0].aoData[v]._aData.sku_code})
           data.push({name: 'avg_sales_day', value: vm.dtInstance.DataTable.context[0].aoData[v]._aData.avg_sales_day})
           data.push({name: 'cumulative_contribution', value: vm.dtInstance.DataTable.context[0].aoData[v]._aData.cumulative_contribution})
           data.push({name: 'classification', value: vm.dtInstance.DataTable.context[0].aoData[v]._aData.classification})
@@ -108,6 +112,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           data.push({name: 'source_location', value: $(row).find("input[name='source_location']").val()})
           data.push({name: 'dest_location', value: $(row).find("input[name='dest_location']").val()})
           data.push({name: 'replenushment_qty', value: $(row).find("input[name='replenushment_qty']").val()})
+          data.push({name: 'suggested_qty', value: $(row).find("input[name='suggested_qty']").val()})
         }
       });
       vm.process = true;

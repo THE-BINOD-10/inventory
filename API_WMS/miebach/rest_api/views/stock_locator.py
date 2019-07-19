@@ -2914,10 +2914,9 @@ def cal_ba_to_sa(request, user=''):
 @login_required
 @get_admin_user
 def ba_to_sa_calculate_now(request, user=''):
-    master_data = SKUMaster.objects.filter(user = user.id).order_by('id').only('id', 'sku_code')
-    total_sum = 0
+    master_data = SKUMaster.objects.filter(user = user.id, status=1).order_by('id').only('id', 'sku_code')
     sellable_zones = get_all_sellable_zones(user)
-    total_avg_sale_per_day = 0
+    total_avg_sale_per_day_value = 0
     sku_avg_sale_mapping = OrderedDict()
     sku_avail_qty = OrderedDict()
     sku_res_qty = OrderedDict()
@@ -2946,7 +2945,6 @@ def ba_to_sa_calculate_now(request, user=''):
             sku_res_qty.setdefault(all_res.stock.sku_id, 0)
             sku_res_qty[all_res.stock.sku_id] += all_res.reserved
         for data in master_data:
-            print data.id
             stock_qty = sku_avail_qty.get(data.id, 0)
             res_qty = sku_res_qty.get(data.id, 0)
             avail_qty = stock_qty - res_qty
@@ -2956,26 +2954,32 @@ def ba_to_sa_calculate_now(request, user=''):
             order_detail_objs = OrderDetail.objects.filter(user = user.id, sku_id = data.id).\
                                    annotate(creation_date_only=Cast('creation_date', DateField())).\
                                    exclude(creation_date_only__in=no_stock_days).values('creation_date_only').distinct().\
-                                   order_by('-creation_date_only').annotate(Sum('quantity'))[:7]
-            sku_sales = 0
+                                   order_by('-creation_date_only').annotate(quantity_sum=Sum('quantity'),
+                                    value_sum=Sum(F('quantity') * F('unit_price')))[:7]
+            sku_sales_value = 0
+            sku_sales_units = 0
             for order_detail_obj in order_detail_objs:
-                value = order_detail_obj['quantity__sum']
-                sku_sales += value
-                total_sum += value
-            avg_sale_per_day = sku_sales/7
-            total_avg_sale_per_day += avg_sale_per_day
-            sku_avg_sale_mapping[data.id] = {'avg_sale_per_day': avg_sale_per_day, 'avail_qty': avail_qty}
+                quantity_sum = order_detail_obj['quantity_sum']
+                value_sum = order_detail_obj['value_sum']
+                sku_sales_value += value_sum
+                sku_sales_units += quantity_sum
+            avg_sale_per_day_value = sku_sales_value/7
+            avg_sale_per_day_units = sku_sales_units/7
+            total_avg_sale_per_day_value += avg_sale_per_day_units
+            sku_avg_sale_mapping[data.id] = {'avg_sale_per_day_value': avg_sale_per_day_value, 'avail_qty': avail_qty,
+                                             'avg_sale_per_day_units': avg_sale_per_day_units}
 
         sku_classification_objs = []
         for data in master_data:
-            if not total_avg_sale_per_day:
+            if not total_avg_sale_per_day_value:
                 break
             sku_avg_sale_mapping_data = sku_avg_sale_mapping[data.id]
-            sku_avg_sale_per_day = sku_avg_sale_mapping_data['avg_sale_per_day']
-            sku_avail_qty = sku_avg_sale_mapping_data['avg_sale_per_day']
-            avg_more_sales = {key:val for (key, val) in sku_avg_sale_mapping_data.items() if val >= sku_avg_sale_per_day}
+            sku_avg_sale_per_day_units = sku_avg_sale_mapping_data['avg_sale_per_day_units']
+            sku_avg_sale_per_day_value = sku_avg_sale_mapping_data['avg_sale_per_day_value']
+            sku_avail_qty = sku_avg_sale_mapping_data['avail_qty']
+            avg_more_sales = {key:val for (key, val) in sku_avg_sale_mapping_data.items() if val >= sku_avg_sale_per_day_value}
             sum_avg_more_sales = sum(avg_more_sales.values())
-            cumulative_contribution = (sum_avg_more_sales/total_avg_sale_per_day) * 100
+            cumulative_contribution = (sum_avg_more_sales/total_avg_sale_per_day_value) * 100
             if cumulative_contribution <= 40:
                 classification = 'Fast'
             elif cumulative_contribution > 80:
@@ -2986,8 +2990,10 @@ def ba_to_sa_calculate_now(request, user=''):
                                                                    size=data.sku_size)
             if not replenishment_obj.exists():
                 continue
-            min_stock = replenishment_obj[0].min_days
-            max_stock = replenishment_obj[0].max_days
+            min_days = replenishment_obj[0].min_days
+            max_days = replenishment_obj[0].max_days
+            min_stock = min_days * sku_avg_sale_per_day_units
+            max_stock = max_days * sku_avg_sale_per_day_units
             if sku_avail_qty > min_stock:
                 continue
             replenishment_qty = max_stock - sku_avail_qty
@@ -3010,7 +3016,7 @@ def ba_to_sa_calculate_now(request, user=''):
                     else:
                         suggested_qty = needed_qty
                         needed_qty = 0
-                    sku_classification_dict = {'sku_id': data.id, 'avg_sales_day': sku_avg_sale_per_day,
+                    sku_classification_dict = {'sku_id': data.id, 'avg_sales_day': sku_avg_sale_per_day_units,
                                                'cumulative_contribution': cumulative_contribution,
                                                'classification': classification, 'source_stock_id': ba_stock_obj.id,
                                                'replenushment_qty': replenishment_qty, 'reserved': suggested_qty,
@@ -3029,5 +3035,6 @@ def ba_to_sa_calculate_now(request, user=''):
         log.debug(traceback.format_exc())
         log.info('BA to SA Suggestion failed for %s and error statement is %s' % (
         str(user.username), str(e)))
+        return HttpResponse("Calculate BA to SA Failed")
 
     return HttpResponse('Calculated Successfully')

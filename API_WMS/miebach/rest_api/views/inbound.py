@@ -3094,7 +3094,7 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
                 for key_obj, value_obj in dict_obj.items():
                     disp_imei_map = {}
 
-                    disp_imei_map['po_imei_num'] = get_po_imei_qs
+                    disp_imei_map['po_imei_num'] = get_po_imei_qs[0]
                     disp_imei_map['qc_name'] = key_obj
                     dispatch_checklist = DispatchIMEIChecklist.objects.filter(**disp_imei_map)
                     if value_obj[1] == "false":
@@ -6463,7 +6463,7 @@ def check_qc_serial_numbers(user, po_id, wms_code, passed_serial_number, failed_
         send_imei_qc_details = dict(zip(passed_serial_number[wms_code], [imei_qc_details[k] for k in passed_serial_number[wms_code]]))
         save_status = "PASS"
         try:
-            purchase_order_qc(user, send_imei_qc_details, '', save_status)
+            purchase_order_qc(user, send_imei_qc_details, '', save_status,wms_code,data,int(po_id))
         except Exception as e:
             import traceback
             receive_po_qc_log.debug(traceback.format_exc())

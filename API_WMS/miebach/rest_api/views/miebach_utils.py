@@ -634,14 +634,16 @@ ORDER_FLOW_REPORT_DICT = {
          {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
          {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
          {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+         {'label': 'Order ID', 'name': 'order_id', 'type': 'input'},
+         {'label': 'Central Order ID', 'name': 'central_order_id', 'type': 'input'},
      ],
      'dt_headers': ['Main SR Number','SKU Code','SKU Description',
                     'Customer Name', 'Address',	'Phone No',
                     'Email Id',	'Alt SKU', 'Central order status',
-                    'Central Order cancellation remarks','Hub location','Hub location',
-                    'Order status','Order cancellation remarks','Outbound Qc params',
-                    'Serial Number','Shipment Status',	'Acknowledgement status','Receive PO status'
-                    'PO cancellation remarks',	'Inbound Qc params','SKU damage payment remarks', 'Putaway confirmation'],
+                    'Central Order cancellation remarks','Hub location','Hub location order status',
+                    'Order cancellation remarks','Outbound Qc params',
+                    'Serial Number','Shipment Status',	'Acknowledgement status','Receive PO status',
+                    'PO cancellation remarks',	'Inbound Qc params','SKU damage payment remarks'],
      'dt_url': 'get_order_flow_report', 'excel_name': 'get_order_flow_report',
      'print_url': 'print_order_flow_report',
   }
@@ -6849,11 +6851,15 @@ def get_orderflow_data(search_params, user, sub_user):
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)
     col_num = search_params.get('order_index', 0)
+
+    order_status_dict = {'1' :'Open','0' :'Picklist Confirmed','2':'Dispatched','3':'Cancelled'}
+    central_order_status = {'1':'Accepted','0':'Rejected','2':'Pending'}
     if search_params.get('length', 0):
         stop_index = start_index + search_params.get('length', 0)
     else:
         stop_index = None
     search_parameters = {}
+    order_fields_dict = {}
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -6861,46 +6867,61 @@ def get_orderflow_data(search_params, user, sub_user):
         search_parameters['creation_date__gt'] = search_params['from_date']
     if 'to_date' in search_params:
         search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'order_id' in search_params:
+        search_parameters['order__original_order_id'] = search_params['order_id']
     if 'sku_code' in search_params:
-        if search_params['sku_code']:
-            search_parameters['sku__sku_code'] = search_params['sku_code']
-    
+        search_parameters['sku__wms_code'] = search_params['sku_code']
+    if 'central_order_id' in search_params :
+        search_parameters['interm_order_id'] = search_params['central_order_id']
+
     search_parameters['user'] = user.id
-
     order_flow_data = IntermediateOrders.objects.filter(**search_parameters).\
-                                            order_by(order_data).select_related('order','sku','alt_sku').values('order_assigned_wh__username','customer_name','status',
+                                            order_by(order_data).select_related('order','sku','alt_sku').values('interm_order_id','order_assigned_wh__username','customer_name','status',
                                                                                                                 'sku__wms_code','alt_sku__wms_code','order__original_order_id','order__status','order__id')
-
     temp_data['recordsTotal'] = order_flow_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     outbound_qc,inbound_qc,serial_number ,shipment_status  = '','','','open'
+    po_status,po_cancel_reason,acknowledgement_status = '' ,'','No'
+    sku_damaze_remarks = ''
     for data in  (order_flow_data[start_index:stop_index]):
         if data['order__id'] :
-           outbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id =data['order__id'],qc_type = 'sales_order')         
+
+           singned_invoice = MasterDocs.objects.filter(master_id =data['order__id'])
+           if singned_invoice.exists():
+               acknowledgement_status = 'Yes'
+
+           order_fields_dict = dict(OrderFields.objects.filter(original_order_id =data['interm_order_id'],user = user.id).values_list('name','value'))
+           outbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id =data['order__id'],qc_type = 'sales_order').exclude(remarks = '')
            if outbound_dispatch_imei.exists():
                serial_number = outbound_dispatch_imei[0].po_imei_num.imei_number
-               outbound_qc = ''.join(outbound_dispatch_imei.values_list('remarks',flat = True))
+               outbound_qc = ','.join(outbound_dispatch_imei.values_list('remarks',flat = True))
            shipment = ShipmentInfo.objects.filter(order_id = data['order__id'])
            if shipment.exists():
                shipment_status = 'Dispatched'
-             
+
            po_obj = OrderMapping.objects.filter(order_id = data['order__id'])
            if po_obj.exists():
-              inbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id =po_obj[0].mapping_id,qc_type = 'purchase_order')
+              inbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id =po_obj[0].mapping_id,qc_type = 'purchase_order').exclude(remarks = '')
+              purchase_order_obj = PurchaseOrder.objects.filter(id =po_obj[0].mapping_id )
+              if purchase_order_obj.exists():
+                  po_status = purchase_order_obj[0].status
+                  po_cancel_reason  = purchase_order_obj[0].reason
+                  sku_damaze_remarks = purchase_order_obj[0].remarks
+
               if inbound_dispatch_imei.exists():
-                  inbound_qc = ''.join(outbound_dispatch_imei.values_list('remarks',flat = True))
-               
+                  inbound_qc = ','.join(outbound_dispatch_imei.values_list('remarks',flat = True))
+
 
 
 
         temp_data['aaData'].append(OrderedDict((('Main SR Number',data['order__original_order_id']),('SKU Code', data['sku__wms_code']),
                                                 ('SKU Description',data['sku__wms_code']),('Customer Name',data['customer_name']),\
-                                                ('Address','' ),('Phone No',''),('Email Id',''),\
-                                                ('Alt SKU',data['alt_sku__wms_code']),('Central order status',data['status']),('Central Order cancellation remarks',''),
-                                                ('Hub location',data['order_assigned_wh__username']),('Hub location order status',data['order__status']),\
+                                                ('Address',order_fields_dict.get('address','')),('Phone No',order_fields_dict.get('mobile_no','')),('Email Id',order_fields_dict.get('email_id','')),\
+                                                ('Alt SKU',data['alt_sku__wms_code']),('Central order status',central_order_status.get(data['status'],'')),('Central Order cancellation remarks',''),
+                                                ('Hub location',data['order_assigned_wh__username']),('Hub location order status',order_status_dict.get(data['order__status'],'')),\
                                                 ('Order cancellation remarks',''),('Outbound Qc params',outbound_qc),('Serial Number',serial_number),
-                                                ('Shipment Status',shipment_status),('Acknowledgement status',''),('Receive PO status',''),('Inbound Qc params',inbound_qc),
-                                                ('PO cancellation remarks',''),('SKU damage payment remarks',''),('Putaway confirmation',''))))
+                                                ('Shipment Status',shipment_status),('Acknowledgement status',acknowledgement_status),('Receive PO status',po_status),('Inbound Qc params',inbound_qc),
+                                                ('PO cancellation remarks',po_cancel_reason),('SKU damage payment remarks',sku_damaze_remarks))))
     return temp_data
 
 def get_current_stock_report_data(search_params, user, sub_user):

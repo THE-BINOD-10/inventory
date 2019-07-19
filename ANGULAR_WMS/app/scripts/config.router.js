@@ -2154,7 +2154,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Open Order Report',
+            title: 'Order Flow Report',
           }
         })
 

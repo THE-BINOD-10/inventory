@@ -8,7 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.service = Service;
     vm.service.print_enable = false;
     vm.parent_username = Session.parent.userName
-
+    vm.central_order_mgmt = Session.roles.permissions.central_order_mgmt
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'get_inventory_aging_filter/',
@@ -31,7 +31,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
         DTColumnBuilder.newColumn('As on Date(Days)').withTitle('As on Date(Days)')
     ];
-    if(vm.parent_username == 'isprava_admin'){
+    if(vm.central_order_mgmt ){
       vm.dtColumns.push(DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse Name'))
     }
 

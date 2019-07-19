@@ -10,6 +10,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.service.print_enable = false;
   vm.g_data = Data.dispatch_summary_report;
   vm.parent_username = Session.parent.userName
+  vm.central_order_mgmt = Session.roles.permissions.central_order_mgmt
   vm.dispatch_summary_view_types = Data.dispatch_summary_view_types;
   vm.model_data = {'datatable': vm.g_data.view}
   vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -28,7 +29,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
      .withPaginationType('full_numbers');
 
   vm.dtColumns = vm.service.build_colums(vm.g_data.tb_headers[vm.g_data.view]);
-  if(vm.parent_username == 'isprava_admin'){
+  if(vm.central_order_mgmt ){
       vm.dtColumns.push(DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse Name'))
     }
 

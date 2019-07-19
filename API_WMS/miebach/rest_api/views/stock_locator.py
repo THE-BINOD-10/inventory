@@ -2808,7 +2808,7 @@ def confirm_combo_allocation(request, user=''):
 def get_skuclassification(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     lis = ['sku__sku_code', 'sku__sku_code', 'avg_sales_day', 'cumulative_contribution', 'classification',
            'source_stock__batch_detail__mrp', 'source_stock__batch_detail__weight', 'replenushment_qty',
-           '','source_stock__location__location',
+           'avail_quantity', 'min_stock_qty', 'max_stock_qty', 'source_stock__location__location',
            'dest_location__location',
            'reserved']
     search_params = get_filtered_params(filters, lis)
@@ -3008,7 +3008,10 @@ def ba_to_sa_calculate_now(request, user=''):
             ba_stock_objs = StockDetail.objects.filter(location__zone__zone='Bulk Zone', sku_id=data.id,
                                                   sellerstock__seller__seller_id=1, quantity__gt=0,
                                                   sellerstock__quantity__gt=0)
-            needed_qty = int(replenishment_qty)
+            replenishment_qty = int(replenishment_qty)
+            needed_qty = replenishment_qty
+            if not needed_qty:
+                continue
             if ba_stock_objs.exists():
                 total_ba_stock = ba_stock_objs.aggregate(Sum('sellerstock__quantity'))['sellerstock__quantity__sum']
                 if total_ba_stock < replenishment_qty:
@@ -3027,7 +3030,7 @@ def ba_to_sa_calculate_now(request, user=''):
                     sku_classification_dict = {'sku_id': data.id, 'avg_sales_day': sku_avg_sale_per_day_units,
                                                'cumulative_contribution': cumulative_contribution,
                                                'classification': classification, 'source_stock_id': ba_stock_obj.id,
-                                               'replenushment_qty': int(replenishment_qty), 'reserved': suggested_qty,
+                                               'replenushment_qty': replenishment_qty, 'reserved': suggested_qty,
                                                'suggested_qty': suggested_qty,
                                                'avail_quantity': total_ba_stock,
                                                'dest_location_id': locations[0].id, 'seller_id': seller_master.id,

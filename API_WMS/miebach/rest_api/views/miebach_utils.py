@@ -6876,16 +6876,15 @@ def get_orderflow_data(search_params, user, sub_user):
 
     search_parameters['user'] = user.id
     order_flow_data = IntermediateOrders.objects.filter(**search_parameters).\
-                                            order_by(order_data).select_related('order','sku','alt_sku').values('interm_order_id','order_assigned_wh__username','customer_name','status',
+                                            order_by(order_data).select_related('order','sku','alt_sku').values('interm_order_id','order_assigned_wh__username','customer_name','status','remarks',
                                                                                                                 'sku__wms_code','alt_sku__wms_code','order__original_order_id','order__status','order__id')
     temp_data['recordsTotal'] = order_flow_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     outbound_qc,inbound_qc,serial_number ,shipment_status  = '','','','open'
     po_status,po_cancel_reason,acknowledgement_status = '' ,'','No'
-    sku_damaze_remarks = ''
+    sku_damaze_remarks ,central_order_remarks = '',''
     for data in  (order_flow_data[start_index:stop_index]):
         if data['order__id'] :
-
            singned_invoice = MasterDocs.objects.filter(master_id =data['order__id'])
            if singned_invoice.exists():
                acknowledgement_status = 'Yes'
@@ -6910,14 +6909,16 @@ def get_orderflow_data(search_params, user, sub_user):
 
               if inbound_dispatch_imei.exists():
                   inbound_qc = ','.join(outbound_dispatch_imei.values_list('remarks',flat = True))
-
-
+           if data['status'] == '3':
+               central_order_remarks = data['remarks']
+               shipment_status = ''
+               acknowledgement_status = ''
 
 
         temp_data['aaData'].append(OrderedDict((('Main SR Number',data['order__original_order_id']),('SKU Code', data['sku__wms_code']),
                                                 ('SKU Description',data['sku__wms_code']),('Customer Name',data['customer_name']),\
                                                 ('Address',order_fields_dict.get('address','')),('Phone No',order_fields_dict.get('mobile_no','')),('Email Id',order_fields_dict.get('email_id','')),\
-                                                ('Alt SKU',data['alt_sku__wms_code']),('Central order status',central_order_status.get(data['status'],'')),('Central Order cancellation remarks',''),
+                                                ('Alt SKU',data['alt_sku__wms_code']),('Central order status',central_order_status.get(data['status'],'')),('Central Order cancellation remarks',central_order_remarks),
                                                 ('Hub location',data['order_assigned_wh__username']),('Hub location order status',order_status_dict.get(data['order__status'],'')),\
                                                 ('Order cancellation remarks',''),('Outbound Qc params',outbound_qc),('Serial Number',serial_number),
                                                 ('Shipment Status',shipment_status),('Acknowledgement status',acknowledgement_status),('Receive PO status',po_status),('Inbound Qc params',inbound_qc),

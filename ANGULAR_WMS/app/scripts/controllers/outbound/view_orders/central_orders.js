@@ -343,37 +343,36 @@ var vm = this;
       }
     }
     vm.delete_order = function() {
-      vm.delete_order_data = [];
-      var rejected_orders = true;
-      for (var key in vm.selected) {
-        if (vm.selected[key]) {
-          var delete_row = vm.dtInstance.DataTable.context[0].aoData[key]._aData
-          var elem = {
-            'status': delete_row['Status'], 'interm_id': delete_row['data_id'], 'interm_order_id': delete_row['Order ID']
+      {
+        var data = [];
+          for(var key in vm.selected){
+            if(vm.selected[key]) {
+              var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
+              data.push(temp)
+            }
           }
-          if (delete_row['Status'] == 'Reject') {
-            Service.showNoty('Rejected orders Not possible');
-            rejected_orders = false;
-            vm.delete_order_data = [];
-          }else {
-            vm.delete_order_data.push(elem);
+        var send_data  = {data: data}
+        var modalInstance = $modal.open({
+          templateUrl: 'views/outbound/toggle/cancel_central_order.html',
+          controller: 'Rejectorderpop',
+          controllerAs: 'pop',
+          size: 'lg',
+          backdrop: 'static',
+          keyboard: false,
+          windowClass: 'full-modal',
+          resolve: {
+            items: function () {
+              return send_data;
+            }
           }
-        }
+        });
+        modalInstance.result.then(function (selectedItem) {
+          var data = selectedItem;
+          reloadData();
+        }, function () {
+           $log.info('Modal dismissed at: ' + new Date());
+        });
       }
-      if (vm.delete_order_data.length && rejected_orders) {
-        vm.service.apiCall('delete_central_order/', 'POST', {'delete_order_data': JSON.stringify(vm.delete_order_data)}).then(function(resp) {
-          if (resp.message) {
-            vm.reloadData()
-            SweetAlert.swal({
-              title: 'Deleted Orders',
-              text: resp.data.output_msg,
-              type: 'success',
-              confirmButtonColor: '#33cc66',
-              confirmButtonText: 'Ok',
-              closeOnConfirm: true,
-            })
-          }
-        })
-      }
-    }
+
+   }
 }

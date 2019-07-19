@@ -8811,7 +8811,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    interm_orders = IntermediateOrders.objects.filter(**data_dict)
+    interm_orders = IntermediateOrders.objects.filter(**data_dict).exclude(status = 3)
     if search_term:
         all_orders = interm_orders.filter(Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term)|
                                             Q(quantity__icontains=search_term) | Q(shipment_date__regex=search_term)|
@@ -14954,23 +14954,23 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
 @login_required
 @get_admin_user
 def delete_central_order(request, user=''):
-    delete_orders = eval(request.POST.get('delete_order_data', ''))
-    for del_obj in delete_orders:
+    orders_dict = dict(request.POST)
+    for i in range(len(orders_dict['order_id'])):
         try:
-            inter_obj = IntermediateOrders.objects.filter(id=del_obj['interm_id'])
-            import pdb; pdb.set_trace()
-            if del_obj['status'] == 'Pending' and not inter_obj[0].order:
-                h = inter_obj
-                v= OrderFields.objects.filter(user=user.id, original_order_id=del_obj['interm_order_id'])
-                print v
-                print h
-            if del_obj['status'] == 'Accept' and inter_obj[0].order:
-                print inter_obj
+            interm_obj = IntermediateOrders.objects.filter(interm_order_id=orders_dict['order_id'][i],user = user.id)
+            if interm_obj.exists():
+                order_ids = interm_obj.exclude(order__status__in = [0,2]).values('order__id')
+                for id in order_ids :
+                    OrderDetail.objects.filter(id = id['order__id']).update(status =3)
+                for obj in interm_obj :
+                    int_order_obj = obj
+                    int_order_obj.remarks = orders_dict['remarks'][i]
+                    int_order_obj.status = 3
+                    int_order_obj.save()
+
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
-            # log.info('downloading excel  failed for %s and params are %s and error statement is %s' % (
-            # str(user.username), str(request.POST.dict()), str(e)))
     return HttpResponse('Success')
 
 @login_required

@@ -2817,7 +2817,10 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
         order_data = '-%s' % order_data
     if search_term:
         master_data = SkuClassification.objects.filter(
-                Q(sku__wms_code__icontains=search_term), sku__user=user.id, status=1).order_by(order_data)
+                Q(sku__wms_code__icontains=search_term) | Q(classification____icontains=search_term) |
+                Q(source_stock__batch_detail__mrp__icontains=search_term) |
+                Q(source_stock__batch_detail__weight__icontains=search_term),
+                sku__user=user.id, status=1).order_by(order_data)
     else:
         master_data = SkuClassification.objects.filter(sku__user=user.id, status=1, **search_params).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
@@ -2836,6 +2839,8 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
                          ('weight', weight),
                          ('replenushment_qty', data.replenushment_qty),
                          ('avail_qty', data.avail_quantity),
+                         ('min_stock_qty', int(data.min_stock_qty)),
+                         ('max_stock_qty', int(data.max_stock_qty)),
                          ('source_location', data.source_stock.location.location),
                          ('dest_location', data.dest_location.location),
                          ('suggested_qty', data.reserved),
@@ -2945,6 +2950,7 @@ def ba_to_sa_calculate_now(request, user=''):
             sku_res_qty.setdefault(all_res.stock.sku_id, 0)
             sku_res_qty[all_res.stock.sku_id] += all_res.reserved
         for data in master_data:
+            print data.id
             stock_qty = sku_avail_qty.get(data.id, 0)
             res_qty = sku_res_qty.get(data.id, 0)
             avail_qty = stock_qty - res_qty
@@ -2965,7 +2971,7 @@ def ba_to_sa_calculate_now(request, user=''):
                 sku_sales_units += quantity_sum
             avg_sale_per_day_value = sku_sales_value/7
             avg_sale_per_day_units = sku_sales_units/7
-            total_avg_sale_per_day_value += avg_sale_per_day_units
+            total_avg_sale_per_day_value += avg_sale_per_day_value
             sku_avg_sale_mapping[data.id] = {'avg_sale_per_day_value': avg_sale_per_day_value, 'avail_qty': avail_qty,
                                              'avg_sale_per_day_units': avg_sale_per_day_units}
 
@@ -2977,8 +2983,10 @@ def ba_to_sa_calculate_now(request, user=''):
             sku_avg_sale_per_day_units = sku_avg_sale_mapping_data['avg_sale_per_day_units']
             sku_avg_sale_per_day_value = sku_avg_sale_mapping_data['avg_sale_per_day_value']
             sku_avail_qty = sku_avg_sale_mapping_data['avail_qty']
-            avg_more_sales = {key:val for (key, val) in sku_avg_sale_mapping_data.items() if val >= sku_avg_sale_per_day_value}
-            sum_avg_more_sales = sum(avg_more_sales.values())
+            avg_more_sales = filter(lambda person: person['avg_sale_per_day_value'] >= sku_avg_sale_per_day_value, sku_avg_sale_mapping.values())
+            sum_avg_more_sales = 0
+            for avg_more_sale in avg_more_sales:
+                sum_avg_more_sales += avg_more_sale['avg_sale_per_day_value']
             cumulative_contribution = (sum_avg_more_sales/total_avg_sale_per_day_value) * 100
             if cumulative_contribution <= 40:
                 classification = 'Fast'
@@ -3000,7 +3008,7 @@ def ba_to_sa_calculate_now(request, user=''):
             ba_stock_objs = StockDetail.objects.filter(location__zone__zone='Bulk Zone', sku_id=data.id,
                                                   sellerstock__seller__seller_id=1, quantity__gt=0,
                                                   sellerstock__quantity__gt=0)
-            needed_qty = replenishment_qty
+            needed_qty = int(replenishment_qty)
             if ba_stock_objs.exists():
                 total_ba_stock = ba_stock_objs.aggregate(Sum('sellerstock__quantity'))['sellerstock__quantity__sum']
                 if total_ba_stock < replenishment_qty:
@@ -3019,10 +3027,11 @@ def ba_to_sa_calculate_now(request, user=''):
                     sku_classification_dict = {'sku_id': data.id, 'avg_sales_day': sku_avg_sale_per_day_units,
                                                'cumulative_contribution': cumulative_contribution,
                                                'classification': classification, 'source_stock_id': ba_stock_obj.id,
-                                               'replenushment_qty': replenishment_qty, 'reserved': suggested_qty,
+                                               'replenushment_qty': int(replenishment_qty), 'reserved': suggested_qty,
                                                'suggested_qty': suggested_qty,
                                                'avail_quantity': total_ba_stock,
                                                'dest_location_id': locations[0].id, 'seller_id': seller_master.id,
+                                               'min_stock_qty': min_stock, 'max_stock_qty': max_stock,
                                                'status': 1}
                     exist_obj = SkuClassification.objects.filter(sku_id=data.id, classification=classification,
                                                                  source_stock_id=ba_stock_obj.id, status=1)

@@ -3287,6 +3287,8 @@ class SkuClassification(models.Model):
     dest_location = models.ForeignKey(LocationMaster, related_name='destination_location')
     seller = models.ForeignKey(SellerMaster, blank=True, null=True)
     source_stock = models.ForeignKey(StockDetail)
+    min_stock_qty = models.FloatField(default=0)
+    max_stock_qty = models.FloatField(default=0)
     replenushment_qty = models.FloatField(default=0)
     reserved = models.FloatField(default=0)
     suggested_qty = models.FloatField(default=0)

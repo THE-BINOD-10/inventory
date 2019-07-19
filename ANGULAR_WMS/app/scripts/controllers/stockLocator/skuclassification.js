@@ -51,7 +51,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         DTColumnBuilder.newColumn('mrp').withTitle('MRP'),
         DTColumnBuilder.newColumn('weight').withTitle('Weight'),
         DTColumnBuilder.newColumn('replenushment_qty').withTitle('Replenushment Qty'),
-        DTColumnBuilder.newColumn('avail_qty').withTitle('Avail Qty'),
+        DTColumnBuilder.newColumn('avail_qty').withTitle('BA Avail Qty'),
+        DTColumnBuilder.newColumn('min_stock_qty').withTitle('Min Stock'),
+        DTColumnBuilder.newColumn('max_stock_qty').withTitle('Max Stock'),
         DTColumnBuilder.newColumn('source_location').withTitle('Source Location')
         .renderWith(function(data, type, full, meta) {
           return "<input type='text' class='form-control' name='source_location' value='"+full.source_location+"' class='smallbox' readonly>"

@@ -1614,8 +1614,8 @@ angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance,
   $ctrl.categories = [];
   $ctrl.categories_loading = true;
   $ctrl.get_categories = function() {
-    get_brand_filter_value('brand_value');
-    get_brand_filter_value('category_value');
+    // get_brand_filter_value('brand_value');
+    // get_brand_filter_value('category_value');
     var data = {brand: '', sale_through: $ctrl.marginData.sale_through};
     Service.apiCall("get_sku_categories/", "GET",data).then(function(data){
       if(data.message) {

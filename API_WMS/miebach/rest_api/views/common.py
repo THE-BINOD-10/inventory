@@ -9308,6 +9308,7 @@ def get_all_sellable_zones(user):
 
 
 def cancel_emiza_order(gen_ord_id, cm_id):
+    log.info("Cancelling Emiza Order. Gen Ord: %s and Customer Id: %s" %(gen_ord_id, cm_id))
     customer_qs = CustomerUserMapping.objects.filter(customer_id=cm_id)
     if customer_qs:
         customer_user = customer_qs[0]

@@ -5903,12 +5903,12 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             elif key == 'customer_name':
                 order_data['customer_name'] = get_cell_data(row_idx, value, reader, file_type)
             elif key == 'address1':
-                key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))[:255]
                 order_fields_objs = create_order_fields_entry(order_id, key, key_value, user, is_bulk_create=True,
                               order_fields_objs=order_fields_objs)
                 address1 = key_value
             elif key == 'address2':
-                key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))[:255]
                 order_fields_objs = create_order_fields_entry(order_id, key, key_value, user, is_bulk_create=True,
                               order_fields_objs=order_fields_objs)
                 address2 = key_value

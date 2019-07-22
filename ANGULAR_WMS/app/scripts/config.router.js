@@ -796,6 +796,12 @@ var app = angular.module('urbanApp')
             url: '/QC',
             templateUrl: 'views/inbound/toggle/qc.html'
           })
+
+          .state('app.inbound.QualityCheck.qc_print', {
+             url: '/QcPrint',
+             templateUrl: 'views/inbound/toggle/qc_print_toggle.html'
+           })
+
           .state('app.inbound.QualityCheck.qc_detail', {
             url: '/QC_Detail',
             templateUrl: 'views/inbound/toggle/qc_detail.html'
@@ -1592,6 +1598,7 @@ var app = angular.module('urbanApp')
            url: '/InvoiceE',
            templateUrl: 'views/outbound/print/manifest_invoice.html'
          })
+
         .state('app.outbound.ShipmentInfo.Shipment', {
           url: '/Shipment',
           templateUrl: 'views/outbound/toggle/ship_tg.html'

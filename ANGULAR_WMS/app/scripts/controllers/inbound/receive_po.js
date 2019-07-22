@@ -28,6 +28,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $rootScope.collect_imei_details = {};
     vm.failed_serial_number = {};
     vm.passed_serial_number = {};
+
+    vm.quantity_focused = false;
+
     vm.collect_imei_details = $rootScope.collect_imei_details;
     if(vm.permissions.receive_po_mandatory_fields) {
       angular.forEach(vm.permissions.receive_po_mandatory_fields.split(','), function(field){
@@ -2457,6 +2460,24 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
       }
     })
+  }
+
+  vm.get_current_weight = function(event, data, index, parent_index) {
+    if(vm.permissions.weight_integration_name.length > 0) {
+      var sku_row_data = {};
+      angular.copy(data.data[parent_index][index], sku_row_data);
+      vm.service.apiCall('get_current_weight/', 'GET',{}).then(function(res_data){
+        if(res_data.message){
+          if(res_data.data.status && res_data.data.is_updated){
+            data.data[parent_index][index].value = res_data.data.weight;
+            vm.calc_total_amt(event, data, index, parent_index);
+          }
+          if(vm.quantity_focused) {
+            setTimeout(function(){ vm.get_current_weight(event, data, index, parent_index); }, 1000);
+          }
+        }
+      });
+    }
   }
 
   vm.file_size_check = function(event, file_obj) {

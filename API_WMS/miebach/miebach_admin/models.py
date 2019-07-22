@@ -3178,19 +3178,27 @@ class ReturnsIMEIMapping(models.Model):
 class StockReconciliation(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster)
+    mrp = models.FloatField(default=0)
+    weight = models.CharField(max_length=64, default='')
     vendor_name = models.CharField(max_length=64, default='')
-    quantity = models.PositiveIntegerField()
-    report_type = models.CharField(max_length=64, default='')
-    avg_rate = models.FloatField(default=0)
-    amount_before_tax = models.FloatField(default=0)
-    tax_rate = models.FloatField(default=0)
-    cess_rate = models.FloatField(default=0)
-    amount_after_tax = models.FloatField(default=0)
-    created_date = models.DateField(blank=True, null=True)
+    opening_quantity = models.FloatField(default=0)
+    opening_avg_rate = models.FloatField(default=0)
+    opening_amount = models.FloatField(default=0)
+    purchase_quantity = models.FloatField(default=0)
+    purchase_avg_rate = models.FloatField(default=0)
+    purchase_amount = models.FloatField(default=0)
+    customer_sales_quantity = models.FloatField(default=0)
+    customer_sales_avg_rate = models.FloatField(default=0)
+    customer_sales_amount = models.FloatField(default=0)
+    closing_quantity = models.FloatField(default=0)
+    closing_avg_rate = models.FloatField(default=0)
+    closing_amount = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'STOCK_RECONCILIATION'
+        unique_together = ('sku', 'mrp', 'weight', 'creation_date')
 
 class MiscDetailOptions(models.Model):
     id = BigAutoField(primary_key=True)

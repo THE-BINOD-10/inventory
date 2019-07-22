@@ -466,9 +466,9 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
         if(data.message) {
           if(data.data == 'Success') {
             Service.showNoty('Successfully Cancelled the Order');
+            $modalInstance.close();
             vm.cancelPoDisable = false;
-            vm.close();
-            reloadData();
+
           } else {
             Service.showNoty(data.data, 'warning');
             vm.cancelPoDisable = false;

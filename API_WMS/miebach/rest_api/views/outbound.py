@@ -15839,16 +15839,19 @@ def sm_custom_order_cancel(request, user=''):
     enq_id = request.POST.get('enquiry_id')
     usr_id = request.POST.get('user_id')
     try:
-        manual_enquiry_object = ManualEnquiry.objects.filter(enquiry_id=enq_id,
-                                                          user_id=usr_id)
-        manual_enquiry_details_object = ManualEnquiryDetails.objects.filter(enquiry_id=enq_id,
-                                                          remarks_user_id=usr_id)
-        order_status = manual_enquiry_object[0].status
-        if user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and order_status.lower() != 'order_placed':
-            manual_enquiry_object[0].delete()
-            manual_enquiry_details_object[0].delete()
+        if enq_id:
+            manual_enquiry_object = ManualEnquiry.objects.filter(enquiry_id=enq_id,
+                                                              user_id=usr_id)
+            manual_enquiry_details_object = ManualEnquiryDetails.objects.filter(enquiry_id=enq_id,
+                                                              remarks_user_id=usr_id)
+            order_status = manual_enquiry_object[0].status
+            if user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and order_status.lower() != 'order_placed':
+                manual_enquiry_object[0].delete()
+                manual_enquiry_details_object[0].delete()
+            else :
+                message = 'Placed Orders Can Not Be Deleted '
         else :
-            message = 'Placed Orders Can Not Be Deleted '
+            message = 'Order Not Available '
 
     except Exception as e:
         import traceback

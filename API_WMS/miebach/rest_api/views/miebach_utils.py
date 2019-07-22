@@ -3243,9 +3243,12 @@ def get_po_filter_data(search_params, user, sub_user):
 
 def get_stock_summary_data(search_params, user, sub_user):
     from miebach_admin.models import *
+    from common import get_misc_value
     from rest_api.views.common import get_sku_master
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     temp_data = copy.deepcopy(AJAX_DATA)
+    central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
+    warehouse_users = {}
     search_parameters = {}
     search_stage = search_params.get('stage', '')
     stage_filter = {'user': user.id}
@@ -3266,13 +3269,18 @@ def get_stock_summary_data(search_params, user, sub_user):
             search_parameters['%s__%s__%s' % ('sku', data, 'iexact')] = search_params[data]
             job_filter['%s__%s__%s' % ('product_code', data, 'iexact')] = search_params[data]
 
-    search_parameters['sku__user'] = user.id
+    if central_order_mgmt == 'true':
+        warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+        warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
+        sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
+        sku_master_ids = sku_master.values_list('id', flat=True)
+    else:
+        search_parameters['sku__user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
-
     sku_master = StockDetail.objects.exclude(receipt_number=0).values_list('sku_id', 'sku__sku_code', 'sku__sku_desc',
                                                                            'sku__sku_brand',
-                                                                           'sku__sku_category').distinct().annotate(
-        total=Sum('quantity')).filter(quantity__gt=0,
+                                                                           'sku__sku_category', 'sku__user').distinct().annotate(
+        total=Sum('quantity'), stock_value=Sum(F('quantity') * F('unit_price'))).filter(quantity__gt=0,
                                       **search_parameters)
     if search_stage and not search_stage == 'In Stock':
         sku_master = []
@@ -3300,9 +3308,10 @@ def get_stock_summary_data(search_params, user, sub_user):
     sku_master_list = []
     for ind, sku in enumerate(sku_master):
         sku_stages_dict = {}
+        total_stock_value = 0
         intransit_quantity = 0
-        if len(list(sku)) == 6:
-            sku_stages_dict['In Stock'] = sku[5]
+        if len(list(sku)) >= 6:
+            sku_stages_dict['In Stock'] = sku[6]
         if sku[0] in intransit_skus:
             total_ordered = map(lambda d: d['total_order'], purchase_orders)[intransit_skus.index(sku[0])]
             total_received = map(lambda d: d['total_received'], purchase_orders)[intransit_skus.index(sku[0])]
@@ -3317,14 +3326,21 @@ def get_stock_summary_data(search_params, user, sub_user):
 
         tracking = dict(zip(map(lambda d: d.get('status_value', ''), status_track),
                             map(lambda d: d.get('total', '0'), status_track)))
+        wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code = sku[1], sku__user=user.id)
+        wms_code_obj_unit_price = wms_code_obj.filter(unit_price__gt=0).only('quantity', 'unit_price')
+        total_wms_qty_unit_price = sum(wms_code_obj_unit_price.annotate(stock_value=Sum(F('quantity') * F('unit_price'))).values_list('stock_value',flat=True))
+        wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
+        total_wms_qty_sku_unit_price = sum(wms_code_obj_sku_unit_price.annotate(stock_value=Sum(F('quantity') * F('sku__cost_price'))).values_list('stock_value',flat=True))
+        total_stock_value = total_wms_qty_unit_price + total_wms_qty_sku_unit_price
         for head in extra_headers:
             quantity = tracking.get(head, 0)
             if quantity:
                 sku_stages_dict[head] = tracking.get(head, 0)
+        
         for key, value in sku_stages_dict.iteritems():
             sku_master_list.append(OrderedDict((('SKU Code', sku[1]), ('Description', sku[2]),
                                                 ('Brand', sku[3]), ('Category', sku[4]),
-                                                ('Stage', key), ('Stage Quantity', value))))
+                                                ('Stage', key), ('Stage Quantity', value), ('Stock Value', total_stock_value),  ('Warehouse', warehouse_users.get(sku[5])))))
 
     temp_data['recordsTotal'] = len(sku_master_list)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']

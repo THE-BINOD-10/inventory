@@ -6907,7 +6907,7 @@ def get_orderflow_data(search_params, user, sub_user):
                   sku_damaze_remarks = purchase_order_obj[0].remarks
 
               if inbound_dispatch_imei.exists():
-                  inbound_qc = ','.join(outbound_dispatch_imei.values_list('remarks',flat = True))
+                  inbound_qc = ','.join(inbound_dispatch_imei.values_list('remarks',flat = True))
            if data['status'] == '3':
                central_order_remarks = data['remarks']
                shipment_status = ''

@@ -2214,7 +2214,6 @@ def get_purchaseorder_locations(put_zone, temp_dict):
             Q(location__exact='') | Q(zone__zone=put_zone) | get_dictionary_query(exclude_dict)). \
             exclude(zone__zone__in=exclude_zones_list).filter(**filter_params).order_by('fill_sequence')
         location4 = list(chain(location4, location5))
-
     location = list(chain(location2, location3, location4))
 
     location = list(chain(location, location_masters.filter(zone__zone='DEFAULT')))
@@ -3028,7 +3027,6 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                                                seller_summary_id=seller_received_list[0].get('id', ''))
         temp_dict = {'received_quantity': float(value), 'user': user.id, 'data': data, 'pallet_number': pallet_number,
                      'pallet_data': pallet_data}
-
         if (get_permission(request.user, 'add_qualitycheck') and purchase_data['qc_check'] == 1):
             put_zone = 'QC_ZONE'
             qc_data = copy.deepcopy(QUALITY_CHECK_FIELDS)
@@ -3093,7 +3091,7 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
             for dict_obj in value:
                 for key_obj, value_obj in dict_obj.items():
                     disp_imei_map = {}
-
+                    disp_imei_map['qc_type'] = 'purchase_order'
                     disp_imei_map['po_imei_num'] = get_po_imei_qs[0]
                     disp_imei_map['qc_name'] = key_obj
                     dispatch_checklist = DispatchIMEIChecklist.objects.filter(**disp_imei_map)

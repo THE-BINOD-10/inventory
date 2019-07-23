@@ -1500,7 +1500,17 @@ def print_purchase_order_form(request, user=''):
         address = '\n'.join(address.split(','))
         if open_po.ship_to:
             ship_to_address = open_po.ship_to
-            company_address = user.userprofile.address
+            if user.userprofile.wh_address:
+                company_address = user.userprofile.wh_address
+                if user.username in MILKBASKET_USERS:
+                    if user.userprofile.user.email:
+                        company_address = ("%s, Email:%s") % (company_address, user.userprofile.user.email)
+                    if user.userprofile.phone_number:
+                        company_address = ("%s, Phone:%s") % (company_address, user.userprofile.phone_number)
+                    if user.userprofile.gst_number:
+                        company_address = ("%s, GSTINo:%s") % (company_address, user.userprofile.gst_number)
+            else:
+                company_address = user.userprofile.address
         else:
             ship_to_address, company_address = get_purchase_company_address(user.userprofile)
         ship_to_address = '\n'.join(ship_to_address.split(','))

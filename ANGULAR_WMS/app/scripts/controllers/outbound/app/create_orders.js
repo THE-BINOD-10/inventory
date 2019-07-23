@@ -35,6 +35,15 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.brand_filter = $state.params.brand_filter;
   }
   //Session.sagar_fab_filter = {}
+  window.onhashchange = function() {
+    if ($location.$$path == '/App/Brands'){
+      if(localStorage.brand_value != '' || localStorage.category_value != ''){;
+        localStorage.removeItem('brand_value')
+        localStorage.removeItem('category_value')
+        change_filter_data('removefilter');
+      }
+    }
+  }
   vm.test = [{wms_code: '101', sku_desc: 'Description-1'}, {wms_code: '102', sku_desc: 'Description-2'},
              {wms_code: '103', sku_desc: 'Description-3'}, {wms_code: '104', sku_desc: 'Description-4'}];
   vm.modelData = {'profile_name': vm.profile_name, 'ordered_skus':vm.test};
@@ -245,9 +254,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
     if (params_value == "brand_value") {
       if (!(vm.brand)) {
-	if (localStorage.getItem(url)) {
-	  vm.brand = localStorage.getItem(url);
-	}
+      	if (localStorage.getItem(url)) {
+      	  vm.brand = localStorage.getItem(url);
+      	}
       }
       if (vm.brand != 'All') {
         localStorage.setItem(url, vm.brand);
@@ -256,6 +265,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   }
 
   function change_filter_data(brand_value) {
+    if (brand_value == 'removefilter') {
+      vm.categories = [];
+      vm.category = "";
+      vm.brand = "";
+      vm.filterData = {};
+    }
     get_brand_filter_value('brand_value');
     get_brand_filter_value('category_value');
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
@@ -1599,8 +1614,8 @@ angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance,
   $ctrl.categories = [];
   $ctrl.categories_loading = true;
   $ctrl.get_categories = function() {
-    get_brand_filter_value('brand_value');
-    get_brand_filter_value('category_value');
+    // get_brand_filter_value('brand_value');
+    // get_brand_filter_value('category_value');
     var data = {brand: '', sale_through: $ctrl.marginData.sale_through};
     Service.apiCall("get_sku_categories/", "GET",data).then(function(data){
       if(data.message) {

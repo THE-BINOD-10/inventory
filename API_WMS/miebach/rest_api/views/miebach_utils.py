@@ -1763,9 +1763,10 @@ EASYOPS_SHIPPED_ORDER_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrac
                                  'shipment_date': 'orders["orderDate"]',
                                  'unit_price': 'order["unitPrice"]', 'order_items': 'orders["orderItems"]'}
 
-ORDER_SUMMARY_FIELDS = {'discount': 0, 'creation_date': datetime.datetime.now(), 'issue_type': 'order', 'vat': 0,
-                        'tax_value': 0,
-                        'order_taken_by': '', 'sgst_tax': 0, 'cgst_tax': 0, 'igst_tax': 0, 'cess_tax': 0}
+ORDER_SUMMARY_FIELDS = OrderedDict((('discount', 0), ('creation_date', datetime.datetime.now()), ('issue_type', 'order'),
+                                    ('tax_value', 0),
+                                    ('order_taken_by', ''), ('sgst_tax', 0), ('cgst_tax', 0), ('igst_tax', 0), ('cess_tax', 0),
+                                    ('mrp', 0), ('inter_state', 0), ('consignee', ''), ('utgst_tax', 0), ('vat', 0)))
 
 EASYOPS_STOCK_HEADERS = OrderedDict([('Product Name', 'sku_desc'), ('Sku', 'wms_code'), ('Vendor Sku', 'wms_code'),
                                      ('Stock', 'stock_count'), ('Purchase Price', 'purchase_price')])
@@ -1925,8 +1926,8 @@ MYNTRA_BULK_ADDRESS = 'MYNTRA DESIGNS PVT LTD\nKsquare Industrial Park, Warehous
 
 # End of Myntra Invoice Address based on username
 
-SELLER_ORDER_FIELDS = {'sor_id': '', 'quantity': 0, 'order_status': '', 'order_id': '', 'seller_id': '', 'status': 1,
-                       'invoice_no': ''}
+SELLER_ORDER_FIELDS = OrderedDict((('sor_id', ''), ('quantity', 0), ('order_status', ''), ('order_id', ''), ('seller_id', ''), ('status', 1),
+                                   ('invoice_no', '')))
 
 SELLER_MARGIN_DICT = {'seller_id': '', 'sku_id': '', 'margin': 0}
 
@@ -2120,6 +2121,7 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'auto_expire_enq_limit': 'auto_expire_enq_limit',
                      'sales_return_reasons': 'sales_return_reasons',
                      'rtv_prefix_code': 'rtv_prefix_code',
+                     'weight_integration_name': 'weight_integration_name',
                      }
 
 CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS),

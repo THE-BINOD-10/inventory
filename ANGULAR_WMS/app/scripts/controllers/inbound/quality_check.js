@@ -10,6 +10,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.industry_type = Session.user_profile.industry_type;
     vm.extra_width = {};
+    vm.qc_invoice_data = {}
+    vm.quantity_focused = false;
 
     vm.filters = {'datatable': 'QualityCheck', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -49,6 +51,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             $scope.$apply(function() {
                 vm.service.apiCall('quality_check_data/', 'GET', {order_id: aData.DT_RowId}).then(function(data){
                   if(data.message) {
+                    vm.qc_invoice_data = {}
+                    vm.qc_invoice_data = aData
                     if(vm.industry_type == 'FMCG'){
                       vm.extra_width = {
                         'width': '1200px'
@@ -116,6 +120,34 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.qc_details = qc_details;
     function qc_details() {
       $state.go('app.inbound.QualityCheck.qc_detail');
+    }
+
+    vm.get_current_weight = function(event, data, index) {
+      if(vm.permissions.weight_integration_name.length > 0) {
+        vm.service.apiCall('get_current_weight/', 'GET',{}).then(function(res_data){
+          if(res_data.message){
+            if(res_data.data.status && res_data.data.is_updated){
+              if(res_data.data.weight >data.data[index].quantity)
+              {
+                vm.service.showNoty('Weighed Quantity is Greater than QC Qunatity '+data.data[index].quantity);
+              }
+              else
+              {
+               data.data[index].accepted_quantity = res_data.data.weight;
+              }
+            }
+            if (data.data[index].accepted_quantity){
+              data.data[index].rejected_quantity = data.data[index].quantity - data.data[index].accepted_quantity
+            }
+            else{
+              data.data[index].rejected_quantity = 0
+            }
+            if(vm.quantity_focused) {
+              setTimeout(function(){ vm.get_current_weight(event, data, index, parent_index); }, 1000);
+            }
+          }
+        });
+      }
     }
 
     vm.getSku = function (field) {
@@ -188,6 +220,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
         sku.accepted_quantity = sku.quantity;
         vm.service.showNoty("You will enter only <b>"+sku.quantity+"</b> quantity");
+      }
+      if (Number(sku.accepted_quantity)){
+        sku.rejected_quantity = sku.quantity - sku.accepted_quantity
+      }
+      else{
+        sku.rejected_quantity = 0
       }
     }
 
@@ -313,6 +351,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.message = "";
       }, 2000);
     }
+    vm.print_enable = false;
 
     vm.confirm = function() {
       var elem = angular.element($('form'));
@@ -320,6 +359,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       elem = $(elem).serializeArray();
       //var qc_scan = JSON.stringify(vm.qc_scan);
       //elem.push({name:'qc_scan', value: qc_scan})
+      elem.push({name:'headers', value: JSON.stringify(vm.qc_invoice_data)})
       vm.service.apiCall('confirm_quality_check/', 'POST', elem, true).then(function(data){
         if(data.message) {
           if (data.data == "Updated Successfully") {
@@ -330,12 +370,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               //fb.stop_listening(fb.poData);
               fb.remove_po(fb.poData["id"]);
             }
-            vm.close();
-          } else {
+          }
+          else if (data.data.search("<div") != -1){
+            vm.pdf_data = data.data;
+            $state.go("app.inbound.QualityCheck.qc_print");
+            $timeout(function () {
+              $(".modal-body:visible").html(vm.pdf_data)
+              }, 3000);
+          }
+            else {
             pop_msg(data.data);
           }
         }
       });
+
+    }
+
+
+
+    vm.print_grn = function() {
+      vm.service.print_data(vm.html, "Quality Check");
     }
 
     vm.confirm_btn = false;

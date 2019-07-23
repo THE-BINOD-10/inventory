@@ -378,7 +378,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         customer_data = OrderMapping.objects.filter(mapping_id=supplier.id, mapping_type='PO')
         customer_name = ''
         if customer_data:
-            customer_name = customer_data[0].order.customer_name
+            customer_name = ''
         else:
             if supplier_parent:
                 customer_name = supplier_parent.username
@@ -1066,6 +1066,7 @@ def switches(request, user=''):
                        'allow_rejected_serials':'allow_rejected_serials',
                        'update_mrp_on_grn': 'update_mrp_on_grn',
                        'mandate_sku_supplier':'mandate_sku_supplier',
+                       'weight_integration_name': 'weight_integration_name',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -1077,6 +1078,15 @@ def switches(request, user=''):
             if user_profile and selection:
                 setattr(user_profile[0], 'prefix', selection)
                 user_profile[0].save()
+        elif key == 'weight_integration_name':
+            data = MiscDetail.objects.filter(misc_type=toggle_field, user=request.user.id)
+            if not data:
+                misc_detail = MiscDetail(user=request.user.id, misc_type=toggle_field, misc_value=selection,
+                                         creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
+                misc_detail.save()
+            else:
+                setattr(data[0], 'misc_value', selection)
+                data[0].save()
         else:
             if toggle_field == 'tax_details':
                 tax_name = eval(selection)
@@ -3277,6 +3287,9 @@ def confirm_grn(request, confirm_returns='', user=''):
         log.info("Check Generating GRN failed for params " + str(myDict) + " and error statement is " + str(e))
         return HttpResponse("Generate GRN Failed")
 
+# def confirm_qc_grn(request, user=''):
+
+
 
 def generate_grn_pagination(sku_list):
     # header 220
@@ -3632,6 +3645,9 @@ def save_return_locations(order_returns, all_data, damaged_quantity, request, us
                      'pallet_number': '',
                      'wms_code': order_returns.sku.wms_code, 'sku_group': order_returns.sku.sku_group,
                      'sku': order_returns.sku}
+        received_quantity = data['received_quantity']
+        if not received_quantity:
+            continue
         if batch_dict and not data['put_zone'] == 'DAMAGED_ZONE':
             data = get_return_segregation_locations(order_returns, batch_dict, data, user)
         if is_rto and not data['put_zone'] == 'DAMAGED_ZONE':
@@ -3643,9 +3659,6 @@ def save_return_locations(order_returns, all_data, damaged_quantity, request, us
 
         if not locations:
             return 'Locations not Found'
-        received_quantity = data['received_quantity']
-        if not received_quantity:
-            continue
         for location in locations:
             total_quantity = POLocation.objects.filter(location_id=location.id, status=1,
                                                        location__zone__user=user.id).aggregate(Sum('quantity'))[
@@ -4633,8 +4646,61 @@ def confirm_quality_check(request, user=''):
         save_qc_serials('accepted', myDict.get("accepted", ''), user.id)
     if myDict.get("rejected", ''):
         save_qc_serials('rejected', myDict.get("rejected", ''), user.id)
+    try:
+        misc_detail = get_misc_value('quality_check', user.id)
+        if misc_detail == 'false':
+            profile = UserProfile.objects.get(user=user.id)
+            seller_name = user.username
+            seller_address = user.userprofile.address
+            bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
+            acc_qty = myDict['accepted_quantity']
+            rej_qty = myDict['rejected_quantity']
+            datas = json.loads(myDict['headers'][0])
+            po_number_trim = datas['Purchase Order ID']
+            po_num = po_number_trim.split("_")
+            if po_num[1]:
+                po_creation_date_full = PurchaseOrder.objects.filter(order_id = po_num[1], open_po__sku__user = user.id)
+                po_creation_date = po_creation_date_full[0].creation_date.strftime('%d-%m-%Y')
 
-    return HttpResponse('Updated Successfully')
+            data = {}
+            num = len(myDict['wms_code'])
+            total_amount = 0
+            overall_discount = 0
+            for i in range(num):
+                seller_po_obj = SellerPOSummary.objects.filter(purchase_order_id= po_creation_date_full[i].id , purchase_order__open_po__sku__user = 3)
+                discount = seller_po_obj[0].discount_percent
+                sku_particulars = SKUMaster.objects.filter(sku_code=myDict['wms_code'][i], user=user.id)[0]
+                total_amt = float(po_creation_date_full[i].open_po.price) * float(acc_qty[i])
+                overall_discount = float(overall_discount) + float(discount)
+                total_amount = total_amount + total_amt
+                data[i] = {'accepted_quantity': acc_qty[i],
+                                    'rejected_quantity': rej_qty[i],
+                                    'wms_code':myDict['wms_code'][i],
+                                    'particulars':sku_particulars.sku_desc,
+                                    'rate':po_creation_date_full[i].open_po.price,
+                                    'price':float(po_creation_date_full[i].open_po.price) * float(acc_qty[i])}
+            net_pay_dis = overall_discount * total_amount/100
+            report_data_dict = {'data':data,
+                                'company_name': profile.company_name,
+                                'company_address': profile.address,
+                                'seller_name': seller_name,
+                                'po_creation_date':po_creation_date,
+                                'seller_address': seller_address,
+                                'bill_date': bill_date,
+                                'grn_no':datas['Purchase Order ID'],
+                                'supplier_id':datas['Supplier ID'],
+                                'supplier_name':datas['Supplier Name'],
+                                'total_qty': datas['Total Quantity'],
+                                'total_amount': total_amount,
+                                'overall_discount':overall_discount,
+                                'net_pay':total_amount-net_pay_dis,
+            }
+            return render(request, 'templates/toggle/qc_putaway_toggle.html', report_data_dict)
+        else:
+            return HttpResponse('Updated Successfully')
+    except Exception as e:
+        import traceback
+        return HttpResponse("Generate GRN Failed")
 
 
 @csrf_exempt
@@ -5194,7 +5260,17 @@ def confirm_add_po(request, sales_data='', user=''):
         address = '\n'.join(address.split(','))
         if purchase_order.ship_to:
             ship_to_address = purchase_order.ship_to
-            company_address = user.userprofile.address
+            if user.userprofile.wh_address:
+                company_address = user.userprofile.wh_address
+                if user.username in MILKBASKET_USERS:
+                    if user.userprofile.user.email:
+                        company_address = ("%s, Email:%s") % (company_address, user.userprofile.user.email)
+                    if user.userprofile.phone_number:
+                        company_address = ("%s, Phone:%s") % (company_address, user.userprofile.phone_number)
+                    if user.userprofile.gst_number:
+                        company_address = ("%s, GSTINo:%s") % (company_address, user.userprofile.gst_number)
+            else:
+                company_address = user.userprofile.address
         else:
             ship_to_address, company_address = get_purchase_company_address(user.userprofile)
         wh_telephone = user.userprofile.wh_phone_number
@@ -5257,7 +5333,7 @@ def confirm_add_po(request, sales_data='', user=''):
         if get_misc_value('raise_po', user.id) == 'true':
             data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email,
                             'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name,
-                            'billing_address': profile.address, 'shipping_address': profile.wh_address,
+                            'billing_address': profile.address, 'shipping_address': ship_to_address,
                             'table_headers': table_headers}
             if get_misc_value('allow_secondary_emails', user.id) == 'true':
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,

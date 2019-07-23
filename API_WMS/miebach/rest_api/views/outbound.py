@@ -1317,7 +1317,7 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
         pic_check_data['batch_detail__mrp'] = mrp
     if val.get('batchno', ''):
         pic_check_data['batch_detail__batch_no'] = val['batchno']
-    if val.get('manufactured_date', ''):
+    if val.get('manufactured_date', '') and not user.username in MILKBASKET_USERS:
         try:
             pic_check_data['batch_detail__manufactured_date__regex'] = datetime.datetime.strptime(val['manufactured_date'], '%d/%m/%Y').strftime('%Y-%m-%d')
         except:
@@ -5408,7 +5408,8 @@ def insert_order_data(request, user=''):
                 picklist_number = order_detail.values_list('picklist__picklist_number', flat=True)
                 if picklist_number:
                     picklist_number = picklist_number[0]
-                log.info(order_detail.delete())
+                ord_detail_ids = order_detail.values_list('id', flat=True)
+                order_cancel_functionality(ord_detail_ids)
                 if picklist_number:
                     check_picklist_number_created(order_detail_user, picklist_number)
 
@@ -13011,15 +13012,15 @@ def order_cancel(request, user=''):
             gen_ord_id = request.GET.get('order_id', '')
             if gen_ord_id:
                 #qssi push order api call to cancel order
-                generic_orders = GenericOrderDetailMapping.objects.filter(generic_order_id=gen_ord_id,
-                                                                          customer_id=cm_id). \
-                    values('orderdetail__original_order_id', 'orderdetail__user').distinct()
+                gen_qs = GenericOrderDetailMapping.objects.filter(generic_order_id=gen_ord_id,
+                                                                          customer_id=cm_id)
+                generic_orders = gen_qs.values('orderdetail__original_order_id', 'orderdetail__user').distinct()
                 for generic_order in generic_orders:
                     original_order_id = generic_order['orderdetail__original_order_id']
                     order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
                     resp = order_push(original_order_id, order_detail_user, "CANCEL")
                     log.info('Cancel Order Push Status: %s' % (str(resp)))
-                gen_qs = GenericOrderDetailMapping.objects.filter(generic_order_id=gen_ord_id, customer_id=cm_id)
+                #gen_qs = GenericOrderDetailMapping.objects.filter(generic_order_id=gen_ord_id, customer_id=cm_id)
                 uploaded_po_details = gen_qs.values('po_number', 'client_name').distinct()
                 if uploaded_po_details.count() == 1:
                     po_number = uploaded_po_details[0]['po_number']
@@ -13782,6 +13783,7 @@ def confirm_or_hold_custom_order(request, user=''):
 @login_required
 @get_admin_user
 def convert_customorder_to_actualorder(request, user=''):
+    log.info("Converting Custom Order To Actual Order for User: %s and Request: %s " % (user.username, str(request.POST.dict())))
     stock_wh_map = {}
     user_id_obj_map = {}
     try:
@@ -13954,10 +13956,7 @@ def convert_customorder_to_actualorder(request, user=''):
                         picklist_number = order_detail.values_list('picklist__picklist_number', flat=True)
                         if picklist_number:
                             picklist_number = picklist_number[0]
-                        log.info(order_detail.delete())
                         check_picklist_number_created(order_detail_user, picklist_number)
-                        if message:
-                            return HttpResponse(message)
                     if generic_order_id and not is_emiza_order_failed:
                         check_and_raise_po(generic_order_id, cm_id)
                 except Exception as e:

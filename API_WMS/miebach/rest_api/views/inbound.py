@@ -5821,6 +5821,7 @@ def returns_putaway_data(request, user=''):
                     stock_dict['batch_detail_id'] = batch_detail[0].id
                 new_stock = StockDetail(**stock_dict)
                 new_stock.save()
+                stock_data = new_stock
                 stock_id = new_stock.id
                 if seller_id:
                     seller_stock_dict = {'seller_id': seller_id, 'stock_id': stock_id, 'quantity': quantity,

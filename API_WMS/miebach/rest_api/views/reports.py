@@ -628,11 +628,9 @@ def get_adjust_filter_data(search_params, user, sub_user):
     for data in adjustments:
         quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-            sku_attributes_obj = SKUAttributes.objects.filter(sku__sku_code = data.cycle.sku.sku_code)
+            values_skuattributes = data.cycle.sku.skuattributes_set.filter().values_list('attribute_name', 'attribute_value')
+            attributes_data = dict(values_skuattributes)
             Weight = ''
-            Manufacturer = ''
-            Vendor = ''
-            Sheet = ''
             Average_Cost = ''
             Value = ''
             batch_detail_obj = BatchDetail.objects.filter()
@@ -640,17 +638,17 @@ def get_adjust_filter_data(search_params, user, sub_user):
                                                      ('Name', data.cycle.sku.sku_desc),
                                                      ('Weight', Weight),
                                                      ('MRP', data.cycle.sku.mrp),
-                                                     ('Manufacturer', Manufacturer),
-                                                     ('Vendor', Vendor),
-                                                     ('Sheet', Sheet),
+                                                     ('Manufacturer',attributes_data.get('Manufacturer','')),
+                                                     ('Vendor', attributes_data.get('Vendor','')),
+                                                     ('Sheet', attributes_data.get('Sheet','')),
                                                      ('Brand', data.cycle.sku.sku_brand),
                                                      ('Category', data.cycle.sku.sku_category),
                                                      ('Sub Category', data.cycle.sku.sub_category),
-                                                     ('Sub Category type', data.cycle.sku.product_type),
+                                                     ('Sub Category type', attributes_data.get('Sub Category type','')),
                                                      ('Location', data.cycle.location.location),
                                                      ('Quantity', quantity),
                                                      ('Average Cost', Average_Cost),
-                                                     ('Value', dValue),
+                                                     ('Value', Value),
                                                      ('Remarks', data.reason),
                                                      ('User', user.username),
                                                      ('Date', str(data.creation_date).split('+')[0]),

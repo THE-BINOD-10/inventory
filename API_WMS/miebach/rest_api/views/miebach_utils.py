@@ -894,7 +894,7 @@ STOCK_RECONCILIATION_REPORT_DICT = {
       {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
   ],
   'dt_headers': ['Created Date', 'SKU Code', 'SKU Desc', 'MRP', 'Weight', 'Vendor Name', 'Brand', 'Category',
-                 'Sub Category', 'Opening Qty', 'Opening Avg Rate', 'Opening Amount After Tax',
+                 'Sub Category', 'Sub Category Type', 'Sheet', 'Opening Qty', 'Opening Avg Rate', 'Opening Amount After Tax',
                  'Purchases Qty', 'Purchases Avg Rate', 'Purchases Amount After Tax',
                  'RTV Qty', 'RTV Avg Rate', 'RTV Amount After Tax',
                  'Customer Sales Qty', 'Customer Sales Avg Rate', 'Customer Sales Amount After Tax',
@@ -7197,7 +7197,8 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['creation_date', 'sku__sku_code', 'sku__sku_desc', 'mrp', 'weight', 'sku__sku_code',
-           'sku__sku_brand', 'sku__sku_category', 'sku__sub_category', 'opening_quantity', 'opening_avg_rate',
+           'sku__sku_brand', 'sku__sku_category', 'sku__sub_category', 'sku__sku_code', 'sku__sku_code',
+           'opening_quantity', 'opening_avg_rate',
            'opening_amount', 'purchase_quantity', 'purchase_avg_rate', 'purchase_amount',
            'rtv_quantity', 'rtv_avg_rate', 'rtv_amount', 'customer_sales_quantity', 'customer_sales_avg_rate',
            'customer_sales_amount', 'internal_sales_quantity', 'internal_sales_avg_rate', 'internal_sales_amount',
@@ -7233,13 +7234,18 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     for stock_rec_obj in stock_rec_objs:
         creation_date = get_local_date(user, stock_rec_obj.creation_date, send_date=True).strftime('%d %b %Y')
         sku = stock_rec_obj.sku
+        sku_attr_data = dict(sku.skuattributes_set.filter(attribute_name__in=['Manufacturer', 'Sub Category Type',
+                                                                              'Sheet', 'Vendor']).\
+                                                values_list('attribute_name', 'attribute_value'))
         temp_data['aaData'].append(OrderedDict(( ('Created Date', creation_date),
                                                  ('SKU Code', sku.sku_code), ('SKU Desc', sku.sku_desc),
                                                  ('MRP', stock_rec_obj.mrp), ('Weight', stock_rec_obj.weight),
-                                                 ('Vendor Name', ''),
+                                                 ('Vendor Name', sku_attr_data.get('Vendor', '')),
                                                  ('Brand', sku.sku_brand),
                                                  ('Category', sku.sku_category),
-                                                 ('Sub Category', sku.sub_category ),
+                                                 ('Sub Category', sku.sub_category),
+                                                 ('Sub Category Type', sku_attr_data.get('Sub Category Type', '')),
+                                                 ('Sheet', sku_attr_data.get('Sheet', '')),
                                                  ('Opening Qty',  stock_rec_obj.opening_quantity),
                                                  ('Opening Avg Rate', "%.2f" % stock_rec_obj.opening_avg_rate),
                                                  ('Opening Amount After Tax', "%.2f" % stock_rec_obj.opening_amount),

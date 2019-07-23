@@ -650,7 +650,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
                                                      ('Location', data.cycle.location.location),
                                                      ('Quantity', quantity),
                                                      ('Average Cost', Average_Cost),
-                                                     ('Value', dValue),
+                                                     ('Value', Value),
                                                      ('Remarks', data.reason),
                                                      ('User', user.username),
                                                      ('Date', str(data.creation_date).split('+')[0]),

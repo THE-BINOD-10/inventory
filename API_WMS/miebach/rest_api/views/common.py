@@ -1853,10 +1853,42 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
     return 'Added Successfully'
 
 
+def create_invnetory_adjustment_record(user, dat, quantity, reason, location, now, pallet_present, stock='', seller_id='',
+                                       adjustment_objs=''):
+    data = copy.deepcopy(INVENTORY_FIELDS)
+    data['cycle_id'] = dat.id
+    data['adjusted_quantity'] = quantity
+    data['reason'] = reason
+    data['adjusted_location'] = location[0].id
+    data['creation_date'] = now
+    data['updation_date'] = now
+    inv_adj_filter = {'cycle__cycle': dat.cycle, 'adjusted_location': location[0].id,
+                      'cycle__sku__user': user.id}
+    if stock:
+        inv_adj_filter['stock_id'] = stock.id
+        data['stock_id'] = stock.id
+    if seller_id:
+        inv_adj_filter['seller_id'] = seller_id
+        data['seller_id'] = seller_id
+    if pallet_present:
+        inv_adj_filter['pallet_detail_id'] = pallet_present.id
+        data['pallet_detail_id'] = pallet_present.id
+    inv_obj = InventoryAdjustment.objects.filter(**inv_adj_filter)
+    if inv_obj:
+        inv_obj = inv_obj[0]
+        inv_obj.adjusted_quantity = quantity
+        inv_obj.save()
+        dat = inv_obj
+    else:
+        adjustment_objs.append(InventoryAdjustment(**data))
+    return adjustment_objs
+
+
 def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet='', batch_no='', mrp='',
                           seller_master_id='', weight='', receipt_number=1, receipt_type=''):
     now_date = datetime.datetime.now()
     now = str(now_date)
+    adjustment_objs = []
     if wmscode:
         sku = SKUMaster.objects.filter(wms_code=wmscode, user=user.id)
         if not sku:
@@ -1871,6 +1903,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
     quantity = float(quantity)
     stock_dict = {'sku_id': sku_id, 'location_id': location[0].id,
                   'sku__user': user.id}
+    pallet_present = ''
     if pallet:
         pallet_present = PalletDetail.objects.filter(user = user.id, status = 1, pallet_code = pallet)
         if not pallet_present:
@@ -1925,6 +1958,8 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
                 save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', remaining_quantity, stock)
                 stock.save()
                 change_seller_stock(seller_master_id, stock, user, abs(remaining_quantity), 'inc')
+                adjustment_objs = create_invnetory_adjustment_record(user, dat, abs(remaining_quantity), reason, location, now, pallet_present,
+                                                   stock=stock, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
                 break
             else:
                 stock_quantity = float(stock.quantity)
@@ -1935,14 +1970,19 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
                     save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', -remaining_quantity, stock)
                     stock.save()
                     change_seller_stock(seller_master_id, stock, user, remaining_quantity, 'dec')
+                    adjustment_objs = create_invnetory_adjustment_record(user, dat, -remaining_quantity, reason, location, now, pallet_present,
+                                                       stock=stock, seller_id=seller_master_id,
+                                                        adjustment_objs=adjustment_objs)
                     remaining_quantity = 0
                 elif stock_quantity < remaining_quantity:
                     setattr(stock, 'quantity', 0)
-                    save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', stock.quantity, stock)
+                    save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', -stock_quantity, stock)
                     stock.save()
                     change_seller_stock(seller_master_id, stock, user, stock_quantity,
                                         'dec')
                     remaining_quantity = remaining_quantity - stock_quantity
+                    adjustment_objs = create_invnetory_adjustment_record(user, dat, -stock_quantity, reason, location, now, pallet_present,
+                                                       stock=stock, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
         if not stocks:
             batch_dict = {}
             if batch_no:
@@ -1970,42 +2010,20 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
             dest_stocks.save()
             save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', dest_stocks.quantity, dest_stocks)
             change_seller_stock(seller_master_id, dest_stocks, user, abs(remaining_quantity), 'create')
+            adjustment_objs = create_invnetory_adjustment_record(user, dat, abs(remaining_quantity), reason, location, now, pallet_present,
+                                               stock=dest_stocks, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
 
-    adj_quantity = quantity - total_stock_quantity
     if quantity == 0:
-        all_stocks = StockDetail.objects.filter(**stock_dict)
-        adj_quantity = all_stocks.aggregate(Sum('quantity'))['quantity__sum']
-        if not adj_quantity:
-            adj_quantity = 0
-        else:
-            adj_quantity = -adj_quantity
-        all_stocks.update(quantity=0)
-        location[0].filled_capacity = 0
-        location[0].save()
-        if seller_master_id:
-            SellerStock.objects.filter(seller_id=seller_master_id,
-                                       stock_id__in=list(all_stocks.values_list('id', flat=True))).update(quantity=0)
+        all_stocks = StockDetail.objects.filter(quantity__gt=0, **stock_dict)
+        for stock in all_stocks:
+            stock_quantity = stock.quantity
+            SellerStock.objects.filter(stock_id=stock.id).update(quantity=0)
+            save_sku_stats(user, stock.sku_id, dat.id, 'inventory-adjustment', -stock_quantity, stock)
+            adjustment_objs = create_invnetory_adjustment_record(user, dat, -stock_quantity, reason, location, now, pallet_present,
+                                               stock=stock, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
 
-    data = copy.deepcopy(INVENTORY_FIELDS)
-    data['cycle_id'] = dat.id
-    data['adjusted_quantity'] = quantity
-    data['reason'] = reason
-    data['adjusted_location'] = location[0].id
-    data['creation_date'] = now
-    data['updation_date'] = now
-    inv_obj = InventoryAdjustment.objects.filter(cycle__cycle=dat.cycle, adjusted_location=location[0].id,
-        cycle__sku__user=user.id)
-    if pallet:
-        data['pallet_detail_id'] = pallet_present.id
-        inv_obj = inv_obj.filter(pallet_detail_id = pallet_present.id)
-    if inv_obj:
-        inv_obj = inv_obj[0]
-        inv_obj.adjusted_quantity = quantity
-        inv_obj.save()
-        dat = inv_obj
-    else:
-        dat = InventoryAdjustment(**data)
-        dat.save()
+    if adjustment_objs:
+        InventoryAdjustment.objects.bulk_create(adjustment_objs)
     return 'Added Successfully'
 
 

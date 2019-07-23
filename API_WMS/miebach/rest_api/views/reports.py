@@ -627,13 +627,45 @@ def get_adjust_filter_data(search_params, user, sub_user):
         adjustments = adjustments[start_index:stop_index]
     for data in adjustments:
         quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
-        temp_data['aaData'].append(OrderedDict(( ('SKU Code', data.cycle.sku.sku_code),
-                                                 ('Location', data.cycle.location.location),
-                                                 ('Quantity', quantity),
-                                                 ('Pallet Code', data.pallet_detail.pallet_code if data.pallet_detail else ''),
-                                                 ('Date', str(data.creation_date).split('+')[0]),
-                                                 ('Remarks', data.reason)
-                                              )))
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            sku_attributes_obj = SKUAttributes.objects.filter(sku__sku_code = data.cycle.sku.sku_code)
+            Weight = ''
+            Manufacturer = ''
+            Vendor = ''
+            Sheet = ''
+            Average_Cost = ''
+            Value = ''
+            batch_detail_obj = BatchDetail.objects.filter()
+            temp_data['aaData'].append(OrderedDict(( ('SKU Code', data.cycle.sku.sku_code),
+                                                     ('Name', data.cycle.sku.sku_desc),
+                                                     ('Weight', Weight),
+                                                     ('MRP', data.cycle.sku.mrp),
+                                                     ('Manufacturer', Manufacturer),
+                                                     ('Vendor', Vendor),
+                                                     ('Sheet', Sheet),
+                                                     ('Brand', data.cycle.sku.sku_brand),
+                                                     ('Category', data.cycle.sku.sku_category),
+                                                     ('Sub Category', data.cycle.sku.sub_category),
+                                                     ('Sub Category type', data.cycle.sku.product_type),
+                                                     ('Location', data.cycle.location.location),
+                                                     ('Quantity', quantity),
+                                                     ('Average Cost', Average_Cost),
+                                                     ('Value', dValue),
+                                                     ('Remarks', data.reason),
+                                                     ('User', user.username),
+                                                     ('Date', str(data.creation_date).split('+')[0]),
+
+                                                  )))
+        else :
+            temp_data['aaData'].append(OrderedDict(( ('SKU Code', data.cycle.sku.sku_code),
+                                                     ('Location', data.cycle.location.location),
+                                                     ('Quantity', quantity),
+                                                     ('Pallet Code', data.pallet_detail.pallet_code if data.pallet_detail else ''),
+                                                     ('Date', str(data.creation_date).split('+')[0]),
+                                                     ('Remarks', data.reason)
+                                                  )))
+
+
     return temp_data
 
 

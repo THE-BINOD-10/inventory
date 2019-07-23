@@ -728,6 +728,46 @@ class MiscDetail(models.Model):
         unique_together = ('user', 'misc_type')
 
 
+class SellerMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    seller_id = models.PositiveIntegerField(default=0)
+    name = models.CharField(max_length=256, default='')
+    email_id = models.EmailField(max_length=64, default='')
+    phone_number = models.CharField(max_length=32)
+    address = models.CharField(max_length=256, default='')
+    vat_number = models.CharField(max_length=64, default='')
+    tin_number = models.CharField(max_length=64, default='')
+    price_type = models.CharField(max_length=32, default='')
+    margin = models.CharField(max_length=256, default=0)
+    supplier = models.ForeignKey(SupplierMaster, null=True, blank=True, default=None)
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SELLER_MASTER'
+        unique_together = ('user', 'seller_id')
+        index_together = ('user', 'seller_id')
+
+    def json(self):
+        supplier_id = '' if not self.supplier else self.supplier.id
+        return {
+            'id': self.id,
+            'seller_id': self.seller_id,
+            'name': self.name,
+            'email_id': self.email_id,
+            'phone_number': self.phone_number,
+            'address': self.address,
+            'vat_number': self.vat_number,
+            'tin_number': self.tin_number,
+            'price_type': self.price_type,
+            'margin': self.margin,
+            'supplier': supplier_id,
+            'status': self.status
+        }
+
+
 class CycleCount(models.Model):
     id = BigAutoField(primary_key=True)
     cycle = models.PositiveIntegerField()
@@ -755,12 +795,14 @@ class InventoryAdjustment(models.Model):
     adjusted_quantity = models.FloatField(default=0)
     reason = models.TextField()
     pallet_detail = models.ForeignKey(PalletDetail, blank=True, null=True)
+    stock = models.ForeignKey(StockDetail, blank=True, null=True)
+    seller = models.ForeignKey(SellerMaster, blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'INVENTORY_ADJUSTMENT'
-        unique_together = ('cycle', 'adjusted_location')
+        #unique_together = ('cycle', 'adjusted_location', 'seller', 'stock')
 
     def __unicode__(self):
         return str(self.id)
@@ -1023,46 +1065,6 @@ class LRDetail(models.Model):
 
     class Meta:
         db_table = 'LR_DETAIL'
-
-
-class SellerMaster(models.Model):
-    id = BigAutoField(primary_key=True)
-    user = models.PositiveIntegerField()
-    seller_id = models.PositiveIntegerField(default=0)
-    name = models.CharField(max_length=256, default='')
-    email_id = models.EmailField(max_length=64, default='')
-    phone_number = models.CharField(max_length=32)
-    address = models.CharField(max_length=256, default='')
-    vat_number = models.CharField(max_length=64, default='')
-    tin_number = models.CharField(max_length=64, default='')
-    price_type = models.CharField(max_length=32, default='')
-    margin = models.CharField(max_length=256, default=0)
-    supplier = models.ForeignKey(SupplierMaster, null=True, blank=True, default=None)
-    status = models.IntegerField(default=1)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'SELLER_MASTER'
-        unique_together = ('user', 'seller_id')
-        index_together = ('user', 'seller_id')
-
-    def json(self):
-        supplier_id = '' if not self.supplier else self.supplier.id
-        return {
-            'id': self.id,
-            'seller_id': self.seller_id,
-            'name': self.name,
-            'email_id': self.email_id,
-            'phone_number': self.phone_number,
-            'address': self.address,
-            'vat_number': self.vat_number,
-            'tin_number': self.tin_number,
-            'price_type': self.price_type,
-            'margin': self.margin,
-            'supplier': supplier_id,
-            'status': self.status
-        }
 
 
 class SubstitutionSummary(models.Model):

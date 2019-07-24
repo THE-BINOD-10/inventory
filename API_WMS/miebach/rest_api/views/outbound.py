@@ -13562,11 +13562,11 @@ def get_manual_enquiry_detail(request, user=''):
                     intr_blocked = x['asn_blocked']
                     sku_code = x['sku_code']
                     wh_stock_list.append({'warehouse': l1_user.username, 'quantity': 0, 'sku_code': sku_code,
-                                          'wh_open': wh_open, 'wh_blocked': wh_blocked,
+                                          'wh_total': wh_open, 'wh_blocked': wh_blocked,
                                           'intr_open': intr_open, 'intr_blocked': intr_blocked})
             else:
                 wh_stock_list.append({'warehouse': l1_user.username, 'quantity': 0, 'sku_code': 'No SKU',
-                                      'wh_open': 0, 'wh_blocked': 0,
+                                      'wh_total': 0, 'wh_blocked': 0,
                                       'intr_open': 0, 'intr_blocked': 0})
         wh_stock_dict = {'L1': wh_stock_list}
         return HttpResponse(json.dumps({'data': enquiry_dict, 'style': style_dict, 'order': manual_eq_dict,

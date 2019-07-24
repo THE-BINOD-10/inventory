@@ -768,6 +768,7 @@ class SellerMaster(models.Model):
         }
 
 
+@reversion.register()
 class CycleCount(models.Model):
     id = BigAutoField(primary_key=True)
     cycle = models.PositiveIntegerField()
@@ -787,7 +788,7 @@ class CycleCount(models.Model):
     def __unicode__(self):
         return str(self.cycle)
 
-
+@reversion.register()
 class InventoryAdjustment(models.Model):
     id = BigAutoField(primary_key=True)
     cycle = models.ForeignKey(CycleCount)

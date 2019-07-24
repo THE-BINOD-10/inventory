@@ -1684,7 +1684,9 @@ def add_po(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def insert_inventory_adjust(request, user=''):
+    reversion.set_user(request.user)
     data = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
     if not data:
         cycle_id = 1

@@ -617,44 +617,99 @@ def get_adjust_filter_data(search_params, user, sub_user):
         search_parameters['cycle__location__location'] = search_params['location'].upper()
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
+    order_term = search_params.get('order_term', 'asc')
+    order_index = search_params.get('order_index', 0)
     search_parameters['cycle__sku__user'] = user.id
     search_parameters['cycle__sku_id__in'] = sku_master_ids
     if search_parameters:
         adjustments = InventoryAdjustment.objects.filter(**search_parameters)
-    temp_data['recordsTotal'] = len(adjustments)
-    temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    if stop_index:
-        adjustments = adjustments[start_index:stop_index]
-    for data in adjustments:
-        quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
-        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-            values_skuattributes = data.cycle.sku.skuattributes_set.filter().values_list('attribute_name', 'attribute_value')
-            attributes_data = dict(values_skuattributes)
-            Weight = ''
-            Average_Cost = ''
-            Value = ''
-            batch_detail_obj = BatchDetail.objects.filter()
-            temp_data['aaData'].append(OrderedDict(( ('SKU Code', data.cycle.sku.sku_code),
-                                                     ('Name', data.cycle.sku.sku_desc),
-                                                     ('Weight', Weight),
-                                                     ('MRP', data.cycle.sku.mrp),
+    grouping_data = OrderedDict()
+    industry_type = user.userprofile.industry_type
+    user_type = user.userprofile.user_type
+    if industry_type == 'FMCG' and user_type == 'marketplace_user':
+        lis = ['cycle__sku__sku_code', 'cycle__sku__sku_desc', 'stock__batch_detail__weight',
+               'stock__batch_detail__mrp', 'cycle__sku__sku_code', 'cycle__sku__sku_code', 'cycle__sku__sku_code',
+               'cycle__sku__sku_brand', 'cycle__sku__sku_category', 'cycle__sku__sub_category',
+               'cycle__sku__sku_code', 'cycle__location__location',
+               'adjusted_quantity', 'cycle__sku__sku_code', 'cycle__sku__sku_code', 'reason', 'cycle__sku__sku_code',
+               'cycle__sku__sku_code']
+        order_data = lis[order_index]
+        if order_term == 'desc':
+            order_data = '-%s' % order_data
+        adjustments = adjustments.order_by(order_data)
+        for adjustment in adjustments:
+            mrp = 0
+            weight = ''
+            amount = 0
+            price = 0
+            if adjustment.stock and adjustment.stock.batch_detail:
+                batch_detail = adjustment.stock.batch_detail
+                mrp = batch_detail.mrp
+                weight = batch_detail.weight
+                price = batch_detail.buy_price
+                amount = adjustment.adjusted_quantity * batch_detail.buy_price
+                if batch_detail.tax_percent:
+                    amount = amount + ((amount/100)*batch_detail.tax_percent)
+            updated_user_name = user.username
+            version_obj = Version.objects.get_for_object(adjustment.cycle)
+            if version_obj.exists():
+                updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
+            creation_date = adjustment.creation_date.strftime('%Y-%m-%d')
+            group_key = (adjustment.cycle.sku.sku_code, mrp, weight, adjustment.cycle.location.location,
+                         adjustment.reason, creation_date, updated_user_name)
+            grouping_data.setdefault(group_key, {'mrp': mrp, 'weight': weight,
+                                                 'sku': adjustment.cycle.sku,
+                                                 'location': adjustment.cycle.location.location,
+                                                 'reason': adjustment.reason,
+                                                 'creation_date': creation_date,
+                                                 'updated_user_name': updated_user_name,
+                                                 'quantity': 0,
+                                                 'prices_list': [], 'amount': 0})
+            grouping_data[group_key]['quantity'] += adjustment.adjusted_quantity
+            grouping_data[group_key]['amount'] += amount
+            grouping_data[group_key]['prices_list'].append(price)
+        adjustments = grouping_data.values()
+        temp_data['recordsTotal'] = len(adjustments)
+        temp_data['recordsFiltered'] = temp_data['recordsTotal']
+        if stop_index:
+            adjustments = adjustments[start_index:stop_index]
+        for data in adjustments:
+            sku = data['sku']
+            attributes_data = dict(sku.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
+            mrp = data['mrp']
+            weight = data['weight']
+            amount = data['amount']
+            updated_user_name = data['updated_user_name']
+            avg_cost = 0
+            if data['prices_list']:
+                avg_cost = sum(data['prices_list'])/len(data['prices_list'])
+            temp_data['aaData'].append(OrderedDict(( ('SKU Code', sku.sku_code),
+                                                     ('Name', sku.sku_desc),
+                                                     ('Weight', weight),
+                                                     ('MRP', mrp),
                                                      ('Manufacturer',attributes_data.get('Manufacturer','')),
                                                      ('Vendor', attributes_data.get('Vendor','')),
                                                      ('Sheet', attributes_data.get('Sheet','')),
-                                                     ('Brand', data.cycle.sku.sku_brand),
-                                                     ('Category', data.cycle.sku.sku_category),
-                                                     ('Sub Category', data.cycle.sku.sub_category),
+                                                     ('Brand', sku.sku_brand),
+                                                     ('Category', sku.sku_category),
+                                                     ('Sub Category', sku.sub_category),
                                                      ('Sub Category type', attributes_data.get('Sub Category type','')),
-                                                     ('Location', data.cycle.location.location),
-                                                     ('Quantity', quantity),
-                                                     ('Average Cost', Average_Cost),
-                                                     ('Value', Value),
-                                                     ('Remarks', data.reason),
-                                                     ('User', user.username),
-                                                     ('Date', str(data.creation_date).split('+')[0]),
+                                                     ('Location', data['location']),
+                                                     ('Quantity', data['quantity']),
+                                                     ('Average Cost', avg_cost),
+                                                     ('Value', amount),
+                                                     ('Remarks', data['reason']),
+                                                     ('User', updated_user_name),
+                                                     ('Date', data['creation_date']),
 
                                                   )))
-        else :
+    else:
+        temp_data['recordsTotal'] = len(adjustments)
+        temp_data['recordsFiltered'] = temp_data['recordsTotal']
+        if stop_index:
+            adjustments = adjustments[start_index:stop_index]
+        for data in adjustments:
+            quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
             temp_data['aaData'].append(OrderedDict(( ('SKU Code', data.cycle.sku.sku_code),
                                                      ('Location', data.cycle.location.location),
                                                      ('Quantity', quantity),

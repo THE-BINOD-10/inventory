@@ -7206,7 +7206,7 @@ def get_margin_report_data(search_params, user, sub_user):
                                                  ('Brand',data['brand']), ('Category',data['category']),('Manufacturer',sku_attribute_dict.get('Manufacturer','')),('Sheet',sku_attribute_dict.get('Sheet','')),('Sub Category Type',sku_attribute_dict.get('Sub Category Type','')),
                                                  ('Sub Category', data['sub_category']), ('QTY', quantity),('Weight',data['weight']),('MRP',data['mrp']),('Customer',data['customer']),('Marketplace',data['marketplace']),
                                                  ('Weighted Avg Cost', "%.2f" % weighted_avg_cost_value), ('Weighted Avg Selling Price', "%.2f" % weighted_avg_selling_price_value),('Total Cost',"%.2f" %total_cost),('Total Sale',"%.2f" %total_sale),
-                                                 ('Margin Amount',margin_amount),('Margin Percentage',margin_percentage))))
+                                                 ('Margin Amount',"%.2f" % margin_amount),('Margin Percentage',"%.2f" % margin_percentage))))
     return temp_data
 
 

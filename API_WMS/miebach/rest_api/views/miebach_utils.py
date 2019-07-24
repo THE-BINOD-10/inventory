@@ -881,8 +881,10 @@ CURRENT_STOCK_REPORT_DICT = {
         {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'},
         {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'}
     ],
-    'dt_headers': ['Seller ID', 'Seller Name', 'SKU Code', 'SKU Description', 'Category', 'Location', 'Weight', 'MRP', 'Available Quantity',
-                   'Reserved Quantity', 'Total Quantity','Warehouse Name','Report Generation Time'],
+    'dt_headers': ['Seller ID', 'Seller Name', 'SKU Code', 'SKU Description','Manufacturer', 'Brand', 'Category',
+    'Sub Category', 'Sub Category type','Sheet','Vendor','Location', 'Weight', 'MRP', 'Available Quantity',
+    'Reserved Quantity', 'Total Quantity','Tax %','Avg CP with Tax','Amount with Tax','Cost Price W/O Tax',
+    'Amount W/O tax','Warehouse Name','Report Generation Time'],
     'dt_url': 'get_current_stock_report', 'excel_name': 'get_current_stock_report',
     'print_url': 'print_current_stock_report',
 }
@@ -6877,8 +6879,8 @@ def get_current_stock_report_data(search_params, user, sub_user):
                                             values('seller__seller_id', 'seller__name', 'stock__sku__wms_code',
                                                  'stock__location__location', 'stock__batch_detail__weight',
                                                  'stock__batch_detail__mrp',
-                                                 'stock__sku__sku_desc', 'stock__sku__sku_category').distinct().\
-                                            annotate(total=Sum('quantity')).\
+                                                 'stock__sku__sku_desc', 'stock__sku__sku_category',).\
+                                            annotate(total=Sum('quantity'),avg_buy_price = Sum(F('stock__batch_detail__buy_price')*F('quantity')),avg_tax_price = (Sum(F('stock__batch_detail__buy_price')*F('quantity')*(F('stock__batch_detail__tax_percent')/100)))).\
                                             order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -6889,6 +6891,12 @@ def get_current_stock_report_data(search_params, user, sub_user):
     all_raw_res = RMLocation.objects.filter(status=1, stock__sku__user=user.id, reserved__gt=0, **search_parameters)
     time = get_local_date(user, datetime.datetime.now())
     for ind, sku_data in enumerate(master_data[start_index:stop_index]):
+        sku_code = sku_data.get('stock__sku__wms_code','')
+        if sku_code:
+            sku_details_obj = SKUMaster.objects.filter(sku_code = sku_code , user = user.id)[0]
+            brand = sku_details_obj.sku_brand
+            sub_category = sku_details_obj.sub_category
+            attributes_data = dict(sku_details_obj.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
         seller_id = sku_data['seller__seller_id']
         reserved = 0
         res_filters = {'stock__sku__sku_code': sku_data['stock__sku__wms_code'],
@@ -6896,31 +6904,52 @@ def get_current_stock_report_data(search_params, user, sub_user):
                        'stock__sellerstock__seller__seller_id': seller_id}
         weight = ''
         mrp = 0
+        avg_tax_price = 0
+        avg_buy_price = 0
         if sku_data['stock__batch_detail__mrp']:
             res_filters['stock__batch_detail__mrp'] = sku_data['stock__batch_detail__mrp']
             mrp = sku_data['stock__batch_detail__mrp']
         if sku_data['stock__batch_detail__weight']:
             res_filters['stock__batch_detail__weight'] = sku_data['stock__batch_detail__weight']
             weight = sku_data['stock__batch_detail__weight']
+        if sku_data['avg_buy_price']:
+            avg_buy_price = sku_data['avg_buy_price']
+        if sku_data['avg_tax_price']:
+            avg_tax_price = sku_data['avg_tax_price']
+
         picklist_reserved = all_pick_res.filter(**res_filters).aggregate(Sum('reserved'))['reserved__sum']
         raw_reserved = all_raw_res.filter(**res_filters).aggregate(Sum('reserved'))['reserved__sum']
         if picklist_reserved:
             reserved = picklist_reserved
         if raw_reserved:
             reserved += raw_reserved
-        total = sku_data['total']
-        quantity = total - reserved
+        total_quantity = sku_data['total']
+        quantity = total_quantity - reserved
         if quantity < 0:
             quantity = 0
+
+        total_amt = avg_buy_price+avg_tax_price
+        avg_cp_w_tax = float(total_amt)/total_quantity
+        avg_cp_wo_tax = float(avg_buy_price)/total_quantity
+        tax = (total_amt - avg_buy_price)/avg_buy_price*100
         temp_data['aaData'].append(OrderedDict((('Seller ID', sku_data['seller__seller_id']),
                                                 ('Seller Name', sku_data['seller__name']),
                                                 ('SKU Code', sku_data['stock__sku__wms_code']),
                                                 ('SKU Description', sku_data['stock__sku__sku_desc']),
+                                                ('Manufacturer',attributes_data.get('Manufacturer','')),
+                                                ('Brand',brand),
                                                 ('Category', sku_data['stock__sku__sku_category']),
+                                                ('Sub Category',sub_category),
+                                                ('Sub Category type',attributes_data.get('Sub Category type','')),
+                                                ('Sheet',attributes_data.get('Sheet','')),
+                                                ('Vendor',attributes_data.get('Vendor','')),
                                                 ('Location', sku_data['stock__location__location']),
                                                 ('Weight', weight), ('MRP', mrp),
                                                 ('Available Quantity', quantity),
-                                                ('Reserved Quantity', reserved), ('Total Quantity', total),
+                                                ('Reserved Quantity', reserved), ('Total Quantity', total_quantity),
+                                                ('Tax %',tax),('Avg CP with Tax',avg_cp_w_tax),
+                                                ('Amount with Tax',total_amt),
+                                                ('Cost Price W/O Tax',avg_cp_wo_tax),('Amount W/O tax',avg_buy_price),
                                                 ('Warehouse Name',user.username), ('Report Generation Time', time))))
     return temp_data
 

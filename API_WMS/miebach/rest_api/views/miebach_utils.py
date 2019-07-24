@@ -869,7 +869,7 @@ MARGIN_REPORT_DICT = {
       {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
       {'label': 'SKU Code', 'name': 'sku_code', 'type': 'input'},
   ],
-  'dt_headers': ['Seller','SKU Code','SKU Desc','Weight','MRP','Manufacturer','Vendor Name','Sheet', 'Brand', 'Category', 'Sub Category','Customer','Marketplace', 'QTY', 'Weighted Avg Cost', 'Weighted Avg Selling Price','Total Cost','Total Sale','Consolidated Margin'],
+  'dt_headers': ['Seller','SKU Code','SKU Desc','Weight','MRP','Manufacturer','Vendor Name','Sheet', 'Brand', 'Category', 'Sub Category','Customer','Marketplace', 'QTY', 'Weighted Avg Cost', 'Weighted Avg Selling Price','Total Cost','Total Sale','Margin Amount','Margin Percentage'],
   'dt_url': 'get_margin_report', 'excel_name': 'get_margin_report',
   'print_url': 'print_margin_report',
 }
@@ -7190,19 +7190,23 @@ def get_margin_report_data(search_params, user, sub_user):
         sku_attribute_dict = dict(SKUAttributes.objects.filter(sku__id=data['sku_id'],attribute_name__in=['Manufacturer', 'Sub Category Type','Sheet', 'Vendor']).values_list('attribute_name','attribute_value'))
         total_cost = 0
         total_sale = 0
+        margin_amount = 0
+        margin_percentage = 0
         if quantity :
             weighted_avg_cost_value = float(data['average_cost_price']/quantity)
             weighted_avg_selling_price_value = float(data['average_selling_price']/quantity)
             total_cost = float(data['average_cost_price'])*float(quantity)
             total_sale = float(data['average_selling_price'])*float(quantity)
-        if weighted_avg_cost_value:
-            consolidated_margin = float(((weighted_avg_selling_price_value - weighted_avg_cost_value )/weighted_avg_cost_value))
+            margin_amount = total_sale - total_cost
+            if total_sale :
+                margin_percentage = margin_amount / float(total_sale)
+
         temp_data['aaData'].append(OrderedDict((
                                                  ('SKU Code', data['wms_code']),('SKU Desc',data['sku_desc']), ('Vendor Name',sku_attribute_dict.get('Vendor','')),('Seller',data['seller']),
                                                  ('Brand',data['brand']), ('Category',data['category']),('Manufacturer',sku_attribute_dict.get('Manufacturer','')),('Sheet',sku_attribute_dict.get('Sheet','')),('Sub Category Type',sku_attribute_dict.get('Sub Category Type','')),
                                                  ('Sub Category', data['sub_category']), ('QTY', quantity),('Weight',data['weight']),('MRP',data['mrp']),('Customer',data['customer']),('Marketplace',data['marketplace']),
                                                  ('Weighted Avg Cost', "%.2f" % weighted_avg_cost_value), ('Weighted Avg Selling Price', "%.2f" % weighted_avg_selling_price_value),('Total Cost',"%.2f" %total_cost),('Total Sale',"%.2f" %total_sale),
-                                                 ('Consolidated Margin', "%.2f" % consolidated_margin))))
+                                                 ('Margin Amount',margin_amount),('Margin Percentage',margin_percentage))))
     return temp_data
 
 

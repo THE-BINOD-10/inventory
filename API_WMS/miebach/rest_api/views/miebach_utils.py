@@ -341,15 +341,15 @@ MARKETPLACE_LIST = ['Flipkart', 'Snapdeal', 'Paytm', 'Amazon', 'Shopclues', 'Hom
 
 # User Type Order Formats
 ORDER_HEADERS = ['Order ID', 'Title', 'SKU Code', 'Quantity', 'Shipment Date(yyyy-mm-dd)', 'Channel Name',
-                 'Customer ID', 'Customer Name', 'Email ID', 'Phone Number', 'Shipping Address', 'State', 'City',
+                 'Customer ID', 'Customer Name', 'Email ID', 'Phone Number', 'Address', 'State', 'City',
                  'PIN Code', 'Invoice Amount(Without Tax and Discount)', 'Total Discount', 'CGST(%)', 'SGST(%)',
-                 'IGST(%)', 'CESS Tax(%)', 'Order Type', 'Mode of Transport', 'Vehicle Number']
+                 'IGST(%)', 'CESS Tax(%)', 'Order Type', 'Mode of Transport', 'Vehicle Number', 'Ship To']
 
 MARKETPLACE_ORDER_HEADERS = ['SOR ID', 'UOR ID', 'Seller ID', 'Order Status', 'Title', 'SKU Code', 'Quantity',
                              'Shipment Date(yyyy-mm-dd)', 'Channel Name', 'Customer ID', 'Customer Name', 'Email ID',
                              'Phone Number', 'Shipping Address', 'State', 'City', 'PIN Code', 'MRP',
                              'Invoice Amount(Without Tax and Discount)', 'Total Discount', 'CGST(%)', 'SGST(%)',
-                             'IGST(%)', 'CESS Tax(%)', 'Mode of Transport', 'Vehicle Number']
+                             'IGST(%)', 'CESS Tax(%)', 'Mode of Transport', 'Vehicle Number', 'Ship To']
 
 USER_ORDER_EXCEL_MAPPING = {'warehouse_user': ORDER_HEADERS, 'marketplace_user': MARKETPLACE_ORDER_HEADERS,
                             'customer': ORDER_HEADERS}
@@ -362,7 +362,7 @@ ORDER_DEF_EXCEL = OrderedDict((('order_id', 0), ('title', 1), ('sku_code', 2), (
                                ('telephone', 9), ('address', 10), ('state', 11), ('city', 12), ('pin_code', 13),
                                ('amount', 14), ('amount_discount', 15), ('cgst_tax', 16), ('sgst_tax', 17),
                                ('igst_tax', 18), ('cess_tax', 19), ('order_type', 20), ('mode_of_transport', 21),
-                               ('vehicle_number', 22)
+                               ('vehicle_number', 22),('ship_to',23)
                                ))
 
 MARKETPLACE_ORDER_DEF_EXCEL = OrderedDict(
@@ -372,7 +372,7 @@ MARKETPLACE_ORDER_DEF_EXCEL = OrderedDict(
      ('customer_name', 10), ('email_id', 11), ('telephone', 12), ('address', 13),
      ('state', 14), ('city', 15), ('pin_code', 16), ('mrp', 17), ('amount', 18),
      ('amount_discount', 19), ('cgst_tax', 20), ('sgst_tax', 21), ('igst_tax', 22), ('cess_tax', 23),
-     ('mode_of_transport', 24), ('vehicle_number', 25)
+     ('mode_of_transport', 24), ('vehicle_number', 25),('ship_to',26)
      ))
 
 SALES_RETURN_FIELDS = ((('Return Tracking ID', 'return_id'),),)

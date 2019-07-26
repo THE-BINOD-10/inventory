@@ -6851,7 +6851,7 @@ def get_orderflow_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     col_num = search_params.get('order_index', 0)
 
-    order_status_dict = {'1' :'Open','0' :'Picklist Confirmed','2':'Dispatched','3':'Cancelled'}
+    order_status_dict = {'1' :'Open','0' :'Picklist Confirmed','2':'Picklist Confirmed','3':'Cancelled'}
     central_order_status = {'1':'Accepted','0':'Rejected','2':'Pending'}
     if search_params.get('length', 0):
         stop_index = start_index + search_params.get('length', 0)
@@ -6918,7 +6918,9 @@ def get_orderflow_data(search_params, user, sub_user):
                if data['order__picklist__status'] == 'picked':
                    order_status = 'Picklist Confirmed'
                if data['order__picklist__status'] == 'dispatched':
-                   order_status = 'Dispatched'
+                   order_status = 'Picklist Confirmed'
+                   if not po_status :
+                       po_status = 'Open'
 
            else:
                order_status =  order_status_dict.get(data['order__status'],'')

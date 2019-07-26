@@ -874,6 +874,17 @@ MARGIN_REPORT_DICT = {
   'print_url': 'print_margin_report',
 }
 
+BASA_REPORT_DICT = {
+  'filters': [
+      {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+      {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+      {'label': 'SKU Code', 'name': 'sku_code', 'type': 'input'},
+  ],
+  'dt_headers': ['SKU Code','SKU Desc','Weight','MRP','Brand', 'Category', 'Sub Category','Sub Category Type','Sheet','Stock( Only BA and SA)','Avg CP','Latest GRN Qty','Latest GRN CP'],
+  'dt_url': 'get_basa_report', 'excel_name': 'get_basa_report',
+  'print_url': 'print_basa_report',
+}
+
 CURRENT_STOCK_REPORT_DICT = {
     'filters': [
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
@@ -967,6 +978,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'stock_reconsiliation_report':STOCK_RECONCILIATION_REPORT_DICT,
                      'margin_report':MARGIN_REPORT_DICT,
                      'stock_cover_report':STOCK_COVER_REPORT_DICT,
+                     'basa_report':BASA_REPORT_DICT,
                     }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -7237,6 +7249,69 @@ def get_margin_report_data(search_params, user, sub_user):
                                                  ('Weighted Avg Cost', "%.2f" % weighted_avg_cost_value), ('Weighted Avg Selling Price', "%.2f" % weighted_avg_selling_price_value),('Total Cost',"%.2f" %total_cost),('Total Sale',"%.2f" %total_sale),
                                                  ('Margin Amount',"%.2f" % margin_amount),('Margin Percentage',"%.2f" % margin_percentage))))
     return temp_data
+
+
+
+def get_basa_report_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date,get_all_sellable_zones
+    from django.db.models import Count
+    temp_data = copy.deepcopy(AJAX_DATA)
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    lis = ['sku__sku_code','batch_detail__weight','batch_detail__mrp','sku__sku_brand', 'sku__sku_category', 'sku__sub_category', 'quantity',]
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term', 'asc')
+    start_index = search_params.get('start', 0)
+    grouping_data = OrderedDict()
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
+    else:
+        stop_index = None
+    search_parameters = {}
+    sort_data = lis[col_num]
+    zones  = get_all_sellable_zones(user)
+    locations = []
+    locations = list(LocationMaster.objects.filter(zone__zone__in = zones,zone__user =user.id).values_list('location',flat=True))
+    locations.append('BA')
+    if order_term == 'desc':
+        sort_data = '-%s' % sort_data
+    if 'sku_code' in search_params:
+        if search_params['sku_code']:
+            search_parameters['sku__sku_code'] = search_params['sku_code']
+    search_parameters['sku_id__in'] = sku_master_ids
+    search_params['location__location__in'] = locations
+    if 'from_date' in search_params:
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
+    stock_data = StockDetail.objects.filter(**search_parameters).values('sku__sku_code','sku__sku_desc','batch_detail__mrp',\
+                                                                     'batch_detail__weight','sku__id',
+                                                                     'sku__sku_brand','sku__sku_category','sku__sub_category').annotate(total_quantity=Sum('quantity'),average_cp = Sum(F('quantity')*F('batch_detail__buy_price')))
+
+    temp_data['recordsTotal'] =len(stock_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    quantity = 0
+    avearage_cost_price = 0
+    grn_quantity = 0
+    grn_price = 0
+    for data in (stock_data[start_index:stop_index]):
+        seller_po = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id = data['sku__id']).order_by('-id')
+        if seller_po.exists():
+            seller_po = seller_po[0]
+            grn_quantity = seller_po.quantity
+            if seller_po.batch_detail :
+                grn_price = seller_po.batch_detail.buy_price
+        quantity = data['total_quantity']
+        if quantity and data['average_cp']:
+            avearage_cost_price = data['average_cp']/quantity
+        sku_attribute_dict = {}
+        sku_attribute_dict = dict(SKUAttributes.objects.filter(sku__id=data['sku__id'],attribute_name__in=['Manufacturer', 'Sub Category Type','Sheet', 'Vendor']).values_list('attribute_name','attribute_value'))
+
+        temp_data['aaData'].append(OrderedDict(( ('SKU Code', data['sku__sku_code']),('SKU Desc',data['sku__sku_desc']),
+                                                 ('Brand',data['sku__sku_brand']), ('Category',data['sku__sku_category']),('Sheet',sku_attribute_dict.get('Sheet','')),('Sub Category Type',sku_attribute_dict.get('Sub Category Type','')),
+                                                 ('Sub Category', data['sku__sub_category']), ('Stock( Only BA and SA)', quantity),('Weight',data['batch_detail__weight']),('MRP',data['batch_detail__mrp']),('Avg CP',"%.2f" %avearage_cost_price),('Latest GRN Qty',grn_quantity),('Latest GRN CP',grn_price))))
+    return temp_data
+
 
 
 def get_stock_reconciliation_report_data(search_params, user, sub_user):

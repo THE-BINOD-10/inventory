@@ -3051,8 +3051,10 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     customer_address += ("\tEmail: " + customer_details[0]['email_id'])
                 if customer_details[0]['pan_number']:
                     customer_address += ("\tPAN No.: " + customer_details[0]['pan_number'])
-
-                consignee = customer_address
+                if customer_details[0]['shipping_address']:
+                    consignee = customer_details[0]['shipping_address']
+                else:
+                    consignee = customer_address
             else:
                 customer_id = dat.customer_id
                 customer_address = dat.customer_name + '\n' + dat.address + "\nCall: " \

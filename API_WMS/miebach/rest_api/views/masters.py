@@ -373,7 +373,10 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
     for result in mapping_results[start_index: stop_index]:
         sku_preference = result.preference
         if sku_preference:
-            sku_preference = int(sku_preference)
+            try:
+                sku_preference = int(float(sku_preference))
+            except:
+                sku_preference = 0
         temp_data['aaData'].append(OrderedDict((('supplier_id', result.supplier_id), ('wms_code', result.sku.wms_code),
                                                 ('supplier_code', result.supplier_code), ('moq', result.moq),
                                                 ('preference', sku_preference),

@@ -3326,12 +3326,15 @@ def get_stock_summary_data(search_params, user, sub_user):
 
         tracking = dict(zip(map(lambda d: d.get('status_value', ''), status_track),
                             map(lambda d: d.get('total', '0'), status_track)))
-        wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code = sku[1], sku__user=user.id)
-        wms_code_obj_unit_price = wms_code_obj.filter(unit_price__gt=0).only('quantity', 'unit_price')
-        total_wms_qty_unit_price = sum(wms_code_obj_unit_price.annotate(stock_value=Sum(F('quantity') * F('unit_price'))).values_list('stock_value',flat=True))
-        wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
-        total_wms_qty_sku_unit_price = sum(wms_code_obj_sku_unit_price.annotate(stock_value=Sum(F('quantity') * F('sku__cost_price'))).values_list('stock_value',flat=True))
-        total_stock_value = total_wms_qty_unit_price + total_wms_qty_sku_unit_price
+        if central_order_mgmt == "true":
+            users = warehouse_users.keys()
+            users.append(user.id)
+            wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code = sku[1], sku__user__in=users)
+            wms_code_obj_unit_price = wms_code_obj.filter(unit_price__gt=0).only('quantity', 'unit_price')
+            total_wms_qty_unit_price = sum(wms_code_obj_unit_price.annotate(stock_value=Sum(F('quantity') * F('unit_price'))).values_list('stock_value',flat=True))
+            wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
+            total_wms_qty_sku_unit_price = sum(wms_code_obj_sku_unit_price.annotate(stock_value=Sum(F('quantity') * F('sku__cost_price'))).values_list('stock_value',flat=True))
+            total_stock_value = total_wms_qty_unit_price + total_wms_qty_sku_unit_price
         for head in extra_headers:
             quantity = tracking.get(head, 0)
             if quantity:

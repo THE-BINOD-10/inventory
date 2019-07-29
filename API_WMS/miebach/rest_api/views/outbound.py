@@ -396,6 +396,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     count = 0
     od_id, od_order_id = '', ''
     for data in master_data[start_index:stop_index]:
+        import pdb; pdb.set_trace()
         prepare_str = ''
         shipment_date = ''
         create_date_value, order_marketplace, order_customer_name, picklist_id, remarks = '', [], [], '', ''
@@ -4763,7 +4764,8 @@ def create_order_from_intermediate_order(request, user):
                         message = check_stocks(order_sku, wh_usr_obj, request, order_objs)
 
                     if first:
-                        inv_amt = (interm_obj.unit_price * interm_obj.quantity) + interm_obj.tax
+                        # inv_amt = (interm_obj.unit_price * interm_obj.quantity) + interm_obj.tax
+                        inv_amt = 0
                         items.append([host_details+interm_obj.sku.image_url, interm_obj.interm_order_id,interm_obj.sku.sku_code, interm_obj.sku.sku_desc,interm_obj.quantity, inv_amt, interm_obj.project_name])
                         inter_obj_data = {'interm_order_id': interm_obj.interm_order_id,
                                           'unit_price': interm_obj.unit_price,

@@ -3270,7 +3270,12 @@ def get_stock_summary_data(search_params, user, sub_user):
             job_filter['%s__%s__%s' % ('product_code', data, 'iexact')] = search_params[data]
 
     if central_order_mgmt == 'true':
-        warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+        if 'sister_warehouse' in search_params:
+            sister_warehouse_name = search_params['sister_warehouse']
+            user = User.objects.get(username=sister_warehouse_name)
+            warehouses = UserGroups.objects.filter(user_id=user.id)
+        else:
+            warehouses = UserGroups.objects.filter(admin_user_id=user.id)
         warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
         sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
         sku_master_ids = sku_master.values_list('id', flat=True)

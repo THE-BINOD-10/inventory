@@ -45,6 +45,7 @@
                 <div class="form-group">
                   <label class="control-label">Sister Warehouse</label>
                   <select name="sister_warehouse" class="form-control" ng-model="showCase.model_data.sister_warehouse">
+                    <option value="" selected>All</option>
                     <option ng-repeat="group in showCase.warehouse_groups" value="{{group}}">{{group}}</option>
                   </select>
                 </div>

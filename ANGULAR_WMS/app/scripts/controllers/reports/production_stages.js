@@ -43,7 +43,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.empty_data = {
                     'sku_code': '',
                     'brand': '',
-                    'stage': ''
+                    'stage': '',
+                    'sister_warehouse': ''
                     };
 
    vm.data = {brands: [], stages_list: []}

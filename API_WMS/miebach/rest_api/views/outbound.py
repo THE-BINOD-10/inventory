@@ -6628,9 +6628,11 @@ def get_sku_categories_list(request, user=''):
     stages_list = list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
     sub_categories = list(sku_master.exclude(sub_category='').values_list('sub_category',
                                                                                                       flat=True).distinct())
+    warehouse_groups = list(
+                UserGroups.objects.filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',flat=True).distinct())
     return HttpResponse(
         json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list,
-                    'sub_categories': sub_categories, 'colors': colors}))
+                    'sub_categories': sub_categories, 'colors': colors, 'warehouse_groups': warehouse_groups}))
 
 
 def fetch_unit_price_based_ranges(dest_loc_id, level, admin_id, wms_code):

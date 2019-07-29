@@ -6918,6 +6918,7 @@ def get_current_stock_report_data(search_params, user, sub_user):
         mrp = 0
         avg_tax_price = 0
         avg_buy_price = 0
+        tax = 0
         if sku_data['stock__batch_detail__mrp']:
             res_filters['stock__batch_detail__mrp'] = sku_data['stock__batch_detail__mrp']
             mrp = sku_data['stock__batch_detail__mrp']
@@ -6943,7 +6944,8 @@ def get_current_stock_report_data(search_params, user, sub_user):
         total_amt = avg_buy_price+avg_tax_price
         avg_cp_w_tax = float(total_amt)/total_quantity
         avg_cp_wo_tax = float(avg_buy_price)/total_quantity
-        tax = (total_amt - avg_buy_price)/avg_buy_price*100
+        if total_amt and avg_buy_price:
+            tax = (total_amt - avg_buy_price)/avg_buy_price*100
         temp_data['aaData'].append(OrderedDict((('Seller ID', sku_data['seller__seller_id']),
                                                 ('Seller Name', sku_data['seller__name']),
                                                 ('SKU Code', sku_data['stock__sku__wms_code']),

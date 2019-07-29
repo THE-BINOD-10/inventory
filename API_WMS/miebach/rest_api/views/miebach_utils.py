@@ -7240,7 +7240,7 @@ def get_margin_report_data(search_params, user, sub_user):
             total_sale = float(data['average_selling_price'])*float(quantity)
             margin_amount = total_sale - total_cost
             if total_sale :
-                margin_percentage = margin_amount / float(total_sale)
+                margin_percentage = (margin_amount / float(total_sale))*100
 
         temp_data['aaData'].append(OrderedDict((
                                                  ('SKU Code', data['wms_code']),('SKU Desc',data['sku_desc']), ('Vendor Name',sku_attribute_dict.get('Vendor','')),('Seller',data['seller']),

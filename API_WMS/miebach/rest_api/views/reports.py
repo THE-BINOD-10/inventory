@@ -679,10 +679,11 @@ def get_adjust_filter_data(search_params, user, sub_user):
             mrp = data['mrp']
             weight = data['weight']
             amount = data['amount']
+            qty = data['quantity']
             updated_user_name = data['updated_user_name']
             avg_cost = 0
-            if data['prices_list']:
-                avg_cost = sum(data['prices_list'])/len(data['prices_list'])
+            if amount and qty:
+                avg_cost = amount/qty
             temp_data['aaData'].append(OrderedDict(( ('SKU Code', sku.sku_code),
                                                      ('Name', sku.sku_desc),
                                                      ('Weight', weight),

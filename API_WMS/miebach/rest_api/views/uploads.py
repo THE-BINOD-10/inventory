@@ -5794,31 +5794,15 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                     else:
                         sister_grouping_key = '%s:%s' % (str(wh_id), str(sku_id))
                         sister_user_sku_map[sister_grouping_key] = map_sku_id
-        """
-        if order_mapping.has_key('location'):
-            try:
-                location = str(int(get_cell_data(row_idx, order_mapping['location'], reader, file_type)))
-            except:
-                location = str(get_cell_data(row_idx, order_mapping['location'], reader, file_type))
-            warehouse_admin = get_warehouse_admin(user)
-            all_user_groups = UserGroups.objects.filter(admin_user_id=warehouse_admin.id)
-            if not all_user_groups:
-                index_status.setdefault(count, set()).add('Invalid Location')
+        if order_mapping.has_key('address1'):
+            address1 = str(get_cell_data(row_idx, order_mapping['address1'], reader, file_type))
+            if len(address1) > 255 :
+                index_status.setdefault(count, set()).add('Address1 exceeding the 255 characters')
+            address2 = str(get_cell_data(row_idx, order_mapping['address2'], reader, file_type))
+            if len(address2) > 255 :
+                index_status.setdefault(count, set()).add('Address2 exceeding the 255 characters')
 
-        if order_mapping.has_key('original_order_id'):
-            try:
-                original_order_id = str(int(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type)))
-            except:
-                original_order_id = str(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type))
-            order_fields_obj = OrderFields.objects.filter(user=user.id, name='original_order_id',
-                value=original_order_id, order_type = 'intermediate_order')
-            if order_fields_obj:
-                index_status.setdefault(count, set()).add('Order ID already present')
-            else:
-                order_detail_obj = OrderDetail.objects.filter(user=user.id, original_order_id=original_order_id)
-                if order_detail_obj:
-                    index_status.setdefault(count, set()).add('Order ID already present')
-        """
+
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
         file_path = rewrite_csv_file(f_name, index_status, reader)
@@ -5905,12 +5889,12 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             elif key == 'customer_name':
                 order_data['customer_name'] = get_cell_data(row_idx, value, reader, file_type)
             elif key == 'address1':
-                key_value = str(get_cell_data(row_idx, value, reader, file_type))[:255]
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 order_fields_objs = create_order_fields_entry(order_id, key, key_value, user, is_bulk_create=True,
                               order_fields_objs=order_fields_objs)
                 address1 = key_value
             elif key == 'address2':
-                key_value = str(get_cell_data(row_idx, value, reader, file_type))[:255]
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 order_fields_objs = create_order_fields_entry(order_id, key, key_value, user, is_bulk_create=True,
                               order_fields_objs=order_fields_objs)
                 address2 = key_value

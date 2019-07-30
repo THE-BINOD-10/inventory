@@ -197,7 +197,7 @@ class Command(BaseCommand):
                 for sku_id, sku_stats in sku_stats_dict.iteritems():
                     opening_stock_dict.setdefault(sku_id, {})
                     for key, sku_stat in sku_stats.iteritems():
-                        opening_stock_dict[sku_id].setdefault(key, {'quantity': 0, 'avg_rate': 0, 'amount': 0})
+                        opening_stock_dict[sku_id].setdefault(key, {'quantity': 0, 'avg_rate': 0, 'amount': 0, 'qty_price_sum': 0})
                         for stat_name, stat_value in sku_stat.iteritems():
                             if stat_name in ['customer_sales', 'internal_sales', 'rtv', 'stock_transfer']:
                                 opening_stock_dict[sku_id][key]['quantity'] += stat_value['quantity']

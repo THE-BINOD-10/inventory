@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['angularjs-dropdown-multiselect'])
-  .controller('ConfigCtrl',['$scope', '$http', '$state', '$compile', 'Session' , 'Auth', '$timeout', 'Service', ServerSideProcessingCtrl]);
+  .controller('ConfigCtrl',['$scope', '$http', '$state', '$compile', 'Session' , 'Auth', '$timeout', 'Service','$rootScope', '$modal', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth, $timeout, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth, $timeout, Service,$rootScope, $modal) {
   var vm = this;
   vm.service = Service;
 
@@ -1091,6 +1091,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         break;
       }
     }
+  }
+  vm.addClassfication = function(){
+    var send_data = {}
+    angular.copy(vm.attr_model_data, send_data);
+    var modalInstance = $modal.open({
+      templateUrl: 'views/classification.html',
+      controller: 'ClassificationPOP',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      //windowClass: 'full-modal',
+      resolve: {
+        items: function () {
+          return send_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (result_dat) {
+      vm.model_data.attributes = result_dat;
+    });
   }
 
   vm.update_invoice_remarks = function(invoice_remarks) {

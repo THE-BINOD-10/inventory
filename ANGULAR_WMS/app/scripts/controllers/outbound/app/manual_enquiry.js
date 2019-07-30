@@ -238,6 +238,7 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
   });
 
   $ctrl.clearFiles = function(){
+    $ctrl.totalQuantity = 0
     $('#image-upload').val('');
     $("div.multi_imgs_display").empty();
   }

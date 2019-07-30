@@ -1684,7 +1684,9 @@ def add_po(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def insert_inventory_adjust(request, user=''):
+    reversion.set_user(request.user)
     data = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
     if not data:
         cycle_id = 1
@@ -5821,6 +5823,7 @@ def returns_putaway_data(request, user=''):
                     stock_dict['batch_detail_id'] = batch_detail[0].id
                 new_stock = StockDetail(**stock_dict)
                 new_stock.save()
+                stock_data = new_stock
                 stock_id = new_stock.id
                 if seller_id:
                     seller_stock_dict = {'seller_id': seller_id, 'stock_id': stock_id, 'quantity': quantity,

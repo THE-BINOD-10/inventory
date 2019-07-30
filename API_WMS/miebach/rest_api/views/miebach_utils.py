@@ -126,6 +126,10 @@ SUPPLIER_SKU_DATA = {'supplier_id': '', 'supplier_type': '',
 
 SKU_PACK_DATA = {'sku': '','pack_id':'', 'pack_quantity': '','creation_date':datetime.datetime.now()}
 
+REPLENUSHMNENT_DATA = {'classification': '','size':'', 'max_days': 0,'min_days':0, 'creation_date':datetime.datetime.now()}
+
+SKUCLASSIFICATION_DATA = {'sku': '','classification': '','avg_sales_day':'', 'max_units': 0,'min_units':0, 'creation_date':datetime.datetime.now()}
+
 WAREHOUSE_SKU_DATA = {'warehouse': '', 'sku': '', 'priority': '', 'moq': '', 'price': ''}
 
 UPLOAD_ORDER_DATA = {'order_id': '', 'title': '', 'user': '',
@@ -865,9 +869,20 @@ MARGIN_REPORT_DICT = {
       {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
       {'label': 'SKU Code', 'name': 'sku_code', 'type': 'input'},
   ],
-  'dt_headers': ['SKU Code', 'Vendor Name', 'Brand', 'Category', 'Sub Category', 'QTY', 'Weighted Avg Cost', 'Weighted Avg Selling Price', 'Consolidated Tax %', 'Brand Discount', 'Consolidated Margin'],
+  'dt_headers': ['Seller','SKU Code','SKU Desc','Weight','MRP','Manufacturer','Vendor Name','Sheet', 'Brand', 'Category', 'Sub Category','Customer','Marketplace', 'QTY', 'Weighted Avg Cost', 'Weighted Avg Selling Price','Total Cost','Total Sale','Margin Amount','Margin Percentage'],
   'dt_url': 'get_margin_report', 'excel_name': 'get_margin_report',
   'print_url': 'print_margin_report',
+}
+
+BASA_REPORT_DICT = {
+  'filters': [
+      {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+      {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+      {'label': 'SKU Code', 'name': 'sku_code', 'type': 'input'},
+  ],
+  'dt_headers': ['SKU Code','SKU Desc','Weight','MRP','Brand', 'Category', 'Sub Category','Sub Category Type','Sheet','Stock( Only BA and SA)','Avg CP','Latest GRN Qty','Latest GRN CP'],
+  'dt_url': 'get_basa_report', 'excel_name': 'get_basa_report',
+  'print_url': 'print_basa_report',
 }
 
 CURRENT_STOCK_REPORT_DICT = {
@@ -877,8 +892,10 @@ CURRENT_STOCK_REPORT_DICT = {
         {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'},
         {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'}
     ],
-    'dt_headers': ['Seller ID', 'Seller Name', 'SKU Code', 'SKU Description', 'Category', 'Location', 'Weight', 'MRP', 'Available Quantity',
-                   'Reserved Quantity', 'Total Quantity','Warehouse Name','Report Generation Time'],
+    'dt_headers': ['Seller ID', 'Seller Name', 'SKU Code', 'SKU Description','Manufacturer', 'Brand', 'Category',
+    'Sub Category', 'Sub Category type','Sheet','Vendor','Location', 'Weight', 'MRP', 'Available Quantity',
+    'Reserved Quantity', 'Total Quantity','Tax %','Avg CP with Tax','Amount with Tax','Cost Price W/O Tax',
+    'Amount W/O tax','Warehouse Name','Report Generation Time'],
     'dt_url': 'get_current_stock_report', 'excel_name': 'get_current_stock_report',
     'print_url': 'print_current_stock_report',
 }
@@ -887,13 +904,19 @@ STOCK_RECONCILIATION_REPORT_DICT = {
   'filters': [
       {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
       {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
-      {'label': 'SKU Code', 'name': 'sku_code', 'type': 'input'},
+      {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
   ],
-  'dt_headers': ['Created Date', 'SKU', 'Vendor Name', 'Brand', 'Category', 'Sub Category', 'Opening Qty', 'Opening Avg Rate', 'Opening Amount Before Tax',
-  'Opening Tax Rate', 'Opening Cess Rate', 'Opening Amount After Tax', 'Purchases Qty', 'Purchases Avg Rate', 'Purchases Amount Before Tax',
-  'Purchases Tax Rate', 'Purchases Cess Rate', 'Purchases Amount After Tax',  'Sales Qty', 'Sales Avg Rate', 'Sales Amount Before Tax',
-  'Sales Tax Rate', 'Sales Cess Rate', 'Sales Amount After Tax',  'Closing Qty', 'Closing Avg Rate', 'Closing Amount Before Tax',
-  'Closing Tax Rate', 'Closing Cess Rate', 'Closing Amount After Tax', 'Warehouse Name', 'Report Generation Time'],
+  'dt_headers': ['Created Date', 'SKU Code', 'SKU Desc', 'MRP', 'Weight', 'Vendor Name', 'Brand', 'Category',
+                 'Sub Category', 'Sub Category Type', 'Sheet', 'Opening Qty', 'Opening Avg Rate', 'Opening Amount After Tax',
+                 'Purchases Qty', 'Purchases Avg Rate', 'Purchases Amount After Tax',
+                 'RTV Qty', 'RTV Avg Rate', 'RTV Amount After Tax',
+                 'Customer Sales Qty', 'Customer Sales Avg Rate', 'Customer Sales Amount After Tax',
+                 'Internal Sales Qty', 'Internal Sales Avg Rate', 'Internal Sales Amount After Tax',
+                 'Stock Transfer Qty', 'Stock Transfer Avg Rate', 'Stock Transfer Amount After Tax',
+                 'Returns Qty', 'Returns Avg Rate', 'Returns Amount After Tax',
+                 'Adjustment Qty', 'Adjustment Avg Rate', 'Adjustment Amount After Tax',
+                 'Closing Qty', 'Closing Avg Rate', 'Closing Amount After Tax', 'Warehouse Name',
+                 'Report Generation Time'],
   'dt_url': 'get_stock_reconciliation_report', 'excel_name': 'get_stock_reconciliation_report',
   'print_url': 'print_stock_reconciliation_report',
 }
@@ -955,6 +978,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'stock_reconsiliation_report':STOCK_RECONCILIATION_REPORT_DICT,
                      'margin_report':MARGIN_REPORT_DICT,
                      'stock_cover_report':STOCK_COVER_REPORT_DICT,
+                     'basa_report':BASA_REPORT_DICT,
                     }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -6867,8 +6891,8 @@ def get_current_stock_report_data(search_params, user, sub_user):
                                             values('seller__seller_id', 'seller__name', 'stock__sku__wms_code',
                                                  'stock__location__location', 'stock__batch_detail__weight',
                                                  'stock__batch_detail__mrp',
-                                                 'stock__sku__sku_desc', 'stock__sku__sku_category').distinct().\
-                                            annotate(total=Sum('quantity')).\
+                                                 'stock__sku__sku_desc', 'stock__sku__sku_category',).\
+                                            annotate(total=Sum('quantity'),avg_buy_price = Sum(F('stock__batch_detail__buy_price')*F('quantity')),avg_tax_price = (Sum(F('stock__batch_detail__buy_price')*F('quantity')*(F('stock__batch_detail__tax_percent')/100)))).\
                                             order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -6879,6 +6903,12 @@ def get_current_stock_report_data(search_params, user, sub_user):
     all_raw_res = RMLocation.objects.filter(status=1, stock__sku__user=user.id, reserved__gt=0, **search_parameters)
     time = get_local_date(user, datetime.datetime.now())
     for ind, sku_data in enumerate(master_data[start_index:stop_index]):
+        sku_code = sku_data.get('stock__sku__wms_code','')
+        if sku_code:
+            sku_details_obj = SKUMaster.objects.filter(sku_code = sku_code , user = user.id)[0]
+            brand = sku_details_obj.sku_brand
+            sub_category = sku_details_obj.sub_category
+            attributes_data = dict(sku_details_obj.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
         seller_id = sku_data['seller__seller_id']
         reserved = 0
         res_filters = {'stock__sku__sku_code': sku_data['stock__sku__wms_code'],
@@ -6886,31 +6916,54 @@ def get_current_stock_report_data(search_params, user, sub_user):
                        'stock__sellerstock__seller__seller_id': seller_id}
         weight = ''
         mrp = 0
+        avg_tax_price = 0
+        avg_buy_price = 0
+        tax = 0
         if sku_data['stock__batch_detail__mrp']:
             res_filters['stock__batch_detail__mrp'] = sku_data['stock__batch_detail__mrp']
             mrp = sku_data['stock__batch_detail__mrp']
         if sku_data['stock__batch_detail__weight']:
             res_filters['stock__batch_detail__weight'] = sku_data['stock__batch_detail__weight']
             weight = sku_data['stock__batch_detail__weight']
+        if sku_data['avg_buy_price']:
+            avg_buy_price = sku_data['avg_buy_price']
+        if sku_data['avg_tax_price']:
+            avg_tax_price = sku_data['avg_tax_price']
+
         picklist_reserved = all_pick_res.filter(**res_filters).aggregate(Sum('reserved'))['reserved__sum']
         raw_reserved = all_raw_res.filter(**res_filters).aggregate(Sum('reserved'))['reserved__sum']
         if picklist_reserved:
             reserved = picklist_reserved
         if raw_reserved:
             reserved += raw_reserved
-        total = sku_data['total']
-        quantity = total - reserved
+        total_quantity = sku_data['total']
+        quantity = total_quantity - reserved
         if quantity < 0:
             quantity = 0
+
+        total_amt = avg_buy_price+avg_tax_price
+        avg_cp_w_tax = float(total_amt)/total_quantity
+        avg_cp_wo_tax = float(avg_buy_price)/total_quantity
+        if total_amt and avg_buy_price:
+            tax = (total_amt - avg_buy_price)/avg_buy_price*100
         temp_data['aaData'].append(OrderedDict((('Seller ID', sku_data['seller__seller_id']),
                                                 ('Seller Name', sku_data['seller__name']),
                                                 ('SKU Code', sku_data['stock__sku__wms_code']),
                                                 ('SKU Description', sku_data['stock__sku__sku_desc']),
+                                                ('Manufacturer',attributes_data.get('Manufacturer','')),
+                                                ('Brand',brand),
                                                 ('Category', sku_data['stock__sku__sku_category']),
+                                                ('Sub Category',sub_category),
+                                                ('Sub Category type',attributes_data.get('Sub Category type','')),
+                                                ('Sheet',attributes_data.get('Sheet','')),
+                                                ('Vendor',attributes_data.get('Vendor','')),
                                                 ('Location', sku_data['stock__location__location']),
                                                 ('Weight', weight), ('MRP', mrp),
                                                 ('Available Quantity', quantity),
-                                                ('Reserved Quantity', reserved), ('Total Quantity', total),
+                                                ('Reserved Quantity', reserved), ('Total Quantity', total_quantity),
+                                                ('Tax %',tax),('Avg CP with Tax',avg_cp_w_tax),
+                                                ('Amount with Tax',total_amt),
+                                                ('Cost Price W/O Tax',avg_cp_wo_tax),('Amount W/O tax',avg_buy_price),
                                                 ('Warehouse Name',user.username), ('Report Generation Time', time))))
     return temp_data
 
@@ -7113,10 +7166,11 @@ def get_margin_report_data(search_params, user, sub_user):
     from django.db.models import Count
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
-    lis = ['order__sku__sku_code', 'vendor_name', 'order__sku__sku_brand', 'order__sku__sku_category', 'order__sku__sub_category', 'quantity', 'weighted_avg_cost', 'weighted_avg_selling_price', 'consolidated_tax', 'brand_discount', 'consolidated_margin']
+    lis = ['order__sellerorder__seller__name','order__sku__sku_code','order__sku__sku_code','stock__batch_detail__weight','stock__batch_detail__mrp','vendor_name', 'order__sku__sku_brand', 'order__sku__sku_category', 'order__sku__sub_category', 'quantity',]
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)
+    grouping_data = OrderedDict()
     if search_params.get('length', 0):
         stop_index = start_index + search_params.get('length', 0)
     else:
@@ -7135,61 +7189,152 @@ def get_margin_report_data(search_params, user, sub_user):
         search_parameters['order__creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
     search_parameters['status__in'] = ['picked', 'batch_picked', 'dispatched']
     search_parameters['order__user'] = user.id
-    order_data = Picklist.objects.filter(**search_parameters)
-    order_data = order_data.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('stock__batch_detail__mrp'), Value('<<>>'), F('stock__batch_detail__weight'), output_field=CharField()))
-    get_all_order_ids = list(order_data.values_list('order__id',flat=True).distinct())
-    get_batch_detail_ids = order_data.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('stock__batch_detail__mrp'), Value('<<>>'), F('stock__batch_detail__weight'), output_field=CharField())).values_list('group_key', 'order__id').distinct()
-    cust_order_summary = CustomerOrderSummary.objects.filter(order__id__in=get_all_order_ids)
-    tax_cust_order = dict(cust_order_summary.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('mrp'), output_field=CharField())).values_list('group_key').annotate(total_tax=Sum(F('cgst_tax') + F('sgst_tax') + F('igst_tax') + F('utgst_tax') + F('cess_tax'))))
-    divide_tax = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(count_skus=Count(F('order__sku__sku_code'))))
-    collect_discount = dict(cust_order_summary.values_list('order__sku__sku_code').annotate(discount=Sum(F('discount'))))
-    if col_num in [0, 2, 3, 4]:
-	order_data_loop = order_data.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('stock__batch_detail__mrp'), Value('<<>>'), F('stock__batch_detail__weight'), output_field=CharField())).order_by(sort_data).values_list('group_key').distinct()
-    else:
-	order_data_loop = order_data.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('stock__batch_detail__mrp'), Value('<<>>'), F('stock__batch_detail__weight'), output_field=CharField())).values_list('group_key').distinct()
-    qty_data = dict(order_data.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('stock__batch_detail__mrp'), Value('<<>>'), F('stock__batch_detail__weight'), output_field=CharField())).values_list('group_key').distinct().annotate(total_quantity=Sum('picked_quantity', distinct=True)))
-    weighted_avg_cost = dict(order_data.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('stock__batch_detail__mrp'), Value('<<>>'), F('stock__batch_detail__weight'), output_field=CharField())).values_list('group_key').distinct().exclude(stock__batch_detail=None).annotate(weighted_cost=Sum(F('picked_quantity') * F('stock__batch_detail__buy_price'))))
-    weighted_avg_selling_price = dict(order_data.annotate(group_key=Concat('order__sku__sku_code', Value('<<>>'), F('order__sku__sku_desc'), Value('<<>>'), F('stock__batch_detail__mrp'), Value('<<>>'), F('stock__batch_detail__weight'), output_field=CharField())).values_list('group_key').distinct().exclude(stock__batch_detail=None).annotate(weighted_sell=Sum(F('picked_quantity') * F('order__unit_price'))))
+    order_data = Picklist.objects.filter(**search_parameters).exclude(order__sellerorder__seller__name =None).values('order__sku__sku_code','order__sku__sku_desc','stock__batch_detail__mrp',\
+                                                                     'stock__batch_detail__weight','order__sellerorder__seller__name','order__customer_name','order__sku__id',
+                                                                     'order__sku__sku_brand','order__sku__sku_category','order__sku__sub_category','order__marketplace').annotate(weighted_cost=Sum(F('picked_quantity') * F('stock__batch_detail__buy_price')),weighted_sell=Sum(F('picked_quantity') * F('order__unit_price')),
+                                                                                                                                                                                  total_quantity=Sum('picked_quantity', distinct=True))
+    for data in order_data :
+        group_key = (data['order__sku__sku_code'],data['stock__batch_detail__mrp'], data['stock__batch_detail__weight'],
+                     data['order__customer_name'],data['order__sellerorder__seller__name'],data['order__marketplace'])
 
-    temp_data['recordsTotal'] = order_data_loop.count()
+        grouping_data.setdefault(group_key, {
+                                             'wms_code':data['order__sku__sku_code'],
+                                             'brand': data['order__sku__sku_brand'],
+                                             'sku_desc':data['order__sku__sku_desc'],
+                                             'weight':data['stock__batch_detail__weight'],
+                                             'mrp': data['stock__batch_detail__mrp'],
+                                             'category':data['order__sku__sku_category'],
+                                             'sub_category':data['order__sku__sub_category'],
+                                             'seller':data['order__sellerorder__seller__name'],
+                                             'customer':data['order__customer_name'],
+                                             'marketplace':data['order__marketplace'],
+                                             'sku_id':data['order__sku__id'],
+                                             'quantity':0,
+                                             'average_cost_price':0,
+                                             'average_selling_price':0,
+                                               })
+        grouping_data[group_key]['quantity'] +=data['total_quantity']
+        if data['weighted_cost']:
+            grouping_data[group_key]['average_cost_price'] +=data['weighted_cost']
+        if data['weighted_sell'] :
+            grouping_data[group_key]['average_selling_price'] += data['weighted_sell']
+
+    order_data_loop = grouping_data.values()
+    temp_data['recordsTotal'] =len(order_data_loop)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     time = str(datetime.datetime.now())
     weighted_avg_cost_value = 0
     weighted_avg_selling_price_value = 0
     quantity = 0
-    for wms_code in (order_data_loop[start_index:stop_index]):
-	wms_code = wms_code[0]
-	sku_code, sku_desc, mrp, weight = wms_code.split('<<>>')
+    for data in (order_data_loop[start_index:stop_index]):
         consolidated_margin = 0
-        collect_sku_data = SKUMaster.objects.get(user=user.id, wms_code=sku_code)
-        quantity = qty_data.get(wms_code, 0)
+        quantity = data['quantity']
+        sku_attribute_dict = {}
+        sku_attribute_dict = dict(SKUAttributes.objects.filter(sku__id=data['sku_id'],attribute_name__in=['Manufacturer', 'Sub Category Type','Sheet', 'Vendor']).values_list('attribute_name','attribute_value'))
+        total_cost = 0
+        total_sale = 0
+        margin_amount = 0
+        margin_percentage = 0
         if quantity :
-            weighted_avg_cost_value = float(weighted_avg_cost.get(wms_code, 0)/quantity)
-            weighted_avg_selling_price_value = float(weighted_avg_selling_price.get(wms_code, 0)/quantity)
-        consolidated_tax = float(tax_cust_order.get(sku_code,0)/divide_tax.get(sku_code,0))
-        brand_discount = float(collect_discount.get(sku_code,0)/divide_tax.get(sku_code,0))
-        if weighted_avg_cost_value:
-            consolidated_margin = float(((weighted_avg_selling_price_value - weighted_avg_cost_value + brand_discount)/weighted_avg_cost_value))
+            weighted_avg_cost_value = float(data['average_cost_price']/quantity)
+            weighted_avg_selling_price_value = float(data['average_selling_price']/quantity)
+            total_cost = float(data['average_cost_price'])*float(quantity)
+            total_sale = float(data['average_selling_price'])*float(quantity)
+            margin_amount = total_sale - total_cost
+            if total_sale :
+                margin_percentage = (margin_amount / float(total_sale))*100
+
         temp_data['aaData'].append(OrderedDict((
-                                                 ('SKU Code', sku_code), ('Vendor Name', ''),
-                                                 ('Brand', collect_sku_data.sku_brand), ('Category', collect_sku_data.sku_category),
-                                                 ('Sub Category', collect_sku_data.sub_category), ('QTY', quantity),
-                                                 ('Weighted Avg Cost', "%.2f" % weighted_avg_cost_value), ('Weighted Avg Selling Price', "%.2f" % weighted_avg_selling_price_value),
-                                                 ('Consolidated Tax %', "%.2f" % consolidated_tax), ('Brand Discount', "%.2f" % brand_discount),
-                                                 ('Consolidated Margin', "%.2f" % consolidated_margin)
-                                              ))
-                                  )
+                                                 ('SKU Code', data['wms_code']),('SKU Desc',data['sku_desc']), ('Vendor Name',sku_attribute_dict.get('Vendor','')),('Seller',data['seller']),
+                                                 ('Brand',data['brand']), ('Category',data['category']),('Manufacturer',sku_attribute_dict.get('Manufacturer','')),('Sheet',sku_attribute_dict.get('Sheet','')),('Sub Category Type',sku_attribute_dict.get('Sub Category Type','')),
+                                                 ('Sub Category', data['sub_category']), ('QTY', quantity),('Weight',data['weight']),('MRP',data['mrp']),('Customer',data['customer']),('Marketplace',data['marketplace']),
+                                                 ('Weighted Avg Cost', "%.2f" % weighted_avg_cost_value), ('Weighted Avg Selling Price', "%.2f" % weighted_avg_selling_price_value),('Total Cost',"%.2f" %total_cost),('Total Sale',"%.2f" %total_sale),
+                                                 ('Margin Amount',"%.2f" % margin_amount),('Margin Percentage',"%.2f" % margin_percentage))))
     return temp_data
+
+
+
+def get_basa_report_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date,get_all_sellable_zones
+    from django.db.models import Count
+    temp_data = copy.deepcopy(AJAX_DATA)
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    lis = ['sku__sku_code','batch_detail__weight','batch_detail__mrp','sku__sku_brand', 'sku__sku_category', 'sku__sub_category', 'quantity',]
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term', 'asc')
+    start_index = search_params.get('start', 0)
+    grouping_data = OrderedDict()
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
+    else:
+        stop_index = None
+    search_parameters = {}
+    sort_data = lis[col_num]
+    zones  = get_all_sellable_zones(user)
+    locations = []
+    locations = list(LocationMaster.objects.filter(zone__zone__in = zones,zone__user =user.id).values_list('location',flat=True))
+    locations.append('BA')
+    if order_term == 'desc':
+        sort_data = '-%s' % sort_data
+    if 'sku_code' in search_params:
+        if search_params['sku_code']:
+            search_parameters['sku__sku_code'] = search_params['sku_code']
+    search_parameters['sku_id__in'] = sku_master_ids
+    search_params['location__location__in'] = locations
+    if 'from_date' in search_params:
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
+    stock_data = StockDetail.objects.filter(**search_parameters).values('sku__sku_code','sku__sku_desc','batch_detail__mrp',\
+                                                                     'batch_detail__weight','sku__id',
+                                                                     'sku__sku_brand','sku__sku_category','sku__sub_category').annotate(total_quantity=Sum('quantity'),average_cp = Sum(F('quantity')*F('batch_detail__buy_price')))
+
+    temp_data['recordsTotal'] =len(stock_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    quantity = 0
+    avearage_cost_price = 0
+    grn_quantity = 0
+    grn_price = 0
+    for data in (stock_data[start_index:stop_index]):
+        seller_po = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id = data['sku__id']).order_by('-id')
+        if seller_po.exists():
+            seller_po = seller_po[0]
+            grn_quantity = seller_po.quantity
+            if seller_po.batch_detail :
+                grn_price = seller_po.batch_detail.buy_price
+        quantity = data['total_quantity']
+        if quantity and data['average_cp']:
+            avearage_cost_price = data['average_cp']/quantity
+        sku_attribute_dict = {}
+        sku_attribute_dict = dict(SKUAttributes.objects.filter(sku__id=data['sku__id'],attribute_name__in=['Manufacturer', 'Sub Category Type','Sheet', 'Vendor']).values_list('attribute_name','attribute_value'))
+
+        temp_data['aaData'].append(OrderedDict(( ('SKU Code', data['sku__sku_code']),('SKU Desc',data['sku__sku_desc']),
+                                                 ('Brand',data['sku__sku_brand']), ('Category',data['sku__sku_category']),('Sheet',sku_attribute_dict.get('Sheet','')),('Sub Category Type',sku_attribute_dict.get('Sub Category Type','')),
+                                                 ('Sub Category', data['sku__sub_category']), ('Stock( Only BA and SA)', quantity),('Weight',data['batch_detail__weight']),('MRP',data['batch_detail__mrp']),('Avg CP',"%.2f" %avearage_cost_price),('Latest GRN Qty',grn_quantity),('Latest GRN CP',grn_price))))
+    return temp_data
+
 
 
 def get_stock_reconciliation_report_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date
-    from django.db.models import Count
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
-    lis = ['created_date', 'sku__sku_code', 'sku__sku_code', 'sku__sku_brand', 'sku__sku_category', 'sku__sub_category']
+    lis = ['creation_date', 'sku__sku_code', 'sku__sku_desc', 'mrp', 'weight', 'sku__sku_code',
+           'sku__sku_brand', 'sku__sku_category', 'sku__sub_category', 'sku__sku_code', 'sku__sku_code',
+           'opening_quantity', 'opening_avg_rate',
+           'opening_amount', 'purchase_quantity', 'purchase_avg_rate', 'purchase_amount',
+           'rtv_quantity', 'rtv_avg_rate', 'rtv_amount', 'customer_sales_quantity', 'customer_sales_avg_rate',
+           'customer_sales_amount', 'internal_sales_quantity', 'internal_sales_avg_rate', 'internal_sales_amount',
+           'stock_transfer_quantity', 'stock_transfer_avg_rate', 'stock_transfer_amount',
+           'returns_quantity', 'returns_avg_rate', 'returns_amount',
+           'adjustment_quantity', 'adjustment_avg_rate', 'adjustment_amount',
+           'closing_quantity', 'closing_avg_rate', 'closing_amount', 'id', 'id']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
     start_index = search_params.get('start', 0)
     if search_params.get('length', 0):
         stop_index = start_index + search_params.get('length', 0)
@@ -7205,81 +7350,142 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     if 'to_date' in search_params:
         search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
     search_parameters['sku__user'] = user.id
-    create_data_dict = {}
-    stock_reconciliation = StockReconciliation.objects.filter(**search_parameters)
-    temp_data['recordsTotal'] = len(stock_reconciliation)
+    stock_rec_objs = StockReconciliation.objects.filter(**search_parameters).order_by(order_data)
+    temp_data['recordsTotal'] = stock_rec_objs.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    empty_sub_dict = {}
-    empty_sub_dict['quantity'] = 0
-    empty_sub_dict['avg_rate'] = 0
-    empty_sub_dict['amount_before_tax'] = 0
-    empty_sub_dict['tax_rate'] = 0
-    empty_sub_dict['cess_rate'] = 0
-    empty_sub_dict['amount_after_tax'] = 0
-    time = get_local_date(user, datetime.datetime.now())
-    dict_formation = {}
-    dict_formation = {'po': empty_sub_dict, 'picklist': empty_sub_dict, 'opening_stock': empty_sub_dict, 'closing_stock': empty_sub_dict}
-    for obj in stock_reconciliation:
-        report_type = obj.report_type
-        if not str(obj.sku.sku_code) + '<<>>' + str(obj.created_date) in create_data_dict.keys():
-            dict_formation = {}
-            dict_formation = {'po': empty_sub_dict, 'picklist': empty_sub_dict, 'opening_stock': empty_sub_dict, 'closing_stock': empty_sub_dict}
-            sub_dict = {}
-            sub_dict['quantity'] = obj.quantity
-            sub_dict['avg_rate'] = obj.avg_rate
-            sub_dict['amount_before_tax'] = obj.amount_before_tax
-            sub_dict['tax_rate'] = obj.tax_rate
-            sub_dict['cess_rate'] = obj.cess_rate
-            sub_dict['amount_after_tax'] = obj.amount_after_tax
-            sku_det_dict = {}
-            sku_det_dict['sku'] = str(obj.sku.sku_code)
-            sku_det_dict['vendor_name'] = ''
-            sku_det_dict['brand'] = str(obj.sku.sku_brand)
-            sku_det_dict['category'] = str(obj.sku.sku_category)
-            sku_det_dict['sub_category'] = str(obj.sku.sub_category)
-            dict_formation.update({'sku_details':sku_det_dict})
-            dict_formation[report_type] = sub_dict
-            create_data_dict[str(obj.sku.sku_code) + '<<>>' + str(obj.created_date)] = dict_formation
-        else:
-            sub_dict = {}
-            sub_dict['quantity'] = obj.quantity
-            sub_dict['avg_rate'] = obj.avg_rate
-            sub_dict['amount_before_tax'] = obj.amount_before_tax
-            sub_dict['tax_rate'] = obj.tax_rate
-            sub_dict['cess_rate'] = obj.cess_rate
-            sub_dict['amount_after_tax'] = obj.amount_after_tax
-            sku_det_dict = {}
-            sku_det_dict['sku'] = str(obj.sku.sku_code)
-            sku_det_dict['vendor_name'] = ''
-            sku_det_dict['brand'] = str(obj.sku.sku_brand)
-            sku_det_dict['category'] = str(obj.sku.sku_category)
-            sku_det_dict['sub_category'] = str(obj.sku.sub_category)
-            create_data_dict[str(obj.sku.sku_code) + '<<>>' + str(obj.created_date)].update({'sku_details':sku_det_dict})
-            create_data_dict[str(obj.sku.sku_code) + '<<>>' + str(obj.created_date)].update({report_type:sub_dict})
-    for key, value in create_data_dict.iteritems():
-        wms_code, creation_date = key.split('<<>>')
-        temp_data['aaData'].append(OrderedDict((
-                                                 ('SKU', wms_code), ('Vendor Name', ''),
-                                                 ('Brand', value['sku_details']['brand']), ('Category', value['sku_details']['category']),
-                                                 ('Sub Category', value['sku_details']['sub_category'] ), ('Opening Qty',  value['opening_stock']['quantity']),
-                                                 ('Opening Avg Rate', "%.2f" % value['opening_stock']['avg_rate']), ('Opening Amount Before Tax', "%.2f" % value['opening_stock']['avg_rate']), ('Opening Tax Rate', "%.2f" % value['opening_stock']['tax_rate']),
-                                                 ('Opening Cess Rate', "%.2f" % value['opening_stock']['cess_rate']), ('Opening Amount After Tax', "%.2f" % value['opening_stock']['amount_after_tax']),
-                                                 ('Purchases Qty',  value['po']['quantity']), ('Purchases Avg Rate', "%.2f" % value['po']['avg_rate']), ('Purchases Amount Before Tax', "%.2f" % value['po']['amount_before_tax']), ('Purchases Tax Rate', "%.2f" % value['po']['tax_rate']),
-                                                 ('Purchases Cess Rate', "%.2f" % value['po']['cess_rate']), ('Purchases Amount After Tax', "%.2f" % value['po']['amount_after_tax']),
-                                                 ('Sales Qty',  value['picklist']['quantity']), ('Sales Avg Rate', "%.2f" % value['picklist']['avg_rate']), ('Sales Amount Before Tax', "%.2f" % value['picklist']['amount_before_tax']), ('Sales Tax Rate', "%.2f" % value['picklist']['tax_rate']),
-                                                 ('Sales Cess Rate', "%.2f" % value['picklist']['cess_rate']), ('Sales Amount After Tax', "%.2f" % value['picklist']['amount_after_tax']),
-                                                 ('Closing Qty',  value['closing_stock']['quantity']), ('Closing Avg Rate', "%.2f" % value['closing_stock']['avg_rate']), ('Closing Amount Before Tax', "%.2f" % value['closing_stock']['avg_rate']),
-                                                 ('Closing Tax Rate', "%.2f" % value['closing_stock']['tax_rate']),
-                                                 ('Closing Cess Rate', "%.2f" % value['closing_stock']['cess_rate']), ('Closing Amount After Tax', "%.2f" % value['closing_stock']['amount_after_tax']),
-                                                 ('Created Date', creation_date), ('Warehouse Name', user.username), ('Report Generation Time', time)
-                                              ))
-                                  )
-    lis = ['Created Date', 'SKU', 'Vendor Name', 'Brand', 'Category', 'Sub Category', 'Opening Qty', 'Opening Avg Rate', 'Opening Amount Before Tax', 'Opening Tax Rate', 'Opening Cess Rate', 'Opening Amount After Tax', 'Purchases Qty', 'Purchases Avg Rate', 'Purchases Amount Before Tax', 'Purchases Tax Rate', 'Purchases Cess Rate', 'Purchases Amount After Tax', 'Sales Qty', 'Sales Avg Rate', 'Sales Amount Before Tax', 'Sales Tax Rate', 'Sales Cess Rate', 'Sales Amount After Tax', 'Closing Qty', 'Closing Avg Rate', 'Closing Amount Before Tax', 'Closing Tax Rate', 'Closing Cess Rate', 'Closing Amount After Tax', 'Warehouse Name', 'Report Generation Time']
-    sort_col = lis[col_num]
-    if order_term == 'asc':
-        temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col))
-    else:
-        temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col), reverse=True)
     if stop_index:
-        temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
+        stock_rec_objs = stock_rec_objs[start_index:stop_index]
+    for stock_rec_obj in stock_rec_objs:
+        creation_date = get_local_date(user, stock_rec_obj.creation_date, send_date=True).strftime('%d %b %Y')
+        sku = stock_rec_obj.sku
+        sku_attr_data = dict(sku.skuattributes_set.filter(attribute_name__in=['Manufacturer', 'Sub Category Type',
+                                                                              'Sheet', 'Vendor']).\
+                                                values_list('attribute_name', 'attribute_value'))
+        temp_data['aaData'].append(OrderedDict(( ('Created Date', creation_date),
+                                                 ('SKU Code', sku.sku_code), ('SKU Desc', sku.sku_desc),
+                                                 ('MRP', stock_rec_obj.mrp), ('Weight', stock_rec_obj.weight),
+                                                 ('Vendor Name', sku_attr_data.get('Vendor', '')),
+                                                 ('Brand', sku.sku_brand),
+                                                 ('Category', sku.sku_category),
+                                                 ('Sub Category', sku.sub_category),
+                                                 ('Sub Category Type', sku_attr_data.get('Sub Category Type', '')),
+                                                 ('Sheet', sku_attr_data.get('Sheet', '')),
+                                                 ('Opening Qty',  stock_rec_obj.opening_quantity),
+                                                 ('Opening Avg Rate', "%.2f" % stock_rec_obj.opening_avg_rate),
+                                                 ('Opening Amount After Tax', "%.2f" % stock_rec_obj.opening_amount),
+                                                 ('Purchases Qty',  stock_rec_obj.purchase_quantity),
+                                                 ('Purchases Avg Rate', "%.2f" % stock_rec_obj.purchase_avg_rate),
+                                                 ('Purchases Amount After Tax', "%.2f" % stock_rec_obj.purchase_amount),
+                                                 ('RTV Qty', stock_rec_obj.rtv_quantity),
+                                                 ('RTV Avg Rate', "%.2f" % stock_rec_obj.rtv_avg_rate),
+                                                 ('RTV Amount After Tax', "%.2f" % stock_rec_obj.rtv_amount),
+                                                 ('Customer Sales Qty', stock_rec_obj.customer_sales_quantity),
+                                                 ('Customer Sales Avg Rate', "%.2f" % stock_rec_obj.customer_sales_avg_rate),
+                                                 ('Customer Sales Amount After Tax',
+                                                  "%.2f" % stock_rec_obj.customer_sales_amount),
+                                                 ('Internal Sales Qty',  stock_rec_obj.internal_sales_quantity),
+                                                 ('Internal Sales Avg Rate', "%.2f" % stock_rec_obj.internal_sales_avg_rate),
+                                                 ('Internal Sales Amount After Tax', "%.2f" % stock_rec_obj.internal_sales_amount),
+                                                 ('Stock Transfer Qty', stock_rec_obj.stock_transfer_quantity),
+                                                 ('Stock Transfer Avg Rate',
+                                                  "%.2f" % stock_rec_obj.stock_transfer_avg_rate),
+                                                 ('Stock Transfer Amount After Tax',
+                                                  "%.2f" % stock_rec_obj.stock_transfer_amount),
+                                                 ('Returns Qty', stock_rec_obj.returns_quantity),
+                                                 ('Returns Avg Rate',
+                                                  "%.2f" % stock_rec_obj.returns_avg_rate),
+                                                 ('Returns Amount After Tax',
+                                                  "%.2f" % stock_rec_obj.returns_amount),
+                                                 ('Adjustment Qty', stock_rec_obj.adjustment_quantity),
+                                                 ('Adjustment Avg Rate',
+                                                  "%.2f" % stock_rec_obj.adjustment_avg_rate),
+                                                 ('Adjustment Amount After Tax',
+                                                  "%.2f" % stock_rec_obj.adjustment_amount),
+                                                 ('Closing Qty',  stock_rec_obj.closing_quantity),
+                                                 ('Closing Avg Rate', "%.2f" % stock_rec_obj.closing_avg_rate),
+                                                 ('Closing Amount After Tax', "%.2f" % stock_rec_obj.closing_amount),
+                                                 ('Warehouse Name', user.username),
+                                                 ('Report Generation Time', str(datetime.datetime.now()))
+                                              )))
     return temp_data
+
+
+
+    # create_data_dict = {}
+    # stock_reconciliation = StockReconciliation.objects.filter(**search_parameters)
+    # temp_data['recordsTotal'] = len(stock_reconciliation)
+    # temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    # empty_sub_dict = {}
+    # empty_sub_dict['quantity'] = 0
+    # empty_sub_dict['avg_rate'] = 0
+    # empty_sub_dict['amount_before_tax'] = 0
+    # empty_sub_dict['tax_rate'] = 0
+    # empty_sub_dict['cess_rate'] = 0
+    # empty_sub_dict['amount_after_tax'] = 0
+    # time = get_local_date(user, datetime.datetime.now())
+    # dict_formation = {}
+    # dict_formation = {'po': empty_sub_dict, 'picklist': empty_sub_dict, 'opening_stock': empty_sub_dict, 'closing_stock': empty_sub_dict}
+    # for obj in stock_reconciliation:
+    #     report_type = obj.report_type
+    #     if not str(obj.sku.sku_code) + '<<>>' + str(obj.created_date) in create_data_dict.keys():
+    #         dict_formation = {}
+    #         dict_formation = {'po': empty_sub_dict, 'picklist': empty_sub_dict, 'opening_stock': empty_sub_dict, 'closing_stock': empty_sub_dict}
+    #         sub_dict = {}
+    #         sub_dict['quantity'] = obj.quantity
+    #         sub_dict['avg_rate'] = obj.avg_rate
+    #         sub_dict['amount_before_tax'] = obj.amount_before_tax
+    #         sub_dict['tax_rate'] = obj.tax_rate
+    #         sub_dict['cess_rate'] = obj.cess_rate
+    #         sub_dict['amount_after_tax'] = obj.amount_after_tax
+    #         sku_det_dict = {}
+    #         sku_det_dict['sku'] = str(obj.sku.sku_code)
+    #         sku_det_dict['vendor_name'] = ''
+    #         sku_det_dict['brand'] = str(obj.sku.sku_brand)
+    #         sku_det_dict['category'] = str(obj.sku.sku_category)
+    #         sku_det_dict['sub_category'] = str(obj.sku.sub_category)
+    #         dict_formation.update({'sku_details':sku_det_dict})
+    #         dict_formation[report_type] = sub_dict
+    #         create_data_dict[str(obj.sku.sku_code) + '<<>>' + str(obj.created_date)] = dict_formation
+    #     else:
+    #         sub_dict = {}
+    #         sub_dict['quantity'] = obj.quantity
+    #         sub_dict['avg_rate'] = obj.avg_rate
+    #         sub_dict['amount_before_tax'] = obj.amount_before_tax
+    #         sub_dict['tax_rate'] = obj.tax_rate
+    #         sub_dict['cess_rate'] = obj.cess_rate
+    #         sub_dict['amount_after_tax'] = obj.amount_after_tax
+    #         sku_det_dict = {}
+    #         sku_det_dict['sku'] = str(obj.sku.sku_code)
+    #         sku_det_dict['vendor_name'] = ''
+    #         sku_det_dict['brand'] = str(obj.sku.sku_brand)
+    #         sku_det_dict['category'] = str(obj.sku.sku_category)
+    #         sku_det_dict['sub_category'] = str(obj.sku.sub_category)
+    #         create_data_dict[str(obj.sku.sku_code) + '<<>>' + str(obj.created_date)].update({'sku_details':sku_det_dict})
+    #         create_data_dict[str(obj.sku.sku_code) + '<<>>' + str(obj.created_date)].update({report_type:sub_dict})
+    # for key, value in create_data_dict.iteritems():
+    #     wms_code, creation_date = key.split('<<>>')
+    #     temp_data['aaData'].append(OrderedDict((
+    #                                              ('SKU', wms_code), ('Vendor Name', ''),
+    #                                              ('Brand', value['sku_details']['brand']), ('Category', value['sku_details']['category']),
+    #                                              ('Sub Category', value['sku_details']['sub_category'] ), ('Opening Qty',  value['opening_stock']['quantity']),
+    #                                              ('Opening Avg Rate', "%.2f" % value['opening_stock']['avg_rate']), ('Opening Amount Before Tax', "%.2f" % value['opening_stock']['avg_rate']), ('Opening Tax Rate', "%.2f" % value['opening_stock']['tax_rate']),
+    #                                              ('Opening Cess Rate', "%.2f" % value['opening_stock']['cess_rate']), ('Opening Amount After Tax', "%.2f" % value['opening_stock']['amount_after_tax']),
+    #                                              ('Purchases Qty',  value['po']['quantity']), ('Purchases Avg Rate', "%.2f" % value['po']['avg_rate']), ('Purchases Amount Before Tax', "%.2f" % value['po']['amount_before_tax']), ('Purchases Tax Rate', "%.2f" % value['po']['tax_rate']),
+    #                                              ('Purchases Cess Rate', "%.2f" % value['po']['cess_rate']), ('Purchases Amount After Tax', "%.2f" % value['po']['amount_after_tax']),
+    #                                              ('Sales Qty',  value['picklist']['quantity']), ('Sales Avg Rate', "%.2f" % value['picklist']['avg_rate']), ('Sales Amount Before Tax', "%.2f" % value['picklist']['amount_before_tax']), ('Sales Tax Rate', "%.2f" % value['picklist']['tax_rate']),
+    #                                              ('Sales Cess Rate', "%.2f" % value['picklist']['cess_rate']), ('Sales Amount After Tax', "%.2f" % value['picklist']['amount_after_tax']),
+    #                                              ('Closing Qty',  value['closing_stock']['quantity']), ('Closing Avg Rate', "%.2f" % value['closing_stock']['avg_rate']), ('Closing Amount Before Tax', "%.2f" % value['closing_stock']['avg_rate']),
+    #                                              ('Closing Tax Rate', "%.2f" % value['closing_stock']['tax_rate']),
+    #                                              ('Closing Cess Rate', "%.2f" % value['closing_stock']['cess_rate']), ('Closing Amount After Tax', "%.2f" % value['closing_stock']['amount_after_tax']),
+    #                                              ('Created Date', creation_date), ('Warehouse Name', user.username), ('Report Generation Time', time)
+    #                                           ))
+    #                               )
+    # lis = ['Created Date', 'SKU', 'Vendor Name', 'Brand', 'Category', 'Sub Category', 'Opening Qty', 'Opening Avg Rate', 'Opening Amount Before Tax', 'Opening Tax Rate', 'Opening Cess Rate', 'Opening Amount After Tax', 'Purchases Qty', 'Purchases Avg Rate', 'Purchases Amount Before Tax', 'Purchases Tax Rate', 'Purchases Cess Rate', 'Purchases Amount After Tax', 'Sales Qty', 'Sales Avg Rate', 'Sales Amount Before Tax', 'Sales Tax Rate', 'Sales Cess Rate', 'Sales Amount After Tax', 'Closing Qty', 'Closing Avg Rate', 'Closing Amount Before Tax', 'Closing Tax Rate', 'Closing Cess Rate', 'Closing Amount After Tax', 'Warehouse Name', 'Report Generation Time']
+    # sort_col = lis[col_num]
+    # if order_term == 'asc':
+    #     temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col))
+    # else:
+    #     temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col), reverse=True)
+    # if stop_index:
+    #     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
+    # return temp_data

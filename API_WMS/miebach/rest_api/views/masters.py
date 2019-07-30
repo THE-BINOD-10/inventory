@@ -373,7 +373,10 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
     for result in mapping_results[start_index: stop_index]:
         sku_preference = result.preference
         if sku_preference:
-            sku_preference = int(sku_preference)
+            try:
+                sku_preference = int(float(sku_preference))
+            except:
+                sku_preference = 0
         temp_data['aaData'].append(OrderedDict((('supplier_id', result.supplier_id), ('wms_code', result.sku.wms_code),
                                                 ('supplier_code', result.supplier_code), ('moq', result.moq),
                                                 ('preference', sku_preference),
@@ -508,6 +511,27 @@ def get_sku_pack_master(start_index, stop_index, temp_data, search_term, order_t
     for data in master_data[start_index: stop_index]:
         temp_data['aaData'].append(
             OrderedDict((('sku', data.sku.wms_code), ('pack_id', data.pack_id), ('pack_quantity', data.pack_quantity))))
+
+@csrf_exempt
+def get_replenushment_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['classification', 'classification','classification']
+
+    search_params = get_filtered_params(filters, lis)
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+            master_data = ReplenushmentMaster.objects.filter(
+                Q(sku__wms_code__icontains=search_term)).order_by(order_data)
+    else:
+        master_data = ReplenushmentMaster.objects.filter(**search_params).order_by(order_data)
+
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = len(master_data)
+    for data in master_data[start_index: stop_index]:
+        temp_data['aaData'].append(
+            OrderedDict((('classification', data.classification), ('size', data.size),
+                          ('min_days', data.min_days),('max_days', data.max_days))))
 
 
 @csrf_exempt
@@ -1759,8 +1783,61 @@ def insert_sku_pack(request, user=''):
             log.info('Insert New SKUPACK failed for %s and params are %s and error statement is %s' % (str(user.username), \
                                                                                                    str(request.POST.dict()),
                                                                                                    str(e)))
-
     return HttpResponse('Added Successfully')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def insert_replenushment(request, user=''):
+    replenushment = copy.deepcopy(REPLENUSHMNENT_DATA)
+    classification = request.POST['classification']
+    size = request.POST['size']
+    min_days = request.POST['min_days']
+    max_days = request.POST['max_days']
+    if not classification:
+        return HttpResponse('Enter Classification')
+    replenushment_obj = ReplenushmentMaster.objects.filter(classification= classification,user = user.id)
+    if replenushment_obj.exists() :
+        obj_classifi = replenushment_obj[0].classification
+        obj_size = replenushment_obj[0].size
+        if obj_classifi.lower() == classification.lower() and obj_size.lower() == size.lower():
+            replenushment_obj = replenushment_obj[0]
+            replenushment_obj.min_days = min_days
+            replenushment_obj.max_days = max_days
+            replenushment_obj.save()
+        else:
+            replenushment['classification'] = classification
+            replenushment ['size'] = size
+            replenushment ['min_days'] = min_days
+            replenushment['max_days'] = max_days
+            replenushment['user'] = user
+
+            try:
+                ReplenushmentMaster.objects.create(**replenushment)
+            except Exception as e:
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info('Insert New Replenushment failed for %s and params are %s and error statement is %s' % (str(user.username), \
+                                                                                                       str(request.POST.dict()),
+                                                                                                       str(e)))
+    else:
+        replenushment['classification'] = classification
+        replenushment ['size'] = size
+        replenushment ['min_days'] = min_days
+        replenushment['max_days'] = max_days
+        replenushment['user'] = user
+
+        try:
+            ReplenushmentMaster.objects.create(**replenushment)
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Insert New Replenushment failed for %s and params are %s and error statement is %s' % (str(user.username), \
+                                                                                                   str(request.POST.dict()),
+                                                                                                   str(e)))
+    return HttpResponse('Added Successfully')
+
 
 @csrf_exempt
 @login_required

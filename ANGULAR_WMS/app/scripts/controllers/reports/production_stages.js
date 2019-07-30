@@ -47,7 +47,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                     'sister_warehouse': ''
                     };
 
-   vm.data = {brands: [], stages_list: []}
+   vm.data = {brands: [], stages_list: [], warehouse_groups: []}
 
    vm.model_data = {};
    angular.copy(vm.empty_data, vm.model_data);

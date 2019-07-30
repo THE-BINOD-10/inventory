@@ -3285,7 +3285,7 @@ def get_stock_summary_data(search_params, user, sub_user):
     sku_master = StockDetail.objects.exclude(receipt_number=0).values_list('sku_id', 'sku__sku_code', 'sku__sku_desc',
                                                                            'sku__sku_brand',
                                                                            'sku__sku_category', 'sku__user').distinct().annotate(
-        total=Sum('quantity'), stock_value=Sum(F('quantity') * F('unit_price'))).filter(quantity__gt=0,
+        total=Sum('quantity'), stock_value=Sum(F('quantity') * F('sku__cost_price'))).filter(quantity__gt=0,
                                       **search_parameters)
     if search_stage and not search_stage == 'In Stock':
         sku_master = []
@@ -3295,6 +3295,7 @@ def get_stock_summary_data(search_params, user, sub_user):
                                                                                                     'product_code__sku_desc',
                                                                                                     'product_code__sku_brand',
                                                                                                     'product_code__sku_category').distinct()
+    # import pdb; pdb.set_trace()
     sku_master = list(chain(sku_master, sku_master1))
 
     purchase_orders = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(
@@ -3331,24 +3332,23 @@ def get_stock_summary_data(search_params, user, sub_user):
 
         tracking = dict(zip(map(lambda d: d.get('status_value', ''), status_track),
                             map(lambda d: d.get('total', '0'), status_track)))
-        if central_order_mgmt == "true":
-            users = warehouse_users.keys()
-            users.append(user.id)
-            wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code = sku[1], sku__user__in=users)
-            wms_code_obj_unit_price = wms_code_obj.filter(unit_price__gt=0).only('quantity', 'unit_price')
-            total_wms_qty_unit_price = sum(wms_code_obj_unit_price.annotate(stock_value=Sum(F('quantity') * F('unit_price'))).values_list('stock_value',flat=True))
-            wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
-            total_wms_qty_sku_unit_price = sum(wms_code_obj_sku_unit_price.annotate(stock_value=Sum(F('quantity') * F('sku__cost_price'))).values_list('stock_value',flat=True))
-            total_stock_value = total_wms_qty_unit_price + total_wms_qty_sku_unit_price
+        
         for head in extra_headers:
             quantity = tracking.get(head, 0)
             if quantity:
                 sku_stages_dict[head] = tracking.get(head, 0)
         
         for key, value in sku_stages_dict.iteritems():
-            sku_master_list.append(OrderedDict((('SKU Code', sku[1]), ('Description', sku[2]),
+            warehouse = 0
+            if central_order_mgmt == "true":
+                warehouse = warehouse_users.get(sku[5])
+                sku_master_list.append(OrderedDict((('SKU Code', sku[1]), ('Description', sku[2]),
                                                 ('Brand', sku[3]), ('Category', sku[4]),
-                                                ('Stage', key), ('Stage Quantity', value), ('Stock Value', total_stock_value),  ('Warehouse', warehouse_users.get(sku[5])))))
+                                                ('Stage', key), ('Stage Quantity', value), ('Stock Value', sku[7]),  ('Warehouse', warehouse))))
+            else:
+                sku_master_list.append(OrderedDict((('SKU Code', sku[1]), ('Description', sku[2]),
+                                                ('Brand', sku[3]), ('Category', sku[4]),
+                                                ('Stage', key), ('Stage Quantity', value))))
 
     temp_data['recordsTotal'] = len(sku_master_list)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']

@@ -7382,7 +7382,7 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
                                                  ('Customer Sales Qty', stock_rec_obj.customer_sales_quantity),
                                                  ('Customer Sales Avg Rate', "%.2f" % stock_rec_obj.customer_sales_avg_rate),
                                                  ('Customer Sales Amount After Tax',
-                                                  "%.2f" % stock_rec_obj.internal_sales_amount),
+                                                  "%.2f" % stock_rec_obj.customer_sales_amount),
                                                  ('Internal Sales Qty',  stock_rec_obj.internal_sales_quantity),
                                                  ('Internal Sales Avg Rate', "%.2f" % stock_rec_obj.internal_sales_avg_rate),
                                                  ('Internal Sales Amount After Tax', "%.2f" % stock_rec_obj.internal_sales_amount),

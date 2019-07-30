@@ -39,12 +39,13 @@ class Command(BaseCommand):
 
         def sku_stats_group(group_val, group_name, sku_stats_dict, sku_detail, mrp, weight, tax, unit_price):
             sku_stats_dict[sku_detail.sku_id][group_val][group_name]['quantity'] += sku_detail.quantity
-            amount = sku_detail.quantity * unit_price
+            qty_price = sku_detail.quantity * unit_price
+            amount = qty_price
             tax_rate = 0
             if tax:
                 tax_rate = ((amount / 100) * tax)
                 amount = amount + tax_rate
-            sku_stats_dict[sku_detail.sku_id][group_val][group_name]['unit_price_list'].append(unit_price)
+            sku_stats_dict[sku_detail.sku_id][group_val][group_name]['unit_price_list'].append(amount)
             sku_stats_dict[sku_detail.sku_id][group_val][group_name]['amount'] += amount
         def stock_reconciliation_for_po_picklist(user, today):
             filterStats = OrderedDict()
@@ -80,6 +81,7 @@ class Command(BaseCommand):
                                 tax = cod.igst_tax
 
                 if sku_detail.transact_type == 'picklist':
+                    discount = 0
                     picklist_obj = Picklist.objects.filter(id=sku_detail.transact_id)
                     if picklist_obj.exists() and picklist_obj[0].order:
                         picklist_obj = picklist_obj[0]
@@ -100,6 +102,8 @@ class Command(BaseCommand):
                                 tax += (cod.cgst_tax + cod.sgst_tax)
                             else:
                                 tax = cod.igst_tax
+                            if order_type == 'internal_sales':
+                                discount = cod.discount
                     else:
                         unit_price = 0
                 group_val = (sku_detail.sku_id, mrp, weight)
@@ -123,12 +127,13 @@ class Command(BaseCommand):
                     sku_stats_group(group_val, 'return', sku_stats_dict, sku_detail, mrp, weight, tax, unit_price)
                 elif sku_detail.transact_type == 'picklist' and order_type:
                     sku_stats_dict[sku_detail.sku_id][group_val][order_type]['quantity'] += sku_detail.quantity
-                    amount = sku_detail.quantity * unit_price
+                    qty_price = (sku_detail.quantity * unit_price) - discount
+                    amount = qty_price
                     tax_rate = 0
                     if tax:
                         tax_rate = ((amount/100)* tax)
                         amount = amount + tax_rate
-                    sku_stats_dict[sku_detail.sku_id][group_val][order_type]['unit_price_list'].append(unit_price)
+                    sku_stats_dict[sku_detail.sku_id][group_val][order_type]['unit_price_list'].append(amount)
                     sku_stats_dict[sku_detail.sku_id][group_val][order_type]['amount'] += amount
             return sku_stats_dict
 
@@ -153,10 +158,11 @@ class Command(BaseCommand):
                 sku_stock_dict.setdefault(stock.sku_id, {})
                 sku_stock_dict[stock.sku_id].setdefault(group_val, {'quantity': 0, 'unit_price_list': [], 'amount': 0})
                 sku_stock_dict[stock.sku_id][group_val]['quantity'] += stock.quantity
-                amount = stock.quantity * unit_price
+                qty_price = stock.quantity * unit_price
+                amount = qty_price
                 if tax:
                     amount = amount + ((amount/100) * tax)
-                sku_stock_dict[stock.sku_id][group_val]['unit_price_list'].append(unit_price)
+                sku_stock_dict[stock.sku_id][group_val]['unit_price_list'].append(qty_price)
                 sku_stock_dict[stock.sku_id][group_val]['amount'] += amount
             return sku_stock_dict
 
@@ -168,9 +174,10 @@ class Command(BaseCommand):
             stock_rec_objs = StockReconciliation.objects.filter(**query_opening_stock)
             if stock_rec_objs:
                 for stock_rec_obj in stock_rec_objs:
+                    opening_stock_dict.setdefault(stock_rec_obj.sku_id, {})
                     group_val = (stock_rec_obj.sku_id, stock_rec_obj.mrp, stock_rec_obj.weight)
                     if group_val not in opening_stock_dict:
-                        opening_stock_dict[stock_rec_obj.sku_id] = {group_val: {}}
+                        opening_stock_dict[stock_rec_obj.sku_id].setdefault(group_val, {})
                         opening_stock_dict[stock_rec_obj.sku_id][group_val] =  {'quantity': stock_rec_obj.closing_quantity,
                                                           'avg_rate': stock_rec_obj.closing_avg_rate,
                                                           'amount': stock_rec_obj.closing_amount}
@@ -179,13 +186,14 @@ class Command(BaseCommand):
                 for sku_id, sku_stocks_data in sku_stock_dict.iteritems():
                     opening_stock_dict.setdefault(sku_id, {})
                     for key, sku_stocks in sku_stocks_data.iteritems():
-                        opening_stock_dict[sku_id].setdefault(key, {'quantity': 0, 'avg_rate': 0, 'amount': 0})
+                        opening_stock_dict[sku_id].setdefault(key, {'quantity': 0, 'avg_rate': 0, 'amount': 0,
+                                                                    'qty_price_sum': 0})
                         opening_stock_dict[sku_id][key]['quantity'] = sku_stocks.get('quantity', 0)
                         opening_stock_dict[sku_id][key]['amount'] = sku_stocks.get('amount', 0)
                         stock_unit_price_list = sku_stocks.get('unit_price_list', [])
-                        if stock_unit_price_list:
-                            opening_stock_dict[sku_id][key]['avg_rate'] = sum(stock_unit_price_list) / len(
-                                stock_unit_price_list)
+                        if stock_unit_price_list and sku_stocks.get('quantity', 0):
+                            opening_stock_dict[sku_id][key]['avg_rate'] = sum(stock_unit_price_list)/sku_stocks['quantity']
+                            opening_stock_dict[sku_id][key]['qty_price_sum'] += sum(stock_unit_price_list)
                 for sku_id, sku_stats in sku_stats_dict.iteritems():
                     opening_stock_dict.setdefault(sku_id, {})
                     for key, sku_stat in sku_stats.iteritems():
@@ -194,17 +202,15 @@ class Command(BaseCommand):
                             if stat_name in ['customer_sales', 'internal_sales', 'rtv', 'stock_transfer']:
                                 opening_stock_dict[sku_id][key]['quantity'] += stat_value['quantity']
                                 opening_stock_dict[sku_id][key]['amount'] += stat_value['amount']
-                                stat_unit_price_list = stat_value.get(key, {'unit_price_list': []})['unit_price_list']
-                                if stat_unit_price_list:
-                                    opening_stock_dict[sku_id][key]['avg_rate'] += (sum(stat_unit_price_list) / len(
-                                        stat_unit_price_list))
+                                stat_unit_price_list = stat_value.get('unit_price_list', [])
+                                if stat_unit_price_list and stat_value['quantity']:
+                                    opening_stock_dict[sku_id][key]['qty_price_sum'] += sum(stat_unit_price_list)
                             elif stat_name in ['PO', 'return', 'inventory-adjustment']:
                                 opening_stock_dict[sku_id][key]['quantity'] -= stat_value['quantity']
                                 opening_stock_dict[sku_id][key]['amount'] -= stat_value['amount']
-                                stat_unit_price_list = stat_value.get(key, {'unit_price_list': []})['unit_price_list']
-                                if stat_unit_price_list:
-                                    opening_stock_dict[sku_id][key]['avg_rate'] -= (sum(stat_unit_price_list) / len(
-                                        stat_unit_price_list))
+                                stat_unit_price_list = stat_value.get('unit_price_list', [])
+                                if stat_unit_price_list and stat_value['quantity']:
+                                    opening_stock_dict[sku_id][key]['qty_price_sum'] -= sum(stat_unit_price_list)
                             else:
                                 print stat_name
             return opening_stock_dict
@@ -212,11 +218,12 @@ class Command(BaseCommand):
         def stock_reconciliation_group(prefix, data_dict, stock_reconciliation_dict):
             stock_reconciliation_dict[key]['%s_quantity' % prefix] = data_dict['quantity']
             avg_rate = 0
-            if data_dict['unit_price_list']:
-                avg_rate = sum(data_dict['unit_price_list']) / len(data_dict['unit_price_list'])
+            if data_dict['unit_price_list'] and data_dict['quantity']:
+                avg_rate = sum(data_dict['unit_price_list']) / data_dict['quantity']
             stock_reconciliation_dict[key][ '%s_avg_rate' % prefix] = avg_rate
             stock_reconciliation_dict[key]['%s_amount' % prefix] = data_dict['amount']
         users = User.objects.filter(username__in=MILKBASKET_USERS)
+        #users = User.objects.filter(username='NOIDA02')
         today = datetime.now()
         for user in users:
             try:
@@ -224,7 +231,7 @@ class Command(BaseCommand):
                 sku_stats_dict = stock_reconciliation_for_po_picklist(user, today)
                 sku_stock_dict = get_sku_stock_total(user)
                 opening_stock_dict = get_opening_stock_dict(user, today, sku_stats_dict, sku_stock_dict)
-                skus = SKUMaster.objects.filter(user=user.id)
+                skus = SKUMaster.objects.filter(user=user.id).only('id', 'sku_code')
                 for sku in skus:
                     sku_stats = sku_stats_dict.get(sku.id, {})
                     sku_stocks = sku_stock_dict.get(sku.id, {})
@@ -259,16 +266,19 @@ class Command(BaseCommand):
                         stock_reconciliation_dict.setdefault(key, {'sku_id': sku_id, 'mrp': mrp, 'weight': weight})
                         stock_reconciliation_dict[key]['closing_quantity'] = value['quantity']
                         avg_rate = 0
-                        if value['unit_price_list']:
-                            avg_rate = sum(value['unit_price_list'])/len(value['unit_price_list'])
+                        if value['unit_price_list'] and value['quantity']:
+                            avg_rate = sum(value['unit_price_list'])/value['quantity']
                         stock_reconciliation_dict[key]['closing_avg_rate'] = avg_rate
                         stock_reconciliation_dict[key]['closing_amount'] = value['amount']
                     for key, value in sku_openings.iteritems():
                         sku_id, mrp, weight = key
                         stock_reconciliation_dict.setdefault(key, {'sku_id': sku_id, 'mrp': mrp, 'weight': weight})
                         stock_reconciliation_dict[key]['opening_quantity'] = value['quantity']
-                        stock_reconciliation_dict[key]['opening_avg_rate'] = value['avg_rate']
-                        stock_reconciliation_dict[key]['opening_amount'] = value['amount']
+                        if stock_reconciliation_dict[key].get('qty_price_sum', 0):
+                            stock_reconciliation_dict[key]['opening_avg_rate'] = value['qty_price_sum']/value['quantity']
+                        else:
+                            stock_reconciliation_dict[key]['opening_avg_rate'] = value['avg_rate']
+                        stock_reconciliation_dict[key]['opening_amount'] = abs(value['amount'])
 
                     for key, stock_reconciliation_data in stock_reconciliation_dict.iteritems():
                         stock_rec_obj = StockReconciliation.objects.update_or_create(sku_id=stock_reconciliation_data['sku_id'],

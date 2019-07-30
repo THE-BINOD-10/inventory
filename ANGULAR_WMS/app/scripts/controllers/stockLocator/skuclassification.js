@@ -66,6 +66,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         .renderWith(function(data, type, full, meta) {
           return "<input type='text' name='suggested_qty' value='"+full.suggested_qty+"' class='smallbox'>"
         }),
+        DTColumnBuilder.newColumn('remarks').withTitle('Remarks')
     ];
 
     vm.dtInstance = {};
@@ -115,6 +116,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           data.push({name: 'dest_location', value: $(row).find("input[name='dest_location']").val()})
           data.push({name: 'replenushment_qty', value: $(row).find("input[name='replenushment_qty']").val()})
           data.push({name: 'suggested_qty', value: $(row).find("input[name='suggested_qty']").val()})
+          data.push({name: 'remarks', value: vm.dtInstance.DataTable.context[0].aoData[v]._aData.remarks})
         }
       });
       vm.process = true;

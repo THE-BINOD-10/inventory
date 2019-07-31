@@ -2018,6 +2018,8 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         for stock in all_stocks:
             stock_quantity = stock.quantity
             SellerStock.objects.filter(stock_id=stock.id).update(quantity=0)
+            stock.quantity = 0
+            stock.save()
             save_sku_stats(user, stock.sku_id, dat.id, 'inventory-adjustment', -stock_quantity, stock)
             adjustment_objs = create_invnetory_adjustment_record(user, dat, -stock_quantity, reason, location, now, pallet_present,
                                                stock=stock, seller_id=seller_master_id, adjustment_objs=adjustment_objs)

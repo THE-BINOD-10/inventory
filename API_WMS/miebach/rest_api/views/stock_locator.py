@@ -624,26 +624,29 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
             if single['name']:
                 wh_name = single['name']
                 var[wh_name + '-Total'] = single['available']
+                fg_stock = single['available'] - single['non_kitted']
+                var[wh_name + '-Stock'] = fg_stock
                 var[wh_name + '-Res'] = single['reserved']
                 var[wh_name + '-Blocked'] = single['blocked']
                 var[wh_name + '-NK'] = single['non_kitted']
                 if not isinstance(single['available'], float):
                     single['available'] = 0
-                net_amt = single['available'] - single['blocked'] - single['reserved']
+                net_amt = single['available'] - single['blocked'] - single['reserved'] - single['non_kitted']
                 if net_amt < 0:
                     net_amt = 0
                 var[wh_name + '-Open'] = net_amt
                 wh_level_stock_map = {'WH Net Open': net_amt, 'Total WH': single['available'],
                                       'Total WH Res': single['reserved'], 'Total WH Blocked': single['blocked'],
                                       'ASN Total': single['asn'], 'ASN Res': single['asn_res'],
-                                      'ASN Blocked': single['asn_blocked'], 'NON_KITTED': single['non_kitted']}
+                                      'ASN Blocked': single['asn_blocked'], 'NON_KITTED': single['non_kitted'],
+                                      'Total Stock': fg_stock}
 
                 for header, val in wh_level_stock_map.items():
                     if header in var:
                         var[header] += val
                     else:
                         var[header] = val
-                net_open = var['Total WH'] - var['Total WH Res'] - var['Total WH Blocked']
+                net_open = var['Total Stock'] - var['Total WH Res'] - var['Total WH Blocked']
                 var['WH Net Open'] = net_open
                 asn_open = var['ASN Total'] - var['ASN Res'] - var['ASN Blocked']
                 var['ASN Open'] = asn_open
@@ -1507,7 +1510,7 @@ def warehouse_headers(request, user=''):
             admin_user_id = user_id
             admin_user_name = user.username
         if level:
-            warehouse_suffixes = ['Total', 'Res', 'Blocked', 'Open']
+            warehouse_suffixes = ['Total', 'Stock', 'NK', 'Res', 'Blocked', 'Open']
             wh_list = []
             for wh in ware_list:
                 wh_list.extend(list(map(lambda x: wh+'-'+x, warehouse_suffixes)))

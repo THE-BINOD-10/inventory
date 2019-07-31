@@ -3111,7 +3111,9 @@ def purchase_upload_mail(request, data_to_send, user):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def purchase_order_upload(request, user=''):
+    reversion.set_user(request.user)
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
@@ -3614,6 +3616,7 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
     if not set(['wms_code', 'location', 'quantity', 'reason']).issubset(excel_mapping.keys()):
         return 'Invalid File'
     for row_idx in range(1, no_of_rows):
+        print row_idx
         data_dict = {}
         for key, value in excel_mapping.iteritems():
             cell_data = get_cell_data(row_idx, value, reader, file_type)
@@ -3621,7 +3624,7 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
                 cell_data = str(xcode(cell_data))
-                sku_master = SKUMaster.objects.filter(wms_code=cell_data, user=user.id)
+                sku_master = SKUMaster.objects.filter(user=user.id, sku_code=cell_data)
                 if not sku_master:
                     index_status.setdefault(row_idx, set()).add('Invalid WMS Code')
                 else:
@@ -3707,15 +3710,18 @@ def inventory_adjust_upload(request, user=''):
 
     if status != 'Success':
         return HttpResponse(status)
+
     sku_codes = []
-    cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+    cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
+    #CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
     if not cycle_count:
         cycle_id = 1
     else:
-        cycle_id = cycle_count[0].cycle + 1
+        cycle_id = cycle_count + 1
 
     receipt_number = get_stock_receipt_number(user)
     seller_receipt_dict = {}
+    stock_stats_objs = []
     for final_dict in data_list:
         # location_data = ''
         wms_code = final_dict['sku_master'].wms_code
@@ -3736,9 +3742,11 @@ def inventory_adjust_upload(request, user=''):
         else:
             receipt_number = get_stock_receipt_number(user)
             seller_receipt_dict[str(seller_master_id)] = receipt_number
-        adjust_location_stock(cycle_id, wms_code, loc, quantity, reason, user, batch_no=batch_no, mrp=mrp,
+        adj_status, stock_stats_objs = adjust_location_stock(cycle_id, wms_code, loc, quantity, reason, user, stock_stats_objs, batch_no=batch_no, mrp=mrp,
                               seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
                               receipt_type='inventory-adjustment')
+    if stock_stats_objs:
+        SKUDetailStats.objects.bulk_create(stock_stats_objs)
     check_and_update_stock(sku_codes, user)
     return HttpResponse('Success')
 

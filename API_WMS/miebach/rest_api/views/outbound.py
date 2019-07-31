@@ -4177,7 +4177,7 @@ def fetch_asn_stock(dist_user_id, sku_code, req_stock):
                                                                                               'priority'))
     ints_filters = {'quantity__gt': 0, 'sku__sku_code': sku_code, 'sku__user__in': source_whs, 'status': 'open'}
     asn_qs = ASNStockDetail.objects.filter(**ints_filters)
-    intr_obj_3days_qs = asn_qs.filter(arriving_date__lte=threeday_filter)
+    intr_obj_3days_qs = asn_qs.filter(Q(arriving_date__lte=threeday_filter) | Q(asn_po_num='NON_KITTED_STOCK'))
     intr_obj_3days_ids = intr_obj_3days_qs.values_list('id', flat=True)
     asn_res_3days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_3days_ids)
     asn_res_3days_qty = asn_res_3days_qs.values_list('asnstock__sku__user').annotate(in_res=Sum('reserved_qty'))
@@ -4267,18 +4267,24 @@ def split_orders(**order_data):
         stk_dtl_obj = dict(StockDetail.objects.filter(
             sku__user__in=source_whs, sku__wms_code=sku_code, quantity__gt=0).values_list(
             'sku__user').distinct().annotate(in_stock=Sum('quantity')))
-
+        nk_filters = {'status': 'open', 'sku__sku_code': sku_code, 'asn_po_num': 'NON_KITTED_STOCK'}
+        nk_stock_map = dict(ASNStockDetail.objects.filter(**nk_filters).values_list('sku__user').annotate(nk_stock=Sum('quantity')))
         log.info("Stock Avail, Reserved and Blocked(Enquiry) for SKU Code (%s)::%s:%s:%s" %
                  (sku_code, repr(stk_dtl_obj), repr(res_qtys), repr(blocked_qtys)))
         for source_wh in source_whs:
             avail_stock = stk_dtl_obj.get(source_wh, 0)
             res_stock = res_qtys.get(source_wh, 0)
             blocked_stock = blocked_qtys.get(source_wh, 0)
+            # While fetching Inventory from Emiza, it includes Non Kitted Stock,
+            # So excluding it as we are including it in Level 3
+            nk_stock = nk_stock_map.get(source_wh, 0)
             if not res_stock:
                 res_stock = 0
             if not blocked_stock:
                 blocked_stock = 0
-            avail_stock = avail_stock - res_stock - blocked_stock
+            if not nk_stock:
+                nk_stock = 0
+            avail_stock = avail_stock - res_stock - blocked_stock - nk_stock
             if avail_stock <= 0:
                 continue
             req_qty = req_stock - avail_stock
@@ -5090,7 +5096,7 @@ def insert_order_data(request, user=''):
     generic_order_id = 0
     admin_user = get_priceband_admin_user(user)
     order_detail = None
-    backorder_flag = False
+    # backorder_flag = False
     if admin_user:
         # get_order_customer_details
         user_order_ids_map = {}
@@ -5108,8 +5114,8 @@ def insert_order_data(request, user=''):
                 is_distributor = customer_obj[0].is_distributor
                 cm_id = customer_obj[0].id
                 generic_order_id = get_generic_order_id(cm_id)
-                if not is_distributor:
-                    backorder_flag, sku_total_qty_map = check_backorder_compatibility(myDict, admin_user, user)
+                # if not is_distributor:
+                #     backorder_flag, sku_total_qty_map = check_backorder_compatibility(myDict, admin_user, user)
     try:
         for i in range(0, len(myDict['sku_id'])):
             order_data = copy.deepcopy(UPLOAD_ORDER_DATA)
@@ -5231,10 +5237,10 @@ def insert_order_data(request, user=''):
                         order_data['user'] = usr
                         if qty <= 0:
                             continue
-                        if backorder_flag:
-                            bqty, bflag = sku_total_qty_map.get(order_data['sku_code'])
-                            if bflag:
-                                qty = bqty
+                        # if backorder_flag:
+                        #     bqty, bflag = sku_total_qty_map.get(order_data['sku_code'])
+                        #     if bflag:
+                        #         qty = bqty
                         order_data['quantity'] = qty
                         creation_date = datetime.datetime.now()
                         order_data['creation_date'] = creation_date
@@ -6733,7 +6739,7 @@ def get_stock_qty_leadtime(item, wh_code):
         return None
 
 
-def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_leadtime=0):
+def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_leadtime=0, nk_map={}):
     stock_display_warehouse = get_misc_value('stock_display_warehouse', user.id)
     if stock_display_warehouse and stock_display_warehouse != "false":
         stock_display_warehouse = stock_display_warehouse.split(',')
@@ -6854,6 +6860,11 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
         if lead_times and level != 3:
             for lead_time, wh_code in lead_times.items():
                 output = get_stock_qty_leadtime(item, wh_code)
+                if not output: output = 0
+                if isinstance(wh_code, list):
+                    for wc in wh_code:
+                        if nk_map.get(wc):
+                            output = output - nk_map[wc]
                 if dist_reseller_leadtime and level:
                     item[lead_time + dist_reseller_leadtime] = output
                 else:
@@ -7057,6 +7068,7 @@ def get_sku_variants(request, user=''):
                                     levels_config=levels_config, dist_wh_id=dist_userid, level=level,
                                     is_style_detail=is_style_detail, needed_stock_data=needed_stock_data
                                     )
+    nk_map = {}
     if get_priceband_admin_user(user):
         # wh_admin = get_priceband_admin_user(user)
         integration_obj = Integrations.objects.filter(user=user.id)
@@ -7085,6 +7097,7 @@ def get_sku_variants(request, user=''):
                             if warehouse["WarehouseId"] == user.username:
                                 stock_dict = {}
                                 asn_stock_map = {}
+                                inventory_values = {}
                                 for item in warehouse["Result"]["InventoryStatus"]:
                                     sku_id = item["SKUId"]
                                     actual_sku_id = sku_id
@@ -7094,6 +7107,9 @@ def get_sku_variants(request, user=''):
                                             stock_dict[sku_id] += int(item['Inventory'])
                                         else:
                                             stock_dict[sku_id] = int(item['Inventory'])
+                                        if sku_id not in inventory_values:
+                                            inventory_values[sku_id] = {}
+                                        inventory_values[sku_id]['TU_INVENTORY'] = item['Inventory']
                                         expected_items = item['Expected']
                                         if isinstance(expected_items, list) and expected_items:
                                             asn_stock_map.setdefault(sku_id, []).extend(expected_items)
@@ -7110,10 +7126,21 @@ def get_sku_variants(request, user=''):
                                             else:
                                                 stock_dict[sku_id] = int(wait_on_qc)
                                     else:
+                                        if sku_id not in inventory_values:
+                                            inventory_values[sku_id] = {}
+                                        inventory_values[sku_id]['NORMAL_INVENTORY'] = item['Inventory']
                                         if sku_id in stock_dict:
                                             stock_dict[sku_id] += int(item['FG'])
                                         else:
                                             stock_dict[sku_id] = int(item['FG'])
+                                else:
+                                    for sku_id in inventory_values:
+                                        tu_inv = inventory_values[sku_id].get('TU_INVENTORY', 0)
+                                        nor_inv = inventory_values[sku_id].get('NORMAL_INVENTORY', 0)
+                                        inv_stock_diff = int(tu_inv) - int(nor_inv)
+                                        non_kitted_stock = max(inv_stock_diff, 0)
+                                        if non_kitted_stock:
+                                            nk_map[user.id] = non_kitted_stock
                                 for sku_id, inventory in stock_dict.iteritems():
                                     sku = SKUMaster.objects.filter(user = user_id, sku_code = sku_id)
                                     if sku:
@@ -7155,7 +7182,7 @@ def get_sku_variants(request, user=''):
                                                                           arriving_date=arriving_date)
                                             log.info('New ASN Stock Created for User %s and SKU %s' %
                                                 (user.username, str(sku[0].sku_code)))
-    sku_master, total_qty = all_whstock_quant(sku_master, user, level, lead_times, dist_reseller_leadtime)
+    sku_master, total_qty = all_whstock_quant(sku_master, user, level, lead_times, dist_reseller_leadtime, nk_map=nk_map)
     central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
     sku_spl_attrs = {}
     if central_order_mgmt == 'true':
@@ -10206,6 +10233,8 @@ def get_customer_cart_data(request, user=""):
                 tot_avail_stock = 0
                 cart_qty = json_record['quantity']
                 wh_level_stock_map = {}
+                nk_filters = {'status': 'open', 'sku__sku_code': record.sku.sku_code, 'asn_po_num': 'NON_KITTED_STOCK'}
+                nk_stock_map = dict(ASNStockDetail.objects.filter(**nk_filters).values_list('sku__user').annotate(Sum('quantity')))
                 for wh in whs:
                     sku_id = get_syncedusers_mapped_sku(wh=wh, sku_id=record.sku.id)
                     if record.warehouse_level == 3:
@@ -10238,6 +10267,7 @@ def get_customer_cart_data(request, user=""):
                         if not enq_qty:
                             enq_qty = 0
                         avail_stock = stock_qty - reserved_qty - enq_qty
+                        avail_stock = avail_stock - nk_stock_map.get(wh, 0)
                     if wh not in wh_level_stock_map:
                         wh_level_stock_map[wh] = avail_stock
                     else:
@@ -12939,8 +12969,8 @@ def move_enquiry_to_order(request, user=''):
             em_qs.delete()  # Removing item from Enquiry Table after converting it to Order
     return HttpResponse(message)
 
-
-def extend_enquiry_date(request):
+@get_admin_user
+def extend_enquiry_date(request, user = ''):
     message = 'Success'
     extended_date = request.GET.get('extended_date', '')
     enquiry_id = request.GET.get('order_id', '')
@@ -12959,7 +12989,16 @@ def extend_enquiry_date(request):
         cm_id = cum_obj[0].customer_id
     try:
         enq_qs = EnquiryMaster.objects.filter(enquiry_id=enquiry_id, customer_id=cm_id)
+        date_ext_days = int(get_misc_value('auto_raise_stock_transfer', user.id))*2
         if enq_qs:
+            ext_dt = datetime.datetime.strptime(extended_date, '%m/%d/%Y')
+            ct_dtt = enq_qs[0].creation_date
+            ct_dt = ct_dtt.replace(tzinfo=None)
+            dt_days = ext_dt - ct_dt
+            days = dt_days.days
+            username = request.user.username
+            if days > date_ext_days and username.lower() != 'sm_admin':
+                return HttpResponse('Admin')
             enq_qs[0].extend_status = extend_status
             enq_qs[0].extend_date = datetime.datetime.strptime(extended_date, '%m/%d/%Y')
             enq_qs[0].save()
@@ -13562,11 +13601,11 @@ def get_manual_enquiry_detail(request, user=''):
                     intr_blocked = x['asn_blocked']
                     sku_code = x['sku_code']
                     wh_stock_list.append({'warehouse': l1_user.username, 'quantity': 0, 'sku_code': sku_code,
-                                          'wh_open': wh_open, 'wh_blocked': wh_blocked,
+                                          'wh_total': wh_open, 'wh_blocked': wh_blocked,
                                           'intr_open': intr_open, 'intr_blocked': intr_blocked})
             else:
                 wh_stock_list.append({'warehouse': l1_user.username, 'quantity': 0, 'sku_code': 'No SKU',
-                                      'wh_open': 0, 'wh_blocked': 0,
+                                      'wh_total': 0, 'wh_blocked': 0,
                                       'intr_open': 0, 'intr_blocked': 0})
         wh_stock_dict = {'L1': wh_stock_list}
         return HttpResponse(json.dumps({'data': enquiry_dict, 'style': style_dict, 'order': manual_eq_dict,
@@ -15801,6 +15840,8 @@ def sm_cancel_distributor_order(request):
         log.info('Order Cancellation failed for user %s and params are %s and error statement is %s' % (
             str(request.user.username), str(request.GET.dict()), str(e)))
     return HttpResponse(message)
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -15817,3 +15858,33 @@ def get_order_extra_options(request, user=''):
         log.info('Exception raised for getting extra order options for  %s and error statement is %s'
                  % (str(user.username), str(e)))
     return HttpResponse(json.dumps(options_dict), content_type='application/json')
+
+
+@get_admin_user
+@csrf_exempt
+@login_required
+def sm_custom_order_cancel(request, user=''):
+    message = 'Success'
+    enq_id = request.POST.get('enquiry_id')
+    usr_id = request.POST.get('user_id')
+    try:
+        if enq_id:
+            manual_enquiry_object = ManualEnquiry.objects.filter(enquiry_id=enq_id,
+                                                              user_id=usr_id)
+            manual_enquiry_details_object = ManualEnquiryDetails.objects.filter(enquiry_id=enq_id,
+                                                              remarks_user_id=usr_id)
+            order_status = manual_enquiry_object[0].status
+            if user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and order_status.lower() != 'order_placed':
+                manual_enquiry_object[0].delete()
+                manual_enquiry_details_object[0].delete()
+            else :
+                message = 'Placed Orders Can Not Be Deleted '
+        else :
+            message = 'Order Not Available '
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Order Cancellation failed for user %s and params are %s and error statement is %s' % (
+            str(request.user.username), str(request.GET.dict()), str(e)))
+    return HttpResponse(message)

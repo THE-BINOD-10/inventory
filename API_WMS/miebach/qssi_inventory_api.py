@@ -19,7 +19,7 @@ def asn_stock_details(user, sku_code, order_flag=True):
     hundred_day_filter = today_filter + datetime.timedelta(days=100)
     ints_filters = {'quantity__gt': 0, 'sku__user': user.id, 'sku__sku_code': sku_code}
     asn_qs = ASNStockDetail.objects.filter(**ints_filters)
-    intr_obj_100days_qs = asn_qs.filter(arriving_date__lte=hundred_day_filter)
+    intr_obj_100days_qs = asn_qs.filter(Q(arriving_date__lte=hundred_day_filter) | Q(asn_po_num='NON_KITTED_STOCK'))
     intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
     asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
     if order_flag:

@@ -2426,7 +2426,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Margin Report',
+            title: 'BASA Report',
           }
         })
       // configuration route

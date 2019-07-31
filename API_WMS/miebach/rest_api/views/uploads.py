@@ -2781,6 +2781,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     if show_apmc_tax:
         table_headers.insert(table_headers.index('UTGST (%)'), 'APMC (%)')
     po_data = []
+    ids_dict = {}
     send_mail_data = OrderedDict()
     for final_dict in data_list:
         total_qty = 0
@@ -2847,7 +2848,6 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             order_ids[group_key] = po_id
         else:
             po_id = order_ids[group_key]
-        ids_dict = {}
         order_data['status'] = 0
         data1 = OpenPO(**order_data)
         data1.save()
@@ -2954,6 +2954,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                 vendor_telephone = purchase_order.vendor.phone_number
             telephone = purchase_order.supplier.phone_number
             name = purchase_order.supplier.name
+            supplier = purchase_order.supplier_id
             order_id = ids_dict[supplier]
             supplier_email = purchase_order.supplier.email_id
             secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())

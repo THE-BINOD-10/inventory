@@ -67,22 +67,6 @@
                 <label class="control-label"> PO Reference </label>
                 <input type="text" ng-model="showCase.model_data.po_name" name="po_name" class="form-control"> </div>
             </div>
-            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="!(user.user_profile.user_type == 'marketplace_user')">
-              <div class="form-group">
-                <label class="control-label">Address</label><br>
-                <div class="btn-group mr15" dropdown="">
-                  <button type="button" ng-init = "showCase.model_data.shipment_address_select = 'Select Shipment Address'" ng-model="showCase.model_data.shipment_address_select" class="btn btn-default dropdown-toggle" dropdown-toggle="" aria-haspopup="true" aria-expanded="false" style="width: 300px;">{{showCase.model_data.shipment_address_select}} <span class="caret"></span> </button>
-                  <ul class="dropdown-menu" role="menu">
-                    <li ng-repeat="data in showCase.model_data.ship_addr_names" ng-click= "showCase.ship_addr_change(data)"> <a href="javascript:;">{{data}}</a> </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="!(user.user_profile.user_type == 'marketplace_user')">
-              <div class="form-group">
-                <label class="control-label"> Ship To </label>
-                <input type="text" ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control"> </div>
-            </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="user.user_profile.user_type == 'marketplace_user'">
               <div class="form-group">
                 <label class="control-label"> Seller </label>
@@ -101,6 +85,22 @@
                 <input name="receipt_type" class="form-control" type="text" ng-model="showCase.model_data.receipt_type"
                        ng-readonly="showCase.update" ng-if="showCase.update">
               </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Address</label><br>
+                <div class="btn-group mr15" dropdown="">
+                  <button type="button" ng-init = "showCase.model_data.shipment_address_select = 'Select Shipment Address'" ng-model="showCase.model_data.shipment_address_select" class="btn btn-default dropdown-toggle" dropdown-toggle="" aria-haspopup="true" aria-expanded="false" style="width: 300px;">{{showCase.model_data.shipment_address_select}} <span class="caret"></span> </button>
+                  <ul class="dropdown-menu" role="menu">
+                    <li ng-repeat="data in showCase.model_data.ship_addr_names" ng-click= "showCase.ship_addr_change(data)"> <a href="javascript:;">{{data}}</a> </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Ship To </label>
+                <input type="text" ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control"> </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
@@ -151,6 +151,7 @@
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Measurement</th>
                     <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
                     <th>Unit Price</th>
+                    <th ng-if="showCase.industry_type=='FMCG' && user.user_profile.user_type == 'marketplace_user'">Weight</th>
                     <th class="w10_">SGST(%)</th>
                     <th class="w10_">CGST(%)</th>
                     <th class="w10_">IGST(%)</th>
@@ -195,6 +196,9 @@
                     <td>
                       <input type="text"  ng-model="product.fields.price" name="price" class="form-control detectTab" decimal-number
                              ng-readonly="showCase.default_status" ng-keyup="showCase.getTotals()" size="12">
+                    </td>
+                    <td ng-if="showCase.industry_type=='FMCG' && user.user_profile.user_type == 'marketplace_user'">
+                      <input name="weight" ng-model="product.fields.weight" type="text" class="form-control detectTab" readonly size="12">
                     </td>
                     <td>
 			<input ng-show="product.fields.edit_tax" type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">

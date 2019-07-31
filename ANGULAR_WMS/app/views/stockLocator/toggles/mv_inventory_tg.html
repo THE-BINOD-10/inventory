@@ -43,6 +43,15 @@
                   </select>
                 </div>
               </div>
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.industry_type == 'FMCG'">
+                <div class="form-group">
+                  <label class="control-label"> Weight</label>
+                  <select class="form-control" name="weight" ng-model="showCase.model_data.weight" ng-readonly="showCase.weights['showCase.model_data.batch_number']">
+                    <option value="">Select Weight</option>
+                    <option ng-repeat="weight in showCase.weights[showCase.model_data.batch_number]" value="{{weight}}">{{weight}}</option>
+                  </select>
+                </div>
+              </div>
 
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">

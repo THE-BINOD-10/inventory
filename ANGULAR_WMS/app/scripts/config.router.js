@@ -420,7 +420,23 @@ var app = angular.module('urbanApp')
                 templateUrl: 'views/masters/toggles/sku_pack_update.html'
               })
 
-
+              .state('app.masters.Replenushment', {
+                url: '/Replenushment',
+                // permission: 'sku_pack_config',
+                templateUrl: 'views/masters/replenushment_datatable.html',
+                resolve: {
+                  deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                      return $ocLazyLoad.load('scripts/controllers/masters/Replenushment.js');
+                          }]
+                },
+                data: {
+                  title: 'Replenushment Master',
+                }
+              })
+                .state('app.masters.Replenushment.update', {
+                   url: '/replenushmentupdate',
+                   templateUrl: 'views/masters/toggles/replenushment_update.html'
+                 })
 
 
         .state('app.masters.Customer-SKUMapping', {
@@ -780,6 +796,12 @@ var app = angular.module('urbanApp')
             url: '/QC',
             templateUrl: 'views/inbound/toggle/qc.html'
           })
+
+          .state('app.inbound.QualityCheck.qc_print', {
+             url: '/QcPrint',
+             templateUrl: 'views/inbound/toggle/qc_print_toggle.html'
+           })
+
           .state('app.inbound.QualityCheck.qc_detail', {
             url: '/QC_Detail',
             templateUrl: 'views/inbound/toggle/qc_detail.html'
@@ -1127,6 +1149,22 @@ var app = angular.module('urbanApp')
             title: 'Stock Summary',
           }
         })
+
+        .state('app.stockLocator.SkuClassification',{
+          url:'/SkuClassification',
+          templateUrl: 'views/stockLocator/skuclassification_datatable.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/stockLocator/skuclassification.js');
+                    }]
+          },
+          data: {
+            title: 'SkuClassification Master'
+          }
+        })
+
+
+
           .state('app.stockLocator.StockSummary.Detail', {
             url: '/Detail',
             templateUrl: 'views/stockLocator/toggles/detail.html'
@@ -1560,6 +1598,7 @@ var app = angular.module('urbanApp')
            url: '/InvoiceE',
            templateUrl: 'views/outbound/print/manifest_invoice.html'
          })
+
         .state('app.outbound.ShipmentInfo.Shipment', {
           url: '/Shipment',
           templateUrl: 'views/outbound/toggle/ship_tg.html'
@@ -2378,6 +2417,18 @@ var app = angular.module('urbanApp')
             title: 'Margin Report',
           }
         })
+        .state('app.reports.BasaReport', {
+          url: '/MarginReport',
+          templateUrl: 'views/reports/basa_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/basa_report.js');
+              }]
+          },
+          data: {
+            title: 'Margin Report',
+          }
+        })
       // configuration route
       .state('app.configurations', {
           url: '/configurations',
@@ -2398,7 +2449,12 @@ var app = angular.module('urbanApp')
                                 'scripts/extentions/plugins/multiselect/jquery.multi-select.js'
                             ]
                         }]).then(function () {
-                return $ocLazyLoad.load('scripts/controllers/configs/configurations.js');
+                return $ocLazyLoad.load('scripts/controllers/configs/configurations.js')
+                .then(function(){
+                return $ocLazyLoad.load([
+                    'scripts/controllers/configs/classification.js'
+                  ])
+                });
               });
                     }]
           },

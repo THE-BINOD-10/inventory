@@ -11,6 +11,7 @@ function feedBackForm($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.first_name = vm.session.user_profile.first_name;
   vm.email = vm.session.user_profile.email;
   vm.user_id = vm.session.userId;
+  vm.user_type = Session.roles.permissions.user_type
   vm.is_portal_lite = Session.roles.permissions.is_portal_lite;
 
   vm.upload_file_name = "";

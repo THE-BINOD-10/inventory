@@ -1,0 +1,62 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+  <div class="modal-dialog model-custom modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span> </button>
+        <h4 class="modal-title">{{showCase.title}}</h4> </div>
+      <!-- body-->
+      <div class="modal-body">
+          <div class="row">
+
+            <div class="col-lg-6 col-md-6 col-sm-6">
+              <div class="form-group">
+                <label class="control-label"> SKU Code * </label>
+                <input type="text" autocomplete="off" name="sku_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="WMSCodesLoading" ng-model="showCase.model_data['Sku Code']" ng-blur="showCase.service.checkSearchValue(showCase.model_data.wms_code,'search_wms_codes?', $event, 'WMS Code', 'WMS Code')" ng-readonly="showCase.update" required>
+              </div>
+            </div>
+
+            <div class="col-lg-6 col-md-6 col-sm-6">
+              <div class="form-group">
+                <label class="control-label"> Classification * </label>
+                <input type="text" name="classification" class="form-control namevalid"  ng-readonly="showCase.update" ng-model="showCase.model_data.classification" maxlength="256" required> </div>
+
+            </div>
+            <div class="col-lg-6 col-md-6 col-sm-6">
+              <div class="form-group">
+                <label class="control-label"> Avg Sales/Day * </label>
+                <input type="text" name="avg_sales_day" class="form-control namevalid"  ng-model="showCase.model_data.avg_sales_day" maxlength="256" required> </div>
+            </div>
+            <div class="col-lg-6 col-md-6">
+              <div class="form-group">
+                <label class="control-label"> Min Units * </label>
+                <input type="text"  name="min_units" class="form-control" ng-model="showCase.model_data.min_units" maxlength="64" required> </div>
+            </div>
+            <div class="col-lg-6 col-md-6">
+              <div class="form-group">
+                <label class="control-label"> Max Units * </label>
+                <input type="text"  name="max_units" class="form-control" ng-model="showCase.model_data.max_units" maxlength="64" required> </div>
+            </div>
+          </div>
+          <div class="row insert-status">
+            <h4 align="center">{{showCase.service.message}}</h4>
+          </div>
+          </div>
+      </div>
+
+
+      <!-- body end-->
+      <div class="modal-footer">
+        <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
+          <span>Save</span>
+          <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+        </button>
+      </div>
+    </div>
+      </form>
+    <!-- /.modal-content -->
+  </div>
+  </form>
+  <!-- /.modal-dialog -->
+</div>

@@ -617,23 +617,109 @@ def get_adjust_filter_data(search_params, user, sub_user):
         search_parameters['cycle__location__location'] = search_params['location'].upper()
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
+    order_term = search_params.get('order_term', 'asc')
+    order_index = search_params.get('order_index', 0)
     search_parameters['cycle__sku__user'] = user.id
     search_parameters['cycle__sku_id__in'] = sku_master_ids
     if search_parameters:
         adjustments = InventoryAdjustment.objects.filter(**search_parameters)
-    temp_data['recordsTotal'] = len(adjustments)
-    temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    if stop_index:
-        adjustments = adjustments[start_index:stop_index]
-    for data in adjustments:
-        quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
-        temp_data['aaData'].append(OrderedDict(( ('SKU Code', data.cycle.sku.sku_code),
-                                                 ('Location', data.cycle.location.location),
-                                                 ('Quantity', quantity),
-                                                 ('Pallet Code', data.pallet_detail.pallet_code if data.pallet_detail else ''),
-                                                 ('Date', str(data.creation_date).split('+')[0]),
-                                                 ('Remarks', data.reason)
-                                              )))
+    grouping_data = OrderedDict()
+    industry_type = user.userprofile.industry_type
+    user_type = user.userprofile.user_type
+    if industry_type == 'FMCG' and user_type == 'marketplace_user':
+        lis = ['cycle__sku__sku_code', 'cycle__sku__sku_desc', 'stock__batch_detail__weight',
+               'stock__batch_detail__mrp', 'cycle__sku__sku_code', 'cycle__sku__sku_code', 'cycle__sku__sku_code',
+               'cycle__sku__sku_brand', 'cycle__sku__sku_category', 'cycle__sku__sub_category',
+               'cycle__sku__sku_code', 'cycle__location__location',
+               'adjusted_quantity', 'cycle__sku__sku_code', 'cycle__sku__sku_code', 'reason', 'cycle__sku__sku_code',
+               'cycle__sku__sku_code']
+        order_data = lis[order_index]
+        if order_term == 'desc':
+            order_data = '-%s' % order_data
+        adjustments = adjustments.order_by(order_data)
+        for adjustment in adjustments:
+            mrp = 0
+            weight = ''
+            amount = 0
+            price = 0
+            if adjustment.stock and adjustment.stock.batch_detail:
+                batch_detail = adjustment.stock.batch_detail
+                mrp = batch_detail.mrp
+                weight = batch_detail.weight
+                price = batch_detail.buy_price
+                amount = adjustment.adjusted_quantity * batch_detail.buy_price
+                if batch_detail.tax_percent:
+                    amount = amount + ((amount/100)*batch_detail.tax_percent)
+            updated_user_name = user.username
+            version_obj = Version.objects.get_for_object(adjustment.cycle)
+            if version_obj.exists():
+                updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
+            creation_date = adjustment.creation_date.strftime('%Y-%m-%d')
+            group_key = (adjustment.cycle.sku.sku_code, mrp, weight, adjustment.cycle.location.location,
+                         adjustment.reason, creation_date, updated_user_name)
+            grouping_data.setdefault(group_key, {'mrp': mrp, 'weight': weight,
+                                                 'sku': adjustment.cycle.sku,
+                                                 'location': adjustment.cycle.location.location,
+                                                 'reason': adjustment.reason,
+                                                 'creation_date': creation_date,
+                                                 'updated_user_name': updated_user_name,
+                                                 'quantity': 0,
+                                                 'prices_list': [], 'amount': 0})
+            grouping_data[group_key]['quantity'] += adjustment.adjusted_quantity
+            grouping_data[group_key]['amount'] += amount
+            grouping_data[group_key]['prices_list'].append(price)
+        adjustments = grouping_data.values()
+        temp_data['recordsTotal'] = len(adjustments)
+        temp_data['recordsFiltered'] = temp_data['recordsTotal']
+        if stop_index:
+            adjustments = adjustments[start_index:stop_index]
+        for data in adjustments:
+            sku = data['sku']
+            attributes_data = dict(sku.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
+            mrp = data['mrp']
+            weight = data['weight']
+            amount = data['amount']
+            qty = data['quantity']
+            updated_user_name = data['updated_user_name']
+            avg_cost = 0
+            if amount and qty:
+                avg_cost = amount/qty
+            temp_data['aaData'].append(OrderedDict(( ('SKU Code', sku.sku_code),
+                                                     ('Name', sku.sku_desc),
+                                                     ('Weight', weight),
+                                                     ('MRP', mrp),
+                                                     ('Manufacturer',attributes_data.get('Manufacturer','')),
+                                                     ('Vendor', attributes_data.get('Vendor','')),
+                                                     ('Sheet', attributes_data.get('Sheet','')),
+                                                     ('Brand', sku.sku_brand),
+                                                     ('Category', sku.sku_category),
+                                                     ('Sub Category', sku.sub_category),
+                                                     ('Sub Category type', attributes_data.get('Sub Category type','')),
+                                                     ('Location', data['location']),
+                                                     ('Quantity', data['quantity']),
+                                                     ('Average Cost', avg_cost),
+                                                     ('Value', amount),
+                                                     ('Remarks', data['reason']),
+                                                     ('User', updated_user_name),
+                                                     ('Date', data['creation_date']),
+
+                                                  )))
+    else:
+        temp_data['recordsTotal'] = len(adjustments)
+        temp_data['recordsFiltered'] = temp_data['recordsTotal']
+        if stop_index:
+            adjustments = adjustments[start_index:stop_index]
+        for data in adjustments:
+            quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
+            temp_data['aaData'].append(OrderedDict(( ('SKU Code', data.cycle.sku.sku_code),
+                                                     ('Location', data.cycle.location.location),
+                                                     ('Quantity', quantity),
+                                                     ('Pallet Code', data.pallet_detail.pallet_code if data.pallet_detail else ''),
+                                                     ('Date', str(data.creation_date).split('+')[0]),
+                                                     ('Remarks', data.reason)
+                                                  )))
+
+
     return temp_data
 
 
@@ -1424,6 +1510,8 @@ def print_purchase_order_form(request, user=''):
     if user.userprofile.industry_type == 'FMCG':
         table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP',
                          'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+        if user.username in MILKBASKET_USERS:
+            table_headers.insert(4, 'Weight')
     else:
         table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price',
                          'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
@@ -1449,6 +1537,13 @@ def print_purchase_order_form(request, user=''):
                             open_po.order_quantity, open_po.measurement_unit, open_po.price, open_po.mrp,amount,
                             open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax,
                             open_po.utgst_tax, total_sku_amt]
+            if user.username in MILKBASKET_USERS:
+                weight_obj = open_po.sku.skuattributes_set.filter(attribute_name='weight'). \
+                    only('attribute_value')
+                weight = ''
+                if weight_obj.exists():
+                    weight = weight_obj[0].attribute_value
+                po_temp_data.insert(4, weight)
         else:
             po_temp_data = [open_po.sku.sku_code, open_po.supplier_code, open_po.sku.sku_desc,
                             open_po.order_quantity, open_po.measurement_unit, open_po.price, amount,
@@ -1491,7 +1586,17 @@ def print_purchase_order_form(request, user=''):
         address = '\n'.join(address.split(','))
         if open_po.ship_to:
             ship_to_address = open_po.ship_to
-            company_address = user.userprofile.address
+            if user.userprofile.wh_address:
+                company_address = user.userprofile.wh_address
+                if user.username in MILKBASKET_USERS:
+                    if user.userprofile.user.email:
+                        company_address = ("%s, Email:%s") % (company_address, user.userprofile.user.email)
+                    if user.userprofile.phone_number:
+                        company_address = ("%s, Phone:%s") % (company_address, user.userprofile.phone_number)
+                    if user.userprofile.gst_number:
+                        company_address = ("%s, GSTINo:%s") % (company_address, user.userprofile.gst_number)
+            else:
+                company_address = user.userprofile.address
         else:
             ship_to_address, company_address = get_purchase_company_address(user.userprofile)
         ship_to_address = '\n'.join(ship_to_address.split(','))
@@ -1688,6 +1793,14 @@ def get_margin_report(request, user=''):
     temp_data = get_margin_report_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_basa_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_basa_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
 
 @get_admin_user
 def print_stock_reconciliation_report(request, user=''):
@@ -1706,6 +1819,16 @@ def print_margin_report(request, user=''):
     search_parameters = {}
     headers, search_params, filter_params = get_search_params(request)
     report_data = get_margin_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+def print_basa_report(request, user=''):
+    html_data = {}
+    search_parameters = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_basa_report_data(search_params, user, request.user)
     report_data = report_data['aaData']
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)

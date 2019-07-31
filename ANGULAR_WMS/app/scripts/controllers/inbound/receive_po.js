@@ -16,8 +16,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.industry_type = Session.user_profile.industry_type;
     vm.user_type = Session.user_profile.user_type;
     vm.parent_username = Session.parent.userName;
-    vm.milkbasket_users = ['milkbasket', 'milkbasket_noida', 'milkbasket_test', 'milkbasket_bangalore', 'milkbasket_hyderabad', 'NOIDA02', 'NOIDA01'];
-    vm.milkbasket_file_check = ['milkbasket'];
+    vm.milkbasket_users = ['milkbasket_test', 'NOIDA02', 'NOIDA01', 'GGN01', 'HYD01', 'BLR01'];
+    vm.milkbasket_file_check = ['GGN01'];
     vm.display_approval_button = false;
     vm.supplier_id = '';
     vm.order_id = 0;
@@ -28,6 +28,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $rootScope.collect_imei_details = {};
     vm.failed_serial_number = {};
     vm.passed_serial_number = {};
+
+    vm.quantity_focused = false;
+
     vm.collect_imei_details = $rootScope.collect_imei_details;
     if(vm.permissions.receive_po_mandatory_fields) {
       angular.forEach(vm.permissions.receive_po_mandatory_fields.split(','), function(field){
@@ -453,6 +456,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             data.supplier_code = resp.data.supplier_code;
             data.ean_number = resp.data.ean_number;
             data.buy_price = resp.data.price;
+            data.weight = resp.data.weight;
 
             data.row_price = (Number(data.value) * Number(data.price));
             vm.getTotals();
@@ -2457,6 +2461,24 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
       }
     })
+  }
+
+  vm.get_current_weight = function(event, data, index, parent_index) {
+    if(vm.permissions.weight_integration_name.length > 0) {
+      var sku_row_data = {};
+      angular.copy(data.data[parent_index][index], sku_row_data);
+      vm.service.apiCall('get_current_weight/', 'GET',{}).then(function(res_data){
+        if(res_data.message){
+          if(res_data.data.status && res_data.data.is_updated){
+            data.data[parent_index][index].value = res_data.data.weight;
+            vm.calc_total_amt(event, data, index, parent_index);
+          }
+          if(vm.quantity_focused) {
+            setTimeout(function(){ vm.get_current_weight(event, data, index, parent_index); }, 1000);
+          }
+        }
+      });
+    }
   }
 
   vm.file_size_check = function(event, file_obj) {

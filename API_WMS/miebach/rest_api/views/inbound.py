@@ -8569,8 +8569,10 @@ def get_debit_note_data(rtv_number, user):
         data_dict_item['sku_desc'] = get_po.sku.sku_desc
         data_dict_item['hsn_code'] = str(get_po.sku.hsn_code)
         data_dict_item['order_qty'] = obj.quantity
-        #data_dict_item['price'] = get_po.price
-        data_dict_item['price'] = 0
+        if user.username in MILKBASKET_USERS:
+            data_dict_item['price'] = 0
+        else:
+            data_dict_item['price'] = get_po.price
         data_dict_item['measurement_unit'] = get_po.sku.measurement_type
         data_dict_item['discount'] = get_po.sku.discount_percentage
         data_dict['invoice_num'] = obj.seller_po_summary.invoice_number

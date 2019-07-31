@@ -405,6 +405,7 @@ urlpatterns = [
     url(r'^get_order_extra_options/$', get_order_extra_options),
     url(r'^remove_customer_profile_image/$', remove_customer_profile_image),
     url(r'^print_pdf_my_orders_swiss/$', print_pdf_my_orders_swiss),
+    url(r'^sm_custom_order_cancel/$', sm_custom_order_cancel),
 
 
     # Uploaded POs [SWISS MILITARY]

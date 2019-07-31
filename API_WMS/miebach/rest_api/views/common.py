@@ -3807,6 +3807,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     hundred_day_filter = today_filter + datetime.timedelta(days=90)
     ints_filters = {'quantity__gt': 0, 'sku__sku_code__in': needed_skus, 'sku__user__in': gen_whs, 'status': 'open'}
     asn_qs = ASNStockDetail.objects.filter(**ints_filters)
+    nk_stock = asn_qs.filter(asn_po_num='NON_KITTED_STOCK')
     intr_obj_100days_qs = asn_qs.filter(Q(arriving_date__lte=hundred_day_filter)| Q(asn_po_num='NON_KITTED_STOCK'))
     intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
     asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
@@ -3818,6 +3819,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
 
     needed_stock_data['asn_quantities'] = dict(
         intr_obj_100days_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+    needed_stock_data['nonkitted_stock'] = dict(nk_stock.values_list('sku__sku_code').distinct().annotate(Sum('quantity')))
     needed_stock_data['asn_blocked_quantities'] = {}
     for k, v in needed_stock_data['asn_quantities'].items():
         asn_qty = needed_stock_data['asn_quantities'][k]
@@ -4860,6 +4862,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
                 # total_quantity += needed_stock_data['asn_quantities'].get(prd_sku, 0)
                 total_quantity = total_quantity - float(needed_stock_data['reserved_quantities'].get(prd_sku, 0))
                 total_quantity = total_quantity - float(needed_stock_data['enquiry_res_quantities'].get(prd_sku, 0))
+                total_quantity = total_quantity - float(needed_stock_data['nonkitted_stock'].get(prd_sku, 0))
         if total_quantity < 0:
             total_quantity = 0
         if sku_styles:

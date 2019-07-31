@@ -8,6 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.service = Service;
     vm.service.print_enable = false;
     vm.central_order_mgmt = Session.roles.permissions.central_order_mgmt
+     vm.parent_username = Session.parent.userName
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -33,7 +34,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('Stage Quantity').withTitle('Stage Quantity')
         
     ];
-    if(vm.central_order_mgmt ){
+    if(vm.parent_username == 'isprava_admin'){
       vm.dtColumns.push(DTColumnBuilder.newColumn('Stock Value').withTitle('Stock Value'),
         DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse Name'))
     }

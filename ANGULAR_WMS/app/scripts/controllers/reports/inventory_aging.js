@@ -31,7 +31,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
         DTColumnBuilder.newColumn('As on Date(Days)').withTitle('As on Date(Days)')
     ];
-    if(vm.central_order_mgmt ){
+    if(vm.parent_username == 'isprava_admin'){
       vm.dtColumns.push(DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse Name'))
     }
 

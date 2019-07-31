@@ -2593,7 +2593,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
         search_parameters['order__customer_id'] = search_params['customer_id']
     if 'imei_number' in search_params and serial_view:
         search_parameters['po_imei__imei_number'] = search_params['imei_number']
-    if central_order_mgmt == 'true':
+    if user.username == 'isprava_admin':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
             user = User.objects.get(username=sister_warehouse_name)
@@ -3269,7 +3269,7 @@ def get_stock_summary_data(search_params, user, sub_user):
             search_parameters['%s__%s__%s' % ('sku', data, 'iexact')] = search_params[data]
             job_filter['%s__%s__%s' % ('product_code', data, 'iexact')] = search_params[data]
 
-    if central_order_mgmt == 'true':
+    if user.username == 'isprava_admin':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
             user = User.objects.get(username=sister_warehouse_name)
@@ -3340,7 +3340,7 @@ def get_stock_summary_data(search_params, user, sub_user):
         
         for key, value in sku_stages_dict.iteritems():
             warehouse = 0
-            if central_order_mgmt == "true":
+            if user.username == 'isprava_admin':
                 warehouse = warehouse_users.get(sku[5])
                 sku_master_list.append(OrderedDict((('SKU Code', sku[1]), ('Description', sku[2]),
                                                 ('Brand', sku[3]), ('Category', sku[4]),

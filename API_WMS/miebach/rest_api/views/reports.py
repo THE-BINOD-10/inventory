@@ -643,6 +643,7 @@ def get_aging_filter_data(search_params, user, sub_user):
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
+    warehouse_users = {}
     central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
     all_data = OrderedDict()
     temp_data['draw'] = search_params.get('draw')
@@ -661,7 +662,7 @@ def get_aging_filter_data(search_params, user, sub_user):
         search_parameters['sku__sku_category'] = search_params['sku_category']
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-    if central_order_mgmt == 'true':
+    if user.username == 'isprava_admin':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
             user = User.objects.get(username=sister_warehouse_name)

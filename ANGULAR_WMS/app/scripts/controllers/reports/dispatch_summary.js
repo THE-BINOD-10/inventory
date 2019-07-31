@@ -29,7 +29,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
      .withPaginationType('full_numbers');
 
   vm.dtColumns = vm.service.build_colums(vm.g_data.tb_headers[vm.g_data.view]);
-  if(vm.central_order_mgmt ){
+  if(vm.parent_username == 'isprava_admin'){
       vm.dtColumns.push(DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse Name'))
     }
 

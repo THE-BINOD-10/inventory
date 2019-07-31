@@ -37,9 +37,7 @@ today = datetime.datetime.now().strftime("%Y%m%d")
 storehippo_fulfillments_log = init_logger('logs/storehippo_fulfillments_log_' + today + '.log')
 
 import itertools
-class TemplateIterator(itertools.count):
-    def next(self):
-        return next(self)
+
 
 @csrf_exempt
 def get_batch_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters,
@@ -15522,6 +15520,7 @@ def generate_picklist_dc(request, user=''):
     st_time = datetime.datetime.now()
     data = {}
     count = 0
+    total_qty = 0
     iterator=itertools.count()
     picklist_number = request.POST['picklist_number']
     for key, value in request.POST.iterlists():
@@ -15606,6 +15605,9 @@ def generate_picklist_dc(request, user=''):
                     sku = picklist_obj.stock.sku
                 else:
                     sku = SKUMaster.objects.filter(sku_code=picklist_obj.sku_code, user=user.id)[0]
+
+            if val['picked_quantity']:
+                total_qty = total_qty + int(val['picked_quantity'])
             sku_code = sku.sku_code
             sku_desc = sku.sku_desc
             sku_class = sku.sku_class
@@ -15689,6 +15691,7 @@ def generate_picklist_dc(request, user=''):
     invoice_data['customer_address'] = customer_address
     invoice_data['consignee'] = consignee
     invoice_data['iterator'] = iterator
+    invoice_data['total_quantity'] = total_qty
     for key , value in batch_group_data_order_wise.items() :
         tempdc = TempDeliveryChallan.objects.filter(order = value.values()[0].get('order'))
         if tempdc.exists():
@@ -15710,7 +15713,6 @@ def generate_picklist_dc(request, user=''):
                 val['order'] = ''
             delivery_challan_dict['dcjson'] = json.dumps(value)
             TempDeliveryChallan.objects.create(**delivery_challan_dict)
-
 
     return render(request, 'templates/toggle/delivery_challan_batch_level.html', invoice_data)
 
@@ -15925,6 +15927,7 @@ def generate_dc(request , user = ''):
     orders = request.POST.get('selected_orders' ,'')
     iterator=itertools.count()
     batch_group_data_order = OrderedDict()
+    total_qty = 0
     if orders :
         orders = json.loads(orders)
         for order in orders :
@@ -15937,6 +15940,8 @@ def generate_dc(request , user = ''):
                 batch_group_data = temp_dc_objs[0].dcjson
                 dc_number_obj = temp_dc_objs[0].dc_number
 
+            if order_id:
+                total_qty = OrderDetail.objects.filter(order_id = order_id, user = user.id).values('quantity').distinct().annotate(total = Sum('quantity'))[0]['total']
 
                 customer_address =[]
                 customer_details = []
@@ -15985,6 +15990,7 @@ def generate_dc(request , user = ''):
                 invoice_data['consignee'] = consignee
                 invoice_data['iterator'] = iterator
                 invoice_data['dc_number'] = dc_number_obj
+                invoice_data['total_quantity'] = total_qty
 
 
     return render(request, 'templates/toggle/delivery_challan_batch_level.html', invoice_data)

@@ -1884,18 +1884,18 @@ def create_invnetory_adjustment_record(user, dat, quantity, reason, location, no
     return adjustment_objs
 
 
-def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet='', batch_no='', mrp='',
-                          seller_master_id='', weight='', receipt_number=1, receipt_type=''):
+def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet='', batch_no='', mrp='',
+                          seller_master_id='', weight='', receipt_number=1, receipt_type='',):
     now_date = datetime.datetime.now()
     now = str(now_date)
     adjustment_objs = []
     if wmscode:
-        sku = SKUMaster.objects.filter(wms_code=wmscode, user=user.id)
+        sku = SKUMaster.objects.filter(user=user.id, sku_code=wmscode)
         if not sku:
             return 'Invalid WMS Code'
         sku_id = sku[0].id
     if loc:
-        location = LocationMaster.objects.filter(location=loc, zone__user=user.id)
+        location = LocationMaster.objects.filter(zone__user=user.id, location=loc)
         if not location:
             return 'Invalid Location'
     if quantity == '':
@@ -1955,7 +1955,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         for stock in stocks:
             if total_stock_quantity < quantity:
                 stock.quantity += abs(remaining_quantity)
-                save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', remaining_quantity, stock)
+                stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', remaining_quantity, stock, stock_stats_objs, bulk_insert=True)
                 stock.save()
                 change_seller_stock(seller_master_id, stock, user, abs(remaining_quantity), 'inc')
                 adjustment_objs = create_invnetory_adjustment_record(user, dat, abs(remaining_quantity), reason, location, now, pallet_present,
@@ -1967,7 +1967,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
                     break
                 elif stock_quantity >= remaining_quantity:
                     setattr(stock, 'quantity', stock_quantity - remaining_quantity)
-                    save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', -remaining_quantity, stock)
+                    stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', -remaining_quantity, stock, stock_stats_objs, bulk_insert=True)
                     stock.save()
                     change_seller_stock(seller_master_id, stock, user, remaining_quantity, 'dec')
                     adjustment_objs = create_invnetory_adjustment_record(user, dat, -remaining_quantity, reason, location, now, pallet_present,
@@ -1976,7 +1976,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
                     remaining_quantity = 0
                 elif stock_quantity < remaining_quantity:
                     setattr(stock, 'quantity', 0)
-                    save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', -stock_quantity, stock)
+                    stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', -stock_quantity, stock, stock_stats_objs, bulk_insert=True)
                     stock.save()
                     change_seller_stock(seller_master_id, stock, user, stock_quantity,
                                         'dec')
@@ -2008,7 +2008,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
                               })
             dest_stocks = StockDetail(**stock_dict)
             dest_stocks.save()
-            save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', dest_stocks.quantity, dest_stocks)
+            stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', dest_stocks.quantity, dest_stocks, stock_stats_objs, bulk_insert=True)
             change_seller_stock(seller_master_id, dest_stocks, user, abs(remaining_quantity), 'create')
             adjustment_objs = create_invnetory_adjustment_record(user, dat, abs(remaining_quantity), reason, location, now, pallet_present,
                                                stock=dest_stocks, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
@@ -2018,13 +2018,15 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         for stock in all_stocks:
             stock_quantity = stock.quantity
             SellerStock.objects.filter(stock_id=stock.id).update(quantity=0)
-            save_sku_stats(user, stock.sku_id, dat.id, 'inventory-adjustment', -stock_quantity, stock)
+            stock.quantity = 0
+            stock.save()
+            stock_stats_objs = save_sku_stats(user, stock.sku_id, dat.id, 'inventory-adjustment', -stock_quantity, stock, stock_stats_objs, bulk_insert=True)
             adjustment_objs = create_invnetory_adjustment_record(user, dat, -stock_quantity, reason, location, now, pallet_present,
                                                stock=stock, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
 
     if adjustment_objs:
         InventoryAdjustment.objects.bulk_create(adjustment_objs)
-    return 'Added Successfully'
+    return 'Added Successfully', stock_stats_objs
 
 
 def update_picklist_locations(pick_loc, picklist, update_picked, update_quantity='', decimal_limit=0):
@@ -5023,12 +5025,18 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
     pallet_switch = get_misc_value('pallet_switch', user.id)
     availabe_quantity = {}
     industry_type = user.userprofile.industry_type
+    res_qty_dict = {}
+    res_qty_objs = PicklistLocation.objects.filter(picklist__order__user=user.id,
+                                                   stock_id__in=stock_data.values_list('id', flat=True), status=1).\
+        only('stock_id', 'reserved')
+    for res_qty_obj in res_qty_objs:
+        res_qty_dict.setdefault(res_qty_obj.stock_id, 0)
+        res_qty_dict[res_qty_obj.stock_id] += res_qty_obj.reserved
     for stock in stock_data:
-        res_qty = PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id). \
-            aggregate(Sum('reserved'))['reserved__sum']
+        res_qty = res_qty_dict.get(stock.id, 0)
 
-        raw_reserved = RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user.id,
-                                                 stock_id=stock.id).aggregate(Sum('reserved'))['reserved__sum']
+        raw_reserved = RMLocation.objects.filter(material_picklist__jo_material__material_code__user=user.id,
+                                                 stock_id=stock.id, status=1).aggregate(Sum('reserved'))['reserved__sum']
 
         if not res_qty:
             res_qty = 0
@@ -6493,8 +6501,8 @@ def save_order_tracking_data(order, quantity, status='', imei=''):
 
 
 def get_stock_receipt_number(user):
-    receipt_number = StockDetail.objects.filter(sku__user=user.id).aggregate(Max('receipt_number')) \
-        ['receipt_number__max']
+    receipt_number = StockDetail.objects.filter(sku__user=user.id).only('receipt_number').\
+        aggregate(Max('receipt_number'))['receipt_number__max']
     if receipt_number:
         receipt_number = receipt_number + 1
     else:
@@ -7860,10 +7868,17 @@ def get_price_field(user):
     return price_field
 
 
-def save_sku_stats(user, sku_id, transact_id, transact_type, quantity, stock_detail=None):
+def save_sku_stats(user, sku_id, transact_id, transact_type, quantity, stock_detail=None, stock_stats_objs=None,
+                   bulk_insert=False):
     try:
-        SKUDetailStats.objects.create(sku_id=sku_id, transact_id=transact_id, transact_type=transact_type,
-                                  quantity=quantity, creation_date=datetime.datetime.now(), stock_detail=stock_detail)
+        stats_dict = {'sku_id': sku_id, 'transact_id': transact_id, 'transact_type': transact_type,
+                                  'quantity': quantity, 'creation_date': datetime.datetime.now(),
+                      'stock_detail': stock_detail}
+        if bulk_insert:
+            stock_stats_objs.append(SKUDetailStats(**stats_dict))
+            return stock_stats_objs
+        else:
+            SKUDetailStats.objects.create(**stats_dict)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

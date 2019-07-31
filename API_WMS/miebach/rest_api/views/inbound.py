@@ -1704,6 +1704,7 @@ def insert_inventory_adjust(request, user=''):
     reduce_stock = request.GET.get('inv_shrinkage', 'false')
     seller_master_id = ''
     receipt_number = get_stock_receipt_number(user)
+    stock_stats_objs = []
     if seller_id:
         seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
         if not seller_master:
@@ -1713,9 +1714,11 @@ def insert_inventory_adjust(request, user=''):
         status = reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,
                                        seller_master_id=seller_master_id, weight=weight)
     else:
-        status = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,
+        status, stock_stats_objs = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet_code, batch_no, mrp,
                                        seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
                                        receipt_type='inventory-adjustment')
+    if stock_stats_objs:
+        SKUDetailStats.objects.bulk_create(stock_stats_objs)
     update_filled_capacity([loc], user.id)
     check_and_update_stock([wmscode], user)
 
@@ -8569,8 +8572,10 @@ def get_debit_note_data(rtv_number, user):
         data_dict_item['sku_desc'] = get_po.sku.sku_desc
         data_dict_item['hsn_code'] = str(get_po.sku.hsn_code)
         data_dict_item['order_qty'] = obj.quantity
-        #data_dict_item['price'] = get_po.price
-        data_dict_item['price'] = 0
+        if user.username in MILKBASKET_USERS:
+            data_dict_item['price'] = 0
+        else:
+            data_dict_item['price'] = get_po.price
         data_dict_item['measurement_unit'] = get_po.sku.measurement_type
         data_dict_item['discount'] = get_po.sku.discount_percentage
         data_dict['invoice_num'] = obj.seller_po_summary.invoice_number

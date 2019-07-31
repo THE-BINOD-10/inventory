@@ -386,7 +386,8 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
       angular.forEach(data, function(level_data){
         tem_order_qty += Number(level_data.quantity);
         if (level_data.warehouse == wh_data.warehouse) {
-          tem_total_qty = (level_data.wh_open + level_data.intr_open) - (level_data.wh_blocked + level_data.intr_blocked)
+          // tem_total_qty = (level_data.wh_open + level_data.intr_open) - (level_data.wh_blocked + level_data.intr_blocked)
+          tem_total_qty = (level_data.wh_total - level_data.wh_blocked)
           if (tem_total_qty < parseInt(wh_data.quantity)) {
             wh_data.quantity = 0;
             Service.showNoty("Unable to place order from this warehouse, Available Quantity - <b>"+tem_total_qty+"</b>");

@@ -1704,6 +1704,7 @@ def insert_inventory_adjust(request, user=''):
     reduce_stock = request.GET.get('inv_shrinkage', 'false')
     seller_master_id = ''
     receipt_number = get_stock_receipt_number(user)
+    stock_stats_objs = []
     if seller_id:
         seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
         if not seller_master:
@@ -1713,9 +1714,11 @@ def insert_inventory_adjust(request, user=''):
         status = reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,
                                        seller_master_id=seller_master_id, weight=weight)
     else:
-        status = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,
+        status, stock_stats_objs = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet_code, batch_no, mrp,
                                        seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
                                        receipt_type='inventory-adjustment')
+    if stock_stats_objs:
+        SKUDetailStats.objects.bulk_create(stock_stats_objs)
     update_filled_capacity([loc], user.id)
     check_and_update_stock([wmscode], user)
 

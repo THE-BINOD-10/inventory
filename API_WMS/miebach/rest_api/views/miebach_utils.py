@@ -634,7 +634,7 @@ ORDER_FLOW_REPORT_DICT = {
          {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
          {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
          {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
-         {'label': 'Order ID', 'name': 'order_id', 'type': 'input'},
+         {'label': 'Order ID/SR Number', 'name': 'order_id', 'type': 'input'},
          {'label': 'Central Order ID', 'name': 'central_order_id', 'type': 'input'},
      ],
      'dt_headers': ['Main SR Number','SKU Code','SKU Description',
@@ -6860,18 +6860,27 @@ def get_orderflow_data(search_params, user, sub_user):
     search_parameters = {}
     order_fields_dict = {}
     order_data = lis[col_num]
+    interm_order_id = ''
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if 'from_date' in search_params:
         search_parameters['creation_date__gt'] = search_params['from_date']
     if 'to_date' in search_params:
         search_parameters['creation_date__lt'] = search_params['to_date']
+    #for one one_assist
     if 'order_id' in search_params:
-        search_parameters['order__original_order_id'] = search_params['order_id']
+        orderfield_obj = OrderFields.objects.filter(order_type='intermediate_order', name='original_order_id',
+                                             value = search_params['order_id'])
+        if orderfield_obj.exists():
+            interm_order_id = orderfield_obj[0].original_order_id
+
     if 'sku_code' in search_params:
         search_parameters['sku__wms_code'] = search_params['sku_code']
     if 'central_order_id' in search_params :
         search_parameters['interm_order_id'] = search_params['central_order_id']
+    if interm_order_id :
+        search_parameters['interm_order_id'] = interm_order_id
+
 
     search_parameters['user'] = user.id
     order_flow_data = IntermediateOrders.objects.filter(**search_parameters).\

@@ -15677,7 +15677,6 @@ def generate_picklist_dc(request, user=''):
 
     invoice_data = {}
     invoice_data['data'] = batch_group_data
-    invoice_data['total_items'] = len(invoice_data['data'])
     invoice_data['username'] = user.username
     invoice_data['extra_order_fields'] = extra_fields
     user_profile = UserProfile.objects.get(user_id=user.id)
@@ -15708,6 +15707,7 @@ def generate_picklist_dc(request, user=''):
             invoice_data['dc_number'] = challan_num
             delivery_challan_dict['order'] = value.values()[0].get('order','')
             delivery_challan_dict['picklist_number'] = picklist_number
+            delivery_challan_dict['total_qty'] = total_qty
             for val in value.values() :
                 val['order'] = ''
             delivery_challan_dict['dcjson'] = json.dumps(value)
@@ -15927,7 +15927,6 @@ def generate_dc(request , user = ''):
     iterator=itertools.count()
     batch_group_data_order = OrderedDict()
     total_qty = 0
-    total_items = 0
     if orders :
         orders = json.loads(orders)
         for order in orders :
@@ -15939,10 +15938,7 @@ def generate_dc(request , user = ''):
                 order = temp_dc_objs[0].order
                 batch_group_data = temp_dc_objs[0].dcjson
                 dc_number_obj = temp_dc_objs[0].dc_number
-            if order_id:
-                ord_objs = OrderDetail.objects.filter(order_id = order_id, user = user.id)
-                total_qty = ord_objs.values('quantity').distinct().annotate(total = Sum('quantity'))[0]['total']
-                total_items = len(ord_objs)
+                total_qty = temp_dc_objs[0].total_qty
 
                 customer_address =[]
                 customer_details = []
@@ -15977,7 +15973,6 @@ def generate_dc(request , user = ''):
                         extra_fields[order_field_obj[0].name] = order_field_obj[0].value
                 batch_group_data_order[original_order_id] = json.loads(batch_group_data)
                 invoice_data['data'] = batch_group_data_order
-                invoice_data['total_items'] = total_items
                 invoice_data['username'] = user.username
                 invoice_data['extra_order_fields'] = extra_fields
                 user_profile = UserProfile.objects.get(user_id=user.id)

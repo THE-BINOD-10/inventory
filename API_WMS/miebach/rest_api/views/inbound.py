@@ -4666,9 +4666,11 @@ def confirm_quality_check(request, user=''):
             num = len(myDict['wms_code'])
             total_amount = 0
             overall_discount = 0
+            discount = 0
             for i in range(num):
                 seller_po_obj = SellerPOSummary.objects.filter(purchase_order_id= po_creation_date_full[i].id , purchase_order__open_po__sku__user = 3)
-                discount = seller_po_obj[0].discount_percent
+                if seller_po_obj.exists():
+                     discount = seller_po_obj[0].discount_percent
                 sku_particulars = SKUMaster.objects.filter(sku_code=myDict['wms_code'][i], user=user.id)[0]
                 total_amt = float(po_creation_date_full[i].open_po.price) * float(acc_qty[i])
                 overall_discount = float(overall_discount) + float(discount)

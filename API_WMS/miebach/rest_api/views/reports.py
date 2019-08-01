@@ -636,7 +636,9 @@ def get_adjust_filter_data(search_params, user, sub_user):
         order_data = lis[order_index]
         if order_term == 'desc':
             order_data = '-%s' % order_data
-        adjustments = adjustments.order_by(order_data)
+        adjustments = adjustments.only('id', 'creation_date', 'stock__batch_detail__mrp', 'stock__batch_detail__buy_price',
+                                       'stock__batch_detail__weight', 'stock__batch_detail__tax_percent',
+                                       'cycle__location__location', 'reason').order_by(order_data)
         for adjustment in adjustments:
             mrp = 0
             weight = ''
@@ -650,21 +652,17 @@ def get_adjust_filter_data(search_params, user, sub_user):
                 amount = adjustment.adjusted_quantity * batch_detail.buy_price
                 if batch_detail.tax_percent:
                     amount = amount + ((amount/100)*batch_detail.tax_percent)
-            updated_user_name = user.username
-            version_obj = Version.objects.get_for_object(adjustment.cycle)
-            if version_obj.exists():
-                updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
             creation_date = adjustment.creation_date.strftime('%Y-%m-%d')
             group_key = (adjustment.cycle.sku.sku_code, mrp, weight, adjustment.cycle.location.location,
-                         adjustment.reason, creation_date, updated_user_name)
+                         adjustment.reason, creation_date)
             grouping_data.setdefault(group_key, {'mrp': mrp, 'weight': weight,
                                                  'sku': adjustment.cycle.sku,
                                                  'location': adjustment.cycle.location.location,
                                                  'reason': adjustment.reason,
                                                  'creation_date': creation_date,
-                                                 'updated_user_name': updated_user_name,
                                                  'quantity': 0,
-                                                 'prices_list': [], 'amount': 0})
+                                                 'prices_list': [], 'amount': 0,
+                                                 'cycle': adjustment.cycle})
             grouping_data[group_key]['quantity'] += adjustment.adjusted_quantity
             grouping_data[group_key]['amount'] += amount
             grouping_data[group_key]['prices_list'].append(price)
@@ -680,8 +678,11 @@ def get_adjust_filter_data(search_params, user, sub_user):
             weight = data['weight']
             amount = data['amount']
             qty = data['quantity']
-            updated_user_name = data['updated_user_name']
+            updated_user_name = user.username
             avg_cost = 0
+            version_obj = Version.objects.get_for_object(data['cycle'])
+            if version_obj.exists():
+                updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
             if amount and qty:
                 avg_cost = amount/qty
             temp_data['aaData'].append(OrderedDict(( ('SKU Code', sku.sku_code),
@@ -1814,6 +1815,7 @@ def print_stock_reconciliation_report(request, user=''):
     return HttpResponse(html_data)
 
 
+@get_admin_user
 def print_margin_report(request, user=''):
     html_data = {}
     search_parameters = {}
@@ -1824,6 +1826,7 @@ def print_margin_report(request, user=''):
         html_data = create_reports_table(report_data[0].keys(), report_data)
     return HttpResponse(html_data)
 
+@get_admin_user
 def print_basa_report(request, user=''):
     html_data = {}
     search_parameters = {}

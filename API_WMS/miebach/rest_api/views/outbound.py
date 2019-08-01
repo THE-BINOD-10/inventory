@@ -15605,8 +15605,8 @@ def generate_picklist_dc(request, user=''):
                     sku = picklist_obj.stock.sku
                 else:
                     sku = SKUMaster.objects.filter(sku_code=picklist_obj.sku_code, user=user.id)[0]
-            if val['picked_quantity']:
-                total_qty = total_qty + int(val['picked_quantity'])
+            if val['reserved_quantity']:
+                total_qty = total_qty + int(val['reserved_quantity'])
             sku_code = sku.sku_code
             sku_desc = sku.sku_desc
             sku_class = sku.sku_class

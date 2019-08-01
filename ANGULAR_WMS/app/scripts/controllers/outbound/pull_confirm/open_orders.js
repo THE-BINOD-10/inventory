@@ -43,6 +43,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         DTColumnBuilder.newColumn('picklist_id').withTitle('Picklist ID'),
         DTColumnBuilder.newColumn('customer').withTitle('Customer / Marketplace').notSortable(),
         DTColumnBuilder.newColumn('picklist_note').withTitle('Picklist Note'),
+        DTColumnBuilder.newColumn('project_name').withTitle('Project Name'),
         DTColumnBuilder.newColumn('reserved_quantity').withTitle('Reserved Quantity').notSortable(),
         DTColumnBuilder.newColumn('shipment_date').withTitle('Exp Delivery Date'),
         DTColumnBuilder.newColumn('date').withTitle('Date'),

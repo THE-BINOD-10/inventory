@@ -335,6 +335,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     status_dict = eval(status)
     filter_params = {}
+    admin_user = get_admin(user)
     if isinstance(status_dict, dict):
         status = status_dict['status']
         if status_dict.get('market_place', ''):
@@ -362,7 +363,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
         master_data = all_picks.filter(
             Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).filter(
             Q(picklist_number__icontains=search_term) | Q(remarks__icontains=search_term) | Q(
-                order__marketplace__icontains=search_term) | Q(order__customer_name__icontains=search_term))
+                order__marketplace__icontains=search_term) | Q(order__customer_name__icontains=search_term)| Q(order__intermediateorders__project_name__icontains=search_term))
 
     elif order_term:
         # col_num = col_num - 1
@@ -396,9 +397,9 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     count = 0
     od_id, od_order_id = '', ''
     for data in master_data[start_index:stop_index]:
-        import pdb; pdb.set_trace()
         prepare_str = ''
         shipment_date = ''
+        project_name = ''
         create_date_value, order_marketplace, order_customer_name, picklist_id, remarks = '', [], [], '', ''
         picklist_obj = all_picks.filter(picklist_number=data['picklist_number'])
         reserved_quantity_sum_value = picklist_obj.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
@@ -429,6 +430,10 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
                         prepare_str = user_profile.username
             if not prepare_str and picklist_obj[0].order:
                 order_id = picklist_obj[0].order.original_order_id
+                if admin_user.username == 'isprava_admin':
+                    project_details = IntermediateOrders.objects.filter(order__order_id = picklist_obj[0].order.order_id, user_id = admin_user.id).values('project_name')
+                    if project_details.exists():
+                        project_name = project_details[0]['project_name']
                 if order_id:
                     order_fields = OrderFields.objects.filter(original_order_id=order_id, name="original_order_id")
                     if order_fields:
@@ -458,13 +463,12 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
                 time_slot = get_shipment_time(first_ord_obj[0], user)
                 if time_slot:
                     shipment_date = shipment_date + ', ' + time_slot
-
         result_data = OrderedDict((('DT_RowAttr', {'data-id': picklist_id}), ('picklist_note', remarks),
                                    ('reserved_quantity', reserved_quantity_sum_value),
                                    ('picked_quantity', picked_quantity_sum_value),
                                    ('customer', prepare_str), ('shipment_date', shipment_date),
                                    ('date', create_date_value), ('id', count), ('DT_RowClass', 'results'),
-                                   ('od_id', od_id), ('od_order_id', od_order_id)))
+                                   ('od_id', od_id), ('od_order_id', od_order_id), ('project_name', project_name)))
         dat = 'picklist_id'
         count += 1
         if status == 'batch_picked':

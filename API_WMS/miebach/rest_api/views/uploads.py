@@ -692,6 +692,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             elif key in ['vat', 'cgst_amt', 'sgst_amt', 'igst_amt', 'utgst_amt']:
                 order_mapping, order_summary_dict = myntra_order_tax_calc(key, value, order_mapping, order_summary_dict,
                                                                           row_idx, reader, file_type)
+
             elif key == 'address':
                 if isinstance(value, (list)):
                     cell_data = ''
@@ -702,6 +703,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                             cell_data = str(cell_data) + ", " + str(get_cell_data(row_idx, val, reader, file_type))
                 else:
                     order_data[key] = str(get_cell_data(row_idx, value, reader, file_type))[:256]
+
             elif key == 'sku_code':
                 sku_code = get_cell_data(row_idx, value, reader, file_type)
             elif key == 'shipment_date':
@@ -733,6 +735,10 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 discount = get_cell_data(row_idx, value, reader, file_type)
                 if discount:
                     order_summary_dict['discount'] = get_cell_data(row_idx, value, reader, file_type)
+            elif key == 'ship_to':
+                consignee = get_cell_data(row_idx, value, reader, file_type)
+                if consignee:
+                    order_summary_dict['consignee'] = get_cell_data(row_idx, value, reader, file_type)
             elif key == 'quantity_count':
                 if isinstance(value, (list)):
                     try:
@@ -839,7 +845,6 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
         if order_data.has_key('telephone'):
             if isinstance(order_data['telephone'], float):
                 order_data['telephone'] = str(int(order_data['telephone']))
-
         log.info("Order Saving Started %s" % (datetime.datetime.now()))
         sku_ids, order_obj_list, order_detail = check_and_save_order(cell_data, order_data, order_mapping, user_profile, seller_order_dict,
                                        order_summary_dict, sku_ids,
@@ -2781,6 +2786,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     if show_apmc_tax:
         table_headers.insert(table_headers.index('UTGST (%)'), 'APMC (%)')
     po_data = []
+    ids_dict = {}
     send_mail_data = OrderedDict()
     for final_dict in data_list:
         total_qty = 0
@@ -2847,7 +2853,6 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             order_ids[group_key] = po_id
         else:
             po_id = order_ids[group_key]
-        ids_dict = {}
         order_data['status'] = 0
         data1 = OpenPO(**order_data)
         data1.save()
@@ -2954,6 +2959,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                 vendor_telephone = purchase_order.vendor.phone_number
             telephone = purchase_order.supplier.phone_number
             name = purchase_order.supplier.name
+            supplier = purchase_order.supplier_id
             order_id = ids_dict[supplier]
             supplier_email = purchase_order.supplier.email_id
             secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())

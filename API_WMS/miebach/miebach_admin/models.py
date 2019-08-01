@@ -628,7 +628,7 @@ class StockDetail(models.Model):
     class Meta:
         db_table = 'STOCK_DETAIL'
         unique_together = ('receipt_number', 'receipt_date', 'sku', 'location', 'pallet_detail', 'batch_detail', 'unit_price', 'receipt_type')
-        index_together = (('sku', 'location', 'quantity'), ('location', 'sku', 'pallet_detail'), ('receipt_number', ))
+        index_together = (('sku', 'location', 'quantity'), ('location', 'sku', 'pallet_detail'))
 
     def __unicode__(self):
         return str(self.sku) + " : " + str(self.location)

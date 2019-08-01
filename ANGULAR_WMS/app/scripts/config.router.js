@@ -2418,7 +2418,7 @@ var app = angular.module('urbanApp')
           }
         })
         .state('app.reports.BasaReport', {
-          url: '/MarginReport',
+          url: '/BASAReport',
           templateUrl: 'views/reports/basa_report.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -2426,7 +2426,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Margin Report',
+            title: 'BASA Report',
           }
         })
       // configuration route

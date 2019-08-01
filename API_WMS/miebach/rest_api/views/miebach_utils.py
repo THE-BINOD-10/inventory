@@ -1544,6 +1544,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_stock_reconciliation_report': 'get_stock_reconciliation_report_data',
                         'get_margin_report':'get_margin_report_data',
                         'get_stock_cover_report':'get_stock_cover_report_data',
+                        'get_basa_report':'get_basa_report_data',
                         }
 # End of Download Excel Report Mapping
 

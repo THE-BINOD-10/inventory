@@ -15605,7 +15605,6 @@ def generate_picklist_dc(request, user=''):
                     sku = picklist_obj.stock.sku
                 else:
                     sku = SKUMaster.objects.filter(sku_code=picklist_obj.sku_code, user=user.id)[0]
-
             if val['picked_quantity']:
                 total_qty = total_qty + int(val['picked_quantity'])
             sku_code = sku.sku_code
@@ -15928,6 +15927,7 @@ def generate_dc(request , user = ''):
     iterator=itertools.count()
     batch_group_data_order = OrderedDict()
     total_qty = 0
+    total_items = 0
     if orders :
         orders = json.loads(orders)
         for order in orders :
@@ -15939,9 +15939,10 @@ def generate_dc(request , user = ''):
                 order = temp_dc_objs[0].order
                 batch_group_data = temp_dc_objs[0].dcjson
                 dc_number_obj = temp_dc_objs[0].dc_number
-
             if order_id:
-                total_qty = OrderDetail.objects.filter(order_id = order_id, user = user.id).values('quantity').distinct().annotate(total = Sum('quantity'))[0]['total']
+                ord_objs = OrderDetail.objects.filter(order_id = order_id, user = user.id)
+                total_qty = ord_objs.values('quantity').distinct().annotate(total = Sum('quantity'))[0]['total']
+                total_items = len(ord_objs)
 
                 customer_address =[]
                 customer_details = []
@@ -15976,7 +15977,7 @@ def generate_dc(request , user = ''):
                         extra_fields[order_field_obj[0].name] = order_field_obj[0].value
                 batch_group_data_order[original_order_id] = json.loads(batch_group_data)
                 invoice_data['data'] = batch_group_data_order
-                invoice_data['total_items'] = len(orders)
+                invoice_data['total_items'] = total_items
                 invoice_data['username'] = user.username
                 invoice_data['extra_order_fields'] = extra_fields
                 user_profile = UserProfile.objects.get(user_id=user.id)

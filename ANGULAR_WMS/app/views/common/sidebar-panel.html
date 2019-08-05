@@ -576,9 +576,9 @@
             <span>Open Order Report</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show = "permissions.central_order_mgmt && permissions.multi_warehouse">
           <a ui-sref="app.reports.Orderflow">
-            <span>Order flow Report</span>
+            <span>Central Order Tracker</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show = "show_tab('add_skudetailstats')">

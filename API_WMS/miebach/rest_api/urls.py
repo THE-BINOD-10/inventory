@@ -505,6 +505,7 @@ urlpatterns = [
     url(r'^get_stock_cover_report/$', get_stock_cover_report),
     url(r'^print_stock_cover_report/$', print_stock_cover_report),
     url(r'^get_order_flow_report/$', get_order_flow_report),
+    url(r'^print_order_flow_report/$', print_order_flow_report),
 
 ]
 

@@ -637,13 +637,6 @@ ORDER_FLOW_REPORT_DICT = {
          {'label': 'Order ID/SR Number', 'name': 'order_id', 'type': 'input'},
          {'label': 'Central Order ID', 'name': 'central_order_id', 'type': 'input'},
      ],
-     'dt_headers': ['Main SR Number','SKU Code','SKU Description',
-                    'Customer Name', 'Address',	'Phone No',
-                    'Email Id',	'Alt SKU', 'Central order status',
-                    'Central Order cancellation remarks','Hub location','Hub location order status',
-                    'Order cancellation remarks','Outbound Qc params',
-                    'Serial Number','Shipment Status',	'Acknowledgement status','Receive PO status',
-                    'PO cancellation remarks',	'Inbound Qc params','SKU damage payment remarks'],
      'dt_url': 'get_order_flow_report', 'excel_name': 'get_order_flow_report',
      'print_url': 'print_order_flow_report',
   }
@@ -1539,6 +1532,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_stock_reconciliation_report': 'get_stock_reconciliation_report_data',
                         'get_margin_report':'get_margin_report_data',
                         'get_stock_cover_report':'get_stock_cover_report_data',
+                        'get_order_flow_report':'get_orderflow_data',
                         }
 # End of Download Excel Report Mapping
 
@@ -6843,9 +6837,12 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
     return temp_data
 
 def get_orderflow_data(search_params, user, sub_user):
+    from rest_api.views.common import get_local_date
     temp_data = copy.deepcopy(AJAX_DATA)
-    lis = ['creation_date','st_po__open_st__sku__user','st_po__open_st__sku__user','st_po__open_st__sku__user','sku__sku_code','sku__sku_desc',\
-           'quantity', 'st_po__open_st__price','st_po__open_st__sku__user','st_po__open_st__cgst_tax','st_po__open_st__sgst_tax','st_po__open_st__igst_tax','st_po__open_st__price','status']
+    from common import get_misc_value
+    isprava_permission = get_misc_value('order_exceed_stock', user.id)
+    lis = ['interm_order_id','order_assigned_wh__username','customer_name', 'order__customer_name','status','remarks',
+          'sku__wms_code','alt_sku__wms_code','order__original_order_id','order__status','order__id','order__picklist__status', 'project_name','sku__sku_category','sku__cost_price', 'order__creation_date', 'order__shipment_date']
     status_map = ['Pick List Generated','Pending','Accepted']
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)
@@ -6884,39 +6881,46 @@ def get_orderflow_data(search_params, user, sub_user):
 
     search_parameters['user'] = user.id
     order_flow_data = IntermediateOrders.objects.filter(**search_parameters).\
-                                            order_by(order_data).select_related('order','sku','alt_sku').values('interm_order_id','order_assigned_wh__username','customer_name','status','remarks',
-                                                                                                                'sku__wms_code','alt_sku__wms_code','order__original_order_id','order__status','order__id','order__picklist__status')
+                                            order_by(order_data).select_related('order','sku','alt_sku').values('interm_order_id','order_assigned_wh__username','customer_name','status','remarks','order__customer_name',
+                                                                                                                'sku__wms_code','alt_sku__wms_code','order__original_order_id','order__status','order__id','order__picklist__status', 'project_name','sku__sku_category','sku__cost_price', 'order__creation_date', 'order__shipment_date')
     temp_data['recordsTotal'] = order_flow_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     outbound_qc,inbound_qc,serial_number ,shipment_status  = '','','','open'
     po_status,po_cancel_reason,acknowledgement_status = '' ,'','No'
     sku_damaze_remarks ,central_order_remarks,order_status = '','',''
     for data in  (order_flow_data[start_index:stop_index]):
+        order_date = ' '
+        expected_date = ' '
+        if data['order__creation_date']:
+            order_date = get_local_date(user, data['order__creation_date'])
+        if data['order__shipment_date']:
+            expected_date = get_local_date(user, data['order__shipment_date'])
         if data['order__id'] :
-           singned_invoice = MasterDocs.objects.filter(master_id =data['order__id'])
-           if singned_invoice.exists():
-               acknowledgement_status = 'Yes'
+           if not isprava_permission:
+               singned_invoice = MasterDocs.objects.filter(master_id =data['order__id'])
+               if singned_invoice.exists():
+                   acknowledgement_status = 'Yes'
 
-           order_fields_dict = dict(OrderFields.objects.filter(original_order_id =data['interm_order_id'],user = user.id).values_list('name','value'))
-           outbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id =data['order__id'],qc_type = 'sales_order').exclude(remarks = '')
-           if outbound_dispatch_imei.exists():
-               serial_number = outbound_dispatch_imei[0].po_imei_num.imei_number
-               outbound_qc = ','.join(outbound_dispatch_imei.values_list('remarks',flat = True))
-           shipment = ShipmentInfo.objects.filter(order_id = data['order__id'])
-           if shipment.exists():
-               shipment_status = 'Dispatched'
+               order_fields_dict = dict(OrderFields.objects.filter(original_order_id =data['interm_order_id'],user = user.id).values_list('name','value'))
+               outbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id =data['order__id'],qc_type = 'sales_order').exclude(remarks = '')
+               if outbound_dispatch_imei.exists():
+                   serial_number = outbound_dispatch_imei[0].po_imei_num.imei_number
+                   outbound_qc = ','.join(outbound_dispatch_imei.values_list('remarks',flat = True))
+               shipment = ShipmentInfo.objects.filter(order_id = data['order__id'])
+               if shipment.exists():
+                   shipment_status = 'Dispatched'
 
-           po_obj = OrderMapping.objects.filter(order_id = data['order__id'])
-           if po_obj.exists():
-              inbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id =po_obj[0].mapping_id,qc_type = 'purchase_order').exclude(remarks = '')
-              purchase_order_obj = PurchaseOrder.objects.filter(id =po_obj[0].mapping_id )
-              if purchase_order_obj.exists():
-                  po_status = purchase_order_obj[0].status
-                  po_cancel_reason  = purchase_order_obj[0].reason
-                  sku_damaze_remarks = purchase_order_obj[0].remarks
+               po_obj = OrderMapping.objects.filter(order_id = data['order__id'])
+               if po_obj.exists():
+                  inbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id =po_obj[0].mapping_id,qc_type = 'purchase_order').exclude(remarks = '')
+                  purchase_order_obj = PurchaseOrder.objects.filter(id =po_obj[0].mapping_id )
+                  if purchase_order_obj.exists():
+                      po_status = purchase_order_obj[0].status
+                      po_cancel_reason  = purchase_order_obj[0].reason
+                      sku_damaze_remarks = purchase_order_obj[0].remarks
 
-              if inbound_dispatch_imei.exists():
-                  inbound_qc = ','.join(inbound_dispatch_imei.values_list('remarks',flat = True))
+                  if inbound_dispatch_imei.exists():
+                      inbound_qc = ','.join(inbound_dispatch_imei.values_list('remarks',flat = True))
            if data['status'] == '3':
                central_order_remarks = data['remarks']
                shipment_status = ''
@@ -6926,6 +6930,8 @@ def get_orderflow_data(search_params, user, sub_user):
                    order_status = 'Picklist Generated'
                if data['order__picklist__status'] == 'picked':
                    order_status = 'Picklist Confirmed'
+                   if isprava_permission:
+                       order_status = 'Dispatched'
                if data['order__picklist__status'] == 'dispatched':
                    order_status = 'Picklist Confirmed'
                    if not po_status :
@@ -6936,14 +6942,14 @@ def get_orderflow_data(search_params, user, sub_user):
 
 
 
-        temp_data['aaData'].append(OrderedDict((('Main SR Number',data['order__original_order_id']),('SKU Code', data['sku__wms_code']),
-                                                ('SKU Description',data['sku__wms_code']),('Customer Name',data['customer_name']),\
-                                                ('Address',order_fields_dict.get('address','')),('Phone No',order_fields_dict.get('mobile_no','')),('Email Id',order_fields_dict.get('email_id','')),\
+        temp_data['aaData'].append(OrderedDict((('Main SR Number',data['order__original_order_id']),('Order Id', str(data['interm_order_id'])),('SKU Code', data['sku__wms_code']),
+                                                ('SKU Description',data['sku__wms_code']), ('Project Name', data['project_name']), ('Category', data['sku__sku_category']),('Customer Name',data['customer_name']),\
+                                                ('Address',order_fields_dict.get('address','')), ('Customer name',data['order__customer_name']),('Phone No',order_fields_dict.get('mobile_no','')),('Email Id',order_fields_dict.get('email_id','')),\
                                                 ('Alt SKU',data['alt_sku__wms_code']),('Central order status',central_order_status.get(data['status'],'')),('Central Order cancellation remarks',central_order_remarks),
-                                                ('Hub location',data['order_assigned_wh__username']),('Hub location order status',order_status),\
+                                                ('Hub location',data['order_assigned_wh__username']),('Hub location order status',order_status), ('Price',data['sku__cost_price']),\
                                                 ('Order cancellation remarks',''),('Outbound Qc params',outbound_qc),('Serial Number',serial_number),
                                                 ('Shipment Status',shipment_status),('Acknowledgement status',acknowledgement_status),('Receive PO status',po_status),('Inbound Qc params',inbound_qc),
-                                                ('PO cancellation remarks',po_cancel_reason),('SKU damage payment remarks',sku_damaze_remarks))))
+                                                ('PO cancellation remarks',po_cancel_reason), ('Order Date',order_date), ('Expected Date',expected_date),('SKU damage payment remarks',sku_damaze_remarks))))
     return temp_data
 
 def get_current_stock_report_data(search_params, user, sub_user):

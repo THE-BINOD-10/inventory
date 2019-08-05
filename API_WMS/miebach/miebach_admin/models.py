@@ -3296,6 +3296,7 @@ class TempDeliveryChallan(models.Model):
     picklist_number = models.PositiveIntegerField()
     dcjson =  models.TextField(default='')
     dc_number = models.CharField(max_length=64, default='')
+    total_qty = models.PositiveIntegerField()
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

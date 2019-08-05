@@ -940,8 +940,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
   }
   vm.generate_pdf_dc = function(data){
     var send = {};
-    send = $(data).html()
-   vm.print_invoice_data(send, "");
+   vm.print_invoice_data(data, "");
  }
   vm.generate_pdf_file2 = function(data){
     var send = {};

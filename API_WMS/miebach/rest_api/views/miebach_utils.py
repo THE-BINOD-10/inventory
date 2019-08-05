@@ -636,6 +636,7 @@ ORDER_FLOW_REPORT_DICT = {
          {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
          {'label': 'Order ID/SR Number', 'name': 'order_id', 'type': 'input'},
          {'label': 'Central Order ID', 'name': 'central_order_id', 'type': 'input'},
+         {'label': 'Project Name', 'name': 'project_name', 'type': 'input'},
      ],
      'dt_url': 'get_order_flow_report', 'excel_name': 'get_order_flow_report',
      'print_url': 'print_order_flow_report',
@@ -6875,6 +6876,8 @@ def get_orderflow_data(search_params, user, sub_user):
         search_parameters['sku__wms_code'] = search_params['sku_code']
     if 'central_order_id' in search_params :
         search_parameters['interm_order_id'] = search_params['central_order_id']
+    if 'project_name' in search_params:
+        search_parameters['project_name'] = search_params['project_name']
     if interm_order_id :
         search_parameters['interm_order_id'] = interm_order_id
 

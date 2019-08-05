@@ -6885,10 +6885,10 @@ def get_orderflow_data(search_params, user, sub_user):
                                                                                                                 'sku__wms_code','alt_sku__wms_code','order__original_order_id','order__status','order__id','order__picklist__status', 'project_name','sku__sku_category','sku__cost_price', 'order__creation_date', 'order__shipment_date')
     temp_data['recordsTotal'] = order_flow_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    outbound_qc,inbound_qc,serial_number ,shipment_status  = '','','','open'
-    po_status,po_cancel_reason,acknowledgement_status = '' ,'','No'
-    sku_damaze_remarks ,central_order_remarks,order_status = '','',''
     for data in  (order_flow_data[start_index:stop_index]):
+        outbound_qc,inbound_qc,serial_number ,shipment_status  = '','','','open'
+        po_status,po_cancel_reason,acknowledgement_status = '' ,'','No'
+        sku_damaze_remarks ,central_order_remarks,order_status = '','',''
         order_date = ' '
         expected_date = ' '
         if data['order__creation_date']:

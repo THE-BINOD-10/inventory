@@ -2154,7 +2154,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Order Flow Report',
+            title: 'CENTRAL ORDER TRACKER',
           }
         })
 

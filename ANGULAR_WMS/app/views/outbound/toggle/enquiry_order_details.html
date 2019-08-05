@@ -7,7 +7,7 @@
       <h4 class="modal-title" id="myLargeModalLabel">Marketing Enquiry Order Details</h4>
     </div>
     <div class="modal-body">
-      <div class="row no-margin" ng-if="!order.loading && order.order_details.extend_date" ng-show="order.permissions.user_type=='central_admin'">
+      <div class="row no-margin" ng-if="!order.loading && order.order_details.extend_date" ng-show="order.permissions.user_type=='central_admin' || order.permissions.user_type=='admin_sub_user'">
         <form name="form" role="form">
           <div class="col-md-4 col-sm-4 col-xs-12">
             <div class="form-group">

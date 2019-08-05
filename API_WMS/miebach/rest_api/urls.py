@@ -71,6 +71,7 @@ urlpatterns = [
     url(r'^get_barcodes_myntra/$', get_barcodes_myntra),
     url(r'^change_warehouse_password/$', change_warehouse_password),
     url(r'^insert_sku_pack/$',insert_sku_pack),
+    url(r'^insert_replenushment/$',insert_replenushment),
     url(r'^get_zone_details/$',get_zone_details),
     url(r'^delete_cluster_sku/$',delete_cluster_sku),
 
@@ -263,6 +264,8 @@ urlpatterns = [
     url(r'^get_style_level_stock/$', get_style_level_stock),
     url(r'^get_combo_sku_codes/$', get_combo_sku_codes),
     url(r'^confirm_combo_allocation/$', confirm_combo_allocation),
+    url(r'^cal_ba_to_sa/$',cal_ba_to_sa),
+    url(r'^ba_to_sa_calculate_now/$',ba_to_sa_calculate_now),
 
     # OutBound
     url(r'^batch_generate_picklist/$', batch_generate_picklist),
@@ -405,6 +408,7 @@ urlpatterns = [
 
     url(r'^remove_customer_profile_image/$', remove_customer_profile_image),
     url(r'^print_pdf_my_orders_swiss/$', print_pdf_my_orders_swiss),
+    url(r'^sm_custom_order_cancel/$', sm_custom_order_cancel),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),
@@ -498,6 +502,7 @@ urlpatterns = [
     url(r'^get_stock_transfer_report/$', get_stock_transfer_report),
     url(r'^get_stock_reconciliation_report/$', get_stock_reconciliation_report),
     url(r'^get_margin_report/$', get_margin_report),
+    url(r'^get_basa_report/$', get_basa_report),
     url(r'^get_current_stock_report/$', get_current_stock_report),
     url(r'^print_current_stock_report/$', print_current_stock_report),
     url(r'^get_inventory_value_report/$', get_inventory_value_report),
@@ -596,6 +601,12 @@ urlpatterns += [
     url(r'^pos_extra_fields/$',pos_extra_fields),
     url(r'^save_grn_fields/$',save_grn_fields),
     url(r'^save_extra_order_options/$',save_extra_order_options),
+    url(r'^get_classfication_settings/$',get_classfication_settings),
+    url(r'^save_update_classification/$',save_update_classification),
+    url(r'^delete_classification/$',delete_classification),
+
+
+
 
 
     # manage users
@@ -626,7 +637,7 @@ urlpatterns += [
     url(r'^search_batches/$', search_batches),
     url(r'^save_order_extra_fields/$', save_order_extra_fields),
     url(r'^get_sku_mrp/$', get_sku_mrp),
-
+    url(r'^get_current_weight/$', get_current_weight),
 
 
     # Retailone

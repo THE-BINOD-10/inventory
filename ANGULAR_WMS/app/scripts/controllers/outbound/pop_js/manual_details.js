@@ -376,7 +376,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     vm.unique_warehouse_skucodes = vm.temp_sku_check.filter( onlyUnique );
     vm.unique_warehouses = vm.temp_warehouses.filter(onlyUnique);
   }
-  function onlyUnique(value, index, self) { 
+  function onlyUnique(value, index, self) {
     return self.indexOf(value) === index;
   }
   vm.cal_wh_qty = function(wh_data, data){
@@ -386,7 +386,8 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
       angular.forEach(data, function(level_data){
         tem_order_qty += Number(level_data.quantity);
         if (level_data.warehouse == wh_data.warehouse) {
-          tem_total_qty = (level_data.wh_open + level_data.intr_open) - (level_data.wh_blocked + level_data.intr_blocked)
+          // tem_total_qty = (level_data.wh_open + level_data.intr_open) - (level_data.wh_blocked + level_data.intr_blocked)
+          tem_total_qty = (level_data.wh_total - level_data.wh_blocked)
           if (tem_total_qty < parseInt(wh_data.quantity)) {
             wh_data.quantity = 0;
             Service.showNoty("Unable to place order from this warehouse, Available Quantity - <b>"+tem_total_qty+"</b>");
@@ -455,6 +456,37 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
       vm.disable_btn = false;
     });
   }
+
+  vm.custom_cancel = function() {
+  event.stopPropagation();
+  vm.service.alert_msg("Do you want to cancel Order").then(function(msg) {
+    vm.cancelPoDisable = true;
+    var sendData = vm.model_data
+    if (msg == "true") {
+      Service.apiCall("sm_custom_order_cancel/", "POST", sendData, true).then(function(data) {
+        if(data.message) {
+          if(data.data == 'Success') {
+            Service.showNoty('Successfully Cancelled the Order');
+            $modalInstance.close();
+            vm.cancelPoDisable = false;
+
+          } else {
+            Service.showNoty(data.data, 'warning');
+            vm.cancelPoDisable = false;
+          }
+        } else {
+          Service.showNoty('Something Went Wrong', 'warning');
+          vm.cancelPoDisable = false;
+        }
+      });
+    } else {
+      vm.cancelPoDisable = false;
+    }
+  });
+}
+
+
+
 };
 
 angular

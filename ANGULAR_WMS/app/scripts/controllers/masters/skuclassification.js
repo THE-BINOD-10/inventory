@@ -1,13 +1,14 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('SkuPackMasterTable',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('SkuClassificationTable',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
-    vm.filters = {'datatable': 'SKUPackMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
+
+    vm.filters = {'datatable': 'SkuClassification', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -27,9 +28,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
 
     vm.dtColumns = [
-        DTColumnBuilder.newColumn('sku').withTitle('Sku Code'),
-        DTColumnBuilder.newColumn('pack_id').withTitle('Pack ID'),
-        DTColumnBuilder.newColumn('pack_quantity').withTitle('Pack Quantity'),
+        DTColumnBuilder.newColumn('Sku Code').withTitle('Sku Code'),
+        DTColumnBuilder.newColumn('classification').withTitle('Classification'),
+        DTColumnBuilder.newColumn('avg_sales_day').withTitle('Avg Sales/Day'),
+        DTColumnBuilder.newColumn('avail_qty').withTitle('SA Available/Qty'),
+        DTColumnBuilder.newColumn('min_units').withTitle('Min Units'),
+        DTColumnBuilder.newColumn('max_units').withTitle('Max Units'),
+
     ];
 
     vm.dtInstance = {};
@@ -45,9 +50,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             $scope.$apply(function() {
                 angular.copy(aData, vm.model_data);
                 vm.update = true;
-                vm.title = "Update SkuPack";
+                vm.title = "Update SkuClassification";
                 vm.message ="";
-                $state.go('app.masters.SkuPackMaster.skupack');
+                $state.go('app.masters.SkuClassification.update');
                 $timeout(function () {
                   $(".customer_status").val(vm.model_data.status);
                 }, 500);
@@ -55,41 +60,32 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         });
     }
 
-  vm.status_data = ["Inactive", "Active"];
-  vm.customer_roles = ["User", "HOD", "Admin"];
-  var empty_data = {sku: "", pack_id: "",pack_quantity: ""};
+  var empty_data = {sku_code: "",classification: "", avg_sales_day: "",min_units: "",max_units :''};
   vm.model_data = {};
 
   vm.base = function() {
 
-    vm.title = "Add SkuPack";
+    vm.title = "Add SkuClassification";
     vm.update = false;
     angular.copy(empty_data, vm.model_data);
-    vm.model_data.status = vm.status_data[1];
-    vm.model_data.role = vm.customer_roles[0];
   }
   vm.base();
 
   vm.close = function() {
 
     angular.copy(empty_data, vm.model_data);
-    $state.go('app.masters.SkuPackMaster');
+    $state.go('app.masters.SkuClassification');
   }
-
 
   vm.add = add;
   function add() {
 
     vm.base();
-    $state.go('app.masters.SkuPackMaster.skupack');
+    $state.go('app.masters.SkuClassification.update');
   }
 
-  vm.skupack_insert = function(url) {
+  vm.skuclassification_insert = function(url) {
     var send = {}
-    //angular.copy(vm.model_data, send)
-    //if(send.login_created) {
-    //    send.create_login = false;
-    //}
     var send = $("form").serializeArray()
     var data = $.param(send);
     vm.service.apiCall(url, 'POST', send, true).then(function(data){
@@ -107,11 +103,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.submit = function(data) {
 
     if (data.$valid) {
-      if ("Add SkuPack" == vm.title) {
-        vm.skupack_insert('insert_sku_pack/');
+      if ("Add SkuClassification" == vm.title) {
+        vm.skuclassification_insert('insert_skuclassification/');
       } else {
         vm.model_data['data-id'] = vm.model_data.DT_RowId;
-        vm.skupack_insert('insert_sku_pack/');
+        vm.skuclassification_insert('insert_skuclassification/');
       }
     }
   }

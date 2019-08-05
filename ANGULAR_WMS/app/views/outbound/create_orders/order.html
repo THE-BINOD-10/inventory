@@ -192,12 +192,12 @@
           </div>
         </div>
       </div>
-      <div class="col-md-4 col-sm-4 col-xs-6" ng-repeat="data in showCase.order_extra_fields track by data" ng-if ="showCase.extra_fields">
+      <div class="col-md-4 col-sm-4 col-xs-6" ng-repeat="data in showCase.order_extra_fields track by $index" ng-if ="showCase.extra_fields">
         <div class="form-group">
           <label class="control-label"><b>{{data}}</b></label>
           <select ng-model="showCase.exta_model[data]" class="form-control" name=order_field_{{data}} ng-if = 'showCase.extra_order_options[data][0] != ""'>
             <option value="">Select  From Below</option>
-            <option ng-repeat="order_option in showCase.extra_order_options[data]" value="{{order_option}}">{{order_option}}</option>
+            <option ng-repeat="order_option in showCase.extra_order_options[data] track by $index" value="{{order_option}}">{{order_option}}</option>
           </select>
           <input name="order_field_{{data}}" ng-model="showCase.exta_model[data]" class="form-control" type="text" ng-if = 'showCase.extra_order_options[data][0] == ""'>
         </div>

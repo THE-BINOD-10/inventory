@@ -599,6 +599,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
+    warehouse_users = {}
     temp_data['draw'] = search_params.get('draw')
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
@@ -617,23 +618,110 @@ def get_adjust_filter_data(search_params, user, sub_user):
         search_parameters['cycle__location__location'] = search_params['location'].upper()
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
+    order_term = search_params.get('order_term', 'asc')
+    order_index = search_params.get('order_index', 0)
     search_parameters['cycle__sku__user'] = user.id
     search_parameters['cycle__sku_id__in'] = sku_master_ids
     if search_parameters:
         adjustments = InventoryAdjustment.objects.filter(**search_parameters)
-    temp_data['recordsTotal'] = len(adjustments)
-    temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    if stop_index:
-        adjustments = adjustments[start_index:stop_index]
-    for data in adjustments:
-        quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
-        temp_data['aaData'].append(OrderedDict(( ('SKU Code', data.cycle.sku.sku_code),
-                                                 ('Location', data.cycle.location.location),
-                                                 ('Quantity', quantity),
-                                                 ('Pallet Code', data.pallet_detail.pallet_code if data.pallet_detail else ''),
-                                                 ('Date', str(data.creation_date).split('+')[0]),
-                                                 ('Remarks', data.reason)
-                                              )))
+    grouping_data = OrderedDict()
+    industry_type = user.userprofile.industry_type
+    user_type = user.userprofile.user_type
+    if industry_type == 'FMCG' and user_type == 'marketplace_user':
+        lis = ['cycle__sku__sku_code', 'cycle__sku__sku_desc', 'stock__batch_detail__weight',
+               'stock__batch_detail__mrp', 'cycle__sku__sku_code', 'cycle__sku__sku_code', 'cycle__sku__sku_code',
+               'cycle__sku__sku_brand', 'cycle__sku__sku_category', 'cycle__sku__sub_category',
+               'cycle__sku__sku_code', 'cycle__location__location',
+               'adjusted_quantity', 'cycle__sku__sku_code', 'cycle__sku__sku_code', 'reason', 'cycle__sku__sku_code',
+               'cycle__sku__sku_code']
+        order_data = lis[order_index]
+        if order_term == 'desc':
+            order_data = '-%s' % order_data
+        adjustments = adjustments.only('id', 'creation_date', 'stock__batch_detail__mrp', 'stock__batch_detail__buy_price',
+                                       'stock__batch_detail__weight', 'stock__batch_detail__tax_percent',
+                                       'cycle__location__location', 'reason').order_by(order_data)
+        for adjustment in adjustments:
+            mrp = 0
+            weight = ''
+            amount = 0
+            price = 0
+            if adjustment.stock and adjustment.stock.batch_detail:
+                batch_detail = adjustment.stock.batch_detail
+                mrp = batch_detail.mrp
+                weight = batch_detail.weight
+                price = batch_detail.buy_price
+                amount = adjustment.adjusted_quantity * batch_detail.buy_price
+                if batch_detail.tax_percent:
+                    amount = amount + ((amount/100)*batch_detail.tax_percent)
+            creation_date = adjustment.creation_date.strftime('%Y-%m-%d')
+            group_key = (adjustment.cycle.sku.sku_code, mrp, weight, adjustment.cycle.location.location,
+                         adjustment.reason, creation_date)
+            grouping_data.setdefault(group_key, {'mrp': mrp, 'weight': weight,
+                                                 'sku': adjustment.cycle.sku,
+                                                 'location': adjustment.cycle.location.location,
+                                                 'reason': adjustment.reason,
+                                                 'creation_date': creation_date,
+                                                 'quantity': 0,
+                                                 'prices_list': [], 'amount': 0,
+                                                 'cycle': adjustment.cycle})
+            grouping_data[group_key]['quantity'] += adjustment.adjusted_quantity
+            grouping_data[group_key]['amount'] += amount
+            grouping_data[group_key]['prices_list'].append(price)
+        adjustments = grouping_data.values()
+        temp_data['recordsTotal'] = len(adjustments)
+        temp_data['recordsFiltered'] = temp_data['recordsTotal']
+        if stop_index:
+            adjustments = adjustments[start_index:stop_index]
+        for data in adjustments:
+            sku = data['sku']
+            attributes_data = dict(sku.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
+            mrp = data['mrp']
+            weight = data['weight']
+            amount = data['amount']
+            qty = data['quantity']
+            updated_user_name = user.username
+            avg_cost = 0
+            version_obj = Version.objects.get_for_object(data['cycle'])
+            if version_obj.exists():
+                updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
+            if amount and qty:
+                avg_cost = amount/qty
+            temp_data['aaData'].append(OrderedDict(( ('SKU Code', sku.sku_code),
+                                                     ('Name', sku.sku_desc),
+                                                     ('Weight', weight),
+                                                     ('MRP', mrp),
+                                                     ('Manufacturer',attributes_data.get('Manufacturer','')),
+                                                     ('Vendor', attributes_data.get('Vendor','')),
+                                                     ('Sheet', attributes_data.get('Sheet','')),
+                                                     ('Brand', sku.sku_brand),
+                                                     ('Category', sku.sku_category),
+                                                     ('Sub Category', sku.sub_category),
+                                                     ('Sub Category type', attributes_data.get('Sub Category type','')),
+                                                     ('Location', data['location']),
+                                                     ('Quantity', data['quantity']),
+                                                     ('Average Cost', avg_cost),
+                                                     ('Value', amount),
+                                                     ('Remarks', data['reason']),
+                                                     ('User', updated_user_name),
+                                                     ('Date', data['creation_date']),
+
+                                                  )))
+    else:
+        temp_data['recordsTotal'] = len(adjustments)
+        temp_data['recordsFiltered'] = temp_data['recordsTotal']
+        if stop_index:
+            adjustments = adjustments[start_index:stop_index]
+        for data in adjustments:
+            quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
+            temp_data['aaData'].append(OrderedDict(( ('SKU Code', data.cycle.sku.sku_code),
+                                                     ('Location', data.cycle.location.location),
+                                                     ('Quantity', quantity),
+                                                     ('Pallet Code', data.pallet_detail.pallet_code if data.pallet_detail else ''),
+                                                     ('Date', str(data.creation_date).split('+')[0]),
+                                                     ('Remarks', data.reason)
+                                                  )))
+
+
     return temp_data
 
 
@@ -642,6 +730,8 @@ def get_aging_filter_data(search_params, user, sub_user):
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
+    warehouse_users = {}
+    central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
     all_data = OrderedDict()
     temp_data['draw'] = search_params.get('draw')
     if 'from_date' in search_params:
@@ -659,16 +749,27 @@ def get_aging_filter_data(search_params, user, sub_user):
         search_parameters['sku__sku_category'] = search_params['sku_category']
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-    search_parameters['sku__user'] = user.id
+    if user.username == 'isprava_admin':
+        if 'sister_warehouse' in search_params:
+            sister_warehouse_name = search_params['sister_warehouse']
+            user = User.objects.get(username=sister_warehouse_name)
+            warehouses = UserGroups.objects.filter(user_id=user.id)
+        else:
+            warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+        warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
+        sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
+        sku_master_ids = sku_master.values_list('id', flat=True)
+    else:
+        search_parameters['sku__user'] = user.id
     search_parameters['quantity__gt'] = 0
     search_parameters['sku_id__in'] = sku_master_ids
     filtered = StockDetail.objects.filter(**search_parameters). \
-        values('receipt_date', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'location__location'). \
+        values('receipt_date', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'location__location', 'sku__user'). \
         annotate(total=Sum('quantity'))
 
     for stock in filtered:
         cond = (stock['sku__sku_code'], stock['sku__sku_desc'], stock['sku__sku_category'],
-                (datetime.datetime.now().date() - stock['receipt_date'].date()).days, stock['location__location'])
+                (datetime.datetime.now().date() - stock['receipt_date'].date()).days, stock['location__location'], stock['sku__user'])
         all_data.setdefault(cond, 0)
         all_data[cond] += stock['total']
     temp_data['recordsTotal'] = len(all_data)
@@ -680,7 +781,7 @@ def get_aging_filter_data(search_params, user, sub_user):
     for data in all_data:
         temp_data['aaData'].append(
             OrderedDict((('SKU Code', data[0]), ('SKU Description', data[1]), ('SKU Category', data[2]),
-                         ('Location', data[4]), ('Quantity', temp[data]), ('As on Date(Days)', data[3]))))
+                         ('Location', data[4]), ('Quantity', temp[data]), ('As on Date(Days)', data[3]), ('Warehouse', warehouse_users.get(data[5])))))
     return temp_data
 
 
@@ -698,7 +799,9 @@ def get_inventory_aging_filter(request, user=''):
 def sku_category_list(request, user=''):
     categories = list(SKUMaster.objects.exclude(sku_category='').filter(user=user.id).values_list('sku_category',
                                                                                                   flat=True).distinct())
-    return HttpResponse(json.dumps({'categories': categories}))
+    sister_warehouses1 = list(
+                UserGroups.objects.filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',flat=True).distinct())
+    return HttpResponse(json.dumps({'categories': categories, 'sister_warehouses': sister_warehouses1}))
 
 
 @csrf_exempt
@@ -1500,7 +1603,17 @@ def print_purchase_order_form(request, user=''):
         address = '\n'.join(address.split(','))
         if open_po.ship_to:
             ship_to_address = open_po.ship_to
-            company_address = user.userprofile.address
+            if user.userprofile.wh_address:
+                company_address = user.userprofile.wh_address
+                if user.username in MILKBASKET_USERS:
+                    if user.userprofile.user.email:
+                        company_address = ("%s, Email:%s") % (company_address, user.userprofile.user.email)
+                    if user.userprofile.phone_number:
+                        company_address = ("%s, Phone:%s") % (company_address, user.userprofile.phone_number)
+                    if user.userprofile.gst_number:
+                        company_address = ("%s, GSTINo:%s") % (company_address, user.userprofile.gst_number)
+            else:
+                company_address = user.userprofile.address
         else:
             ship_to_address, company_address = get_purchase_company_address(user.userprofile)
         ship_to_address = '\n'.join(ship_to_address.split(','))
@@ -1697,6 +1810,14 @@ def get_margin_report(request, user=''):
     temp_data = get_margin_report_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_basa_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_basa_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
 
 @get_admin_user
 def print_stock_reconciliation_report(request, user=''):
@@ -1710,11 +1831,23 @@ def print_stock_reconciliation_report(request, user=''):
     return HttpResponse(html_data)
 
 
+@get_admin_user
 def print_margin_report(request, user=''):
     html_data = {}
     search_parameters = {}
     headers, search_params, filter_params = get_search_params(request)
     report_data = get_margin_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+@get_admin_user
+def print_basa_report(request, user=''):
+    html_data = {}
+    search_parameters = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_basa_report_data(search_params, user, request.user)
     report_data = report_data['aaData']
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)

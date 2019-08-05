@@ -378,7 +378,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         customer_data = OrderMapping.objects.filter(mapping_id=supplier.id, mapping_type='PO')
         customer_name = ''
         if customer_data:
-            customer_name = customer_data[0].order.customer_name
+            customer_name = ''
         else:
             if supplier_parent:
                 customer_name = supplier_parent.username
@@ -1066,6 +1066,7 @@ def switches(request, user=''):
                        'allow_rejected_serials':'allow_rejected_serials',
                        'update_mrp_on_grn': 'update_mrp_on_grn',
                        'mandate_sku_supplier':'mandate_sku_supplier',
+                       'weight_integration_name': 'weight_integration_name',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -1077,6 +1078,15 @@ def switches(request, user=''):
             if user_profile and selection:
                 setattr(user_profile[0], 'prefix', selection)
                 user_profile[0].save()
+        elif key == 'weight_integration_name':
+            data = MiscDetail.objects.filter(misc_type=toggle_field, user=request.user.id)
+            if not data:
+                misc_detail = MiscDetail(user=request.user.id, misc_type=toggle_field, misc_value=selection,
+                                         creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
+                misc_detail.save()
+            else:
+                setattr(data[0], 'misc_value', selection)
+                data[0].save()
         else:
             if toggle_field == 'tax_details':
                 tax_name = eval(selection)
@@ -1674,7 +1684,9 @@ def add_po(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def insert_inventory_adjust(request, user=''):
+    reversion.set_user(request.user)
     data = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
     if not data:
         cycle_id = 1
@@ -1692,6 +1704,7 @@ def insert_inventory_adjust(request, user=''):
     reduce_stock = request.GET.get('inv_shrinkage', 'false')
     seller_master_id = ''
     receipt_number = get_stock_receipt_number(user)
+    stock_stats_objs = []
     if seller_id:
         seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
         if not seller_master:
@@ -1701,9 +1714,11 @@ def insert_inventory_adjust(request, user=''):
         status = reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,
                                        seller_master_id=seller_master_id, weight=weight)
     else:
-        status = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,
+        status, stock_stats_objs = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet_code, batch_no, mrp,
                                        seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
                                        receipt_type='inventory-adjustment')
+    if stock_stats_objs:
+        SKUDetailStats.objects.bulk_create(stock_stats_objs)
     update_filled_capacity([loc], user.id)
     check_and_update_stock([wmscode], user)
 
@@ -3277,6 +3292,9 @@ def confirm_grn(request, confirm_returns='', user=''):
         log.info("Check Generating GRN failed for params " + str(myDict) + " and error statement is " + str(e))
         return HttpResponse("Generate GRN Failed")
 
+# def confirm_qc_grn(request, user=''):
+
+
 
 def generate_grn_pagination(sku_list):
     # header 220
@@ -4633,8 +4651,63 @@ def confirm_quality_check(request, user=''):
         save_qc_serials('accepted', myDict.get("accepted", ''), user.id)
     if myDict.get("rejected", ''):
         save_qc_serials('rejected', myDict.get("rejected", ''), user.id)
+    try:
+        misc_detail = get_misc_value('quality_check', user.id)
+        if misc_detail == 'false':
+            profile = UserProfile.objects.get(user=user.id)
+            seller_name = user.username
+            seller_address = user.userprofile.address
+            bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
+            acc_qty = myDict['accepted_quantity']
+            rej_qty = myDict['rejected_quantity']
+            datas = json.loads(myDict['headers'][0])
+            po_number_trim = datas['Purchase Order ID']
+            po_num = po_number_trim.split("_")
+            if po_num[1]:
+                po_creation_date_full = PurchaseOrder.objects.filter(order_id = po_num[1], open_po__sku__user = user.id)
+                po_creation_date = po_creation_date_full[0].creation_date.strftime('%d-%m-%Y')
 
-    return HttpResponse('Updated Successfully')
+            data = {}
+            num = len(myDict['wms_code'])
+            total_amount = 0
+            overall_discount = 0
+            discount = 0
+            for i in range(num):
+                seller_po_obj = SellerPOSummary.objects.filter(purchase_order_id= po_creation_date_full[i].id , purchase_order__open_po__sku__user = 3)
+                if seller_po_obj.exists():
+                     discount = seller_po_obj[0].discount_percent
+                sku_particulars = SKUMaster.objects.filter(sku_code=myDict['wms_code'][i], user=user.id)[0]
+                total_amt = float(po_creation_date_full[i].open_po.price) * float(acc_qty[i])
+                overall_discount = float(overall_discount) + float(discount)
+                total_amount = total_amount + total_amt
+                data[i] = {'accepted_quantity': acc_qty[i],
+                                    'rejected_quantity': rej_qty[i],
+                                    'wms_code':myDict['wms_code'][i],
+                                    'particulars':sku_particulars.sku_desc,
+                                    'rate':po_creation_date_full[i].open_po.price,
+                                    'price':float(po_creation_date_full[i].open_po.price) * float(acc_qty[i])}
+            net_pay_dis = overall_discount * total_amount/100
+            report_data_dict = {'data':data,
+                                'company_name': profile.company_name,
+                                'company_address': profile.address,
+                                'seller_name': seller_name,
+                                'po_creation_date':po_creation_date,
+                                'seller_address': seller_address,
+                                'bill_date': bill_date,
+                                'grn_no':datas['Purchase Order ID'],
+                                'supplier_id':datas['Supplier ID'],
+                                'supplier_name':datas['Supplier Name'],
+                                'total_qty': datas['Total Quantity'],
+                                'total_amount': total_amount,
+                                'overall_discount':overall_discount,
+                                'net_pay':total_amount-net_pay_dis,
+            }
+            return render(request, 'templates/toggle/qc_putaway_toggle.html', report_data_dict)
+        else:
+            return HttpResponse('Updated Successfully')
+    except Exception as e:
+        import traceback
+        return HttpResponse("Generate GRN Failed")
 
 
 @csrf_exempt
@@ -5194,7 +5267,17 @@ def confirm_add_po(request, sales_data='', user=''):
         address = '\n'.join(address.split(','))
         if purchase_order.ship_to:
             ship_to_address = purchase_order.ship_to
-            company_address = user.userprofile.address
+            if user.userprofile.wh_address:
+                company_address = user.userprofile.wh_address
+                if user.username in MILKBASKET_USERS:
+                    if user.userprofile.user.email:
+                        company_address = ("%s, Email:%s") % (company_address, user.userprofile.user.email)
+                    if user.userprofile.phone_number:
+                        company_address = ("%s, Phone:%s") % (company_address, user.userprofile.phone_number)
+                    if user.userprofile.gst_number:
+                        company_address = ("%s, GSTINo:%s") % (company_address, user.userprofile.gst_number)
+            else:
+                company_address = user.userprofile.address
         else:
             ship_to_address, company_address = get_purchase_company_address(user.userprofile)
         wh_telephone = user.userprofile.wh_phone_number
@@ -5257,7 +5340,7 @@ def confirm_add_po(request, sales_data='', user=''):
         if get_misc_value('raise_po', user.id) == 'true':
             data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email,
                             'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name,
-                            'billing_address': profile.address, 'shipping_address': profile.wh_address,
+                            'billing_address': profile.address, 'shipping_address': ship_to_address,
                             'table_headers': table_headers}
             if get_misc_value('allow_secondary_emails', user.id) == 'true':
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
@@ -5745,6 +5828,7 @@ def returns_putaway_data(request, user=''):
                     stock_dict['batch_detail_id'] = batch_detail[0].id
                 new_stock = StockDetail(**stock_dict)
                 new_stock.save()
+                stock_data = new_stock
                 stock_id = new_stock.id
                 if seller_id:
                     seller_stock_dict = {'seller_id': seller_id, 'stock_id': stock_id, 'quantity': quantity,
@@ -8490,8 +8574,10 @@ def get_debit_note_data(rtv_number, user):
         data_dict_item['sku_desc'] = get_po.sku.sku_desc
         data_dict_item['hsn_code'] = str(get_po.sku.hsn_code)
         data_dict_item['order_qty'] = obj.quantity
-        #data_dict_item['price'] = get_po.price
-        data_dict_item['price'] = 0
+        if user.username in MILKBASKET_USERS:
+            data_dict_item['price'] = 0
+        else:
+            data_dict_item['price'] = get_po.price
         data_dict_item['measurement_unit'] = get_po.sku.measurement_type
         data_dict_item['discount'] = get_po.sku.discount_percentage
         data_dict['invoice_num'] = obj.seller_po_summary.invoice_number

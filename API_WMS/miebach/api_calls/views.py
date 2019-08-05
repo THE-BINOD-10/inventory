@@ -22,6 +22,7 @@ from rest_api.views.utils import *
 
 today = datetime.datetime.now().strftime("%Y%m%d")
 log = init_logger('logs/integrations_' + today + '.log')
+log_err = init_logger('logs/integration_errors.log')
 storehippo_log = init_logger('logs/storehippo_' + today + '.log')
 create_order_storehippo_log = init_logger('logs/storehippo_create_order_log_' + today + '.log')
 create_update_sku_storehippo_log = init_logger('logs/storehippo_create_update_log_' + today + '.log')

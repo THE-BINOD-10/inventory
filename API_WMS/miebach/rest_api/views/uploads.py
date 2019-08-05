@@ -692,6 +692,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             elif key in ['vat', 'cgst_amt', 'sgst_amt', 'igst_amt', 'utgst_amt']:
                 order_mapping, order_summary_dict = myntra_order_tax_calc(key, value, order_mapping, order_summary_dict,
                                                                           row_idx, reader, file_type)
+
             elif key == 'address':
                 if isinstance(value, (list)):
                     cell_data = ''
@@ -702,6 +703,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                             cell_data = str(cell_data) + ", " + str(get_cell_data(row_idx, val, reader, file_type))
                 else:
                     order_data[key] = str(get_cell_data(row_idx, value, reader, file_type))[:256]
+
             elif key == 'sku_code':
                 sku_code = get_cell_data(row_idx, value, reader, file_type)
             elif key == 'shipment_date':
@@ -733,6 +735,10 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 discount = get_cell_data(row_idx, value, reader, file_type)
                 if discount:
                     order_summary_dict['discount'] = get_cell_data(row_idx, value, reader, file_type)
+            elif key == 'ship_to':
+                consignee = get_cell_data(row_idx, value, reader, file_type)
+                if consignee:
+                    order_summary_dict['consignee'] = get_cell_data(row_idx, value, reader, file_type)
             elif key == 'quantity_count':
                 if isinstance(value, (list)):
                     try:
@@ -839,7 +845,6 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
         if order_data.has_key('telephone'):
             if isinstance(order_data['telephone'], float):
                 order_data['telephone'] = str(int(order_data['telephone']))
-
         log.info("Order Saving Started %s" % (datetime.datetime.now()))
         sku_ids, order_obj_list, order_detail = check_and_save_order(cell_data, order_data, order_mapping, user_profile, seller_order_dict,
                                        order_summary_dict, sku_ids,
@@ -2781,6 +2786,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     if show_apmc_tax:
         table_headers.insert(table_headers.index('UTGST (%)'), 'APMC (%)')
     po_data = []
+    ids_dict = {}
     send_mail_data = OrderedDict()
     for final_dict in data_list:
         total_qty = 0
@@ -2834,6 +2840,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             order_data['delivery_date'] = final_dict['po_delivery_date']
         data['po_date'] = final_dict['po_date']
         data['ship_to'] = final_dict['ship_to']
+        order_data['ship_to'] = final_dict['ship_to']
         data['creation_date'] = creation_date
         seller_id = ''
         if final_dict.get('seller', ''):
@@ -2846,7 +2853,6 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             order_ids[group_key] = po_id
         else:
             po_id = order_ids[group_key]
-        ids_dict = {}
         order_data['status'] = 0
         data1 = OpenPO(**order_data)
         data1.save()
@@ -2928,7 +2934,17 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             address = '\n'.join(address.split(','))
             if purchase_order.ship_to:
                 ship_to_address = purchase_order.ship_to
-                company_address = user.userprofile.address
+                if user.userprofile.wh_address:
+                    company_address = user.userprofile.wh_address
+                    if user.username in MILKBASKET_USERS:
+                        if user.userprofile.user.email:
+                            company_address = ("%s, Email:%s") % (company_address, user.userprofile.user.email)
+                        if user.userprofile.phone_number:
+                            company_address = ("%s, Phone:%s") % (company_address, user.userprofile.phone_number)
+                        if user.userprofile.gst_number:
+                            company_address = ("%s, GSTINo:%s") % (company_address, user.userprofile.gst_number)
+                else:
+                    company_address = user.userprofile.address
             else:
                 ship_to_address, company_address = get_purchase_company_address(user.userprofile)
             wh_telephone = user.userprofile.wh_phone_number
@@ -2943,6 +2959,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                 vendor_telephone = purchase_order.vendor.phone_number
             telephone = purchase_order.supplier.phone_number
             name = purchase_order.supplier.name
+            supplier = purchase_order.supplier_id
             order_id = ids_dict[supplier]
             supplier_email = purchase_order.supplier.email_id
             secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
@@ -2992,7 +3009,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             if get_misc_value('raise_po', user.id) == 'true':
                 data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email,
                                 'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name,
-                                'billing_address': profile.address, 'shipping_address': profile.wh_address,
+                                'billing_address': profile.address, 'shipping_address': ship_to_address,
                                 'table_headers': table_headers}
                 if get_misc_value('allow_secondary_emails', user.id) == 'true':
                     write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
@@ -3100,7 +3117,9 @@ def purchase_upload_mail(request, data_to_send, user):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def purchase_order_upload(request, user=''):
+    reversion.set_user(request.user)
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
@@ -3603,6 +3622,7 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
     if not set(['wms_code', 'location', 'quantity', 'reason']).issubset(excel_mapping.keys()):
         return 'Invalid File'
     for row_idx in range(1, no_of_rows):
+        print row_idx
         data_dict = {}
         for key, value in excel_mapping.iteritems():
             cell_data = get_cell_data(row_idx, value, reader, file_type)
@@ -3610,7 +3630,7 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
                 cell_data = str(xcode(cell_data))
-                sku_master = SKUMaster.objects.filter(wms_code=cell_data, user=user.id)
+                sku_master = SKUMaster.objects.filter(user=user.id, sku_code=cell_data)
                 if not sku_master:
                     index_status.setdefault(row_idx, set()).add('Invalid WMS Code')
                 else:
@@ -3696,15 +3716,18 @@ def inventory_adjust_upload(request, user=''):
 
     if status != 'Success':
         return HttpResponse(status)
+
     sku_codes = []
-    cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+    cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
+    #CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
     if not cycle_count:
         cycle_id = 1
     else:
-        cycle_id = cycle_count[0].cycle + 1
+        cycle_id = cycle_count + 1
 
     receipt_number = get_stock_receipt_number(user)
     seller_receipt_dict = {}
+    stock_stats_objs = []
     for final_dict in data_list:
         # location_data = ''
         wms_code = final_dict['sku_master'].wms_code
@@ -3725,9 +3748,11 @@ def inventory_adjust_upload(request, user=''):
         else:
             receipt_number = get_stock_receipt_number(user)
             seller_receipt_dict[str(seller_master_id)] = receipt_number
-        adjust_location_stock(cycle_id, wms_code, loc, quantity, reason, user, batch_no=batch_no, mrp=mrp,
+        adj_status, stock_stats_objs = adjust_location_stock(cycle_id, wms_code, loc, quantity, reason, user, stock_stats_objs, batch_no=batch_no, mrp=mrp,
                               seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
                               receipt_type='inventory-adjustment')
+    if stock_stats_objs:
+        SKUDetailStats.objects.bulk_create(stock_stats_objs)
     check_and_update_stock(sku_codes, user)
     return HttpResponse('Success')
 
@@ -5781,31 +5806,15 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                     else:
                         sister_grouping_key = '%s:%s' % (str(wh_id), str(sku_id))
                         sister_user_sku_map[sister_grouping_key] = map_sku_id
-        """
-        if order_mapping.has_key('location'):
-            try:
-                location = str(int(get_cell_data(row_idx, order_mapping['location'], reader, file_type)))
-            except:
-                location = str(get_cell_data(row_idx, order_mapping['location'], reader, file_type))
-            warehouse_admin = get_warehouse_admin(user)
-            all_user_groups = UserGroups.objects.filter(admin_user_id=warehouse_admin.id)
-            if not all_user_groups:
-                index_status.setdefault(count, set()).add('Invalid Location')
+        if order_mapping.has_key('address1'):
+            address1 = str(get_cell_data(row_idx, order_mapping['address1'], reader, file_type))
+            if len(address1) > 255 :
+                index_status.setdefault(count, set()).add('Address1 exceeding the 255 characters')
+            address2 = str(get_cell_data(row_idx, order_mapping['address2'], reader, file_type))
+            if len(address2) > 255 :
+                index_status.setdefault(count, set()).add('Address2 exceeding the 255 characters')
 
-        if order_mapping.has_key('original_order_id'):
-            try:
-                original_order_id = str(int(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type)))
-            except:
-                original_order_id = str(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type))
-            order_fields_obj = OrderFields.objects.filter(user=user.id, name='original_order_id',
-                value=original_order_id, order_type = 'intermediate_order')
-            if order_fields_obj:
-                index_status.setdefault(count, set()).add('Order ID already present')
-            else:
-                order_detail_obj = OrderDetail.objects.filter(user=user.id, original_order_id=original_order_id)
-                if order_detail_obj:
-                    index_status.setdefault(count, set()).add('Order ID already present')
-        """
+
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
         file_path = rewrite_csv_file(f_name, index_status, reader)

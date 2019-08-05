@@ -99,10 +99,10 @@ def integration_get_inventory(sku_ids, user):
     data = {"SKUIds": []}
     #sku_ids = ['AA-BATTERY', 'AAA-BATTERY', 'AC1SMK']
     for sku in sku_ids:
-	temp = {"SKUId": sku,
+        temp = {"SKUId": sku,
                 #"warehouseId": user.username
                }
-	data["SKUIds"].append(temp)
+        data["SKUIds"].append(temp)
     return data
 
 

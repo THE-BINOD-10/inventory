@@ -12880,8 +12880,8 @@ def move_enquiry_to_order(request, user=''):
             em_qs.delete()  # Removing item from Enquiry Table after converting it to Order
     return HttpResponse(message)
 
-
-def extend_enquiry_date(request):
+@get_admin_user
+def extend_enquiry_date(request, user = ''):
     message = 'Success'
     extended_date = request.GET.get('extended_date', '')
     enquiry_id = request.GET.get('order_id', '')
@@ -12900,7 +12900,16 @@ def extend_enquiry_date(request):
         cm_id = cum_obj[0].customer_id
     try:
         enq_qs = EnquiryMaster.objects.filter(enquiry_id=enquiry_id, customer_id=cm_id)
+        date_ext_days = int(get_misc_value('auto_raise_stock_transfer', user.id))*2
         if enq_qs:
+            ext_dt = datetime.datetime.strptime(extended_date, '%m/%d/%Y')
+            ct_dtt = enq_qs[0].creation_date
+            ct_dt = ct_dtt.replace(tzinfo=None)
+            dt_days = ext_dt - ct_dt
+            days = dt_days.days
+            username = request.user.username
+            if days > date_ext_days and username.lower() != 'sm_admin':
+                return HttpResponse('Admin')
             enq_qs[0].extend_status = extend_status
             enq_qs[0].extend_date = datetime.datetime.strptime(extended_date, '%m/%d/%Y')
             enq_qs[0].save()
@@ -15742,6 +15751,8 @@ def sm_cancel_distributor_order(request):
         log.info('Order Cancellation failed for user %s and params are %s and error statement is %s' % (
             str(request.user.username), str(request.GET.dict()), str(e)))
     return HttpResponse(message)
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -15758,3 +15769,33 @@ def get_order_extra_options(request, user=''):
         log.info('Exception raised for getting extra order options for  %s and error statement is %s'
                  % (str(user.username), str(e)))
     return HttpResponse(json.dumps(options_dict), content_type='application/json')
+
+
+@get_admin_user
+@csrf_exempt
+@login_required
+def sm_custom_order_cancel(request, user=''):
+    message = 'Success'
+    enq_id = request.POST.get('enquiry_id')
+    usr_id = request.POST.get('user_id')
+    try:
+        if enq_id:
+            manual_enquiry_object = ManualEnquiry.objects.filter(enquiry_id=enq_id,
+                                                              user_id=usr_id)
+            manual_enquiry_details_object = ManualEnquiryDetails.objects.filter(enquiry_id=enq_id,
+                                                              remarks_user_id=usr_id)
+            order_status = manual_enquiry_object[0].status
+            if user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and order_status.lower() != 'order_placed':
+                manual_enquiry_object[0].delete()
+                manual_enquiry_details_object[0].delete()
+            else :
+                message = 'Placed Orders Can Not Be Deleted '
+        else :
+            message = 'Order Not Available '
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Order Cancellation failed for user %s and params are %s and error statement is %s' % (
+            str(request.user.username), str(request.GET.dict()), str(e)))
+    return HttpResponse(message)

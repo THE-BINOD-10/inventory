@@ -15,6 +15,7 @@
     </div>
     <div class="modal-footer">
       <button type="button" class="btn pop pop-green col-md-3 col-sm-3 col-xs-12 pull-right" style="margin-left:0px;" ng-disabled="pop.process" ng-click="order.ok()">Close</button>
+      <button type="button" class="btn btn-warning pop pull-left"  ng-disabled="pop.process" ng-if = "order.permissions.user_type=='central_admin'" ng-click="order.custom_cancel()">Cancel</button>
     </div>
   </div>
 </div>

@@ -335,6 +335,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     status_dict = eval(status)
     filter_params = {}
+    admin_user = get_admin(user)
     if isinstance(status_dict, dict):
         status = status_dict['status']
         if status_dict.get('market_place', ''):
@@ -362,7 +363,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
         master_data = all_picks.filter(
             Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).filter(
             Q(picklist_number__icontains=search_term) | Q(remarks__icontains=search_term) | Q(
-                order__marketplace__icontains=search_term) | Q(order__customer_name__icontains=search_term))
+                order__marketplace__icontains=search_term) | Q(order__customer_name__icontains=search_term)| Q(order__intermediateorders__project_name__icontains=search_term))
 
     elif order_term:
         # col_num = col_num - 1
@@ -398,6 +399,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     for data in master_data[start_index:stop_index]:
         prepare_str = ''
         shipment_date = ''
+        project_name = ''
         create_date_value, order_marketplace, order_customer_name, picklist_id, remarks = '', [], [], '', ''
         picklist_obj = all_picks.filter(picklist_number=data['picklist_number'])
         reserved_quantity_sum_value = picklist_obj.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
@@ -428,6 +430,10 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
                         prepare_str = user_profile.username
             if not prepare_str and picklist_obj[0].order:
                 order_id = picklist_obj[0].order.original_order_id
+                if admin_user.username == 'isprava_admin':
+                    project_details = IntermediateOrders.objects.filter(order__order_id = picklist_obj[0].order.order_id, user_id = admin_user.id).values('project_name')
+                    if project_details.exists():
+                        project_name = project_details[0]['project_name']
                 if order_id:
                     order_fields = OrderFields.objects.filter(original_order_id=order_id, name="original_order_id")
                     if order_fields:
@@ -457,13 +463,12 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
                 time_slot = get_shipment_time(first_ord_obj[0], user)
                 if time_slot:
                     shipment_date = shipment_date + ', ' + time_slot
-
         result_data = OrderedDict((('DT_RowAttr', {'data-id': picklist_id}), ('picklist_note', remarks),
                                    ('reserved_quantity', reserved_quantity_sum_value),
                                    ('picked_quantity', picked_quantity_sum_value),
                                    ('customer', prepare_str), ('shipment_date', shipment_date),
                                    ('date', create_date_value), ('id', count), ('DT_RowClass', 'results'),
-                                   ('od_id', od_id), ('od_order_id', od_order_id)))
+                                   ('od_id', od_id), ('od_order_id', od_order_id), ('project_name', project_name)))
         dat = 'picklist_id'
         count += 1
         if status == 'batch_picked':
@@ -4612,6 +4617,7 @@ def create_order_from_intermediate_order(request, user):
     message = 'Success'
     first = True
     inter_obj_data = {}
+    host_details = request.META.get('wsgi.url_scheme')+'://'+request.META.get('HTTP_HOST')
     dispatch_qc_check = get_misc_value('dispatch_qc_check', user.id)
     central_order_reassigning =  get_misc_value('central_order_reassigning', user.id) #for 72networks
     warehouses = json.loads(request.POST.get('warehouse'))
@@ -4768,8 +4774,9 @@ def create_order_from_intermediate_order(request, user):
                         message = check_stocks(order_sku, wh_usr_obj, request, order_objs)
 
                     if first:
-                        inv_amt = (interm_obj.unit_price * interm_obj.quantity) + interm_obj.tax
-                        items.append([interm_obj.sku.sku_desc, interm_obj.quantity, inv_amt])
+                        # inv_amt = (interm_obj.unit_price * interm_obj.quantity) + interm_obj.tax
+                        inv_amt = 0
+                        items.append([host_details+interm_obj.sku.image_url, interm_obj.interm_order_id,interm_obj.sku.sku_code, interm_obj.sku.sku_desc,interm_obj.quantity, inv_amt, interm_obj.project_name])
                         inter_obj_data = {'interm_order_id': interm_obj.interm_order_id,
                                           'unit_price': interm_obj.unit_price,
                                           'tax': interm_obj.tax,
@@ -4809,7 +4816,7 @@ def create_order_from_intermediate_order(request, user):
                         mail_ids = [request.user.email]
                         interm_qs = interm_qs[0]
                         user_mail_id = [interm_qs.customer_user.email]
-                        headers = ['Product Details', 'Ordered Quantity', 'Total']
+                        headers = ['Image', 'Order number','isprava code','Product Details', 'Ordered Quantity', 'Total','Project name']
                         mail_order_id = order_dict['order_code'] + str(order_dict['order_id']) + ' ('\
                                         + str(interm_qs.order_id) + ')'
                         data_dict = {'customer_name': interm_qs.customer_user.username, 'items': items,
@@ -6634,9 +6641,11 @@ def get_sku_categories_list(request, user=''):
     stages_list = list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
     sub_categories = list(sku_master.exclude(sub_category='').values_list('sub_category',
                                                                                                       flat=True).distinct())
+    warehouse_groups = list(
+                UserGroups.objects.filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',flat=True).distinct())
     return HttpResponse(
         json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list,
-                    'sub_categories': sub_categories, 'colors': colors}))
+                    'sub_categories': sub_categories, 'colors': colors, 'warehouse_groups': warehouse_groups}))
 
 
 def fetch_unit_price_based_ranges(dest_loc_id, level, admin_id, wms_code):
@@ -9727,7 +9736,7 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
             temp_data['recordsTotal'] = len(orders)
             temp_data['recordsFiltered'] = temp_data['recordsTotal']
             picklist = Picklist.objects.filter(**pick_dict)
-            real_orders = list(orders.values('order_id', 'order_code', 'original_order_id', 'intermediateorders__interm_order_id')\
+            real_orders = list(orders.values('order_id', 'order_code', 'original_order_id', 'intermediateorders__interm_order_id', 'intermediateorders__project_name')\
                                          .distinct()\
                                          .annotate(total_quantity=Sum('quantity'), total_inv_amt=Sum('invoice_amount'),
                                                   date_only=Cast('creation_date', DateField()),
@@ -9775,7 +9784,7 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
                 temp_data['aaData'].append(OrderedDict(
                     (('Order ID', record['order_id']),('Ordered Qty', record['total_quantity']),
                     ('Delivered Qty',record['picked_quantity']), ('Pending Qty',record['total_quantity']-record['picked_quantity']),
-                    ('Order Value', record['total_inv_amt']),('Order Date', record['date']),('Receive Status', record['status']))))
+                    ('Order Value', record['total_inv_amt']),('Order Date', record['date']), ('Project Name', record['intermediateorders__project_name']), ('Receive Status', record['status']))))
 
     """return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))"""
 

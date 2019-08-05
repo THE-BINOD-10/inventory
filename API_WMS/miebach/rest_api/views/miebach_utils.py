@@ -3295,7 +3295,6 @@ def get_stock_summary_data(search_params, user, sub_user):
                                                                                                     'product_code__sku_desc',
                                                                                                     'product_code__sku_brand',
                                                                                                     'product_code__sku_category').distinct()
-    # import pdb; pdb.set_trace()
     sku_master = list(chain(sku_master, sku_master1))
 
     purchase_orders = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(
@@ -3337,18 +3336,17 @@ def get_stock_summary_data(search_params, user, sub_user):
             quantity = tracking.get(head, 0)
             if quantity:
                 sku_stages_dict[head] = tracking.get(head, 0)
-        
+
         for key, value in sku_stages_dict.iteritems():
             warehouse = 0
-            if user.username == 'isprava_admin':
+            stock_value = 0
+            if sku[5]:
                 warehouse = warehouse_users.get(sku[5])
-                sku_master_list.append(OrderedDict((('SKU Code', sku[1]), ('Description', sku[2]),
+            if sku[7]:
+               stock_value = sku[7]
+            sku_master_list.append(OrderedDict((('SKU Code', sku[1]), ('Description', sku[2]),
                                                 ('Brand', sku[3]), ('Category', sku[4]),
-                                                ('Stage', key), ('Stage Quantity', value), ('Stock Value', sku[7]),  ('Warehouse', warehouse))))
-            else:
-                sku_master_list.append(OrderedDict((('SKU Code', sku[1]), ('Description', sku[2]),
-                                                ('Brand', sku[3]), ('Category', sku[4]),
-                                                ('Stage', key), ('Stage Quantity', value))))
+                                                ('Stage', key), ('Stage Quantity', value), ('Stock Value', stock_value),  ('Warehouse', warehouse))))
 
     temp_data['recordsTotal'] = len(sku_master_list)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']

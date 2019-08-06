@@ -11,6 +11,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var vm = this;
     vm.permissions = Session.roles.permissions;
     vm.user_type = vm.permissions.user_type;
+    vm.parent_username = Session.parent.userName
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.display = true;
@@ -85,6 +86,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('po_number').withTitle('Po Number'))
     }
     vm.dtColumns.push(DTColumnBuilder.newColumn('Order Date').withTitle('Order Date').notSortable())
+    if(vm.parent_username == 'isprava_admin'){
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Project Name').withTitle('Project Name').notSortable())
+    }
     if(vm.permissions.priceband_sync){
       vm.dtColumns.push(DTColumnBuilder.newColumn('schedule_date').withTitle('Expected Delivery Date').notSortable())
     }

@@ -74,6 +74,15 @@
                   <input name="order_id" class="form-control" type="text" ng-model="showCase.model_data.order_id">
                 </div>
               </div>
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.parent_username == 'isprava_admin'">
+                <div class="form-group">
+                  <label class="control-label">Sister warehouse</label>
+                  <select name="sister_warehouse" class="form-control" ng-model="showCase.model_data.sister_warehouse">
+                    <option value="" selected>All</option>
+                    <option ng-repeat="group in showCase.warehouse_groups" value="{{group}}">{{group}}</option>
+                  </select>
+                </div>
+              </div>
               <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.choose_view == 'serialView'">
                 <div class="form-group">
                   <label class="control-label">Serial Number</label>

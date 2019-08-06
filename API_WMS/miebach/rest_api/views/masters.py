@@ -4236,7 +4236,7 @@ def get_zone_details(start_index, stop_index, temp_data, search_term, order_term
     filter_params = {'zone__user': user.id}
     all_groups = list(SKUGroups.objects.filter(user=user.id).values_list('group', flat=True))
 
-    lis = ['zone__zone','location','max_capacity','pick_sequence','fill_sequence','status']
+    lis = ['zone__zone','location','max_capacity','pick_sequence','fill_sequence','status','zone__zone','zone__zone']
 
     order_data = lis[col_num]
     if order_term == 'desc':

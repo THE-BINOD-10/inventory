@@ -112,15 +112,6 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
     })
     return $ctrl.temp_selected_style;
   }
-  $ctrl.check_quantity_validation = function(data, variant_wms) {
-    data.forEach(function(record){
-      if(record.wms_code == variant_wms && record.style_quantity < parseInt(record.quantity)) {
-        Service.showNoty('Available Quantity for '+variant_wms+ '-' + record.style_quantity);
-        record.quantity = ''
-      }
-    });
-    $ctrl.change_variant_quantity(data, variant_wms)
-  }
   $ctrl.change_variant_quantity = function(data, size) {
     $ctrl.totalQuantity = 0
     for(let k=0; k<data.length; k++) {

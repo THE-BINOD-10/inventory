@@ -7290,7 +7290,7 @@ def get_basa_report_data(search_params, user, sub_user):
                                                                      'batch_detail__weight','sku__id',
                                                                      'sku__sku_brand','sku__sku_category','sku__sub_category').annotate(total_quantity=Sum('quantity'),average_cp = Sum(F('quantity')*F('batch_detail__buy_price')))
 
-    temp_data['recordsTotal'] =len(stock_data)
+    temp_data['recordsTotal'] = stock_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     quantity = 0
@@ -7298,12 +7298,13 @@ def get_basa_report_data(search_params, user, sub_user):
     grn_quantity = 0
     grn_price = 0
     for data in (stock_data[start_index:stop_index]):
-        seller_po = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id = data['sku__id']).order_by('-id')
-        if seller_po.exists():
-            seller_po = seller_po[0]
+        try:
+            seller_po = SellerPOSummary.objects.filter(location__zone__user=user.id, purchase_order__open_po__sku__sku_code=data['sku__sku_code']).latest('id')
             grn_quantity = seller_po.quantity
-            if seller_po.batch_detail :
+            if seller_po.batch_detail:
                 grn_price = seller_po.batch_detail.buy_price
+        except:
+            grn_price = 0
         quantity = data['total_quantity']
         if quantity and data['average_cp']:
             avearage_cost_price = data['average_cp']/quantity

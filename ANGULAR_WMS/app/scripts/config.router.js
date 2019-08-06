@@ -1671,9 +1671,13 @@ var app = angular.module('urbanApp')
                        'scripts/controllers/outbound/customer_invoices_main.js'
                         ]).then( function() {
                   return $ocLazyLoad.load([
-                    'scripts/controllers/outbound/stock_transfer_invoice.js'
+                    'scripts/controllers/outbound/stock_transfer_invoice.js',
                   ])
-                })
+                }).then( function() {
+            return $ocLazyLoad.load([
+               'scripts/controllers/outbound/picklistdc.js',
+          ])
+        })
             }]
           },
           data: {
@@ -1712,6 +1716,10 @@ var app = angular.module('urbanApp')
          .state('app.outbound.CustomerInvoices.InvoiceM', {
             url: '/InvoiceM',
             templateUrl: 'views/outbound/print/customer_inv.html'
+         })
+         .state('app.outbound.CustomerInvoicesMain.dc', {
+            url: '/picklistdc',
+            templateUrl: 'views/outbound/print/picklist_dc.html'
          })
          .state('app.outbound.CustomerInvoices.InvoiceN', {
             url: '/InvoiceN',

@@ -47,9 +47,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         DTColumnBuilder.newColumn('reserved_quantity').withTitle('Reserved Quantity').notSortable(),
         DTColumnBuilder.newColumn('shipment_date').withTitle('Exp Delivery Date'),
         DTColumnBuilder.newColumn('date').withTitle('Date'),
-        DTColumnBuilder.newColumn('id').withTitle('').notSortable().withOption('width', '35px').renderWith(actionsHtml)
     ];
-
+    if (vm.permissions.generate_delivery_challan_before_pullConfiramation){
+      vm.dtColumns.push(DTColumnBuilder.newColumn('dc_number').withTitle('DC Number'))
+    }
+    vm.dtColumns.push(DTColumnBuilder.newColumn('id').withTitle('').notSortable().withOption('width', '35px').renderWith(actionsHtml))
     vm.order_charges = [];
 
     vm.default_charge = function() {
@@ -183,7 +185,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             });
         });
         return nRow;
-    } 
+    }
 
     vm.show_order_details = function(data){
 
@@ -346,7 +348,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         }
       }
     }
-  
+
   function pop_msg(msg) {
     vm.message = msg;
     $timeout(function () {
@@ -515,7 +517,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.change_quantity(record, remain, sku_qty)
     }
     vm.count_sku_quantity();
-  } 
+  }
 
   vm.change_quantity = function(sku, remain, sku_qty){
     console.log(remain);
@@ -550,12 +552,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               } else {
                 $("textarea[attr-name='sku']").focus();
                 vm.suggest_sku();
-              } 
+              }
             })
           }
         });
       }
-    }) 
+    })
   }
 
   vm.current_data = [];

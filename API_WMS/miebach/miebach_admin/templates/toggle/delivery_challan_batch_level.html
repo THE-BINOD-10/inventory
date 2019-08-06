@@ -1,13 +1,13 @@
-      {% load tag_extras %}
+{% load tag_extras %}
 
 <div>
   <style>
     {% include 'toggle/page1.css' %}
   </style>
-  {% for page in data.items %}
+
   <div class="print-invoice2 mb20">
     <div class="invoice-body">
-      <table class="table table-bordered m0">
+      <table class ="table table-bordered m0">
         <tbody>
           <tr>
             <td colspan="2">
@@ -78,6 +78,11 @@
           <tr>
             <td class="fs14">
               <div class="row m0">
+              <div class="col-xs-6 text-left">
+                <strong>DC Number :</strong> {{dc_number}}
+              </div>
+            </div>
+              <div class="row m0">
                 <div class="col-xs-6 text-left">
                   <strong>Order No :</strong> {{order_no}}
                 </div>
@@ -112,15 +117,12 @@
                   <strong>{{key }}</strong>: {{value}}
                 </div>
                   {% endfor %}
-                <!-- <div class="col-xs-6 text-left">
-                  <strong>Rep.:</strong>
-                </div> -->
               </div>
             </td>
           </tr>
         </tbody>
       </table>
-      <table class="table table-bordered bl br cal-table m0">
+      <table class = "table table-bordered bl br cal-table m0">
         <thead>
           <tr class="fs14">
             <th class="w5"><center>SL NO</center></th>
@@ -135,12 +137,10 @@
         </thead>
         <tbody>
           {% for key ,value in data.items %}
-           {% with sno=forloop.counter %}
           {% for ckey ,cvalue in value.items %}
-            {% if  forloop.counter == 1 %}
               {% if cvalue.is_combo  %}
             <tr class="fs14 rm-border">
-              <td class="text-left">{{sno}}</td>
+              <td class="text-left">{{ iterator.next|add:1 }} </td>
               <td class="text-left"><b>{{cvalue.parent_sku_code}}</b></td>
               <td class="text-left"><div class="wrap"><b>{{cvalue.parent_sku_desc}}</b></div></td>
               <td class="text-right"></td>
@@ -151,7 +151,7 @@
             </tr>
             {% else %}
             <tr class="fs14 rm-border">
-              <td class="text-left">{{sno}}</td>
+              <td class="text-left">{{ iterator.next|add:1 }}</td>
               <td class="text-left"><b>{{cvalue.sku_code}}<b></td>
               <td class="text-left"><b><div class="wrap">{{cvalue.sku_desc}}<b></div></td>
               <td class="text-right"></td>
@@ -161,28 +161,25 @@
               <td class="text-right"> {{cvalue.quantity}} </td>
             </tr>
           {% endif %}
-            {% endif %}
-            {% if  cvalue.is_combo  %}
-          <tr class="fs14 rm-border">
-            <td class="text-left"></td>
-            <td class="text-left">{{cvalue.sku_code}}</td>
-            <td class="text-left"><div class="wrap">{{cvalue.sku_desc}}</div></td>
-            <td class="text-right"></td>
-            <td class="text-right">{{cvalue.batch_no}}</td>
-            <td class="text-right">{{cvalue.mfd_date}}</td>
-            <td class="text-right">{{cvalue.exp_date}}</td>
-            <td class="text-right"> {{cvalue.quantity}} </td>
-          </tr>
-          {% endif  %}
+          <!-- {% if  cvalue.is_combo  %}
+        <tr class="fs14 rm-border">
+          <td class="text-left"></td>
+          <td class="text-left">{{cvalue.sku_code}}</td>
+          <td class="text-left"><div class="wrap">{{cvalue.sku_desc}}</div></td>
+          <td class="text-right"></td>
+          <td class="text-right">{{cvalue.batch_no}}</td>
+          <td class="text-right">{{cvalue.mfd_date}}</td>
+          <td class="text-right">{{cvalue.exp_date}}</td>
+          <td class="text-right"> {{cvalue.quantity}} </td>
+        </tr>
+        {% endif  %} -->
           {% endfor %}
-          {% endwith %}
           {% endfor %}
 
-          {% if forloop.last %}
+
           <tr style="border-top: 1px solid black;">
             <td></td>
-            <td class="fs14" colspan="3">
-              <span class=>Tot Items: {{total_items}}</span>
+            <td class="fs14" colspan="3">	
             </td>
             <td class="fs14" colspan="4">
               <span class="pull-right">Tot Qty: {{total_quantity}}</span>
@@ -206,10 +203,9 @@
               <p class="m0" align="center">Signature of Receiver</p>
             </td>
           </tr>
-          {% endif %}
         </tbody>
+
       </table>
     </div>
   </div>
-  {% endfor %}
 </div>

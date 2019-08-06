@@ -574,6 +574,7 @@ data_datatable = {  # masters
     'CustomerInvoicesTab': 'get_customer_invoice_tab_data', 'SellerOrderView': 'get_seller_order_view', \
     'StockTransferInvoice' : 'get_stock_transfer_invoice_data',
     'StockTransferShipment' : 'get_stock_transfer_shipment_data',
+    'PicklistDeliveryChallan':'get_picklist_delivery_challan',
     'AltStockTransferOrders': 'get_stock_transfer_order_level_data', 'RatingsTable': 'get_ratings_data',\
     'MyOrdersTbl' : 'get_customer_orders',\
     'MarketEnqTbl': 'get_enquiry_data', 'CustomOrdersTbl': 'get_manual_enquiry_data',\
@@ -9660,6 +9661,21 @@ def delete_classification(request, user=''):
     if id:
         ClassificationSettings.objects.filter(id=id).delete()
     return HttpResponse(json.dumps({'message': 'Updated Successfully', 'status': 1}))
+
+def get_challan_number_for_dc(order , user):
+    challan_sequence = ChallanSequence.objects.filter(user=user.id, status=1, marketplace=order.marketplace)
+    if not challan_sequence:
+        challan_sequence = ChallanSequence.objects.filter(user=user.id, marketplace='')
+    if challan_sequence:
+        challan_sequence = challan_sequence[0]
+        challan_num = int(challan_sequence.value)
+        challan_sequence.value = challan_num + 1
+        challan_sequence.save()
+    else:
+        ChallanSequence.objects.create(marketplace='', prefix='CHN', value=1, status=1, user_id=user.id,
+                                       creation_date=datetime.datetime.now())
+        challan_num = 1
+    return challan_num
 
 
 def get_sku_weight(sku):

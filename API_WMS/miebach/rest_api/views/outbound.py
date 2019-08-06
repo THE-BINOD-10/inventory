@@ -12890,17 +12890,19 @@ def extend_enquiry_date(request, user = ''):
     user_profile = UserProfile.objects.filter(user=request.user.id)
     customer_id = request.GET.get('customer_id', '')
     extend_status = request.GET.get('extend_status', 'pending')
+    admin_user = get_priceband_admin_user(user)
+    if not admin_user:
+        admin_user = user
+    date_ext_days = int(get_misc_value('auto_expire_enq_limit', admin_user.id)) * 2
     if user_profile[0].warehouse_type == 'CENTRAL_ADMIN' and customer_id:
         cm_id = int(customer_id)
     else:
         cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
         if not cum_obj and not customer_id:
-            log.info("No Customer User Mapping Object")
             message = 'Failed'
         cm_id = cum_obj[0].customer_id
     try:
         enq_qs = EnquiryMaster.objects.filter(enquiry_id=enquiry_id, customer_id=cm_id)
-        date_ext_days = int(get_misc_value('auto_raise_stock_transfer', user.id))*2
         if enq_qs:
             ext_dt = datetime.datetime.strptime(extended_date, '%m/%d/%Y')
             ct_dtt = enq_qs[0].creation_date
@@ -12908,8 +12910,9 @@ def extend_enquiry_date(request, user = ''):
             dt_days = ext_dt - ct_dt
             days = dt_days.days
             username = request.user.username
-            if days > date_ext_days and username.lower() != 'sm_admin':
-                return HttpResponse('Admin')
+            if user_profile[0].user_type != 'customer':
+                if days > date_ext_days and username.lower() != 'sm_admin':
+                    return HttpResponse('Admin')
             enq_qs[0].extend_status = extend_status
             enq_qs[0].extend_date = datetime.datetime.strptime(extended_date, '%m/%d/%Y')
             enq_qs[0].save()

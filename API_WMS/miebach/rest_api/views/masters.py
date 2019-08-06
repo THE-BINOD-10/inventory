@@ -234,8 +234,7 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
              ('Color', data.color), ('EAN Number',ean_number ), ('Combo Flag', combo_flag),('MRP', data.mrp),
              ('HSN Code', str(data.hsn_code)), ('Tax Type',data.product_type),
              ('Creation Date', creation_date),
-             ('Updation Date', updation_date)))
-        )
+             ('Updation Date', updation_date))))
 
 
 @csrf_exempt
@@ -742,14 +741,11 @@ def get_vendor_master_results(start_index, stop_index, temp_data, search_term, o
                          ('DT_RowId', data.vendor_id), ('DT_RowClass', 'results'))))
 
 
-@get_admin_user
-def location_master(request, user=''):
+def location_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filter):
     filter_params = {'user': user.id, 'level': 0}
     distinct_loctype = ZoneMaster.objects.filter(**filter_params)
-    #distinct_loctype = filter_by_values(ZoneMaster, filter_params, ['zone', 'level'])
     new_loc = []
-    location_groups = LocationGroups.objects.filter(location__zone__user=user.id).values('location__location',
-                                                                                         'group').distinct()
+
     data = []
     for loc_type in distinct_loctype:
         filter_params = {'zone__zone': loc_type.zone, 'zone__user': user.id}
@@ -764,20 +760,8 @@ def location_master(request, user=''):
         filter_params['zone__zone__in'] = [loc_type.zone]
         if temp_sub_zones:
             filter_params['zone__zone__in'] = list(chain(temp_sub_zones, filter_params['zone__zone__in']))
-        #loc = filter_by_values(LocationMaster, filter_params,
-        #                       ['location', 'max_capacity', 'fill_sequence', 'pick_sequence', 'status',
-        #                        'pallet_capacity', 'lock_status', 'zone__level', 'zone__zone'])
 
         data.append({'zone': loc_type.zone})
-        #loc_location.values('location', 'max_capacity', 'fill_sequence', 'pick_sequence', 'status', 'pallet_capacity',
-        #                                    'lock_status', 'zone__level', 'zone__zone'))
-
-    #data = []
-    #modified_zone = zip(distinct_loctype.values('zone'), new_loc)
-    #if modified_zone:
-    #    for loc in modified_zone:
-    #        zone = loc[0]['zone']
-    #        data.append({'zone': zone, 'data': list(loc[1])})
 
     all_groups = list(SKUGroups.objects.filter(user=user.id).values_list('group', flat=True))
 
@@ -4324,44 +4308,47 @@ def change_warehouse_password (request ,user=''):
         return HttpResponse('Failed to change the Password')
 
 @csrf_exempt
-@login_required
-@get_admin_user
-def get_zone_details(request , user =''):
+def get_zone_details(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filter):
     filter_params = {'user': user.id, 'level': 0}
-    zone = request.GET['zone']
-    filter_params = {'zone__zone': zone, 'zone__user': user.id}
+    filter_params = {'zone__user': user.id}
+    all_groups = list(SKUGroups.objects.filter(user=user.id).values_list('group', flat=True))
+
+    lis = ['zone__zone','location','max_capacity','pick_sequence','fill_sequence','status','zone__zone','zone__zone']
+
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+
     try:
-        loc = LocationMaster.objects.prefetch_related('zone').filter(**filter_params)
-        temp_locs = []
-        for loc_location in loc:
-            # print loc_location
-            #loc_group_dict = filter(lambda person: str(loc_location['location']) == str(person['location__location']),
-            #                        location_groups)
-            #loc_groups = map(lambda d: d['group'], loc_group_dict)
-            #loc_groups = [str(x).encode('UTF8') for x in loc_groups]
-            loc_groups = list(loc_location.locationgroups_set.filter().values_list('group', flat=True))
-            location_data = {}
-            location_data['location'] = loc_location.location
-            location_data['max_capacity'] = loc_location.max_capacity
-            location_data['fill_sequence'] = loc_location.fill_sequence
-            location_data['pick_sequence'] = loc_location.pick_sequence
-            location_data['status'] = loc_location.status
-            location_data['pallet_capacity'] = loc_location.pallet_capacity
-            location_data['lock_status'] = loc_location.lock_status
-            location_data['zone__zone'] = loc_location.zone.zone
-            location_data['zone__level'] = loc_location.zone.level
-            location_data['location_group'] = loc_groups
-            sub_zone = ''
+        if search_term :
+            loc = LocationMaster.objects.prefetch_related('zone').filter(**filter_params).filter(Q(zone__zone__icontains=search_term)| Q(location__icontains=search_term)).order_by(order_data)
+        else:
+            loc = LocationMaster.objects.prefetch_related('zone').filter(**filter_params).order_by(order_data)
+        sub_zone = ''
+        temp_data['recordsTotal'] = loc.count()
+        temp_data['recordsFiltered'] = loc.count()
+        for loc_location in loc[start_index:stop_index]:
             if loc_location.zone.level == 1:
                 sub_zone = loc_location.zone.zone
-            location_data['sub_zone'] = sub_zone
-            temp_locs.append(location_data)
+            loc_groups = list(loc_location.locationgroups_set.filter().values_list('group', flat=True))
+            button = ''
+            if not request.POST.get('excel'):
+                button = '<button type="button" name="edit_zone" ng-click="showCase.edit_zone("'" loc_location.zone.zone"'")" ng-disabled="showCase.button_edit"  class="btn btn-primary ng-click-active" >Edit Zone</button>'
+
+
+            temp_data['aaData'].append(
+                OrderedDict((('zone',loc_location.zone.zone),('location', loc_location.location), ('max_capacity', loc_location.max_capacity),('lock_status',loc_location.lock_status),
+                             ('fill_sequence', loc_location.fill_sequence),('pick_sequence',loc_location.pick_sequence),('status',loc_location.status),
+                             ('all_groups',all_groups),('location_group',loc_groups),('pallet_capacity',loc_location.pallet_capacity),('sub_zone',sub_zone),
+                              (' ',button ))))
+
     except Exception as e:
          import traceback
          log.debug(traceback.format_exc())
          log.info('Get Zone details failed for  %s and params are %s and error statement is %s' % (
          str(user.username), str(request.GET.dict()), str(e)))
-    return  HttpResponse(json.dumps({'location_data': temp_locs}))
+
+    return  temp_data
 
 def get_cluster_sku_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     excel_flag = request.POST.get('excel', '')

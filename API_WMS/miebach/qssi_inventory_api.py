@@ -2,6 +2,7 @@ activate_this = 'setup/MIEBACH/bin/activate_this.py'
 execfile(activate_this, dict(__file__=activate_this))
 import os
 import sys
+import math
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "miebach.settings")
 import django

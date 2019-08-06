@@ -26,7 +26,7 @@
         <ul class="dropdown-menu">
           <li><a ng-click="$state.go('user.App.Profile')">Profile</a></li>
           <li ng-if="showCase.is_portal_lite"><a ng-click="$state.go('user.App.PendingOrder');">Pending Orders</a></li>
-          <li ng-if="!(showCase.is_portal_lite)"><a ng-click="$state.go('user.App.ManualEnquiry');">Create Custom Order</a></li>
+          <li ng-if="!(showCase.is_portal_lite) && (showCase.user_type=='reseller')"><a ng-click="$state.go('user.App.ManualEnquiry');">Create Custom Order</a></li>
           <li><a ng-click="$state.go('user.App.feedback');">Feedback Form</a></li>
           <li><a ng-click="showCase.logout()">Logout</a></li>
         </ul>

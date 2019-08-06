@@ -68,6 +68,8 @@
                   <div class="widget-details col-md-7 col-sm-7 col-xs-8 text-left">
                     <small class="order-label">SKU Description</small>
                     <p class="no-margin order-bold detail-black" style="font-size:12px">{{value.sku__sku_desc}} <strong ng-if="value.level_name">({{value.level_name}})</strong><strong ng-if="records['level_name']">({{records['level_name']}})</strong></p><br>
+                    <p class="no-margin order-bold detail-black" ng-if="(showCase.model_data.data[0].sku_spl_attrs['height'] || showCase.model_data.data[0].sku_spl_attrs['length'] || showCase.model_data.data[0].sku_spl_attrs['breadth'])" style="font-size:12px"><b>Ext Dim(In)</b>:{{showCase.model_data.data[0].sku_spl_attrs["height"]}} X {{showCase.model_data.data[0].sku_spl_attrs["length"]}} X {{showCase.model_data.data[0].sku_spl_attrs["breadth"]}}</p>
+                    <p class="no-margin order-bold detail-black" ng-if="(showCase.model_data.data[0].sku_spl_attrs['Internal Height'] || showCase.model_data.data[0].sku_spl_attrs['Internal Length'] || showCase.model_data.data[0].sku_spl_attrs['Internal Breadth'])" style="font-size:12px"><br><b>Int Dim(In)</b>:{{showCase.model_data.data[0].sku_spl_attrs["Internal Height"]}} X {{showCase.model_data.data[0].sku_spl_attrs["Internal Length"]}} X {{showCase.model_data.data[0].sku_spl_attrs["Internal Breadth"]}}</br></p>
                     <small class="order-label" ng-if="value.schedule_date"><b>Delivery Schedule Date</b></small>
                     <p class="no-margin order-bold detail-black" style="font-size:12px"><b>{{value.schedule_date}}</b></p>
                   </div>

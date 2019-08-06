@@ -22,6 +22,7 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
   vm.industry_type = Session.user_profile.industry_type;
   vm.get_id = '';
   vm.decimal_limit = (vm.permissions.decimal_limit)?Number(vm.permissions.decimal_limit):1;
+  vm.quantity_focused = false;
 
   vm.getPoData = function(data){
     Service.apiCall(data.url, data.method, data.data, true).then(function(data){
@@ -78,6 +79,28 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
 
 
   vm.getPoData(vm.state_data);
+
+  vm.get_current_weight = function(event, data, index, parent_index) {
+    if(vm.permissions.weight_integration_name.length > 0) {
+      vm.service.apiCall('get_current_weight/', 'GET',{}).then(function(res_data){
+        if(res_data.message){
+          if(res_data.data.status && res_data.data.is_updated){
+            if(data[parent_index].reserved_quantity < res_data.data.weight)
+             {
+              vm.service.showNoty("Picked quntity is Greater Than Reserved Quantity");
+              }
+          else
+          {
+              data[parent_index]["sub_data"][index].picked_quantity = res_data.data.weight;
+            }
+          }
+          if(vm.quantity_focused) {
+            setTimeout(function(){ vm.get_current_weight(event, data, index, parent_index); }, 1000);
+          }
+        }
+      });
+    }
+  }
 
   vm.check_sku_match = function(field){
 
@@ -898,7 +921,8 @@ function pull_confirmation() {
     vm.service.apiCall('generate_picklist_dc/', 'POST', formdata, true).then(function(data){
       if(data.message) {
         vm.pdf_data = data.data;
-        vm.DeliveryChallanPopup(vm.pdf_data)      }
+        vm.DeliveryChallanPopup(vm.pdf_data)
+      }
       vm.bt_disable = false;
     });
   }

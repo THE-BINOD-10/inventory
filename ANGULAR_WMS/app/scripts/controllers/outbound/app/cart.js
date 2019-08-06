@@ -220,7 +220,10 @@ vm.update_cartdata_for_approval = function() {
         vm.service.showNoty("The Shipment Date, PO Number, Client Name and Uploaded PO's are Required Please Select", "success", "bottomRight");
       } else if (!(vm.model_data.shipment_time_slot)) {
         vm.service.showNoty("Please Select Shipment Slot", "success", "bottomRight");
-      } else {
+      } else if (vm.unique_levels['3']) {
+        Service.showNoty("Order can't be placed to L3 level, Please remove.");
+        return false;
+      } else{
         vm.order_data_insertion(data_dict);
       }
     }else if(data_dict && data_dict.is_central_order){

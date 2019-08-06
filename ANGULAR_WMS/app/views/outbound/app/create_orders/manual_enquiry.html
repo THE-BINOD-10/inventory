@@ -105,7 +105,7 @@
                       <th>BuyPrice</th>
                       <th>MRP</th>
                       <th>Stock</th>
-                      <th>Intransit</th>
+                      <!-- <th>Intransit</th> -->
                       <th>Blocked Qty</th>
                       <th>Quantity</th>
                     </tr>
@@ -117,14 +117,13 @@
                       <td>{{variant.price_ranges[0].buy_price}}</td>
                       <td>{{variant.mrp}}</td>
                       <td>{{variant.style_quantity}}</td>
-                      <td>{{variant.intransit_quantity}}</td>
+                      <!-- <td>{{variant.intransit_quantity}}</td> -->
                       <td>{{variant.blocked_quantity}}</td>
                       <td>
                       <input class="form-control" ng-model="variant.quantity" ng-change="Enquiry.change_variant_quantity(Enquiry.selected_style, variant.wms_code)" style="width: 60px;height: 25px;">
                       </td>
                     </tr>
                     <tr>
-                      <td></td>
                       <td></td>
                       <td></td><td></td><td></td><td></td>
                       <td><b>Total:</b>

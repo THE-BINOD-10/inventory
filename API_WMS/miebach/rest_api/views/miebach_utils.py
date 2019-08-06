@@ -6842,7 +6842,7 @@ def get_orderflow_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     from common import get_misc_value
     isprava_permission = get_misc_value('order_exceed_stock', user.id)
-    lis = ['interm_order_id','order_assigned_wh__username','customer_name', 'order__customer_name','status','remarks',
+    lis = ['interm_order_id','order_assigned_wh__username','customer_name', 'order__customer_name','status','remarks','sku__sku_desc',
           'sku__wms_code','alt_sku__wms_code','order__original_order_id','order__status','order__id','order__picklist__status', 'project_name','sku__sku_category','sku__cost_price', 'order__creation_date', 'order__shipment_date']
     status_map = ['Pick List Generated','Pending','Accepted']
     order_term = search_params.get('order_term', 'asc')
@@ -6885,7 +6885,7 @@ def get_orderflow_data(search_params, user, sub_user):
     search_parameters['user'] = user.id
     order_flow_data = IntermediateOrders.objects.filter(**search_parameters).\
                                             order_by(order_data).select_related('order','sku','alt_sku').values('interm_order_id','order_assigned_wh__username','customer_name','status','remarks','order__customer_name',
-                                                                                                                'sku__wms_code','alt_sku__wms_code','order__original_order_id','order__status','order__id','order__picklist__status', 'project_name','sku__sku_category','sku__cost_price', 'order__creation_date', 'order__shipment_date')
+                                                                                                                'sku__wms_code','alt_sku__wms_code','order__original_order_id','order__status','order__id','order__picklist__status', 'sku__sku_desc','project_name','sku__sku_category','sku__cost_price', 'order__creation_date', 'order__shipment_date')
     temp_data['recordsTotal'] = order_flow_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for data in  (order_flow_data[start_index:stop_index]):
@@ -6946,7 +6946,7 @@ def get_orderflow_data(search_params, user, sub_user):
 
 
         temp_data['aaData'].append(OrderedDict((('Main SR Number',data['order__original_order_id']),('Order Id', str(data['interm_order_id'])),('SKU Code', data['sku__wms_code']),
-                                                ('SKU Description',data['sku__wms_code']), ('Project Name', data['project_name']), ('Category', data['sku__sku_category']),('Customer Name',data['customer_name']),\
+                                                ('SKU Description',data['sku__sku_desc']), ('Project Name', data['project_name']), ('Category', data['sku__sku_category']),('Customer Name',data['customer_name']),\
                                                 ('Address',order_fields_dict.get('address','')), ('Customer name',data['order__customer_name']),('Phone No',order_fields_dict.get('mobile_no','')),('Email Id',order_fields_dict.get('email_id','')),\
                                                 ('Alt SKU',data['alt_sku__wms_code']),('Central order status',central_order_status.get(data['status'],'')),('Central Order cancellation remarks',central_order_remarks),
                                                 ('Hub location',data['order_assigned_wh__username']),('Hub location order status',order_status), ('Price',data['sku__cost_price']),\

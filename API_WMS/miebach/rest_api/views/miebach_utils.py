@@ -6884,7 +6884,7 @@ def get_orderflow_data(search_params, user, sub_user):
 
     search_parameters['user'] = user.id
     order_flow_data = IntermediateOrders.objects.filter(**search_parameters).\
-                                            order_by(order_data).select_related('order','sku','alt_sku').values('interm_order_id','order_assigned_wh__username','customer_name','status','remarks','order__customer_name',
+                                            order_by(order_data).select_related('order','sku','alt_sku').values('interm_order_id','order_assigned_wh__username','customer_name','status','remarks','order__customer_name','customer_user__first_name',
                                                                                                                 'sku__wms_code','alt_sku__wms_code','order__original_order_id','order__status','order__id','order__picklist__status', 'sku__sku_desc','project_name','sku__sku_category','sku__cost_price', 'order__creation_date', 'order__shipment_date')
     temp_data['recordsTotal'] = order_flow_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -6892,23 +6892,22 @@ def get_orderflow_data(search_params, user, sub_user):
         outbound_qc,inbound_qc,serial_number ,shipment_status  = '','','','open'
         po_status,po_cancel_reason,acknowledgement_status = '' ,'','No'
         sku_damaze_remarks ,central_order_remarks,order_status = '','',''
-        order_date = ' '
-        expected_date = ' '
+        order_date,expected_date = ' ', ' '
         if data['order__creation_date']:
             order_date = get_local_date(user, data['order__creation_date'])
         if data['order__shipment_date']:
             expected_date = get_local_date(user, data['order__shipment_date'])
         if data['order__id'] :
-           if not isprava_permission:
+           if isprava_permission == 'false':
                singned_invoice = MasterDocs.objects.filter(master_id =data['order__id'])
                if singned_invoice.exists():
                    acknowledgement_status = 'Yes'
 
                order_fields_dict = dict(OrderFields.objects.filter(original_order_id =data['interm_order_id'],user = user.id).values_list('name','value'))
-               outbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id =data['order__id'],qc_type = 'sales_order').exclude(remarks = '')
+               outbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id =data['order__id'],qc_type = 'sales_order')
                if outbound_dispatch_imei.exists():
                    serial_number = outbound_dispatch_imei[0].po_imei_num.imei_number
-                   outbound_qc = ','.join(outbound_dispatch_imei.values_list('remarks',flat = True))
+                   outbound_qc = ','.join(filter(None,outbound_dispatch_imei.values_list('remarks',flat = True)))
                shipment = ShipmentInfo.objects.filter(order_id = data['order__id'])
                if shipment.exists():
                    shipment_status = 'Dispatched'
@@ -6923,17 +6922,13 @@ def get_orderflow_data(search_params, user, sub_user):
                       sku_damaze_remarks = purchase_order_obj[0].remarks
 
                   if inbound_dispatch_imei.exists():
-                      inbound_qc = ','.join(inbound_dispatch_imei.values_list('remarks',flat = True))
-           if data['status'] == '3':
-               central_order_remarks = data['remarks']
-               shipment_status = ''
-               acknowledgement_status = ''
+                      inbound_qc = ','.join(filter(None,inbound_dispatch_imei.values_list('remarks',flat = True)))
            if data['order__picklist__status'] :
                if data['order__picklist__status'] == 'open':
                    order_status = 'Picklist Generated'
                if data['order__picklist__status'] == 'picked':
                    order_status = 'Picklist Confirmed'
-                   if isprava_permission:
+                   if isprava_permission == 'true':
                        order_status = 'Dispatched'
                if data['order__picklist__status'] == 'dispatched':
                    order_status = 'Picklist Confirmed'
@@ -6942,12 +6937,17 @@ def get_orderflow_data(search_params, user, sub_user):
 
            else:
                order_status =  order_status_dict.get(data['order__status'],'')
-
-
+        if data['status'] == '3':
+           central_order_remarks = data['remarks']
+           shipment_status,acknowledgement_status = '',''
+        if isprava_permission == 'true':
+           data['customer_name'] = data['order__customer_name']
+           if not data['order_assigned_wh__username']:
+              data['customer_name'] = data['customer_user__first_name']
 
         temp_data['aaData'].append(OrderedDict((('Main SR Number',data['order__original_order_id']),('Order Id', str(data['interm_order_id'])),('SKU Code', data['sku__wms_code']),
                                                 ('SKU Description',data['sku__sku_desc']), ('Project Name', data['project_name']), ('Category', data['sku__sku_category']),('Customer Name',data['customer_name']),\
-                                                ('Address',order_fields_dict.get('address','')), ('Customer name',data['order__customer_name']),('Phone No',order_fields_dict.get('mobile_no','')),('Email Id',order_fields_dict.get('email_id','')),\
+                                                ('Address',order_fields_dict.get('address','')),('Phone No',order_fields_dict.get('mobile_no','')),('Email Id',order_fields_dict.get('email_id','')),\
                                                 ('Alt SKU',data['alt_sku__wms_code']),('Central order status',central_order_status.get(data['status'],'')),('Central Order cancellation remarks',central_order_remarks),
                                                 ('Hub location',data['order_assigned_wh__username']),('Hub location order status',order_status), ('Price',data['sku__cost_price']),\
                                                 ('Order cancellation remarks',''),('Outbound Qc params',outbound_qc),('Serial Number',serial_number),

@@ -23,17 +23,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
             DTColumnBuilder.newColumn('Order Id').withTitle('Central Order Id'),    
       ];
       if(!vm.isprava_permission){
-        vm.dtColumns.push(DTColumnBuilder.newColumn('Main SR Number').withTitle('Main SR Number'),
-          DTColumnBuilder.newColumn('Customer Name').withTitle('Customer Name'))
+        vm.dtColumns.push(DTColumnBuilder.newColumn('Main SR Number').withTitle('Main SR Number'))
       }
       vm.dtColumns.push(
             DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
-            DTColumnBuilder.newColumn('SKU Description').withTitle('SKU Description'))
+            DTColumnBuilder.newColumn('SKU Description').withTitle('SKU Description'),
+            DTColumnBuilder.newColumn('Customer Name').withTitle('Customer Name'))
       if(vm.isprava_permission){
         vm.dtColumns.push(
             DTColumnBuilder.newColumn('Project Name').withTitle('Project Name'),
             DTColumnBuilder.newColumn('Category').withTitle('Category'),
-            DTColumnBuilder.newColumn('Customer name').withTitle('Customer name'),
             DTColumnBuilder.newColumn('Price').withTitle('Price'))
       }
       if(!vm.isprava_permission){
@@ -44,10 +43,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
           )
       }
       vm.dtColumns.push(DTColumnBuilder.newColumn('Central order status').withTitle('Central order status'),
-            DTColumnBuilder.newColumn('Central Order cancellation remarks').withTitle('Central Order cancellation remarks')
+            DTColumnBuilder.newColumn('Central Order cancellation remarks').withTitle('Central Order cancellation remarks'),
+            DTColumnBuilder.newColumn('Hub location').withTitle('Hub location')
         )
       if(vm.isprava_permission){
-        vm.dtColumns.push(DTColumnBuilder.newColumn('Hub location').withTitle('Hub location'),
+        vm.dtColumns.push(
             DTColumnBuilder.newColumn('Order Date').withTitle('Order Date'),
             DTColumnBuilder.newColumn('Expected Date').withTitle('Expected Date')
           )

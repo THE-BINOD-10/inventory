@@ -7323,10 +7323,10 @@ def get_basa_report_data(search_params, user, sub_user):
             search_parameters['sku__sku_code'] = search_params['sku_code']
     search_parameters['sku_id__in'] = sku_master_ids
     search_params['location__location__in'] = locations
-    if 'from_date' in search_params:
-        search_parameters['creation_date__gt'] = search_params['from_date']
-    if 'to_date' in search_params:
-        search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
+    #if 'from_date' in search_params:
+    #    search_parameters['creation_date__gt'] = search_params['from_date']
+    #if 'to_date' in search_params:
+    #    search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
     stock_data = StockDetail.objects.filter(**search_parameters).values('sku__sku_code','sku__sku_desc','batch_detail__mrp',\
                                                                      'batch_detail__weight','sku__id',
                                                                      'sku__sku_brand','sku__sku_category','sku__sub_category').annotate(total_quantity=Sum('quantity'),average_cp = Sum(F('quantity')*F('batch_detail__buy_price')))
@@ -7338,14 +7338,25 @@ def get_basa_report_data(search_params, user, sub_user):
     avearage_cost_price = 0
     grn_quantity = 0
     grn_price = 0
-    for data in (stock_data[start_index:stop_index]):
-        try:
-            seller_po = SellerPOSummary.objects.filter(location__zone__user=user.id, purchase_order__open_po__sku__sku_code=data['sku__sku_code']).latest('id')
-            grn_quantity = seller_po.quantity
-            if seller_po.batch_detail:
-                grn_price = seller_po.batch_detail.buy_price
-        except:
-            grn_price = 0
+    stock_data = stock_data[start_index:stop_index]
+    if not stop_index:
+        stock_sku_ids = list(stock_data.values_list('sku_id', flat=True))
+        grn_data = SellerPOSummary.objects.prefetch_related('purchase_order__open_po__sku').filter(batch_detail__isnull=False, purchase_order__open_po__sku_id__in=stock_sku_ids)
+        sku_grn_price = OrderedDict(grn_data.values_list('purchase_order__open_po__sku__sku_code', 'batch_detail__buy_price').order_by('id'))
+        sku_grn_quantity = OrderedDict(grn_data.values_list('purchase_order__open_po__sku__sku_code', 'quantity').order_by('id'))
+    for data in stock_data:
+        print data['sku__sku_code']
+        if not stop_index:
+            grn_price = sku_grn_price.get(data['sku__sku_code'], 0)
+            grn_quantity = sku_grn_quantity.get(data['sku__sku_code'], 0)
+        else:
+            try:
+                seller_po = SellerPOSummary.objects.filter(location__zone__user=user.id, purchase_order__open_po__sku__sku_code=data['sku__sku_code']).latest('id')
+                grn_quantity = seller_po.quantity
+                if seller_po.batch_detail:
+                    grn_price = seller_po.batch_detail.buy_price
+            except:
+                grn_price = 0
         quantity = data['total_quantity']
         if quantity and data['average_cp']:
             avearage_cost_price = data['average_cp']/quantity

@@ -83,8 +83,44 @@
 .no-padding {
   padding: 0px !important;
 }
-.filter-widthmax {
-  width: 400px;
+@media screen and (max-width: 2560px) {
+  .image_display1 {
+    padding-left: 633px;
+    width: 57%;
+  }
+}
+@media screen and (max-width: 1440px) {
+  .image_display1 {
+    padding-left: 340px;
+    border-radius: 4px;
+    width: 70%;
+  }
+  .image_display1 img {
+    cursor: pointer;
+    min-height: 100%;
+  }
+  .image_display1 img:hover {
+    height: 100%;
+  }
+}
+@media screen and (max-width: 1024px) {
+  .image_display1 {
+    padding-left: 250px;
+    border-radius: 4px;
+    width: 70%;
+  }
+}
+@media screen and (max-width: 992px) {
+  .image_display1 {
+    padding-left: 315px;
+    width: 70%;
+  }
+}
+@media screen and (max-width: 600px) {
+  .image_display1 {
+    padding-left: 20px;
+    width: 70%;
+  }
 }
 @media (max-width: 767px) {
   .filter-width {

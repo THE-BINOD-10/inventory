@@ -142,8 +142,9 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
             search_params['customerordersummary__status__in'] = perm_status_list
     if search_term:
         master_data = OrderDetail.objects.filter(
-            Q(sku__sku_code__icontains=search_term, status=1) | Q(order_id__icontains=search_term,
-                                                                  status=1) | Q(title__icontains=search_term,status=1) | Q(quantity__icontains=search_term,status=1), user=user.id, quantity__gt=0).filter(**search_params).exclude(order_code="CO")
+            Q(sku__sku_code__icontains=search_term) | Q(order_id__icontains=search_term) | Q(title__icontains=search_term) |
+            Q(quantity__icontains=search_term,status=1) | Q(original_order_id__icontains=search_term), user=user.id, status=1, quantity__gt=0).\
+            filter(**search_params).exclude(order_code="CO")
     elif order_term:
         order_data = lis[col_num]
         if order_term == 'desc':

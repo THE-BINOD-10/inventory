@@ -45,6 +45,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 return vm.service.frontHtml + meta.row + vm.service.endHtml +'<input type="hidden" name="id" value="'+full.DT_RowAttr['sku_code']+'">';
             }).notSortable(),
         DTColumnBuilder.newColumn('sku_code').withTitle('Sku Code'),
+        DTColumnBuilder.newColumn('sku_name').withTitle('Sku Name'),
+        DTColumnBuilder.newColumn('sku_category').withTitle('Sku Category'),
         DTColumnBuilder.newColumn('avg_sales_day').withTitle('Avg Sales/Day'),
         DTColumnBuilder.newColumn('cumulative_contribution').withTitle('Cumulative Contribution'),
         DTColumnBuilder.newColumn('classification').withTitle('Classification'),

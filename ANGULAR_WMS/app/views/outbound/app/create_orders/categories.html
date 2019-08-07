@@ -1,15 +1,15 @@
-<div class="clearfix render-items" style="padding-top: 20px;">
+<div class="clearfix render-items" style="padding-top: 0px;">
   <!--<div ng-if="showCase.pdfDownloading" style="position: fixed;z-index: 101;width: 100%;height: 100%;top: 0px;background: rgba(0, 0, 0, 0.1);padding-top: 125px;"><img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;"></div>-->
-  <div class="row style-menu" style="height: 60px;position: absolute;top:0px;width:100%;z-index:100">
+  <div class="row style-menu" style="height: 40px;position: absolute;top:0px;width:100%;z-index:100">
     <div class="col-md-4 col-sm-4 col-xs-4">
-      <div class="menu-left" style="line-height: 60px" ng-if="!showCase.disable_brands">
+      <div class="menu-left" style="line-height: 40px" ng-if="!showCase.disable_brands">
         <span ng-click="showCase.back_brands_button('brand_value');"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
         <span ng-click="showCase.back_brands_button('brand_value');" title="Go to Brand Page">Back</span>
       </div>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-4 brand-title">
-      <img ng-src="images/brands/{{showCase.brands_logos[showCase.brand]}}" ng-if="showCase.brands_logos[showCase.brand]" style="height: 60px;" />
-      <img ng-src="{{showCase.api_url}}static/company_logos/{{showCase.client_logo}}" ng-if="!showCase.brands_logos[showCase.brand] && showCase.client_logo" style="height: 60px;"/>
+      <img ng-src="images/brands/{{showCase.brands_logos[showCase.brand]}}" ng-if="showCase.brands_logos[showCase.brand]" style="height: 40px;" />
+      <img ng-src="{{showCase.api_url}}static/company_logos/{{showCase.client_logo}}" ng-if="!showCase.brands_logos[showCase.brand] && showCase.client_logo" style="height: 40px;"/>
       <h3 style="margin-top:10px;overflow: hidden;text-overflow: ellipsis;white-space: nowrap;" ng-if="!(showCase.brands_logos[showCase.brand])">{{showCase.brand}}</h3>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-4">
@@ -28,77 +28,79 @@
           <li><a ng-click="showCase.logout()">Logout</a></li>
         </ul>
       </div>
-      <a class="hide fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 10px;" ng-click="showCase.logout()">        </a>
       <a href="" class="pull-right" ng-click="$state.go('user.App.Cart')">
         <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 10px;" title="Go To Cart Page"></i>
       </a>
     </div>
   </div>
 
-<div class="app_body" scrolly="showCase.scroll(e)" style="position: relative">
-  <div class="row search-items mt15 search-box">
-    <div class="row">
-      <div class="col-lg-1 col-md-1 col-sm-1 col-xs-12"></div>
-      <div class="col-lg-9 col-md-9 col-sm-6 col-xs-5">
-        <div class="input-group mb10">
-          <span class="input-group-addon" style="background: #ed1c24;color: white;"><i style="background: #ed1c24;width: 15px;font-size: 15px;" class="fa fa-search"></i></span>
-            <input type="text" class="form-control" placeholder="Search for Products" ng-model="showCase.style" ng-focus="$state.go('user.App.Products'); showCase.get_category(true, false);" ng-debounce>
+  <div class="app_body" scrolly="showCase.scroll(e)" style="position: relative">
+    <div class="row search-items mt15 search-box">
+      <div class="row">
+        <div class="col-md-1 col-sm-1 col-xs-12"></div>
+        <div ng-class="showCase.search_box_cls">
+          <div class="input-group mb10">
+            <span class="input-group-addon" style="background: #ed1c24;color: white;"><i style="background: #ed1c24;width: 15px;font-size: 15px;" class="fa fa-search"></i></span>
+              <input type="text" class="form-control" placeholder="Search for Products" ng-model="showCase.style" ng-focus="$state.go('user.App.Products'); showCase.get_category(true, false);" ng-debounce>
+          </div>
         </div>
-      </div>
-      <div class="col-lg-2 col-md-2 col-sm-5 col-xs-7" style="text-align: center;">
-        <button class="btn btn-icon-icon" style="background: white;float:left;">
-          <i class="fa fa-filter" style="font-size: 15px;border-radius: 18px;color:white" title="Show Filters" ng-click="showCase.showFilters()"></i>
-        </button>
-        <button class="btn btn-icon-icon ml10" style="background: white;float:left">
-          <i class="fa fa-download" style="font-size: 15px;border-radius: 18px;color:white" title="Download PDF" ng-click="showCase.downloadPDF()"></i>
-        </button>
-        <button class="btn btn-icon-icon ml10" style="background: white;float:left">
-          <i class="fa fa-plus" style="font-size: 15px;border-radius: 18px;color:white" title="Add Margin" ng-click="showCase.addMargin()"></i>
-        </button>
-      </div>
-    </div>
-  </div>
-  <!-- Categories start -->
-  <div class="item-display row" style="background: white;">
-    <div ng-include="'views/outbound/app/create_orders/filters.html'"></div>
-    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-      <span class="label label-success" style="font-size: 15px; font-family: sans-serif;">Browse By Categories</span>
-    </div>
-    <div class="col-md-2 col-sm-3 col-xs-4" ng-repeat="cat in showCase.all_cate" ng-click="showCase.change_category(cat)" style="padding: 10px 5px 0px 5px;">
-      <div>
-        <img ng-src="{{ showCase.service.check_image_url(showCase.categories_details[cat]) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail hide">
-        <img ng-src="{{ showCase.get_category_image(cat) }}" style="border:0px !important;width: 100%;padding: 0px;cursor: pointer;background: transparent" class="img-thumbnail">
-        <br>
-        <div ng-if="showCase.get_category_image(cat) == '/images/categories/default.png'">
-          <p class="visible-md visible-lg style_name" style="font-size: 16px;position: absolute;bottom: 15px;width: 100%;" title="{{ item.sku_class }}">{{cat}}</p>
-          <p class="visible-sm style_name" style="font-size: 14px;position: absolute;bottom: 10px;width: 95%;" title="{{ item.sku_class }}">{{cat}}</p>
-          <p class="visible-xs style_name" style="font-size: 12px;position: absolute;bottom: 0px;width: 85%;" title="{{ item.sku_class }}">{{cat}}</p>
+        <div ng-class="showCase.buttons_cls" ng-style="showCase.margin_style" style="text-align: center;">
+          <div class="hidden-xs" style="left: 25px;"></div>
+          <div class="text-center">
+            <button class="btn btn-icon-icon" style="background: white;float:left;">
+              <i class="fa fa-filter" style="font-size: 15px;border-radius: 18px;color:white" title="Show Filters" ng-click="showCase.showFilters()"></i>
+            </button>
+            <button class="btn btn-icon-icon ml10" style="background: white;float:left">
+              <i class="fa fa-download" style="font-size: 15px;border-radius: 18px;color:white" title="Download PDF" ng-click="showCase.downloadPDF()"></i>
+            </button>
+            <button class="btn btn-icon-icon ml10" style="background: white;float:left">
+              <i class="fa fa-plus" style="font-size: 15px;border-radius: 18px;color:white" title="Add Margin" ng-click="showCase.addMargin()"></i>
+            </button>
+          </div>
         </div>
       </div>
     </div>
-    <div class="row col-md-12 col-sm-12 col-xs-12" ng-if="showCase.all_cate.length == 0" style="color:white">
-      <h5>------ No Category Found ------</h5>
-    </div>
-  </div>
-  <!-- Categories End -->
-  <!-- trends by Browse -->
-    <hr ng-if="showCase.cluster_images">
-    <div class="item-display row" style="background: white;" ng-if="showCase.cluster_images">
+    <!-- Categories start -->
+    <div class="item-display row" style="background: white;">
       <div ng-include="'views/outbound/app/create_orders/filters.html'"></div>
       <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-        <span class="label label-primary" style="font-size: 15px; font-family: sans-serif;">Browse By Trends</span>
+        <span class="label label-success" style="font-size: 15px; font-family: sans-serif;">Browse By Categories</span>
       </div>
-      <div class="col-lg-2 col-md-2 col-sm-3 col-xs-4" ng-repeat="image in showCase.cluster_images" ng-click="showCase.change_category(image.cluster_name, 'cluster_name')" style="padding: 10px 5px 0px 5px;">
+      <div class="col-md-2 col-sm-3 col-xs-4" ng-repeat="cat in showCase.all_cate" ng-click="showCase.change_category(cat)" style="padding: 10px 5px 0px 5px;">
         <div>
-          <img ng-src="{{showCase.images_urls+image.image}}" style="border:0px !important;width: 100%;padding: 0px;cursor: pointer;background: transparent" class="img-thumbnail">
+          <img ng-src="{{ showCase.service.check_image_url(showCase.categories_details[cat]) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail hide">
+          <img ng-src="{{ showCase.get_category_image(cat) }}" style="border:0px !important;width: 100%;padding: 0px;cursor: pointer;background: transparent" class="img-thumbnail">
+          <br>
+          <div ng-if="showCase.get_category_image(cat) == '/images/categories/default.png'">
+            <p class="visible-md visible-lg style_name" style="font-size: 16px;position: absolute;bottom: 15px;width: 100%;" title="{{ item.sku_class }}">{{cat}}</p>
+            <p class="visible-sm style_name" style="font-size: 14px;position: absolute;bottom: 10px;width: 95%;" title="{{ item.sku_class }}">{{cat}}</p>
+            <p class="visible-xs style_name" style="font-size: 12px;position: absolute;bottom: 0px;width: 85%;" title="{{ item.sku_class }}">{{cat}}</p>
+          </div>
         </div>
-        <div ng-if = "image.image == '/static/images/categories/default.png'">
-          <p class="visible-md visible-lg style_name" style="font-size: 16px;position: absolute;bottom: 15px;width: 100%;" title="{{ item.sku_class }}">{{image.cluster_name}}</p>
-          <p class="visible-sm style_name" style="font-size: 14px;position: absolute;bottom: 10px;width: 95%;" title="{{ item.sku_class }}">{{image.cluster_name}}</p>
-          <p class="visible-xs style_name" style="font-size: 12px;position: absolute;bottom: 0px;width: 85%;" title="{{ item.sku_class }}">{{image.cluster_name}}</p>
-        </div>
+      </div>
+      <div class="row col-md-12 col-sm-12 col-xs-12" ng-if="showCase.all_cate.length == 0" style="color:white">
+        <h5>------ No Category Found ------</h5>
       </div>
     </div>
-  <!--close trends-->
-</div>
+    <!-- Categories End -->
+    <!-- trends by Browse -->
+      <hr ng-if="showCase.cluster_images">
+      <div class="item-display row" style="background: white;" ng-if="showCase.cluster_images">
+        <div ng-include="'views/outbound/app/create_orders/filters.html'"></div>
+        <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+          <span class="label label-primary" style="font-size: 15px; font-family: sans-serif;">Browse By Trends</span>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-3 col-xs-4" ng-repeat="image in showCase.cluster_images" ng-click="showCase.change_category(image.cluster_name, 'cluster_name')" style="padding: 10px 5px 0px 5px;">
+          <div>
+            <img ng-src="{{showCase.images_urls+image.image}}" style="border:0px !important;width: 100%;padding: 0px;cursor: pointer;background: transparent" class="img-thumbnail">
+          </div>
+          <div ng-if = "image.image == '/static/images/categories/default.png'">
+            <p class="visible-md visible-lg style_name" style="font-size: 16px;position: absolute;bottom: 15px;width: 100%;" title="{{ item.sku_class }}">{{image.cluster_name}}</p>
+            <p class="visible-sm style_name" style="font-size: 14px;position: absolute;bottom: 10px;width: 95%;" title="{{ item.sku_class }}">{{image.cluster_name}}</p>
+            <p class="visible-xs style_name" style="font-size: 12px;position: absolute;bottom: 0px;width: 85%;" title="{{ item.sku_class }}">{{image.cluster_name}}</p>
+          </div>
+        </div>
+      </div>
+    <!--close trends-->
+  </div>
 </div>

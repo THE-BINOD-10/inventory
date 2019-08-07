@@ -317,6 +317,16 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    value: "",
                    perm: "add_clusterskumapping",
                  },
+                 {
+                   title: "Combo Allocate Stock Download/ Upload",
+                   download: "Combo Allocate Stock Download Form",
+                   upload: "Combo Allocate Stock Upload Form",
+                   durl: "combo_allocate_form/",
+                   uurl: "combo_allocate_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   perm: "change_substitutionsummary",
+                 },
                 ]
 
   $scope.download = function(data) {

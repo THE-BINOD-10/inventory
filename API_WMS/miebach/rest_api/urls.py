@@ -581,7 +581,8 @@ urlpatterns += [
     url(r'^custom_order_upload/$', custom_order_upload),
     url(r'^cluster_sku_form/$', cluster_sku_form),
     url(r'^cluster_sku_upload/$', cluster_sku_upload),
-
+    url(r'^combo_allocate_form/$', combo_allocate_form),
+    url(r'^combo_allocate_upload/$', combo_allocate_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

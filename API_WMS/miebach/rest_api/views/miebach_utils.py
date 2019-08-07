@@ -250,6 +250,19 @@ SKU_SUBSTITUTION_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('Sour
                                               ('Destination Quantity', 'dest_quantity'),
                                             ))
 
+COMBO_ALLOCATE_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('Combo SKU Code', 'combo_sku_code'),
+                                              ('Combo Location', 'combo_location'),
+                                              ('Combo Batch Number', 'combo_batch_no'),
+                                              ('Combo MRP', 'combo_mrp'), ('Combo Weight', 'combo_weight'),
+                                              ('Combo Quantity', 'combo_quantity'),
+                                              ('Child SKU Code', 'child_sku_code'),
+                                              ('Child Location', 'child_location'),
+                                              ('Child Batch Number', 'child_batch_no'),
+                                              ('Child MRP', 'child_mrp'),
+                                              ('Child Weight', 'child_weight'),
+                                              ('Child Quantity', 'child_quantity'),
+                                            ))
+
 SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'GSTIN Number', 'PAN Number',
                     'PIN Code', 'City', 'State', 'Country', 'Days required to supply', 'Fulfillment Amount',
                     'Credibility', 'Tax Type(Options: Inter State, Intra State)', 'PO Expiry Duration',

@@ -137,6 +137,21 @@ def get_sku_substitution_excel_headers(user):
     return excel_headers
 
 
+def get_combo_allocate_excel_headers(user):
+    excel_headers = copy.deepcopy(COMBO_ALLOCATE_EXCEL_MAPPING)
+    userprofile = user.userprofile
+    if not userprofile.user_type == 'marketplace_user':
+        del excel_headers["Seller ID"]
+    if not userprofile.industry_type == 'FMCG':
+        del excel_headers["Combo Batch Number"]
+        del excel_headers["Combo MRP"]
+        del excel_headers["Combo Weight"]
+        del excel_headers["Child Batch Number"]
+        del excel_headers["Child MRP"]
+        del excel_headers["Child Weight"]
+    return excel_headers
+
+
 def get_purchase_order_excel_headers(user):
     excel_headers = copy.deepcopy(PURCHASE_ORDER_UPLOAD_MAPPING)
     userprofile = user.userprofile
@@ -7108,6 +7123,19 @@ def validate_cluster_sku_form(request, reader, user, no_of_rows, no_of_cols, fna
         str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Cluster sku Upload Failed")
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def combo_allocate_form(request, user=''):
+    excel_file = request.GET['download-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_headers = get_combo_allocate_excel_headers(user)
+    wb, ws = get_work_sheet('Combo Allocate', excel_headers)
+    return xls_to_response(wb, '%s.combo_allocate_form.xls' % str(user.id))
+
+
 @csrf_exempt
 def validate_combo_allocate_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
     mapping_dict = {}
@@ -7216,7 +7244,7 @@ def validate_combo_allocate_form(request, reader, user, no_of_rows, no_of_cols, 
             stock_dict = {"sku_id": data_dict['child_sku_code_obj'].id,
                           "location_id": data_dict['child_location_obj'].id,
                           "sku__user": user.id, "quantity__gt": 0}
-            eserved_dict = {'stock__sku_id': data_dict['child_sku_code_obj'].id, 'stock__sku__user': user.id,
+            reserved_dict = {'stock__sku_id': data_dict['child_sku_code_obj'].id, 'stock__sku__user': user.id,
                              'status': 1,'stock__location_id': data_dict['child_location_obj'].id}
             child_batch_no = data_dict.get('child_batch_no', '')
             stock_dict["batch_detail__batch_no"] = child_batch_no

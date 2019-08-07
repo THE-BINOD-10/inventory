@@ -2850,7 +2850,9 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
         if data.dest_location:
             dest_location = data.dest_location.location
         temp_data['aaData'].append(
-            OrderedDict((('', checkbox), ('sku_code', data.sku.sku_code), ('avg_sales_day', data.avg_sales_day),
+            OrderedDict((('', checkbox), ('sku_code', data.sku.sku_code),('sku_name', data.sku.sku_desc),
+                         ('sku_category', data.sku.sku_category),
+                         ('avg_sales_day', data.avg_sales_day),
                          ('cumulative_contribution', data.cumulative_contribution),
                          ('classification', data.classification), ('mrp', mrp),
                          ('weight', weight),

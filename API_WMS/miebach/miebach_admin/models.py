@@ -3332,6 +3332,7 @@ class SkuClassification(models.Model):
     reserved = models.FloatField(default=0)
     suggested_qty = models.FloatField(default=0)
     avail_quantity = models.FloatField(default=0)
+    sku_avail_qty = models.FloatField(default=0)
     remarks = models.CharField(max_length=64, default='')
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)

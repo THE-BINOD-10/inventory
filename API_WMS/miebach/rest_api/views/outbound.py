@@ -339,9 +339,16 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     status_dict = eval(status)
     filter_params = {}
-    lis = ['picklist_number', 'order__customer_name', 'remarks',
-          'order__marketplace','order__intermediateorders__project_name', 'order__tempdeliverychallan__dc_number']
+    isprava_permission = get_misc_value('order_exceed_stock', user.id)
+    delivery_challana = get_misc_value('generate_delivery_challan_before_pullConfiramation', user.id)
+    import pdb;pdb.set_trace()
+    lis = ['picklist_number', 'order__customer_name', 'remarks','picklist_number'
+          'order__marketplace']
     admin_user = get_admin(user)
+    if isprava_permission == 'true':
+       lis.append('order__intermediateorders__project_name')
+    if delivery_challana == 'true':
+       lis.append('order__tempdeliverychallan__dc_number')
     if isinstance(status_dict, dict):
         status = status_dict['status']
         if status_dict.get('market_place', ''):

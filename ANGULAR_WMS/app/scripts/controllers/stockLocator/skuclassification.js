@@ -53,6 +53,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         DTColumnBuilder.newColumn('mrp').withTitle('MRP'),
         DTColumnBuilder.newColumn('weight').withTitle('Weight'),
         DTColumnBuilder.newColumn('replenushment_qty').withTitle('Replenushment Qty'),
+        DTColumnBuilder.newColumn('sku_avail_qty').withTitle('SKU Avail Qty'),
         DTColumnBuilder.newColumn('avail_qty').withTitle('BA Avail Qty'),
         DTColumnBuilder.newColumn('min_stock_qty').withTitle('Min Stock'),
         DTColumnBuilder.newColumn('max_stock_qty').withTitle('Max Stock'),

@@ -2817,8 +2817,9 @@ def confirm_combo_allocation(request, user=''):
 
 @csrf_exempt
 def get_skuclassification(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['sku__sku_code', 'sku__sku_code', 'avg_sales_day', 'cumulative_contribution', 'classification',
-           'source_stock__batch_detail__mrp', 'source_stock__batch_detail__weight', 'replenushment_qty',
+    lis = ['sku__sku_code', 'sku__sku_code', 'sku__sku_desc','sku__sku_category','avg_sales_day',
+           'cumulative_contribution', 'classification',
+           'source_stock__batch_detail__mrp', 'source_stock__batch_detail__weight', 'replenushment_qty','sku_avail_qty',
            'avail_quantity', 'min_stock_qty', 'max_stock_qty', 'source_stock__location__location',
            'dest_location__location',
            'reserved', 'remarks']
@@ -2857,6 +2858,7 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
                          ('classification', data.classification), ('mrp', mrp),
                          ('weight', weight),
                          ('replenushment_qty', data.replenushment_qty),
+                         ('sku_avail_qty', data.sku_avail_qty),
                          ('avail_qty', data.avail_quantity),
                          ('min_stock_qty', int(data.min_stock_qty)),
                          ('max_stock_qty', int(data.max_stock_qty)),
@@ -3088,6 +3090,7 @@ def ba_to_sa_calculate_now(request, user=''):
                                                'replenushment_qty': replenishment_qty, 'reserved': suggested_qty,
                                                'suggested_qty': suggested_qty,
                                                'avail_quantity': total_ba_stock,
+                                               'sku_avail_qty': sku_avail_qty,
                                                'dest_location_id': locations[0].id, 'seller_id': seller_master.id,
                                                'min_stock_qty': min_stock, 'max_stock_qty': max_stock,
                                                'status': 1}

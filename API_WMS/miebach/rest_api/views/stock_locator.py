@@ -2829,7 +2829,8 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
         order_data = '-%s' % order_data
     if search_term:
         master_data = SkuClassification.objects.filter(
-                Q(sku__wms_code__icontains=search_term) | Q(classification____icontains=search_term) |
+                Q(sku__wms_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term) |
+                Q(sku__sku_category__icontains=search_term) | Q(classification__icontains=search_term) |
                 Q(source_stock__batch_detail__mrp__icontains=search_term) |
                 Q(source_stock__batch_detail__weight__icontains=search_term),
                 sku__user=user.id, status=1).order_by(order_data)

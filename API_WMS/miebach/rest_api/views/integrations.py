@@ -885,6 +885,8 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
     for key, val in sku_mapping.iteritems():
         if key in exclude_list:
             continue
+        if val not in sku_data.keys():
+            continue
         value = sku_data.get(val, '')
         if key in number_fields:
             try:

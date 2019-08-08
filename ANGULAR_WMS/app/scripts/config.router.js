@@ -285,7 +285,7 @@ var app = angular.module('urbanApp')
         .state('app.masters.LocationMaster', {
           url: '/LocationMaster',
           permission: 'add_locationmaster',
-          templateUrl: 'views/masters/location_master.html',
+          templateUrl: 'views/masters/location_master_datatable.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load('scripts/controllers/masters/locationMaster.js');
@@ -1671,9 +1671,13 @@ var app = angular.module('urbanApp')
                        'scripts/controllers/outbound/customer_invoices_main.js'
                         ]).then( function() {
                   return $ocLazyLoad.load([
-                    'scripts/controllers/outbound/stock_transfer_invoice.js'
+                    'scripts/controllers/outbound/stock_transfer_invoice.js',
                   ])
-                })
+                }).then( function() {
+            return $ocLazyLoad.load([
+               'scripts/controllers/outbound/picklistdc.js',
+          ])
+        })
             }]
           },
           data: {
@@ -1712,6 +1716,10 @@ var app = angular.module('urbanApp')
          .state('app.outbound.CustomerInvoices.InvoiceM', {
             url: '/InvoiceM',
             templateUrl: 'views/outbound/print/customer_inv.html'
+         })
+         .state('app.outbound.CustomerInvoicesMain.dc', {
+            url: '/picklistdc',
+            templateUrl: 'views/outbound/print/picklist_dc.html'
          })
          .state('app.outbound.CustomerInvoices.InvoiceN', {
             url: '/InvoiceN',
@@ -2418,7 +2426,7 @@ var app = angular.module('urbanApp')
           }
         })
         .state('app.reports.BasaReport', {
-          url: '/MarginReport',
+          url: '/BASAReport',
           templateUrl: 'views/reports/basa_report.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -2426,7 +2434,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Margin Report',
+            title: 'BASA Report',
           }
         })
       // configuration route

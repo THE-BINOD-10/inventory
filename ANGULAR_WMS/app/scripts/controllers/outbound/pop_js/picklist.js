@@ -921,7 +921,8 @@ function pull_confirmation() {
     vm.service.apiCall('generate_picklist_dc/', 'POST', formdata, true).then(function(data){
       if(data.message) {
         vm.pdf_data = data.data;
-        vm.DeliveryChallanPopup(vm.pdf_data)      }
+        vm.DeliveryChallanPopup(vm.pdf_data)
+      }
       vm.bt_disable = false;
     });
   }

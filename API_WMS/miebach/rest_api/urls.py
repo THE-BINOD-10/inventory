@@ -403,10 +403,12 @@ urlpatterns = [
     url(r'^get_distributor_order/$', get_distributor_order),
     url(r'^sm_cancel_distributor_order/$', sm_cancel_distributor_order),
     url(r'^get_order_extra_options/$', get_order_extra_options),
+    url(r'^get_picklist_delivery_challan/$', get_picklist_delivery_challan),
+    url(r'^generate_dc/$', generate_dc),
+
     url(r'^remove_customer_profile_image/$', remove_customer_profile_image),
     url(r'^print_pdf_my_orders_swiss/$', print_pdf_my_orders_swiss),
     url(r'^sm_custom_order_cancel/$', sm_custom_order_cancel),
-
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),
@@ -579,7 +581,8 @@ urlpatterns += [
     url(r'^custom_order_upload/$', custom_order_upload),
     url(r'^cluster_sku_form/$', cluster_sku_form),
     url(r'^cluster_sku_upload/$', cluster_sku_upload),
-
+    url(r'^combo_allocate_form/$', combo_allocate_form),
+    url(r'^combo_allocate_upload/$', combo_allocate_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

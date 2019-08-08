@@ -628,7 +628,7 @@ class StockDetail(models.Model):
     class Meta:
         db_table = 'STOCK_DETAIL'
         unique_together = ('receipt_number', 'receipt_date', 'sku', 'location', 'pallet_detail', 'batch_detail', 'unit_price', 'receipt_type')
-        index_together = (('sku', 'location', 'quantity'), ('location', 'sku', 'pallet_detail'), ('receipt_number', ))
+        index_together = (('sku', 'location', 'quantity'), ('location', 'sku', 'pallet_detail'))
 
     def __unicode__(self):
         return str(self.sku) + " : " + str(self.location)
@@ -3289,6 +3289,19 @@ class ClassificationSettings(models.Model):
 
     class Meta:
         db_table = 'CLASSIFICATION_SETTINGS'
+
+class TempDeliveryChallan(models.Model):
+    id  = BigAutoField(primary_key=True)
+    order = models.ForeignKey(OrderDetail)
+    picklist_number = models.PositiveIntegerField()
+    dcjson =  models.TextField(default='')
+    dc_number = models.CharField(max_length=64, default='')
+    total_qty = models.PositiveIntegerField()
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'TEMP_DELIVERY_CHALLAN'
 
 class ReplenushmentMaster(models.Model):
     id = BigAutoField(primary_key=True)

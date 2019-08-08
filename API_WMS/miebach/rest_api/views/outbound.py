@@ -339,6 +339,8 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     status_dict = eval(status)
     filter_params = {}
+    lis = ['picklist_number', 'order__customer_name', 'remarks',
+          'order__marketplace','order__intermediateorders__project_name']
     admin_user = get_admin(user)
     if isinstance(status_dict, dict):
         status = status_dict['status']
@@ -363,11 +365,9 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     all_picks = Picklist.objects.select_related('order', 'stock').\
                                 filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id), **filter_params)
     if search_term:
-        master_data = all_picks.filter(
-            Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).filter(
-            Q(picklist_number__icontains=search_term) | Q(remarks__icontains=search_term) | Q(
-                order__marketplace__icontains=search_term) | Q(order__customer_name__icontains=search_term)| Q(order__intermediateorders__project_name__icontains=search_term)| Q(order__tempdeliverychallan__dc_number=search_term))
-
+        search_term = search_term.replace('(', '\(').replace(')', '\)')
+        search_query = build_search_term_query(lis, search_term)
+        master_data = all_picks.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).filter(search_query)
     elif order_term:
         # col_num = col_num - 1
         order_data = header.values()[col_num]

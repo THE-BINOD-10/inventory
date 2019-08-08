@@ -340,7 +340,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     status_dict = eval(status)
     filter_params = {}
     lis = ['picklist_number', 'order__customer_name', 'remarks',
-          'order__marketplace','order__intermediateorders__project_name']
+          'order__marketplace','order__intermediateorders__project_name', 'order__tempdeliverychallan__dc_number']
     admin_user = get_admin(user)
     if isinstance(status_dict, dict):
         status = status_dict['status']

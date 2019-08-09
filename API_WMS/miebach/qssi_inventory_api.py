@@ -244,6 +244,7 @@ def update_inventory(company_name):
     resp = {}
     for user_id in integration_users:
         user = User.objects.get(id=user_id)
+        data = {"SKUIds": []}
         if not resp:
             resp = get_inventory(data, user)
         calc_update_inventory(resp, user)

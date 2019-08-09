@@ -7072,9 +7072,7 @@ def get_sku_variants(request, user=''):
                                     levels_config=levels_config, dist_wh_id=dist_userid, level=level,
                                     is_style_detail=is_style_detail, needed_stock_data=needed_stock_data
                                     )
-    nk_map = {}
-    if get_priceband_admin_user(user):
-        # wh_admin = get_priceband_admin_user(user)
+    if get_priceband_admin_user(user) and level != 0:
         integration_obj = Integrations.objects.filter(user=user.id)
         if not integration_obj and not is_distributor:
             dist_customer = WarehouseCustomerMapping.objects.filter(warehouse=user.id, status=1)
@@ -7083,6 +7081,7 @@ def get_sku_variants(request, user=''):
         if integration_obj:
             company_name = integration_obj[0].name
             integration_users = Integrations.objects.filter(name=company_name).values_list('user', flat=True)
+            api_resp = {}
             for user_id in integration_users:
                 user = User.objects.get(id=user_id)
                 #if qssi, update inventory first
@@ -7090,8 +7089,8 @@ def get_sku_variants(request, user=''):
                     sku_ids = [item['wms_code'] for item in sku_master]
                     suffix_tu_skus = map(lambda x: x+'-TU', sku_ids)
                     all_skus = sku_ids + suffix_tu_skus
-                    api_resp = get_inventory(all_skus, user)
-                    # api_resp = {}
+                    if not api_resp:
+                        api_resp = get_inventory(all_skus, user)
                     calc_update_inventory(api_resp, user)
     sku_master, total_qty = all_whstock_quant(sku_master, user, level, lead_times, dist_reseller_leadtime)
     central_order_mgmt = get_misc_value('central_order_mgmt', user.id)

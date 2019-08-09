@@ -242,10 +242,25 @@ SKU_SUBSTITUTION_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('Sour
                                               ('Source Location', 'source_location'),
                                               ('Source Batch Number', 'source_batch_no'),
                                               ('Source MRP', 'source_mrp'), ('Source Quantity', 'source_quantity'),
+                                              ('Source Weight','source_weight'),
                                               ('Destination SKU Code', 'dest_sku_code'),
                                               ('Destination Location', 'dest_location'),
                                               ('Destination Batch Number', 'dest_batch_no'),
-                                              ('Destination MRP', 'dest_mrp'), ('Destination Quantity', 'dest_quantity'),
+                                              ('Destination MRP', 'dest_mrp'), ('Destination Weight', 'dest_weight'),
+                                              ('Destination Quantity', 'dest_quantity'),
+                                            ))
+
+COMBO_ALLOCATE_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('Combo SKU Code', 'combo_sku_code'),
+                                              ('Combo Location', 'combo_location'),
+                                              ('Combo Batch Number', 'combo_batch_no'),
+                                              ('Combo MRP', 'combo_mrp'), ('Combo Weight', 'combo_weight'),
+                                              ('Combo Quantity', 'combo_quantity'),
+                                              ('Child SKU Code', 'child_sku_code'),
+                                              ('Child Location', 'child_location'),
+                                              ('Child Batch Number', 'child_batch_no'),
+                                              ('Child MRP', 'child_mrp'),
+                                              ('Child Weight', 'child_weight'),
+                                              ('Child Quantity', 'child_quantity'),
                                             ))
 
 SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'GSTIN Number', 'PAN Number',
@@ -2569,15 +2584,17 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
     from rest_api.views.common import get_sku_master, get_order_detail_objs
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters = {}
+    warehouse_users = {}
+    central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
     if customer_view:
-        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc']#'order__quantity', 'picked_quantity']
+        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__user']#'order__quantity', 'picked_quantity']
         model_obj = Picklist
         param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
         search_parameters.update({'status__in': ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched'],
                                   #'picked_quantity__gt': 0,
                                   'stock__gt': 0,
-                                  'order__user': user.id,
-                                  'order__sku_id__in': sku_master_ids
+                                  # 'order__user': user.id,
+                                  # 'order__sku_id__in': sku_master_ids
                                 })
     else:
         if serial_view:
@@ -2587,8 +2604,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
             model_obj = OrderIMEIMapping
             param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
             search_parameters['status'] = 1
-            search_parameters['order__user'] = user.id
-            search_parameters['order__sku_id__in'] = sku_master_ids
+            # search_parameters['order__user'] = user.id
+            # search_parameters['order__sku_id__in'] = sku_master_ids
         else:
             lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__sku_desc', 'stock__location__location',
                    'picked_quantity', 'picked_quantity', 'updation_date', 'updation_date', 'order__customer_name', 'stock__batch_detail__batch_no', 'stock__batch_detail__mrp', 'stock__batch_detail__manufactured_date', 'stock__batch_detail__expiry_date']
@@ -2597,8 +2614,6 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
             search_parameters['status__in'] = ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched']
             search_parameters['picked_quantity__gt'] = 0
             #search_parameters['stock__gt'] = 0
-            search_parameters['order__user'] = user.id
-            search_parameters['order__sku_id__in'] = sku_master_ids
 
     temp_data = copy.deepcopy(AJAX_DATA)
 
@@ -2619,6 +2634,19 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
         search_parameters['order__customer_id'] = search_params['customer_id']
     if 'imei_number' in search_params and serial_view:
         search_parameters['po_imei__imei_number'] = search_params['imei_number']
+    if user.username == 'isprava_admin':
+        if 'sister_warehouse' in search_params:
+            sister_warehouse_name = search_params['sister_warehouse']
+            user = User.objects.get(username=sister_warehouse_name)
+            warehouses = UserGroups.objects.filter(user_id=user.id)
+        else:
+            warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+        warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
+        sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
+        sku_master_ids = sku_master.values_list('id', flat=True)
+    else:
+        search_parameters['order__user'] = user.id
+    search_parameters['order__sku_id__in'] = sku_master_ids
     if 'order_id' in search_params:
         order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])
         if order_detail:
@@ -2659,7 +2687,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                     ('WMS Code', data['order__sku__wms_code']),
                                                     ('Description', data['order__sku__sku_desc']),
                                                     ('Quantity', data['qty']),
-                                                    ('Picked Quantity', data['qty'] - data['res_qty'])
+                                                    ('Picked Quantity', data['qty'] - data['res_qty']),
+                                                    ('Warehouse', warehouse_users.get(data['order__sku__user']))
                                                   )))
         else:
             if not serial_view:
@@ -2687,7 +2716,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Picked Quantity', data.picked_quantity),
                                                             ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])), ('Customer Name', customer_name),
                                                             ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
-                                                            ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate))))
+                                                            ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate),
+                                                            ('Warehouse', warehouse_users.get(data.order.user)))))
                 pick_locs = data.picklistlocation_set.exclude(reserved=0, quantity=0)
                 for pick_loc in pick_locs:
                     picked_quantity = float(pick_loc.quantity) - float(pick_loc.reserved)
@@ -2709,7 +2739,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Picked Quantity', picked_quantity),
                                                             ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])), ('Customer Name', customer_name),
                                                             ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
-                                                            ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate))))
+                                                            ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate),
+                                                            ('Warehouse', warehouse_users.get(data.order.user)))))
             else:
                 order_id = data.order.original_order_id
                 if not order_id:
@@ -2726,7 +2757,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                         ('Description', data.order.sku.sku_desc),
                                                         ('Customer Name', data.order.customer_name),
                                                         ('Serial Number', serial_number),
-                                                        ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])))))
+                                                        ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])),
+                                                        ('Warehouse', warehouse_users.get(data.order.user)))))
     return temp_data
 
 
@@ -3252,9 +3284,12 @@ def get_po_filter_data(search_params, user, sub_user):
 
 def get_stock_summary_data(search_params, user, sub_user):
     from miebach_admin.models import *
+    from common import get_misc_value
     from rest_api.views.common import get_sku_master
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     temp_data = copy.deepcopy(AJAX_DATA)
+    central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
+    warehouse_users = {}
     search_parameters = {}
     search_stage = search_params.get('stage', '')
     stage_filter = {'user': user.id}
@@ -3275,13 +3310,23 @@ def get_stock_summary_data(search_params, user, sub_user):
             search_parameters['%s__%s__%s' % ('sku', data, 'iexact')] = search_params[data]
             job_filter['%s__%s__%s' % ('product_code', data, 'iexact')] = search_params[data]
 
-    search_parameters['sku__user'] = user.id
+    if user.username == 'isprava_admin':
+        if 'sister_warehouse' in search_params:
+            sister_warehouse_name = search_params['sister_warehouse']
+            user = User.objects.get(username=sister_warehouse_name)
+            warehouses = UserGroups.objects.filter(user_id=user.id)
+        else:
+            warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+        warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
+        sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
+        sku_master_ids = sku_master.values_list('id', flat=True)
+    else:
+        search_parameters['sku__user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
-
     sku_master = StockDetail.objects.exclude(receipt_number=0).values_list('sku_id', 'sku__sku_code', 'sku__sku_desc',
                                                                            'sku__sku_brand',
-                                                                           'sku__sku_category').distinct().annotate(
-        total=Sum('quantity')).filter(quantity__gt=0,
+                                                                           'sku__sku_category', 'sku__user').distinct().annotate(
+        total=Sum('quantity'), stock_value=Sum(F('quantity') * F('sku__cost_price'))).filter(quantity__gt=0,
                                       **search_parameters)
     if search_stage and not search_stage == 'In Stock':
         sku_master = []
@@ -3309,9 +3354,10 @@ def get_stock_summary_data(search_params, user, sub_user):
     sku_master_list = []
     for ind, sku in enumerate(sku_master):
         sku_stages_dict = {}
+        total_stock_value = 0
         intransit_quantity = 0
-        if len(list(sku)) == 6:
-            sku_stages_dict['In Stock'] = sku[5]
+        if len(list(sku)) >= 6:
+            sku_stages_dict['In Stock'] = sku[6]
         if sku[0] in intransit_skus:
             total_ordered = map(lambda d: d['total_order'], purchase_orders)[intransit_skus.index(sku[0])]
             total_received = map(lambda d: d['total_received'], purchase_orders)[intransit_skus.index(sku[0])]
@@ -3326,14 +3372,22 @@ def get_stock_summary_data(search_params, user, sub_user):
 
         tracking = dict(zip(map(lambda d: d.get('status_value', ''), status_track),
                             map(lambda d: d.get('total', '0'), status_track)))
+        
         for head in extra_headers:
             quantity = tracking.get(head, 0)
             if quantity:
                 sku_stages_dict[head] = tracking.get(head, 0)
+
         for key, value in sku_stages_dict.iteritems():
+            warehouse = 0
+            stock_value = 0
+            if sku[5]:
+                warehouse = warehouse_users.get(sku[5])
+            if sku[7]:
+               stock_value = sku[7]
             sku_master_list.append(OrderedDict((('SKU Code', sku[1]), ('Description', sku[2]),
                                                 ('Brand', sku[3]), ('Category', sku[4]),
-                                                ('Stage', key), ('Stage Quantity', value))))
+                                                ('Stage', key), ('Stage Quantity', value), ('Stock Value', stock_value),  ('Warehouse', warehouse))))
 
     temp_data['recordsTotal'] = len(sku_master_list)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -3972,7 +4026,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('SKU Class', data['sku__sku_class']),
                                                     ('SKU Size', data['sku__sku_size']), ('SKU Description', data['sku__sku_desc']),
                                                     ('SKU Code', data['sku__sku_code']), ('Order Qty', int(data['quantity'])),
-                                                    ('MRP', int(data['sku__mrp'])), ('Unit Price', float(unit_price_inclusive_tax)),
+                                                    ('MRP', mrp_price), ('Unit Price', float(unit_price_inclusive_tax)),
                                                     ('Discount', discount),
                                                     ('Serial Number',serial_number),
                                                     ('Invoice Number',invoice_number),
@@ -7282,28 +7336,40 @@ def get_basa_report_data(search_params, user, sub_user):
             search_parameters['sku__sku_code'] = search_params['sku_code']
     search_parameters['sku_id__in'] = sku_master_ids
     search_params['location__location__in'] = locations
-    if 'from_date' in search_params:
-        search_parameters['creation_date__gt'] = search_params['from_date']
-    if 'to_date' in search_params:
-        search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
+    #if 'from_date' in search_params:
+    #    search_parameters['creation_date__gt'] = search_params['from_date']
+    #if 'to_date' in search_params:
+    #    search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
     stock_data = StockDetail.objects.filter(**search_parameters).values('sku__sku_code','sku__sku_desc','batch_detail__mrp',\
                                                                      'batch_detail__weight','sku__id',
                                                                      'sku__sku_brand','sku__sku_category','sku__sub_category').annotate(total_quantity=Sum('quantity'),average_cp = Sum(F('quantity')*F('batch_detail__buy_price')))
 
-    temp_data['recordsTotal'] =len(stock_data)
+    temp_data['recordsTotal'] = stock_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     quantity = 0
     avearage_cost_price = 0
     grn_quantity = 0
     grn_price = 0
-    for data in (stock_data[start_index:stop_index]):
-        seller_po = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id = data['sku__id']).order_by('-id')
-        if seller_po.exists():
-            seller_po = seller_po[0]
-            grn_quantity = seller_po.quantity
-            if seller_po.batch_detail :
-                grn_price = seller_po.batch_detail.buy_price
+    stock_data = stock_data[start_index:stop_index]
+    if not stop_index:
+        stock_sku_ids = list(stock_data.values_list('sku_id', flat=True))
+        grn_data = SellerPOSummary.objects.prefetch_related('purchase_order__open_po__sku').filter(batch_detail__isnull=False, purchase_order__open_po__sku_id__in=stock_sku_ids)
+        sku_grn_price = OrderedDict(grn_data.values_list('purchase_order__open_po__sku__sku_code', 'batch_detail__buy_price').order_by('id'))
+        sku_grn_quantity = OrderedDict(grn_data.values_list('purchase_order__open_po__sku__sku_code', 'quantity').order_by('id'))
+    for data in stock_data:
+        print data['sku__sku_code']
+        if not stop_index:
+            grn_price = sku_grn_price.get(data['sku__sku_code'], 0)
+            grn_quantity = sku_grn_quantity.get(data['sku__sku_code'], 0)
+        else:
+            try:
+                seller_po = SellerPOSummary.objects.filter(location__zone__user=user.id, purchase_order__open_po__sku__sku_code=data['sku__sku_code']).latest('id')
+                grn_quantity = seller_po.quantity
+                if seller_po.batch_detail:
+                    grn_price = seller_po.batch_detail.buy_price
+            except:
+                grn_price = 0
         quantity = data['total_quantity']
         if quantity and data['average_cp']:
             avearage_cost_price = data['average_cp']/quantity

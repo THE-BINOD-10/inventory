@@ -3290,6 +3290,19 @@ class ClassificationSettings(models.Model):
     class Meta:
         db_table = 'CLASSIFICATION_SETTINGS'
 
+class TempDeliveryChallan(models.Model):
+    id  = BigAutoField(primary_key=True)
+    order = models.ForeignKey(OrderDetail)
+    picklist_number = models.PositiveIntegerField()
+    dcjson =  models.TextField(default='')
+    dc_number = models.CharField(max_length=64, default='')
+    total_qty = models.PositiveIntegerField()
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'TEMP_DELIVERY_CHALLAN'
+
 class ReplenushmentMaster(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)
@@ -3319,6 +3332,7 @@ class SkuClassification(models.Model):
     reserved = models.FloatField(default=0)
     suggested_qty = models.FloatField(default=0)
     avail_quantity = models.FloatField(default=0)
+    sku_avail_qty = models.FloatField(default=0)
     remarks = models.CharField(max_length=64, default='')
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)

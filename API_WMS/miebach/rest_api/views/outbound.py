@@ -4358,8 +4358,8 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
             order_data[key] = value
         elif key == 'shipment_date':
             if value:
-                ship_date = value.split('/')
-                order_data[key] = datetime.date(int(ship_date[2]), int(ship_date[0]), int(ship_date[1]))
+                #ship_date = value.split('/')
+                order_data[key] = datetime.datetime.strptime(value, '%d/%m/%Y').date()
         elif key == 'total_amount':
             try:
                 value = float(myDict[key][i])

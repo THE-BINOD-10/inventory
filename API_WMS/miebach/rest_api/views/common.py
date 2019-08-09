@@ -7542,6 +7542,11 @@ def fetch_unit_price_based_ranges(dest_loc_id, level, admin_id, wms_code):
 def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_objs, is_distributor,
                          order_summary_dict, ship_to, corporate_po_number, client_name, admin_user, sku_total_qty_map,
                          order_user_sku, order_user_objs, address_selected=''):
+    if order_data.get('del_date', ''):
+        if order_data['del_date'].date() >= order_data['shipment_date']:
+            order_data['shipment_date'] = order_data.get('del_date', '')
+        else:
+            order_data['del_date'] = order_data['shipment_date']
     order_data1 = copy.deepcopy(order_data)
     order_data_excluding_keys = ['warehouse_level', 'margin_data', 'el_price', 'del_date']
     order_unit_price = order_data1['unit_price']

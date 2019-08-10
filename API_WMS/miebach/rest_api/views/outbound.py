@@ -15740,12 +15740,14 @@ def generate_picklist_dc(request, user=''):
         tempdc = TempDeliveryChallan.objects.filter(order = value.values()[0].get('order'))
         if tempdc.exists():
             invoice_data['dc_number'] =  tempdc[0].dc_number
+            invoice_data['inv_date'] = tempdc[0].creation_date.strftime("%Y-%m-%d")
             if not tempdc[0].dc_number:
                 challan_num = get_challan_number_for_dc(order , user)
                 temp = tempdc[0]
                 temp.dc_number = challan_num
                 temp.save()
                 invoice_data['dc_number'] = challan_num
+                invoice_data['inv_date'] = tempdc[0].creation_date.strftime("%Y-%m-%d")
         if not tempdc.exists():
             delivery_challan_dict = {}
             challan_num = get_challan_number_for_dc(order , user)
@@ -15759,6 +15761,7 @@ def generate_picklist_dc(request, user=''):
                 dc_create['order'] = ''
                 delivery_challan_dict['dcjson'] = json.dumps(dc_create)
                 TempDeliveryChallan.objects.create(**delivery_challan_dict)
+                invoice_data['inv_date'] = datetime.datetime.now().strftime("%Y%m%d")
 
 
     return render(request, 'templates/toggle/delivery_challan_batch_level.html', invoice_data)
@@ -16018,6 +16021,7 @@ def generate_dc(request , user = ''):
                 batch_group_data = temp_dc_objs[0].dcjson
                 dc_number_obj = temp_dc_objs[0].dc_number
                 total_qty = temp_dc_objs[0].total_qty
+                creation_date = temp_dc_objs[0].creation_date
 
                 customer_address =[]
                 customer_details = []
@@ -16066,6 +16070,7 @@ def generate_dc(request , user = ''):
                 invoice_data['iterator'] = iterator
                 invoice_data['dc_number'] = dc_number_obj
                 invoice_data['total_quantity'] = total_qty
+                invoice_data['inv_date'] = creation_date.strftime("%Y-%m-%d")
 
 
     return render(request, 'templates/toggle/delivery_challan_batch_level.html', invoice_data)

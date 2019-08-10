@@ -9700,3 +9700,18 @@ def get_current_weight(request, user=''):
         return HttpResponse(json.dumps({'weight': result_val, 'is_updated': is_updated, 'status': 1}))
     else:
         return HttpResponse(json.dumps({'weight': 0 , 'is_updated': False, 'status': 0}))
+
+
+@csrf_exempt
+def get_zonal_admin_id(admin_user, reseller):
+    zonal_id = 0
+    try:
+        zonal_admin_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+            Q(userprofile__zone=reseller.userprofile.zone)).values_list('id', flat=True)
+        if zonal_admin_id:
+            zonal_id = zonal_admin_id[0]
+            return zonal_id
+    except Exception as e:
+        import traceback
+        log.info(traceback.format_exc())
+        log.info('Users List exception raised')

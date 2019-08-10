@@ -12943,6 +12943,7 @@ def move_enquiry_to_order(request, user=''):
 @get_admin_user
 def extend_enquiry_date(request, user = ''):
     message = 'Success'
+    users_list = []
     extended_date = request.GET.get('extended_date', '')
     enquiry_id = request.GET.get('order_id', '')
     if not enquiry_id:
@@ -12964,6 +12965,7 @@ def extend_enquiry_date(request, user = ''):
     try:
         enq_qs = EnquiryMaster.objects.filter(enquiry_id=enquiry_id, customer_id=cm_id)
         if enq_qs:
+            users_list.append(admin_user.id)
             ext_dt = datetime.datetime.strptime(extended_date, '%m/%d/%Y')
             ct_dtt = enq_qs[0].creation_date
             ct_dt = ct_dtt.replace(tzinfo=None)
@@ -12971,11 +12973,27 @@ def extend_enquiry_date(request, user = ''):
             days = dt_days.days
             username = request.user.username
             if user_profile[0].user_type != 'customer':
+                if user_profile[0].user_type != 'customer' and request.user.username.lower() == 'sm_admin':
+                    reseller = UserProfile.objects.filter(user = enq_qs[0].user)[0].user
+                    zonal_admin_id = get_zonal_admin_id(admin_user,reseller)
+                    users_list.append(zonal_admin_id)
+                else:
+                    users_list.append(request.user.id)
+                users_list.append(enq_qs[0].user)
+                contents = {"en": "%s has extended date to %s for order %s"\
+                          % (request.user.username, str(extended_date), str(enquiry_id))}
                 if days > date_ext_days and username.lower() != 'sm_admin':
                     return HttpResponse('Admin')
+            else:
+                zonal_admin_id = get_zonal_admin_id(admin_user,user)
+                users_list.append(zonal_admin_id)
+                users_list.append(user.id)
+                contents = {"en": "%s-%s is requested to extend date upto %s for order %s"\
+                          % (request.user.username, request.user.first_name, str(extended_date), str(enquiry_id))}
             enq_qs[0].extend_status = extend_status
             enq_qs[0].extend_date = datetime.datetime.strptime(extended_date, '%m/%d/%Y')
             enq_qs[0].save()
+            send_push_notification(contents, users_list)
     except:
         import traceback
         log.debug(traceback.format_exc())

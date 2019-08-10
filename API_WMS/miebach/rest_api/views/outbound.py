@@ -15761,7 +15761,7 @@ def generate_picklist_dc(request, user=''):
                 dc_create['order'] = ''
                 delivery_challan_dict['dcjson'] = json.dumps(dc_create)
                 TempDeliveryChallan.objects.create(**delivery_challan_dict)
-                invoice_data['inv_date'] = datetime.datetime.now().strftime("%Y%m%d")
+                invoice_data['inv_date'] = datetime.datetime.now().strftime("%Y-%m-%d")
 
 
     return render(request, 'templates/toggle/delivery_challan_batch_level.html', invoice_data)

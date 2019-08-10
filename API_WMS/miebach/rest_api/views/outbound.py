@@ -12946,6 +12946,7 @@ def extend_enquiry_date(request, user = ''):
     users_list = []
     extended_date = request.GET.get('extended_date', '')
     enquiry_id = request.GET.get('order_id', '')
+    status = request.GET.get('extend_status','')
     if not enquiry_id:
         enquiry_id = request.GET.get('enquiry_id', '')
     user_profile = UserProfile.objects.filter(user=request.user.id)
@@ -12980,8 +12981,8 @@ def extend_enquiry_date(request, user = ''):
                 else:
                     users_list.append(request.user.id)
                 users_list.append(enq_qs[0].user)
-                contents = {"en": "%s has extended date to %s for order %s"\
-                          % (request.user.username, str(extended_date), str(enquiry_id))}
+                contents = {"en": "%s has %s to  extend date upto %s for order %s"\
+                          % (request.user.username, str(status), str(extended_date), str(enquiry_id))}
                 if days > date_ext_days and username.lower() != 'sm_admin':
                     return HttpResponse('Admin')
             else:

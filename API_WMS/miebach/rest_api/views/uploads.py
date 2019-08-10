@@ -7289,7 +7289,7 @@ def validate_combo_allocate_form(request, reader, user, no_of_rows, no_of_cols, 
             group_key = '%s<<>>%s<<>>%s<<>>%s<<>>%s' % (str(data_dict['combo_sku_code_obj'].sku_code), str(data_dict['combo_location_obj'].location),
                                                   str(combo_batch_no), str(combo_mrp), str(combo_weight))
             final_data.setdefault(group_key, {'combo_sku': data_dict['combo_sku_code_obj'], 'combo_loc': data_dict['combo_location_obj'],
-                                              'combo_batch_no': combo_batch_no, 'combo_mrp': combo_mrp,'seller_id':seller_id,
+                                              'combo_batch_no': combo_batch_no, 'combo_mrp': combo_mrp,'seller_id':data_dict.get('seller_master_id', ''),
                                               'combo_qty': data_dict.get('combo_quantity',0), 'combo_mrp_dict': mrp_dict,
                                               'combo_stocks': combo_stocks, 'combo_weight': combo_weight,
                                               'childs': []})

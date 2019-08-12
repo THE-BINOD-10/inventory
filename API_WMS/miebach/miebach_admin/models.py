@@ -3350,6 +3350,6 @@ class UserTextFields(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
-     class Meta:
+    class Meta:
         db_table = 'USER_TEXT_FIELD'
         unique_together = ('user', 'type')

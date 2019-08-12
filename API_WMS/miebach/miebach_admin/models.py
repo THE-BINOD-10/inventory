@@ -3341,3 +3341,15 @@ class SkuClassification(models.Model):
     class Meta:
         db_table = 'SKU_CLASSIFICATION'
         unique_together = ('sku', 'classification', 'source_stock', 'seller', 'status')
+
+class UserTextFields(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    type = models.CharField(max_length=32, default='')
+    text_field = models.TextField(default='', blank=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+     class Meta:
+        db_table = 'USER_TEXT_FIELD'
+        unique_together = ('user', 'type')

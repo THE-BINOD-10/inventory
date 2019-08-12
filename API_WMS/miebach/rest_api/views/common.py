@@ -4179,8 +4179,11 @@ def get_group_data(request, user=''):
                                                        'View Order Statuses': statuses}}))
 
 
-def get_sku_master(user, sub_user):
-    sku_master = SKUMaster.objects.filter(user=user.id)
+def get_sku_master(user, sub_user, is_list=''):
+    if not is_list:
+        sku_master = SKUMaster.objects.filter(user=user.id)
+    else:
+        sku_master = SKUMaster.objects.filter(user__in=user)
     sku_master_ids = sku_master.values_list('id', flat=True)
     if not sub_user.is_staff:
         sub_user_groups = sub_user.groups.filter().exclude(name=user.username).values_list('name', flat=True)

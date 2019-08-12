@@ -2879,12 +2879,8 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                                     creation_date=creation_date)
         purchase_order = OpenPO.objects.get(id=data1.id, sku__user=user.id)
         sup_id = purchase_order.id
-        supplier = purchase_order.supplier_id
-        if supplier not in ids_dict:
-            po_id = po_id + 1
-            ids_dict[supplier] = po_id
         data['open_po_id'] = sup_id
-        data['order_id'] = ids_dict[supplier]
+        data['order_id'] = po_id
         if user_profile:
             data['prefix'] = user_profile.prefix
         order = PurchaseOrder(**data)

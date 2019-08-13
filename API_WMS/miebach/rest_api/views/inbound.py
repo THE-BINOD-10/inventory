@@ -303,7 +303,7 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
         sort_col = '-%s' % sort_col
         sort_col1 = '-%s' % sort_col1
         sort_col2 = '-%s' % sort_col2
-    results = PurchaseOrder.objects.filter(id__in=results1).order_by(sort_col, sort_col1, sort_col2).values_list('order_id', flat=True).distinct()
+    results = PurchaseOrder.objects.filter(id__in=results1).order_by(sort_col, sort_col1, sort_col2).values('order_id', 'open_po__sku__user').distinct()
     return results, order_qtys_dict, receive_qtys_dict
 
 @csrf_exempt
@@ -351,18 +351,18 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
     for result in results[start_index:stop_index]:
         sr_number = ''
         warehouse = ''
-        supplier = PurchaseOrder.objects.filter(order_id=result, open_po__sku__user__in=users)
+        supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], open_po__sku__user=result['open_po__sku__user'])
         order_type = 'Purchase Order'
         receive_status = 'Yet To Receive'
         if supplier.exists():
             supplier = supplier[0]
             if supplier.open_po and supplier.open_po.order_type == 'VR':
                 order_type = 'Vendor Receipt'
-        if PurchaseOrder.objects.filter(order_id=result, rwpurchase__rwo__vendor__user__in=users).exists(): #supplier.rwpurchase_set.filter():
-            supplier = PurchaseOrder.objects.filter(order_id=result, rwpurchase__rwo__vendor__user__in=users)[0]
+        if PurchaseOrder.objects.filter(order_id=result['order_id'], rwpurchase__rwo__vendor__user=result['open_po__sku__user']).exists(): #supplier.rwpurchase_set.filter():
+            supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], rwpurchase__rwo__vendor__user=result['open_po__sku__user'])[0]
             order_type = 'Returnable Work Order'
-        elif PurchaseOrder.objects.filter(order_id=result, stpurchaseorder__open_st__sku__user__in=users).exists():
-            supplier = PurchaseOrder.objects.filter(order_id=result, stpurchaseorder__open_st__sku__user__in=users)[0]
+        elif PurchaseOrder.objects.filter(order_id=result['order_id'], stpurchaseorder__open_st__sku__user=result['open_po__sku__user']).exists():
+            supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], stpurchaseorder__open_st__sku__user=result['open_po__sku__user'])[0]
             order_type = 'Stock Transfer'
         order_data = get_purchase_order_data(supplier)
         po_reference = '%s%s_%s' % (
@@ -402,7 +402,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                 else:
                     sr_number = ''
         if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
-            warehouse = wh_details.get(supplier.open_po.sku.user)
+            warehouse = wh_details.get(result['open_po__sku__user'])
         data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference),
                                       ('PO Reference', po_reference_no), ('Order Date', _date),
                                       ('Supplier ID/Name', supplier_id_name), ('Total Qty', total_order_qty),
@@ -1744,6 +1744,9 @@ def delete_po(request, user=''):
 @login_required
 @get_admin_user
 def get_supplier_data(request, user=''):
+    if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
+        warehouse = request.GET['warehouse']
+        user = User.objects.get(username=warehouse)
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     temp = get_misc_value('pallet_switch', user.id)
     order_ids = []

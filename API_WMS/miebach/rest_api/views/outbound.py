@@ -12643,9 +12643,11 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
     if order_data:
         em_qs = EnquiryMaster.objects.filter(customer_id=cm_id).order_by(order_data)
     if search_term:
-        em_qs = EnquiryMaster.objects.filter(customer_id=cm_id).filter(
+        em_qs = EnquiryMaster.objects.annotate(full_order=Concat('customer_id','enquiry_id',
+                output_field=CharField())).filter(customer_id=cm_id).filter(
                 Q(enquiry_id__icontains=search_term) | Q(creation_date__regex=search_term)
-                | Q(enquiredsku__sku__sku_code__icontains=search_term) | Q(corporate_name__icontains=search_term),
+                | Q(enquiredsku__sku__sku_code__icontains=search_term) | Q(corporate_name__icontains=search_term)
+                | Q(full_order__icontains=search_term),
                  customer_id=cm_id, **search_params).order_by(order_data)
     temp_data['recordsTotal'] = len(em_qs)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -12690,16 +12692,19 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
 def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     lis = ['enquiry_id', 'creation_date', 'customer_name', 'sku__sku_class', 'customization_type', 'sku__sku_code', 'status']
     order_data = lis[col_num]
+    uniq_ord_search_flag = False
     if order_term == 'desc':
         order_data = '-%s' % order_data
+    em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by(order_data)
     if search_term:
-        em_qs = ManualEnquiry.objects.filter(
+        em_qs = em_qs.filter(
             Q(enquiry_id__icontains=search_term) | Q(creation_date__regex=search_term) |
             Q(customer_name__icontains=search_term) | Q(sku__sku_class__icontains=search_term) |
             Q(customization_type__icontains=search_term) | Q(sku__sku_code__icontains=search_term) |
             Q(status__icontains=search_term)).order_by(order_data)
-    else:
-        em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by(order_data)
+        if not em_qs.exists():
+            uniq_ord_search_flag = True
+            em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by(order_data)
     cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     cm_ids = cum_obj.values_list('customer_id', flat=True)
     orderprefix_map = {}
@@ -12738,6 +12743,8 @@ def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, ord
         if cm_qs:
             cm_id = cm_qs[0].customer_id
             uniq_enq_id = str(cm_id) + str(enquiry.enquiry_id)
+            if uniq_ord_search_flag and search_term not in uniq_enq_id:
+                continue
             temp_data['aaData'].append(OrderedDict(
                 (('ID', float(enquiry.enquiry_id)), ('Enquiry ID', uniq_enq_id), ('Emiza Order Id', Emiza_ids), ('Enquiry Date', get_only_date(request, enquiry.creation_date)),
               ('Customer Name', enquiry.customer_name), ('Style Name', enquiry.sku.sku_class), ('Customization', customization_type),('SKU Code', enquiry.sku.sku_code), ('Status', enquiry.status))))

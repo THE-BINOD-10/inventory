@@ -3332,6 +3332,7 @@ class SkuClassification(models.Model):
     reserved = models.FloatField(default=0)
     suggested_qty = models.FloatField(default=0)
     avail_quantity = models.FloatField(default=0)
+    sku_avail_qty = models.FloatField(default=0)
     remarks = models.CharField(max_length=64, default='')
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -3340,3 +3341,15 @@ class SkuClassification(models.Model):
     class Meta:
         db_table = 'SKU_CLASSIFICATION'
         unique_together = ('sku', 'classification', 'source_stock', 'seller', 'status')
+
+class UserTextFields(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    field_type = models.CharField(max_length=32, default='')
+    text_field = models.TextField(default='', blank=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'USER_TEXT_FIELD'
+        unique_together = ('user', 'field_type')

@@ -503,6 +503,7 @@ urlpatterns = [
     url(r'^get_stock_reconciliation_report/$', get_stock_reconciliation_report),
     url(r'^get_margin_report/$', get_margin_report),
     url(r'^get_basa_report/$', get_basa_report),
+    url(r'^print_basa_report/$', print_basa_report),
     url(r'^get_current_stock_report/$', get_current_stock_report),
     url(r'^print_current_stock_report/$', print_current_stock_report),
     url(r'^get_inventory_value_report/$', get_inventory_value_report),

@@ -1637,6 +1637,13 @@ def print_purchase_order_form(request, user=''):
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
     left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO , request)
+    if open_po.supplier.lead_time:
+        lead_time_days = open_po.supplier.lead_time
+        replace_date = get_local_date(request.user,open_po.creation_date + datetime.timedelta(days=int(lead_time_days)),send_date='true')
+        date_replace_terms = replace_date.strftime("%d-%m-%Y")
+        terms_condition= terms_condition.replace("%^PO_DATE^%", date_replace_terms)
+    else:
+        terms_condition= terms_condition.replace("%^PO_DATE^%", '')
 
     # if receipt_type == 'Hosted Warehouse':
     #if request.POST.get('seller_id', ''):

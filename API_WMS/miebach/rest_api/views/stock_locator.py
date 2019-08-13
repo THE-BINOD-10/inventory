@@ -3046,7 +3046,7 @@ def ba_to_sa_calculate_now(request, user=''):
                 max_stock = max_days * sku_avg_sale_per_day_units
             sku_classification_dict1 = {'sku_id': data.id, 'avg_sales_day': sku_avg_sale_per_day_units,
                                         'cumulative_contribution': cumulative_contribution, 'classification': classification, 'source_stock': None,
-                                        'replenushment_qty': 0, 'reserved': 0, 'suggested_qty': 0, 'avail_quantity': 0,
+                                        'replenushment_qty': 0, 'reserved': 0, 'suggested_qty': 0, 'avail_quantity': 0, 'sku_avail_qty': sku_avail_qty,
                                         'dest_location': None, 'seller_id': seller_master.id, 'min_stock_qty': min_stock,
                                         'max_stock_qty': max_stock, 'status': 1}
 

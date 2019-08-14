@@ -6868,7 +6868,7 @@ def get_orderflow_data(search_params, user, sub_user):
         search_parameters['creation_date__lt'] = search_params['to_date']
     #for one one_assist
     if 'order_id' in search_params:
-        orderfield_obj = OrderFields.objects.filter(order_type='intermediate_order', name='original_order_id',
+        orderfield_obj = OrderFields.objects.filter(order_type='intermediate_order', name='original_order_id',user = user.id,
                                              value = search_params['order_id'])
         if orderfield_obj.exists():
             interm_order_id = orderfield_obj[0].original_order_id
@@ -6882,7 +6882,6 @@ def get_orderflow_data(search_params, user, sub_user):
     if interm_order_id :
         search_parameters['interm_order_id'] = interm_order_id
 
-
     search_parameters['user'] = user.id
     order_flow_data = IntermediateOrders.objects.filter(**search_parameters).\
                                             order_by(order_data).select_related('order','sku','alt_sku').values('interm_order_id','order_assigned_wh__username','customer_name','status','remarks','order__customer_name','customer_user__first_name',
@@ -6893,18 +6892,19 @@ def get_orderflow_data(search_params, user, sub_user):
         outbound_qc,inbound_qc,serial_number ,shipment_status  = '','','','open'
         po_status,po_cancel_reason,acknowledgement_status = '' ,'','No'
         sku_damaze_remarks ,central_order_remarks,order_status = '','',''
-        order_date,expected_date = ' ', ' '
+        order_date,expected_date = '', ''
         if data['order__creation_date']:
             order_date = get_local_date(user, data['order__creation_date'])
         if data['order__shipment_date']:
             expected_date = get_local_date(user, data['order__shipment_date'])
+        order_fields_dict = dict(OrderFields.objects.filter(original_order_id =data['interm_order_id'],user = user.id).values_list('name','value'))
         if data['order__id'] :
            if isprava_permission == 'false':
                singned_invoice = MasterDocs.objects.filter(master_id =data['order__id'])
                if singned_invoice.exists():
                    acknowledgement_status = 'Yes'
 
-               order_fields_dict = dict(OrderFields.objects.filter(original_order_id =data['interm_order_id'],user = user.id).values_list('name','value'))
+               #order_fields_dict = dict(OrderFields.objects.filter(original_order_id =data['interm_order_id'],user = user.id).values_list('name','value'))
                outbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id =data['order__id'],qc_type = 'sales_order')
                if outbound_dispatch_imei.exists():
                    serial_number = outbound_dispatch_imei[0].po_imei_num.imei_number
@@ -6945,8 +6945,12 @@ def get_orderflow_data(search_params, user, sub_user):
            data['customer_name'] = data['order__customer_name']
            if not data['order_assigned_wh__username']:
               data['customer_name'] = data['customer_user__first_name']
+        if order_fields_dict.get('original_order_id',''):
+           original_order_id = order_fields_dict.get('original_order_id')
+        else:
+           original_order_id = data['order__original_order_id']
 
-        temp_data['aaData'].append(OrderedDict((('Main SR Number',data['order__original_order_id']),('Order Id', str(data['interm_order_id'])),('SKU Code', data['sku__wms_code']),
+        temp_data['aaData'].append(OrderedDict((('Main SR Number',original_order_id),('Order Id', str(data['interm_order_id'])),('SKU Code', data['sku__wms_code']),
                                                 ('SKU Description',data['sku__sku_desc']), ('Project Name', data['project_name']), ('Category', data['sku__sku_category']),('Customer Name',data['customer_name']),\
                                                 ('Address',order_fields_dict.get('address','')),('Phone No',order_fields_dict.get('mobile_no','')),('Email Id',order_fields_dict.get('email_id','')),\
                                                 ('Alt SKU',data['alt_sku__wms_code']),('Central order status',central_order_status.get(data['status'],'')),('Central Order cancellation remarks',central_order_remarks),

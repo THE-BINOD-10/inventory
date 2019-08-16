@@ -2864,7 +2864,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             seller_id = final_dict['seller'].id
         group_key = (order_data['po_name'], order_data['supplier_id'], data['po_date'], seller_id)
         if group_key not in order_ids.keys():
-            po_id = get_purchase_order_id(user)
+            po_id = get_purchase_order_id(user)+1
             if po_sub_user_prefix == 'true':
                 po_id = update_po_order_prefix(request.user, po_id)
             order_ids[group_key] = po_id
@@ -2879,6 +2879,9 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                                     creation_date=creation_date)
         purchase_order = OpenPO.objects.get(id=data1.id, sku__user=user.id)
         sup_id = purchase_order.id
+        supplier = purchase_order.supplier_id
+        if supplier not in ids_dict:
+            ids_dict[supplier] = po_id
         data['open_po_id'] = sup_id
         data['order_id'] = po_id
         if user_profile:

@@ -8509,8 +8509,8 @@ def get_po_putaway_summary(request, user=''):
             d_zone_qty = d_zone_obj[0].quantity
             d_zone_loc = d_zone_obj[0].location.location
             if quantity <= d_zone_qty:
-                data_dict['d_zone_qty'] = d_zone_qty
-                data_dict['d_zone_loc'] = d_zone_loc
+                data_dict['return_qty'] = d_zone_qty
+                data_dict['location'] = d_zone_loc
         if seller_summary.batch_detail:
             batch_detail = seller_summary.batch_detail
             data_dict['batch_no'] = batch_detail.batch_no

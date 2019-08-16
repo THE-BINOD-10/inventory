@@ -5194,6 +5194,7 @@ def confirm_add_po(request, sales_data='', user=''):
             sup_id = purchase_order.id
             supplier = purchase_order.supplier_id
             if supplier not in ids_dict and not po_order_id:
+                po_id = po_id + 1
                 ids_dict[supplier] = po_id
             if po_order_id:
                 ids_dict[supplier] = po_id

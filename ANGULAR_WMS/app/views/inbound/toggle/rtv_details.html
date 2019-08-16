@@ -38,7 +38,7 @@
                 <div class="col-xs-4"><b>Seller Name</b></div>
                 <div class="col-xs-8">: {{showCase.model_data.seller_details['name']}}</div>
               </div>
-              
+
             </div>
             <div class="col-sm-12"><hr></div>
           </div>
@@ -75,8 +75,8 @@
                     <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.mrp" size="22" title="{{ data.mrp }}" name="mrp" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.mrp}}" readonly></td>
                     <td><input type="text" ng-model="data.amount" name="amount" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.amount}}" readonly></td>
                     <td><input type="text" ng-model="data.tax_value" name="tax_value" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.tax_value}}" readonly></td>
-                    <td><input type="text" ng-model="data.location" size="22" title="{{ data.location }}" name="location" class="form-control" value="{{data.location}}"></td>
-                    <td><input type="text" ng-model="data.return_qty" size="22" title="{{ data.return_qty }}" name="return_qty" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.return_qty}}" ng-change="showCase.check_quantity($index, records, data)" required>
+                    <td><input type="text" ng-model="data.d_zone_loc" size="22" title="{{ data.d_zone_loc }}" name="location" class="form-control" value="{{data.d_zone_loc}}"></td>
+                    <td><input type="text" ng-model="data.d_zone_qty" size="22" title="{{ data.d_zone_qty name="return_qty" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.d_zone_qty}}" ng-change="showCase.check_quantity($index, records, data)" required>
                       <input ng-if="data.rtv_id" type="hidden" ng-model="data.rtv_id" size="22" title="{{ data.rtv_id }}" name="rtv_id" class="form-control" value="{{data.rtv_id}}" required></td>
 
                     <td><i ng-click="showCase.update_data($index, records)" ng-class="showCase.service.isLast($last)"></i></td>

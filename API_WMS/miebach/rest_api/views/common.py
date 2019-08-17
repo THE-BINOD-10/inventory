@@ -528,6 +528,7 @@ data_datatable = {  # masters
     'StaffMaster': 'get_staff_master', 'CorporateMaster': 'get_corporate_master',\
     'WarehouseSKUMappingMaster': 'get_wh_sku_mapping', 'ClusterMaster': 'get_cluster_sku_results',
     'ReplenushmentMaster':'get_replenushment_master',
+    'LocationMaster' :'get_zone_details',
 
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
@@ -4463,7 +4464,11 @@ def get_size_names(requst, user=""):
 @get_admin_user
 def get_sellers_list(request, user=''):
     sellers = SellerMaster.objects.filter(user=user.id).order_by('seller_id')
-    raise_po_terms_conditions = get_misc_value('raisepo_terms_conditions', user.id)
+    terms_condition = UserTextFields.objects.filter(user=user.id, field_type = 'terms_conditions')
+    if terms_condition.exists():
+        raise_po_terms_conditions = terms_condition[0].text_field
+    else:
+        raise_po_terms_conditions = get_misc_value('raisepo_terms_conditions', user.id)
     ship_address_details = []
     ship_address_names = []
     user_ship_address = UserAddresses.objects.filter(user_id=user.id)

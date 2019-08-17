@@ -1853,6 +1853,7 @@ def confirm_sku_substitution(request, user=''):
     src_batch_no = request.POST.get('src_batch_number', '')
     src_mrp = request.POST.get('src_mrp', 0)
     seller_id = request.POST.get('seller_id', '')
+    weight = request.POST.get('src_weight', '')
     if user.userprofile.user_type == 'marketplace_user' and not seller_id:
         return HttpResponse('Seller ID is Mandatory')
     if not src_sku and not dest_sku and not src_qty and not dest_qty and not src_loc and not dest_loc:
@@ -1886,6 +1887,8 @@ def confirm_sku_substitution(request, user=''):
         stock_dict['batch_detail__batch_no'] = src_batch_no
     if src_mrp:
         stock_dict['batch_detail__mrp'] = src_mrp
+    if weight :
+        stock_dict['batch_detail__weight'] = weight
     src_stocks = StockDetail.objects.filter(**stock_dict)
     src_stock_count = src_stocks.aggregate(Sum('quantity'))['quantity__sum']
     if not src_stock_count:
@@ -1918,6 +1921,11 @@ def confirm_sku_substitution(request, user=''):
             if data_dict['dest_mrp'][ind]:
                 mrp_dict['mrp'] = data_dict['dest_mrp'][ind]
                 dest_filter['batch_detail__mrp'] = data_dict['dest_mrp'][ind]
+            if data_dict['dest_weight'][ind]:
+                mrp_dict['weight'] = data_dict['dest_weight'][ind]
+                dest_filter['batch_detail__weight'] = data_dict['dest_weight'][ind]
+
+
         if seller_id:
             dest_filter['sellerstock__seller_id'] = seller_id
         dest_stocks = StockDetail.objects.filter(**dest_filter)
@@ -2809,8 +2817,9 @@ def confirm_combo_allocation(request, user=''):
 
 @csrf_exempt
 def get_skuclassification(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['sku__sku_code', 'sku__sku_code', 'avg_sales_day', 'cumulative_contribution', 'classification',
-           'source_stock__batch_detail__mrp', 'source_stock__batch_detail__weight', 'replenushment_qty',
+    lis = ['sku__sku_code', 'sku__sku_code', 'sku__sku_desc','sku__sku_category','avg_sales_day',
+           'cumulative_contribution', 'classification',
+           'source_stock__batch_detail__mrp', 'source_stock__batch_detail__weight', 'replenushment_qty','sku_avail_qty',
            'avail_quantity', 'min_stock_qty', 'max_stock_qty', 'source_stock__location__location',
            'dest_location__location',
            'reserved', 'remarks']
@@ -2820,7 +2829,8 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
         order_data = '-%s' % order_data
     if search_term:
         master_data = SkuClassification.objects.filter(
-                Q(sku__wms_code__icontains=search_term) | Q(classification____icontains=search_term) |
+                Q(sku__wms_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term) |
+                Q(sku__sku_category__icontains=search_term) | Q(classification__icontains=search_term) |
                 Q(source_stock__batch_detail__mrp__icontains=search_term) |
                 Q(source_stock__batch_detail__weight__icontains=search_term),
                 sku__user=user.id, status=1).order_by(order_data)
@@ -2842,11 +2852,14 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
         if data.dest_location:
             dest_location = data.dest_location.location
         temp_data['aaData'].append(
-            OrderedDict((('', checkbox), ('sku_code', data.sku.sku_code), ('avg_sales_day', data.avg_sales_day),
+            OrderedDict((('', checkbox), ('sku_code', data.sku.sku_code),('sku_name', data.sku.sku_desc),
+                         ('sku_category', data.sku.sku_category),
+                         ('avg_sales_day', data.avg_sales_day),
                          ('cumulative_contribution', data.cumulative_contribution),
                          ('classification', data.classification), ('mrp', mrp),
                          ('weight', weight),
                          ('replenushment_qty', data.replenushment_qty),
+                         ('sku_avail_qty', data.sku_avail_qty),
                          ('avail_qty', data.avail_quantity),
                          ('min_stock_qty', int(data.min_stock_qty)),
                          ('max_stock_qty', int(data.max_stock_qty)),
@@ -3033,7 +3046,7 @@ def ba_to_sa_calculate_now(request, user=''):
                 max_stock = max_days * sku_avg_sale_per_day_units
             sku_classification_dict1 = {'sku_id': data.id, 'avg_sales_day': sku_avg_sale_per_day_units,
                                         'cumulative_contribution': cumulative_contribution, 'classification': classification, 'source_stock': None,
-                                        'replenushment_qty': 0, 'reserved': 0, 'suggested_qty': 0, 'avail_quantity': 0,
+                                        'replenushment_qty': 0, 'reserved': 0, 'suggested_qty': 0, 'avail_quantity': 0, 'sku_avail_qty': sku_avail_qty,
                                         'dest_location': None, 'seller_id': seller_master.id, 'min_stock_qty': min_stock,
                                         'max_stock_qty': max_stock, 'status': 1}
 
@@ -3078,6 +3091,7 @@ def ba_to_sa_calculate_now(request, user=''):
                                                'replenushment_qty': replenishment_qty, 'reserved': suggested_qty,
                                                'suggested_qty': suggested_qty,
                                                'avail_quantity': total_ba_stock,
+                                               'sku_avail_qty': sku_avail_qty,
                                                'dest_location_id': locations[0].id, 'seller_id': seller_master.id,
                                                'min_stock_qty': min_stock, 'max_stock_qty': max_stock,
                                                'status': 1}

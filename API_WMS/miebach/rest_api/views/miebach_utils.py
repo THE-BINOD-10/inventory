@@ -242,10 +242,25 @@ SKU_SUBSTITUTION_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('Sour
                                               ('Source Location', 'source_location'),
                                               ('Source Batch Number', 'source_batch_no'),
                                               ('Source MRP', 'source_mrp'), ('Source Quantity', 'source_quantity'),
+                                              ('Source Weight','source_weight'),
                                               ('Destination SKU Code', 'dest_sku_code'),
                                               ('Destination Location', 'dest_location'),
                                               ('Destination Batch Number', 'dest_batch_no'),
-                                              ('Destination MRP', 'dest_mrp'), ('Destination Quantity', 'dest_quantity'),
+                                              ('Destination MRP', 'dest_mrp'), ('Destination Weight', 'dest_weight'),
+                                              ('Destination Quantity', 'dest_quantity'),
+                                            ))
+
+COMBO_ALLOCATE_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('Combo SKU Code', 'combo_sku_code'),
+                                              ('Combo Location', 'combo_location'),
+                                              ('Combo Batch Number', 'combo_batch_no'),
+                                              ('Combo MRP', 'combo_mrp'), ('Combo Weight', 'combo_weight'),
+                                              ('Combo Quantity', 'combo_quantity'),
+                                              ('Child SKU Code', 'child_sku_code'),
+                                              ('Child Location', 'child_location'),
+                                              ('Child Batch Number', 'child_batch_no'),
+                                              ('Child MRP', 'child_mrp'),
+                                              ('Child Weight', 'child_weight'),
+                                              ('Child Quantity', 'child_quantity'),
                                             ))
 
 SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'GSTIN Number', 'PAN Number',
@@ -4011,7 +4026,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('SKU Class', data['sku__sku_class']),
                                                     ('SKU Size', data['sku__sku_size']), ('SKU Description', data['sku__sku_desc']),
                                                     ('SKU Code', data['sku__sku_code']), ('Order Qty', int(data['quantity'])),
-                                                    ('MRP', int(data['sku__mrp'])), ('Unit Price', float(unit_price_inclusive_tax)),
+                                                    ('MRP', mrp_price), ('Unit Price', float(unit_price_inclusive_tax)),
                                                     ('Discount', discount),
                                                     ('Serial Number',serial_number),
                                                     ('Invoice Number',invoice_number),
@@ -7299,7 +7314,8 @@ def get_basa_report_data(search_params, user, sub_user):
     from django.db.models import Count
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
-    lis = ['sku__sku_code','batch_detail__weight','batch_detail__mrp','sku__sku_brand', 'sku__sku_category', 'sku__sub_category', 'quantity',]
+    lis = ['sku__sku_code','sku__sku_desc','batch_detail__weight','batch_detail__mrp','sku__sku_brand', 'sku__sku_category',
+           'sku__sub_category', 'sku__sub_category', 'sku__sku_code', 'quantity', 'sku__sku_code', 'sku__sku_code', 'sku__sku_code']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)
@@ -7321,37 +7337,92 @@ def get_basa_report_data(search_params, user, sub_user):
             search_parameters['sku__sku_code'] = search_params['sku_code']
     search_parameters['sku_id__in'] = sku_master_ids
     search_params['location__location__in'] = locations
-    if 'from_date' in search_params:
-        search_parameters['creation_date__gt'] = search_params['from_date']
-    if 'to_date' in search_params:
-        search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
+    search_parameters['quantity__gt'] = 0
+    #if 'from_date' in search_params:
+    #    search_parameters['creation_date__gt'] = search_params['from_date']
+    #if 'to_date' in search_params:
+    #    search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
     stock_data = StockDetail.objects.filter(**search_parameters).values('sku__sku_code','sku__sku_desc','batch_detail__mrp',\
                                                                      'batch_detail__weight','sku__id',
-                                                                     'sku__sku_brand','sku__sku_category','sku__sub_category').annotate(total_quantity=Sum('quantity'),average_cp = Sum(F('quantity')*F('batch_detail__buy_price')))
-
-    temp_data['recordsTotal'] =len(stock_data)
-    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+                                                                     'sku__sku_brand','sku__sku_category','sku__sub_category').annotate(total_quantity=Sum('quantity'),average_cp = Sum(F('quantity')*F('batch_detail__buy_price'))).order_by(sort_data).distinct()
 
     quantity = 0
+    mrp = 0
     avearage_cost_price = 0
     grn_quantity = 0
     grn_price = 0
-    for data in (stock_data[start_index:stop_index]):
-        seller_po = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id = data['sku__id']).order_by('-id')
-        if seller_po.exists():
-            seller_po = seller_po[0]
-            grn_quantity = seller_po.quantity
-            if seller_po.batch_detail :
-                grn_price = seller_po.batch_detail.buy_price
-        quantity = data['total_quantity']
-        if quantity and data['average_cp']:
-            avearage_cost_price = data['average_cp']/quantity
-        sku_attribute_dict = {}
-        sku_attribute_dict = dict(SKUAttributes.objects.filter(sku__id=data['sku__id'],attribute_name__in=['Manufacturer', 'Sub Category Type','Sheet', 'Vendor']).values_list('attribute_name','attribute_value'))
+    stock_data1 = stock_data[start_index:stop_index]
+    if not stop_index:
+        stock_sku_ids = list(stock_data1.values_list('sku_id', flat=True))
+        grn_data = SellerPOSummary.objects.prefetch_related('purchase_order__open_po__sku').filter(batch_detail__isnull=False, purchase_order__open_po__sku_id__in=stock_sku_ids)
+        sku_grn_price = OrderedDict(grn_data.values_list('purchase_order__open_po__sku__sku_code', 'batch_detail__buy_price').order_by('id'))
+        sku_grn_quantity = OrderedDict(grn_data.values_list('purchase_order__open_po__sku__sku_code', 'quantity').order_by('id'))
+    skumaster_data = SKUMaster.objects.filter(user=user.id).exclude(id__in=list(stock_data.values_list('sku_id', flat=True))).values('sku_code','sku_desc','sku_category','sku_brand','mrp','id','sub_category')
+    chaining = list(chain(stock_data, skumaster_data))
+    temp_data['recordsTotal'] = len(chaining)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    chaining = chaining[start_index:stop_index]
+    for data in chaining:
+        if data.get('sku__sku_code',''):
+            sku_code = data['sku__sku_code']
+        else:
+            sku_code = data['sku_code']
+        if data.get('sku__id',''):
+            sku_id = data['sku__id']
+        else:
+            sku_id = data['id']
 
-        temp_data['aaData'].append(OrderedDict(( ('SKU Code', data['sku__sku_code']),('SKU Desc',data['sku__sku_desc']),
-                                                 ('Brand',data['sku__sku_brand']), ('Category',data['sku__sku_category']),('Sheet',sku_attribute_dict.get('Sheet','')),('Sub Category Type',sku_attribute_dict.get('Sub Category Type','')),
-                                                 ('Sub Category', data['sku__sub_category']), ('Stock( Only BA and SA)', quantity),('Weight',data['batch_detail__weight']),('MRP',data['batch_detail__mrp']),('Avg CP',"%.2f" %avearage_cost_price),('Latest GRN Qty',grn_quantity),('Latest GRN CP',grn_price))))
+        if data.get('sku__sku_desc',''):
+            sku_desc = data['sku__sku_desc']
+        else:
+            sku_desc = data['sku_desc']
+
+        if data.get('sku__sku_category', ''):
+            sku_category = data['sku__sku_category']
+        else:
+            sku_category = data['sku_category']
+
+        if data.get('batch_detail__mrp',''):
+            mrp = data['batch_detail__mrp']
+
+        if data.get('sku__sku_brand',''):
+            sku_brand = data['sku__sku_brand']
+        else:
+            sku_brand = data['sku_brand']
+        if data.get('sku__sub_category',''):
+            sub_category = data['sku__sub_category']
+        else:
+            sub_category = data['sub_category']
+        if not stop_index:
+            grn_price = sku_grn_price.get(sku_code, 0)
+            grn_quantity = sku_grn_quantity.get(sku_code, 0)
+        else:
+            try:
+                seller_po = SellerPOSummary.objects.filter(location__zone__user=user.id, purchase_order__open_po__sku__sku_code=sku_code).latest('id')
+                grn_quantity = seller_po.quantity
+                if seller_po.batch_detail:
+                    grn_price = seller_po.batch_detail.buy_price
+            except:
+                grn_price = 0
+        if data.get('total_quantity', ''):
+            quantity = data['total_quantity']
+        if quantity and data.get('average_cp',''):
+            average_cost_price = data['average_cp']/quantity
+        else:
+            average_cost_price = 0
+        sku_attribute_dict = {}
+        sku_attribute_dict = dict(SKUAttributes.objects.filter(sku__id=sku_id,attribute_name__in=['Manufacturer', 'Sub Category Type','Sheet', 'Vendor','Weight']).values_list('attribute_name','attribute_value'))
+        if sku_attribute_dict.get('Sheet',''):
+           sheet = sku_attribute_dict.get('Sheet','')
+        else:
+            sheet = ''
+        if sku_attribute_dict.get('Sub Category Type',''):
+            sub_category_type = sku_attribute_dict.get('Sub Category Type','')
+        else:
+            sub_category_type = ''
+        temp_data['aaData'].append(OrderedDict(( ('SKU Code', sku_code),('SKU Desc',sku_desc),
+                                                 ('Brand',sku_brand), ('Category',sku_category),('Sheet',sheet),('Sub Category Type',sub_category_type),
+                                                 ('Sub Category', sub_category), ('Stock( Only BA and SA)', quantity),('Weight',sku_attribute_dict.get('Weight','')),('MRP',mrp),('Avg CP',"%.2f" %average_cost_price),('Latest GRN Qty',grn_quantity),('Latest GRN CP',grn_price))))
     return temp_data
 
 

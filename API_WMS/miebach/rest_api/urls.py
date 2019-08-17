@@ -503,6 +503,7 @@ urlpatterns = [
     url(r'^get_stock_reconciliation_report/$', get_stock_reconciliation_report),
     url(r'^get_margin_report/$', get_margin_report),
     url(r'^get_basa_report/$', get_basa_report),
+    url(r'^print_basa_report/$', print_basa_report),
     url(r'^get_current_stock_report/$', get_current_stock_report),
     url(r'^print_current_stock_report/$', print_current_stock_report),
     url(r'^get_inventory_value_report/$', get_inventory_value_report),
@@ -581,7 +582,8 @@ urlpatterns += [
     url(r'^custom_order_upload/$', custom_order_upload),
     url(r'^cluster_sku_form/$', cluster_sku_form),
     url(r'^cluster_sku_upload/$', cluster_sku_upload),
-
+    url(r'^combo_allocate_form/$', combo_allocate_form),
+    url(r'^combo_allocate_upload/$', combo_allocate_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

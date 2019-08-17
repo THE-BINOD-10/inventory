@@ -120,7 +120,7 @@
                       <!-- <td>{{variant.intransit_quantity}}</td> -->
                       <td>{{variant.blocked_quantity}}</td>
                       <td>
-                      <input class="form-control" ng-model="variant.quantity" ng-change="Enquiry.check_quantity_validation(Enquiry.selected_style, variant.wms_code)" style="width: 60px;height: 25px;">
+                      <input class="form-control" ng-model="variant.quantity" ng-change="Enquiry.change_variant_quantity(Enquiry.selected_style, variant.wms_code)" style="width: 60px;height: 25px;">
                       </td>
                     </tr>
                     <tr>

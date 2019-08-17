@@ -142,8 +142,9 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
             search_params['customerordersummary__status__in'] = perm_status_list
     if search_term:
         master_data = OrderDetail.objects.filter(
-            Q(sku__sku_code__icontains=search_term, status=1) | Q(order_id__icontains=search_term,
-                                                                  status=1) | Q(title__icontains=search_term,status=1) | Q(quantity__icontains=search_term,status=1), user=user.id, quantity__gt=0).filter(**search_params).exclude(order_code="CO")
+            Q(sku__sku_code__icontains=search_term) | Q(order_id__icontains=search_term) | Q(title__icontains=search_term) |
+            Q(quantity__icontains=search_term,status=1) | Q(original_order_id__icontains=search_term), user=user.id, status=1, quantity__gt=0).\
+            filter(**search_params).exclude(order_code="CO")
     elif order_term:
         order_data = lis[col_num]
         if order_term == 'desc':
@@ -338,7 +339,15 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     status_dict = eval(status)
     filter_params = {}
+    isprava_permission = get_misc_value('order_exceed_stock', user.id)
+    delivery_challana = get_misc_value('generate_delivery_challan_before_pullConfiramation', user.id)
+    lis = ['picklist_number', 'order__customer_name', 'remarks','picklist_number',
+          'order__marketplace']
     admin_user = get_admin(user)
+    if isprava_permission == 'true':
+       lis.append('order__intermediateorders__project_name')
+    if delivery_challana == 'true':
+       lis.append('order__tempdeliverychallan__dc_number')
     if isinstance(status_dict, dict):
         status = status_dict['status']
         if status_dict.get('market_place', ''):
@@ -362,11 +371,9 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     all_picks = Picklist.objects.select_related('order', 'stock').\
                                 filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id), **filter_params)
     if search_term:
-        master_data = all_picks.filter(
-            Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).filter(
-            Q(picklist_number__icontains=search_term) | Q(remarks__icontains=search_term) | Q(
-                order__marketplace__icontains=search_term) | Q(order__customer_name__icontains=search_term)| Q(order__intermediateorders__project_name__icontains=search_term)| Q(order__tempdeliverychallan__dc_number=search_term))
-
+        search_term = search_term.replace('(', '\(').replace(')', '\)')
+        search_query = build_search_term_query(lis, search_term)
+        master_data = all_picks.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).filter(search_query)
     elif order_term:
         # col_num = col_num - 1
         order_data = header.values()[col_num]
@@ -6755,7 +6762,7 @@ def get_stock_qty_leadtime(item, wh_code):
         return None
 
 
-def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_leadtime=0, nk_map={}):
+def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_leadtime=0):
     stock_display_warehouse = get_misc_value('stock_display_warehouse', user.id)
     if stock_display_warehouse and stock_display_warehouse != "false":
         stock_display_warehouse = stock_display_warehouse.split(',')
@@ -6876,11 +6883,14 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
         if lead_times and level != 3:
             for lead_time, wh_code in lead_times.items():
                 output = get_stock_qty_leadtime(item, wh_code)
+                if not isinstance(wh_code, list): wh_code = [wh_code]
+                nk_map = dict(ASNStockDetail.objects.filter(sku__sku_code=item["wms_code"], sku__user__in=wh_code,
+                                                            asn_po_num='NON_KITTED_STOCK',
+                                                            status='open').values_list('sku__user').annotate(Sum('quantity')))
                 if not output: output = 0
-                if isinstance(wh_code, list):
-                    for wc in wh_code:
-                        if nk_map.get(wc):
-                            output = output - nk_map[wc]
+                for wc in wh_code:
+                    if nk_map.get(wc):
+                        output = output - nk_map[wc]
                 if dist_reseller_leadtime and level:
                     item[lead_time + dist_reseller_leadtime] = output
                 else:
@@ -6978,6 +6988,7 @@ def get_sku_catalogs(request, user=''):
 @login_required
 @get_admin_user
 def get_sku_variants(request, user=''):
+    from qssi_inventory_api import calc_update_inventory
     filter_params = {'user': user.id}
     get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'cost_price', 'price', 'mrp', 'id', 'sku_category',
                   'sku_brand', 'sku_size', 'style_name', 'product_type', 'youtube_url']
@@ -7104,101 +7115,8 @@ def get_sku_variants(request, user=''):
                     all_skus = sku_ids + suffix_tu_skus
                     api_resp = get_inventory(all_skus, user)
                     # api_resp = {}
-                    if api_resp.get("Status", "").lower() == "success":
-                        for warehouse in api_resp["Warehouses"]:
-                            location_master = LocationMaster.objects.filter(zone__zone="DEFAULT", zone__user=user.id)
-                            if not location_master:
-                                continue
-                            location_id = location_master[0].id
-                            if warehouse["WarehouseId"] == user.username:
-                                stock_dict = {}
-                                asn_stock_map = {}
-                                inventory_values = {}
-                                for item in warehouse["Result"]["InventoryStatus"]:
-                                    sku_id = item["SKUId"]
-                                    actual_sku_id = sku_id
-                                    if sku_id[-3:]=="-TU":
-                                        sku_id = sku_id[:-3]
-                                        if sku_id in stock_dict:
-                                            stock_dict[sku_id] += int(item['Inventory'])
-                                        else:
-                                            stock_dict[sku_id] = int(item['Inventory'])
-                                        if sku_id not in inventory_values:
-                                            inventory_values[sku_id] = {}
-                                        inventory_values[sku_id]['TU_INVENTORY'] = item['Inventory']
-                                        expected_items = item['Expected']
-                                        if isinstance(expected_items, list) and expected_items:
-                                            asn_stock_map.setdefault(sku_id, []).extend(expected_items)
-                                        wait_on_qc = [v for d in item['OnHoldDetails'] for k, v in d.items() if
-                                                      k == 'WAITONQC']
-                                        if wait_on_qc:
-                                            if int(wait_on_qc[0]):
-                                                wait_on_qc = int(wait_on_qc[0])*90/100
-                                            else:
-                                                wait_on_qc = int(wait_on_qc[0])
-                                            log.info("Wait ON QC Value %s for SKU %s" % (actual_sku_id, wait_on_qc))
-                                            if sku_id in stock_dict:
-                                                stock_dict[sku_id] += int(wait_on_qc)
-                                            else:
-                                                stock_dict[sku_id] = int(wait_on_qc)
-                                    else:
-                                        if sku_id not in inventory_values:
-                                            inventory_values[sku_id] = {}
-                                        inventory_values[sku_id]['NORMAL_INVENTORY'] = item['Inventory']
-                                        if sku_id in stock_dict:
-                                            stock_dict[sku_id] += int(item['FG'])
-                                        else:
-                                            stock_dict[sku_id] = int(item['FG'])
-                                else:
-                                    for sku_id in inventory_values:
-                                        tu_inv = inventory_values[sku_id].get('TU_INVENTORY', 0)
-                                        nor_inv = inventory_values[sku_id].get('NORMAL_INVENTORY', 0)
-                                        inv_stock_diff = int(tu_inv) - int(nor_inv)
-                                        non_kitted_stock = max(inv_stock_diff, 0)
-                                        if non_kitted_stock:
-                                            nk_map[user.id] = non_kitted_stock
-                                for sku_id, inventory in stock_dict.iteritems():
-                                    sku = SKUMaster.objects.filter(user = user_id, sku_code = sku_id)
-                                    if sku:
-                                        sku = sku[0]
-                                        stock_detail = StockDetail.objects.filter(sku_id = sku.id)
-                                        if stock_detail:
-                                            stock_detail = stock_detail[0]
-                                            stock_detail.quantity = inventory
-                                            stock_detail.save()
-                                            log.info("Stock updated for sku: %s" %(sku_id))
-                                        else:
-                                            new_stock_dict = {"receipt_number":1,
-                                                              "receipt_date":datetime.datetime.now(),
-                                                              "quantity": inventory, "status": 1, "sku_id": sku.id,
-                                                              "location_id": location_id}
-                                            StockDetail.objects.create(**new_stock_dict)
-                                            log.info("New stock created for user %s for sku %s" %
-                                                     (user.username, str(sku.sku_code)))
-                                for sku_id, asn_inv in asn_stock_map.iteritems():
-                                    sku = SKUMaster.objects.filter(user = user_id, sku_code = sku_id)
-                                    for asn_stock in asn_inv:
-                                        po = asn_stock['PO']
-                                        arriving_date = datetime.datetime.strptime(asn_stock['By'], '%d-%b-%Y')
-                                        quantity = int(asn_stock['Qty'])
-                                        qc_quantity = int(math.ceil(quantity*90.0/100))
-                                        if qc_quantity <= 0:
-                                            continue
-                                        asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku[0].id,
-                                                                                         asn_po_num=po,
-                                                                                         status='open')
-                                        if asn_stock_detail:
-                                            asn_stock_detail = asn_stock_detail[0]
-                                            asn_stock_detail.quantity = qc_quantity
-                                            asn_stock_detail.arriving_date = arriving_date
-                                            asn_stock_detail.save()
-                                        else:
-                                            ASNStockDetail.objects.create(asn_po_num=po, sku_id=sku[0].id,
-                                                                          quantity=qc_quantity,
-                                                                          arriving_date=arriving_date)
-                                            log.info('New ASN Stock Created for User %s and SKU %s' %
-                                                (user.username, str(sku[0].sku_code)))
-    sku_master, total_qty = all_whstock_quant(sku_master, user, level, lead_times, dist_reseller_leadtime, nk_map=nk_map)
+                    calc_update_inventory(api_resp, user)
+    sku_master, total_qty = all_whstock_quant(sku_master, user, level, lead_times, dist_reseller_leadtime)
     central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
     sku_spl_attrs = {}
     if central_order_mgmt == 'true':
@@ -9519,7 +9437,7 @@ def order_delete(request, user=""):
                 for order_detail_id in order_detail_ids:
                     picked_qty_check = Picklist.objects.filter(order_id=order_detail_id).annotate(total_quantity=Sum('picked_quantity'))
                     if not picked_qty_check.exists():
-                        OrderDetail.objects.filter(id=order_detail_id).delete()
+                        OrderDetail.objects.filter(id=order_detail_id).update(status = 3)
                         if admin_user:
                             OrderFields.objects.filter(user=admin_user.id, original_order_id=complete_id).delete()
                     else:
@@ -13032,17 +12950,19 @@ def extend_enquiry_date(request, user = ''):
     user_profile = UserProfile.objects.filter(user=request.user.id)
     customer_id = request.GET.get('customer_id', '')
     extend_status = request.GET.get('extend_status', 'pending')
+    admin_user = get_priceband_admin_user(user)
+    if not admin_user:
+        admin_user = user
+    date_ext_days = int(get_misc_value('auto_expire_enq_limit', admin_user.id)) * 2
     if user_profile[0].warehouse_type == 'CENTRAL_ADMIN' and customer_id:
         cm_id = int(customer_id)
     else:
         cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
         if not cum_obj and not customer_id:
-            log.info("No Customer User Mapping Object")
             message = 'Failed'
         cm_id = cum_obj[0].customer_id
     try:
         enq_qs = EnquiryMaster.objects.filter(enquiry_id=enquiry_id, customer_id=cm_id)
-        date_ext_days = int(get_misc_value('auto_raise_stock_transfer', user.id))*2
         if enq_qs:
             ext_dt = datetime.datetime.strptime(extended_date, '%m/%d/%Y')
             ct_dtt = enq_qs[0].creation_date
@@ -13050,8 +12970,9 @@ def extend_enquiry_date(request, user = ''):
             dt_days = ext_dt - ct_dt
             days = dt_days.days
             username = request.user.username
-            if days > date_ext_days and username.lower() != 'sm_admin':
-                return HttpResponse('Admin')
+            if user_profile[0].user_type != 'customer':
+                if days > date_ext_days and username.lower() != 'sm_admin':
+                    return HttpResponse('Admin')
             enq_qs[0].extend_status = extend_status
             enq_qs[0].extend_date = datetime.datetime.strptime(extended_date, '%m/%d/%Y')
             enq_qs[0].save()

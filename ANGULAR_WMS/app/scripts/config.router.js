@@ -285,7 +285,7 @@ var app = angular.module('urbanApp')
         .state('app.masters.LocationMaster', {
           url: '/LocationMaster',
           permission: 'add_locationmaster',
-          templateUrl: 'views/masters/location_master.html',
+          templateUrl: 'views/masters/location_master_datatable.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load('scripts/controllers/masters/locationMaster.js');

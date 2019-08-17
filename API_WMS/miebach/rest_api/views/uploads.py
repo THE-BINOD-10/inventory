@@ -130,8 +130,25 @@ def get_sku_substitution_excel_headers(user):
     if not userprofile.industry_type == 'FMCG':
         del excel_headers["Source Batch Number"]
         del excel_headers["Source MRP"]
+        del excel_headers["Source Weight"]
         del excel_headers["Destination Batch Number"]
         del excel_headers["Destination MRP"]
+        del excel_headers["Destination Weight"]
+    return excel_headers
+
+
+def get_combo_allocate_excel_headers(user):
+    excel_headers = copy.deepcopy(COMBO_ALLOCATE_EXCEL_MAPPING)
+    userprofile = user.userprofile
+    if not userprofile.user_type == 'marketplace_user':
+        del excel_headers["Seller ID"]
+    if not userprofile.industry_type == 'FMCG':
+        del excel_headers["Combo Batch Number"]
+        del excel_headers["Combo MRP"]
+        del excel_headers["Combo Weight"]
+        del excel_headers["Child Batch Number"]
+        del excel_headers["Child MRP"]
+        del excel_headers["Child Weight"]
     return excel_headers
 
 
@@ -2847,7 +2864,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             seller_id = final_dict['seller'].id
         group_key = (order_data['po_name'], order_data['supplier_id'], data['po_date'], seller_id)
         if group_key not in order_ids.keys():
-            po_id = get_purchase_order_id(user)
+            po_id = get_purchase_order_id(user)+1
             if po_sub_user_prefix == 'true':
                 po_id = update_po_order_prefix(request.user, po_id)
             order_ids[group_key] = po_id
@@ -2864,10 +2881,9 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         sup_id = purchase_order.id
         supplier = purchase_order.supplier_id
         if supplier not in ids_dict:
-            po_id = po_id + 1
             ids_dict[supplier] = po_id
         data['open_po_id'] = sup_id
-        data['order_id'] = ids_dict[supplier]
+        data['order_id'] = po_id
         if user_profile:
             data['prefix'] = user_profile.prefix
         order = PurchaseOrder(**data)
@@ -5497,7 +5513,7 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
     if not set(['source_sku_code', 'source_location', 'source_quantity', 'dest_sku_code',
                 'dest_location', 'dest_quantity']).issubset(excel_mapping.keys()):
         return 'Invalid File'
-    number_fields = ['source_quantity', 'source_mrp', 'dest_quantity', 'dest_mrp']
+    number_fields = ['source_quantity', 'source_mrp','dest_quantity', 'dest_mrp']
     prev_data_dict = {}
     for row_idx in range(1, no_of_rows):
         data_dict = {'source_updated': False}
@@ -5565,6 +5581,11 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                 if isinstance(cell_data, float):
                     cell_data = str(int(cell_data))
                     data_dict[key] = cell_data
+            elif key in ['source_weight','dest_weight'] :
+                if isinstance(cell_data, (int, float)):
+                    data_dict[key] = str(int(cell_data))
+                else:
+                    data_dict[key] = str(cell_data)
             elif key in number_fields:
                 if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
@@ -5591,6 +5612,10 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                     mrp = 0
                 stock_dict["batch_detail__mrp"] = mrp
                 reserved_dict["stock__batch_detail__mrp"] = mrp
+            if data_dict.get('source_weight', ''):
+                weight = data_dict.get('source_weight' ,'')
+                stock_dict["batch_detail__weight"] = weight
+                reserved_dict["stock__batch_detail__weight"] = weight
             if data_dict.get('seller_master_id', ''):
                 stock_dict['sellerstock__seller_id'] = data_dict['seller_master_id']
                 stock_dict['sellerstock__quantity__gt'] = 0
@@ -5665,6 +5690,9 @@ def sku_substitution_upload(request, user=''):
         if data_dict.get('dest_mrp', 0):
             dest_filter['batch_detail__mrp'] = data_dict['dest_mrp']
             mrp_dict['mrp'] = data_dict['dest_mrp']
+        if data_dict.get('dest_weight','') :
+            dest_filter['batch_detail__weight'] = data_dict['dest_weight']
+            mrp_dict['weight'] = data_dict['dest_weight']
         if data_dict.get('seller_master_id', 0):
             dest_filter['sellerstock__seller_id'] = data_dict['seller_master_id']
             mrp_dict['mrp'] = data_dict['dest_mrp']
@@ -7093,3 +7121,242 @@ def validate_cluster_sku_form(request, reader, user, no_of_rows, no_of_cols, fna
         log.info('Cluster sku form Upload failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Cluster sku Upload Failed")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def combo_allocate_form(request, user=''):
+    excel_file = request.GET['download-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_headers = get_combo_allocate_excel_headers(user)
+    wb, ws = get_work_sheet('Combo Allocate', excel_headers)
+    return xls_to_response(wb, '%s.combo_allocate_form.xls' % str(user.id))
+
+
+@csrf_exempt
+def validate_combo_allocate_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    mapping_dict = {}
+    index_status = {}
+    location = {}
+    data_list = []
+    inv_mapping = get_combo_allocate_excel_headers(user)
+    inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+    if not set(['combo_sku_code', 'combo_location', 'combo_quantity', 'child_sku_code',
+                'child_location', 'child_quantity']).issubset(excel_mapping.keys()):
+        return 'Invalid File'
+    if user.userprofile.industry_type == 'FMCG':
+        if not set(['combo_batch_no', 'combo_mrp', 'child_quantity', 'child_batch_no',
+                    'child_mrp', 'child_weight']).issubset(excel_mapping.keys()):
+            return 'Invalid File'
+    if user.userprofile.user_type == 'marketplace_user':
+        if 'seller_id' not in excel_mapping.keys():
+            return 'Invalid File'
+    number_fields = ['combo_quantity', 'combo_mrp', 'child_quantity', 'child_mrp']
+    prev_data_dict = {}
+    final_data = OrderedDict()
+    for row_idx in range(1, no_of_rows):
+        data_dict = {'combo_updated': False}
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key in ['combo_sku_code', 'child_sku_code']:
+                if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = int(cell_data)
+                    cell_data = str(cell_data)
+                    sku_id = check_and_return_mapping_id(cell_data, "", user, False)
+                    if not sku_id:
+                        index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
+                    else:
+                        sku_master = SKUMaster.objects.get(id=sku_id, user=user.id)
+                        data_dict['%s_obj' % key] = sku_master
+                        data_dict[key] = sku_master.wms_code
+                elif 'child' in key and prev_data_dict.get(key, ''):
+                    data_dict['%s_obj' % key] = prev_data_dict['%s_obj' % key]
+                    data_dict[key] = prev_data_dict[key]
+                    data_dict['source_updated'] = True
+                else:
+                    index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
+            elif key in ['combo_location', 'child_location']:
+                if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = int(cell_data)
+                    cell_data = str(cell_data)
+                    location_master = LocationMaster.objects.filter(zone__user=user.id, location=cell_data)
+                    if not location_master:
+                        index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
+                    else:
+                        data_dict[key] = location_master[0].location
+                        data_dict['%s_obj' % key] = location_master[0]
+                elif 'child' in key and prev_data_dict.get(key, ''):
+                    data_dict['%s_obj' % key] = prev_data_dict['%s_obj' % key]
+                    data_dict[key] = prev_data_dict[key]
+                    data_dict['source_updated'] = True
+                else:
+                    index_status.setdefault(row_idx, set()).add('%s should not be empty' % inv_res[key])
+            elif key == 'seller_id':
+                if cell_data:
+                    try:
+                        seller_id = int(cell_data)
+                        seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
+                        if not seller_master:
+                            index_status.setdefault(row_idx, set()).add('Invalid Seller ID')
+                        else:
+                            data_dict[key] = seller_master[0].seller_id
+                            data_dict['seller_master_id'] = seller_master[0].id
+                            prev_data_dict = {}
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid Seller ID')
+                elif prev_data_dict:
+                    data_dict[key] = prev_data_dict[key]
+                    data_dict['seller_master_id'] = prev_data_dict['seller_master_id']
+                    data_dict['source_updated'] = True
+                else:
+                    index_status.setdefault(row_idx, set()).add('Seller ID should not be empty')
+            elif key in ['combo_batch_no', 'child_batch_no']:
+                if 'combo' in key and not cell_data and prev_data_dict.get(key, ''):
+                    data_dict[key] = prev_data_dict[key]
+                    data_dict['source_updated'] = True
+                    continue
+                if isinstance(cell_data, float):
+                    cell_data = str(int(cell_data))
+                    data_dict[key] = cell_data
+            elif key in ['combo_weight','child_weight'] :
+                if isinstance(cell_data, (int, float)):
+                    data_dict[key] = str(int(cell_data))
+                else:
+                    data_dict[key] = str(cell_data)
+            elif key in number_fields:
+                if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
+                    index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
+                elif 'child' in key and prev_data_dict.get(key, ''):
+                    data_dict[key] = prev_data_dict[key]
+                    data_dict['source_updated'] = True
+                else:
+                    data_dict[key] = cell_data
+
+        if row_idx not in index_status:
+            prev_data_dict = copy.deepcopy(data_dict)
+            stock_dict = {"sku_id": data_dict['child_sku_code_obj'].id,
+                          "location_id": data_dict['child_location_obj'].id,
+                          "sku__user": user.id, "quantity__gt": 0}
+            reserved_dict = {'stock__sku_id': data_dict['child_sku_code_obj'].id, 'stock__sku__user': user.id,
+                             'status': 1,'stock__location_id': data_dict['child_location_obj'].id}
+            child_batch_no = data_dict.get('child_batch_no', '')
+            stock_dict["batch_detail__batch_no"] = child_batch_no
+            reserved_dict["stock__batch_detail__batch_no"] = child_batch_no
+            child_mrp = data_dict.get('child_mrp', '')
+            stock_dict["batch_detail__mrp"] = child_mrp
+            reserved_dict["stock__batch_detail__mrp"] = child_mrp
+            child_weight = data_dict.get('child_weight' ,'')
+            stock_dict["batch_detail__weight"] = child_weight
+            reserved_dict["stock__batch_detail__weight"] = child_weight
+            if data_dict.get('seller_master_id', ''):
+                stock_dict['sellerstock__seller_id'] = data_dict['seller_master_id']
+                stock_dict['sellerstock__quantity__gt'] = 0
+                reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
+            stocks = StockDetail.objects.filter(**stock_dict)
+            data_dict['src_stocks'] = stocks
+            if not stocks:
+                index_status.setdefault(row_idx, set()).add('No Stocks Found')
+            else:
+                stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
+                reserved_quantity = PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).\
+                                        aggregate(Sum('reserved'))['reserved__sum']
+                if reserved_quantity:
+                    if (stock_count - reserved_quantity) < float(data_dict['child_quantity']):
+                        index_status.setdefault(row_idx, set()).add('Source Quantity reserved for Picklist')
+            combo_filter = {'sku_id': data_dict['combo_sku_code_obj'].id, 'location_id': data_dict['combo_location_obj'].id,
+                           'sku__user': user.id}
+            mrp_dict = {}
+            combo_batch_no = data_dict.get('combo_batch_no','')
+            mrp_dict['batch_no'] = combo_batch_no
+            combo_filter['batch_detail__batch_no'] = combo_batch_no
+            combo_mrp  = data_dict.get('combo_mrp','')
+            mrp_dict['mrp'] = combo_mrp
+            combo_filter['batch_detail__mrp'] = combo_mrp
+            combo_weight = data_dict.get('combo_weight','')
+            mrp_dict['weight'] = combo_weight
+            combo_filter['batch_detail__weight'] = combo_weight
+            add_ean_weight_to_batch_detail(data_dict['combo_sku_code_obj'], mrp_dict)
+            if seller_id:
+                combo_filter['sellerstock__seller_id'] = seller_id
+            combo_stocks = StockDetail.objects.filter(**combo_filter)
+            group_key = '%s<<>>%s<<>>%s<<>>%s<<>>%s' % (str(data_dict['combo_sku_code_obj'].sku_code), str(data_dict['combo_location_obj'].location),
+                                                  str(combo_batch_no), str(combo_mrp), str(combo_weight))
+            final_data.setdefault(group_key, {'combo_sku': data_dict['combo_sku_code_obj'], 'combo_loc': data_dict['combo_location_obj'],
+                                              'combo_batch_no': combo_batch_no, 'combo_mrp': combo_mrp,'seller_id':data_dict.get('seller_master_id', ''),
+                                              'combo_qty': data_dict.get('combo_quantity',0), 'combo_mrp_dict': mrp_dict,
+                                              'combo_stocks': combo_stocks, 'combo_weight': combo_weight,
+                                              'childs': []})
+            final_data[group_key]['childs'].append({'child_sku': data_dict['child_sku_code_obj'], 'child_loc': data_dict.get('child_location_obj'),
+                                                    'child_batch_no': child_batch_no, 'child_mrp': child_mrp,
+                                                    'child_qty': data_dict.get('child_quantity',0), 'child_stocks': stocks,
+                                                    'child_mrp': child_mrp})
+    final_data = final_data.values()
+    if not index_status:
+        return 'Success', final_data
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def combo_allocate_upload(request, user=''):
+    fname = request.FILES['files']
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, final_data = validate_combo_allocate_form(request, reader, user, no_of_rows,
+                                                     no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    source_updated=False
+    try:
+        for row_data in final_data:
+            transact_number = get_max_combo_allocation_id(user)
+            seller_id = row_data['seller_id']
+            dest_updated = False
+            for data in row_data['childs']:
+                desc_batch_obj = update_stocks_data(data['child_stocks'], float(data['child_qty']), row_data['combo_stocks'],
+                                                    float(row_data['combo_qty']), user, [row_data['combo_loc']],
+                                                    row_data['combo_sku'].id,
+                                                    src_seller_id=seller_id, dest_seller_id=seller_id,
+                                                    source_updated=source_updated,
+                                                    mrp_dict=row_data['combo_mrp_dict'], dest_updated=dest_updated)
+                sub_data = {'source_sku_code_id': data['child_sku'].id, 'source_location': data['child_loc'].location, 'source_quantity': data['child_qty'],
+                            'destination_sku_code_id': row_data['combo_sku'].id, 'destination_location': row_data['combo_loc'].location,
+                            'destination_quantity': row_data['combo_qty'], 'summary_type': 'combo_allocation'}
+                if data['child_stocks'] and data['child_stocks'][0].batch_detail:
+                    sub_data['source_batch_id'] = data['child_stocks'][0].batch_detail_id
+                if desc_batch_obj:
+                    sub_data['dest_batch_id'] = desc_batch_obj.id
+                if seller_id:
+                    sub_data['seller_id'] = seller_id
+                sub_data['transact_number'] = transact_number
+                SubstitutionSummary.objects.create(**sub_data)
+                dest_updated = True
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Combo allocate stock failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(data_dict), str(e)))
+    return HttpResponse('Success')

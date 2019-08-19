@@ -15674,15 +15674,14 @@ def generate_picklist_dc(request, user=''):
             challan_num = get_challan_number_for_dc(order , user)
             delivery_challan_dict['dc_number'] = challan_num
             invoice_data['dc_number'] = challan_num
-            # delivery_challan_dict['order'] = value.values()[0].get('order','')
+            delivery_challan_dict['order'] = value.values()[0].get('order','')
             delivery_challan_dict['picklist_number'] = picklist_number
             delivery_challan_dict['total_qty'] = total_qty
-            for dc_create in value.values():
-                delivery_challan_dict['order'] = dc_create.get('order','')
-                dc_create['order'] = ''
-                delivery_challan_dict['dcjson'] = json.dumps(dc_create)
-                TempDeliveryChallan.objects.create(**delivery_challan_dict)
-                invoice_data['inv_date'] = datetime.datetime.now().strftime("%Y-%m-%d")
+            for val in value.values():
+                val['order'] = ''
+            delivery_challan_dict['dcjson'] = json.dumps(value)
+            TempDeliveryChallan.objects.create(**delivery_challan_dict)
+            invoice_data['inv_date'] = datetime.datetime.now().strftime("%Y-%m-%d")
 
 
     return render(request, 'templates/toggle/delivery_challan_batch_level.html', invoice_data)
@@ -15992,6 +15991,4 @@ def generate_dc(request , user = ''):
                 invoice_data['dc_number'] = dc_number_obj
                 invoice_data['total_quantity'] = total_qty
                 invoice_data['inv_date'] = creation_date.strftime("%Y-%m-%d")
-
-
     return render(request, 'templates/toggle/delivery_challan_batch_level.html', invoice_data)

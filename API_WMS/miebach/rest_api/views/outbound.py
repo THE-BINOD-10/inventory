@@ -7375,7 +7375,7 @@ def search_customer_data(request, user=''):
 
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
-        total_data.append({'customer_id': data.customer_id, 'name': data.name, 'phone_number': str(data.phone_number),
+        total_data.append({'customer_id':str(data.customer_id), 'name': data.name, 'phone_number': str(data.phone_number),
                            'email': data.email_id, 'address': data.address, 'tax_type': data.tax_type, 'ship_to': data.shipping_address})
     return HttpResponse(json.dumps(total_data))
 

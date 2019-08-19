@@ -2823,6 +2823,8 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
            'avail_quantity', 'min_stock_qty', 'max_stock_qty', 'source_stock__location__location',
            'dest_location__location',
            'reserved', 'remarks']
+    # result_values = ['sku__wms_code', 'source_stock__batch_detail__mrp', 'source_stock__batch_detail__weight',]#to make distinct grouping
+    grouping_data = OrderedDict()
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -2851,6 +2853,20 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
                 weight = data.source_stock.batch_detail.weight
         if data.dest_location:
             dest_location = data.dest_location.location
+        # grouping_key = (data.sku_code, mrp, weight, source_location, dest_location)
+        # grouping_data.setdefault(grouping_key, {'sku_code':data.sku.sku_code,
+        #                                         'sku_name': data.sku.sku_desc,
+        #                                         'sku_category': data.sku.sku_category,
+        #                                         'avg_sales_day': data.avg_sales_day,
+        #                                         'cumulative_contribution': data.cumulative_contribution,
+        #                                         'classification': data.classification,
+        #                                          'weight': weight,'replenushment_qty': data.replenushment_qty,
+        #                                          'sku_avail_qty': data.sku_avail_qty,'avail_qty': data.avail_quantity,
+        #                                          'min_stock_qty': int(data.min_stock_qty),'max_stock_qty': int(data.max_stock_qty),
+        #                                          'source_location': source_location,'dest_location': dest_location,
+        #                                          'suggested_qty': data.reserved,'status': data.status,
+        #                                          'remarks': data.remarks,'data_id': data.id,'DT_RowAttr': {'data_id': data.id}
+        #                                          })
         temp_data['aaData'].append(
             OrderedDict((('', checkbox), ('sku_code', data.sku.sku_code),('sku_name', data.sku.sku_desc),
                          ('sku_category', data.sku.sku_category),

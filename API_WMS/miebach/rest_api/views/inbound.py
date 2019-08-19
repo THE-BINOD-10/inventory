@@ -738,9 +738,10 @@ def generated_po_data(request, user=''):
     #    rev_receipt_types = dict(zip(PO_RECEIPT_TYPES.values(), PO_RECEIPT_TYPES.keys()))
     #    order_type_val = rev_receipt_types.get(order_type_val, '')
     order_type = rev_order_types.get(order_type_val, '')
-    record = OpenPO.objects.filter(supplier_id=generated_id,status__in=['Manual', 'Automated', ''],sku__user=user.id, order_type=order_type, sku_id__in=sku_master_ids)
-    if not record:
+    if request.GET['po_type'] =='PastPO':
         record = OpenPO.objects.filter(supplier_id=generated_id,sku__user=user.id, order_type=order_type, sku_id__in=sku_master_ids)
+    else:
+        record = OpenPO.objects.filter(supplier_id=generated_id,status__in=['Manual', 'Automated', ''],sku__user=user.id, order_type=order_type, sku_id__in=sku_master_ids)
     total_data = []
     status_dict = PO_ORDER_TYPES
     ser_data = []
@@ -8352,9 +8353,9 @@ def get_past_po(start_index, stop_index, temp_data, search_term, order_term, col
                                                                    'order_id', 'open_po__supplier__name',
                                                                    'creation_date','open_po__order_type').order_by(order_data)
     else:
-        result = PurchaseOrder.objects.filter(open_po__sku__user=user.id).values('open_po__supplier__id',
+        result = PurchaseOrder.objects.filter(open_po__sku__user=user.id, **search_params).values('open_po__supplier__id',
                                                                    'order_id', 'open_po__supplier__name',
-                                                                   'creation_date','open_po__order_type').order_by(order_data).filter(**search_params)
+                                                                   'creation_date','open_po__order_type').order_by(order_data).distinct()
 
     temp_data['recordsTotal'] = len(result)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']

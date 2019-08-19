@@ -70,7 +70,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
         $scope.$apply(function() {
           vm.extra_width = { 'width': '1250px' };
           vm.supplier_id = aData['Supplier ID'];
-          var data = {supplier_id: aData['Supplier ID'], order_type: aData['Order Type']};
+          var data = {supplier_id: aData['Supplier ID'], order_type: aData['Order Type'], po_type:'PastPO'};
           vm.service.apiCall('generated_po_data/', 'GET', data).then(function(data){
             if (data.message) {
 
@@ -433,9 +433,25 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
     vm.confirm_po = function() {
       var elem = angular.element($('form'));
-      elem = elem[0];
+      elem = elem[1];
       elem = $(elem).serializeArray();
       vm.common_confirm('confirm_po/', elem);
+    }
+
+    vm.common_confirm = function(url, elem) {
+      var confirm_url = 'validate_wms/';
+      if (vm.warehouse_type == 'CENTRAL_ADMIN') {
+        elem.push({name:'is_central_po', value:true});
+      }
+      vm.service.apiCall(confirm_url, 'POST', elem, true).then(function(data){
+        if(data.message) {
+          if (data.data == "success") {
+            vm.raise_po(url, elem);
+          } else{
+            vm.service.pop_msg(data.data);
+          }
+        }
+      });
     }
 
     vm.common_confirm = function(url, elem) {

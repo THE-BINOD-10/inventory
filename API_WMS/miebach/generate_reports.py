@@ -82,7 +82,10 @@ class MailReports:
             mail_report_data = {}
             for each_wh in sister_whs:
                 try:
-                    wh_report_data = report({}, each_wh, each_wh, serial_view=False, firebase_response=firebase_response)
+                    if report_misc_data == 'shipment_report':
+                       wh_report_data = report({}, each_wh, each_wh, serial_view=False, firebase_response=firebase_response)
+                    else:
+                       wh_report_data = report({}, each_wh, each_wh)
                 except Exception as e:
                     import traceback
                     log.debug(traceback.format_exc())
@@ -165,6 +168,8 @@ if __name__ == "__main__":
     log.info("Started cronjob for report sending\n")
     users = User.objects.all()
     for user in users:
+        if user.username == '72Networks':
+           continue
         log.info("user : %s"%(str(user.id)))
         OBJ = MailReports()
         OBJ.send_reports_mail(user)

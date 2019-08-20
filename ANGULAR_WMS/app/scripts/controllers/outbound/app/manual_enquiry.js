@@ -109,7 +109,6 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
           item.blocked_quantity = data.blocked_quantity;
         }
       })
-      console.log($ctrl.temp_selected_style)
     })
     return $ctrl.temp_selected_style;
   }
@@ -119,7 +118,9 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
       if(data[k].quantity){
         $ctrl.totalQuantity += parseInt(data[k].quantity)
         $ctrl.model_data.quantity = $ctrl.totalQuantity
-      }else if(data[k].quantity == 'undefined' || data[k].quantity == ''){}
+      }else if(data[k].quantity == 'undefined' || data[k].quantity == ''){
+        $ctrl.model_data.quantity = $ctrl.totalQuantity
+      }
     }
   }
   $ctrl.place = function(form) {
@@ -178,7 +179,6 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
             },
             'success': function(response) {
               if(response == 'Success') {
-
                 Service.showNoty(response);
                 $ctrl.loading =false;
                 $scope.$apply(function() {
@@ -229,6 +229,7 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
   });
 
   $ctrl.clearFiles = function(){
+    $ctrl.totalQuantity = 0
     $('#image-upload').val('');
     $("div.multi_imgs_display").empty();
   }

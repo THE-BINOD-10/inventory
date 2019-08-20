@@ -79,9 +79,13 @@ class EasyopsAPI:
             response = requests.get(url, headers=self.headers, verify=False)
 
         try:
-            response = response.json()
+            if not isinstance(response, dict):
+                response = response.json()
+            else:
+                log.info("Response Object came as Dict Obj for url is %s headers is %s request is %s"
+                         % (url, str(self.headers), str(data)))
         except:
-            if is_first:
+            if is_first and 'ProcessSOAtEmiza' not in url:    # Should not call the Order Insertion again
                 self.get_access_token(self.user)
                 try:
                     response = self.get_response(url, data, put, is_first=False)

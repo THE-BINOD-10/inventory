@@ -268,7 +268,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "central_order_upload/",
                    dparam: "download-file",
                    value: "",
-                   perm: "add_suppliermaster"
+                   perm: "add_intermediateorders"
                  },
                  {
                    title: "Create Stock Transfer Order Form Download/ Upload",
@@ -316,6 +316,16 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "download-file",
                    value: "",
                    perm: "add_clusterskumapping",
+                 },
+                 {
+                   title: "Combo Allocate Stock Download/ Upload",
+                   download: "Combo Allocate Stock Download Form",
+                   upload: "Combo Allocate Stock Upload Form",
+                   durl: "combo_allocate_form/",
+                   uurl: "combo_allocate_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   perm: "change_substitutionsummary",
                  },
                 ]
 

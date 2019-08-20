@@ -627,6 +627,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       product.fields.price = 0;
       product.fields.mrp = item.mrp;
       product.fields.description = item.sku_desc;
+      product.fields.blocked_sku = "";
       product.fields.sgst_tax = "";
       product.fields.cgst_tax = "";
       product.fields.igst_tax = "";
@@ -655,8 +656,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               }
               else
               {
+                product.fields.blocked_sku = data.sku_block
                 product.fields.price = data.price;
                 product.fields.supplier_code = data.supplier_code;
+                product.fields.weight = data.weight;
                 vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
                 vm.getTotals();
               }
@@ -674,7 +677,35 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
         })
       }
     }
-
+    vm.update_wms_records = function(){
+      var params_data = {}
+      var notify_flag = false;
+      if (vm.model_data.data[0].fields.sku.wms_code){
+        params_data['supplier_id'] = vm.model_data.supplier_id;
+        vm.service.apiCall('get_ep_supplier_value/', 'POST', params_data).then(function(data){
+          if(data.message){
+            vm.model_data['ep_supplier'] = data.data.ep_supplier_status
+            if (vm.model_data['ep_supplier'] == 0) {
+              for (var i = 0; i < vm.model_data.data.length; i++) {
+                if(vm.model_data.data[i].fields.blocked_sku == 'PO') {
+                  if(vm.model_data.data.length == 1){
+                    vm.clear_raise_po_data(vm.model_data.data[i])
+                    notify_flag = true;
+                  }else {
+                    vm.model_data.data.splice(i, 1);
+                    notify_flag = true;
+                  }
+                }
+              }
+              if(notify_flag) {
+                vm.service.showNoty('cleared the Blocked Sku');
+                notify_flag = false;
+              }
+            }
+          }
+        })
+      }
+    }
     vm.clear_raise_po_data = function(product){
       product.fields.sku.wms_code = '';
       product.fields.measurement_unit = '';
@@ -691,6 +722,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       product.fields.apmc_tax = "";
       product.fields.utgst_tax = "";
       product.fields.tax = "";
+      product.fields.blocked_sku = "";
       product.taxes = [];
       vm.cleared_data = false;
     }

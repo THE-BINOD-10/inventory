@@ -29,20 +29,18 @@
       <hr ng-if="$ctrl.user_type == 'marketplace_user'">
       <div class="row" style="margin-top:10px">
         <div class="col-md-4 col-sm-12 col-xs-12">
-            <div class="col-md-6 col-sm-5 col-xs-12">
+            <div class="col-lg-6 col-md-6 col-sm-5 col-xs-12">
                 <label class="control-label">Source SKU Code</label>
                 <input type="text" autocomplete="off" name="src_sku_code" class="form-control" placeholder="Search SKU Code &sol; Desc" typeahead="address.wms_code+' : '+address.sku_desc for address in $ctrl.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" typeahead-on-select="$ctrl.model_data.src_sku_code = $item.wms_code; $ctrl.check_sku_code($item, $ctrl.model_data.src_location, 'src_sku')" ng-model="$ctrl.model_data.src_sku_code"  ng-blur="$ctrl.empty_sku(); $ctrl.get_sku_batches($ctrl.model_data.src_sku_code)" required>
             </div>
-
-            <div class="col-md-6 col-sm-5 col-xs-12" ng-if="$ctrl.industry_type == 'FMCG'">
+            <div class="col-lg-6 col-md-6 col-sm-5 col-xs-12" ng-if="$ctrl.industry_type == 'FMCG'">
                 <label class="control-label"> Batch Number</label>
                 <select class="form-control" name="src_batch_number" ng-model="$ctrl.model_data.batch_number">
                   <option value="">Select Batch Number</option>
                   <option ng-repeat="batch_no in $ctrl.batch_nos" value="{{batch_no}}">{{batch_no}}</option>
                 </select>
             </div>
-
-            <div class="col-md-6 col-sm-5 col-xs-12" ng-if="$ctrl.industry_type == 'FMCG'" style="margin-top: 10px">
+            <div class="col-lg-6 col-md-6 col-sm-5 col-xs-12" ng-if="$ctrl.industry_type == 'FMCG'" style="margin-top: 10px">
                 <label class="control-label"> MRP</label>
                 <select class="form-control" name="src_mrp" ng-model="$ctrl.model_data.mrp" ng-readonly="$ctrl.batches['$ctrl.model_data.batch_number']" ng-change="$ctrl.update_exp_dates($ctrl.batches, $ctrl.model_data.mrp, $ctrl.model_data.batch_number)">
                   <option value="">Select MRP</option>
@@ -52,21 +50,24 @@
                 <input type="hidden" name="exp_date" value="{{$ctrl.model_data.exp_date}}" >
                 <input type="hidden" name="exp_date" value="{{$ctrl.model_data.tax_percent}}" >
             </div>
-
-            <div class="col-md-6 col-sm-5 col-xs-12" style="margin-top: 10px">
+            <div class="col-lg-6 col-md-6 col-sm-5 col-xs-12" style="margin-top: 10px">
                 <label class="control-label">Source Location</label>
                 <input type="text" name="src_location" class="form-control" ng-model="$ctrl.model_data.src_location" ng-disabled="!$ctrl.model_data.src_sku_code" ng-change="$ctrl.check_loc_wise_qty($ctrl.model_data.src_sku_code, $ctrl.model_data.src_location, 'src_sku')" ng-debounce>
             </div>
-
-            <div class="col-md-6 col-sm-5 col-xs-12">
+            <div class="col-lg-6 col-md-6 col-sm-5 col-xs-12" ng-if="$ctrl.industry_type == 'FMCG'">
+                <label class="control-label"> Weight </label>
+                <select class="form-control" name="src_weight" ng-model="$ctrl.model_data.weight">
+                  <option value="">Select Weight</option>
+                  <option ng-repeat="weight in $ctrl.weights[$ctrl.model_data.batch_number]" value="{{weight}}">{{weight}}</option>
+                </select>
+            </div>
+            <div class="col-lg-6 col-md-6 col-sm-5 col-xs-12">
                 <label class="control-label">Quantity</label>
                 <input type="text" name="src_quantity" class="form-control" decimal-number ng-model="$ctrl.model_data.src_quantity"  ng-disabled="$ctrl.model_data.src_available_quantity == 0" ng-change="$ctrl.check_validation()">
             </div>
-
-            <div class="col-md-6 col-sm-5 col-xs-12" style="margin-top: 10px; text-align: center">
+            <div class="col-lg-6 col-md-6 col-sm-5 col-xs-12" style="margin-top: 10px; text-align: center">
                 <label class="control-label">Available Quantity</label>
                 <div>
-
                   <span style="font-style: italic;font-size: 15px;line-height: 30px;font-weight: 600;" class="ng-binding">
                     <i ng-if="!$ctrl.data_available" class="fa fa-spinner fa-spin fa-2x fa-fw"></i>
                     <span class="sr-only">Loading...</span>
@@ -98,6 +99,11 @@
             <div class="col-md-{{$ctrl.cols}} col-sm-{{$ctrl.cols}} col-xs-12" style="margin-top: 10px" ng-if="$ctrl.industry_type == 'FMCG'">
                 <label class="control-label"> MRP</label>
                 <input type="text" name="dest_mrp" class="form-control" ng-model="data.mrp" ng-disabled="!$ctrl.model_data.src_sku_code" ng-debounce>
+            </div>
+
+            <div class="col-md-{{$ctrl.cols}} col-sm-{{$ctrl.cols}} col-xs-12" style="margin-top: 10px" ng-if="$ctrl.industry_type == 'FMCG'">
+                <label class="control-label"> Weight</label>
+                <input type="text" name="dest_weight" class="form-control" ng-model="data.weight" ng-disabled="!$ctrl.model_data.src_sku_code" ng-debounce>
             </div>
 
             <div class="col-md-{{$ctrl.cols}} col-sm-{{$ctrl.cols}} col-xs-12" style="margin-top: 10px">
@@ -134,4 +140,3 @@
   </form>
 
 </div>
-

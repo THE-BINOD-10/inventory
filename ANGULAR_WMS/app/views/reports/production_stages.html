@@ -1,4 +1,4 @@
-<div ng-controller="StockSummaryCtrl as showCase">
+<div ng-controller="StockSummaryReportCtrl as showCase">
   <div class="page-layout reports">
     <div class='layout-header'>
       <div class="row">
@@ -42,6 +42,15 @@
                 </div>
               </div>
             </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.parent_username == 'isprava_admin'">
+                <div class="form-group">
+                  <label class="control-label">Sister warehouse</label>
+                  <select name="sister_warehouse" class="form-control" ng-model="showCase.model_data.sister_warehouse">
+                    <option value="" selected>All</option>
+                    <option ng-repeat="group in showCase.data.warehouse_groups" value="{{group}}">{{group}}</option>
+                  </select>
+                </div>
+              </div>
             <div class="col-md-12">
               <div class="filter-controls">
                 <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.service.reset_data(showCase.empty_data, showCase.model_data);showCase.service.generate_report(showCase.dtInstance, showCase.model_data)"> Reset </button>

@@ -192,14 +192,14 @@
           </div>
         </div>
       </div>
-      <div class="col-md-4 col-sm-4 col-xs-6" ng-repeat="data in showCase.order_extra_fields track by data" ng-if ="showCase.extra_fields">
+      <div class="col-md-4 col-sm-4 col-xs-6" ng-repeat="data in showCase.order_extra_fields track by $index" ng-if ="showCase.extra_fields">
         <div class="form-group">
           <label class="control-label"><b>{{data}}</b></label>
-          <select ng-model="showCase.exta_model[data]" class="form-control" name=order_field_{{data}} ng-if = 'showCase.extra_order_options[data][0] != ""'>
+          <select ng-model="showCase.exta_model[data]" class="form-control" name=order_field_{{data}} ng-if = 'showCase.extra_order_options[data][0]!= "" && showCase.extra_order_options[data]'>
             <option value="">Select  From Below</option>
-            <option ng-repeat="order_option in showCase.extra_order_options[data]" value="{{order_option}}">{{order_option}}</option>
+            <option ng-repeat="order_option in showCase.extra_order_options[data] track by $index" value="{{order_option}}">{{order_option}}</option>
           </select>
-          <input name="order_field_{{data}}" ng-model="showCase.exta_model[data]" class="form-control" type="text" ng-if = 'showCase.extra_order_options[data][0] == ""'>
+          <input name="order_field_{{data}}" ng-model="showCase.exta_model[data]" class="form-control" type="text" ng-if = 'showCase.extra_order_options[data][0] == "" || !showCase.extra_order_options[data]'>
         </div>
       </div>
     </div>
@@ -365,15 +365,25 @@
       </div>
       <div class="row mr10 ml10 mr10">
         <div class="col-md-12">
-          <a href="javascript:;" class="btn btn-success btn-xs" ng-click="showCase.model_data.other_charges.push({name: '', amount: ''})">Add Other Charges(+)</a>
+          <a href="javascript:;" class="btn btn-success btn-xs" ng-click="showCase.model_data.other_charges.push({name: '', amount: 0,tax_percent:0,tax_value:''})">Add Other Charges(+)</a>
         </div>
         <div class="col-md-12">
           <div class="row mt20" ng-repeat="charge in showCase.model_data.other_charges">
             <div class="col-md-3 col-sm-4 col-xs-6">
+              Charge Name :
               <input type="text" class="form-control" placeholder="Enter Charge Name" ng-model="charge.name" name="charge_name">
             </div>
             <div class="col-md-2 col-sm-2 col-xs-3">
+              Amount:
               <input type="text" class="form-control" placeholder="Enter Amount" ng-model="charge.amount" ng-change="showCase.cal_total()" decimal-number name="charge_amount">
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-3">
+              Tax Percent:
+              <input type="text" class="form-control" placeholder="Enter Tax Percentage" ng-model="charge.tax_percent" ng-change="showCase.cal_total()" decimal-number name="charge_tax_percent">
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-3">
+              Tax Value:
+              <input type="text" class="form-control" placeholder="Tax Value" ng-model="charge.tax_value"  decimal-number name="charge_tax_value">
             </div>
             <div class="col-md-1 col-sm-1 col-xs-2">
               <i style="font-size: 20px;padding-top: 7px;cursor: pointer;" class="fa fa-minus-square-o" ng-click="showCase.model_data.other_charges.splice($index, 1);showCase.cal_total();"></i>

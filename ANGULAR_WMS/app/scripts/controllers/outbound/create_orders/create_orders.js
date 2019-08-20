@@ -117,6 +117,10 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
         var elem = angular.element($('form'));
         elem = elem[0];
         elem = $(elem).serializeArray();
+        if(!vm.model_data.payment_amounts)
+        {
+          vm.model_data.payment_amounts = {}
+        }
         elem.push({'name':'payment_modes','value':JSON.stringify(vm.model_data.payment_amounts)})
         if (is_sample == 'sample') {
           elem.push({'name':'is_sample', 'value':true});
@@ -667,8 +671,10 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     if(vm.model_data.other_charges) {
       angular.forEach(vm.model_data.other_charges, function(record){
         if(record.amount){
-          vm.final_data.total_amount += Number(record.amount);
+          vm.cal_total_tax(record)
+          vm.final_data.total_amount += Number(record.amount)+Number(record.tax_value);
           vm.final_data.temp_total_amount += Number(record.total_amount);
+
         }
       })
     }
@@ -686,6 +692,9 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     if(!no_total) {
       vm.cal_total();
     }
+  }
+  vm.cal_total_tax = function(charge){
+    charge.tax_value = (Number(charge.amount) * charge.tax_percent)/100
   }
 
   vm.change_unit_price = function(data) {

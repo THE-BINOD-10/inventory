@@ -49,7 +49,7 @@ input[type="date"]:valid::before {
         <ul class="dropdown-menu">
           <li><a ng-click="$state.go('user.App.MyOrders')">Your Orders</a></li>
           <li><a ng-click="$state.go('user.App.Profile')">Profile</a></li>
-          <li><a ng-click="$state.go('user.App.ManualEnquiry');">Create Custom Order</a></li>
+          <li><a ng-if="showCase.user_type=='reseller'" ng-click="$state.go('user.App.ManualEnquiry');">Create Custom Order</a></li>
           <li ng-if="showCase.permissions.display_sku_cust_mapping"><a ng-click="$state.go('user.App.PendingOrder');">Pending Order</a>
           </li>
           <!--<li><a ng-click="$state.go('user.App.CorporateOrders');" ng-if="showCase.user_type=='reseller'">Corporate Orders</a></li>-->

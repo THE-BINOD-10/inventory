@@ -128,13 +128,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         send.empty_data[data.name] = ""
       });
 
-      if (data.dt_url == 'get_order_summary_filter' || 'get_po_filter') {
-
-        send.empty_data.from_date = new Date(new Date().getFullYear(), new Date().getMonth() - 1, new Date().getDate()).toLocaleDateString('en-US'); 
-      } 
-    else {
-      send.empty_data.from_date = ''  
-    }
+      send.empty_data.from_date = new Date(new Date().getFullYear(), new Date().getMonth() - 1, new Date().getDate()).toLocaleDateString('en-US');
       send.empty_data.to_date = ''
 
       send.dtOptions = DTOptionsBuilder.newOptions()
@@ -424,7 +418,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     }
 
     vm.reset_data = function(from, to) {
-      
+
       angular.copy(from, to);
     }
 
@@ -946,8 +940,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
   }
   vm.generate_pdf_dc = function(data){
     var send = {};
-    send = $(data).html()
-   vm.print_invoice_data(send, "");
+   vm.print_invoice_data(data, "");
  }
   vm.generate_pdf_file2 = function(data){
     var send = {};

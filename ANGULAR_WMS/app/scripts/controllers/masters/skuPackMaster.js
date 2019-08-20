@@ -7,9 +7,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
-    // vm.priceband_sync = Session.roles.permissions.priceband_sync;
-    // vm.display_sku_cust_mapping = Session.roles.permissions.display_sku_cust_mapping;
-
     vm.filters = {'datatable': 'SKUPackMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -79,27 +76,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $state.go('app.masters.SkuPackMaster');
   }
 
-  vm.get_customer_id = function() {
-
-    vm.service.apiCall("get_customer_master_id/").then(function(data){
-      if(data.message) {
-
-        vm.model_data["customer_id"] = data.data.customer_id;
-        vm.all_taxes = data.data.tax_data;
-        vm.model_data["price_type_list"] = data.data.price_types;
-        vm.model_data["logged_in_user_type"] = data.data.logged_in_user_type;
-        vm.model_data["level_2_price_type"] = data.data.level_2_price_type;
-        vm.model_data["price_type"] = data.data.price_type;
-      }
-    });
-  }
-  vm.get_customer_id();
 
   vm.add = add;
   function add() {
 
     vm.base();
-    // vm.get_customer_id();
     $state.go('app.masters.SkuPackMaster.skupack');
   }
 

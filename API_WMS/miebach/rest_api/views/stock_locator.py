@@ -2817,12 +2817,15 @@ def confirm_combo_allocation(request, user=''):
 
 @csrf_exempt
 def get_skuclassification(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['sku__sku_code', 'sku__sku_code', 'sku__sku_desc','sku__sku_category','avg_sales_day',
+    lis = ['sku__sku_code', 'sku__sku_code', 'sku__sku_code', 'sku__sku_desc','sku__sku_category',
+           'sku__sku_code', 'sku__sku_code', 'sku__sku_code', 'sku__sku_code', 'sku__relation_type', 'avg_sales_day',
            'cumulative_contribution', 'classification',
            'source_stock__batch_detail__mrp', 'source_stock__batch_detail__weight', 'replenushment_qty','sku_avail_qty',
            'avail_quantity', 'min_stock_qty', 'max_stock_qty', 'source_stock__location__location',
            'dest_location__location',
-           'reserved', 'remarks']
+           'reserved__sum', 'remarks']
+    # result_values = ['sku__wms_code', 'source_stock__batch_detail__mrp', 'source_stock__batch_detail__weight',]#to make distinct grouping
+    grouping_data = OrderedDict()
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -2833,43 +2836,71 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
                 Q(sku__sku_category__icontains=search_term) | Q(classification__icontains=search_term) |
                 Q(source_stock__batch_detail__mrp__icontains=search_term) |
                 Q(source_stock__batch_detail__weight__icontains=search_term),
-                sku__user=user.id, status=1).order_by(order_data)
+                sku__user=user.id, status=1)
     else:
-        master_data = SkuClassification.objects.filter(sku__user=user.id, status=1, **search_params).order_by(order_data)
+        master_data = SkuClassification.objects.filter(sku__user=user.id, status=1, **search_params)
+    master_data = master_data.values('sku__sku_code', 'sku__sku_desc', 'sku__sku_category',
+                                     'source_stock__batch_detail__mrp', 'source_stock__batch_detail__weight',
+                                     'avg_sales_day', 'cumulative_contribution', 'classification',
+                                     'replenushment_qty', 'sku_avail_qty', 'avail_quantity',
+                                     'min_stock_qty', 'max_stock_qty', 'status', 'remarks',
+                       'source_stock__location__location', 'dest_location__location',
+                                     'sku__relation_type').distinct().\
+                annotate(Sum('reserved'), creation_date_only=Cast('creation_date', DateField())).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    for data in master_data[start_index: stop_index]:
-        checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data.id, data.sku_id)
+    if stop_index:
+        master_data = master_data[start_index: stop_index]
+        sku_codes_list = list(master_data.values_list('sku__sku_code', flat=True))
+    sku_attrs = SKUAttributes.objects.filter(sku__user=user.id,
+                                             sku__sku_code__in=sku_codes_list)
+    sku_sheet_dict = dict(sku_attrs.filter(attribute_name='Sheet').values_list('sku__sku_code', 'attribute_value'))
+    sku_vendor_dict = dict(sku_attrs.filter(attribute_name='Vendor').values_list('sku__sku_code', 'attribute_value'))
+    sku_searchable_dict = dict(sku_attrs.filter(attribute_name='Searchable').values_list('sku__sku_code', 'attribute_value'))
+    sku_reset_dict = dict(
+        sku_attrs.filter(attribute_name='Reset Stock').values_list('sku__sku_code', 'attribute_value'))
+    for data in master_data:
+        checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data['sku__sku_code'], data['reserved__sum'])
         mrp = 0
         weight = ''
         source_location = ''
         dest_location = ''
-        if data.source_stock:
-            source_location = data.source_stock.location.location
-            if data.source_stock.batch_detail:
-                mrp = data.source_stock.batch_detail.mrp
-                weight = data.source_stock.batch_detail.weight
-        if data.dest_location:
-            dest_location = data.dest_location.location
+        if data['source_stock__location__location']:
+            source_location = data['source_stock__location__location']
+        if data['source_stock__batch_detail__mrp']:
+            mrp = data['source_stock__batch_detail__mrp']
+        if data['source_stock__batch_detail__weight']:
+            weight = data['source_stock__batch_detail__weight']
+        if data['dest_location__location']:
+            dest_location = data['dest_location__location']
+        combo_flag = 'No'
+        if data['sku__relation_type'] == 'combo':
+            combo_flag = 'Yes'
         temp_data['aaData'].append(
-            OrderedDict((('', checkbox), ('sku_code', data.sku.sku_code),('sku_name', data.sku.sku_desc),
-                         ('sku_category', data.sku.sku_category),
-                         ('avg_sales_day', data.avg_sales_day),
-                         ('cumulative_contribution', data.cumulative_contribution),
-                         ('classification', data.classification), ('mrp', mrp),
+            OrderedDict((('', checkbox), ('generation_time', str(data['creation_date_only'])),
+                         ('sku_code', data['sku__sku_code']),('sku_name', data['sku__sku_desc']),
+                         ('sku_category', data['sku__sku_category']),
+                         ('sheet', sku_sheet_dict.get(data['sku__sku_code'], '')),
+                         ('vendor', sku_vendor_dict.get(data['sku__sku_code'], '')),
+                         ('reset_stock', sku_reset_dict.get(data['sku__sku_code'], '')),
+                         ('searchable', sku_searchable_dict.get(data['sku__sku_code'], '')),
+                         ('combo_flag', combo_flag),
+                         ('avg_sales_day', data['avg_sales_day']),
+                         ('cumulative_contribution', data['cumulative_contribution']),
+                         ('classification', data['classification']), ('mrp', mrp),
                          ('weight', weight),
-                         ('replenushment_qty', data.replenushment_qty),
-                         ('sku_avail_qty', data.sku_avail_qty),
-                         ('avail_qty', data.avail_quantity),
-                         ('min_stock_qty', int(data.min_stock_qty)),
-                         ('max_stock_qty', int(data.max_stock_qty)),
+                         ('replenushment_qty', data['replenushment_qty']),
+                         ('sku_avail_qty', data['sku_avail_qty']),
+                         ('avail_qty', data['avail_quantity']),
+                         ('min_stock_qty', int(data['min_stock_qty'])),
+                         ('max_stock_qty', int(data['max_stock_qty'])),
                          ('source_location', source_location),
                          ('dest_location', dest_location),
-                         ('suggested_qty', data.reserved),
-                         ('status', data.status),
-                         ('remarks', data.remarks),
-                         ('data_id', data.id),
-                         ('DT_RowAttr', {'data_id': data.id}))))
+                         ('suggested_qty', data['reserved__sum']),
+                         ('status', data['status']),
+                         ('remarks', data['remarks']),
+                         ('data_id', data['sku__sku_code']),
+                         ('DT_RowAttr', {'data_id': data['sku__sku_code']}))))
 
 
 
@@ -2881,62 +2912,77 @@ def cal_ba_to_sa(request, user=''):
     data_dict = dict(request.POST.iterlists())
     confirm_data_list = []
     for ind in range(0, len(data_dict['data_id'])):
-        classification_obj = SkuClassification.objects.filter(id=data_dict['data_id'][ind], status=1)
-        if not classification_obj:
+        classification_objs = SkuClassification.objects.filter(sku__sku_code=data_dict['sku_code'][ind],
+                                                              source_stock__batch_detail__mrp=data_dict['mrp'][ind],
+                                                              source_stock__batch_detail__weight=data_dict['weight'][ind],
+                                                              source_stock__location__location=data_dict['source_location'][ind],
+                                                              classification=data_dict['classification'][ind],
+                                                              sku__user=user.id, status=1)
+        if not classification_objs:
             continue
-        classification_obj = classification_obj[0]
-        dest_location = data_dict['dest_location'][ind]
-        remarks = data_dict['remarks'][ind]
-        if remarks:
-            continue
-        dest_loc_obj = LocationMaster.objects.filter(zone__user=user.id, location=dest_location)
-        if not dest_loc_obj.exists():
-            return HttpResponse("Invalid Location for SKU Code %s" % str(data_dict['sku_code'][ind]))
         try:
-            suggested_qty = float(data_dict['suggested_qty'][ind])
-        except:
-            suggested_qty = 0
-        if not suggested_qty:
-            continue
-        if classification_obj.suggested_qty < suggested_qty:
-            return HttpResponse("Entered Quantity exceeding the suggested quantity for SKU Code %s" % str(data_dict['sku_code'][ind]))
-        seller = classification_obj.seller
-        confirm_data_list.append({'classification_obj': classification_obj, 'dest_loc': dest_loc_obj[0],
-                                  'suggested_qty': suggested_qty, 'seller': seller})
-    try:
-        data = CycleCount.objects.filter(sku__user=user.id).aggregate(Max('cycle'))['cycle__max']
-        if not data:
-            cycle_id = 1
-        else:
-            cycle_id = data + 1
-        for final_data in confirm_data_list:
-            classification_obj = final_data['classification_obj']
-            wms_code = classification_obj.source_stock.sku.sku_code
-            source_loc = classification_obj.source_stock.location.location
-            dest_loc = final_data['dest_loc'].location
-            quantity = final_data['suggested_qty']
-            seller_id = classification_obj.seller.seller_id
-            batch_no = ''
-            mrp = 0
-            weight = ''
-            if classification_obj.source_stock.batch_detail:
-                batch_no = classification_obj.source_stock.batch_detail.batch_no
-                mrp = classification_obj.source_stock.batch_detail.mrp
-                weight = classification_obj.source_stock.batch_detail.weight
-            status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id,
-                                         batch_no=batch_no, mrp=mrp,
-                                         weight=weight)
-            if 'success' in status.lower():
-                update_filled_capacity([source_loc, dest_loc], user.id)
-                classification_obj.reserved = classification_obj.reserved - quantity
-                if classification_obj.reserved <= 0:
-                    classification_obj.status = 0
-                classification_obj.save()
-    except Exception as e:
-        import traceback
-        log.debug(traceback.format_exc())
-        log.info('BA to SA Confirmation failed for %s and params are %s and error statement is %s' % (
-        str(user.username), str(data_dict), str(e)))
+            total_reserved = classification_objs.aggregate(Sum('reserved'))['reserved__sum']
+            dest_location = data_dict['dest_location'][ind]
+            remarks = data_dict['remarks'][ind]
+            if remarks:
+                continue
+            dest_loc_obj = LocationMaster.objects.filter(zone__user=user.id, location=dest_location)
+            if not dest_loc_obj.exists():
+                return HttpResponse("Invalid Location for SKU Code %s" % str(data_dict['sku_code'][ind]))
+            try:
+                suggested_qty = float(data_dict['suggested_qty'][ind])
+            except:
+                suggested_qty = 0
+            if not suggested_qty:
+                continue
+            if total_reserved < suggested_qty:
+                return HttpResponse("Entered Quantity exceeding the suggested quantity for SKU Code %s" % str(
+                    data_dict['sku_code'][ind]))
+            for classification_obj in classification_objs:
+                if not suggested_qty:
+                    continue
+                seller = classification_obj.seller
+                if suggested_qty > classification_obj.reserved:
+                    reserved_quantity = classification_obj.reserved
+                    suggested_qty -= reserved_quantity
+                else:
+                    reserved_quantity = suggested_qty
+                    suggested_qty = 0
+                confirm_data_list.append({'classification_obj': classification_obj, 'dest_loc': dest_loc_obj[0],
+                                          'reserved_quantity': reserved_quantity, 'seller': seller})
+            data = CycleCount.objects.filter(sku__user=user.id).aggregate(Max('cycle'))['cycle__max']
+            if not data:
+                cycle_id = 1
+            else:
+                cycle_id = data + 1
+            for final_data in confirm_data_list:
+                classification_obj = final_data['classification_obj']
+                wms_code = classification_obj.source_stock.sku.sku_code
+                source_loc = classification_obj.source_stock.location.location
+                dest_loc = final_data['dest_loc'].location
+                quantity = final_data['reserved_quantity']
+                seller_id = classification_obj.seller.seller_id
+                batch_no = ''
+                mrp = 0
+                weight = ''
+                if classification_obj.source_stock.batch_detail:
+                    batch_no = classification_obj.source_stock.batch_detail.batch_no
+                    mrp = classification_obj.source_stock.batch_detail.mrp
+                    weight = classification_obj.source_stock.batch_detail.weight
+                status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id,
+                                             batch_no=batch_no, mrp=mrp,
+                                             weight=weight)
+                if 'success' in status.lower():
+                    update_filled_capacity([source_loc, dest_loc], user.id)
+                    classification_obj.reserved = classification_obj.reserved - quantity
+                    if classification_obj.reserved <= 0:
+                        classification_obj.status = 0
+                    classification_obj.save()
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('BA to SA Confirmation failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(data_dict), str(e)))
 
     return HttpResponse('Confirmed Successfully')
 
@@ -2961,6 +3007,8 @@ def ba_to_sa_calculate_now(request, user=''):
     sku_avg_sale_mapping = OrderedDict()
     sku_avail_qty = OrderedDict()
     sku_res_qty = OrderedDict()
+    ba_sku_avail_qty = OrderedDict()
+    ba_sku_res_qty = OrderedDict()
     zones = get_all_sellable_zones(user)
     locations = LocationMaster.objects.filter(zone__user=user.id, zone__zone__in=zones)
     if not locations:
@@ -2971,20 +3019,42 @@ def ba_to_sa_calculate_now(request, user=''):
     try:
         seller_master = seller_master[0]
         all_stocks = StockDetail.objects.exclude(receipt_number=0).\
-                                            filter(sku__user=user.id, quantity__gt=0,
+                                            filter(sku__user=user.id, sku__status=1, quantity__gt=0,
                                             location__zone__zone__in=sellable_zones,
                                                    sellerstock__seller__seller_id=1).\
                                             values('sku_id', 'sellerstock__quantity')
         for sku_stock in all_stocks:
             sku_avail_qty.setdefault(sku_stock['sku_id'], 0)
             sku_avail_qty[sku_stock['sku_id']] += sku_stock['sellerstock__quantity']
-        all_reserved = PicklistLocation.objects.filter(stock__sku__user=user.id,
+        all_reserved = PicklistLocation.objects.filter(stock__sku__user=user.id, stock__sku__status=1,
                                                        stock__location__zone__zone__in=sellable_zones,
                                                        stock__sellerstock__seller__seller_id=1 ,status=1).\
                                                 only('stock__sku_id', 'reserved')
         for all_res in all_reserved:
             sku_res_qty.setdefault(all_res.stock.sku_id, 0)
             sku_res_qty[all_res.stock.sku_id] += all_res.reserved
+        all_ba_stocks = StockDetail.objects.exclude(receipt_number=0).\
+                                            filter(sku__user=user.id, sku__status=1, quantity__gt=0,
+                                            location__zone__zone='Bulk Zone',
+                                                   sellerstock__seller__seller_id=1,
+                                            sellerstock__quantity__gt=0).\
+                                            values('sku_id', 'id','sellerstock__quantity').order_by('receipt_number')
+        for ba_stock in all_ba_stocks:
+            ba_sku_avail_qty.setdefault(ba_stock['sku_id'], {'total_quantity': 0, 'stock': OrderedDict()})
+            ba_sku_avail_qty[ba_stock['sku_id']]['total_quantity'] += ba_stock['sellerstock__quantity']
+            ba_sku_avail_qty[ba_stock['sku_id']]['stock'][ba_stock['id']] = ba_stock['sellerstock__quantity']
+        all_ba_reserved = PicklistLocation.objects.filter(stock__sku__user=user.id, stock__sku__status=1,
+                                                       stock__location__zone__zone='Bulk Zone',
+                                                       stock__sellerstock__seller__seller_id=1 ,status=1).\
+                                                only('stock__sku_id', 'stock_id', 'reserved')
+        for ba_reserved in all_ba_reserved:
+            temp_ba_avail = ba_sku_avail_qty.get(ba_reserved.stock.sku_id, {})
+            if ba_reserved.stock_id in temp_ba_avail['stock'].keys():
+                ba_sku_avail_qty[ba_reserved.stock.sku_id]['stock'][ba_reserved.stock_id] -= ba_reserved.reserved
+                ba_sku_avail_qty[ba_reserved.stock.sku_id]['total_quantity'] -= ba_reserved.reserved
+
+        log.info("BA to SA calculating segregation for user %s started at %s" % (
+        user.username, str(datetime.datetime.now())))
         for data in master_data:
             stock_qty = sku_avail_qty.get(data.id, 0)
             res_qty = sku_res_qty.get(data.id, 0)
@@ -3010,11 +3080,19 @@ def ba_to_sa_calculate_now(request, user=''):
             sku_avg_sale_mapping[data.id] = {'avg_sale_per_day_value': avg_sale_per_day_value, 'avail_qty': avail_qty,
                                              'avg_sale_per_day_units': avg_sale_per_day_units}
 
+        log.info("BA to SA calculating segregation for user %s ended at %s" % (user.username, str(datetime.datetime.now())))
         sku_classification_objs = []
         older_objs = SkuClassification.objects.filter(sku__user=user.id, status=1)
         if older_objs.exists():
             older_objs.delete()
         remarks_sku_ids = []
+        replenish_dict = {}
+        replenishment_objs = ReplenushmentMaster.objects.filter(user_id=user.id)
+        for replenishment_obj in replenishment_objs:
+            rep_group = (replenishment_obj.size, replenishment_obj.classification)
+            replenish_dict[rep_group] = {'min_days': replenishment_obj.min_days, 'max_days': replenishment_obj.max_days}
+        log.info(
+            "BA to SA calculating saving for user %s started at %s" % (user.username, str(datetime.datetime.now())))
         for data in master_data:
             if not total_avg_sale_per_day_value:
                 break
@@ -3033,20 +3111,22 @@ def ba_to_sa_calculate_now(request, user=''):
                 classification = 'Slow'
             else:
                 classification = 'Medium'
-            replenishment_obj = ReplenushmentMaster.objects.filter(user_id=user.id, classification=classification,
-                                                                   size=data.sku_size)
+            #replenishment_obj = ReplenushmentMaster.objects.filter(user_id=user.id, classification=classification,
+            #                                                       size=data.sku_size)
             remarks = ''
-            if not replenishment_obj.exists():
+            sku_rep_dict = replenish_dict.get((data.sku_size, classification), {})
+            if not sku_rep_dict:
+            #if not replenishment_obj.exists():
                 remarks = 'Replenushment Master Not Found'
                 min_days, max_days, min_stock, max_stock = 0, 0, 0, 0
             else:
-                min_days = replenishment_obj[0].min_days
-                max_days = replenishment_obj[0].max_days
+                min_days = sku_rep_dict['min_days'] #replenishment_obj[0].min_days
+                max_days = sku_rep_dict['max_days'] #replenishment_obj[0].max_days
                 min_stock = min_days * sku_avg_sale_per_day_units
                 max_stock = max_days * sku_avg_sale_per_day_units
             sku_classification_dict1 = {'sku_id': data.id, 'avg_sales_day': sku_avg_sale_per_day_units,
                                         'cumulative_contribution': cumulative_contribution, 'classification': classification, 'source_stock': None,
-                                        'replenushment_qty': 0, 'reserved': 0, 'suggested_qty': 0, 'avail_quantity': 0,
+                                        'replenushment_qty': 0, 'reserved': 0, 'suggested_qty': 0, 'avail_quantity': 0, 'sku_avail_qty': sku_avail_qty,
                                         'dest_location': None, 'seller_id': seller_master.id, 'min_stock_qty': min_stock,
                                         'max_stock_qty': max_stock, 'status': 1}
 
@@ -3057,9 +3137,9 @@ def ba_to_sa_calculate_now(request, user=''):
                 needed_qty = 0
             else:
                 replenishment_qty = max_stock - sku_avail_qty
-                ba_stock_objs = StockDetail.objects.filter(location__zone__zone='Bulk Zone', sku_id=data.id,
-                                                      sellerstock__seller__seller_id=1, quantity__gt=0,
-                                                      sellerstock__quantity__gt=0)
+                #ba_stock_objs = StockDetail.objects.filter(location__zone__zone='Bulk Zone', sku_id=data.id,
+                #                                      sellerstock__seller__seller_id=1, quantity__gt=0,
+                #                                      sellerstock__quantity__gt=0)
                 replenishment_qty = int(replenishment_qty)
                 needed_qty = replenishment_qty
             sku_classification_dict1['replenushment_qty'] = replenishment_qty
@@ -3070,24 +3150,31 @@ def ba_to_sa_calculate_now(request, user=''):
                 save_ba_to_sa_remarks(sku_classification_dict1, sku_classification_objs,
                                                                 remarks_sku_ids)
                 continue
-            if ba_stock_objs.exists():
-                total_ba_stock = ba_stock_objs.aggregate(Sum('sellerstock__quantity'))['sellerstock__quantity__sum']
+            ba_stock_dict = ba_sku_avail_qty.get(data.id, {})
+            # ba_stock_objs = StockDetail.objects.filter(location__zone__zone='Bulk Zone', sku_id=data.id,
+            #                                             sellerstock__seller__seller_id=1, quantity__gt=0,
+            #                                             sellerstock__quantity__gt=0)
+            #if ba_stock_objs.exists():
+            if ba_stock_dict:
+                total_ba_stock = ba_stock_dict['total_quantity'] #ba_stock_objs.aggregate(Sum('sellerstock__quantity'))['sellerstock__quantity__sum']
                 if total_ba_stock < replenishment_qty:
                     needed_qty = total_ba_stock
                 else:
                     needed_qty = replenishment_qty
-                for ba_stock_obj in ba_stock_objs:
+                for ba_stock_id, ba_stock_qty in ba_stock_dict['stock'].iteritems():
+                    if ba_stock_qty <= 0:
+                        continue
                     if not needed_qty:
                         continue
-                    if ba_stock_obj.quantity < needed_qty:
-                        suggested_qty = ba_stock_obj.quantity
-                        needed_qty -=  ba_stock_obj.quantity
+                    if ba_stock_qty < needed_qty:
+                        suggested_qty = ba_stock_qty
+                        needed_qty -=  ba_stock_qty
                     else:
                         suggested_qty = needed_qty
                         needed_qty = 0
                     sku_classification_dict = {'sku_id': data.id, 'avg_sales_day': sku_avg_sale_per_day_units,
                                                'cumulative_contribution': cumulative_contribution,
-                                               'classification': classification, 'source_stock_id': ba_stock_obj.id,
+                                               'classification': classification, 'source_stock_id': ba_stock_id,
                                                'replenushment_qty': replenishment_qty, 'reserved': suggested_qty,
                                                'suggested_qty': suggested_qty,
                                                'avail_quantity': total_ba_stock,
@@ -3095,10 +3182,11 @@ def ba_to_sa_calculate_now(request, user=''):
                                                'dest_location_id': locations[0].id, 'seller_id': seller_master.id,
                                                'min_stock_qty': min_stock, 'max_stock_qty': max_stock,
                                                'status': 1}
-                    exist_obj = SkuClassification.objects.filter(sku_id=data.id, classification=classification,
-                                                                 source_stock_id=ba_stock_obj.id, status=1)
-                    if not exist_obj:
-                        sku_classification_objs.append(SkuClassification(**sku_classification_dict))
+                    #exist_obj = SkuClassification.objects.filter(sku_id=data.id, classification=classification,
+                    #                                             source_stock_id=ba_stock_id, status=1,
+                    #                                             seller_id=seller_master.id)
+                    #if not exist_obj:
+                    sku_classification_objs.append(SkuClassification(**sku_classification_dict))
             else:
                 remarks = 'BA Stock Not Found'
                 sku_classification_dict1['remarks'] = remarks
@@ -3106,6 +3194,8 @@ def ba_to_sa_calculate_now(request, user=''):
                                                                 remarks_sku_ids)
         if sku_classification_objs:
             SkuClassification.objects.bulk_create(sku_classification_objs)
+        log.info(
+            "BA to SA calculating ended for user %s started at %s" % (user.username, str(datetime.datetime.now())))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

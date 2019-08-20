@@ -5326,6 +5326,13 @@ def confirm_add_po(request, sales_data='', user=''):
         company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
         iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
         left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO , request)
+        if purchase_order.supplier.lead_time:
+            lead_time_days = purchase_order.supplier.lead_time
+            replace_date = get_local_date(request.user,order.creation_date + datetime.timedelta(days=int(lead_time_days)),send_date='true')
+            date_replace_terms = replace_date.strftime("%d-%m-%Y")
+            terms_condition= terms_condition.replace("%^PO_DATE^%", date_replace_terms)
+        else:
+            terms_condition= terms_condition.replace("%^PO_DATE^%", '')
         data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address.encode('ascii', 'ignore'), 'order_id': order_id,
                      'telephone': str(telephone), 'ship_to_address': ship_to_address.encode('ascii', 'ignore'),
                      'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,

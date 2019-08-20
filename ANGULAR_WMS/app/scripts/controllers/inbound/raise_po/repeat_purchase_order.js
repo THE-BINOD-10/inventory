@@ -408,16 +408,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
     vm.confirm = function(data) {
       if (data.$valid) {
-        if (vm.warehouse_type == 'CENTRAL_ADMIN') {
-          var elem = angular.element($('form'))
-          elem = elem[0]
-          elem = $(elem).serializeArray()
-          vm.common_confirm('confirm_central_po/', elem)
-        } else {
             vm.confirm_add_po();
         }
       }
-    }
 
     vm.confirm_add_po = function() {
 
@@ -436,9 +429,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
     vm.common_confirm = function(url, elem) {
       var confirm_url = 'validate_wms/';
-      if (vm.warehouse_type == 'CENTRAL_ADMIN') {
-        elem.push({name:'is_central_po', value:true});
-      }
       vm.service.apiCall(confirm_url, 'POST', elem, true).then(function(data){
         if(data.message) {
           if (data.data == "success") {

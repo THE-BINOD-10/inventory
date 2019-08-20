@@ -8353,9 +8353,9 @@ def get_past_po(start_index, stop_index, temp_data, search_term, order_term, col
                                                                    'order_id', 'open_po__supplier__name',
                                                                    'creation_date','open_po__order_type').order_by(order_data)
     else:
-        result = PurchaseOrder.objects.filter(open_po__sku__user=user.id, **search_params).values('open_po__supplier__id',
+        result = PurchaseOrder.objects.filter(open_po__sku__user=user.id, **search_params).distinct().values('open_po__supplier__id',
                                                                    'order_id', 'open_po__supplier__name',
-                                                                   'creation_date','open_po__order_type').order_by(order_data).distinct()
+                                                                   'creation_date','open_po__order_type').order_by(order_data)
 
     temp_data['recordsTotal'] = len(result)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']

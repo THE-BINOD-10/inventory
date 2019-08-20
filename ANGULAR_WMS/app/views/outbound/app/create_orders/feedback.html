@@ -39,7 +39,6 @@
           <li><a ng-click="$state.go('user.App.Profile')">Profile</a></li>
           <li ng-if="!(showCase.is_portal_lite)"><a ng-click="$state.go('user.App.ManualEnquiry');">Create Custom Order</a></li>
           <li ng-if="showCase.permissions.display_sku_cust_mapping && showCase.is_portal_lite"><a ng-click="$state.go('user.App.PendingOrder');">Pending Orders</a></li>
-          <li><a ng-click="$state.go('user.App.settings');">Setings</a></li>
           <li><a ng-click="showCase.logout()">Logout</a></li>
         </ul>
       </div>

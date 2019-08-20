@@ -26,7 +26,6 @@
           <li><a ng-click="$state.go('user.App.ManualEnquiry');">Create Custom Order</a></li>
           <li ng-if="showCase.permissions.display_sku_cust_mapping"><a ng-click="$state.go('user.App.PendingOrder');">Pending Order</a></li>
           <li><a ng-click="$state.go('user.App.feedback');">Feedback Form</a></li>
-          <li><a ng-click="$state.go('user.App.settings');">Setings</a></li>
           <li><a ng-click="showCase.logout()">Logout</a></li>
         </ul>
       </div>
@@ -43,6 +42,7 @@
   </div>
   <div class="row app_body" style="padding: 15px 5px;position: relative">
     <div style="margin-top:1px;" ng-include="'views/outbound/app/create_orders/filters.html'"></div>
+    <div style="margin-top:1px;" ng-include="'views/outbound/app/create_orders/settings.html'"></div>
     <div class="pull-left col-md-2 col-sm-3 col-xs-6" ng-repeat="brand in showCase.brands" ng-if="brand != 'All'">
       <div style="box-shadow: 1px 1px 15px #333;position: relative;padding:0px;margin-bottom: 15px">
         <img ng-src="/images/brand-logos/{{(showCase.brands_images[brand])? showCase.brands_images[brand]: 'sagar_fab_default_log.jpg'}}" ng-click="showCase.change_brand(brand);" style="width:100%;cursor:pointer;">

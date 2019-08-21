@@ -1,6 +1,7 @@
 <style type="text/css">
   .modal-lg{
-    width: 1300px
+    width: 1310px;
+    display:inline-block;
   }
   .rotate{
     -webkit-transform: rotate(-90deg);
@@ -10,7 +11,7 @@
   }
 </style>
 
-<div id="page-pop" style="overflow-y: visible;">
+<div id="page-pop" style="overflow: auto">
   <form name="myForm" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine" novalidate="novalidate">
     <div class="modal-header">
       <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="bundleObj.close()">
@@ -57,7 +58,7 @@
                       <input type="text" autocomplete="off" ng-readonly="bundleObj.update && (!(data.new_sku))" ng-show="$first" name="combo_sku_code" class="form-control" placeholder="Search Combo SKU Code" typeahead="address for address in bundleObj.service.getSearchValues($viewValue, 'search_wms_codes?', 'RM')" typeahead-loading="loadingLocations" ng-model="data.combo_sku_code" typeahead-on-select="bundleObj.get_product_data(bundleObj.bundle_model_data, data, $parent.$index)" style="width: 100px;">
                     </td>
                     <td>
-                      <input type="text" name="combo_sku_desc" class="form-control" ng-model="data.combo_sku_desc" ng-show="$first">
+                      <input type="text" name="combo_sku_desc" class="form-control" ng-model="data.combo_sku_desc" ng-show="$first" title={{data.combo_sku_desc}}>
                     </td>
 
         <td>
@@ -83,7 +84,7 @@
                     </td>
 
                     <td>
-                      <input type="text" placeholder="SKU Desc" name="child_sku_desc" class="form-control" ng-model="item.child_sku_desc" readonly>
+                      <input type="text" placeholder="SKU Desc" name="child_sku_desc" class="form-control" ng-model="item.child_sku_desc" title={{item.child_sku_desc}} readonly>
                     </td>
 
                     <td>
@@ -94,12 +95,12 @@
                       <input type="text" name="child_batch" class="form-control" ng-model="item.child_sku_batch">
                     </td>
 
-                    <td>
+                    <td width="8%">
                       <input type="number" name="child_mrp" min=0 class="form-control" ng-model="item.child_sku_mrp">
                     </td>
 
                     <td>
-                      <input type="text" name="child_weight" min=0 class="form-control" ng-model="item.child_sku_weight">
+                      <input type="text" name="child_weight" min=0 class="form-control" ng-model="item.child_sku_weight" title={{item.child_sku_weight}}>
                     </td>
 
                     <td>

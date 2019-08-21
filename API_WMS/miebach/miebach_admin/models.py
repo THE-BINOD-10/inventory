@@ -3340,6 +3340,7 @@ class SkuClassification(models.Model):
 
     class Meta:
         db_table = 'SKU_CLASSIFICATION'
+        index_together = (('sku', 'status'),)
         #unique_together = ('sku', 'classification', 'source_stock', 'seller', 'status')
 
 class UserTextFields(models.Model):

@@ -2824,7 +2824,6 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
            'avail_quantity', 'min_stock_qty', 'max_stock_qty', 'source_stock__location__location',
            'dest_location__location',
            'reserved__sum', 'remarks']
-    # result_values = ['sku__wms_code', 'source_stock__batch_detail__mrp', 'source_stock__batch_detail__weight',]#to make distinct grouping
     grouping_data = OrderedDict()
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
@@ -2839,7 +2838,7 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
                 sku__user=user.id, status=1)
     else:
         master_data = SkuClassification.objects.filter(sku__user=user.id, status=1, **search_params)
-    master_data = master_data.values('sku__sku_code', 'sku__sku_desc', 'sku__sku_category',
+    master_data = master_data.select_related('sku', 'source_stock', 'source_stock__batch_detail').values('sku__sku_code', 'sku__sku_desc', 'sku__sku_category',
                                      'source_stock__batch_detail__mrp', 'source_stock__batch_detail__weight',
                                      'avg_sales_day', 'cumulative_contribution', 'classification',
                                      'replenushment_qty', 'sku_avail_qty', 'avail_quantity',
@@ -2851,14 +2850,13 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     if stop_index:
         master_data = master_data[start_index: stop_index]
-        sku_codes_list = list(master_data.values_list('sku__sku_code', flat=True))
-    sku_attrs = SKUAttributes.objects.filter(sku__user=user.id,
-                                             sku__sku_code__in=sku_codes_list)
-    sku_sheet_dict = dict(sku_attrs.filter(attribute_name='Sheet').values_list('sku__sku_code', 'attribute_value'))
-    sku_vendor_dict = dict(sku_attrs.filter(attribute_name='Vendor').values_list('sku__sku_code', 'attribute_value'))
-    sku_searchable_dict = dict(sku_attrs.filter(attribute_name='Searchable').values_list('sku__sku_code', 'attribute_value'))
-    sku_reset_dict = dict(
-        sku_attrs.filter(attribute_name='Reset Stock').values_list('sku__sku_code', 'attribute_value'))
+    else:
+        sku_attrs = SKUAttributes.objects.filter(sku__user=user.id)
+        sku_sheet_dict = dict(sku_attrs.filter(attribute_name='Sheet').values_list('sku__sku_code', 'attribute_value'))
+        sku_vendor_dict = dict(sku_attrs.filter(attribute_name='Vendor').values_list('sku__sku_code', 'attribute_value'))
+        sku_searchable_dict = dict(sku_attrs.filter(attribute_name='Searchable').values_list('sku__sku_code', 'attribute_value'))
+        sku_reset_dict = dict(
+            sku_attrs.filter(attribute_name='Reset Stock').values_list('sku__sku_code', 'attribute_value'))
     for data in master_data:
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data['sku__sku_code'], data['reserved__sum'])
         mrp = 0
@@ -2876,14 +2874,36 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
         combo_flag = 'No'
         if data['sku__relation_type'] == 'combo':
             combo_flag = 'Yes'
+        sheet = ''
+        if stop_index:
+            sheet, vendor, reset_stock, searchable = '', '', '', ''
+            sku_attr_obj = SKUAttributes.objects.filter(sku__user=user.id, sku__sku_code=data['sku__sku_code'], attribute_name='Sheet').only('attribute_value')
+            if sku_attr_obj.exists():
+                sheet = sku_attr_obj[0].attribute_value
+            sku_attr_obj = SKUAttributes.objects.filter(sku__user=user.id, sku__sku_code=data['sku__sku_code'], attribute_name='Vendor').only('attribute_value')
+            if sku_attr_obj.exists():
+                vendor = sku_attr_obj[0].attribute_value
+            sku_attr_obj = SKUAttributes.objects.filter(sku__user=user.id, sku__sku_code=data['sku__sku_code'],
+                                                    attribute_name='Reset Stock').only('attribute_value')
+            if sku_attr_obj.exists():
+                reset_stock = sku_attr_obj[0].attribute_value
+            sku_attr_obj = SKUAttributes.objects.filter(sku__user=user.id, sku__sku_code=data['sku__sku_code'],
+                                                    attribute_name='Searchable').only('attribute_value')
+            if sku_attr_obj.exists():
+                searchable = sku_attr_obj[0].attribute_value
+        else:
+            sheet = sku_sheet_dict.get(data['sku__sku_code'], '')
+            vendor = sku_vendor_dict.get(data['sku__sku_code'], '')
+            reset_stock = sku_reset_dict.get(data['sku__sku_code'], '')
+            searchable = sku_searchable_dict.get(data['sku__sku_code'], '')
         temp_data['aaData'].append(
             OrderedDict((('', checkbox), ('generation_time', str(data['creation_date_only'])),
                          ('sku_code', data['sku__sku_code']),('sku_name', data['sku__sku_desc']),
                          ('sku_category', data['sku__sku_category']),
-                         ('sheet', sku_sheet_dict.get(data['sku__sku_code'], '')),
-                         ('vendor', sku_vendor_dict.get(data['sku__sku_code'], '')),
-                         ('reset_stock', sku_reset_dict.get(data['sku__sku_code'], '')),
-                         ('searchable', sku_searchable_dict.get(data['sku__sku_code'], '')),
+                         ('sheet', sheet),
+                         ('vendor', vendor),
+                         ('reset_stock', reset_stock),
+                         ('searchable', searchable),
                          ('combo_flag', combo_flag),
                          ('avg_sales_day', data['avg_sales_day']),
                          ('cumulative_contribution', data['cumulative_contribution']),
@@ -3195,7 +3215,7 @@ def ba_to_sa_calculate_now(request, user=''):
         if sku_classification_objs:
             SkuClassification.objects.bulk_create(sku_classification_objs)
         log.info(
-            "BA to SA calculating ended for user %s started at %s" % (user.username, str(datetime.datetime.now())))
+            "BA to SA calculation ended for user %s at %s" % (user.username, str(datetime.datetime.now())))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

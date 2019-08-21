@@ -9657,7 +9657,7 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
             if search_term:
                 orders = OrderDetail.objects.filter(Q(original_order_id__icontains=search_term) |
                                                     Q(sku__sku_code__icontains=search_term)|
-                                                    Q(sku__style_name__icontains=search_terms),**orders_dict).order_by(order_data)
+                                                    Q(sku__style_name__icontains=search_term),**orders_dict).order_by(order_data)
             temp_data['recordsTotal'] = len(orders)
             temp_data['recordsFiltered'] = temp_data['recordsTotal']
             picklist = Picklist.objects.filter(**pick_dict)

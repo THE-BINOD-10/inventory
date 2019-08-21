@@ -236,6 +236,9 @@ def add_user_permissions(request, response_data, user=''):
     response_data['data']['roles']['permissions']['multi_warehouse'] = multi_warehouse
     response_data['data']['roles']['permissions']['show_pull_now'] = show_pull_now
     response_data['data']['roles']['permissions']['order_manage'] = get_misc_value('order_manage', user.id)
+    response_data['data']['roles']['permissions']['customer_portal_prefered_view'] = get_misc_value('customer_portal_prefered_view', request.user.id)
+    if response_data['data']['roles']['permissions']['customer_portal_prefered_view'] == 'false':
+        response_data['data']['roles']['permissions']['customer_portal_prefered_view'] = ''
     response_data['data']['roles']['permissions']['weight_integration_name'] = get_misc_value('weight_integration_name', request.user.id)
     if response_data['data']['roles']['permissions']['weight_integration_name'] == 'false':
         response_data['data']['roles']['permissions']['weight_integration_name'] = ''
@@ -4464,7 +4467,11 @@ def get_size_names(requst, user=""):
 @get_admin_user
 def get_sellers_list(request, user=''):
     sellers = SellerMaster.objects.filter(user=user.id).order_by('seller_id')
-    raise_po_terms_conditions = get_misc_value('raisepo_terms_conditions', user.id)
+    terms_condition = UserTextFields.objects.filter(user=user.id, field_type = 'terms_conditions')
+    if terms_condition.exists():
+        raise_po_terms_conditions = terms_condition[0].text_field
+    else:
+        raise_po_terms_conditions = get_misc_value('raisepo_terms_conditions', user.id)
     ship_address_details = []
     ship_address_names = []
     user_ship_address = UserAddresses.objects.filter(user_id=user.id)

@@ -339,7 +339,15 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     status_dict = eval(status)
     filter_params = {}
+    isprava_permission = get_misc_value('order_exceed_stock', user.id)
+    delivery_challana = get_misc_value('generate_delivery_challan_before_pullConfiramation', user.id)
+    lis = ['picklist_number', 'order__customer_name', 'remarks','picklist_number',
+          'order__marketplace']
     admin_user = get_admin(user)
+    if isprava_permission == 'true':
+       lis.append('order__intermediateorders__project_name')
+    if delivery_challana == 'true':
+       lis.append('order__tempdeliverychallan__dc_number')
     if isinstance(status_dict, dict):
         status = status_dict['status']
         if status_dict.get('market_place', ''):
@@ -363,11 +371,9 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     all_picks = Picklist.objects.select_related('order', 'stock').\
                                 filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id), **filter_params)
     if search_term:
-        master_data = all_picks.filter(
-            Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).filter(
-            Q(picklist_number__icontains=search_term) | Q(remarks__icontains=search_term) | Q(
-                order__marketplace__icontains=search_term) | Q(order__customer_name__icontains=search_term)| Q(order__intermediateorders__project_name__icontains=search_term)| Q(order__tempdeliverychallan__dc_number=search_term))
-
+        search_term = search_term.replace('(', '\(').replace(')', '\)')
+        search_query = build_search_term_query(lis, search_term)
+        master_data = all_picks.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).filter(search_query)
     elif order_term:
         # col_num = col_num - 1
         order_data = header.values()[col_num]
@@ -7369,7 +7375,7 @@ def search_customer_data(request, user=''):
 
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
-        total_data.append({'customer_id': data.customer_id, 'name': data.name, 'phone_number': str(data.phone_number),
+        total_data.append({'customer_id':str(data.customer_id), 'name': data.name, 'phone_number': str(data.phone_number),
                            'email': data.email_id, 'address': data.address, 'tax_type': data.tax_type, 'ship_to': data.shipping_address})
     return HttpResponse(json.dumps(total_data))
 
@@ -9651,7 +9657,7 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
             if search_term:
                 orders = OrderDetail.objects.filter(Q(original_order_id__icontains=search_term) |
                                                     Q(sku__sku_code__icontains=search_term)|
-                                                    Q(sku__style_name__icontains=search_terms),**orders_dict).order_by(order_data)
+                                                    Q(sku__style_name__icontains=search_term),**orders_dict).order_by(order_data)
             temp_data['recordsTotal'] = len(orders)
             temp_data['recordsFiltered'] = temp_data['recordsTotal']
             picklist = Picklist.objects.filter(**pick_dict)
@@ -15655,12 +15661,14 @@ def generate_picklist_dc(request, user=''):
         tempdc = TempDeliveryChallan.objects.filter(order = value.values()[0].get('order'))
         if tempdc.exists():
             invoice_data['dc_number'] =  tempdc[0].dc_number
+            invoice_data['inv_date'] = tempdc[0].creation_date.strftime("%Y-%m-%d")
             if not tempdc[0].dc_number:
                 challan_num = get_challan_number_for_dc(order , user)
                 temp = tempdc[0]
                 temp.dc_number = challan_num
                 temp.save()
                 invoice_data['dc_number'] = challan_num
+                invoice_data['inv_date'] = tempdc[0].creation_date.strftime("%Y-%m-%d")
         if not tempdc.exists():
             delivery_challan_dict = {}
             challan_num = get_challan_number_for_dc(order , user)
@@ -15669,10 +15677,12 @@ def generate_picklist_dc(request, user=''):
             delivery_challan_dict['order'] = value.values()[0].get('order','')
             delivery_challan_dict['picklist_number'] = picklist_number
             delivery_challan_dict['total_qty'] = total_qty
-            for val in value.values() :
+            for val in value.values():
                 val['order'] = ''
             delivery_challan_dict['dcjson'] = json.dumps(value)
             TempDeliveryChallan.objects.create(**delivery_challan_dict)
+            invoice_data['inv_date'] = datetime.datetime.now().strftime("%Y-%m-%d")
+
 
     return render(request, 'templates/toggle/delivery_challan_batch_level.html', invoice_data)
 
@@ -15931,6 +15941,7 @@ def generate_dc(request , user = ''):
                 batch_group_data = temp_dc_objs[0].dcjson
                 dc_number_obj = temp_dc_objs[0].dc_number
                 total_qty = temp_dc_objs[0].total_qty
+                creation_date = temp_dc_objs[0].creation_date
 
                 customer_address =[]
                 customer_details = []
@@ -15979,6 +15990,5 @@ def generate_dc(request , user = ''):
                 invoice_data['iterator'] = iterator
                 invoice_data['dc_number'] = dc_number_obj
                 invoice_data['total_quantity'] = total_qty
-
-
+                invoice_data['inv_date'] = creation_date.strftime("%Y-%m-%d")
     return render(request, 'templates/toggle/delivery_challan_batch_level.html', invoice_data)

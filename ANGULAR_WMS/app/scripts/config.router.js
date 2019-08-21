@@ -2794,7 +2794,12 @@ var app = angular.module('urbanApp')
         })
           .state('user.App.Brands', {
             url: '/Brands',
-            templateUrl: 'views/outbound/app/create_orders/details.html'
+            templateUrl: 'views/outbound/app/create_orders/details.html',
+            resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/outbound/app/settings.js');
+              }]
+            }
           })
           .state('user.App.Products', {
             url: '/Products',
@@ -2847,7 +2852,6 @@ var app = angular.module('urbanApp')
               title: 'feedback'
             }
           })
-
           .state('user.App.Style', {
             url: '/Style?styleId',
             templateUrl: 'views/outbound/app/create_orders/style.html',

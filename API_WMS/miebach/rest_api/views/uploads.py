@@ -2864,7 +2864,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             seller_id = final_dict['seller'].id
         group_key = (order_data['po_name'], order_data['supplier_id'], data['po_date'], seller_id)
         if group_key not in order_ids.keys():
-            po_id = get_purchase_order_id(user)
+            po_id = get_purchase_order_id(user)+1
             if po_sub_user_prefix == 'true':
                 po_id = update_po_order_prefix(request.user, po_id)
             order_ids[group_key] = po_id
@@ -2881,10 +2881,9 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         sup_id = purchase_order.id
         supplier = purchase_order.supplier_id
         if supplier not in ids_dict:
-            po_id = po_id + 1
             ids_dict[supplier] = po_id
         data['open_po_id'] = sup_id
-        data['order_id'] = ids_dict[supplier]
+        data['order_id'] = po_id
         if user_profile:
             data['prefix'] = user_profile.prefix
         order = PurchaseOrder(**data)
@@ -7289,7 +7288,7 @@ def validate_combo_allocate_form(request, reader, user, no_of_rows, no_of_cols, 
             group_key = '%s<<>>%s<<>>%s<<>>%s<<>>%s' % (str(data_dict['combo_sku_code_obj'].sku_code), str(data_dict['combo_location_obj'].location),
                                                   str(combo_batch_no), str(combo_mrp), str(combo_weight))
             final_data.setdefault(group_key, {'combo_sku': data_dict['combo_sku_code_obj'], 'combo_loc': data_dict['combo_location_obj'],
-                                              'combo_batch_no': combo_batch_no, 'combo_mrp': combo_mrp,'seller_id':seller_id,
+                                              'combo_batch_no': combo_batch_no, 'combo_mrp': combo_mrp,'seller_id':data_dict.get('seller_master_id', ''),
                                               'combo_qty': data_dict.get('combo_quantity',0), 'combo_mrp_dict': mrp_dict,
                                               'combo_stocks': combo_stocks, 'combo_weight': combo_weight,
                                               'childs': []})

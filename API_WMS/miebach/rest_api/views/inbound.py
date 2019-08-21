@@ -1078,10 +1078,10 @@ def switches(request, user=''):
             if user_profile and selection:
                 setattr(user_profile[0], 'prefix', selection)
                 user_profile[0].save()
-        elif key == 'weight_integration_name':
-            data = MiscDetail.objects.filter(misc_type=toggle_field, user=request.user.id)
+        elif key in ['customer_portal_prefered_view','weight_integration_name']:
+            data = MiscDetail.objects.filter(misc_type=key, user=request.user.id)
             if not data:
-                misc_detail = MiscDetail(user=request.user.id, misc_type=toggle_field, misc_value=selection,
+                misc_detail = MiscDetail(user=request.user.id, misc_type=key, misc_value=selection,
                                          creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
                 misc_detail.save()
             else:

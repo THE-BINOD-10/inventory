@@ -629,6 +629,11 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
                 var[wh_name + '-Res'] = single['reserved']
                 var[wh_name + '-Blocked'] = single['blocked']
                 var[wh_name + '-NK'] = single['non_kitted']
+                var[wh_name + '-L3GIT'] = single['asn']
+                var[wh_name + '-L3Total'] = single['asn'] + single['non_kitted']
+                var[wh_name + '-L3Res'] = single['asn_res']
+                var[wh_name + '-L3Blocked'] = single['asn_blocked']
+                var[wh_name + '-L3Open'] = single['asn'] + single['non_kitted'] - single['asn_res'] - single['asn_blocked']
                 if not isinstance(single['available'], float):
                     single['available'] = 0
                 net_amt = single['available'] - single['blocked'] - single['reserved'] - single['non_kitted']
@@ -1510,7 +1515,7 @@ def warehouse_headers(request, user=''):
             admin_user_id = user_id
             admin_user_name = user.username
         if level:
-            warehouse_suffixes = ['Total', 'Stock', 'NK', 'Res', 'Blocked', 'Open']
+            warehouse_suffixes = ['Total', 'Stock', 'NK', 'Res', 'Blocked', 'Open', 'L3GIT', 'L3Total', 'L3Res', 'L3Blocked', 'L3Open']
             wh_list = []
             for wh in ware_list:
                 wh_list.extend(list(map(lambda x: wh+'-'+x, warehouse_suffixes)))

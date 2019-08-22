@@ -2818,7 +2818,8 @@ def confirm_combo_allocation(request, user=''):
 @csrf_exempt
 def get_skuclassification(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     lis = ['sku__sku_code', 'sku__sku_code', 'sku__sku_code', 'sku__sku_desc','sku__sku_category',
-           'sku__sku_code', 'sku__sku_code', 'sku__sku_code', 'sku__sku_code', 'sku__relation_type', 'avg_sales_day',
+           'sku__sku_code', 'sku__sku_code', 'sku__sku_code', 'sku__sku_code', 'sku__sku_code', 'sku__sku_code',
+           'sku__sku_code', 'sku__relation_type', 'avg_sales_day',
            'cumulative_contribution', 'classification',
            'source_stock__batch_detail__mrp', 'source_stock__batch_detail__weight', 'replenushment_qty','sku_avail_qty',
            'avail_quantity', 'min_stock_qty', 'max_stock_qty', 'source_stock__location__location',
@@ -2857,6 +2858,12 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
         sku_searchable_dict = dict(sku_attrs.filter(attribute_name='Searchable').values_list('sku__sku_code', 'attribute_value'))
         sku_reset_dict = dict(
             sku_attrs.filter(attribute_name='Reset Stock').values_list('sku__sku_code', 'attribute_value'))
+        sku_aisle_dict = dict(
+            sku_attrs.filter(attribute_name='Aisle').values_list('sku__sku_code', 'attribute_value'))
+        sku_rack_dict = dict(
+            sku_attrs.filter(attribute_name='Rack').values_list('sku__sku_code', 'attribute_value'))
+        sku_shelf_dict = dict(
+            sku_attrs.filter(attribute_name='Shelf').values_list('sku__sku_code', 'attribute_value'))
     for data in master_data:
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data['sku__sku_code'], data['reserved__sum'])
         mrp = 0
@@ -2874,9 +2881,8 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
         combo_flag = 'No'
         if data['sku__relation_type'] == 'combo':
             combo_flag = 'Yes'
-        sheet = ''
         if stop_index:
-            sheet, vendor, reset_stock, searchable = '', '', '', ''
+            sheet, vendor, reset_stock, searchable, aisle, rack, shelf = '', '', '', '', '', '', ''
             sku_attr_obj = SKUAttributes.objects.filter(sku__user=user.id, sku__sku_code=data['sku__sku_code'], attribute_name='Sheet').only('attribute_value')
             if sku_attr_obj.exists():
                 sheet = sku_attr_obj[0].attribute_value
@@ -2891,11 +2897,26 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
                                                     attribute_name='Searchable').only('attribute_value')
             if sku_attr_obj.exists():
                 searchable = sku_attr_obj[0].attribute_value
+            sku_attr_obj = SKUAttributes.objects.filter(sku__user=user.id, sku__sku_code=data['sku__sku_code'],
+                                                    attribute_name='Aisle').only('attribute_value')
+            if sku_attr_obj.exists():
+                aisle = sku_attr_obj[0].attribute_value
+            sku_attr_obj = SKUAttributes.objects.filter(sku__user=user.id, sku__sku_code=data['sku__sku_code'],
+                                                    attribute_name='Rack').only('attribute_value')
+            if sku_attr_obj.exists():
+                rack = sku_attr_obj[0].attribute_value
+            sku_attr_obj = SKUAttributes.objects.filter(sku__user=user.id, sku__sku_code=data['sku__sku_code'],
+                                                    attribute_name='Shelf').only('attribute_value')
+            if sku_attr_obj.exists():
+                shelf = sku_attr_obj[0].attribute_value
         else:
             sheet = sku_sheet_dict.get(data['sku__sku_code'], '')
             vendor = sku_vendor_dict.get(data['sku__sku_code'], '')
             reset_stock = sku_reset_dict.get(data['sku__sku_code'], '')
             searchable = sku_searchable_dict.get(data['sku__sku_code'], '')
+            aisle = sku_aisle_dict.get(data['sku__sku_code'], '')
+            rack = sku_rack_dict.get(data['sku__sku_code'], '')
+            shelf = sku_shelf_dict.get(data['sku__sku_code'], '')
         temp_data['aaData'].append(
             OrderedDict((('', checkbox), ('generation_time', str(data['creation_date_only'])),
                          ('sku_code', data['sku__sku_code']),('sku_name', data['sku__sku_desc']),
@@ -2904,6 +2925,9 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
                          ('vendor', vendor),
                          ('reset_stock', reset_stock),
                          ('searchable', searchable),
+                         ('aisle', aisle),
+                         ('rack', rack),
+                         ('shelf', shelf),
                          ('combo_flag', combo_flag),
                          ('avg_sales_day', data['avg_sales_day']),
                          ('cumulative_contribution', data['cumulative_contribution']),

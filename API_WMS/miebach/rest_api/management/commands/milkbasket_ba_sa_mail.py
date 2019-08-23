@@ -61,6 +61,7 @@ class Command(BaseCommand):
             return sku_stock_dict
 
         users = User.objects.filter(username__in=MILKBASKET_USERS)
+        #users = User.objects.filter(username__in=['NOIDA02'])
         today = datetime.now()
         headers = ['SKU Code', 'SKU Desc', 'SKU Category', 'Sub Category', 'Combo Flag', 'MRP', 'Weight',
                    'SA Quantity', 'BA Quantity']
@@ -97,12 +98,14 @@ class Command(BaseCommand):
                 if not os.path.exists('static/excel_files/'):
                     os.makedirs('static/excel_files/')
                 for sku in skus:
+                    ba_mrp_list = []
                     sku_ba_dict = sku_ba_stock_dict.get(sku.id, {})
-                    if len(sku_ba_dict.keys()) > 1:
+                    if sku_ba_dict:
                         for sku_ba, qty in sku_ba_dict.iteritems():
                             row_count += 1
                             sa_quantity = 0
                             sku_id, mrp, weight = sku_ba
+                            ba_mrp_list = [mrp]
                             ba_quantity = qty.get('quantity', 0)
                             column_count = 0
                             ws, column_count = write_excel_col(ws, row_count, column_count, sku.sku_code)
@@ -117,7 +120,7 @@ class Command(BaseCommand):
                             ws, column_count = write_excel_col(ws, row_count, column_count, weight)
                             ws, column_count = write_excel_col(ws, row_count, column_count, sa_quantity)
                             ws, column_count = write_excel_col(ws, row_count, column_count, ba_quantity)
-                    else:
+                    if sku.mrp not in ba_mrp_list:
                         row_count += 1
                         sa_quantity = 0
                         mrp = sku.mrp

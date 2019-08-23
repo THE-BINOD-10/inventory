@@ -22,6 +22,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.client_logo = Session.parent.logo;
   vm.api_url = Session.host;
   vm.is_portal_lite = Session.roles.permissions.is_portal_lite;
+  vm.bt_disable = false;
 
   vm.unique_levels = {};
   vm.sel_styles = {};
@@ -215,6 +216,7 @@ vm.update_cartdata_for_approval = function() {
   vm.data_status = false;
   vm.insert_cool = true;
   vm.insert_order_data = function(data_dict) {
+    vm.bt_disable = true;
     if (vm.user_type == 'reseller') {
       if (!(vm.model_data.shipment_date) || !(vm.model_data.po_number_header) || !(vm.model_data.client_name_header) || !($("#po-upload")[0].files.length)) {
         vm.service.showNoty("The Shipment Date, PO Number, Client Name and Uploaded PO's are Required Please Select", "success", "bottomRight");

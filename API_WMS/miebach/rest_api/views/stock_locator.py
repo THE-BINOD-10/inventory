@@ -2819,7 +2819,7 @@ def confirm_combo_allocation(request, user=''):
 def get_skuclassification(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     lis = ['sku__sku_code', 'sku__sku_code', 'sku__sku_code', 'sku__sku_desc','sku__sku_category',
            'sku__sku_code', 'sku__sku_code', 'sku__sku_code', 'sku__sku_code', 'sku__sku_code', 'sku__sku_code',
-           'sku__sku_code', 'sku__relation_type', 'avg_sales_day',
+           'sku__sku_code', 'sku__relation_type', 'avg_sales_day', 'avg_sales_day_value',
            'cumulative_contribution', 'classification',
            'source_stock__batch_detail__mrp', 'source_stock__batch_detail__weight', 'replenushment_qty','sku_avail_qty',
            'avail_quantity', 'min_stock_qty', 'max_stock_qty', 'source_stock__location__location',
@@ -2841,7 +2841,7 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
         master_data = SkuClassification.objects.filter(sku__user=user.id, status=1, **search_params)
     master_data = master_data.select_related('sku', 'source_stock', 'source_stock__batch_detail').values('sku__sku_code', 'sku__sku_desc', 'sku__sku_category',
                                      'source_stock__batch_detail__mrp', 'source_stock__batch_detail__weight',
-                                     'avg_sales_day', 'cumulative_contribution', 'classification',
+                                     'avg_sales_day', 'avg_sales_day_value', 'cumulative_contribution', 'classification',
                                      'replenushment_qty', 'sku_avail_qty', 'avail_quantity',
                                      'min_stock_qty', 'max_stock_qty', 'status', 'remarks',
                        'source_stock__location__location', 'dest_location__location',
@@ -2930,6 +2930,7 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
                          ('shelf', shelf),
                          ('combo_flag', combo_flag),
                          ('avg_sales_day', data['avg_sales_day']),
+                         ('avg_sales_day_value', data['avg_sales_day_value']),
                          ('cumulative_contribution', data['cumulative_contribution']),
                          ('classification', data['classification']), ('mrp', mrp),
                          ('weight', weight),
@@ -3169,6 +3170,7 @@ def ba_to_sa_calculate_now(request, user=''):
                 min_stock = min_days * sku_avg_sale_per_day_units
                 max_stock = max_days * sku_avg_sale_per_day_units
             sku_classification_dict1 = {'sku_id': data.id, 'avg_sales_day': sku_avg_sale_per_day_units,
+                                        'avg_sales_day_value': sku_avg_sale_per_day_value,
                                         'cumulative_contribution': cumulative_contribution, 'classification': classification, 'source_stock': None,
                                         'replenushment_qty': 0, 'reserved': 0, 'suggested_qty': 0, 'avail_quantity': 0, 'sku_avail_qty': sku_avail_qty,
                                         'dest_location': None, 'seller_id': seller_master.id, 'min_stock_qty': min_stock,
@@ -3217,6 +3219,7 @@ def ba_to_sa_calculate_now(request, user=''):
                         suggested_qty = needed_qty
                         needed_qty = 0
                     sku_classification_dict = {'sku_id': data.id, 'avg_sales_day': sku_avg_sale_per_day_units,
+                                                'avg_sales_day_value': sku_avg_sale_per_day_value,
                                                'cumulative_contribution': cumulative_contribution,
                                                'classification': classification, 'source_stock_id': ba_stock_id,
                                                'replenushment_qty': replenishment_qty, 'reserved': suggested_qty,

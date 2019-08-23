@@ -3321,6 +3321,7 @@ class SkuClassification(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster)
     avg_sales_day = models.FloatField(default=0)
+    avg_sales_day_value = models.FloatField(default=0)
     cumulative_contribution = models.FloatField(default=0)
     classification = models.CharField(max_length=64, default='')
     dest_location = models.ForeignKey(LocationMaster, related_name='destination_location', blank=True, null=True)

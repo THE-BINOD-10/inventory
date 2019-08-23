@@ -2690,6 +2690,8 @@ def get_combo_sku_codes(request, user=''):
 def confirm_combo_allocation(request, user=''):
     data_dict = dict(request.POST.iterlists())
     try:
+        log.info('Request Params for Confirm Combo Allocation for user %s is %s' %
+                 (user.username, str(data_dict)))
         seller_id = request.POST.get('seller_id', '').split(':')[0]
         if seller_id:
             seller = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
@@ -2713,20 +2715,24 @@ def confirm_combo_allocation(request, user=''):
             if not child_qty:
                 return HttpResponse(json.dumps({'status':False, 'message':'Child Quantity should be number'}))
             child_qty = float(child_qty)
-            if child_mrp:
-                try:
-                    child_mrp = float(child_mrp)
-                except:
+            try:
+                child_mrp = float(child_mrp)
+            except:
+                if user.username in MILKBASKET_USERS:
                     return HttpResponse(json.dumps({'status':False, 'message':'Child MRP should be number'}))
-            else:
-                child_mrp = 0
-            if combo_mrp:
-                try:
-                    combo_mrp = float(combo_mrp)
-                except:
+                else:
+                    child_mrp = 0
+            try:
+                combo_mrp = float(combo_mrp)
+            except:
+                if user.username in MILKBASKET_USERS:
                     return HttpResponse(json.dumps({'status':False, 'message':'Combo MRP should be number'}))
-            else:
-                combo_mrp = 0
+                else:
+                    combo_mrp = 0
+            if user.username in MILKBASKET_USERS and not child_weight:
+                return HttpResponse(json.dumps({'status': False, 'message': 'Child Weight is Mandatory'}))
+            if user.username in MILKBASKET_USERS and not combo_weight:
+                return HttpResponse(json.dumps({'status': False, 'message': 'Combo Weight is Mandatory'}))
             combo_sku = SKUMaster.objects.filter(user=user.id, sku_code=data_dict['combo_sku_code'][ind])
             if not combo_sku:
                 return HttpResponse(json.dumps({'status':False, 'message':'Combo SKU Code Not Found'}))

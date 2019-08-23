@@ -323,7 +323,7 @@ class OrderDetail(models.Model):
         unique_together = ('order_id', 'sku', 'order_code')
         index_together = (('order_id', 'sku', 'order_code'), ('user', 'order_code'),
                           ('customer_id', 'order_code', 'marketplace', 'original_order_id', 'order_id', 'customer_name'),
-                          ('status', 'user', 'quantity'))
+                          ('status', 'user', 'quantity'), ('user', 'sku'))
 
     def __unicode__(self):
         return str(self.sku) + ':' + str(self.original_order_id)
@@ -3321,6 +3321,7 @@ class SkuClassification(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster)
     avg_sales_day = models.FloatField(default=0)
+    avg_sales_day_value = models.FloatField(default=0)
     cumulative_contribution = models.FloatField(default=0)
     classification = models.CharField(max_length=64, default='')
     dest_location = models.ForeignKey(LocationMaster, related_name='destination_location', blank=True, null=True)
@@ -3340,7 +3341,8 @@ class SkuClassification(models.Model):
 
     class Meta:
         db_table = 'SKU_CLASSIFICATION'
-        unique_together = ('sku', 'classification', 'source_stock', 'seller', 'status')
+        index_together = (('sku', 'status'),)
+        #unique_together = ('sku', 'classification', 'source_stock', 'seller', 'status')
 
 class UserTextFields(models.Model):
     id = BigAutoField(primary_key=True)

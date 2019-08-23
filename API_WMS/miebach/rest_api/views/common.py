@@ -1639,7 +1639,8 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
     # it will create or update seller stock
     if seller_id:
         quantity = float(quantity)
-        seller_stock_data = SellerStock.objects.filter(stock_id=stock.id, seller__user=user.id, seller_id=seller_id)
+        seller_stock_data = SellerStock.objects.filter(stock_id=stock.id, seller__user=user.id, seller_id=seller_id,
+                                                       quantity__gt=0)
         if seller_stock_data:
 
             temp_quantity = quantity
@@ -1907,7 +1908,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
         return 'Quantity should not be empty'
     quantity = float(quantity)
     stock_dict = {'sku_id': sku_id, 'location_id': location[0].id,
-                  'sku__user': user.id}
+                  'sku__user': user.id, 'quantity__gt': 0}
     pallet_present = ''
     if pallet:
         pallet_present = PalletDetail.objects.filter(user = user.id, status = 1, pallet_code = pallet)
@@ -1953,7 +1954,10 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
     if quantity:
         #quantity = float(quantity)
         stocks = StockDetail.objects.filter(**stock_dict)
-        total_stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
+        if user.userprofile.user_type == 'marketplace_user':
+            total_stock_quantity = stocks.aggregate(total=Sum('sellerstock__quantity'))['total']
+        else:
+            total_stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
         if not total_stock_quantity:
             total_stock_quantity = 0
         remaining_quantity = total_stock_quantity - quantity
@@ -1968,6 +1972,8 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                 break
             else:
                 stock_quantity = float(stock.quantity)
+                if not stock_quantity:
+                    continue
                 if remaining_quantity == 0:
                     break
                 elif stock_quantity >= remaining_quantity:
@@ -2001,6 +2007,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                 del stock_dict["batch_detail__weight"]
             if 'sellerstock__seller_id' in stock_dict.keys():
                 del stock_dict['sellerstock__seller_id']
+            add_ean_weight_to_batch_detail(sku[0], batch_dict)
             if batch_dict.keys():
                 batch_obj = BatchDetail.objects.create(**batch_dict)
                 stock_dict["batch_detail_id"] = batch_obj.id
@@ -2011,6 +2018,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                                "quantity": quantity, "status": 1, "creation_date": now_date,
                                "updation_date": now_date
                               })
+            del stock_dict['quantity__gt']
             dest_stocks = StockDetail(**stock_dict)
             dest_stocks.save()
             stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', dest_stocks.quantity, dest_stocks, stock_stats_objs, bulk_insert=True)

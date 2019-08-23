@@ -6,6 +6,7 @@ angular.module('urbanApp', ['datatables'])
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
     var vm = this;
     vm.apply_filters = colFilters;
+    vm.permissions = Session.roles.permissions;
     vm.service = Service;
 
     vm.filters = {'datatable': 'SkuClassification', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
@@ -44,10 +45,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 vm.selected[meta.row] = vm.selectAll;
                 return vm.service.frontHtml + meta.row + vm.service.endHtml +'<input type="hidden" name="id" value="'+full.DT_RowAttr['sku_code']+'">';
             }).notSortable(),
+        DTColumnBuilder.newColumn('generation_time').withTitle('Generation Date'),
         DTColumnBuilder.newColumn('sku_code').withTitle('Sku Code'),
         DTColumnBuilder.newColumn('sku_name').withTitle('Sku Name'),
         DTColumnBuilder.newColumn('sku_category').withTitle('Sku Category'),
-        DTColumnBuilder.newColumn('avg_sales_day').withTitle('Avg Sales/Day'),
+        DTColumnBuilder.newColumn('sheet').withTitle('Sheet'),
+        DTColumnBuilder.newColumn('vendor').withTitle('Vendor'),
+        DTColumnBuilder.newColumn('reset_stock').withTitle('Reset Stock'),
+        DTColumnBuilder.newColumn('searchable').withTitle('Searchable'),
+        DTColumnBuilder.newColumn('aisle').withTitle('Aisle'),
+        DTColumnBuilder.newColumn('rack').withTitle('Rack'),
+        DTColumnBuilder.newColumn('shelf').withTitle('Shelf'),
+        DTColumnBuilder.newColumn('combo_flag').withTitle('Combo Flag'),
+        DTColumnBuilder.newColumn('avg_sales_day').withTitle('Avg Sales/Day Qty'),
+        DTColumnBuilder.newColumn('avg_sales_day_value').withTitle('Avg Sales/Day Value'),
         DTColumnBuilder.newColumn('cumulative_contribution').withTitle('Cumulative Contribution'),
         DTColumnBuilder.newColumn('classification').withTitle('Classification'),
         DTColumnBuilder.newColumn('mrp').withTitle('MRP'),
@@ -115,9 +126,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           data.push({name: 'cumulative_contribution', value: vm.dtInstance.DataTable.context[0].aoData[v]._aData.cumulative_contribution})
           data.push({name: 'classification', value: vm.dtInstance.DataTable.context[0].aoData[v]._aData.classification})
           data.push({name: 'mrp', value: vm.dtInstance.DataTable.context[0].aoData[v]._aData.mrp})
+          data.push({name: 'weight', value: vm.dtInstance.DataTable.context[0].aoData[v]._aData.weight})
           data.push({name: 'source_location', value: $(row).find("input[name='source_location']").val()})
           data.push({name: 'dest_location', value: $(row).find("input[name='dest_location']").val()})
-          data.push({name: 'replenushment_qty', value: $(row).find("input[name='replenushment_qty']").val()})
+          data.push({name: 'replenushment_qty', value: vm.dtInstance.DataTable.context[0].aoData[v]._aData.replenushment_qty})
           data.push({name: 'suggested_qty', value: $(row).find("input[name='suggested_qty']").val()})
           data.push({name: 'remarks', value: vm.dtInstance.DataTable.context[0].aoData[v]._aData.remarks})
         }

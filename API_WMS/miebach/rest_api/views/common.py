@@ -1954,10 +1954,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
     if quantity:
         #quantity = float(quantity)
         stocks = StockDetail.objects.filter(**stock_dict)
-        if user.userprofile.user_type == 'marketplace_user':
-            total_stock_quantity = stocks.aggregate(total=Sum('sellerstock__quantity'))['total']
-        else:
-            total_stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
+        total_stock_quantity = stocks.distinct().aggregate(Sum('quantity'))['quantity__sum']
         if not total_stock_quantity:
             total_stock_quantity = 0
         remaining_quantity = total_stock_quantity - quantity

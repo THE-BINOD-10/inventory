@@ -42,6 +42,8 @@ SKU_GROUP_FIELDS = {'group': '', 'user': ''}
 
 MILKBASKET_USERS = ['milkbasket_test', 'NOIDA02', 'NOIDA01', 'GGN01', 'HYD01', 'BLR01']
 
+MILKBASKET_BULK_ZONE = 'Bulk Zone'
+
 #ADJUST_INVENTORY_EXCEL_HEADERS = ['WMS Code', 'Location', 'Physical Quantity', 'Reason']
 
 ADJUST_INVENTORY_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('WMS Code', 'wms_code'),

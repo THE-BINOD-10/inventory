@@ -460,7 +460,7 @@ def get_search_params(request, user=''):
     data_mapping = {'start': 'start', 'length': 'length', 'draw': 'draw', 'search[value]': 'search_term',
                     'order[0][dir]': 'order_term',
                     'order[0][column]': 'order_index', 'from_date': 'from_date', 'to_date': 'to_date',
-                    'wms_code': 'wms_code',
+                    'wms_code': 'wms_code','status':'status',
                     'supplier': 'supplier', 'sku_code': 'sku_code', 'category': 'sku_category',
                     'sku_category': 'sku_category', 'sku_type': 'sku_type','sister_warehouse':'sister_warehouse',
                     'class': 'sku_class', 'zone_id': 'zone', 'location': 'location', 'open_po': 'open_po',
@@ -1954,10 +1954,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
     if quantity:
         #quantity = float(quantity)
         stocks = StockDetail.objects.filter(**stock_dict)
-        if user.userprofile.user_type == 'marketplace_user':
-            total_stock_quantity = stocks.aggregate(total=Sum('sellerstock__quantity'))['total']
-        else:
-            total_stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
+        total_stock_quantity = stocks.distinct().aggregate(Sum('quantity'))['quantity__sum']
         if not total_stock_quantity:
             total_stock_quantity = 0
         remaining_quantity = total_stock_quantity - quantity
@@ -2007,7 +2004,6 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                 del stock_dict["batch_detail__weight"]
             if 'sellerstock__seller_id' in stock_dict.keys():
                 del stock_dict['sellerstock__seller_id']
-            add_ean_weight_to_batch_detail(sku[0], batch_dict)
             if batch_dict.keys():
                 batch_obj = BatchDetail.objects.create(**batch_dict)
                 stock_dict["batch_detail_id"] = batch_obj.id
@@ -2027,7 +2023,8 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                                                stock=dest_stocks, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
 
     if quantity == 0:
-        all_stocks = StockDetail.objects.filter(quantity__gt=0, **stock_dict)
+        stock_dict['quantity__gt'] = 0
+        all_stocks = StockDetail.objects.filter(**stock_dict)
         for stock in all_stocks:
             stock_quantity = stock.quantity
             SellerStock.objects.filter(stock_id=stock.id).update(quantity=0)

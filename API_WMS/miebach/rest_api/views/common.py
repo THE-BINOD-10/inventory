@@ -2007,7 +2007,6 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                 del stock_dict["batch_detail__weight"]
             if 'sellerstock__seller_id' in stock_dict.keys():
                 del stock_dict['sellerstock__seller_id']
-            add_ean_weight_to_batch_detail(sku[0], batch_dict)
             if batch_dict.keys():
                 batch_obj = BatchDetail.objects.create(**batch_dict)
                 stock_dict["batch_detail_id"] = batch_obj.id
@@ -2027,7 +2026,8 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                                                stock=dest_stocks, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
 
     if quantity == 0:
-        all_stocks = StockDetail.objects.filter(quantity__gt=0, **stock_dict)
+        stock_dict['quantity__gt'] = 0
+        all_stocks = StockDetail.objects.filter(**stock_dict)
         for stock in all_stocks:
             stock_quantity = stock.quantity
             SellerStock.objects.filter(stock_id=stock.id).update(quantity=0)

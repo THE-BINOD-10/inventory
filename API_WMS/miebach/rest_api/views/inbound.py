@@ -1756,6 +1756,7 @@ def get_supplier_data(request, user=''):
     uploaded_file_dict = {}
     returnable_serials = []
     invoice_number = ''
+    lr_number = ''
     headers = ['WMS CODE', 'PO Quantity', 'Received Quantity', 'Unit Price', '']
     if temp == 'true':
         headers.insert(2, 'Pallet Number')

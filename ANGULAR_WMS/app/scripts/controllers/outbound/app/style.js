@@ -413,14 +413,20 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     vm.place_order_loading = true;
 
     vm.service.apiCall('insert_customer_cart_data/?data='+send).then(function(data){
-
-       if (data.message) {
-
-        Data.styles_data = {};
-        vm.service.showNoty("Succesfully Added to Cart", "success", "bottomRight");
-        $state.go('user.App.Cart');
-        Data.styleId = vm.styleId;
-       }
+        if (data.message) {
+          if (data.data.msg) {
+            Data.styles_data = {};
+            vm.service.showNoty("Succesfully Added to Cart", "success", "bottomRight");
+            $state.go('user.App.Cart');
+            Data.styleId = vm.styleId;
+          }
+          else {
+            Data.styles_data = {};
+            vm.service.showNoty('Quantity Not Available For SKU',"success", "bottomRight")
+            $state.go('user.App.Products');
+            Data.styleId = vm.styleId;
+          }
+        }
     });
 
     vm.place_order_loading = true;

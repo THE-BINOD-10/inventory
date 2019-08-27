@@ -4561,17 +4561,17 @@ def create_central_order(request, user):
             interm_order_map['sku_id'] = cart_item.sku_id
             interm_order_map['remarks'] = remarks_dict[cart_item.sku.sku_code]
             cart_qty, inter_qty = 0, 0
-            cart_obj = CustomerCartData.objects.filter(sku=cart_item.sku_id)
-            inter_obj = IntermediateOrders.objects.filter(sku=cart_item.sku_id, status='')
+            cart_obj = CustomerCartData.objects.filter(sku__sku_code=cart_item.sku.sku_code).exclude(customer_user_id=customer_id)
+            inter_obj = IntermediateOrders.objects.filter(sku__sku_code=cart_item.sku.sku_code, status='')
             if cart_obj:
                 cart_qty = cart_obj.aggregate(Sum('quantity'))['quantity__sum']
             if inter_obj:
                 inter_qty = inter_obj.aggregate(Sum('quantity'))['quantity__sum']
             blocked_qty = cart_qty + inter_qty
-            stocks = StockDetail.objects.filter(sku__user__in=stock_display_warehouse, sku=cart_item.sku_id,
+            stocks = StockDetail.objects.filter(sku__user__in=stock_display_warehouse, sku__sku_code=cart_item.sku.sku_code,
                                                 quantity__gt=0)
             avail_qty = check_stock_available_quantity(stocks, user, stock_ids=None)
-            if (avail_qty - blocked_qty) > cart_item.quantity:
+            if (avail_qty - blocked_qty) < cart_item.quantity:
                 return HttpResponse('Order Cant be placed as stock not available for sku: %s' %cart_item.sku.sku_code)
             intermediate_obj =  IntermediateOrders.objects.create(**interm_order_map)
             #x = intermediate_obj.shipment_date
@@ -6850,8 +6850,8 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
         ordered_qty = ordered_qties.get(item["wms_code"], 0)
         recieved_qty = recieved_qties.get(item["wms_code"], 0)
         cart_qty, inter_qty = 0, 0
-        cart_obj = CustomerCartData.objects.filter(sku=item['id'])
-        inter_obj = IntermediateOrders.objects.filter(sku=item['id'], status='')
+        cart_obj = CustomerCartData.objects.filter(sku__sku_code=item['wms_code'])
+        inter_obj = IntermediateOrders.objects.filter(sku__sku_code=item['wms_code'], status='')
         if cart_obj:
             cart_qty = cart_obj.aggregate(Sum('quantity'))['quantity__sum']
         if inter_obj:
@@ -10308,7 +10308,6 @@ def insert_customer_cart_data(request, user=""):
     response = {'data': [], 'msg': 0}
     items = []
     cart_data = request.GET.get('data', '')
-
     if cart_data:
         cart_data = eval(cart_data)
         for record in cart_data:
@@ -10316,6 +10315,23 @@ def insert_customer_cart_data(request, user=""):
             cart = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id,
                                                    sku__sku_code=record['sku_id'], warehouse_level=record['level'])
             if not cart:
+                stock_display_warehouse = get_misc_value('stock_display_warehouse', user.id)
+                if stock_display_warehouse and stock_display_warehouse != "false":
+                    stock_display_warehouse = stock_display_warehouse.split(',')
+                    stock_display_warehouse = map(int, stock_display_warehouse)
+                cart_obj = CustomerCartData.objects.filter(sku__sku_code=record['sku_id']).exclude(customer_user_id=request.user.id)
+                cart_qty = 0
+                if cart_obj:
+                    cart_qty = cart_obj.aggregate(Sum('quantity'))['quantity__sum']
+                stocks = StockDetail.objects.filter(sku__user__in=stock_display_warehouse, sku__sku_code=record['sku_id'],
+                                                    quantity__gt=0)
+                avail_qty = check_stock_available_quantity(stocks, user, stock_ids=None)
+                quantity = cart_qty + record['quantity']
+                if quantity > avail_qty:
+                    response['msg'] = 0
+                    response['data'] = "No Available Quantiy for Sku  %s' "% (str(record['sku_id']))
+                    return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
+
                 data = {'user_id': user.id, 'customer_user_id': request.user.id, 'sku_id': sku.id,
                         'quantity': record['quantity'], 'tax': record['tax'], 'warehouse_level': record['level'],
                         'levelbase_price': record['price']}
@@ -10327,7 +10343,7 @@ def insert_customer_cart_data(request, user=""):
                 cart.save()
 
         response['data'] = "Inserted Successfully"
-
+        response['msg'] = 1
     return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
 
 

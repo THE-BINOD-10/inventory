@@ -8679,7 +8679,9 @@ def check_stock_available_quantity(stocks, user, stock_ids=None, seller_master_i
         stock_qty = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
     if not stock_qty:
         return 0
-    res_qty = PicklistLocation.objects.filter(stock_id__in=stock_ids, status=1, picklist__order__user=user.id).\
+    sister_warehouses = get_sister_warehouse(user)
+    sister_warehouse_ids = sister_warehouses.values('user_id')
+    res_qty = PicklistLocation.objects.filter(stock_id__in=stock_ids, status=1, picklist__order__user__in=sister_warehouse_ids).\
         aggregate(Sum('reserved'))['reserved__sum']
     raw_reserved = RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user.id,
                                              stock_id__in=stock_ids).aggregate(Sum('reserved'))['reserved__sum']

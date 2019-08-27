@@ -2746,6 +2746,10 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
             elif cell_data == '':
                 if key in number_fields:
                     data_dict[key] = cell_data
+        for data in data_list:
+            if data['sku']== data_dict['sku'] and data['supplier'] == data_dict['supplier']:
+                index_status.setdefault(row_idx, set()).add('SKU added in multiple rows')
+
         data_list.append(data_dict)
     if not index_status:
         return 'Success', data_list
@@ -2796,6 +2800,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     else:
         table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+
     if ean_flag:
         table_headers.insert(1, 'EAN')
     if show_cess_tax:

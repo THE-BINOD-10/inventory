@@ -7543,7 +7543,7 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
                          order_summary_dict, ship_to, corporate_po_number, client_name, admin_user, sku_total_qty_map,
                          order_user_sku, order_user_objs, address_selected=''):
     if order_data.get('del_date', ''):
-        if order_data['del_date'].date() >= order_data['shipment_date']:
+        if order_data['del_date'] >= order_data['shipment_date']:
             order_data['shipment_date'] = order_data.get('del_date', '')
         else:
             order_data['del_date'] = order_data['shipment_date']
@@ -9705,3 +9705,47 @@ def get_current_weight(request, user=''):
         return HttpResponse(json.dumps({'weight': result_val, 'is_updated': is_updated, 'status': 1}))
     else:
         return HttpResponse(json.dumps({'weight': 0 , 'is_updated': False, 'status': 0}))
+
+
+def fetch_asn_detailed_qty(sku_class_list, sku_users):
+    overall_asn_stock = {'first_and_nk_set': {}, 'second_set': {}, 'third_set': {}}
+    today_filter = datetime.datetime.today()
+    threeday_filter = today_filter + datetime.timedelta(days=10)
+    thirtyday_filter = today_filter + datetime.timedelta(days=45)
+    asn_filters = {'quantity__gt': 0, 'sku__sku_class__in': sku_class_list, 'sku__user__in': sku_users,
+                   'status': 'open'}
+    asn_qs = ASNStockDetail.objects.filter(**asn_filters)
+    asn_3_qs = asn_qs.filter(Q(arriving_date__lte=threeday_filter) | Q(asn_po_num='NON_KITTED_STOCK'))
+    asn_3_ids = asn_3_qs.values_list('id', flat=True)
+    asn_res_3days_qs = ASNReserveDetail.objects.filter(asnstock__in=asn_3_ids)
+    asn_res_3days_qty = dict(
+        asn_res_3days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
+    intr_3d_st = dict(asn_3_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+    for k, v in intr_3d_st.items():
+        if k in asn_res_3days_qty:
+            intr_3d_st[k] = intr_3d_st[k] - asn_res_3days_qty[k]
+
+    asn_30_qs = asn_qs.exclude(arriving_date__lte=threeday_filter).filter(arriving_date__lte=thirtyday_filter)
+    asn_30_ids = asn_30_qs.values_list('id', flat=True)
+    asn_res_30days_qs = ASNReserveDetail.objects.filter(asnstock__in=asn_30_ids)
+    asn_res_30days_qty = dict(
+        asn_res_30days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
+    intr_30d_st = dict(asn_30_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+    for k, v in intr_30d_st.items():
+        if k in asn_res_30days_qty:
+            intr_30d_st[k] = intr_30d_st[k] - asn_res_30days_qty[k]
+
+    asn_100_qs = asn_qs.filter(arriving_date__gt=thirtyday_filter)
+    asn_100_ids = asn_100_qs.values_list('id', flat=True)
+    asn_res_100days_qs = ASNReserveDetail.objects.filter(asnstock__in=asn_100_ids)
+    asn_res_100days_qty = dict(asn_res_100days_qs.values_list('asnstock__sku__sku_code').annotate(
+        in_res=Sum('reserved_qty')))
+    intr_100d_st = dict(asn_100_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+    for k, v in intr_100d_st.items():
+        if k in asn_res_100days_qty:
+            intr_100d_st[k] = intr_100d_st[k] - asn_res_100days_qty[k]
+
+    overall_asn_stock['first_and_nk_set'] = intr_3d_st
+    overall_asn_stock['second_set'] = intr_30d_st
+    overall_asn_stock['third_set'] = intr_100d_st
+    return overall_asn_stock

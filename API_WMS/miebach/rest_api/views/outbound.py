@@ -6806,42 +6806,10 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
     job_order_rec_qty = dict(JobOrder.objects.filter(product_code__user__in=stock_display_warehouse,
                                                      product_code__sku_class=sku_master[0]['sku_class']).values_list(
         'product_code__wms_code').distinct().annotate(Sum('received_quantity')))
-    today_filter = datetime.datetime.today()
-    threeday_filter = today_filter + datetime.timedelta(days=10)
-    thirtyday_filter = today_filter + datetime.timedelta(days=45)
-    hundred_day_filter = today_filter + datetime.timedelta(days=90)
     sku_filter = [sku_master[0]['sku_class']]
-
-    asn_filters = {'quantity__gt': 0, 'sku__sku_class__in': sku_filter, 'sku__user__in': stock_display_warehouse,
-                   'status': 'open'}
-    asn_qs = ASNStockDetail.objects.filter(**asn_filters)
-    asn_3_qs = asn_qs.filter(Q(arriving_date__lte=threeday_filter) | Q(asn_po_num='NON_KITTED_STOCK'))
-    asn_3_ids = asn_3_qs.values_list('id', flat=True)
-    asn_res_3days_qs = ASNReserveDetail.objects.filter(asnstock__in=asn_3_ids)
-    asn_res_3days_qty = dict(asn_res_3days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
-    intr_3d_st = dict(asn_3_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
-    for k, v in intr_3d_st.items():
-        if k in asn_res_3days_qty:
-            intr_3d_st[k] = intr_3d_st[k] - asn_res_3days_qty[k]
-
-    asn_30_qs = asn_qs.exclude(arriving_date__lte=threeday_filter).filter(arriving_date__lte=thirtyday_filter)
-    asn_30_ids = asn_30_qs.values_list('id', flat=True)
-    asn_res_30days_qs = ASNReserveDetail.objects.filter(asnstock__in=asn_30_ids)
-    asn_res_30days_qty = dict(asn_res_30days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
-    intr_30d_st = dict(asn_30_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
-    for k, v in intr_30d_st.items():
-        if k in asn_res_30days_qty:
-            intr_30d_st[k] = intr_30d_st[k] - asn_res_30days_qty[k]
-
-    asn_100_qs = asn_qs.filter(arriving_date__gt=thirtyday_filter)
-    asn_100_ids = asn_100_qs.values_list('id', flat=True)
-    asn_res_100days_qs = ASNReserveDetail.objects.filter(asnstock__in=asn_100_ids)
-    asn_res_100days_qty = dict(asn_res_100days_qs.values_list('asnstock__sku__sku_code').annotate(
-        in_res=Sum('reserved_qty')))
-    intr_100d_st = dict(asn_100_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
-    for k, v in intr_100d_st.items():
-        if k in asn_res_100days_qty:
-            intr_100d_st[k] = intr_100d_st[k] - asn_res_100days_qty[k]
+    overall_asn_stock = {}
+    if level == 3:
+        overall_asn_stock = fetch_asn_detailed_qty(sku_filter, stock_display_warehouse)
 
     day_1_total = 0
     day_3_total = 0
@@ -6877,9 +6845,9 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
             all_quantity -= item['physical_stock']
         item['all_quantity'] = all_quantity
         if level == 3:
-            item[10] = intr_3d_st.get(item["wms_code"], 0)
-            item[45] = intr_30d_st.get(item["wms_code"], 0)
-            item[90] = intr_100d_st.get(item["wms_code"], 0)
+            item[10] = overall_asn_stock.get('first_and_nk_set', {}).get(item["wms_code"], 0)
+            item[45] = overall_asn_stock.get('second_set', {}).get(item["wms_code"], 0)
+            item[90] = overall_asn_stock.get('third_set', {}).get(item["wms_code"], 0)
         if lead_times and level != 3:
             for lead_time, wh_code in lead_times.items():
                 output = get_stock_qty_leadtime(item, wh_code)
@@ -6891,6 +6859,8 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
                 for wc in wh_code:
                     if nk_map.get(wc):
                         output = output - nk_map[wc]
+                if output < 0:
+                    output = 0
                 if dist_reseller_leadtime and level:
                     item[lead_time + dist_reseller_leadtime] = output
                 else:
@@ -10272,11 +10242,13 @@ def get_customer_cart_data(request, user=""):
             break_flag = False
             if record.warehouse_level == 3:
                 stock_wh_map = fetch_asn_stock(record.sku.user, record.sku.sku_code, cart_qty)
+                lt_wh_map = dict(NetworkMaster.objects.filter(dest_location_code=user.id).values_list('source_location_code', 'lead_time'))
                 for lt, wh_map in stock_wh_map.items():
                     for wh, avail_qty in wh_map.items():
                         total_qty = total_qty + avail_qty
                         if cart_qty <= total_qty:
-                            del_days = lt
+                            wh_lt = lt_wh_map.get(wh, 0)
+                            del_days = lt + wh_lt
                             break_flag = True
                             break
                     if break_flag:

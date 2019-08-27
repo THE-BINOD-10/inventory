@@ -2889,6 +2889,14 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         order_data['status'] = 0
         data1 = OpenPO(**order_data)
         data1.save()
+        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='po_fields')
+        seller_receipt_id = 0
+        if misc_detail:
+            fields = misc_detail[0].misc_value.lower().split(',')
+            if set(final_dict.keys()).issuperset(fields):
+                for field in fields:
+                    value = final_dict[field]
+                    Pofields.objects.create(user= user.id,po_number = po_id,receipt_no= seller_receipt_id,name=field,value=value,field_type='po_field')
         if seller_id:
             SellerPO.objects.create(seller_id=seller_id, open_po_id=data1.id,
                                     seller_quantity=order_data['order_quantity'], unit_price=order_data['price'],

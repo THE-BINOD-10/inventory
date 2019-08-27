@@ -1755,6 +1755,7 @@ def get_supplier_data(request, user=''):
     order_ids = []
     uploaded_file_dict = {}
     returnable_serials = []
+    invoice_number = ''
     headers = ['WMS CODE', 'PO Quantity', 'Received Quantity', 'Unit Price', '']
     if temp == 'true':
         headers.insert(2, 'Pallet Number')
@@ -1819,6 +1820,15 @@ def get_supplier_data(request, user=''):
             tax_percent = order_data['cgst_tax'] + order_data['sgst_tax'] + order_data['igst_tax'] +\
                           order_data['utgst_tax']
             tax_percent_copy = tax_percent
+            extra_po_fields = Pofields.objects.filter(user= user.id,po_number = order.order_id,field_type='po_field').values('name','value')
+            if extra_po_fields:
+                po_extra_fields = {}
+                for field in extra_po_fields:
+                    po_extra_fields[field['name']] = field['value']
+                if 'tracking_number' in po_extra_fields.keys():
+                    lr_number = po_extra_fields['tracking_number']
+                if 'invoice_number' in po_extra_fields.keys():
+                    invoice_number = po_extra_fields['invoice_number']
             temp_jsons = TempJson.objects.filter(model_id=order.id, model_name='PO')
             if temp_jsons.exists():
                 for temp_json_obj in temp_jsons:
@@ -1848,7 +1858,7 @@ def get_supplier_data(request, user=''):
                                     'mfg_date': temp_json.get('mfg_date', ''),
                                     'exp_date': temp_json.get('exp_date', ''),
                                     'pallet_number': temp_json.get('pallet_number', ''),
-                                    'is_stock_transfer': temp_json.get('is_stock_transfer', ''),
+                                    'is_stock_transfer': temp_json.get('is_stock_transfer', ''),'po_extra_fields':json.dumps(list(extra_po_fields)),
                                     }])
             else:
                 orders.append([{ 'order_id': order.id, 'wms_code': order_data['wms_code'],
@@ -1871,7 +1881,7 @@ def get_supplier_data(request, user=''):
                                  'tax_percent_copy': tax_percent_copy, 'temp_json_id': '',
                                  'buy_price': order_data['price'],
                                  'discount_percentage': 0, 'batch_no': '', 'mfg_date': '', 'exp_date': '',
-                                 'pallet_number': '', 'is_stock_transfer': ''
+                                 'pallet_number': '', 'is_stock_transfer': '', 'po_extra_fields':json.dumps(list(extra_po_fields)),
                                  }])
     supplier_name, order_date, expected_date, remarks = '', '', '', ''
     if purchase_orders:
@@ -1884,7 +1894,6 @@ def get_supplier_data(request, user=''):
             purchase_order = purchase_orders.latest('expected_date')
             expected_date = datetime.datetime.strftime(purchase_order.expected_date, "%m/%d/%Y")
         temp_json = TempJson.objects.filter(model_id=purchase_order.id, model_name='PO')
-        invoice_number = ''
         invoice_date = ''
         dc_number = ''
         dc_date = ''
@@ -1913,7 +1922,7 @@ def get_supplier_data(request, user=''):
                                     'dc_date': dc_date, 'dc_grn': dc_level_grn,
                                     'uploaded_file_dict': uploaded_file_dict, 'overall_discount': overall_discount,
                                     'round_off_total': 0, 'invoice_value': invoice_value, 'qc_items': qc_items,
-                                    'returnable_serials': returnable_serials}))
+                                    'returnable_serials': returnable_serials,'lr_number': lr_number}))
 
 
 @csrf_exempt
@@ -3166,6 +3175,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     if user.username in MILKBASKET_USERS and (not request.POST.get('invoice_date', '') and not request.POST.get('dc_date', '')):
         return HttpResponse("Invoice/DC Date is Mandatory")
     invoice_num = request.POST.get('invoice_number', '')
+    lr_number = request.POST.get('lr_number', '')
     if invoice_num:
         supplier_id = ''
         if request.POST.get('supplier_id', ''):
@@ -3256,8 +3266,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                        grn_obj.value = value
                        grn_obj.save()
                     else:
-                        Pofields.objects.create(user= user.id,po_number = data.order_id,receipt_no= seller_receipt_id,name=field,value=value)
-
+                        Pofields.objects.create(user= user.id,po_number = data.order_id,receipt_no= seller_receipt_id,name=field,value=value,field_type='grn_field')
             dc_level_grn = request.POST.get('dc_level_grn', '')
             if dc_level_grn == 'on':
                 bill_no = request.POST.get('dc_number', '')
@@ -3277,7 +3286,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'company_name': profile.company_name, 'company_address': profile.address,
                                 'po_number': po_number, 'bill_no': bill_no,
                                 'order_date': order_date, 'order_id': order_id,
-                                'btn_class': btn_class, 'bill_date': bill_date }
+                                'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number }
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')

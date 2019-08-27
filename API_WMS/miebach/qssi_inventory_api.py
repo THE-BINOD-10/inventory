@@ -118,17 +118,20 @@ def calc_update_inventory(resp, user):
                         sku = SKUMaster.objects.filter(user=user.id, sku_code=sku_id)
                         if not sku: continue
                         sku = sku[0]
-                        exist_nk_stock = ASNStockDetail.objects.filter(sku_id=sku.id, asn_po_num='NON_KITTED_STOCK', status='open')
+                        exist_nk_stock = ASNStockDetail.objects.filter(sku_id=sku.id, asn_po_num='NON_KITTED_STOCK')
+                        exist_nk_open_stock = exist_nk_stock.filter(status='open')
+                        exist_nk_closed_stock = exist_nk_stock.filter(status='closed')
                         if non_kitted_stock:
-                            if exist_nk_stock:
-                                exist_nk_stock = exist_nk_stock[0]
-                                exist_nk_stock.quantity = non_kitted_stock
-                                exist_nk_stock.save()
+                            if exist_nk_open_stock:
+                                exist_nk_open_stock = exist_nk_open_stock[0]
+                                exist_nk_open_stock.quantity = non_kitted_stock
+                                exist_nk_open_stock.save()
                             else:
                                 ASNStockDetail.objects.create(asn_po_num='NON_KITTED_STOCK', sku_id=sku.id,
                                                               quantity=non_kitted_stock)
                         else:
-                            exist_nk_stock.update(status='closed')
+                            exist_nk_closed_stock.delete()
+                            exist_nk_open_stock.update(status='closed')
 
                 for sku_id, inventory in stock_dict.iteritems():
                     sku = SKUMaster.objects.filter(user=user.id, sku_code=sku_id)
@@ -231,12 +234,13 @@ def update_asn_to_stock(wh, sku_obj):
             enqsku_qs.update(warehouse_level=1)
             enqsku_qs.update(quantity=wh_res_stock)
         asnenq_qs = ASNReserveDetail.objects.filter(enquirydetail_id=enqsku_qs[0].id)
-        if l3_res_stock > 0:
-            log.info("ASNReserveDetail %s object reseved quantity %s updated" %(asnenq_qs[0].__dict__, l3_res_stock))
-            asnenq_qs.update(reserved_qty=l3_res_stock)
-        else:
-            log.info("ASNReserveDetail %s object got removed" %(asnenq_qs[0].__dict__))
-            asnenq_qs.delete()
+        if asnenq_qs:
+            if l3_res_stock > 0:
+                log.info("ASNReserveDetail %s object reseved quantity %s updated" %(asnenq_qs[0].__dict__, l3_res_stock))
+                asnenq_qs.update(reserved_qty=l3_res_stock)
+            else:
+                log.info("ASNReserveDetail %s object got removed" %(asnenq_qs[0].__dict__))
+                asnenq_qs.delete()
 
 
 def update_inventory(company_name):

@@ -849,6 +849,12 @@ def configurations(request, user=''):
     else:
         config_dict['grn_fields'] = grn_fields
 
+    po_fields = get_misc_value('po_fields', user.id)
+    if po_fields == 'false' :
+        config_dict['po_fields'] = ''
+    else:
+        config_dict['po_fields'] = po_fields
+
     if config_dict['mail_alerts'] == 'false':
         config_dict['mail_alerts'] = 0
     if config_dict['production_switch'] == 'false':
@@ -2405,14 +2411,21 @@ def save_order_extra_fields(request, user=''):
 @get_admin_user
 def save_grn_fields(request, user=''):
     grn_fields = request.GET.get('grn_fields', '')
-    if len(grn_fields.split(',')) <=  4 :
-        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='grn_fields')
+    po_fields = request.GET.get('po_fields', '')
+    if grn_fields:
+        misc_type = 'grn_fields'
+        fields = grn_fields
+    if po_fields:
+        misc_type = 'po_fields'
+        fields = po_fields
+    if len(fields.split(',')) <=  4 :
+        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=misc_type)
         try:
             if not misc_detail.exists():
-                 MiscDetail.objects.create(user=user.id,misc_type='grn_fields',misc_value=grn_fields)
+                 MiscDetail.objects.create(user=user.id,misc_type=misc_type,misc_value=fields)
             else:
                 misc_detail_obj = misc_detail[0]
-                misc_detail_obj.misc_value = grn_fields
+                misc_detail_obj.misc_value = fields
                 misc_detail_obj.save()
         except:
             import traceback

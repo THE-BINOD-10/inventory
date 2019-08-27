@@ -154,6 +154,15 @@ def get_combo_allocate_excel_headers(user):
 
 def get_purchase_order_excel_headers(user):
     excel_headers = copy.deepcopy(PURCHASE_ORDER_UPLOAD_MAPPING)
+    misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='po_fields')
+    if misc_detail:
+        extra_headers = OrderedDict()
+        fields = misc_detail[0].misc_value.split(',')
+        for field in fields:
+            key = field
+            value = field.lower()
+            extra_headers[key] = value
+        excel_headers.update(extra_headers)
     userprofile = user.userprofile
     if not userprofile.user_type == 'marketplace_user':
         del excel_headers["Seller ID"]
@@ -2628,6 +2637,9 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
     index_status = {}
     data_list = []
     purchase_mapping = get_purchase_order_excel_headers(user)
+    misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='po_fields')
+    if misc_detail:
+        fields = misc_detail[0].misc_value.split(',')
     purchase_res = dict(zip(purchase_mapping.values(), purchase_mapping.keys()))
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  purchase_mapping)
@@ -2746,6 +2758,10 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
             elif cell_data == '':
                 if key in number_fields:
                     data_dict[key] = cell_data
+            elif key in fields:
+                if isinstance(cell_data, (int, float)):
+                    cell_data = str(int(cell_data))
+                data_dict[key] = cell_data
         data_list.append(data_dict)
     if not index_status:
         return 'Success', data_list

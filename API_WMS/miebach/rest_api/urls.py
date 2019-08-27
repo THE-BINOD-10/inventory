@@ -740,5 +740,3 @@ urlpatterns += [
     url(r'^GetPurchaseReturns/', tally_api.get_purchase_returns),
 
 ]
-
-

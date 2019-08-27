@@ -176,12 +176,11 @@ def calc_update_inventory(resp, user):
                             qc_quantity = int(math.ceil(quantity * 90.0 / 100))
                             if qc_quantity <= 0:
                                 continue
-                            asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku.id, asn_po_num=po)
+                            asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku.id, asn_po_num=po, status='open')
                             if asn_stock_detail:
                                 asn_stock_detail = asn_stock_detail[0]
                                 asn_stock_detail.quantity = qc_quantity
                                 asn_stock_detail.arriving_date = arriving_date
-                                asn_stock_detail.status = 'open'
                                 asn_stock_detail.save()
                             else:
                                 ASNStockDetail.objects.create(asn_po_num=po, sku_id=sku.id,

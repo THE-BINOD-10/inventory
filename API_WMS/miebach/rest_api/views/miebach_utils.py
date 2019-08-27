@@ -20,6 +20,7 @@ from django.db.models import Value
 from utils import init_logger, get_currency_format
 from miebach_admin.choices import SELLABLE_CHOICES
 from dateutil.relativedelta import *
+from django.db.models.functions import ExtractHour, ExtractMinute
 
 
 
@@ -40,6 +41,8 @@ NOW = datetime.datetime.now()
 SKU_GROUP_FIELDS = {'group': '', 'user': ''}
 
 MILKBASKET_USERS = ['milkbasket_test', 'NOIDA02', 'NOIDA01', 'GGN01', 'HYD01', 'BLR01']
+
+MILKBASKET_BULK_ZONE = 'Bulk Zone'
 
 #ADJUST_INVENTORY_EXCEL_HEADERS = ['WMS Code', 'Location', 'Physical Quantity', 'Reason']
 
@@ -1620,7 +1623,8 @@ PERMISSION_DICT = OrderedDict((
                      ("Cycle Count", "add_cyclecount"), ("Move Inventory", "change_inventoryadjustment"),
                      ("Inventory Adjustment", "add_inventoryadjustment"),
                      ("Warehouse Stock", "add_usergroups"), ("IMEI Tracker", "add_poimeimapping"),
-                     ("Seller Stock", "add_sellerstock"))),
+                     ("Seller Stock", "add_sellerstock"), ("View BA to SA", "view_skuclassification"),
+                     ("Calculate BA to SA", "add_skuclassification"), ("Confirm BA to SA", "change_skuclassification"))),
 
     # Outbound
     ("OUTBOUND_LABEL", (("Create Orders", "add_orderdetail"), ("View Orders", "add_picklist"),

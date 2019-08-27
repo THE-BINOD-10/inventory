@@ -1002,7 +1002,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     if(vm.field == sku.wms_code){
                       if(sku.value < sku.po_quantity) {
                         sku["value"] = Number(sku["value"]) + 1;
-                        vm.calc_total_amt(event, vm.model_data, Number(i), temp_sku_ind);
+                        vm.calc_total_amt(event, vm.model_data, temp_sku_ind,Number(i));
                       } else {
                          Service.showNoty("Received Quantity Equal To PO Quantity");
                       }

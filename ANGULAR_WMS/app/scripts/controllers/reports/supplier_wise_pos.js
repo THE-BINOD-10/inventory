@@ -79,7 +79,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     }
 
    vm.empty_data = {
-                    'supplier': ''
+                    'supplier': '',
+                    'status' : '',
+                    'from_date': '',
+                    'to_date': '',
+                    'sku_code': ''
                     };
 
    vm.model_data = {};
@@ -106,4 +110,3 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     }
 
   }
-

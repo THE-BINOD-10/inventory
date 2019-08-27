@@ -14954,24 +14954,29 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
 @login_required
 @get_admin_user
 def delete_central_order(request, user=''):
+    status = 'Success'
     orders_dict = dict(request.POST)
     for i in range(len(orders_dict['order_id'])):
         try:
             interm_obj = IntermediateOrders.objects.filter(interm_order_id=orders_dict['order_id'][i],user = user.id)
             if interm_obj.exists():
-                order_ids = interm_obj.exclude(order__status__in = [0,2]).values('order__id')
-                for id in order_ids :
-                    OrderDetail.objects.filter(id = id['order__id']).update(status =3)
-                for obj in interm_obj :
-                    int_order_obj = obj
-                    int_order_obj.remarks = orders_dict['remarks'][i]
-                    int_order_obj.status = 3
-                    int_order_obj.save()
+                if interm_obj.filter(order__status__in=['1','3']) :
+                    order_ids = interm_obj.exclude(order__status__in = [0,2]).values('order__id')
+                    for id in order_ids :
+                        OrderDetail.objects.filter(id = id['order__id']).update(status =3)
+                    for obj in interm_obj :
+                        int_order_obj = obj
+                        int_order_obj.remarks = orders_dict['remarks'][i]
+                        int_order_obj.status = 3
+                        int_order_obj.save()
+                else :
+                     status = 'Orders are  Picked or Dispatched Already'
+
 
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
-    return HttpResponse('Success')
+    return HttpResponse(json.dumps({'status': status}))
 
 @login_required
 @get_admin_user

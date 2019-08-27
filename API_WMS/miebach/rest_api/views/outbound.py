@@ -12614,9 +12614,11 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
     if order_data:
         em_qs = EnquiryMaster.objects.filter(customer_id=cm_id).order_by(order_data)
     if search_term:
-        em_qs = EnquiryMaster.objects.filter(customer_id=cm_id).filter(
+        em_qs = EnquiryMaster.objects.annotate(full_order=Concat('customer_id','enquiry_id',
+                output_field=CharField())).filter(customer_id=cm_id).filter(
                 Q(enquiry_id__icontains=search_term) | Q(creation_date__regex=search_term)
-                | Q(enquiredsku__sku__sku_code__icontains=search_term) | Q(corporate_name__icontains=search_term),
+                | Q(enquiredsku__sku__sku_code__icontains=search_term) | Q(corporate_name__icontains=search_term)
+                | Q(full_order__icontains=search_term),
                  customer_id=cm_id, **search_params).order_by(order_data)
     temp_data['recordsTotal'] = len(em_qs)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -12661,16 +12663,19 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
 def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     lis = ['enquiry_id', 'creation_date', 'customer_name', 'sku__sku_class', 'customization_type', 'sku__sku_code', 'status']
     order_data = lis[col_num]
+    uniq_ord_search_flag = False
     if order_term == 'desc':
         order_data = '-%s' % order_data
+    em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by(order_data)
     if search_term:
-        em_qs = ManualEnquiry.objects.filter(
+        em_qs = em_qs.filter(
             Q(enquiry_id__icontains=search_term) | Q(creation_date__regex=search_term) |
             Q(customer_name__icontains=search_term) | Q(sku__sku_class__icontains=search_term) |
             Q(customization_type__icontains=search_term) | Q(sku__sku_code__icontains=search_term) |
             Q(status__icontains=search_term)).order_by(order_data)
-    else:
-        em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by(order_data)
+        if not em_qs.exists():
+            uniq_ord_search_flag = True
+            em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by(order_data)
     cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     cm_ids = cum_obj.values_list('customer_id', flat=True)
     orderprefix_map = {}
@@ -12709,6 +12714,8 @@ def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, ord
         if cm_qs:
             cm_id = cm_qs[0].customer_id
             uniq_enq_id = str(cm_id) + str(enquiry.enquiry_id)
+            if uniq_ord_search_flag and search_term not in uniq_enq_id:
+                continue
             temp_data['aaData'].append(OrderedDict(
                 (('ID', float(enquiry.enquiry_id)), ('Enquiry ID', uniq_enq_id), ('Emiza Order Id', Emiza_ids), ('Enquiry Date', get_only_date(request, enquiry.creation_date)),
               ('Customer Name', enquiry.customer_name), ('Style Name', enquiry.sku.sku_class), ('Customization', customization_type),('SKU Code', enquiry.sku.sku_code), ('Status', enquiry.status))))
@@ -12914,8 +12921,10 @@ def move_enquiry_to_order(request, user=''):
 @get_admin_user
 def extend_enquiry_date(request, user = ''):
     message = 'Success'
+    users_list = []
     extended_date = request.GET.get('extended_date', '')
     enquiry_id = request.GET.get('order_id', '')
+    status = request.GET.get('extend_status','')
     if not enquiry_id:
         enquiry_id = request.GET.get('enquiry_id', '')
     user_profile = UserProfile.objects.filter(user=request.user.id)
@@ -12935,6 +12944,7 @@ def extend_enquiry_date(request, user = ''):
     try:
         enq_qs = EnquiryMaster.objects.filter(enquiry_id=enquiry_id, customer_id=cm_id)
         if enq_qs:
+            users_list.append(admin_user.id)
             ext_dt = datetime.datetime.strptime(extended_date, '%m/%d/%Y')
             ct_dtt = enq_qs[0].creation_date
             ct_dt = ct_dtt.replace(tzinfo=None)
@@ -12942,11 +12952,27 @@ def extend_enquiry_date(request, user = ''):
             days = dt_days.days
             username = request.user.username
             if user_profile[0].user_type != 'customer':
+                if user_profile[0].user_type != 'customer' and request.user.username.lower() == 'sm_admin':
+                    reseller = UserProfile.objects.filter(user = enq_qs[0].user)[0].user
+                    zonal_admin_id = get_zonal_admin_id(admin_user,reseller)
+                    users_list.append(zonal_admin_id)
+                else:
+                    users_list.append(request.user.id)
+                users_list.append(enq_qs[0].user)
+                contents = {"en": "%s has %s to  extend date upto %s for order %s"\
+                          % (request.user.username, str(status), str(extended_date), str(enquiry_id))}
                 if days > date_ext_days and username.lower() != 'sm_admin':
                     return HttpResponse('Admin')
+            else:
+                zonal_admin_id = get_zonal_admin_id(admin_user,user)
+                users_list.append(zonal_admin_id)
+                users_list.append(user.id)
+                contents = {"en": "%s-%s is requested to extend date upto %s for order %s"\
+                          % (request.user.username, request.user.first_name, str(extended_date), str(enquiry_id))}
             enq_qs[0].extend_status = extend_status
             enq_qs[0].extend_date = datetime.datetime.strptime(extended_date, '%m/%d/%Y')
             enq_qs[0].save()
+            send_push_notification(contents, users_list)
     except:
         import traceback
         log.debug(traceback.format_exc())

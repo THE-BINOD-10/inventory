@@ -80,6 +80,12 @@ def order_update(orders, user, status):
                     log.info("Seller Order Summary created: id = %s, order_id = %s, picklist_id = %s,\
                              quantity = %s" % (str(seller_order_summary.id), str(item.id),\
                              str(picklist_obj.id), str(item.quantity)))
+                    users_list = []
+                    admin_user = get_priceband_admin_user(user)
+                    users_list.append(admin_user.id)
+                    contents = {"en": "Order Dispatched for order_id = %s, picklist_id = %s,\
+                             quantity = %s" % (str(item.id), str(picklist_obj.id), str(item.quantity))}
+                    send_push_notification(contents, users_list)
             elif status == '3':
                 picklists = Picklist.objects.filter(order_id=item.id)
                 for picklist in picklists:

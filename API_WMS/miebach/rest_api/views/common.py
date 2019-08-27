@@ -9749,3 +9749,19 @@ def fetch_asn_detailed_qty(sku_class_list, sku_users):
     overall_asn_stock['second_set'] = intr_30d_st
     overall_asn_stock['third_set'] = intr_100d_st
     return overall_asn_stock
+
+
+@csrf_exempt
+def get_zonal_admin_id(admin_user, reseller):
+    zonal_id = 0
+    try:
+        zonal_admin_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+            Q(userprofile__zone=reseller.userprofile.zone)).values_list('id', flat=True)
+        if zonal_admin_id:
+            zonal_id = zonal_admin_id[0]
+            return zonal_id
+    except Exception as e:
+        import traceback
+        log.info(traceback.format_exc())
+        log.info('Users List exception raised')
+

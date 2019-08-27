@@ -27,6 +27,9 @@ def update_order_status(company_name):
             dispatched_orders = resp["Result"].get("Dispatched", [])
             picked_orders = resp["Result"].get("Picked", [])
             cancelled_orders = resp["Result"].get("Cancelled", [])
+            rts_orders = resp["Result"].get("RTS", [])
+            order_update(rts_orders, user, '2')
+            order_update(picked_orders, user, '2')
             order_update(dispatched_orders, user, '2')
             order_update(cancelled_orders, user, '3')
     return "Success"

@@ -659,7 +659,6 @@ def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_
                          asn_true=False):
     data_to_send = []
     other_data = {}
-
     if asn_true:
         lis = ['sku_code']
     else:
@@ -696,7 +695,11 @@ def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_
         user_group_filters = {'admin_user_id': admin_user_id}
     user_groups = list(UserGroups.objects.filter(**user_group_filters).values_list('user_id', flat=True))
     user_groups.append(admin_user_id)
-    sku_master = SKUMaster.objects.filter(user__in=user_groups, **search_params)
+    permissions = get_user_permissions(request, request.user)
+    if request.user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and permissions['permissions']['add_networkmaster'] :
+        sku_master = SKUMaster.objects.filter(user__in=user_groups, status=1, **search_params)
+    else:
+        sku_master = SKUMaster.objects.filter(user__in=user_groups, **search_params)
     if col_num <= 3:
         sku_master = sku_master.order_by(order_data)
     if search_term:

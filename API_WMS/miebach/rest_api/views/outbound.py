@@ -10304,7 +10304,6 @@ def get_customer_cart_data(request, user=""):
 @get_admin_user
 def insert_customer_cart_data(request, user=""):
     """ insert customer cart data """
-
     response = {'data': [], 'msg': 0}
     items = []
     cart_data = request.GET.get('data', '')
@@ -10315,22 +10314,24 @@ def insert_customer_cart_data(request, user=""):
             cart = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id,
                                                    sku__sku_code=record['sku_id'], warehouse_level=record['level'])
             if not cart:
-                stock_display_warehouse = get_misc_value('stock_display_warehouse', user.id)
-                if stock_display_warehouse and stock_display_warehouse != "false":
-                    stock_display_warehouse = stock_display_warehouse.split(',')
-                    stock_display_warehouse = map(int, stock_display_warehouse)
-                cart_obj = CustomerCartData.objects.filter(sku__sku_code=record['sku_id']).exclude(customer_user_id=request.user.id)
-                cart_qty = 0
-                if cart_obj:
-                    cart_qty = cart_obj.aggregate(Sum('quantity'))['quantity__sum']
-                stocks = StockDetail.objects.filter(sku__user__in=stock_display_warehouse, sku__sku_code=record['sku_id'],
-                                                    quantity__gt=0)
-                avail_qty = check_stock_available_quantity(stocks, user, stock_ids=None)
-                quantity = cart_qty + record['quantity']
-                if quantity > avail_qty:
-                    response['msg'] = 0
-                    response['data'] = "No Available Quantiy for Sku  %s' "% (str(record['sku_id']))
-                    return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
+                isprava_unique = get_misc_value('order_exceed_stock',user.id)
+                if isprava_unique == 'true':
+                    stock_display_warehouse = get_misc_value('stock_display_warehouse', user.id)
+                    if stock_display_warehouse and stock_display_warehouse != "false":
+                        stock_display_warehouse = stock_display_warehouse.split(',')
+                        stock_display_warehouse = map(int, stock_display_warehouse)
+                    cart_obj = CustomerCartData.objects.filter(sku__sku_code=record['sku_id']).exclude(customer_user_id=request.user.id)
+                    cart_qty = 0
+                    if cart_obj:
+                        cart_qty = cart_obj.aggregate(Sum('quantity'))['quantity__sum']
+                    stocks = StockDetail.objects.filter(sku__user__in=stock_display_warehouse, sku__sku_code=record['sku_id'],
+                                                        quantity__gt=0)
+                    avail_qty = check_stock_available_quantity(stocks, user, stock_ids=None)
+                    quantity = cart_qty + record['quantity']
+                    if quantity > avail_qty:
+                        response['msg'] = 0
+                        response['data'] = "No Available Quantiy for Sku  %s' "% (str(record['sku_id']))
+                        return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
 
                 data = {'user_id': user.id, 'customer_user_id': request.user.id, 'sku_id': sku.id,
                         'quantity': record['quantity'], 'tax': record['tax'], 'warehouse_level': record['level'],

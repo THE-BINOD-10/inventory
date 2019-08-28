@@ -644,8 +644,8 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
                 wh_level_stock_map = {'WH L1 Kitted': l1_kitted, 'WH L1 Non-Kitted': single['non_kitted'],
                                       'WH L1 Total': single['available'], 'WH L1 Total Res': single['reserved'],
                                       'WH L1 Total Blocked': single['blocked'],
-                                      'WH L3 GIT':single['asn'], 'WH L3 Total': asn_total, 'WH L3 Res': single['asn_res'],
-                                      'WH L3 Blocked': single['asn_blocked'],
+                                      'WH L3 GIT':single['asn'], 'WH L3 Total': asn_total, 'WH L3 Total Res': single['asn_res'],
+                                      'WH L3 Total Blocked': single['asn_blocked'],
                                       'Total Stock': fg_stock}
 
                 for header, val in wh_level_stock_map.items():
@@ -655,11 +655,11 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
                         var[header] = val
                 net_open = max(var['WH L1 Kitted'] - var['WH L1 Total Res'] - var['WH L1 Total Blocked'], 0)
                 var['WH L1 Open'] = net_open
-                asn_open = max(var['WH L3 Total'] - var['WH L3 Res'] - var['WH L3 Blocked'], 0)
+                asn_open = max(var['WH L3 Total'] - var['WH L3 Total Res'] - var['WH L3 Total Blocked'], 0)
                 var['WH L3 Open'] = asn_open
         var['Overall Total'] = var['WH L1 Kitted'] + var['WH L3 Total']
-        var['Overall Res'] = var['WH L1 Total Res'] + var['WH L3 Res']
-        var['Overall Blocked'] = var['WH L1 Total Blocked'] + var['WH L3 Blocked']
+        var['Overall Res'] = var['WH L1 Total Res'] + var['WH L3 Total Res']
+        var['Overall Blocked'] = var['WH L1 Total Blocked'] + var['WH L3 Total Blocked']
         var['Overall Open'] = max(var['Overall Total'] - var['Overall Res'] - var['Overall Blocked'], 0)
 
         temp_data['aaData'].append(var)

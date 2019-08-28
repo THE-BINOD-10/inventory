@@ -450,7 +450,7 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
         #     ~Q(enquiry__extend_status='rejected')).only('sku_code').values_list('sku_code').annotate(Sum('quantity')))
 
         # ASN Stock Related to SM
-        today_filter = datetime.datetime.today()
+        # today_filter = datetime.datetime.today()
         #hundred_day_filter = today_filter + datetime.timedelta(days=100)
         ints_filters = {'quantity__gt': 0, 'sku__user': user, 'status': 'open'}
         asn_qs = ASNStockDetail.objects.filter(**ints_filters)
@@ -615,15 +615,12 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
             stats = ['-Total', '-Res', '-Blocked', '-Open', '-NK']
             for stat in stats:
                 var[wh['name'] + stat] = 0
-        var['ASN Total'] = 0
-        var['ASN Res'] = 0
-        var['ASN Blocked'] = 0
-        var['ASN Open'] = 0
-        # var['NON_KITTED'] = 0
-        var['Overall Total'] = 0
-        var['Overall Res'] = 0
-        var['Overall Blocked'] = 0
-        var['Overall Open'] = 0
+        totals_data = [
+                        'WH L1 Kitted', 'WH L1 Non-Kitted', 'WH L1 Total', 'WH L1 Total Res', 'WH L1 Total Blocked', 'WH L1 Open',
+                        'WH L3 GIT', 'WH L3 Total', 'WH L3 Total Res', 'WH L3 Total Blocked', 'WH L3 Open',
+                        'Overall Total', 'Overall Res', 'Overall Blocked', 'Overall Open']
+        for i in totals_data:
+            var[i] = 0
         for single in one_data:
             if single['name']:
                 wh_name = single['name']
@@ -640,14 +637,15 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
                 var[wh_name + '-L3Open'] = single['asn'] + single['non_kitted'] - single['asn_res'] - single['asn_blocked']
                 if not isinstance(single['available'], float):
                     single['available'] = 0
-                net_amt = single['available'] - single['blocked'] - single['reserved'] - single['non_kitted']
-                if net_amt < 0:
-                    net_amt = 0
+                net_amt = max(single['available'] - single['blocked'] - single['reserved'] - single['non_kitted'], 0)
                 var[wh_name + '-Open'] = net_amt
-                wh_level_stock_map = {'WH Net Open': net_amt, 'Total WH': single['available'],
-                                      'Total WH Res': single['reserved'], 'Total WH Blocked': single['blocked'],
-                                      'ASN Total': single['asn'], 'ASN Res': single['asn_res'],
-                                      'ASN Blocked': single['asn_blocked'],
+                l1_kitted = single['available'] - single['non_kitted']
+                asn_total = single['asn']+single['non_kitted']
+                wh_level_stock_map = {'WH L1 Kitted': l1_kitted, 'WH L1 Non-Kitted': single['non_kitted'],
+                                      'WH L1 Total': single['available'], 'WH L1 Total Res': single['reserved'],
+                                      'WH L1 Total Blocked': single['blocked'],
+                                      'WH L3 GIT':single['asn'], 'WH L3 Total': asn_total, 'WH L3 Res': single['asn_res'],
+                                      'WH L3 Blocked': single['asn_blocked'],
                                       'Total Stock': fg_stock}
 
                 for header, val in wh_level_stock_map.items():
@@ -655,14 +653,14 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
                         var[header] += val
                     else:
                         var[header] = val
-                net_open = var['Total Stock'] - var['Total WH Res'] - var['Total WH Blocked']
-                var['WH Net Open'] = net_open
-                asn_open = var['ASN Total'] - var['ASN Res'] - var['ASN Blocked']
-                var['ASN Open'] = asn_open
-        var['Overall Total'] = var['Total WH'] + var['ASN Total']
-        var['Overall Res'] = var['Total WH Res'] + var['ASN Res']
-        var['Overall Blocked'] = var['Total WH Blocked'] + var['ASN Blocked']
-        var['Overall Open'] = var['WH Net Open'] + var['ASN Open']
+                net_open = max(var['WH L1 Kitted'] - var['WH L1 Total Res'] - var['WH L1 Total Blocked'], 0)
+                var['WH L1 Open'] = net_open
+                asn_open = max(var['WH L3 Total'] - var['WH L3 Res'] - var['WH L3 Blocked'], 0)
+                var['WH L3 Open'] = asn_open
+        var['Overall Total'] = var['WH L1 Kitted'] + var['WH L3 Total']
+        var['Overall Res'] = var['WH L1 Total Res'] + var['WH L3 Res']
+        var['Overall Blocked'] = var['WH L1 Total Blocked'] + var['WH L3 Blocked']
+        var['Overall Open'] = max(var['Overall Total'] - var['Overall Res'] - var['Overall Blocked'], 0)
 
         temp_data['aaData'].append(var)
 
@@ -1516,22 +1514,18 @@ def warehouse_headers(request, user=''):
         ware_list = list(User.objects.filter(id__in=warehouses).values_list('username', flat=True))
         user_groups = UserGroups.objects.filter(Q(admin_user_id=user_id) | Q(user_id=user_id))
         if user_groups:
-            admin_user_id = user_groups[0].admin_user_id
             admin_user_name = user_groups[0].admin_user.username
         else:
-            admin_user_id = user_id
             admin_user_name = user.username
         if level:
             warehouse_suffixes = ['Kitted', 'Non-Kitted', 'Total', 'Res', 'Blocked', 'Open', 'L3GIT', 'L3Total', 'L3Res', 'L3Blocked', 'L3Open']
             wh_list = []
             for wh in ware_list:
                 wh_list.extend(list(map(lambda x: wh+'-'+x, warehouse_suffixes)))
-            total_wh_dets = ['Total WH', 'Total WH Res', 'Total WH Blocked']
+            total_wh_dets = ['WH L1 Kitted', 'WH L1 Non-Kitted', 'WH L1 Total', 'WH L1 Total Res', 'WH L1 Total Blocked', 'WH L1 Open']
             wh_list.extend(total_wh_dets)
-            wh_list.append('WH Net Open')
-            intr_headers = ['ASN Total', 'ASN Res', 'ASN Blocked', 'ASN Open']
+            intr_headers = ['WH L3 GIT', 'WH L3 Total', 'WH L3 Total Res', 'WH L3 Total Blocked', 'WH L3 Open']
             wh_list.extend(intr_headers)
-            # wh_list.append('NON_KITTED')
             total_headers = ['Overall Total', 'Overall Res', 'Overall Blocked', 'Overall Open']
             wh_list.extend(total_headers)
             headers = header + wh_list

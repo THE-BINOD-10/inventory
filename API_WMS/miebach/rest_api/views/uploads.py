@@ -2638,8 +2638,8 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
     data_list = []
     purchase_mapping = get_purchase_order_excel_headers(user)
     misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='po_fields')
-    if misc_detail:
-        fields = misc_detail[0].misc_value.split(',')
+    if misc_detail.exists():
+        fields = misc_detail[0].misc_value.lower().split(',')
     purchase_res = dict(zip(purchase_mapping.values(), purchase_mapping.keys()))
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  purchase_mapping)
@@ -2746,6 +2746,12 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
                 data_dict[key] = cell_data
+
+            elif key in fields:
+                if isinstance(cell_data, (int, float)):
+                    cell_data = str(int(cell_data))
+                data_dict[key] = cell_data
+
             elif cell_data:
                 if key in number_fields:
                     try:
@@ -2758,10 +2764,6 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
             elif cell_data == '':
                 if key in number_fields:
                     data_dict[key] = cell_data
-            elif key in fields:
-                if isinstance(cell_data, (int, float)):
-                    cell_data = str(int(cell_data))
-                data_dict[key] = cell_data
         data_list.append(data_dict)
     if not index_status:
         return 'Success', data_list

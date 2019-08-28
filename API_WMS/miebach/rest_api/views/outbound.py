@@ -14956,9 +14956,9 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
 def delete_central_order(request, user=''):
     status = 'Success'
     orders_dict = dict(request.POST)
-    for i in range(len(orders_dict['order_id'])):
+    for i in range(len(orders_dict['interm_id'])):
         try:
-            interm_obj = IntermediateOrders.objects.filter(interm_order_id=orders_dict['order_id'][i],user = user.id)
+            interm_obj = IntermediateOrders.objects.filter(id=orders_dict['interm_id'][i],user = user.id)
             if interm_obj.exists():
                 if interm_obj.filter(order__status__in=['1','3']) or interm_obj.filter(status=2):
                     order_ids = interm_obj.exclude(order__status__in = [0,2]).values('order__id')

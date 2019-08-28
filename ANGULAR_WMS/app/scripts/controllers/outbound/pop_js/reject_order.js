@@ -106,6 +106,9 @@ function Rejectorderpop($scope, $http, $state, $timeout, Session, colFilters, Se
       vm.service.apiCall("delete_central_order/", "POST", elem, true).then(function(data){
           vm.service.pop_msg(data.data.status);
           vm.confirm_disable = false;
+          $timeout(function() {
+          vm.ok("succes")
+        }, 2000);
       });
   }
 

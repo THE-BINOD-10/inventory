@@ -15932,13 +15932,18 @@ def generate_dc(request , user = ''):
     iterator=itertools.count()
     batch_group_data_order = OrderedDict()
     total_qty = 0
+    search_params = {}
     if orders :
         orders = json.loads(orders)
         for order in orders :
             order_id = ''.join(re.findall('\d+', order['order_id']))
             order_code = ''.join(re.findall('\D+', order['order_id']))
+            if order_id :
+                search_params['order__order_id'] = order_id
+            if order_code :
+                search_params['order__order_code'] = order_code
             original_order_id = order_code + order_id
-            temp_dc_objs = TempDeliveryChallan.objects.filter(order__sku__user = user.id, order__order_id = order_id , order__order_code = order_code)
+            temp_dc_objs = TempDeliveryChallan.objects.filter(order__sku__user = user.id, **search_params)
             if temp_dc_objs.exists() :
                 order = temp_dc_objs[0].order
                 batch_group_data = temp_dc_objs[0].dcjson

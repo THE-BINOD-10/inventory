@@ -15996,6 +15996,4 @@ def generate_dc(request , user = ''):
                 invoice_data['iterator'] = iterator
                 invoice_data['dc_number'] = dc_number_obj
                 invoice_data['total_quantity'] = total_qty
-
-
     return render(request, 'templates/toggle/delivery_challan_batch_level.html', invoice_data)

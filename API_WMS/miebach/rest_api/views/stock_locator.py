@@ -612,7 +612,8 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
         var = OrderedDict()
         var[header[0]] = sku_det['single_sku']
         for wh in one_data:
-            stats = ['-Total', '-Res', '-Blocked', '-Open', '-NK']
+            stats = ['-Kitted', '-Non-Kitted', '-Total', '-Res', '-Blocked', '-Open',
+                     '-L3GIT', '-L3Total', '-L3Res', '-L3Blocked', '-L3Open']
             for stat in stats:
                 var[wh['name'] + stat] = 0
         totals_data = [

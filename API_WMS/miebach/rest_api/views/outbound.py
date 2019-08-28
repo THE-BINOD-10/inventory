@@ -14960,7 +14960,7 @@ def delete_central_order(request, user=''):
         try:
             interm_obj = IntermediateOrders.objects.filter(id=orders_dict['interm_id'][i],user = user.id)
             if interm_obj.exists():
-                if interm_obj.filter(order__status__in=['1','3']) or interm_obj.filter(status=2):
+                if interm_obj.filter(order__status__in=['1','3']) or interm_obj.filter(status__in=['2','']):
                     order_ids = interm_obj.exclude(order__status__in = [0,2]).values('order__id')
                     for id in order_ids :
                         OrderDetail.objects.filter(id = id['order__id']).update(status =3)

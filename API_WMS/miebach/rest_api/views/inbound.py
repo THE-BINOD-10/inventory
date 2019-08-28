@@ -1078,10 +1078,10 @@ def switches(request, user=''):
             if user_profile and selection:
                 setattr(user_profile[0], 'prefix', selection)
                 user_profile[0].save()
-        elif key == 'weight_integration_name':
-            data = MiscDetail.objects.filter(misc_type=toggle_field, user=request.user.id)
+        elif key in ['customer_portal_prefered_view','weight_integration_name']:
+            data = MiscDetail.objects.filter(misc_type=key, user=request.user.id)
             if not data:
-                misc_detail = MiscDetail(user=request.user.id, misc_type=toggle_field, misc_value=selection,
+                misc_detail = MiscDetail(user=request.user.id, misc_type=key, misc_value=selection,
                                          creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
                 misc_detail.save()
             else:
@@ -4001,13 +4001,14 @@ def validate_putaway(all_data, user):
     validate_po_id = ''
     validate_seller_id = ''
     if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-	get_values = all_data.keys()
-	if get_values:
-	    validate_po_id = get_values[0][2]
-	if validate_po_id:
-	    po_location = POLocation.objects.filter(location__zone__user=user.id, purchase_order_id = validate_po_id)
-	    for pol in po_location:
-	        validate_seller_id = pol.purchase_order.open_po.sellerpo_set.filter()[0].seller_id
+        get_values = all_data.keys()
+        if get_values:
+            validate_po_id = get_values[0][2]
+        if validate_po_id:
+            po_location = POLocation.objects.filter(location__zone__user=user.id, purchase_order_id = validate_po_id)
+            for pol in po_location:
+                validate_seller_id = pol.purchase_order.open_po.sellerpo_set.filter()[0].seller_id
+    mrp_putaway_status = []
     for key, value in all_data.iteritems():
         if not key[1]:
             status = 'Location is Empty, Enter Location'
@@ -4053,7 +4054,10 @@ def validate_putaway(all_data, user):
             collect_dict_form = {}
             collect_all_sellable_location = list(LocationMaster.objects.filter(zone__segregation='sellable',  zone__user=user.id, status=1).values_list('location', flat=True))
             if key[1] in collect_all_sellable_location:
-                sku_mrp_map = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku__wms_code=key[4]).filter(sellerstock__seller_id=validate_seller_id).exclude(batch_detail__mrp=None).values_list('sku__wms_code', 'batch_detail__mrp').distinct()
+                sku_mrp_map = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku__wms_code=key[4],
+                                                         location__location__in=collect_all_sellable_location).\
+                                                    filter(sellerstock__seller_id=validate_seller_id).\
+                    exclude(batch_detail__mrp=None).values_list('sku__wms_code', 'batch_detail__mrp').distinct()
                 if sku_mrp_map:
                     collect_sku_mrp_map = ['<#>'.join([str(one), str(two)]) for one, two in sku_mrp_map]
                     for one, two in sku_mrp_map:
@@ -4065,7 +4069,9 @@ def validate_putaway(all_data, user):
                             collect_dict_form[sku_code] = [mrp]
                     if key[4] in collect_dict_form.keys():
                         if not str(float(key[5])) in collect_dict_form[key[4]]:
-                            status = 'For SKU '+ key[4] +', MRPs ' + ','.join(collect_dict_form[key[4]]) + ' are only accepted'
+                            mrp_putaway_status.append('For SKU '+ key[4] +', MRPs ' + ','.join(collect_dict_form[key[4]]) + ' are only accepted')
+    if mrp_putaway_status:
+        status += ', '.join(mrp_putaway_status)
     return status
 
 
@@ -5320,6 +5326,13 @@ def confirm_add_po(request, sales_data='', user=''):
         company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
         iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
         left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO , request)
+        if purchase_order.supplier.lead_time:
+            lead_time_days = purchase_order.supplier.lead_time
+            replace_date = get_local_date(request.user,order.creation_date + datetime.timedelta(days=int(lead_time_days)),send_date='true')
+            date_replace_terms = replace_date.strftime("%d-%m-%Y")
+            terms_condition= terms_condition.replace("%^PO_DATE^%", date_replace_terms)
+        else:
+            terms_condition= terms_condition.replace("%^PO_DATE^%", '')
         data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address.encode('ascii', 'ignore'), 'order_id': order_id,
                      'telephone': str(telephone), 'ship_to_address': ship_to_address.encode('ascii', 'ignore'),
                      'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,
@@ -8504,6 +8517,13 @@ def get_po_putaway_summary(request, user=''):
         data_dict = {'summary_id': seller_summary.id, 'order_id': order.id, 'sku_code': sku.sku_code,
                      'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price']}
         data_dict['tax_percent'] = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax + open_po.cess_tax
+        d_zone_obj = StockDetail.objects.filter(sku_id =seller_summary.purchase_order.open_po.sku.id,sku__user = seller_summary.purchase_order.open_po.sku.user,location__zone__zone = 'DAMAGED_ZONE')
+        if d_zone_obj:
+            d_zone_qty = d_zone_obj[0].quantity
+            d_zone_loc = d_zone_obj[0].location.location
+            if quantity <= d_zone_qty:
+                data_dict['return_qty'] = d_zone_qty
+                data_dict['location'] = d_zone_loc
         if seller_summary.batch_detail:
             batch_detail = seller_summary.batch_detail
             data_dict['batch_no'] = batch_detail.batch_no

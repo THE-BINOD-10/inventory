@@ -7,6 +7,7 @@ from dateutil import parser
 import traceback
 import ConfigParser
 import datetime
+import unicodedata
 from rest_api.views.mail_server import send_mail
 
 LOAD_CONFIG = ConfigParser.ConfigParser()
@@ -1908,6 +1909,8 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                             mrp = float(sku_item['mrp'])
                         except:
                             mrp = 0
+                        if mrp:
+                            mrp = float('%.2f' % mrp)
                         if not order_det:
                             order_det = order_det1
 
@@ -1919,7 +1922,10 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                             order_details['order_code'] = order_code
 
                             order_details['sku_id'] = sku_master[0].id
-                            order_details['title'] = sku_item['name']
+                            try:
+                                order_details['title'] = unicodedata.normalize('NFKD', sku_item['name']).encode('ascii', 'ignore')
+                            except:
+                                order_details['title'] = sku_obj.sku_desc
                             order_details['user'] = user.id
                             order_details['quantity'] = sku_item['quantity']
                             order_details['shipment_date'] = shipment_date

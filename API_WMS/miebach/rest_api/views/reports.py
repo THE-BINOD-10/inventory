@@ -408,15 +408,36 @@ def get_supplier_details_data(search_params, user, sub_user):
     order_val = lis[order_index]
     if order_term == 'desc':
         order_val = '-%s' % lis[order_index]
-
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gte'] = search_params['from_date']
+    else:
+        search_parameters['creation_date__gte'] = date.today()+relativedelta(months=-1)
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'status' in search_params:
+        status = search_params.get('status')
+        if status == 'yet_to_receive':
+            search_parameters['status'] = ''
+        elif status == 'partially_received':
+            search_parameters['status'] = 'grn-generated'
+        elif status == 'location_assigned':
+            search_parameters['status'] = 'location-assigned'
+        elif status == 'putaway_completed':
+            search_parameters['status'] = 'confirmed-putaway'
+    if 'order_id' in search_params:
+        order_id = search_params.get('order_id')
+        search_parameters['order_id'] = order_id
     if supplier_name:
-        suppliers = PurchaseOrder.objects.select_related('open_po').exclude(status='location-assigned').filter(
-            open_po__supplier__id=supplier_name, received_quantity__lt=F('open_po__order_quantity'),
+        search_parameters['open_po__supplier__id'] = supplier_name
+        suppliers = PurchaseOrder.objects.select_related('open_po').filter(
             open_po__sku__user=user.id, **search_parameters)
     else:
-        suppliers = PurchaseOrder.objects.select_related('open_po').exclude(status='location-assigned').filter(
-            received_quantity__lt=F('open_po__order_quantity'), open_po__sku__user=user.id, **search_parameters)
-    purchase_orders = suppliers.values('order_id').distinct().annotate(total_ordered=Sum('open_po__order_quantity'),
+        suppliers = PurchaseOrder.objects.select_related('open_po').filter(
+             open_po__sku__user=user.id, **search_parameters)
+    purchase_orders = suppliers.values('order_id','status').distinct().annotate(total_ordered=Sum('open_po__order_quantity'),
                                                                        total_received=Sum('received_quantity')). \
                                                             order_by(order_val)
 
@@ -445,13 +466,15 @@ def get_supplier_details_data(search_params, user, sub_user):
         supplier_code = ''
         if design_codes:
             supplier_code = design_codes[0].supplier_code
-        status = ''
-        if purchase_order['total_received'] == 0:
-            status = 'Yet to Receive'
-        elif purchase_order['total_ordered'] - purchase_order['total_received'] <= 0:
-            status = 'Received'
+        status_var = ''
+        if purchase_order['status'] == '':
+            status_var = 'Yet to Receive'
+        elif purchase_order['status'] == 'location-assigned':
+            status_var = 'Received'
+        elif purchase_order['status'] == 'confirmed-putaway':
+            status_var = 'Putaway Confirmed'
         else:
-            status = 'Partially Received'
+            status_var = 'Partially Received'
         supplier_data['aaData'].append(OrderedDict((('Order Date', get_local_date(user, po_obj.po_date)),
                                                     ('PO Number', get_po_reference(po_obj)),
                                                     ('Supplier Name', po_obj.open_po.supplier.name),
@@ -460,7 +483,7 @@ def get_supplier_details_data(search_params, user, sub_user):
                                                     ('Ordered Quantity', purchase_order['total_ordered']),
                                                     ('Amount', total_amt),
                                                     ('Received Quantity', purchase_order['total_received']),
-                                                    ('Status', status), ('order_id', po_obj.order_id))))
+                                                    ('Status', status_var), ('order_id', po_obj.order_id))))
     #supplier_data['total_charge'] = total_charge
     return supplier_data
 
@@ -1637,6 +1660,13 @@ def print_purchase_order_form(request, user=''):
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
     left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO , request)
+    if open_po.supplier.lead_time:
+        lead_time_days = open_po.supplier.lead_time
+        replace_date = get_local_date(request.user,open_po.creation_date + datetime.timedelta(days=int(lead_time_days)),send_date='true')
+        date_replace_terms = replace_date.strftime("%d-%m-%Y")
+        terms_condition= terms_condition.replace("%^PO_DATE^%", date_replace_terms)
+    else:
+        terms_condition= terms_condition.replace("%^PO_DATE^%", '')
 
     # if receipt_type == 'Hosted Warehouse':
     #if request.POST.get('seller_id', ''):

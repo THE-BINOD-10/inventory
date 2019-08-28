@@ -625,7 +625,7 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
             if single['name']:
                 wh_name = single['name']
                 var[wh_name + '-Total'] = single['available']
-                fg_stock = single['available'] - single['non_kitted']
+                fg_stock = max(single['available'] - single['non_kitted'], 0)
                 var[wh_name + '-Kitted'] = fg_stock
                 var[wh_name + '-Res'] = single['reserved']
                 var[wh_name + '-Blocked'] = single['blocked']
@@ -634,7 +634,7 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
                 var[wh_name + '-L3Total'] = single['asn'] + single['non_kitted']
                 var[wh_name + '-L3Res'] = single['asn_res']
                 var[wh_name + '-L3Blocked'] = single['asn_blocked']
-                var[wh_name + '-L3Open'] = single['asn'] + single['non_kitted'] - single['asn_res'] - single['asn_blocked']
+                var[wh_name + '-L3Open'] = max(single['asn'] + single['non_kitted'] - single['asn_res'] - single['asn_blocked'], 0)
                 if not isinstance(single['available'], float):
                     single['available'] = 0
                 net_amt = max(single['available'] - single['blocked'] - single['reserved'] - single['non_kitted'], 0)

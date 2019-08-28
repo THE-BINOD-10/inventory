@@ -559,7 +559,10 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
         title = ''
         if order_mapping.has_key('title'):
             title = get_cell_data(row_idx, order_mapping['title'], reader, file_type)
-
+        if order_mapping.has_key('quantity'):
+            cell_data = get_cell_data(row_idx, order_mapping['quantity'], reader, file_type)
+            if int(cell_data) == 0:
+                index_status.setdefault(count, set()).add('Quantity is given zero')
         if type(cell_data) == float:
             sku_code = str(int(cell_data))
         #elif isinstance(cell_data, str) and '.' in cell_data:

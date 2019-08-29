@@ -560,8 +560,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
         if order_mapping.has_key('title'):
             title = get_cell_data(row_idx, order_mapping['title'], reader, file_type)
         if order_mapping.has_key('quantity'):
-            cell_data = get_cell_data(row_idx, order_mapping['quantity'], reader, file_type)
-            if int(cell_data) == 0:
+            quantity_check = get_cell_data(row_idx, order_mapping['quantity'], reader, file_type)
+            if int(quantity_check) == 0:
                 index_status.setdefault(count, set()).add('Quantity is given zero')
         if type(cell_data) == float:
             sku_code = str(int(cell_data))
@@ -768,7 +768,9 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                         order_data['quantity'] = 1
             elif key == 'amount':
                 cell_data = get_cell_data(row_idx, value, reader, file_type)
-                if not cell_data:
+                if cell_data:
+                    cell_data = float(cell_data)
+                else:
                     cell_data = 0
                 order_amount = cell_data
                 order_data['invoice_amount'] = cell_data
@@ -2751,6 +2753,8 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     data_dict[key] = cell_data
         for data in data_list:
             if data['sku']== data_dict['sku'] and data['supplier'] == data_dict['supplier']:
+                if user.username in MILKBASKET_USERS and data['seller'] == data_dict['seller']:
+                    index_status.setdefault(row_idx, set()).add('SKU added in multiple rows for same supplier and seller')
                 index_status.setdefault(row_idx, set()).add('SKU added in multiple rows for same supplier')
 
         data_list.append(data_dict)

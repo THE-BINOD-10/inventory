@@ -756,7 +756,7 @@ def generated_po_data(request, user=''):
                 if not receipt_type:
                     receipt_type = sell_po.receipt_type
                 ser_data.append({'fields': {'sku': {'wms_code': rec.sku.sku_code}, 'description': rec.sku.sku_desc,
-                                            'order_quantity': sell_po.seller_quantity,
+                                            'order_quantity': rec.order_quantity,
                                             'price': rec.price, 'mrp': rec.mrp, 'supplier_code': rec.supplier_code,
                                             'measurement_unit': rec.measurement_unit,
                                             'remarks': rec.remarks, 'dedicated_seller': str(

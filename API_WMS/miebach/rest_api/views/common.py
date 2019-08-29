@@ -1639,8 +1639,7 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
     # it will create or update seller stock
     if seller_id:
         quantity = float(quantity)
-        seller_stock_data = SellerStock.objects.filter(stock_id=stock.id, seller__user=user.id, seller_id=seller_id,
-                                                       quantity__gt=0)
+        seller_stock_data = SellerStock.objects.filter(stock_id=stock.id, seller__user=user.id, seller_id=seller_id)
         if seller_stock_data:
 
             temp_quantity = quantity

@@ -5810,7 +5810,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 loan_proposal_ids_list.append(loan_proposal_id)
 
             order_obj = OrderDetail.objects.filter(original_order_id = loan_proposal_id,
-                                                   user__in=sister_wh_names.values())
+                                                   user__in=sister_wh_names.values()).exclude(status = 3)
             if order_obj.exists():
                 index_status.setdefault(count, set()).add('loan_proposal_id existed previously')
 

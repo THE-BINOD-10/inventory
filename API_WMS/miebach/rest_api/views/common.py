@@ -1779,7 +1779,7 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
         stock_dict['sellerstock__seller_id'] = seller_id
         reserved_dict["stock__sellerstock__seller_id"] = seller_id
         raw_reserved_dict["stock__sellerstock__seller_id"] = seller_id
-    stocks = StockDetail.objects.filter(**stock_dict)
+    stocks = StockDetail.objects.filter(**stock_dict).distinct()
     if not stocks:
         return 'No Stocks Found'
     stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']

@@ -6036,7 +6036,6 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             order_dict['sku_id'] = sku_id
             order_dict['title'] = SKUMaster.objects.filter(sku_code=excel_sku_code, user=user.id)[0].sku_desc
             order_dict['status'] = 1
-
             if order_data['customer_id']:
                customer_master = CustomerMaster.objects.filter(user=user.id,
                                                                customer_id=order_data['customer_id'])
@@ -6063,7 +6062,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             if order_mapping.has_key('loan_proposal_id'):
                 order_dict['marketplace'] = 'Offline'
             get_existing_order = OrderDetail.objects.filter(**{'sku_id': sku_id,
-                'original_order_id': order_id, 'user':order_data['order_assigned_wh_id'] })
+                'original_order_id': order_id, 'user':order_data['order_assigned_wh_id'],'status':1})
             if get_existing_order.exists():
                 continue
             else:

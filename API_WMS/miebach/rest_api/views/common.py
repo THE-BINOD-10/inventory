@@ -1722,6 +1722,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                 dest_stocks = StockDetail(**dict_values)
                 dest_stocks.save()
                 change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
+            move_inventory_objs = MoveInventory(**{})
         else:
             dest_stocks = dest_stocks[0]
             dest_stocks.quantity += float(quantity)
@@ -1731,7 +1732,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                 dest_batch = dest_stocks.batch_detail
     return dest_batch
 
-def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp='',
+def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp='',
                         weight=''):
     # sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
     sku = check_and_return_mapping_id(wms_code, "", user, False)
@@ -1750,6 +1751,7 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
         move_quantity = float(quantity)
     else:
         return 'Quantity should not be empty'
+
     if seller_id:
         seller_id = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
         if not seller_id:
@@ -1808,52 +1810,17 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
 
     stock_dict['location_id'] = dest[0].id
     dest_stocks = StockDetail.objects.filter(**stock_dict)
-    update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
+
+    dest_batch = update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
                        dest_seller_id=seller_id)
-    data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
-    data_dict['cycle'] = cycle_id
-    data_dict['sku_id'] = sku_id
-    data_dict['location_id'] = source[0].id
-    data_dict['quantity'] = quantity
-    data_dict['seen_quantity'] = 0
-    data_dict['status'] = 0
-    data_dict['creation_date'] = datetime.datetime.now()
-    data_dict['updation_date'] = datetime.datetime.now()
+    move_inventory_dict = {'source_location_id': source[0].id,
+                           'dest_location_id': dest[0].id, 'quantity': move_quantity, }
+    if seller_id:
+        move_inventory_dict['seller_id'] = seller_id
+    if dest_batch:
+        move_inventory_dict['batch_detail_id'] = dest_batch.id
 
-    cycle_instance = CycleCount.objects.filter(cycle=cycle_id, location_id=source[0].id, sku_id=sku_id)
-    if not cycle_instance:
-        dat = CycleCount(**data_dict)
-        dat.save()
-    else:
-        cycle_instance = cycle_instance[0]
-        cycle_instance.quantity = float(cycle_instance.quantity) + quantity
-        cycle_instance.save()
-    data_dict['location_id'] = dest[0].id
-    data_dict['quantity'] = quantity
-    cycle_instance = CycleCount.objects.filter(cycle=cycle_id, location_id=dest[0].id, sku_id=sku_id)
-    if not cycle_instance:
-        dat = CycleCount(**data_dict)
-        dat.save()
-    else:
-        cycle_instance = cycle_instance[0]
-        cycle_instance.quantity = float(cycle_instance.quantity) + quantity
-        cycle_instance.save()
-
-    data = copy.deepcopy(INVENTORY_FIELDS)
-    data['cycle_id'] = cycle_id
-    data['adjusted_location'] = dest[0].id
-    data['adjusted_quantity'] = quantity
-    data['creation_date'] = datetime.datetime.now()
-    data['updation_date'] = datetime.datetime.now()
-
-    inventory_instance = InventoryAdjustment.objects.filter(cycle_id=cycle_id, adjusted_location=dest[0].id)
-    if not inventory_instance:
-        dat = InventoryAdjustment(**data)
-        dat.save()
-    else:
-        inventory_instance = inventory_instance[0]
-        inventory_instance.adjusted_quantity += float(inventory_instance.adjusted_quantity) + quantity
-        inventory_instance.save()
+    MoveInventory.objects.create(**move_inventory_dict)
 
     return 'Added Successfully'
 

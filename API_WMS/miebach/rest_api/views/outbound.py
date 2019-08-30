@@ -4561,17 +4561,17 @@ def create_central_order(request, user):
             interm_order_map['sku_id'] = cart_item.sku_id
             interm_order_map['remarks'] = remarks_dict[cart_item.sku.sku_code]
             cart_qty, inter_qty = 0, 0
-            cart_obj = CustomerCartData.objects.filter(sku=cart_item.sku_id)
-            inter_obj = IntermediateOrders.objects.filter(sku=cart_item.sku_id, status='')
+            cart_obj = CustomerCartData.objects.filter(sku__sku_code=cart_item.sku.sku_code).exclude(customer_user_id=customer_id)
+            inter_obj = IntermediateOrders.objects.filter(sku__sku_code=cart_item.sku.sku_code, status='')
             if cart_obj:
                 cart_qty = cart_obj.aggregate(Sum('quantity'))['quantity__sum']
             if inter_obj:
                 inter_qty = inter_obj.aggregate(Sum('quantity'))['quantity__sum']
             blocked_qty = cart_qty + inter_qty
-            stocks = StockDetail.objects.filter(sku__user__in=stock_display_warehouse, sku=cart_item.sku_id,
+            stocks = StockDetail.objects.filter(sku__user__in=stock_display_warehouse, sku__sku_code=cart_item.sku.sku_code,
                                                 quantity__gt=0)
             avail_qty = check_stock_available_quantity(stocks, user, stock_ids=None)
-            if (avail_qty - blocked_qty) > cart_item.quantity:
+            if (avail_qty - blocked_qty) < cart_item.quantity:
                 return HttpResponse('Order Cant be placed as stock not available for sku: %s' %cart_item.sku.sku_code)
             intermediate_obj =  IntermediateOrders.objects.create(**interm_order_map)
             #x = intermediate_obj.shipment_date
@@ -6850,8 +6850,8 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
         ordered_qty = ordered_qties.get(item["wms_code"], 0)
         recieved_qty = recieved_qties.get(item["wms_code"], 0)
         cart_qty, inter_qty = 0, 0
-        cart_obj = CustomerCartData.objects.filter(sku=item['id'])
-        inter_obj = IntermediateOrders.objects.filter(sku=item['id'], status='')
+        cart_obj = CustomerCartData.objects.filter(sku__sku_code=item['wms_code'])
+        inter_obj = IntermediateOrders.objects.filter(sku__sku_code=item['wms_code'], status='')
         if cart_obj:
             cart_qty = cart_obj.aggregate(Sum('quantity'))['quantity__sum']
         if inter_obj:
@@ -10304,11 +10304,9 @@ def get_customer_cart_data(request, user=""):
 @get_admin_user
 def insert_customer_cart_data(request, user=""):
     """ insert customer cart data """
-
     response = {'data': [], 'msg': 0}
     items = []
     cart_data = request.GET.get('data', '')
-
     if cart_data:
         cart_data = eval(cart_data)
         for record in cart_data:
@@ -10316,6 +10314,25 @@ def insert_customer_cart_data(request, user=""):
             cart = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id,
                                                    sku__sku_code=record['sku_id'], warehouse_level=record['level'])
             if not cart:
+                isprava_unique = get_misc_value('order_exceed_stock',user.id)
+                if isprava_unique == 'true':
+                    stock_display_warehouse = get_misc_value('stock_display_warehouse', user.id)
+                    if stock_display_warehouse and stock_display_warehouse != "false":
+                        stock_display_warehouse = stock_display_warehouse.split(',')
+                        stock_display_warehouse = map(int, stock_display_warehouse)
+                    cart_obj = CustomerCartData.objects.filter(sku__sku_code=record['sku_id']).exclude(customer_user_id=request.user.id)
+                    cart_qty = 0
+                    if cart_obj:
+                        cart_qty = cart_obj.aggregate(Sum('quantity'))['quantity__sum']
+                    stocks = StockDetail.objects.filter(sku__user__in=stock_display_warehouse, sku__sku_code=record['sku_id'],
+                                                        quantity__gt=0)
+                    avail_qty = check_stock_available_quantity(stocks, user, stock_ids=None)
+                    quantity = cart_qty + record['quantity']
+                    if quantity > avail_qty:
+                        response['msg'] = 0
+                        response['data'] = "No Available Quantiy for Sku  %s' "% (str(record['sku_id']))
+                        return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
+
                 data = {'user_id': user.id, 'customer_user_id': request.user.id, 'sku_id': sku.id,
                         'quantity': record['quantity'], 'tax': record['tax'], 'warehouse_level': record['level'],
                         'levelbase_price': record['price']}
@@ -10327,7 +10344,7 @@ def insert_customer_cart_data(request, user=""):
                 cart.save()
 
         response['data'] = "Inserted Successfully"
-
+        response['msg'] = 1
     return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
 
 
@@ -15661,14 +15678,14 @@ def generate_picklist_dc(request, user=''):
         tempdc = TempDeliveryChallan.objects.filter(order = value.values()[0].get('order'))
         if tempdc.exists():
             invoice_data['dc_number'] =  tempdc[0].dc_number
-            invoice_data['inv_date'] = tempdc[0].creation_date.strftime("%Y-%m-%d")
+            invoice_date = tempdc[0].creation_date
             if not tempdc[0].dc_number:
                 challan_num = get_challan_number_for_dc(order , user)
                 temp = tempdc[0]
                 temp.dc_number = challan_num
                 temp.save()
                 invoice_data['dc_number'] = challan_num
-                invoice_data['inv_date'] = tempdc[0].creation_date.strftime("%Y-%m-%d")
+                invoice_date = tempdc[0].creation_date
         if not tempdc.exists():
             delivery_challan_dict = {}
             challan_num = get_challan_number_for_dc(order , user)
@@ -15681,7 +15698,10 @@ def generate_picklist_dc(request, user=''):
                 val['order'] = ''
             delivery_challan_dict['dcjson'] = json.dumps(value)
             TempDeliveryChallan.objects.create(**delivery_challan_dict)
-            invoice_data['inv_date'] = datetime.datetime.now().strftime("%Y-%m-%d")
+            invoice_date = datetime.datetime.now()
+        invoice_date = get_local_date(user, invoice_date, send_date='true')
+        invoice_data['invoice_time'] = invoice_date.strftime("%H:%M")
+        invoice_data['inv_date'] = invoice_date.strftime("%d %b %Y")
 
 
     return render(request, 'templates/toggle/delivery_challan_batch_level.html', invoice_data)
@@ -15929,19 +15949,27 @@ def generate_dc(request , user = ''):
     iterator=itertools.count()
     batch_group_data_order = OrderedDict()
     total_qty = 0
+    search_params = {}
     if orders :
         orders = json.loads(orders)
         for order in orders :
             order_id = ''.join(re.findall('\d+', order['order_id']))
             order_code = ''.join(re.findall('\D+', order['order_id']))
+            if order_id :
+                search_params['order__order_id'] = order_id
+            if order_code :
+                search_params['order__order_code'] = order_code
             original_order_id = order_code + order_id
-            temp_dc_objs = TempDeliveryChallan.objects.filter(order__sku__user = user.id, order__order_id = order_id , order__order_code = order_code)
+            temp_dc_objs = TempDeliveryChallan.objects.filter(order__sku__user = user.id, **search_params)
             if temp_dc_objs.exists() :
                 order = temp_dc_objs[0].order
                 batch_group_data = temp_dc_objs[0].dcjson
                 dc_number_obj = temp_dc_objs[0].dc_number
                 total_qty = temp_dc_objs[0].total_qty
                 creation_date = temp_dc_objs[0].creation_date
+                invoice_date = get_local_date(user, creation_date, send_date='true')
+                invoice_data['invoice_time'] = invoice_date.strftime("%H:%M")
+                invoice_data['inv_date'] = invoice_date.strftime("%d %b %Y")
 
                 customer_address =[]
                 customer_details = []
@@ -15990,5 +16018,4 @@ def generate_dc(request , user = ''):
                 invoice_data['iterator'] = iterator
                 invoice_data['dc_number'] = dc_number_obj
                 invoice_data['total_quantity'] = total_qty
-                invoice_data['inv_date'] = creation_date.strftime("%Y-%m-%d")
     return render(request, 'templates/toggle/delivery_challan_batch_level.html', invoice_data)

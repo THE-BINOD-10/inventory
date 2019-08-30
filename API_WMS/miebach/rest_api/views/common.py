@@ -1639,8 +1639,7 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
     # it will create or update seller stock
     if seller_id:
         quantity = float(quantity)
-        seller_stock_data = SellerStock.objects.filter(stock_id=stock.id, seller__user=user.id, seller_id=seller_id,
-                                                       quantity__gt=0)
+        seller_stock_data = SellerStock.objects.filter(stock_id=stock.id, seller__user=user.id, seller_id=seller_id)
         if seller_stock_data:
 
             temp_quantity = quantity
@@ -1780,7 +1779,7 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
         stock_dict['sellerstock__seller_id'] = seller_id
         reserved_dict["stock__sellerstock__seller_id"] = seller_id
         raw_reserved_dict["stock__sellerstock__seller_id"] = seller_id
-    stocks = StockDetail.objects.filter(**stock_dict)
+    stocks = StockDetail.objects.filter(**stock_dict).distinct()
     if not stocks:
         return 'No Stocks Found'
     stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
@@ -8692,7 +8691,9 @@ def check_stock_available_quantity(stocks, user, stock_ids=None, seller_master_i
         stock_qty = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
     if not stock_qty:
         return 0
-    res_qty = PicklistLocation.objects.filter(stock_id__in=stock_ids, status=1, picklist__order__user=user.id).\
+    sister_warehouses = get_sister_warehouse(user)
+    sister_warehouse_ids = sister_warehouses.values('user_id')
+    res_qty = PicklistLocation.objects.filter(stock_id__in=stock_ids, status=1, picklist__order__user__in=sister_warehouse_ids).\
         aggregate(Sum('reserved'))['reserved__sum']
     raw_reserved = RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user.id,
                                              stock_id__in=stock_ids).aggregate(Sum('reserved'))['reserved__sum']

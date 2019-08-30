@@ -28,7 +28,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $rootScope.collect_imei_details = {};
     vm.failed_serial_number = {};
     vm.passed_serial_number = {};
-
+    vm.firebase_temp_po = ''
     vm.quantity_focused = false;
 
     vm.collect_imei_details = $rootScope.collect_imei_details;
@@ -355,7 +355,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.close = close;
     function close() {
-
+      if (vm.firebase_temp_po != ''){
+        firebase.database().ref("ReceiveQC/"+Session.parent.userId+"/"+ vm.firebase_temp_po.id).remove()
+        vm.firebase_temp_po = ''
+      }
       vm.model_data = {};
       vm.html = "";
       vm.scanned_wms =[]
@@ -1687,7 +1690,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     fb["remove_po"] = function(po) {
-
       if(po) {
         firebase.database().ref("/GRNLogs/"+Session.parent.userId+"/").push(vm.fb.poData);
         firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+po).once("value", function(data){
@@ -1779,6 +1781,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         po[name]["rejected"] = "";
       })
       console.log(po);
+      vm.firebase_temp_po = po
       firebase.database().ref("/ReceiveQC/"+Session.parent.userId).push(po).then(function(data){
 
         fb.poData = po;
@@ -2006,19 +2009,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           if (!(fb.generate)) {
 
              fb.stop_listening(delete_po["po"]);
-             SweetAlert.swal({
-               title: '',
-               text: 'Receiv+QC confirmed Successfully',
-               type: 'success',
-               showCancelButton: false,
-               confirmButtonColor: '#33cc66',
-               confirmButtonText: 'Ok',
-               closeOnConfirm: true,
-             },
-             function (status) {
-               vm.close();
-               }
-             );
+             // SweetAlert.swal({
+             //   title: '',
+             //   text: 'Receiv+QC confirmed Successfully',
+             //   type: 'success',
+             //   showCancelButton: false,
+             //   confirmButtonColor: '#33cc66',
+             //   confirmButtonText: 'Ok',
+             //   closeOnConfirm: true,
+             // },
+             // function (status) {
+             //   vm.close();
+             //   }
+             // );
             //vm.close();
           }
         }
@@ -2027,7 +2030,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     fb["remove_po"] = function(po) {
-
       if(po) {
         firebase.database().ref("/ReceiveQC/"+Session.parent.userId+"/"+po).once("value", function(data){
           data.ref.remove()
@@ -2542,7 +2544,6 @@ angular.module('urbanApp').controller('addNewSkuCtrl', function ($modalInstance,
   };
 
   $ctrl.close = function () {
-
     $modalInstance.dismiss('cancel');
   };
 });

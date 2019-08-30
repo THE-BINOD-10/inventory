@@ -1837,7 +1837,7 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
         dat.save()
     else:
         cycle_instance = cycle_instance[0]
-        cycle_instance.quantity = float(cycle_instance.quantity) + quantity
+        cycle_instance.quantity = float(cycle_instance.quantity) + float(quantity)
         cycle_instance.save()
 
     data = copy.deepcopy(INVENTORY_FIELDS)

@@ -1122,6 +1122,10 @@ def insert_move_inventory(request, user=''):
     batch_no = request.GET.get('batch_number', '')
     mrp =request.GET.get('mrp', '')
     weight = request.GET.get('weight', '')
+    if user.username in MILKBASKET_USERS :
+        if not mrp or not weight :
+            return HttpResponse("MRP and Weight are Mandatory")
+
     status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id, batch_no=batch_no, mrp=mrp,
                                  weight=weight)
     if 'success' in status.lower():
@@ -1856,6 +1860,9 @@ def confirm_sku_substitution(request, user=''):
     weight = request.POST.get('src_weight', '')
     if user.userprofile.user_type == 'marketplace_user' and not seller_id:
         return HttpResponse('Seller ID is Mandatory')
+    if user.username in MILKBASKET_USERS :
+        if not src_mrp or  not weight :
+            return HttpResponse('MRP and Weight are Mandatory')
     if not src_sku and not dest_sku and not src_qty and not dest_qty and not src_loc and not dest_loc:
         return HttpResponse('Please Send Required Field')
     if seller_id:
@@ -1905,6 +1912,9 @@ def confirm_sku_substitution(request, user=''):
         if not dest_loc:
             return HttpResponse('Destination Location Not Found')
         dest_qty = data_dict['dest_quantity'][ind]
+        if user.username in MILKBASKET_USERS :
+            if not data_dict['dest_mrp'][ind] or not data_dict['dest_loc'][ind] :
+                return HttpResponse('MRP and Weight are mandatory')
         try:
             dest_qty = float(dest_qty)
         except ValueError:
@@ -2719,14 +2729,20 @@ def confirm_combo_allocation(request, user=''):
                 child_mrp = float(child_mrp)
             except:
                 if user.username in MILKBASKET_USERS:
-                    return HttpResponse(json.dumps({'status':False, 'message':'Child MRP should be number'}))
+                    if not child_mrp :
+                        return HttpResponse(json.dumps({'status':False, 'message':'Child MRP is Mandatory'}))
+                    else:
+                        return HttpResponse(json.dumps({'status':False, 'message':'Child MRP should be number'}))
                 else:
                     child_mrp = 0
             try:
                 combo_mrp = float(combo_mrp)
             except:
                 if user.username in MILKBASKET_USERS:
-                    return HttpResponse(json.dumps({'status':False, 'message':'Combo MRP should be number'}))
+                    if not combo_mrp :
+                        return HttpResponse(json.dumps({'status':False, 'message':'Combo MRP is Mandatory'}))
+                    else:
+                        return HttpResponse(json.dumps({'status':False, 'message':'Combo MRP should be number'}))
                 else:
                     combo_mrp = 0
             if user.username in MILKBASKET_USERS and not child_weight:

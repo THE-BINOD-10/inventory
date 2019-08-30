@@ -1782,7 +1782,7 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                                                  inv_mapping)
     if not set(['receipt_date', 'quantity', 'wms_code', 'location']).issubset(excel_mapping.keys()):
         return 'Invalid File', []
-    number_fields = ['quantity', 'mrp']
+    number_fields = ['quantity']
     optional_fields = ['mrp']
     mandatory_fields = ['receipt_date', 'location', 'quantity', 'receipt_type']
     fields_mapping = {'manufactured_date': 'Manufactured Date', 'expiry_date': 'Expiry Date'}
@@ -1851,6 +1851,10 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 data_dict['weight'] = cell_data
                 if user.username in MILKBASKET_USERS and not cell_data:
                     index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
+            elif key == 'mrp':
+                data_dict['mrp'] = cell_data
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
             elif key in number_fields:
                 try:
                     data_dict[key] = float(cell_data)
@@ -2734,6 +2738,10 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
                 data_dict[key] = cell_data
+
+            elif  key == 'mrp' and  user.username in MILKBASKET_USERS :
+                if not cell_data :
+                    index_status.setdefault(row_idx, set()).add('mrp is mandatory')
             elif cell_data:
                 if key in number_fields:
                     try:
@@ -3163,7 +3171,7 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
     if not set(['wms_code', 'source', 'destination', 'quantity']).issubset(excel_mapping.keys()):
         return 'Invalid File'
     fields_mapping = {'quantity': 'Quantity', 'mrp': 'MRP'}
-    number_fields = ['quantity', 'mrp']
+    number_fields = ['quantity']
     for row_idx in range(1, no_of_rows):
         data_dict = {}
         for key, value in excel_mapping.iteritems():
@@ -3224,6 +3232,15 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                 if isinstance(cell_data, float):
                     cell_data = str(int(cell_data))
                 data_dict[key] = cell_data
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
+            elif key == 'mrp':
+                if not isinstance(cell_data, (int, float)):
+                   index_status.setdefault(row_idx, set()).add('Invalid Entry for MRP Value')
+                else:
+                    data_dict[key] = cell_data
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
             elif key in number_fields:
                 if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % fields_mapping[key])
@@ -3677,6 +3694,8 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                 except:
                     index_status.setdefault(row_idx, set()).add('Invalid Quantity')
             elif key == 'mrp':
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
                 if cell_data:
                     try:
                         data_dict['mrp'] = float(cell_data)
@@ -3684,6 +3703,10 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                             index_status.setdefault(row_idx, set()).add('Invalid MRP')
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid MRP')
+            elif key == 'weight' :
+                data_dict[key] = cell_data
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
             else:
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
@@ -5513,7 +5536,7 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
     if not set(['source_sku_code', 'source_location', 'source_quantity', 'dest_sku_code',
                 'dest_location', 'dest_quantity']).issubset(excel_mapping.keys()):
         return 'Invalid File'
-    number_fields = ['source_quantity', 'source_mrp','dest_quantity', 'dest_mrp']
+    number_fields = ['source_quantity','dest_quantity','source_mrp','dest_mrp']
     prev_data_dict = {}
     for row_idx in range(1, no_of_rows):
         data_dict = {'source_updated': False}
@@ -5582,11 +5605,16 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                     cell_data = str(int(cell_data))
                     data_dict[key] = cell_data
             elif key in ['source_weight','dest_weight'] :
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
                 if isinstance(cell_data, (int, float)):
                     data_dict[key] = str(int(cell_data))
                 else:
                     data_dict[key] = str(cell_data)
             elif key in number_fields:
+                if key in ['source_mrp','dest_mrp'] :
+                    if user.username in MILKBASKET_USERS and not cell_data:
+                        index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
                 if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
                 elif 'source' in key and prev_data_dict.get(key, ''):
@@ -7225,11 +7253,16 @@ def validate_combo_allocate_form(request, reader, user, no_of_rows, no_of_cols, 
                     cell_data = str(int(cell_data))
                     data_dict[key] = cell_data
             elif key in ['combo_weight','child_weight'] :
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
                 if isinstance(cell_data, (int, float)):
                     data_dict[key] = str(int(cell_data))
                 else:
                     data_dict[key] = str(cell_data)
             elif key in number_fields:
+                if key in ['combo_mrp','child_mrp'] :
+                    if user.username in MILKBASKET_USERS and not cell_data:
+                        index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
                 if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
                 elif 'child' in key and prev_data_dict.get(key, ''):

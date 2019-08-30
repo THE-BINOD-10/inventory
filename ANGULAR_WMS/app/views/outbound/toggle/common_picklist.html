@@ -228,7 +228,7 @@
             <button type="button" class="btn pop pop-green pull-left col-md-3 col-sm-4 col-xs-12" ng-click="pop.print_excel(pop.model_data.picklist_id)">Print to Excel</button>
             <div class="col-md-3 col-sm-1 col-xs-0"></div>
             <button type="button" class="btn pop pop-normal col-md-3 col-sm-4 col-xs-12" ng-click="pop.print_pdf(pop.model_data.picklist_id)">Print Picklist</button>
-            <button type="button" class="btn pop pop-green col-md-3 col-sm-3 col-xs-12" style="margin-left:0px;" ng-click="pop.picklist_confirmation()">Confirm</button>
+            <button type="button" class="btn pop pop-green col-md-3 col-sm-3 col-xs-12" style="margin-left:0px;" ng-click="pop.picklist_confirmation()" ng-disabled="pop.bt_disable">Confirm</button>
           </div>
         </div>
       </div>

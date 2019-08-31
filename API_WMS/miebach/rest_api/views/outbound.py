@@ -7655,7 +7655,7 @@ def get_view_order_details(request, user=''):
         order_code = ''.join(re.findall('\D+', main_id))
         order_id = ''.join(re.findall('\d+', main_id))
         order_details = OrderDetail.objects.filter(
-            Q(order_id=order_id, order_code=order_code) | Q(original_order_id=main_id), user=user.id)
+            Q(order_id=order_id, order_code=order_code) | Q(original_order_id=main_id), user=user.id).exclude(status=3)
         if not row_id:
             row_id = order_details[0].id
 
@@ -8773,7 +8773,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    interm_orders = IntermediateOrders.objects.filter(**data_dict)
+    interm_orders = IntermediateOrders.objects.filter(**data_dict).exclude(status=3)
     if search_term:
         all_orders = interm_orders.filter(Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term)|
                                             Q(quantity__icontains=search_term) | Q(shipment_date__regex=search_term)|
@@ -9429,6 +9429,7 @@ def order_delete(request, user=""):
                                            status=1). \
                 values_list('order_id', flat=True))
             order_detail_ids = list(order_detail_ids)
+            IntermediateOrders.objects.filter(order__id__in=order_detail_ids).update(status = 3)
             if seller_orders:
                 OrderDetail.objects.filter(id__in=seller_orders).update(status=5)
                 SellerOrder.objects.filter(order_id__in=seller_orders).update(status=0, order_status='PROCESSED')
@@ -15440,26 +15441,27 @@ def send_order_back(request, user=''):
         remarks_list = request.POST.getlist('remarks')
         alt_sku_list = request.POST.getlist('sku_id')
         for i in range(len(order_id_list)) :
-            ord_obj = OrderDetail.objects.get(original_order_id=order_id_list[i], user=user.id)
-            interm_obj = IntermediateOrders.objects.filter(order_id=ord_obj.id)
-            if interm_obj:
-                interm_obj = interm_obj[0]
-                if ord_obj.quantity != interm_obj.quantity :
-                    order_det_not_reassigned_id.append(ord_obj.id)
-                    order_det_not_reassigned_orderid.append(ord_obj.original_order_id)
-                    log.info('%s orderid is not assigned ' % (str(order_id_list[i],)))
-                else:
-                    order_det_reassigned_id.append(ord_obj.id)
-                    log.info('%s orderid is  assigned' % (str(order_id_list[i],)))
-                    interm_obj.status = 0
-                    interm_obj.remarks=remarks_list[i]
-                    if alt_sku_list:
-                        sku_obj = SKUMaster.objects.filter(user=user.id, sku_code=alt_sku_list[i])
-                        interm_obj.alt_sku = sku_obj[0]
-                    PushNotifications.objects.create(user_id=interm_obj.user_id, message=ord_obj.original_order_id+"  "+"order got rejected from"+"  "+interm_obj.order_assigned_wh.username+" "+"with central order id"+" "+str(interm_obj.interm_order_id))
-                    interm_obj.save()
-                    order_det_reassigned_orderid.append(ord_obj.original_order_id)
-                    order_cancel_functionality(order_det_reassigned_id)
+            ord_obj = OrderDetail.objects.filter(original_order_id=order_id_list[i], user=user.id)
+            for obj in ord_obj :
+                interm_obj = IntermediateOrders.objects.filter(order_id=obj.id).exclude(status = 3)
+                if interm_obj:
+                    interm_obj = interm_obj[0]
+                    if obj.quantity != interm_obj.quantity :
+                        order_det_not_reassigned_id.append(obj.id)
+                        order_det_not_reassigned_orderid.append(obj.original_order_id)
+                        log.info('%s orderid is not assigned ' % (str(order_id_list[i],)))
+                    else:
+                        order_det_reassigned_id.append(obj.id)
+                        log.info('%s orderid is  assigned' % (str(order_id_list[i],)))
+                        interm_obj.status = 0
+                        interm_obj.remarks=remarks_list[i]
+                        if alt_sku_list:
+                            sku_obj = SKUMaster.objects.filter(user=user.id, sku_code=alt_sku_list[i])
+                            interm_obj.alt_sku = sku_obj[0]
+                        PushNotifications.objects.create(user_id=interm_obj.user_id, message=obj.original_order_id+"  "+"order got rejected from"+"  "+interm_obj.order_assigned_wh.username+" "+"with central order id"+" "+str(interm_obj.interm_order_id))
+                        interm_obj.save()
+                        order_det_reassigned_orderid.append(obj.original_order_id)
+                        order_cancel_functionality(order_det_reassigned_id)
 
     except Exception as e:
         import traceback

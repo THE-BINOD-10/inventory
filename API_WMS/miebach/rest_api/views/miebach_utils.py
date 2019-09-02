@@ -7626,7 +7626,8 @@ def get_move_inventory_report_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_local_date
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
-    lis = ['sku__sku_code','sku__sku_desc','source_location__location','dest_location__location','quantity','creation_date','batch_detail__weight','batch_detail__mrp','seller']
+    lis = ['sku__sku_code','sku__sku_desc','source_location__location','dest_location__location','quantity',
+           'creation_date', 'sku__sku_code', 'batch_detail__weight','batch_detail__mrp', 'seller__name']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)

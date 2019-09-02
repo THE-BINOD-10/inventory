@@ -2201,7 +2201,7 @@ def picklist_confirmation(request, user=''):
                         picking_count = float(picklist.reserved_quantity)
                     picking_count1 = 0  # picking_count
                     wms_id = all_skus.exclude(sku_code='').get(wms_code=val['wms_code'], user=user.id)
-                    total_stock = StockDetail.objects.filter(**pic_check_data)
+                    total_stock = StockDetail.objects.filter(**pic_check_data).distinct()
                     if 'imei' in val.keys() and val['imei'] and picklist.order and val['imei'] != '[]':
                         insert_order_serial(picklist, val)
                     if 'labels' in val.keys() and val['labels'] and picklist.order:
@@ -4561,17 +4561,17 @@ def create_central_order(request, user):
             interm_order_map['sku_id'] = cart_item.sku_id
             interm_order_map['remarks'] = remarks_dict[cart_item.sku.sku_code]
             cart_qty, inter_qty = 0, 0
-            cart_obj = CustomerCartData.objects.filter(sku=cart_item.sku_id)
-            inter_obj = IntermediateOrders.objects.filter(sku=cart_item.sku_id, status='')
+            cart_obj = CustomerCartData.objects.filter(sku__sku_code=cart_item.sku.sku_code).exclude(customer_user_id=customer_id)
+            inter_obj = IntermediateOrders.objects.filter(sku__sku_code=cart_item.sku.sku_code, status='')
             if cart_obj:
                 cart_qty = cart_obj.aggregate(Sum('quantity'))['quantity__sum']
             if inter_obj:
                 inter_qty = inter_obj.aggregate(Sum('quantity'))['quantity__sum']
             blocked_qty = cart_qty + inter_qty
-            stocks = StockDetail.objects.filter(sku__user__in=stock_display_warehouse, sku=cart_item.sku_id,
+            stocks = StockDetail.objects.filter(sku__user__in=stock_display_warehouse, sku__sku_code=cart_item.sku.sku_code,
                                                 quantity__gt=0)
             avail_qty = check_stock_available_quantity(stocks, user, stock_ids=None)
-            if (avail_qty - blocked_qty) > cart_item.quantity:
+            if (avail_qty - blocked_qty) < cart_item.quantity:
                 return HttpResponse('Order Cant be placed as stock not available for sku: %s' %cart_item.sku.sku_code)
             intermediate_obj =  IntermediateOrders.objects.create(**interm_order_map)
             #x = intermediate_obj.shipment_date
@@ -6850,8 +6850,8 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
         ordered_qty = ordered_qties.get(item["wms_code"], 0)
         recieved_qty = recieved_qties.get(item["wms_code"], 0)
         cart_qty, inter_qty = 0, 0
-        cart_obj = CustomerCartData.objects.filter(sku=item['id'])
-        inter_obj = IntermediateOrders.objects.filter(sku=item['id'], status='')
+        cart_obj = CustomerCartData.objects.filter(sku__sku_code=item['wms_code'])
+        inter_obj = IntermediateOrders.objects.filter(sku__sku_code=item['wms_code'], status='')
         if cart_obj:
             cart_qty = cart_obj.aggregate(Sum('quantity'))['quantity__sum']
         if inter_obj:
@@ -7655,7 +7655,7 @@ def get_view_order_details(request, user=''):
         order_code = ''.join(re.findall('\D+', main_id))
         order_id = ''.join(re.findall('\d+', main_id))
         order_details = OrderDetail.objects.filter(
-            Q(order_id=order_id, order_code=order_code) | Q(original_order_id=main_id), user=user.id)
+            Q(order_id=order_id, order_code=order_code) | Q(original_order_id=main_id), user=user.id).exclude(status=3)
         if not row_id:
             row_id = order_details[0].id
 
@@ -8773,7 +8773,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    interm_orders = IntermediateOrders.objects.filter(**data_dict)
+    interm_orders = IntermediateOrders.objects.filter(**data_dict).exclude(status=3)
     if search_term:
         all_orders = interm_orders.filter(Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term)|
                                             Q(quantity__icontains=search_term) | Q(shipment_date__regex=search_term)|
@@ -9429,6 +9429,7 @@ def order_delete(request, user=""):
                                            status=1). \
                 values_list('order_id', flat=True))
             order_detail_ids = list(order_detail_ids)
+            IntermediateOrders.objects.filter(order__id__in=order_detail_ids).update(status = 3)
             if seller_orders:
                 OrderDetail.objects.filter(id__in=seller_orders).update(status=5)
                 SellerOrder.objects.filter(order_id__in=seller_orders).update(status=0, order_status='PROCESSED')
@@ -10304,11 +10305,9 @@ def get_customer_cart_data(request, user=""):
 @get_admin_user
 def insert_customer_cart_data(request, user=""):
     """ insert customer cart data """
-
     response = {'data': [], 'msg': 0}
     items = []
     cart_data = request.GET.get('data', '')
-
     if cart_data:
         cart_data = eval(cart_data)
         for record in cart_data:
@@ -10316,6 +10315,25 @@ def insert_customer_cart_data(request, user=""):
             cart = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id,
                                                    sku__sku_code=record['sku_id'], warehouse_level=record['level'])
             if not cart:
+                isprava_unique = get_misc_value('order_exceed_stock',user.id)
+                if isprava_unique == 'true':
+                    stock_display_warehouse = get_misc_value('stock_display_warehouse', user.id)
+                    if stock_display_warehouse and stock_display_warehouse != "false":
+                        stock_display_warehouse = stock_display_warehouse.split(',')
+                        stock_display_warehouse = map(int, stock_display_warehouse)
+                    cart_obj = CustomerCartData.objects.filter(sku__sku_code=record['sku_id']).exclude(customer_user_id=request.user.id)
+                    cart_qty = 0
+                    if cart_obj:
+                        cart_qty = cart_obj.aggregate(Sum('quantity'))['quantity__sum']
+                    stocks = StockDetail.objects.filter(sku__user__in=stock_display_warehouse, sku__sku_code=record['sku_id'],
+                                                        quantity__gt=0)
+                    avail_qty = check_stock_available_quantity(stocks, user, stock_ids=None)
+                    quantity = cart_qty + record['quantity']
+                    if quantity > avail_qty:
+                        response['msg'] = 0
+                        response['data'] = "No Available Quantiy for Sku  %s' "% (str(record['sku_id']))
+                        return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
+
                 data = {'user_id': user.id, 'customer_user_id': request.user.id, 'sku_id': sku.id,
                         'quantity': record['quantity'], 'tax': record['tax'], 'warehouse_level': record['level'],
                         'levelbase_price': record['price']}
@@ -10327,7 +10345,7 @@ def insert_customer_cart_data(request, user=""):
                 cart.save()
 
         response['data'] = "Inserted Successfully"
-
+        response['msg'] = 1
     return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
 
 
@@ -15377,11 +15395,11 @@ def dispatch_qc(user, sku_details, order_id, validation_status):
                 elif not validation_status:
                     wms_code = order_id.sku.wms_code
                     quantity = 1
-                    cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-                    if not cycle_count:
-                        cycle_id = 1
-                    else:
-                        cycle_id = cycle_count[0].cycle + 1
+                    # cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+                    # if not cycle_count:
+                    #     cycle_id = 1
+                    # else:
+                    #     cycle_id = cycle_count[0].cycle + 1
                     sku_stocks = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku__wms_code=wms_code).order_by('creation_date')
                     if sku_stocks:
                         source_loc = sku_stocks[0].location.location
@@ -15390,7 +15408,7 @@ def dispatch_qc(user, sku_details, order_id, validation_status):
                     if dest_loc:
                         dest_loc = dest_loc[0].location
                     if source_loc and dest_loc:
-                        move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user)
+                        move_stock_location(wms_code, source_loc, dest_loc, quantity, user)
                 imei_qs.update(status=0)
             except Exception as e:
                 import traceback
@@ -15423,26 +15441,27 @@ def send_order_back(request, user=''):
         remarks_list = request.POST.getlist('remarks')
         alt_sku_list = request.POST.getlist('sku_id')
         for i in range(len(order_id_list)) :
-            ord_obj = OrderDetail.objects.get(original_order_id=order_id_list[i], user=user.id)
-            interm_obj = IntermediateOrders.objects.filter(order_id=ord_obj.id)
-            if interm_obj:
-                interm_obj = interm_obj[0]
-                if ord_obj.quantity != interm_obj.quantity :
-                    order_det_not_reassigned_id.append(ord_obj.id)
-                    order_det_not_reassigned_orderid.append(ord_obj.original_order_id)
-                    log.info('%s orderid is not assigned ' % (str(order_id_list[i],)))
-                else:
-                    order_det_reassigned_id.append(ord_obj.id)
-                    log.info('%s orderid is  assigned' % (str(order_id_list[i],)))
-                    interm_obj.status = 0
-                    interm_obj.remarks=remarks_list[i]
-                    if alt_sku_list:
-                        sku_obj = SKUMaster.objects.filter(user=user.id, sku_code=alt_sku_list[i])
-                        interm_obj.alt_sku = sku_obj[0]
-                    PushNotifications.objects.create(user_id=interm_obj.user_id, message=ord_obj.original_order_id+"  "+"order got rejected from"+"  "+interm_obj.order_assigned_wh.username+" "+"with central order id"+" "+str(interm_obj.interm_order_id))
-                    interm_obj.save()
-                    order_det_reassigned_orderid.append(ord_obj.original_order_id)
-                    order_cancel_functionality(order_det_reassigned_id)
+            ord_obj = OrderDetail.objects.filter(original_order_id=order_id_list[i], user=user.id)
+            for obj in ord_obj :
+                interm_obj = IntermediateOrders.objects.filter(order_id=obj.id).exclude(status = 3)
+                if interm_obj:
+                    interm_obj = interm_obj[0]
+                    if obj.quantity != interm_obj.quantity :
+                        order_det_not_reassigned_id.append(obj.id)
+                        order_det_not_reassigned_orderid.append(obj.original_order_id)
+                        log.info('%s orderid is not assigned ' % (str(order_id_list[i],)))
+                    else:
+                        order_det_reassigned_id.append(obj.id)
+                        log.info('%s orderid is  assigned' % (str(order_id_list[i],)))
+                        interm_obj.status = 0
+                        interm_obj.remarks=remarks_list[i]
+                        if alt_sku_list:
+                            sku_obj = SKUMaster.objects.filter(user=user.id, sku_code=alt_sku_list[i])
+                            interm_obj.alt_sku = sku_obj[0]
+                        PushNotifications.objects.create(user_id=interm_obj.user_id, message=obj.original_order_id+"  "+"order got rejected from"+"  "+interm_obj.order_assigned_wh.username+" "+"with central order id"+" "+str(interm_obj.interm_order_id))
+                        interm_obj.save()
+                        order_det_reassigned_orderid.append(obj.original_order_id)
+                        order_cancel_functionality(order_det_reassigned_id)
 
     except Exception as e:
         import traceback

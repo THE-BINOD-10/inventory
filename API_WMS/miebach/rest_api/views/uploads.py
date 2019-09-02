@@ -3300,7 +3300,9 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def move_inventory_upload(request, user=''):
+    reversion.set_user(request.user)
     fname = request.FILES['files']
     try:
         fname = request.FILES['files']
@@ -3313,11 +3315,11 @@ def move_inventory_upload(request, user=''):
                                                      no_of_cols, fname, file_type)
     if status != 'Success':
         return HttpResponse(status)
-    cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-    if not cycle_count:
-        cycle_id = 1
-    else:
-        cycle_id = cycle_count[0].cycle + 1
+    # cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+    # if not cycle_count:
+    #     cycle_id = 1
+    # else:
+    #     cycle_id = cycle_count[0].cycle + 1
     mod_locations = []
     for data_dict in data_list:
         extra_dict = OrderedDict()
@@ -3333,7 +3335,7 @@ def move_inventory_upload(request, user=''):
             extra_dict['mrp'] = data_dict['mrp']
         if data_dict.get('weight', ''):
             extra_dict['weight'] = data_dict['weight']
-        move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, **extra_dict)
+        move_stock_location(wms_code, source_loc, dest_loc, quantity, user, **extra_dict)
         mod_locations.append(source_loc)
         mod_locations.append(dest_loc)
     update_filled_capacity(list(set(mod_locations)), user.id)
@@ -3718,7 +3720,9 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def inventory_adjust_upload(request, user=''):
+    reversion.set_user(request.user)
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
@@ -6032,7 +6036,6 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             order_dict['sku_id'] = sku_id
             order_dict['title'] = SKUMaster.objects.filter(sku_code=excel_sku_code, user=user.id)[0].sku_desc
             order_dict['status'] = 1
-
             if order_data['customer_id']:
                customer_master = CustomerMaster.objects.filter(user=user.id,
                                                                customer_id=order_data['customer_id'])
@@ -6059,7 +6062,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             if order_mapping.has_key('loan_proposal_id'):
                 order_dict['marketplace'] = 'Offline'
             get_existing_order = OrderDetail.objects.filter(**{'sku_id': sku_id,
-                'original_order_id': order_id, 'user':order_data['order_assigned_wh_id'] })
+                'original_order_id': order_id, 'user':order_data['order_assigned_wh_id'],'status':1})
             if get_existing_order.exists():
                 continue
             else:

@@ -8705,7 +8705,7 @@ def prepare_rtv_json_data(request_data, user):
                 if seller_summary.seller_po:
                     stock_filter['sellerstock__seller_id'] = seller_summary.seller_po.seller_id
                     reserved_dict["stock__sellerstock__seller_id"] = seller_summary.seller_po.seller_id
-            stocks = StockDetail.objects.filter(**stock_filter)
+            stocks = StockDetail.objects.filter(**stock_filter).distinct()
             if not stocks:
                 return data_list, 'No Stocks Found'
             data_dict['stocks'] = stocks

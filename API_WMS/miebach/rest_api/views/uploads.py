@@ -3315,11 +3315,11 @@ def move_inventory_upload(request, user=''):
                                                      no_of_cols, fname, file_type)
     if status != 'Success':
         return HttpResponse(status)
-    cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-    if not cycle_count:
-        cycle_id = 1
-    else:
-        cycle_id = cycle_count[0].cycle + 1
+    # cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+    # if not cycle_count:
+    #     cycle_id = 1
+    # else:
+    #     cycle_id = cycle_count[0].cycle + 1
     mod_locations = []
     for data_dict in data_list:
         extra_dict = OrderedDict()
@@ -3335,7 +3335,7 @@ def move_inventory_upload(request, user=''):
             extra_dict['mrp'] = data_dict['mrp']
         if data_dict.get('weight', ''):
             extra_dict['weight'] = data_dict['weight']
-        move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, **extra_dict)
+        move_stock_location(wms_code, source_loc, dest_loc, quantity, user, **extra_dict)
         mod_locations.append(source_loc)
         mod_locations.append(dest_loc)
     update_filled_capacity(list(set(mod_locations)), user.id)

@@ -1103,13 +1103,15 @@ def confirm_move_location_inventory(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def insert_move_inventory(request, user=''):
-    data = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-    if not data:
-        cycle_id = 1
-    else:
-        cycle_id = data[0].cycle + 1
+    # data = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+    # if not data:
+    #     cycle_id = 1
+    # else:
+    #     cycle_id = data[0].cycle + 1
 
+    reversion.set_user(request.user)
     now = str(datetime.datetime.now())
     wms_code = request.GET['wms_code']
     check = False
@@ -1125,7 +1127,7 @@ def insert_move_inventory(request, user=''):
     batch_no = request.GET.get('batch_number', '')
     mrp =request.GET.get('mrp', '')
     weight = request.GET.get('weight', '')
-    status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id, batch_no=batch_no, mrp=mrp,
+    status = move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id, batch_no=batch_no, mrp=mrp,
                                  weight=weight)
     if 'success' in status.lower():
         update_filled_capacity([source_loc, dest_loc], user.id)
@@ -2600,11 +2602,11 @@ def auto_sellable_confirm(request, user=''):
             data_list[index]['seller_id'] = seller_master[0].id
             data_list[index]['quantity'] = quantity
             data_list[index]['suggestion_obj'] = suggestion
-        cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-        if not cycle_count:
-            cycle_id = 1
-        else:
-            cycle_id = cycle_count[0].cycle + 1
+        # cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+        # if not cycle_count:
+        #     cycle_id = 1
+        # else:
+        #     cycle_id = cycle_count[0].cycle + 1
         for data in data_list:
             suggestion = data['suggestion_obj']
             seller_id, batch_no, mrp = '', '', 0
@@ -2614,7 +2616,7 @@ def auto_sellable_confirm(request, user=''):
                 batch_no = ''
             if data.get('MRP', 0):
                 mrp = float(data['MRP'])
-            status = move_stock_location(cycle_id, suggestion.stock.sku.wms_code, suggestion.stock.location.location,
+            status = move_stock_location(suggestion.stock.sku.wms_code, suggestion.stock.location.location,
                                          data['dest_location'], data['quantity'], user, seller_id,
                                          batch_no=batch_no, mrp=mrp)
             if 'success' in status.lower():
@@ -3004,11 +3006,11 @@ def cal_ba_to_sa(request, user=''):
                     suggested_qty = 0
                 confirm_data_list.append({'classification_obj': classification_obj, 'dest_loc': dest_loc_obj[0],
                                           'reserved_quantity': reserved_quantity, 'seller': seller})
-            data = CycleCount.objects.filter(sku__user=user.id).aggregate(Max('cycle'))['cycle__max']
-            if not data:
-                cycle_id = 1
-            else:
-                cycle_id = data + 1
+            # data = CycleCount.objects.filter(sku__user=user.id).aggregate(Max('cycle'))['cycle__max']
+            # if not data:
+            #     cycle_id = 1
+            # else:
+            #     cycle_id = data + 1
             for final_data in confirm_data_list:
                 classification_obj = final_data['classification_obj']
                 wms_code = classification_obj.source_stock.sku.sku_code
@@ -3023,7 +3025,7 @@ def cal_ba_to_sa(request, user=''):
                     batch_no = classification_obj.source_stock.batch_detail.batch_no
                     mrp = classification_obj.source_stock.batch_detail.mrp
                     weight = classification_obj.source_stock.batch_detail.weight
-                status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id,
+                status = move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id,
                                              batch_no=batch_no, mrp=mrp,
                                              weight=weight)
                 if 'success' in status.lower():

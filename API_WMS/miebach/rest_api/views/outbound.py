@@ -2201,7 +2201,7 @@ def picklist_confirmation(request, user=''):
                         picking_count = float(picklist.reserved_quantity)
                     picking_count1 = 0  # picking_count
                     wms_id = all_skus.exclude(sku_code='').get(wms_code=val['wms_code'], user=user.id)
-                    total_stock = StockDetail.objects.filter(**pic_check_data)
+                    total_stock = StockDetail.objects.filter(**pic_check_data).distinct()
                     if 'imei' in val.keys() and val['imei'] and picklist.order and val['imei'] != '[]':
                         insert_order_serial(picklist, val)
                     if 'labels' in val.keys() and val['labels'] and picklist.order:
@@ -15395,11 +15395,11 @@ def dispatch_qc(user, sku_details, order_id, validation_status):
                 elif not validation_status:
                     wms_code = order_id.sku.wms_code
                     quantity = 1
-                    cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-                    if not cycle_count:
-                        cycle_id = 1
-                    else:
-                        cycle_id = cycle_count[0].cycle + 1
+                    # cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+                    # if not cycle_count:
+                    #     cycle_id = 1
+                    # else:
+                    #     cycle_id = cycle_count[0].cycle + 1
                     sku_stocks = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku__wms_code=wms_code).order_by('creation_date')
                     if sku_stocks:
                         source_loc = sku_stocks[0].location.location
@@ -15408,7 +15408,7 @@ def dispatch_qc(user, sku_details, order_id, validation_status):
                     if dest_loc:
                         dest_loc = dest_loc[0].location
                     if source_loc and dest_loc:
-                        move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user)
+                        move_stock_location(wms_code, source_loc, dest_loc, quantity, user)
                 imei_qs.update(status=0)
             except Exception as e:
                 import traceback

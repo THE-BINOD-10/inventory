@@ -2854,8 +2854,8 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
                                      'replenushment_qty', 'sku_avail_qty', 'avail_quantity',
                                      'min_stock_qty', 'max_stock_qty', 'status', 'remarks',
                        'source_stock__location__location', 'dest_location__location',
-                                     'sku__relation_type').distinct().\
-                annotate(Sum('reserved'), creation_date_only=Cast('creation_date', DateField())).order_by(order_data)
+                                     'sku__relation_type', 'creation_date').distinct().\
+                annotate(Sum('reserved')).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     if stop_index:
@@ -2927,7 +2927,7 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
             rack = sku_rack_dict.get(data['sku__sku_code'], '')
             shelf = sku_shelf_dict.get(data['sku__sku_code'], '')
         temp_data['aaData'].append(
-            OrderedDict((('', checkbox), ('generation_time', str(data['creation_date_only'])),
+            OrderedDict((('', checkbox), ('generation_time', get_local_date(user, data['creation_date'])),
                          ('sku_code', data['sku__sku_code']),('sku_name', data['sku__sku_desc']),
                          ('sku_category', data['sku__sku_category']),
                          ('sheet', sheet),
@@ -3136,6 +3136,7 @@ def ba_to_sa_calculate_now(request, user=''):
 
         log.info("BA to SA calculating segregation for user %s ended at %s" % (user.username, str(datetime.datetime.now())))
         sku_classification_objs = []
+        # Removing of older objects, change the datetime update while changing the below 3 lines
         older_objs = SkuClassification.objects.filter(sku__user=user.id, status=1)
         if older_objs.exists():
             older_objs.delete()
@@ -3250,6 +3251,10 @@ def ba_to_sa_calculate_now(request, user=''):
                                                                 remarks_sku_ids)
         if sku_classification_objs:
             SkuClassification.objects.bulk_create(sku_classification_objs)
+            # Updating the same datetime for all the created objects
+            creation_date = datetime.datetime.now()
+            SkuClassification.objects.filter(sku__user=user.id, status=1).update(creation_date=creation_date)
+
         log.info(
             "BA to SA calculation ended for user %s at %s" % (user.username, str(datetime.datetime.now())))
     except Exception as e:

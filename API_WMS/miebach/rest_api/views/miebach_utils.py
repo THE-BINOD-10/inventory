@@ -980,7 +980,7 @@ MOVE_TO_INVENTORY_REPORT_DICT = {
         {'label': 'Destination Location', 'name': 'destination_location', 'type': 'input'},
     ],
     'dt_headers': ['SKU Code', 'SKU Description','Source Location',
-                   'Destination Location','Quantity','Transaction Date'],
+                   'Destination Location','Quantity','Transaction Date', 'Updated User'],
     'dt_url': 'get_move_inventory_report', 'excel_name': 'get_move_inventory_report',
     'print_url': 'print_move_inventory_report',
 }
@@ -7620,6 +7620,8 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     # if stop_index:
     #     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     # return temp_data
+
+
 def get_move_inventory_report_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_local_date
     temp_data = copy.deepcopy(AJAX_DATA)
@@ -7651,23 +7653,29 @@ def get_move_inventory_report_data(search_params, user, sub_user):
         search_parameters['dest_location__location'] = search_params['destination_location']
 
     search_parameters['sku__id__in'] = sku_master_ids
-    master_data = MoveInventory.objects.filter(**search_parameters).\
-                                            values('sku__wms_code','sku__sku_desc', 'source_location__location',
-                                                   'dest_location__location','quantity','batch_detail__mrp','batch_detail__weight','seller__name','creation_date').order_by(order_data)
+    master_data = MoveInventory.objects.filter(**search_parameters).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for ind, sku_data in enumerate(master_data[start_index:stop_index]):
         weight = ''
         mrp = 0
-        date = get_local_date(user, sku_data['creation_date'])
-        if sku_data['batch_detail__weight']:
-            weight = sku_data['batch_detail__weight']
-        if sku_data['batch_detail__mrp']:
-            mrp = sku_data['batch_detail__mrp']
-        temp_data['aaData'].append(OrderedDict((('SKU Code',sku_data['sku__wms_code']),
-                                                ('SKU Description',sku_data['sku__sku_desc']),
-                                                ('Source Location',sku_data['source_location__location']),
-                                                ('Destination Location',sku_data['dest_location__location']),
-                                                ('Quantity',sku_data['quantity']),('Weight',weight),('MRP',mrp),
-                                                ('Seller',sku_data['seller__name']),('Transaction Date',date))))
+        date = get_local_date(user, sku_data.creation_date)
+        if sku_data.batch_detail:
+            mrp = sku_data.batch_detail.mrp
+            weight = sku_data.batch_detail.weight
+        seller_name = ''
+        if sku_data.seller:
+            seller_name = sku_data.seller.name
+        version_obj = Version.objects.get_for_object(sku_data)
+        updated_user_name = ''
+        if version_obj.exists():
+            updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
+        temp_data['aaData'].append(OrderedDict((('SKU Code', sku_data.sku.wms_code),
+                                                ('SKU Description', sku_data.sku.sku_desc),
+                                                ('Source Location',sku_data.source_location.location),
+                                                ('Destination Location',sku_data.dest_location.location),
+                                                ('Quantity',sku_data.quantity),('Weight',weight),('MRP',mrp),
+                                                ('Seller', seller_name),
+                                                ('Transaction Date',date),
+                                                ('Updated User', updated_user_name))))
     return temp_data

@@ -1103,6 +1103,7 @@ def confirm_move_location_inventory(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def insert_move_inventory(request, user=''):
     # data = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
     # if not data:
@@ -1110,6 +1111,7 @@ def insert_move_inventory(request, user=''):
     # else:
     #     cycle_id = data[0].cycle + 1
 
+    reversion.set_user(request.user)
     now = str(datetime.datetime.now())
     wms_code = request.GET['wms_code']
     check = False

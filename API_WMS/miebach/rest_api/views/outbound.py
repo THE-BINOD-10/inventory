@@ -2201,7 +2201,7 @@ def picklist_confirmation(request, user=''):
                         picking_count = float(picklist.reserved_quantity)
                     picking_count1 = 0  # picking_count
                     wms_id = all_skus.exclude(sku_code='').get(wms_code=val['wms_code'], user=user.id)
-                    total_stock = StockDetail.objects.filter(**pic_check_data)
+                    total_stock = StockDetail.objects.filter(**pic_check_data).distinct()
                     if 'imei' in val.keys() and val['imei'] and picklist.order and val['imei'] != '[]':
                         insert_order_serial(picklist, val)
                     if 'labels' in val.keys() and val['labels'] and picklist.order:

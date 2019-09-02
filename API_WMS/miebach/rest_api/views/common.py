@@ -1722,7 +1722,6 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                 dest_stocks = StockDetail(**dict_values)
                 dest_stocks.save()
                 change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
-            move_inventory_objs = MoveInventory(**{})
         else:
             dest_stocks = dest_stocks[0]
             dest_stocks.quantity += float(quantity)
@@ -1813,7 +1812,7 @@ def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_i
 
     dest_batch = update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
                        dest_seller_id=seller_id)
-    move_inventory_dict = {'source_location_id': source[0].id,
+    move_inventory_dict = {'sku_id': sku_id, 'source_location_id': source[0].id,
                            'dest_location_id': dest[0].id, 'quantity': move_quantity, }
     if seller_id:
         move_inventory_dict['seller_id'] = seller_id

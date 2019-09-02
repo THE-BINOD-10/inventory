@@ -812,6 +812,7 @@ class InventoryAdjustment(models.Model):
 @reversion.register()
 class MoveInventory(models.Model):
     id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
     source_location = models.ForeignKey(LocationMaster, blank=True, null=True)
     dest_location = models.ForeignKey(LocationMaster, blank=True, null=True, related_name='dest_move_location')
     quantity = models.FloatField(default=0)

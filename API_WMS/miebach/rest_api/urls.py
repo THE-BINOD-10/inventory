@@ -512,6 +512,7 @@ urlpatterns = [
     url(r'^print_bulk_to_retail_report/$', print_bulk_to_retail_report),
     url(r'^get_stock_cover_report/$', get_stock_cover_report),
     url(r'^print_stock_cover_report/$', print_stock_cover_report),
+    url(r'^get_move_inventory_report/$', get_move_inventory_report),
 ]
 
 # urlpatterns += patterns('rest_api.views',

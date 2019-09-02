@@ -464,7 +464,7 @@ def get_search_params(request, user=''):
                     'supplier': 'supplier', 'sku_code': 'sku_code', 'category': 'sku_category',
                     'sku_category': 'sku_category', 'sku_type': 'sku_type','sister_warehouse':'sister_warehouse',
                     'class': 'sku_class', 'zone_id': 'zone', 'location': 'location', 'open_po': 'open_po',
-                    'marketplace': 'marketplace',
+                    'marketplace': 'marketplace','source_location':'source_location','destination_location':'destination_location',
                     'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage', 'jo_code': 'jo_code',
                     'sku_class': 'sku_class', 'sku_size': 'sku_size',
                     'order_report_status': 'order_report_status', 'customer_id': 'customer_id',

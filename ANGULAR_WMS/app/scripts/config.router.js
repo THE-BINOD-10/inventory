@@ -2425,6 +2425,18 @@ var app = angular.module('urbanApp')
             title: 'Margin Report',
           }
         })
+        .state('app.reports.MoveInventoryReport', {
+          url: '/MoveInventoryReport',
+          templateUrl: 'views/reports/move_inventory_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/move_inventory_report.js');
+              }]
+          },
+          data: {
+            title: 'MoveInventory Report',
+          }
+        })
         .state('app.reports.BasaReport', {
           url: '/BASAReport',
           templateUrl: 'views/reports/basa_report.html',

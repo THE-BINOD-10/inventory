@@ -1863,7 +1863,7 @@ def confirm_sku_substitution(request, user=''):
     if user.username in MILKBASKET_USERS :
         if not src_mrp or  not weight :
             return HttpResponse('MRP and Weight are Mandatory')
-    if not src_sku and not dest_sku and not src_qty and not dest_qty and not src_loc and not dest_loc:
+    if not src_sku and not dest_sku and not src_qty  and not src_loc :
         return HttpResponse('Please Send Required Field')
     if seller_id:
         seller = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
@@ -1912,6 +1912,8 @@ def confirm_sku_substitution(request, user=''):
         if not dest_loc:
             return HttpResponse('Destination Location Not Found')
         dest_qty = data_dict['dest_quantity'][ind]
+        if not dest_qty :
+            return HttpResponse('Enter Destination Quantity')
         if user.username in MILKBASKET_USERS :
             if not data_dict['dest_mrp'][ind] or not data_dict['dest_loc'][ind] :
                 return HttpResponse('MRP and Weight are mandatory')

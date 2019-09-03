@@ -1994,7 +1994,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
 
     if quantity == 0:
         stock_dict['quantity__gt'] = 0
-        all_stocks = StockDetail.objects.filter(**stock_dict)
+        all_stocks = StockDetail.objects.filter(**stock_dict).distinct()
         for stock in all_stocks:
             stock_quantity = stock.quantity
             SellerStock.objects.filter(stock_id=stock.id).update(quantity=0)

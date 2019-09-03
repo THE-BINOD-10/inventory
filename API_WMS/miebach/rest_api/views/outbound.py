@@ -2172,7 +2172,7 @@ def picklist_confirmation(request, user=''):
                 if not val['location'] == 'NO STOCK':
                     picklist_batch = update_no_stock_to_location(request, user, picklist, val, picks_all,
                                                                  picklist_batch)
-                for picklist in picklist_batch:
+                for picklist in picklist_batch.iterator():
                     save_status = ''
                     if not failed_serial_number.keys() and count == 0:
                         continue

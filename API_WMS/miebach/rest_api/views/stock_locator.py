@@ -2828,7 +2828,7 @@ def confirm_combo_allocation(request, user=''):
 
 @csrf_exempt
 def get_skuclassification(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['sku__sku_code', 'sku__sku_code', 'sku__sku_code', 'sku__sku_desc','sku__sku_category',
+    lis = ['sku__sku_code', 'sku__sku_code', 'sku__sku_code', 'sku__sku_desc','sku__sku_category','sku__ean_number',
            'sku__sku_code', 'sku__sku_code', 'sku__sku_code', 'sku__sku_code', 'sku__sku_code', 'sku__sku_code',
            'sku__sku_code', 'sku__relation_type', 'avg_sales_day', 'avg_sales_day_value',
            'cumulative_contribution', 'classification',
@@ -2846,11 +2846,12 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
                 Q(sku__wms_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term) |
                 Q(sku__sku_category__icontains=search_term) | Q(classification__icontains=search_term) |
                 Q(source_stock__batch_detail__mrp__icontains=search_term) |
+                Q(sku__ean_number__icontains=search_term) |
                 Q(source_stock__batch_detail__weight__icontains=search_term),
                 sku__user=user.id, status=1)
     else:
         master_data = SkuClassification.objects.filter(sku__user=user.id, status=1, **search_params)
-    master_data = master_data.select_related('sku', 'source_stock', 'source_stock__batch_detail').values('sku__sku_code', 'sku__sku_desc', 'sku__sku_category',
+    master_data = master_data.select_related('sku', 'source_stock', 'source_stock__batch_detail').values('sku__sku_code', 'sku__sku_desc', 'sku__sku_category','sku__ean_number',
                                      'source_stock__batch_detail__mrp', 'source_stock__batch_detail__weight',
                                      'avg_sales_day', 'avg_sales_day_value', 'cumulative_contribution', 'classification',
                                      'replenushment_qty', 'sku_avail_qty', 'avail_quantity',
@@ -2932,6 +2933,7 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
             OrderedDict((('', checkbox), ('generation_time', get_local_date(user, data['creation_date'])),
                          ('sku_code', data['sku__sku_code']),('sku_name', data['sku__sku_desc']),
                          ('sku_category', data['sku__sku_category']),
+                         ('ean_number',data['sku__ean_number']),
                          ('sheet', sheet),
                          ('vendor', vendor),
                          ('reset_stock', reset_stock),

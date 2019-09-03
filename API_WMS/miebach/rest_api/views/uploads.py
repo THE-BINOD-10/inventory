@@ -1785,7 +1785,13 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
     inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
-    if not set(['receipt_date', 'quantity', 'wms_code', 'location']).issubset(excel_mapping.keys()):
+    excel_check_list = ['receipt_date', 'quantity', 'wms_code', 'location']
+    if user.userprofile.user_type == 'marketplace_user':
+        excel_check_list.append('seller_id')
+    if user.userprofile.industry_type == 'FMCG':
+        excel_check_list.append('mrp')
+        excel_check_list.append('weight')
+    if not set(excel_check_list).issubset(excel_mapping.keys()):
         return 'Invalid File', []
     number_fields = ['quantity', 'mrp']
     optional_fields = ['mrp']
@@ -3170,8 +3176,14 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
     inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
-    if not set(['wms_code', 'source', 'destination', 'quantity']).issubset(excel_mapping.keys()):
-        return 'Invalid File'
+    excel_check_list = ['wms_code', 'source', 'destination', 'quantity']
+    if user.userprofile.user_type == 'marketplace_user':
+        excel_check_list.append('seller_id')
+    if user.userprofile.industry_type == 'FMCG':
+        excel_check_list.append('mrp')
+        excel_check_list.append('weight')
+    if not set(excel_check_list).issubset(excel_mapping.keys()):
+        return 'Invalid File', None
     fields_mapping = {'quantity': 'Quantity', 'mrp': 'MRP'}
     number_fields = ['quantity', 'mrp']
     for row_idx in range(1, no_of_rows):
@@ -3647,8 +3659,14 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
     inv_mapping = get_inventory_adjustment_excel_upload_headers(user)
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
-    if not set(['wms_code', 'location', 'quantity', 'reason']).issubset(excel_mapping.keys()):
-        return 'Invalid File'
+    excel_check_list = ['wms_code', 'location', 'quantity', 'reason']
+    if user.userprofile.user_type == 'marketplace_user':
+        excel_check_list.append('seller_id')
+    if user.userprofile.industry_type == 'FMCG':
+        excel_check_list.append('mrp')
+        excel_check_list.append('weight')
+    if not set(excel_check_list).issubset(excel_mapping.keys()):
+        return 'Invalid File', None
     for row_idx in range(1, no_of_rows):
         print row_idx
         data_dict = {}
@@ -5526,7 +5544,10 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                                                  inv_mapping)
     if not set(['source_sku_code', 'source_location', 'source_quantity', 'dest_sku_code',
                 'dest_location', 'dest_quantity']).issubset(excel_mapping.keys()):
-        return 'Invalid File'
+        return 'Invalid File', None
+    if user.userprofile.user_type == 'marketplace_user':
+        if 'seller_id' not in excel_mapping.keys():
+            return 'Invalid File', None
     number_fields = ['source_quantity', 'source_mrp','dest_quantity', 'dest_mrp']
     prev_data_dict = {}
     for row_idx in range(1, no_of_rows):
@@ -7160,14 +7181,14 @@ def validate_combo_allocate_form(request, reader, user, no_of_rows, no_of_cols, 
                                                  inv_mapping)
     if not set(['combo_sku_code', 'combo_location', 'combo_quantity', 'child_sku_code',
                 'child_location', 'child_quantity']).issubset(excel_mapping.keys()):
-        return 'Invalid File'
+        return 'Invalid File', None
     if user.userprofile.industry_type == 'FMCG':
         if not set(['combo_batch_no', 'combo_mrp', 'child_quantity', 'child_batch_no',
                     'child_mrp', 'child_weight']).issubset(excel_mapping.keys()):
-            return 'Invalid File'
+            return 'Invalid File', None
     if user.userprofile.user_type == 'marketplace_user':
         if 'seller_id' not in excel_mapping.keys():
-            return 'Invalid File'
+            return 'Invalid File', None
     number_fields = ['combo_quantity', 'combo_mrp', 'child_quantity', 'child_mrp']
     prev_data_dict = {}
     final_data = OrderedDict()

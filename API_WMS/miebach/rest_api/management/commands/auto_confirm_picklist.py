@@ -146,7 +146,7 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
         if stock_quantity < float(order_quantity):
             is_seller_stock_updated = False
             if seller_order:
-                src_stocks = temp_sku_stocks.filter(sellerstock__seller__seller_id=1, **sku_id_stock_filter)
+                src_stocks = temp_sku_stocks.filter(sellerstock__seller__seller_id=1, **sku_id_stock_filter).distinct()
                 if src_stocks:
                     src_sku_id_stocks = src_stocks.values('id', 'sku_id').annotate(total=Sum('sellerstock__quantity')).\
                                                                                     order_by(order_by)
@@ -274,7 +274,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write("Started Updating")
-        users = User.objects.filter(username__in=['NOIDA02', 'NOIDA01', 'BLR01', 'HYD01'])
+        users = User.objects.filter(username__in=['NOIDA02', 'NOIDA01', 'BLR01', 'HYD01', 'GGN01'])
         log.info(str(datetime.datetime.now()))
         for user in users:
             picklist_exclude_zones = get_exclude_zones(user)

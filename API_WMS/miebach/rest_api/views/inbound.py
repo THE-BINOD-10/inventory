@@ -8685,8 +8685,13 @@ def prepare_rtv_json_data(request_data, user):
         if 'rtv_id' in request_data:
             data_dict['rtv_id'] = request_data['rtv_id'][ind]
         if request_data['location'][ind] and request_data['return_qty'][ind]:
-            quantity = request_data['return_qty'][ind]
+            quantity = float(request_data['return_qty'][ind])
             seller_summary = SellerPOSummary.objects.get(id=request_data['summary_id'][ind])
+            returned_quantity = seller_summary.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
+            if not returned_quantity:
+                returned_quantity = 0
+            if (seller_summary.quantity - returned_quantity) < quantity:
+                return data_list, 'Return Quantity exceeding the quantity'
             data_dict['summary_id'] = request_data['summary_id'][ind]
             data_dict['quantity'] = quantity
             stock_filter = {'sku__user': user.id, 'quantity__gt': 0,

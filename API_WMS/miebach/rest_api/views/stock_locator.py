@@ -1915,7 +1915,7 @@ def confirm_sku_substitution(request, user=''):
         if not dest_qty :
             return HttpResponse('Enter Destination Quantity')
         if user.username in MILKBASKET_USERS :
-            if not data_dict['dest_mrp'][ind] or not data_dict['dest_loc'][ind] :
+            if not data_dict['dest_mrp'][ind] or not data_dict['dest_weight'][ind] :
                 return HttpResponse('MRP and Weight are mandatory')
         try:
             dest_qty = float(dest_qty)

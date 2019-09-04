@@ -756,7 +756,7 @@ def generated_po_data(request, user=''):
                 if not receipt_type:
                     receipt_type = sell_po.receipt_type
                 ser_data.append({'fields': {'sku': {'wms_code': rec.sku.sku_code}, 'description': rec.sku.sku_desc,
-                                            'order_quantity': sell_po.seller_quantity,
+                                            'order_quantity': rec.order_quantity,
                                             'price': rec.price, 'mrp': rec.mrp, 'supplier_code': rec.supplier_code,
                                             'measurement_unit': rec.measurement_unit,
                                             'remarks': rec.remarks, 'dedicated_seller': str(
@@ -4020,7 +4020,13 @@ def validate_putaway(all_data, user):
                     status = 'Entered Location is locked for %s operations' % loc.lock_status
 
                 if key[0]:
-                    data = POLocation.objects.get(id=key[0], location__zone__user=user.id)
+                    data = POLocation.objects.filter(id=key[0], location__zone__user=user.id, status=1)
+                    if not data:
+                        status = 'Data not Found or Already processed'
+                        continue
+                    data = data[0]
+                    if data.quantity < value:
+                        status = 'Putaway quantity should be less than the Received Quantity'
                     order_data = get_purchase_order_data(data.purchase_order)
                     if (float(data.purchase_order.received_quantity) - value) < 0:
                         status = 'Putaway quantity should be less than the Received Quantity'
@@ -8679,8 +8685,13 @@ def prepare_rtv_json_data(request_data, user):
         if 'rtv_id' in request_data:
             data_dict['rtv_id'] = request_data['rtv_id'][ind]
         if request_data['location'][ind] and request_data['return_qty'][ind]:
-            quantity = request_data['return_qty'][ind]
+            quantity = float(request_data['return_qty'][ind])
             seller_summary = SellerPOSummary.objects.get(id=request_data['summary_id'][ind])
+            returned_quantity = seller_summary.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
+            if not returned_quantity:
+                returned_quantity = 0
+            if (seller_summary.quantity - returned_quantity) < quantity:
+                return data_list, 'Return Quantity exceeding the quantity'
             data_dict['summary_id'] = request_data['summary_id'][ind]
             data_dict['quantity'] = quantity
             stock_filter = {'sku__user': user.id, 'quantity__gt': 0,

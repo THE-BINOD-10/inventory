@@ -4020,7 +4020,13 @@ def validate_putaway(all_data, user):
                     status = 'Entered Location is locked for %s operations' % loc.lock_status
 
                 if key[0]:
-                    data = POLocation.objects.get(id=key[0], location__zone__user=user.id)
+                    data = POLocation.objects.filter(id=key[0], location__zone__user=user.id, status=1)
+                    if not data:
+                        status = 'Data not Found or Already processed'
+                        continue
+                    data = data[0]
+                    if data.quantity < value:
+                        status = 'Putaway quantity should be less than the Received Quantity'
                     order_data = get_purchase_order_data(data.purchase_order)
                     if (float(data.purchase_order.received_quantity) - value) < 0:
                         status = 'Putaway quantity should be less than the Received Quantity'

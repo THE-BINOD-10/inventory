@@ -10847,7 +10847,7 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
         orders = OrderDetail.objects.filter(user=user.id)
         for data in master_data[start_index:stop_index]:
             if is_marketplace:
-                summary = order_summaries.filter(seller_order__order__order_id=data['seller_order__order__order_id'],
+                summary = order_summaries.filter(seller_order__order__original_order_id=data['seller_order__order__original_order_id'],
                                                  seller_order__seller__name=data['seller_order__seller__name'])[0]
                 order = summary.seller_order.order
                 ordered_quantity = seller_orders.filter(order__order_id=data['seller_order__order__order_id'],

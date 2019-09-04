@@ -7487,7 +7487,10 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     if stop_index:
         stock_rec_objs = stock_rec_objs[start_index:stop_index]
     for stock_rec_obj in stock_rec_objs:
-        creation_date = get_local_date(user, stock_rec_obj.creation_date, send_date=True).strftime('%d %b %Y')
+        creation_date = stock_rec_obj.creation_date
+        if creation_date.strftime('%H') in ['23']:
+            creation_date = creation_date - datetime.timedelta(1)
+        creation_date = get_local_date(user, creation_date, send_date=True).strftime('%d %b %Y')
         sku = stock_rec_obj.sku
         sku_attr_data = dict(sku.skuattributes_set.filter(attribute_name__in=['Manufacturer', 'Sub Category Type',
                                                                               'Sheet', 'Vendor']).\

@@ -3068,6 +3068,7 @@ def ba_to_sa_calculate_now(request, user=''):
     ba_sku_avail_qty = OrderedDict()
     ba_sku_res_qty = OrderedDict()
     zones = get_all_sellable_zones(user)
+    remarks = ''
     locations = LocationMaster.objects.filter(zone__user=user.id, zone__zone__in=zones)
     if not locations:
         return HttpResponse("Sellable Locations not found")
@@ -3154,35 +3155,39 @@ def ba_to_sa_calculate_now(request, user=''):
             "BA to SA calculating saving for user %s started at %s" % (user.username, str(datetime.datetime.now())))
         for data in master_data:
             if not total_avg_sale_per_day_value:
-                break
-            sku_avg_sale_mapping_data = sku_avg_sale_mapping[data.id]
-            sku_avg_sale_per_day_units = sku_avg_sale_mapping_data['avg_sale_per_day_units']
-            sku_avg_sale_per_day_value = sku_avg_sale_mapping_data['avg_sale_per_day_value']
-            sku_avail_qty = sku_avg_sale_mapping_data['avail_qty']
-            avg_more_sales = filter(lambda person: person['avg_sale_per_day_value'] >= sku_avg_sale_per_day_value, sku_avg_sale_mapping.values())
-            sum_avg_more_sales = 0
-            for avg_more_sale in avg_more_sales:
-                sum_avg_more_sales += avg_more_sale['avg_sale_per_day_value']
-            cumulative_contribution = (sum_avg_more_sales/total_avg_sale_per_day_value) * 100
-            if cumulative_contribution <= 40:
-                classification = 'Fast'
-            elif cumulative_contribution > 80:
-                classification = 'Slow'
+                min_stock = 20
+                max_stock = 30
             else:
-                classification = 'Medium'
-            #replenishment_obj = ReplenushmentMaster.objects.filter(user_id=user.id, classification=classification,
-            #                                                       size=data.sku_size)
-            remarks = ''
-            sku_rep_dict = replenish_dict.get((data.sku_size, classification), {})
-            if not sku_rep_dict:
-            #if not replenishment_obj.exists():
-                remarks = 'Replenushment Master Not Found'
-                min_days, max_days, min_stock, max_stock = 0, 0, 0, 0
-            else:
-                min_days = sku_rep_dict['min_days'] #replenishment_obj[0].min_days
-                max_days = sku_rep_dict['max_days'] #replenishment_obj[0].max_days
-                min_stock = min_days * sku_avg_sale_per_day_units
-                max_stock = max_days * sku_avg_sale_per_day_units
+                sku_avg_sale_mapping_data = sku_avg_sale_mapping[data.id]
+                sku_avg_sale_per_day_units = sku_avg_sale_mapping_data['avg_sale_per_day_units']
+                sku_avg_sale_per_day_value = sku_avg_sale_mapping_data['avg_sale_per_day_value']
+                sku_avail_qty = sku_avg_sale_mapping_data['avail_qty']
+                avg_more_sales = filter(lambda person: person['avg_sale_per_day_value'] >= sku_avg_sale_per_day_value, sku_avg_sale_mapping.values())
+                sum_avg_more_sales = 0
+                for avg_more_sale in avg_more_sales:
+                    sum_avg_more_sales += avg_more_sale['avg_sale_per_day_value']
+                cumulative_contribution = (sum_avg_more_sales/total_avg_sale_per_day_value) * 100
+                if cumulative_contribution <= 40:
+                    classification = 'Fast'
+                elif cumulative_contribution > 80:
+                    classification = 'Slow'
+                else:
+                    classification = 'Medium'
+                #replenishment_obj = ReplenushmentMaster.objects.filter(user_id=user.id, classification=classification,
+                #                                                       size=data.sku_size)
+                remarks = ''
+                sku_rep_dict = replenish_dict.get((data.sku_size, classification), {})
+                if not sku_rep_dict:
+                #if not replenishment_obj.exists():
+                    remarks = 'Replenushment Master Not Found'
+                    # min_days, max_days, min_stock, max_stock = 0, 0, 0, 0
+                    min_stock = 20
+                    max_stock = 30
+                else:
+                    min_days = sku_rep_dict['min_days'] #replenishment_obj[0].min_days
+                    max_days = sku_rep_dict['max_days'] #replenishment_obj[0].max_days
+                    min_stock = min_days * sku_avg_sale_per_day_units
+                    max_stock = max_days * sku_avg_sale_per_day_units
             sku_classification_dict1 = {'sku_id': data.id, 'avg_sales_day': sku_avg_sale_per_day_units,
                                         'avg_sales_day_value': sku_avg_sale_per_day_value,
                                         'cumulative_contribution': cumulative_contribution, 'classification': classification, 'source_stock': None,
@@ -3215,6 +3220,8 @@ def ba_to_sa_calculate_now(request, user=''):
             #                                             sellerstock__seller__seller_id=1, quantity__gt=0,
             #                                             sellerstock__quantity__gt=0)
             #if ba_stock_objs.exists():
+            if replenishment_qty < 20 :
+                replenishment_qty = 20
             if ba_stock_dict:
                 total_ba_stock = ba_stock_dict['total_quantity'] #ba_stock_objs.aggregate(Sum('sellerstock__quantity'))['sellerstock__quantity__sum']
                 if total_ba_stock < replenishment_qty:

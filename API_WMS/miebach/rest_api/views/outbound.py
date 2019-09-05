@@ -4199,17 +4199,17 @@ def fetch_asn_stock(dist_user_id, sku_code, req_stock):
     intr_obj_3days_qs = asn_qs.filter(Q(arriving_date__lte=threeday_filter) | Q(asn_po_num='NON_KITTED_STOCK'))
     intr_obj_3days_ids = intr_obj_3days_qs.values_list('id', flat=True)
     asn_res_3days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_3days_ids)
-    asn_res_3days_qty = asn_res_3days_qs.values_list('asnstock__sku__user').annotate(in_res=Sum('reserved_qty'))
+    asn_res_3days_qty = dict(asn_res_3days_qs.values_list('asnstock__sku__user').annotate(in_res=Sum('reserved_qty')))
 
-    intr_obj_30days_qs = asn_qs.exclude(arriving_date__lte=threeday_filter).filter(arriving_date__lte=thirtyday_filter)
+    intr_obj_30days_qs = asn_qs.exclude(Q(arriving_date__lte=threeday_filter) | Q(asn_po_num='NON_KITTED_STOCK')).filter(arriving_date__lte=thirtyday_filter)
     intr_obj_30days_ids = intr_obj_30days_qs.values_list('id', flat=True)
     asn_res_30days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_30days_ids)
-    asn_res_30days_qty = asn_res_30days_qs.values_list('asnstock__sku__user').annotate(in_res=Sum('reserved_qty'))
+    asn_res_30days_qty = dict(asn_res_30days_qs.values_list('asnstock__sku__user').annotate(in_res=Sum('reserved_qty')))
 
     intr_obj_100days_qs = asn_qs.exclude(arriving_date__lte=thirtyday_filter).filter(arriving_date__lte=hundred_day_filter)
     intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
     asn_res_100days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
-    asn_res_100days_qty = asn_res_100days_qs.values_list('asnstock__sku__user').annotate(in_res=Sum('reserved_qty'))
+    asn_res_100days_qty = dict(asn_res_100days_qs.values_list('asnstock__sku__user').annotate(in_res=Sum('reserved_qty')))
 
     intr_3d_st = dict(intr_obj_3days_qs.values_list('sku__user').distinct().annotate(in_asn=Sum('quantity')))
     for k, v in intr_3d_st.items():
@@ -12532,11 +12532,14 @@ def insert_enquiry_data(request, user=''):
         enq_master_obj = EnquiryMaster(**enquiry_map)
         enq_master_obj.save()
         for cart_item in cart_items:
+            if cart_item.quantity <= 0:
+                continue
             enquiry_data = {'customer_id': customer_id, 'warehouse_level': cart_item.warehouse_level,
                             'user': user.id, 'quantity': cart_item.quantity, 'sku_id': cart_item.sku.id}
             stock_wh_map = split_orders(**enquiry_data)
             if not stock_wh_map:
-                return HttpResponse('Stock not present for sku:%s.' %cart_item.sku.sku_code)
+                log.info('Stock not present for sku:%s' %cart_item.sku.sku_code)
+                continue
             if cart_item.warehouse_level == 3:
                 for lt, stc_wh_map in stock_wh_map.items():
                     for wh_code, qty in stc_wh_map.items():

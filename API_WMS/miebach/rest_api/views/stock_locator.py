@@ -2345,6 +2345,9 @@ def get_sku_batches(request, user=''):
         sku_id = sku_id[0].id
         batch_obj = BatchDetail.objects.filter(stockdetail__sku=sku_id).values('batch_no', 'mrp', 'buy_price', 'manufactured_date', 'expiry_date', 'tax_percent', 'transact_type', 'transact_id', 'weight').distinct()
         for batch in batch_obj:
+            if user.username in MILKBASKET_USERS:
+                if not batch['mrp'] or not batch['weight']:
+                    continue
             sku_batches[batch['batch_no']].append(batch['mrp'])
             sku_batches[batch['batch_no']] = list(set(sku_batches[batch['batch_no']]))
             sku_weights[batch['batch_no']].append(batch['weight'])

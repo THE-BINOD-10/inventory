@@ -6610,7 +6610,7 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                                 if avail_stock < cell_data:
                                     index_status.setdefault(row_idx, set()).add('Stock Outage.Pls check stock in WH')
                             elif level == 3:
-                                asn_avail_stock = ret_list[0]['asn']
+                                asn_avail_stock = ret_list[0]['asn'] + ret_list[0]['non_kitted']
                                 if asn_avail_stock < cell_data:
                                     index_status.setdefault(row_idx, set()).add('Stock Outage.Pls check stock in WH')
             elif key == 'reseller_name':

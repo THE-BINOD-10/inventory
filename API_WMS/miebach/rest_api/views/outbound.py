@@ -5145,6 +5145,8 @@ def insert_order_data(request, user=''):
             order_data['status'] = order_status_key
             order_data['order_code'] = 'MN'
             order_data['marketplace'] = 'Offline'
+            if is_sample == 'true':
+                order_data['marketplace'] = 'Sample'
             if custom_order == 'true':
                 order_data['order_code'] = 'CO'
             order_data['user'] = user.id

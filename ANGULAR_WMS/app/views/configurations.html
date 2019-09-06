@@ -134,7 +134,7 @@
       <div class="row col-md-12" style="padding-bottom: 15px">
         <div class="col-md-5 col-sm-8 col-xs-12">
           <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i>
-          <strong style="line-height: 34px;" class="pull-left ml20"> Marketplace Prefix Details </strong>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Marketplace Invoice Prefix Details </strong>
         </div>
         <div class="col-md-2 col-sm-4 col-xs-4">
           <select class="show-menu-arrow form-control pull-left" ng-model="showCase.marketplace_selected" ng-change="showCase.marketplaceSelected(showCase.marketplace_selected)">
@@ -181,6 +181,59 @@
         <div class="col-md-2 col-sm-2 col-xs-3">
           <button type="button" class="btn btn-success" ng-click="showCase.saveMarketplace(showCase.model_data.marketplace_name, showCase.model_data.marketplace_prefix)">Save</button>
           <button type="button" class="btn btn-danger" ng-click="showCase.updateMarketplace(showCase.model_data.marketplace_name, showCase.model_data.marketplace_prefix, 'delete')" ng-if="!showCase.model_data.marketplace_new">Delete</button>
+        </div>
+      </div>
+
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Marketplace DC Prefix Details </strong>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <select class="show-menu-arrow form-control pull-left" ng-model="showCase.marketplace_selected_dc" ng-change="showCase.marketplaceSelectedDc(showCase.marketplace_selected_dc)">
+            <option value="">Select</option>
+            <option ng-repeat="marketplace in showCase.model_data.prefix_dc_data" value="{{marketplace.marketplace_name}}"> {{marketplace.marketplace_name}}</option>
+          </select>
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-2" ng-if="!showCase.marketplace_add_show_dc">
+          <div class="btn-group pull-left">
+            <button type="button" class="btn btn-warning" ng-click="showCase.marketplace_add_show_dc = true;showCase.model_data.marketplace_new = true;showCase.filterMarkeplacesDc();">
+              <span class="icon-plus"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="row col-md-12" style="padding-bottom: 15px" ng-if="showCase.marketplace_add_show_dc">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+        </div>
+        <div class="col-md-2 col-sm-2 col-xs-3">
+          <select class="show-menu-arrow form-control pull-left" ng-model="showCase.model_data.marketplace_name" ng-disabled="!showCase.model_data.marketplace_new">
+            <option ng-repeat="marketplace in showCase.model_data.marketplaces" value="{{marketplace}}" ng-selected="marketplace==showCase.model_data.marketplace_name"> {{marketplace}} </option>
+          </select>
+          <!--<input type="text" class="form-control" ng-model="showCase.model_data.marketplace_name" placeholder="Marketplace" ng-readonly="!showCase.model_data.marketplace_new">-->
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-2">
+          <input type="text" class="form-control" ng-model="showCase.model_data.marketplace_prefix" placeholder="Prefix">
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-2">
+          <input type="text" class="form-control hidden" ng-model="showCase.model_data.marketplace_interfix" placeholder="Interfix">
+        </div>
+        <div class="col-md-2 col-sm-2 col-xs-3 hidden">
+          <select class="show-menu-arrow form-control pull-left" ng-model="showCase.model_data.marketplace_date_type">
+            <option value="">Select</option>
+            <option value="financial"> Include Financial year </option>
+            <option value="month_year"> Include Month and year </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row col-md-12" style="padding-bottom: 15px" ng-if="showCase.marketplace_add_show_dc">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+        </div>
+        <div class="col-md-2 col-sm-2 col-xs-3">
+          <button type="button" class="btn btn-success" ng-click="showCase.saveMarketplaceDc(showCase.model_data.marketplace_name, showCase.model_data.marketplace_prefix)">Save</button>
+          <button type="button" class="btn btn-danger" ng-click="showCase.updateMarketplaceDc(showCase.model_data.marketplace_name, showCase.model_data.marketplace_prefix, 'delete')" ng-if="!showCase.model_data.marketplace_new">Delete</button>
         </div>
       </div>
 

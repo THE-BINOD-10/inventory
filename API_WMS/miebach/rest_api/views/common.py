@@ -834,6 +834,8 @@ def configurations(request, user=''):
     config_dict['marketplaces'] = get_marketplace_names(user, 'all_marketplaces')
     config_dict['prefix_data'] = list(InvoiceSequence.objects.filter(user=user.id, status=1).exclude(marketplace=''). \
                                       values('marketplace', 'prefix', 'interfix', 'date_type'))
+    config_dict['prefix_dc_data'] = list(ChallanSequence.objects.filter(user=user.id, status=1).exclude(marketplace=''). \
+                                      values('marketplace', 'prefix'))
 
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
     config_dict['all_stages'] = str(','.join(all_stages))
@@ -6771,6 +6773,45 @@ def update_invoice_sequence(request, user=''):
         status = 'Update Invoice Number Sequence Failed'
     return HttpResponse(json.dumps({'status': status}))
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_dc_sequence(request, user=''):
+
+    log.info('Request Params for Update Dc Invoice Sequences for %s is %s' % (user.username, str(request.GET.dict())))
+    status = ''
+    try:
+        marketplace_name = request.GET.get('marketplace_name', '')
+        if not marketplace_name:
+            status = 'Marketplace Name Should not be empty'
+        marketplace_prefix = request.GET.get('marketplace_prefix', '')
+        marketplace_interfix = request.GET.get('marketplace_interfix', '')
+        marketplace_date_type = request.GET.get('marketplace_date_type', '')
+        delete_status = request.GET.get('delete', '')
+        if not status:
+            challan_sequence = ChallanSequence.objects.filter(user_id=user.id, marketplace=marketplace_name)
+            if challan_sequence:
+                challan_sequence = invoice_sequence[0]
+                challan_sequence.prefix = marketplace_prefix
+                challan_sequence.interfix = marketplace_interfix
+                challan_sequence.date_type = marketplace_date_type
+                if delete_status:
+                    challan_sequence.status = 0
+                else:
+                    challan_sequence.status = 1
+                challan_sequence.save()
+            else:
+                ChallanSequence.objects.create(marketplace=marketplace_name, prefix=marketplace_prefix, value=1,
+                                               status=1,user_id=user.id, creation_date=datetime.datetime.now())
+            status = 'Success'
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update DC Invoice Sequence failed for %s and params are %s and error statement is %s' %
+                 (str(user.username), str(request.GET.dict()), str(e)))
+        status = 'Update DC Invoice Number Sequence Failed'
+    return HttpResponse(json.dumps({'status': status}))
 
 def get_warehouse_admin(user):
     """ Check and Return Admin user of current """

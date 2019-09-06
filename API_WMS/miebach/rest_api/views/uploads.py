@@ -7262,7 +7262,7 @@ def validate_combo_allocate_form(request, reader, user, no_of_rows, no_of_cols, 
             elif key in number_fields:
                 if key in ['combo_mrp','child_mrp'] :
                     if user.username in MILKBASKET_USERS and not cell_data:
-                        index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
+                        index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
                 if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
                 elif 'child' in key and prev_data_dict.get(key, ''):

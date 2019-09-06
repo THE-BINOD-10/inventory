@@ -2750,10 +2750,20 @@ def confirm_combo_allocation(request, user=''):
                         return HttpResponse(json.dumps({'status':False, 'message':'Combo MRP should be number'}))
                 else:
                     combo_mrp = 0
-            if user.username in MILKBASKET_USERS and not child_weight:
-                return HttpResponse(json.dumps({'status': False, 'message': 'Child Weight is Mandatory'}))
-            if user.username in MILKBASKET_USERS and not combo_weight:
-                return HttpResponse(json.dumps({'status': False, 'message': 'Combo Weight is Mandatory'}))
+            if user.username in MILKBASKET_USERS :
+                try:
+                    child_weight = float(child_weight)
+                except:
+                    child_weight = child_weight
+                if not child_weight:
+                    return HttpResponse(json.dumps({'status': False, 'message': 'Child Weight is Mandatory'}))
+            if user.username in MILKBASKET_USERS :
+                try:
+                    combo_weight = float(combo_weight)
+                except:
+                    combo_weight = combo_weight
+                if not combo_weight:
+                    return HttpResponse(json.dumps({'status': False, 'message': 'Combo Weight is Mandatory'}))
             combo_sku = SKUMaster.objects.filter(user=user.id, sku_code=data_dict['combo_sku_code'][ind])
             if not combo_sku:
                 return HttpResponse(json.dumps({'status':False, 'message':'Combo SKU Code Not Found'}))

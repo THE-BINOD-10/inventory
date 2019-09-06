@@ -3386,7 +3386,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference,
                     'order_reference_date_field': order_reference_date_field,
                     'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
-                    'cin_no': cin_no, 'challan_no': challan_no, 'customer_id': customer_id,
+                    'cin_no': cin_no, 'challan_no': challan_no, 'customer_id': customer_id,'challan_sequence':challan_sequence,
                     'show_mrp': show_mrp, 'mode_of_transport' : mode_of_transport, 'vehicle_number' : vehicle_number,
                     'is_cess_tax_flag': is_cess_tax_flag, 'is_igst_tax_flag': is_igst_tax_flag}
     return invoice_data

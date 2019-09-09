@@ -3867,13 +3867,13 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                                             annotate(tot_rem=F('total_order')-F('total_received')).\
                                             values_list('open_po__sku__sku_code', 'tot_rem'))
 
-    today_filter = datetime.datetime.today()
-    hundred_day_filter = today_filter + datetime.timedelta(days=90)
+    # today_filter = datetime.datetime.today()
+    # hundred_day_filter = today_filter + datetime.timedelta(days=90)
     ints_filters = {'quantity__gt': 0, 'sku__sku_code__in': needed_skus, 'sku__user__in': gen_whs, 'status': 'open'}
     asn_qs = ASNStockDetail.objects.filter(**ints_filters)
     nk_stock = asn_qs.filter(asn_po_num='NON_KITTED_STOCK')
-    intr_obj_100days_qs = asn_qs.filter(Q(arriving_date__lte=hundred_day_filter)| Q(asn_po_num='NON_KITTED_STOCK'))
-    intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
+    # intr_obj_100days_qs = asn_qs.filter(Q(arriving_date__lte=hundred_day_filter)| Q(asn_po_num='NON_KITTED_STOCK'))
+    intr_obj_100days_ids = asn_qs.values_list('id', flat=True)
     asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
     asn_res_100days_qs = asnres_det_qs.filter(orderdetail__isnull=False)  # Reserved Quantity
     asn_res_100days_qty = dict(asn_res_100days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
@@ -3881,8 +3881,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     asn_blk_100days_qty = dict(
         asn_blk_100days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
 
-    needed_stock_data['asn_quantities'] = dict(
-        intr_obj_100days_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+    needed_stock_data['asn_quantities'] = dict(asn_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
     needed_stock_data['nonkitted_stock'] = dict(nk_stock.values_list('sku__sku_code').distinct().annotate(Sum('quantity')))
     needed_stock_data['asn_blocked_quantities'] = {}
     for k, v in needed_stock_data['asn_quantities'].items():

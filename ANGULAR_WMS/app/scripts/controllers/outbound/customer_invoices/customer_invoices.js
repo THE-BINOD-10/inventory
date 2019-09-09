@@ -9,9 +9,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
-
     vm.user_type = Session.roles.permissions.user_type;
-
+    vm.CustomerInvoicesTabCtrl_enable = false;
     vm.selected = {};
     vm.checked_items = {};
     vm.selectAll = false;
@@ -209,10 +208,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.reloadData = function () {
       $('.custom-table').DataTable().draw();
     };
-
-
+    vm.loadjs = function () {
+      vm.CustomerInvoicesTabCtrl_enable = true;
+    }
     vm.close = function() {
-
       $state.go("app.outbound.CustomerInvoices")
     }
 }
@@ -279,7 +278,6 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
     $('[name="invoice_date"]').datepicker("setDate", new Date(vm.model_data.inv_date) );
   },1000);
   vm.ok = function () {
-
     $modalInstance.close("close");
   };
 

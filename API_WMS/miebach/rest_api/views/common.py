@@ -3002,6 +3002,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     show_disc_invoice = get_misc_value('show_disc_invoice', user.id)
     show_mrp = get_misc_value('show_mrp', user.id)
     show_sno = get_misc_value('sno_in_invoice',user.id)
+    is_sample_option =  get_misc_value('create_order_po', user.id)
     count = 0
 
     if len(invoice_remarks.split("<<>>")) > 1:
@@ -3242,6 +3243,15 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             quantity = get_decimal_limit(user.id ,quantity)
             invoice_amount = get_decimal_limit(user.id ,invoice_amount ,'price')
             count = count +1
+            if is_sample_option == 'true':
+                mappingData = list(OrderMapping.objects.filter(mapping_type='PO', order_id=dat.id).values_list('mapping_id', flat=True))
+                if mappingData:
+                    purchase_order_data = PurchaseOrder.objects.filter(id=mappingData[0]).values('received_quantity')
+                    if purchase_order_data:
+                        received_quantity = purchase_order_data[0].get('received_quantity', 0)
+                        invoice_qty = quantity - received_quantity
+            else:
+                received_quantity, invoice_qty = '', ''
             data.append(
                 {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
                  'title': title, 'invoice_amount': str(invoice_amount),
@@ -3250,8 +3260,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                  'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
                  'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
                  'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date,'sno':count,
-                 'measurement_type': measurement_type})
-
+                 'measurement_type': measurement_type, 'received_quantity': received_quantity, 'invoice_qty': invoice_qty})
     is_cess_tax_flag = 'true'
     for ord_dict in data:
         if ord_dict['taxes'].get('cess_tax', 0):
@@ -3279,7 +3288,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 ord_dict.pop('igst_tax')
             if 'igst_amt' in ord_dict:
                 ord_dict.pop('igst_amt')
-
     _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos, order_obj=dat)
     challan_no, challan_sequence = get_challan_number(user, seller_summary)
     inv_date = invoice_date.strftime("%m/%d/%Y")

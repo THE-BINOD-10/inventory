@@ -7,12 +7,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     var vm = this;
     vm.apply_filters = colFilters;
-
-
+    vm.DeliveryChallanCtrl_enable = false;
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
     vm.user_type = Session.roles.permissions.user_type;
-
     vm.selected = {};
     vm.checked_items = {};
     vm.selectAll = false;
@@ -178,7 +176,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.reloadData = function () {
       $('.custom-table').DataTable().draw();
     };
-
+    vm.loadjs = function () {
+      vm.DeliveryChallanCtrl_enable = true;
+    }
     vm.generate_invoice = function(click_type, DC=false){
 
       var po_number = '';

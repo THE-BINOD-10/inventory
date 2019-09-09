@@ -11110,6 +11110,7 @@ def get_processed_orders_data(start_index, stop_index, temp_data, search_term, o
                 master_data = SellerOrderSummary.objects.filter(Q(order__order_id__icontains=order_id_search,
                                                                   order__order_code__icontains=order_code_search) |
                                                                 Q(order__original_order_id__icontains=search_term) |
+                                                                Q(order__marketplace__icontains=search_term) |
                                                                 search_query, **user_filter). \
                     values(*result_values).distinct(). \
                     annotate(total_quantity=Sum('quantity'),
@@ -11197,7 +11198,7 @@ def get_processed_orders_data(start_index, stop_index, temp_data, search_term, o
             data_dict.update(OrderedDict((('Customer Name', order.customer_name),
                                           ('Order Quantity', ordered_quantity), ('Total Amount', round(picked_amount, 2)),
                                           ('Picked Quantity', data['total_quantity']),
-                                          ('Order Date&Time', order_date), ('Invoice Number', '')
+                                          ('Order Date&Time', order_date), ('Invoice Number', ''), ('Marketplace', order.marketplace)
                                           )))
             temp_data['aaData'].append(data_dict)
         log.info('Customer Invoice filtered %s for %s ' % (str(temp_data['recordsTotal']), user.username))
@@ -11507,6 +11508,7 @@ def move_to_dc(request, user=''):
 def move_to_inv(request, user=''):
     log.info('Move To Invoice: Request params for ' + user.username + ' are ' + str(request.GET.dict()))
     cancel_flag = request.GET.get('cancel', '')
+    is_sample_option =  get_misc_value('create_order_po', user.id)
     if cancel_flag == 'true':
         sell_ids = construct_sell_ids(request, user, cancel_inv=True)
         #del sell_ids['pick_number__in']
@@ -11514,6 +11516,15 @@ def move_to_inv(request, user=''):
         sell_ids = construct_sell_ids(request, user)
         #del sell_ids['pick_number__in']
     seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
+    if is_sample_option == 'true':
+        for data in seller_summary:
+            mappingData = list(OrderMapping.objects.filter(mapping_type='PO', order_id=data.order_id).values_list('mapping_id', flat=True))
+            if mappingData:
+                purchase_order_data = PurchaseOrder.objects.filter(id=mappingData[0]).values('received_quantity')
+                if purchase_order_data:
+                    received_quantity = purchase_order_data[0].get('received_quantity', 0)
+                    if received_quantity != 0:
+                        data.quantity = data.quantity - received_quantity
     if cancel_flag != 'true':
         if user.userprofile.user_type == 'marketplace_user':
             marketplace = seller_summary[0].seller_order.order.marketplace

@@ -67,7 +67,7 @@ input[type="date"]:valid::before {
       </div>
       <div class="row">
         <div class="col-md-2 col-sm-6 col-xs-6 mt10">
-          <input type="text" class="form-control stk-readonly pull-left" name="shipment_date" ng-model="Cart.model_data.shipment_date" id="shipment_date" ng-change="Cart.date_changed()" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Exp. Delivery Date" data-date-start-date="{{Cart.date}}">
+          <input type="text" class="form-control stk-readonly pull-left" name="shipment_date" ng-model="Cart.model_data.shipment_date" id="shipment_date" ng-change="Cart.date_changed()" required data-date-today-highlight="true" data-date-autoclose="true"  data-date-format="dd/mm/yyyy" placeholder="Exp. Delivery Date" data-date-start-date="{{Cart.date}}">
         </div>
 
         <div class="col-md-2 col-sm-6 col-xs-6 mt10">
@@ -113,7 +113,7 @@ input[type="date"]:valid::before {
     <div class="clearfix hide">
       <div class="row col-md-11">
         <button type="button" class="btn btn-primary pull-right" ng-click="Cart.catlog=true;Cart.style_open=false;Cart.check_stock=false">View Catalog</button>
-      </div> 
+      </div>
       <div class="row col-md-12">
         <input type="hidden" name="user_type" value={{user.user_profile['user_type']}}>
         <input name="invoice_type" class="form-control" type="hidden" value="{{Cart.model_data.invoice_type}}" ng-model="Cart.model_data.invoice_type">
@@ -355,9 +355,9 @@ input[type="date"]:valid::before {
         <button type="button" class="btn btn-white btn-lg col-xs-{{ showCase.buttons_width}} cart_button" ng-click="$state.go('user.App.Products')" ng-show="permissions.user_type != 'reseller'">CONTINUE</button>
 
         <button type="button" id ="approval_for_order" class="btn btn-success btn-lg col-xs-{{ showCase.buttons_width}}" ng-click="Cart.update_cartdata_for_approval()" ng-show="permissions.display_sku_cust_mapping == true">SUBMIT FOR APPROVAL</button>
-        <button type="button" id ="place_sample" class="btn btn-warning btn-lg col-xs-{{ showCase.buttons_width}}" ng-click="Cart.insert_order_data({'is_sample': true})" ng-show="permissions.create_order_po && permissions.display_sku_cust_mapping != true">PLACE SAMPLE</button>
-        <button type="button" id ="place_central_order" class="btn btn-warning btn-lg col-xs-{{ showCase.buttons_width}}" ng-click="Cart.insert_order_data({'is_central_order': true})" ng-show="permissions.central_order_mgmt">PLACE CENTRAL ORDER</button>
-        <button type="button" id ="place_order" class="btn btn-success btn-lg col-xs-{{ showCase.buttons_width}}" ng-click="Cart.insert_order_data()" ng-show="permissions.display_sku_cust_mapping != true && permissions.central_order_mgmt != true">PLACE ORDER</button>
+        <button type="button" id ="place_sample" class="btn btn-warning btn-lg col-xs-{{ showCase.buttons_width}}" ng-click="Cart.insert_order_data({'is_sample': true})" ng-disabled="Cart.bt_disable" ng-show="permissions.create_order_po && permissions.display_sku_cust_mapping != true">PLACE SAMPLE</button>
+        <button type="button" id ="place_central_order" class="btn btn-warning btn-lg col-xs-{{ showCase.buttons_width}}" ng-click="Cart.insert_order_data({'is_central_order': true})" ng-disabled="Cart.bt_disable" ng-show="permissions.central_order_mgmt">PLACE CENTRAL ORDER</button>
+        <button type="button" id ="place_order" class="btn btn-success btn-lg col-xs-{{ showCase.buttons_width}}" ng-click="Cart.insert_order_data()" ng-disabled="Cart.bt_disable" ng-show="permissions.display_sku_cust_mapping != true && permissions.central_order_mgmt != true">PLACE ORDER</button>
             <!--<button type="button" class="btn btn-warning btn-lg col-xs-12 hide" ng-if="Cart.model_data.data.length == 0" ng-click="Cart.catlog=false;Cart.details=true;Cart.detailed_list=false;Cart.orderspage=false">SHOP NOW</button>-->
 <!--          </div>--
         <!--</div>-->
@@ -369,4 +369,3 @@ input[type="date"]:valid::before {
     </div>
   </form>
 </div>
-

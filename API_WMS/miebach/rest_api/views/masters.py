@@ -513,7 +513,7 @@ def get_sku_pack_master(start_index, stop_index, temp_data, search_term, order_t
 
 @csrf_exempt
 def get_replenushment_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['classification', 'classification','classification']
+    lis = ['classification', 'size','min_days', 'max_days']
 
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
@@ -521,9 +521,10 @@ def get_replenushment_master(start_index, stop_index, temp_data, search_term, or
         order_data = '-%s' % order_data
     if search_term:
             master_data = ReplenushmentMaster.objects.filter(
-                Q(sku__wms_code__icontains=search_term)).order_by(order_data)
+                Q(classification__icontains=search_term) | Q(size__icontains=search_term) |
+                Q(min_days__icontains=search_term) | Q(max_days__icontains=search_term), user=user.id).order_by(order_data)
     else:
-        master_data = ReplenushmentMaster.objects.filter(**search_params).order_by(order_data)
+        master_data = ReplenushmentMaster.objects.filter(user=user.id, **search_params).order_by(order_data)
 
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
@@ -1781,30 +1782,12 @@ def insert_replenushment(request, user=''):
     max_days = request.POST['max_days']
     if not classification:
         return HttpResponse('Enter Classification')
-    replenushment_obj = ReplenushmentMaster.objects.filter(classification= classification,user = user.id)
+    replenushment_obj = ReplenushmentMaster.objects.filter(classification= classification, size=size, user = user.id)
     if replenushment_obj.exists() :
-        obj_classifi = replenushment_obj[0].classification
-        obj_size = replenushment_obj[0].size
-        if obj_classifi.lower() == classification.lower() and obj_size.lower() == size.lower():
-            replenushment_obj = replenushment_obj[0]
-            replenushment_obj.min_days = min_days
-            replenushment_obj.max_days = max_days
-            replenushment_obj.save()
-        else:
-            replenushment['classification'] = classification
-            replenushment ['size'] = size
-            replenushment ['min_days'] = min_days
-            replenushment['max_days'] = max_days
-            replenushment['user'] = user
-
-            try:
-                ReplenushmentMaster.objects.create(**replenushment)
-            except Exception as e:
-                import traceback
-                log.debug(traceback.format_exc())
-                log.info('Insert New Replenushment failed for %s and params are %s and error statement is %s' % (str(user.username), \
-                                                                                                       str(request.POST.dict()),
-                                                                                                       str(e)))
+        replenushment_obj = replenushment_obj[0]
+        replenushment_obj.min_days = min_days
+        replenushment_obj.max_days = max_days
+        replenushment_obj.save()
     else:
         replenushment['classification'] = classification
         replenushment ['size'] = size

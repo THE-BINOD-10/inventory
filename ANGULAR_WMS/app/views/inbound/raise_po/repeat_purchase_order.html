@@ -1,51 +1,7 @@
 <div class="panel" ng-controller="PastPoCtrl as showCase">
-<!--   <div class="page-layout reports">
- -->    <!-- <div class="layout-sub-header">
-        <form name="form" role="form" class="filters">
-          <div class="clearfix">
-            <div class="row col-md-12">
-              <div class="col-md-4 col-sm-4 col-xs-6">
-                <div class="form-group">
-                  <label class="control-label">SKU Code</label>
-                  <input type="text" autocomplete="off" name="sku_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-blur="showCase.service.checkSearchValue2(showCase.model_data,'search_wms_codes?', $event)" ng-model="showCase.model_data.filters.sku_code">
-                </div>
-              </div>
-              <div class="col-md-4 col-sm-4 col-xs-6">
-                <div class="form-group">
-                  <label class="control-label">Supplier ID</label>
-                  <input type="text" autocomplete="off" ng-if="(!(showCase.update))" ng-model="showCase.model_data.filters.supplier_id" name="supplier_id" placeholder="Search Supplier ID/Name" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?')" typeahead-loading="loadingLocations" class="form-control" typeahead-on-select="showCase.model_data.filters.supplier_id = showCase.service.change_search_value(showCase.model_data.filters.supplier_id)" ng-blur="showCase.service.checkSearchValue(showCase.model_data.filters.supplier_id, 'search_supplier?', $event, '', 'Supplier');showCase.supplier_on_change();" ng-required="(showCase.model_data.filters.receipt_type != 'Hosted Warehouse')? true: false;" ng-disabled="showCase.update">
-                </div>
-              </div>
-              <div class="col-md-4 col-sm-4 col-xs-6">
-                <div class="form-group">
-                  <label class="control-label">From Date *</label>
-                  <input name="from_date" ui-jq="datepicker" ng-init="showCase.model_data.filters.from_date = showCase.date" ng-model="showCase.model_data.filters.from_date" class="form-control stk-readonly" type="text" id="from_date" data-date-today-highlight="true" data-date-autoclose="true" required>
-                </div>
-              </div>
-              <div class="col-md-4 col-sm-4 col-xs-6">
-                <div class="form-group">
-                  <label class="control-label">To Date</label>
-                  <input name="to_date" ui-jq="datepicker" ng-model="showCase.model_data.filters.to_date" class="form-control stk-readonly" type="text" id="to_date" data-date-today-highlight="true" data-date-autoclose="true">
-                </div>
-              </div>
-              <div class="col-md-4 col-sm-4 col-xs-6">
-                <div class="form-group">
-                  <label class="control-label">PO Number</label>
-                  <input name="open_po" class="form-control" type="text" ng-model="showCase.model_data.filters.open_po">
-                </div>
-              </div>
-            <div class="col-md-12">
-              <div class="filter-controls">
-                <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.reset_filters()"> Reset </button>
-                <button type="button" class="btn btn-success" id="add-shippment-btn" data-toggle="modal" data-target="#myModal" ng-click="showCase.saveFilters(showCase.model_data.filters);showCase.service.generate_report(showCase.dtInstance, showCase.model_data.filters)"> Search </button>
-              </div>
-            </div>
-          </div>
-        </form>
-    </div> -->
         <div class="panel-header">
           <div ng-include="'views/common/excel.html'"></div>
         </div>
-        <div ng-include="'views/common/datatable.html'"></div>
-  <!-- </div> -->
+        <div ng-include="'views/common/datatable.html'">
+        </div>
 </div>

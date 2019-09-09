@@ -405,6 +405,20 @@ def get_stock_counts(quantity, single_sku):
             {'available': available, 'name': single_data['name'], 'transit': trans_quantity, 'reserved': reserved})
     return stock_count
 
+
+def get_asn_res_stock(asn_enq_obj):
+    l3_res_stock = 0
+    enq_qs = EnquiredSku.objects.filter(id=asn_enq_obj.enquirydetail_id)
+    if enq_qs.exists():
+        enq_qty = enq_qs[0].quantity
+        enq_level = enq_qs[0].warehouse_level
+        if enq_level == 1:
+            l3_res_stock = enq_qty + asn_enq_obj.reserved_qty
+        else:
+            l3_res_stock = enq_qty
+    return l3_res_stock
+
+
 @fn_timer
 def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
     ret_list = []
@@ -456,13 +470,20 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
         asn_qs = ASNStockDetail.objects.filter(**ints_filters)
         intr_obj_100days_qs = asn_qs.exclude(asn_po_num='NON_KITTED_STOCK')
         intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
-        asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+        #asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+        asnres_det_qs = ASNReserveDetail.objects.filter(enquirydetail__sku__user=user, reserved_qty__gt=0)
         asn_res_100days_qs = asnres_det_qs.filter(orderdetail__isnull=False)  # Reserved Quantity
-        asn_res_100days_qty = dict(
-            asn_res_100days_qs.only('asnstock__sku__sku_code').values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
-        asn_blk_100days_qs = asnres_det_qs.filter(orderdetail__isnull=True, enquirydetail__warehouse_level=3)  # Blocked Quantity
-        asn_blk_100days_qty = dict(
-            asn_blk_100days_qs.only('asnstock__sku__sku_code').values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
+        asn_res_100days_qty = dict(asn_res_100days_qs.only('asnstock__sku__sku_code').values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
+        asn_blk_100days_qs = asnres_det_qs.filter(orderdetail__isnull=True)  # Blocked Quantity
+        asn_blk_100days_qty = {}
+        #for asn_obj in asn_blk_100days_qs:
+        #    each_ord_blk_qty = get_asn_res_stock(asn_obj)
+        #    if asn_obj.enquirydetail.sku.sku_code in asn_blk_100days_qty:
+        #        asn_blk_100days_qty[asn_obj.enquirydetail.sku.sku_code] = asn_blk_100days_qty[asn_obj.enquirydetail.sku.sku_code] + each_ord_blk_qty
+        #    else:
+        #        asn_blk_100days_qty[asn_obj.enquirydetail.sku.sku_code] = each_ord_blk_qty
+        #log.info("asn_blk_100days_qty::: %s, user::%s" %(asn_blk_100days_qty, user))
+        asn_blk_100days_qty = dict(asn_blk_100days_qs.only('asnstock__sku__sku_code').values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
 
         asn_avail_stock = dict(
             intr_obj_100days_qs.only('sku__sku_code').values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))

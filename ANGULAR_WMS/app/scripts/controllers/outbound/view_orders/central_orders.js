@@ -344,13 +344,11 @@ var vm = this;
     }
     vm.delete_order = function() {
       {
-        var data = [];
-          for(var key in vm.selected){
-            if(vm.selected[key]) {
-              var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
-              data.push(temp)
-            }
-          }
+        if (Object.values(vm.selected).lastIndexOf(true) === Object.values(vm.selected).indexOf(true)) {
+         var data = [];
+         var index = Object.values(vm.selected).indexOf(true)
+         var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(index)]._aData
+         data.push(temp)
         var send_data  = {data: data}
         var modalInstance = $modal.open({
           templateUrl: 'views/outbound/toggle/cancel_central_order.html',
@@ -372,7 +370,9 @@ var vm = this;
         }, function () {
            $log.info('Modal dismissed at: ' + new Date());
         });
+      } else {
+        vm.service.showNoty("Select Only One Order")
       }
-
+    }
    }
 }

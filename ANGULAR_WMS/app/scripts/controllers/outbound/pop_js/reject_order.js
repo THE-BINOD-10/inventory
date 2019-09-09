@@ -104,22 +104,11 @@ function Rejectorderpop($scope, $http, $state, $timeout, Session, colFilters, Se
 
       vm.confirm_disable = true
       vm.service.apiCall("delete_central_order/", "POST", elem, true).then(function(data){
-        if(data.data == 'Success') {
-          vm.service.pop_msg('Success fully Deleted the Orders');
+          vm.service.pop_msg(data.data.status);
+          vm.confirm_disable = false;
           $timeout(function() {
           vm.ok("succes")
         }, 2000);
-
-
-        }
-        else{
-          vm.service.pop_msg('Some thing went Wrong Please contact Admin'+data.data);
-          $timeout(function() {
-          vm.ok("Failed")
-        }, 2000);
-
-        }
-        vm.confirm_disable = false;
       });
   }
 

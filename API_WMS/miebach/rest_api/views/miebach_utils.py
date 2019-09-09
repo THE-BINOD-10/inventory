@@ -42,6 +42,8 @@ SKU_GROUP_FIELDS = {'group': '', 'user': ''}
 
 MILKBASKET_USERS = ['milkbasket_test', 'NOIDA02', 'NOIDA01', 'GGN01', 'HYD01', 'BLR01']
 
+MILKBASKET_BULK_ZONE = 'Bulk Zone'
+
 #ADJUST_INVENTORY_EXCEL_HEADERS = ['WMS Code', 'Location', 'Physical Quantity', 'Reason']
 
 ADJUST_INVENTORY_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('WMS Code', 'wms_code'),
@@ -969,6 +971,20 @@ BULK_TO_RETAIL_REPORT_DICT = {
     'print_url': 'print_bulk_to_retail_report',
 }
 
+MOVE_TO_INVENTORY_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label': 'Source Location', 'name': 'source_location', 'type': 'input'},
+        {'label': 'Destination Location', 'name': 'destination_location', 'type': 'input'},
+    ],
+    'dt_headers': ['SKU Code', 'SKU Description','Source Location',
+                   'Destination Location','Quantity','Transaction Date', 'Updated User'],
+    'dt_url': 'get_move_inventory_report', 'excel_name': 'get_move_inventory_report',
+    'print_url': 'print_move_inventory_report',
+}
+
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT,
                      'sku_wise_po_report': SKU_WISE_PO_DICT,
                      'grn_report': GRN_DICT, 'sku_wise_grn_report' : SKU_WISE_GRN_DICT, 'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT,
@@ -995,6 +1011,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'margin_report':MARGIN_REPORT_DICT,
                      'stock_cover_report':STOCK_COVER_REPORT_DICT,
                      'basa_report':BASA_REPORT_DICT,
+                     'move_inventory_report' : MOVE_TO_INVENTORY_REPORT_DICT,
                     }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -1561,6 +1578,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_margin_report':'get_margin_report_data',
                         'get_stock_cover_report':'get_stock_cover_report_data',
                         'get_basa_report':'get_basa_report_data',
+                        'get_move_inventory_report':'get_move_inventory_report_data',
                         }
 # End of Download Excel Report Mapping
 
@@ -1674,6 +1692,7 @@ PERMISSION_DICT = OrderedDict((
                  ('Current Stock Report', 'view_skudetailstats'),
                  ('Inventory Value Report', 'delete_skudetailstats'),
                  ('Stock Cover Report' ,'add_skudetailstats'),
+                 ('MoveInventory Report','view_moveinventory'),
                  ('Bulk To Retail Report', 'view_substitutionsummary'))),
 
     # Uploaded POs
@@ -3725,13 +3744,13 @@ def get_order_summary_data(search_params, user, sub_user):
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
                                                                     'sku__sku_desc','sku__price','sellerordersummary__invoice_number','address',
                                                                     'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
-                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace').distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
+                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace').exclude(status = 3).distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
     else:
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size',
                                                                     'sku__sku_desc','sku__price','address','order_code','payment_mode',
                                                                     'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
-                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace').distinct()
+                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace').exclude(status = 3).distinct()
     pick_filters = {}
     for key, value in search_parameters.iteritems():
         pick_filters['order__%s' % key] = value
@@ -7431,7 +7450,6 @@ def get_basa_report_data(search_params, user, sub_user):
     return temp_data
 
 
-
 def get_stock_reconciliation_report_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date
     temp_data = copy.deepcopy(AJAX_DATA)
@@ -7472,7 +7490,10 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     if stop_index:
         stock_rec_objs = stock_rec_objs[start_index:stop_index]
     for stock_rec_obj in stock_rec_objs:
-        creation_date = get_local_date(user, stock_rec_obj.creation_date, send_date=True).strftime('%d %b %Y')
+        creation_date = stock_rec_obj.creation_date
+        if creation_date.strftime('%H') in ['23']:
+            creation_date = creation_date - datetime.timedelta(1)
+        creation_date = get_local_date(user, creation_date, send_date=True).strftime('%d %b %Y')
         sku = stock_rec_obj.sku
         sku_attr_data = dict(sku.skuattributes_set.filter(attribute_name__in=['Manufacturer', 'Sub Category Type',
                                                                               'Sheet', 'Vendor']).\
@@ -7605,3 +7626,63 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     # if stop_index:
     #     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     # return temp_data
+
+
+def get_move_inventory_report_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master, get_local_date
+    temp_data = copy.deepcopy(AJAX_DATA)
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    lis = ['sku__sku_code','sku__sku_desc','source_location__location','dest_location__location','quantity',
+           'creation_date', 'sku__sku_code', 'batch_detail__weight','batch_detail__mrp', 'seller__name']
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term', 'asc')
+    start_index = search_params.get('start', 0)
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
+    else:
+        stop_index = None
+    search_parameters = {}
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + \
+                                                                           datetime.timedelta(1),
+                                                             datetime.time())
+    if 'sku_code' in search_params:
+        search_parameters['sku__wms_code'] = search_params['sku_code']
+    if 'source_location' in search_params :
+        search_parameters['source_location__location'] = search_params['source_location']
+    if 'destination_location' in search_params :
+        search_parameters['dest_location__location'] = search_params['destination_location']
+
+    search_parameters['sku__id__in'] = sku_master_ids
+    master_data = MoveInventory.objects.filter(**search_parameters).order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for ind, sku_data in enumerate(master_data[start_index:stop_index]):
+        weight = ''
+        mrp = 0
+        date = get_local_date(user, sku_data.creation_date)
+        if sku_data.batch_detail:
+            mrp = sku_data.batch_detail.mrp
+            weight = sku_data.batch_detail.weight
+        seller_name = ''
+        if sku_data.seller:
+            seller_name = sku_data.seller.name
+        version_obj = Version.objects.get_for_object(sku_data)
+        updated_user_name = ''
+        if version_obj.exists():
+            updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
+        temp_data['aaData'].append(OrderedDict((('SKU Code', sku_data.sku.wms_code),
+                                                ('SKU Description', sku_data.sku.sku_desc),
+                                                ('Source Location',sku_data.source_location.location),
+                                                ('Destination Location',sku_data.dest_location.location),
+                                                ('Quantity',sku_data.quantity),('Weight',weight),('MRP',mrp),
+                                                ('Seller', seller_name),
+                                                ('Transaction Date',date),
+                                                ('Updated User', updated_user_name))))
+    return temp_data

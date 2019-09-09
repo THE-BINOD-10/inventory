@@ -756,7 +756,7 @@ def generated_po_data(request, user=''):
                 if not receipt_type:
                     receipt_type = sell_po.receipt_type
                 ser_data.append({'fields': {'sku': {'wms_code': rec.sku.sku_code}, 'description': rec.sku.sku_desc,
-                                            'order_quantity': sell_po.seller_quantity,
+                                            'order_quantity': rec.order_quantity,
                                             'price': rec.price, 'mrp': rec.mrp, 'supplier_code': rec.supplier_code,
                                             'measurement_unit': rec.measurement_unit,
                                             'remarks': rec.remarks, 'dedicated_seller': str(
@@ -4030,7 +4030,13 @@ def validate_putaway(all_data, user):
                     status = 'Entered Location is locked for %s operations' % loc.lock_status
 
                 if key[0]:
-                    data = POLocation.objects.get(id=key[0], location__zone__user=user.id)
+                    data = POLocation.objects.filter(id=key[0], location__zone__user=user.id, status=1)
+                    if not data:
+                        status = 'Data not Found or Already processed'
+                        continue
+                    data = data[0]
+                    if data.quantity < value:
+                        status = 'Putaway quantity should be less than the Received Quantity'
                     order_data = get_purchase_order_data(data.purchase_order)
                     if (float(data.purchase_order.received_quantity) - value) < 0:
                         status = 'Putaway quantity should be less than the Received Quantity'
@@ -8527,6 +8533,13 @@ def get_po_putaway_summary(request, user=''):
         data_dict = {'summary_id': seller_summary.id, 'order_id': order.id, 'sku_code': sku.sku_code,
                      'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price']}
         data_dict['tax_percent'] = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax + open_po.cess_tax
+        d_zone_obj = StockDetail.objects.filter(sku_id =seller_summary.purchase_order.open_po.sku.id,sku__user = seller_summary.purchase_order.open_po.sku.user,location__zone__zone = 'DAMAGED_ZONE')
+        if d_zone_obj:
+            d_zone_qty = d_zone_obj[0].quantity
+            d_zone_loc = d_zone_obj[0].location.location
+            if quantity <= d_zone_qty:
+                data_dict['return_qty'] = d_zone_qty
+                data_dict['location'] = d_zone_loc
         if seller_summary.batch_detail:
             batch_detail = seller_summary.batch_detail
             data_dict['batch_no'] = batch_detail.batch_no
@@ -8682,8 +8695,13 @@ def prepare_rtv_json_data(request_data, user):
         if 'rtv_id' in request_data:
             data_dict['rtv_id'] = request_data['rtv_id'][ind]
         if request_data['location'][ind] and request_data['return_qty'][ind]:
-            quantity = request_data['return_qty'][ind]
+            quantity = float(request_data['return_qty'][ind])
             seller_summary = SellerPOSummary.objects.get(id=request_data['summary_id'][ind])
+            returned_quantity = seller_summary.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
+            if not returned_quantity:
+                returned_quantity = 0
+            if (seller_summary.quantity - returned_quantity) < quantity:
+                return data_list, 'Return Quantity exceeding the quantity'
             data_dict['summary_id'] = request_data['summary_id'][ind]
             data_dict['quantity'] = quantity
             stock_filter = {'sku__user': user.id, 'quantity__gt': 0,
@@ -8708,7 +8726,7 @@ def prepare_rtv_json_data(request_data, user):
                 if seller_summary.seller_po:
                     stock_filter['sellerstock__seller_id'] = seller_summary.seller_po.seller_id
                     reserved_dict["stock__sellerstock__seller_id"] = seller_summary.seller_po.seller_id
-            stocks = StockDetail.objects.filter(**stock_filter)
+            stocks = StockDetail.objects.filter(**stock_filter).distinct()
             if not stocks:
                 return data_list, 'No Stocks Found'
             data_dict['stocks'] = stocks

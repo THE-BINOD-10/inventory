@@ -23,6 +23,35 @@
                   </select>
                 </div>
               </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">Status</label>
+                  <select name="status" ng-model="showCase.model_data.status" class="form-control">
+                    <option value="yet_to_receive">Yet To Receive</option>
+                    <option value="partially_received">Partially Received</option>
+                    <option value="location_assigned">Received</option>
+                    <option value="putaway_completed">Putaway Completed</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">From Date</label>
+                  <input name="from_date" ng-model="showCase.model_data.from_date" class="form-control" type="text" ui-jq="datepicker">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">To Date</label>
+                  <input name="to_date" ng-model="showCase.model_data.to_date" class="form-control hasDatepicker" id="shipment_date" type="text" ui-jq="datepicker">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">Purchase Order ID</label>
+                  <input name="sku_code" class="form-control" type="text" ng-model="showCase.model_data.order_id">
+                </div>
+              </div>
             </div>
             <div class="col-md-12">
               <div class="filter-controls">

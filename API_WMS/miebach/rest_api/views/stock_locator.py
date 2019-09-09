@@ -659,7 +659,6 @@ def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_
                          asn_true=False):
     data_to_send = []
     other_data = {}
-
     if asn_true:
         lis = ['sku_code']
     else:
@@ -696,7 +695,11 @@ def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_
         user_group_filters = {'admin_user_id': admin_user_id}
     user_groups = list(UserGroups.objects.filter(**user_group_filters).values_list('user_id', flat=True))
     user_groups.append(admin_user_id)
-    sku_master = SKUMaster.objects.filter(user__in=user_groups, **search_params)
+    permissions = get_user_permissions(request, request.user)
+    if request.user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and permissions['permissions']['add_networkmaster'] :
+        sku_master = SKUMaster.objects.filter(user__in=user_groups, status=1, **search_params)
+    else:
+        sku_master = SKUMaster.objects.filter(user__in=user_groups, **search_params)
     if col_num <= 3:
         sku_master = sku_master.order_by(order_data)
     if search_term:
@@ -1100,13 +1103,15 @@ def confirm_move_location_inventory(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def insert_move_inventory(request, user=''):
-    data = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-    if not data:
-        cycle_id = 1
-    else:
-        cycle_id = data[0].cycle + 1
+    # data = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+    # if not data:
+    #     cycle_id = 1
+    # else:
+    #     cycle_id = data[0].cycle + 1
 
+    reversion.set_user(request.user)
     now = str(datetime.datetime.now())
     wms_code = request.GET['wms_code']
     check = False
@@ -1122,7 +1127,7 @@ def insert_move_inventory(request, user=''):
     batch_no = request.GET.get('batch_number', '')
     mrp =request.GET.get('mrp', '')
     weight = request.GET.get('weight', '')
-    status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id, batch_no=batch_no, mrp=mrp,
+    status = move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id, batch_no=batch_no, mrp=mrp,
                                  weight=weight)
     if 'success' in status.lower():
         update_filled_capacity([source_loc, dest_loc], user.id)
@@ -2597,11 +2602,11 @@ def auto_sellable_confirm(request, user=''):
             data_list[index]['seller_id'] = seller_master[0].id
             data_list[index]['quantity'] = quantity
             data_list[index]['suggestion_obj'] = suggestion
-        cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-        if not cycle_count:
-            cycle_id = 1
-        else:
-            cycle_id = cycle_count[0].cycle + 1
+        # cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+        # if not cycle_count:
+        #     cycle_id = 1
+        # else:
+        #     cycle_id = cycle_count[0].cycle + 1
         for data in data_list:
             suggestion = data['suggestion_obj']
             seller_id, batch_no, mrp = '', '', 0
@@ -2611,7 +2616,7 @@ def auto_sellable_confirm(request, user=''):
                 batch_no = ''
             if data.get('MRP', 0):
                 mrp = float(data['MRP'])
-            status = move_stock_location(cycle_id, suggestion.stock.sku.wms_code, suggestion.stock.location.location,
+            status = move_stock_location(suggestion.stock.sku.wms_code, suggestion.stock.location.location,
                                          data['dest_location'], data['quantity'], user, seller_id,
                                          batch_no=batch_no, mrp=mrp)
             if 'success' in status.lower():
@@ -2851,8 +2856,8 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
                                      'replenushment_qty', 'sku_avail_qty', 'avail_quantity',
                                      'min_stock_qty', 'max_stock_qty', 'status', 'remarks',
                        'source_stock__location__location', 'dest_location__location',
-                                     'sku__relation_type').distinct().\
-                annotate(Sum('reserved'), creation_date_only=Cast('creation_date', DateField())).order_by(order_data)
+                                     'sku__relation_type', 'creation_date').distinct().\
+                annotate(Sum('reserved')).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     if stop_index:
@@ -2924,7 +2929,7 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
             rack = sku_rack_dict.get(data['sku__sku_code'], '')
             shelf = sku_shelf_dict.get(data['sku__sku_code'], '')
         temp_data['aaData'].append(
-            OrderedDict((('', checkbox), ('generation_time', str(data['creation_date_only'])),
+            OrderedDict((('', checkbox), ('generation_time', get_local_date(user, data['creation_date'])),
                          ('sku_code', data['sku__sku_code']),('sku_name', data['sku__sku_desc']),
                          ('sku_category', data['sku__sku_category']),
                          ('sheet', sheet),
@@ -3001,11 +3006,11 @@ def cal_ba_to_sa(request, user=''):
                     suggested_qty = 0
                 confirm_data_list.append({'classification_obj': classification_obj, 'dest_loc': dest_loc_obj[0],
                                           'reserved_quantity': reserved_quantity, 'seller': seller})
-            data = CycleCount.objects.filter(sku__user=user.id).aggregate(Max('cycle'))['cycle__max']
-            if not data:
-                cycle_id = 1
-            else:
-                cycle_id = data + 1
+            # data = CycleCount.objects.filter(sku__user=user.id).aggregate(Max('cycle'))['cycle__max']
+            # if not data:
+            #     cycle_id = 1
+            # else:
+            #     cycle_id = data + 1
             for final_data in confirm_data_list:
                 classification_obj = final_data['classification_obj']
                 wms_code = classification_obj.source_stock.sku.sku_code
@@ -3020,7 +3025,7 @@ def cal_ba_to_sa(request, user=''):
                     batch_no = classification_obj.source_stock.batch_detail.batch_no
                     mrp = classification_obj.source_stock.batch_detail.mrp
                     weight = classification_obj.source_stock.batch_detail.weight
-                status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id,
+                status = move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id,
                                              batch_no=batch_no, mrp=mrp,
                                              weight=weight)
                 if 'success' in status.lower():
@@ -3133,6 +3138,7 @@ def ba_to_sa_calculate_now(request, user=''):
 
         log.info("BA to SA calculating segregation for user %s ended at %s" % (user.username, str(datetime.datetime.now())))
         sku_classification_objs = []
+        # Removing of older objects, change the datetime update while changing the below 3 lines
         older_objs = SkuClassification.objects.filter(sku__user=user.id, status=1)
         if older_objs.exists():
             older_objs.delete()
@@ -3247,6 +3253,10 @@ def ba_to_sa_calculate_now(request, user=''):
                                                                 remarks_sku_ids)
         if sku_classification_objs:
             SkuClassification.objects.bulk_create(sku_classification_objs)
+            # Updating the same datetime for all the created objects
+            creation_date = datetime.datetime.now()
+            SkuClassification.objects.filter(sku__user=user.id, status=1).update(creation_date=creation_date)
+
         log.info(
             "BA to SA calculation ended for user %s at %s" % (user.username, str(datetime.datetime.now())))
     except Exception as e:

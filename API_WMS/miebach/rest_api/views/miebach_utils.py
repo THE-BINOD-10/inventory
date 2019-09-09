@@ -522,7 +522,7 @@ SKU_WISE_GRN_DICT = {'filters' : [
                         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}
 		    ],
-		'dt_headers': ["Received Date", "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Recepient",
+		'dt_headers': ["Received Date", "PO Date", "PO Number", "PO Reference Number", "Supplier ID", "Supplier Name", "Recepient",
                        "SKU Code", "SKU Description", "HSN Code", "SKU Class", "SKU Style Name", "SKU Brand",
                        "SKU Category", "Received Qty", "Unit Rate", "MRP", "Pre-Tax Received Value", "CGST(%)",
                        "SGST(%)", "IGST(%)", "UTGST(%)", "CESS(%)", "APMC(%)", "CGST",
@@ -2935,6 +2935,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          32: 'Invoiced Unit Rate',
                          34: 'Invoiced Total Amount'}
         lis = ['purchase_order__updation_date', 'purchase_order__creation_date', 'purchase_order__order_id',
+               'purchase_order__open_po__po_name',
      	       'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name', 'id',
                'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
                'purchase_order__open_po__sku__hsn_code',
@@ -2963,7 +2964,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier_id',
                          'purchase_order__open_po__supplier__name', 'purchase_order__open_po__supplier__tax_type',
                          'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
-                         'purchase_order__open_po__sku__hsn_code',
+                         'purchase_order__open_po__sku__hsn_code', 'purchase_order__open_po__po_name',
                          'purchase_order__open_po__sku__sku_class', 'purchase_order__open_po__sku__style_name',
                          'purchase_order__open_po__sku__sku_brand', 'purchase_order__open_po__sku__sku_category',
                          'purchase_order__received_quantity', 'purchase_order__open_po__price',
@@ -2981,6 +2982,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          32: 'Invoiced Total Amount'}
         model_name = SellerPOSummary
         lis = ['purchase_order__updation_date', 'purchase_order__creation_date', 'purchase_order__order_id',
+               'purchase_order__open_po__po_name',
                'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name', 'id',
                'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
                'purchase_order__open_po__sku__hsn_code', 'purchase_order__open_po__sku__sku_class',
@@ -3007,7 +3009,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier_id',
                          'purchase_order__open_po__supplier__name',
                          'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
-                         'purchase_order__open_po__sku__hsn_code',
+                         'purchase_order__open_po__sku__hsn_code', 'purchase_order__open_po__po_name',
                          'purchase_order__open_po__sku__sku_class', 'purchase_order__open_po__sku__style_name',
                          'purchase_order__open_po__sku__sku_brand', 'purchase_order__open_po__sku__sku_category',
                          'purchase_order__received_quantity', 'purchase_order__open_po__price',
@@ -3158,6 +3160,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         temp_data['aaData'].append(OrderedDict((('Received Date', get_local_date(user, seller_po_summary.creation_date)),
                             ('PO Date', get_local_date(user, result.creation_date)),
                             ('PO Number', po_number),
+                            ('PO Reference Number',data['purchase_order__open_po__po_name']),
                             ('Supplier ID', data[field_mapping['supplier_id']]),
                             ('Supplier Name', data[field_mapping['supplier_name']]),
                             ('Recepient', user.userprofile.company_name),

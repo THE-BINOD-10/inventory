@@ -13,22 +13,39 @@ from rest_api.views.common import *
 from rest_api.views.utils import *
 log = init_logger('logs/qssi_stock_check.log')
 
-def asn_stock_details(user, sku_code, order_flag=True):
-    # ASN Stock Related to SM
-    today_filter = datetime.datetime.today()
-    hundred_day_filter = today_filter + datetime.timedelta(days=100)
-    ints_filters = {'quantity__gt': 0, 'sku__user': user.id, 'sku__sku_code': sku_code}
-    asn_qs = ASNStockDetail.objects.filter(**ints_filters)
-    intr_obj_100days_qs = asn_qs.filter(Q(arriving_date__lte=hundred_day_filter) | Q(asn_po_num='NON_KITTED_STOCK'))
-    intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
-    asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
-    if order_flag:
-        asn_res_100days_qs = asnres_det_qs.filter(orderdetail__isnull=False)  # Reserved Quantity
-    else:
-        asn_res_100days_qs = asnres_det_qs.filter(enquirydetail__isnull=False, enquirydetail__warehouse_level=3)
-    asn_res_100days_qty = dict(asn_res_100days_qs.values_list('asnstock__sku__sku_code').
-                               annotate(in_res=Sum('reserved_qty')))
-    l3_res_stock = asn_res_100days_qty.get(sku_code, 0)
+# def asn_stock_details(user, sku_code, order_flag=True):
+#     # ASN Stock Related to SM
+#     # today_filter = datetime.datetime.today()
+#     # hundred_day_filter = today_filter + datetime.timedelta(days=100)
+#     ints_filters = {'quantity__gt': 0, 'sku__user': user.id, 'sku__sku_code': sku_code}
+#     asn_qs = ASNStockDetail.objects.filter(**ints_filters)
+#     #intr_obj_100days_qs = asn_qs.filter(Q(arriving_date__lte=hundred_day_filter) | Q(asn_po_num='NON_KITTED_STOCK'))
+#     intr_obj_100days_ids = asn_qs.values_list('id', flat=True)
+#     asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+#     if order_flag:
+#         asn_res_100days_qs = asnres_det_qs.filter(orderdetail__isnull=False)  # Reserved Quantity
+#     else:
+#         #asn_res_100days_qs = asnres_det_qs.filter(enquirydetail__isnull=False, enquirydetail__warehouse_level=3)
+#         asn_res_100days_qs = asnres_det_qs.filter(enquirydetail__isnull=False)
+#     asn_res_100days_qty = dict(asn_res_100days_qs.values_list('asnstock__sku__sku_code').
+#                                annotate(in_res=Sum('reserved_qty')))
+#     enq_ids = asn_res_100days_qs.values_list('enquirydetail_id', flat=True)
+#     partial_blocked = dict(EnquiredSku.objects.filter(id__in=enq_ids, warehouse_level=1).values_list('sku__sku_code').annotate(tot_qty=Sum('quantity')))
+#     asn_res_stock = asn_res_100days_qty.get(sku_code, 0)
+#     l3_res_stock = asn_res_stock + partial_blocked.get(sku_code, 0)
+#     return l3_res_stock
+
+
+def get_asn_res_stock(asn_enq_obj):
+    l3_res_stock = 0
+    enq_qs = EnquiredSku.objects.filter(id=asn_enq_obj.enquirydetail_id)
+    if enq_qs.exists():
+        enq_qty = enq_qs[0].quantity
+        enq_level = enq_qs[0].warehouse_level
+        if enq_level == 1:
+            l3_res_stock = enq_qty + asn_enq_obj.reserved_qty
+        else:
+            l3_res_stock = enq_qty
     return l3_res_stock
 
 
@@ -51,10 +68,14 @@ def get_wh_open_stock(wh, sku_code):
         ~Q(enquiry__extend_status='rejected')).only('sku__sku_code', 'quantity').values_list('sku__sku_code').annotate(
         tot_qty=Sum('quantity'))
 
+    ints_filters = {'quantity__gt': 0, 'sku__user': wh.id, 'status': 'open'}
+    asn_qs = ASNStockDetail.objects.filter(**ints_filters)
+    non_kitted_stock = asn_qs.filter(asn_po_num='NON_KITTED_STOCK', sku__sku_code=sku_code).only('sku__sku_code', 'quantity').values_list('sku__sku_code').annotate(non_kitted_qty=Sum('quantity'))
     total_stock = dict(total_stock).get(sku_code, 0)
     res_stock = dict(res_stock).get(sku_code, 0)
     blocked_stock = dict(blocked_stock).get(sku_code, 0)
-    wh_open_stock = total_stock - res_stock - blocked_stock
+    nk_stock = dict(non_kitted_stock).get(sku_code, 0)
+    wh_open_stock = total_stock - res_stock - blocked_stock - nk_stock
     return wh_open_stock
 
 
@@ -118,17 +139,20 @@ def calc_update_inventory(resp, user):
                         sku = SKUMaster.objects.filter(user=user.id, sku_code=sku_id)
                         if not sku: continue
                         sku = sku[0]
-                        exist_nk_stock = ASNStockDetail.objects.filter(sku_id=sku.id, asn_po_num='NON_KITTED_STOCK', status='open')
+                        exist_nk_stock = ASNStockDetail.objects.filter(sku_id=sku.id, asn_po_num='NON_KITTED_STOCK')
+                        exist_nk_open_stock = exist_nk_stock.filter(status='open')
+                        exist_nk_closed_stock = exist_nk_stock.filter(status='closed')
                         if non_kitted_stock:
-                            if exist_nk_stock:
-                                exist_nk_stock = exist_nk_stock[0]
-                                exist_nk_stock.quantity = non_kitted_stock
-                                exist_nk_stock.save()
+                            if exist_nk_open_stock:
+                                exist_nk_open_stock = exist_nk_open_stock[0]
+                                exist_nk_open_stock.quantity = non_kitted_stock
+                                exist_nk_open_stock.save()
                             else:
                                 ASNStockDetail.objects.create(asn_po_num='NON_KITTED_STOCK', sku_id=sku.id,
                                                               quantity=non_kitted_stock)
                         else:
-                            exist_nk_stock.update(status='closed')
+                            exist_nk_closed_stock.delete()
+                            exist_nk_open_stock.update(status='closed')
 
                 for sku_id, inventory in stock_dict.iteritems():
                     sku = SKUMaster.objects.filter(user=user.id, sku_code=sku_id)
@@ -213,30 +237,37 @@ def update_asn_to_stock(wh, sku_obj):
     #             asnres_qs.update(reserved_qty=l3_res_stock)
     #         else:
     #             asnres_qs.delete()
-
-
-    enq_ids = ASNReserveDetail.objects.filter(enquirydetail__sku__user=wh.id, enquirydetail__sku__sku_code=sku_code,
-                                              reserved_qty__gt=0).values_list('enquirydetail__enquiry_id', flat=True)
-    enq_qs = EnquiryMaster.objects.filter(id__in=enq_ids)
+    asn_enq_objs = ASNReserveDetail.objects.filter(enquirydetail__sku__user=wh.id, enquirydetail__sku__sku_code=sku_code,
+                                              reserved_qty__gt=0).order_by('creation_date')
     wh_open_stock = get_wh_open_stock(wh, sku_code)
-    l3_res_stock = asn_stock_details(wh, sku_code, order_flag=False)
-    if wh_open_stock > 0 and l3_res_stock > 0:
-        enq_obj = enq_qs[0]
-        wh_res_stock = min(wh_open_stock, l3_res_stock)
-        l3_res_stock = l3_res_stock - min(wh_open_stock, l3_res_stock)
-        enqsku_qs = EnquiredSku.objects.filter(enquiry_id=enq_obj.id, sku__sku_code=sku_code)
-        if enqsku_qs:
-            log.info("EnquiredSku details %s" %enqsku_qs[0].__dict__)
-            log.info("EnquiredSku id %s of sku %s with quantity %s moved from L3 to L1." %(enqsku_qs[0].id, sku_code, wh_res_stock))
-            enqsku_qs.update(warehouse_level=1)
-            enqsku_qs.update(quantity=wh_res_stock)
-        asnenq_qs = ASNReserveDetail.objects.filter(enquirydetail_id=enqsku_qs[0].id)
-        if l3_res_stock > 0:
-            log.info("ASNReserveDetail %s object reseved quantity %s updated" %(asnenq_qs[0].__dict__, l3_res_stock))
-            asnenq_qs.update(reserved_qty=l3_res_stock)
+    for asn_enq_obj in asn_enq_objs:
+        asn_res_qty = 0
+        #l3_res_stock = get_asn_res_stock(asn_enq_obj)
+        l3_res_stock = asn_enq_obj.reserved_qty
+        if wh_open_stock > 0 and l3_res_stock > 0:
+            wh_res_stock = min(wh_open_stock, l3_res_stock)
+            log.info("EnquiredSku details %s" %asn_enq_obj.enquirydetail.__dict__)
+            log.info("EnquiredSku id %s of sku %s with quantity %s moved from L3 to L1." %(asn_enq_obj.enquirydetail_id, sku_code, wh_res_stock))
+            if asn_enq_obj.enquirydetail.warehouse_level == 3:
+                asn_enq_obj.enquirydetail.quantity=wh_res_stock
+                asn_enq_obj.enquirydetail.warehouse_level=1
+                asn_enq_obj.enquirydetail.save()
+            else:
+                partial_l1_qty = asn_enq_obj.enquirydetail.quantity
+                asn_enq_obj.enquirydetail.quantity = partial_l1_qty + wh_res_stock
+                asn_enq_obj.enquirydetail.save()
+            if wh_open_stock > 0 and wh_open_stock < l3_res_stock:
+                asn_res_qty = l3_res_stock - wh_open_stock
+            if asn_res_qty:
+                log.info("ASNReserveDetail %s object reseved quantity %s updated" %(asn_enq_obj.__dict__, l3_res_stock))
+                asn_enq_obj.reserved_qty=asn_res_qty
+                asn_enq_obj.save()
+            else:
+                log.info("ASNReserveDetail %s object got removed" %(asn_enq_obj.__dict__))
+                asn_enq_obj.delete()
+            wh_open_stock = wh_open_stock - wh_res_stock
         else:
-            log.info("ASNReserveDetail %s object got removed" %(asnenq_qs[0].__dict__))
-            asnenq_qs.delete()
+            break
 
 
 def update_inventory(company_name):
@@ -244,6 +275,7 @@ def update_inventory(company_name):
     resp = {}
     for user_id in integration_users:
         user = User.objects.get(id=user_id)
+        data = {"SKUIds": []}
         if not resp:
             resp = get_inventory(data, user)
         calc_update_inventory(resp, user)

@@ -4199,17 +4199,17 @@ def fetch_asn_stock(dist_user_id, sku_code, req_stock):
     intr_obj_3days_qs = asn_qs.filter(Q(arriving_date__lte=threeday_filter) | Q(asn_po_num='NON_KITTED_STOCK'))
     intr_obj_3days_ids = intr_obj_3days_qs.values_list('id', flat=True)
     asn_res_3days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_3days_ids)
-    asn_res_3days_qty = asn_res_3days_qs.values_list('asnstock__sku__user').annotate(in_res=Sum('reserved_qty'))
+    asn_res_3days_qty = dict(asn_res_3days_qs.values_list('asnstock__sku__user').annotate(in_res=Sum('reserved_qty')))
 
-    intr_obj_30days_qs = asn_qs.exclude(arriving_date__lte=threeday_filter).filter(arriving_date__lte=thirtyday_filter)
+    intr_obj_30days_qs = asn_qs.exclude(Q(arriving_date__lte=threeday_filter) | Q(asn_po_num='NON_KITTED_STOCK')).filter(arriving_date__lte=thirtyday_filter)
     intr_obj_30days_ids = intr_obj_30days_qs.values_list('id', flat=True)
     asn_res_30days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_30days_ids)
-    asn_res_30days_qty = asn_res_30days_qs.values_list('asnstock__sku__user').annotate(in_res=Sum('reserved_qty'))
+    asn_res_30days_qty = dict(asn_res_30days_qs.values_list('asnstock__sku__user').annotate(in_res=Sum('reserved_qty')))
 
     intr_obj_100days_qs = asn_qs.exclude(arriving_date__lte=thirtyday_filter).filter(arriving_date__lte=hundred_day_filter)
     intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
     asn_res_100days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
-    asn_res_100days_qty = asn_res_100days_qs.values_list('asnstock__sku__user').annotate(in_res=Sum('reserved_qty'))
+    asn_res_100days_qty = dict(asn_res_100days_qs.values_list('asnstock__sku__user').annotate(in_res=Sum('reserved_qty')))
 
     intr_3d_st = dict(intr_obj_3days_qs.values_list('sku__user').distinct().annotate(in_asn=Sum('quantity')))
     for k, v in intr_3d_st.items():
@@ -4358,8 +4358,8 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
             order_data[key] = value
         elif key == 'shipment_date':
             if value:
-                ship_date = value.split('/')
-                order_data[key] = datetime.date(int(ship_date[2]), int(ship_date[0]), int(ship_date[1]))
+                #ship_date = value.split('/')
+                order_data[key] = datetime.datetime.strptime(value, '%d/%m/%Y').date()
         elif key == 'total_amount':
             try:
                 value = float(myDict[key][i])
@@ -6806,42 +6806,10 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
     job_order_rec_qty = dict(JobOrder.objects.filter(product_code__user__in=stock_display_warehouse,
                                                      product_code__sku_class=sku_master[0]['sku_class']).values_list(
         'product_code__wms_code').distinct().annotate(Sum('received_quantity')))
-    today_filter = datetime.datetime.today()
-    threeday_filter = today_filter + datetime.timedelta(days=10)
-    thirtyday_filter = today_filter + datetime.timedelta(days=45)
-    hundred_day_filter = today_filter + datetime.timedelta(days=90)
     sku_filter = [sku_master[0]['sku_class']]
-
-    asn_filters = {'quantity__gt': 0, 'sku__sku_class__in': sku_filter, 'sku__user__in': stock_display_warehouse,
-                   'status': 'open'}
-    asn_qs = ASNStockDetail.objects.filter(**asn_filters)
-    asn_3_qs = asn_qs.filter(Q(arriving_date__lte=threeday_filter) | Q(asn_po_num='NON_KITTED_STOCK'))
-    asn_3_ids = asn_3_qs.values_list('id', flat=True)
-    asn_res_3days_qs = ASNReserveDetail.objects.filter(asnstock__in=asn_3_ids)
-    asn_res_3days_qty = dict(asn_res_3days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
-    intr_3d_st = dict(asn_3_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
-    for k, v in intr_3d_st.items():
-        if k in asn_res_3days_qty:
-            intr_3d_st[k] = intr_3d_st[k] - asn_res_3days_qty[k]
-
-    asn_30_qs = asn_qs.exclude(arriving_date__lte=threeday_filter).filter(arriving_date__lte=thirtyday_filter)
-    asn_30_ids = asn_30_qs.values_list('id', flat=True)
-    asn_res_30days_qs = ASNReserveDetail.objects.filter(asnstock__in=asn_30_ids)
-    asn_res_30days_qty = dict(asn_res_30days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
-    intr_30d_st = dict(asn_30_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
-    for k, v in intr_30d_st.items():
-        if k in asn_res_30days_qty:
-            intr_30d_st[k] = intr_30d_st[k] - asn_res_30days_qty[k]
-
-    asn_100_qs = asn_qs.filter(arriving_date__gt=thirtyday_filter)
-    asn_100_ids = asn_100_qs.values_list('id', flat=True)
-    asn_res_100days_qs = ASNReserveDetail.objects.filter(asnstock__in=asn_100_ids)
-    asn_res_100days_qty = dict(asn_res_100days_qs.values_list('asnstock__sku__sku_code').annotate(
-        in_res=Sum('reserved_qty')))
-    intr_100d_st = dict(asn_100_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
-    for k, v in intr_100d_st.items():
-        if k in asn_res_100days_qty:
-            intr_100d_st[k] = intr_100d_st[k] - asn_res_100days_qty[k]
+    overall_asn_stock = {}
+    if level == 3:
+        overall_asn_stock = fetch_asn_detailed_qty(sku_filter, stock_display_warehouse)
 
     day_1_total = 0
     day_3_total = 0
@@ -6877,9 +6845,9 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
             all_quantity -= item['physical_stock']
         item['all_quantity'] = all_quantity
         if level == 3:
-            item[10] = intr_3d_st.get(item["wms_code"], 0)
-            item[45] = intr_30d_st.get(item["wms_code"], 0)
-            item[90] = intr_100d_st.get(item["wms_code"], 0)
+            item[10] = overall_asn_stock.get('first_and_nk_set', {}).get(item["wms_code"], 0)
+            item[45] = overall_asn_stock.get('second_set', {}).get(item["wms_code"], 0)
+            item[90] = overall_asn_stock.get('third_set', {}).get(item["wms_code"], 0)
         if lead_times and level != 3:
             for lead_time, wh_code in lead_times.items():
                 output = get_stock_qty_leadtime(item, wh_code)
@@ -6891,6 +6859,8 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
                 for wc in wh_code:
                     if nk_map.get(wc):
                         output = output - nk_map[wc]
+                if output < 0:
+                    output = 0
                 if dist_reseller_leadtime and level:
                     item[lead_time + dist_reseller_leadtime] = output
                 else:
@@ -7095,9 +7065,7 @@ def get_sku_variants(request, user=''):
                                     levels_config=levels_config, dist_wh_id=dist_userid, level=level,
                                     is_style_detail=is_style_detail, needed_stock_data=needed_stock_data
                                     )
-    nk_map = {}
-    if get_priceband_admin_user(user):
-        # wh_admin = get_priceband_admin_user(user)
+    if get_priceband_admin_user(user) and level != 0:
         integration_obj = Integrations.objects.filter(user=user.id)
         if not integration_obj and not is_distributor:
             dist_customer = WarehouseCustomerMapping.objects.filter(warehouse=user.id, status=1)
@@ -7106,6 +7074,7 @@ def get_sku_variants(request, user=''):
         if integration_obj:
             company_name = integration_obj[0].name
             integration_users = Integrations.objects.filter(name=company_name).values_list('user', flat=True)
+            api_resp = {}
             for user_id in integration_users:
                 user = User.objects.get(id=user_id)
                 #if qssi, update inventory first
@@ -7113,8 +7082,8 @@ def get_sku_variants(request, user=''):
                     sku_ids = [item['wms_code'] for item in sku_master]
                     suffix_tu_skus = map(lambda x: x+'-TU', sku_ids)
                     all_skus = sku_ids + suffix_tu_skus
-                    api_resp = get_inventory(all_skus, user)
-                    # api_resp = {}
+                    if not api_resp:
+                        api_resp = get_inventory(all_skus, user)
                     calc_update_inventory(api_resp, user)
     sku_master, total_qty = all_whstock_quant(sku_master, user, level, lead_times, dist_reseller_leadtime)
     central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
@@ -10265,11 +10234,13 @@ def get_customer_cart_data(request, user=""):
             break_flag = False
             if record.warehouse_level == 3:
                 stock_wh_map = fetch_asn_stock(record.sku.user, record.sku.sku_code, cart_qty)
+                lt_wh_map = dict(NetworkMaster.objects.filter(dest_location_code=user.id).values_list('source_location_code', 'lead_time'))
                 for lt, wh_map in stock_wh_map.items():
                     for wh, avail_qty in wh_map.items():
                         total_qty = total_qty + avail_qty
                         if cart_qty <= total_qty:
-                            del_days = lt
+                            wh_lt = lt_wh_map.get(wh, 0)
+                            del_days = lt + wh_lt
                             break_flag = True
                             break
                     if break_flag:
@@ -12570,11 +12541,14 @@ def insert_enquiry_data(request, user=''):
         enq_master_obj = EnquiryMaster(**enquiry_map)
         enq_master_obj.save()
         for cart_item in cart_items:
+            if cart_item.quantity <= 0:
+                continue
             enquiry_data = {'customer_id': customer_id, 'warehouse_level': cart_item.warehouse_level,
                             'user': user.id, 'quantity': cart_item.quantity, 'sku_id': cart_item.sku.id}
             stock_wh_map = split_orders(**enquiry_data)
             if not stock_wh_map:
-                return HttpResponse('Stock not present for sku:%s.' %cart_item.sku.sku_code)
+                log.info('Stock not present for sku:%s' %cart_item.sku.sku_code)
+                continue
             if cart_item.warehouse_level == 3:
                 for lt, stc_wh_map in stock_wh_map.items():
                     for wh_code, qty in stc_wh_map.items():
@@ -12652,9 +12626,11 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
     if order_data:
         em_qs = EnquiryMaster.objects.filter(customer_id=cm_id).order_by(order_data)
     if search_term:
-        em_qs = EnquiryMaster.objects.filter(customer_id=cm_id).filter(
+        em_qs = EnquiryMaster.objects.annotate(full_order=Concat('customer_id','enquiry_id',
+                output_field=CharField())).filter(customer_id=cm_id).filter(
                 Q(enquiry_id__icontains=search_term) | Q(creation_date__regex=search_term)
-                | Q(enquiredsku__sku__sku_code__icontains=search_term) | Q(corporate_name__icontains=search_term),
+                | Q(enquiredsku__sku__sku_code__icontains=search_term) | Q(corporate_name__icontains=search_term)
+                | Q(full_order__icontains=search_term),
                  customer_id=cm_id, **search_params).order_by(order_data)
     temp_data['recordsTotal'] = len(em_qs)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -12699,16 +12675,19 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
 def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     lis = ['enquiry_id', 'creation_date', 'customer_name', 'sku__sku_class', 'customization_type', 'sku__sku_code', 'status']
     order_data = lis[col_num]
+    uniq_ord_search_flag = False
     if order_term == 'desc':
         order_data = '-%s' % order_data
+    em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by(order_data)
     if search_term:
-        em_qs = ManualEnquiry.objects.filter(
+        em_qs = em_qs.filter(
             Q(enquiry_id__icontains=search_term) | Q(creation_date__regex=search_term) |
             Q(customer_name__icontains=search_term) | Q(sku__sku_class__icontains=search_term) |
             Q(customization_type__icontains=search_term) | Q(sku__sku_code__icontains=search_term) |
             Q(status__icontains=search_term)).order_by(order_data)
-    else:
-        em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by(order_data)
+        if not em_qs.exists():
+            uniq_ord_search_flag = True
+            em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by(order_data)
     cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     cm_ids = cum_obj.values_list('customer_id', flat=True)
     orderprefix_map = {}
@@ -12747,6 +12726,8 @@ def get_manual_enquiry_data(start_index, stop_index, temp_data, search_term, ord
         if cm_qs:
             cm_id = cm_qs[0].customer_id
             uniq_enq_id = str(cm_id) + str(enquiry.enquiry_id)
+            if uniq_ord_search_flag and search_term not in uniq_enq_id:
+                continue
             temp_data['aaData'].append(OrderedDict(
                 (('ID', float(enquiry.enquiry_id)), ('Enquiry ID', uniq_enq_id), ('Emiza Order Id', Emiza_ids), ('Enquiry Date', get_only_date(request, enquiry.creation_date)),
               ('Customer Name', enquiry.customer_name), ('Style Name', enquiry.sku.sku_class), ('Customization', customization_type),('SKU Code', enquiry.sku.sku_code), ('Status', enquiry.status))))
@@ -12952,8 +12933,10 @@ def move_enquiry_to_order(request, user=''):
 @get_admin_user
 def extend_enquiry_date(request, user = ''):
     message = 'Success'
+    users_list = []
     extended_date = request.GET.get('extended_date', '')
     enquiry_id = request.GET.get('order_id', '')
+    status = request.GET.get('extend_status','')
     if not enquiry_id:
         enquiry_id = request.GET.get('enquiry_id', '')
     user_profile = UserProfile.objects.filter(user=request.user.id)
@@ -12973,6 +12956,7 @@ def extend_enquiry_date(request, user = ''):
     try:
         enq_qs = EnquiryMaster.objects.filter(enquiry_id=enquiry_id, customer_id=cm_id)
         if enq_qs:
+            users_list.append(admin_user.id)
             ext_dt = datetime.datetime.strptime(extended_date, '%m/%d/%Y')
             ct_dtt = enq_qs[0].creation_date
             ct_dt = ct_dtt.replace(tzinfo=None)
@@ -12980,11 +12964,27 @@ def extend_enquiry_date(request, user = ''):
             days = dt_days.days
             username = request.user.username
             if user_profile[0].user_type != 'customer':
+                if user_profile[0].user_type != 'customer' and request.user.username.lower() == 'sm_admin':
+                    reseller = UserProfile.objects.filter(user = enq_qs[0].user)[0].user
+                    zonal_admin_id = get_zonal_admin_id(admin_user,reseller)
+                    users_list.append(zonal_admin_id)
+                else:
+                    users_list.append(request.user.id)
+                users_list.append(enq_qs[0].user)
+                contents = {"en": "%s has %s to  extend date upto %s for order %s"\
+                          % (request.user.username, str(status), str(extended_date), str(enquiry_id))}
                 if days > date_ext_days and username.lower() != 'sm_admin':
                     return HttpResponse('Admin')
+            else:
+                zonal_admin_id = get_zonal_admin_id(admin_user,user)
+                users_list.append(zonal_admin_id)
+                users_list.append(user.id)
+                contents = {"en": "%s-%s is requested to extend date upto %s for order %s"\
+                          % (request.user.username, request.user.first_name, str(extended_date), str(enquiry_id))}
             enq_qs[0].extend_status = extend_status
             enq_qs[0].extend_date = datetime.datetime.strptime(extended_date, '%m/%d/%Y')
             enq_qs[0].save()
+            send_push_notification(contents, users_list)
     except:
         import traceback
         log.debug(traceback.format_exc())

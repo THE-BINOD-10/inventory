@@ -6088,12 +6088,62 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
                                                         Concat('user__username', Value(' - '), 'user__first_name')))
 
     enquired_sku_qs = EnquiredSku.objects.filter(**search_parameters)
-    temp_data['recordsTotal'] = enquired_sku_qs.count()
+    enq_ids = enquired_sku_qs.values_list('id', flat=True)
+    asn_res_qs = ASNReserveDetail.objects.filter(enquirydetail_id__in=enq_ids, enquirydetail__warehouse_level=1)
+    temp_data['recordsTotal'] = enquired_sku_qs.count() + asn_res_qs.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     if stop_index:
         enquired_sku_qs = enquired_sku_qs[start_index:stop_index]
 
     totals_map = {}
+    for asn_obj in asn_res_qs:
+        en_obj = asn_obj.enquirydetail
+        em_obj = en_obj.enquiry
+        uniq_enq_id = str(em_obj.customer_id) + str(em_obj.enquiry_id)
+        if 'enquiry_number' in search_params:
+            if search_params['enquiry_number'] not in uniq_enq_id:
+                continue
+        extend_status = em_obj.extend_status
+        if em_obj.extend_date:
+            days_left_obj = em_obj.extend_date - datetime.datetime.today().date()
+            days_left = days_left_obj.days
+        else:
+            days_left = 0
+        customer_name = resellers_names_map.get(em_obj.customer_id, '')
+        dist_obj = User.objects.get(id=em_obj.user)
+        distributor_name = dist_obj.username + ' - ' + dist_obj.first_name
+        zone = dist_obj.userprofile.zone
+        user_name = en_obj.sku.user
+        warehouse = ''
+        if user_name:
+            user = User.objects.get(id=user_name)
+            warehouse = user.username
+        sku_code = en_obj.sku.sku_code
+        quantity = asn_obj.reserved_qty
+        warehouse_level = 3
+        corporate_name = en_obj.enquiry.corporate_name
+        remarks = en_obj.enquiry.remarks
+        if 'Total Qty' not in totals_map:
+            totals_map['Total Qty'] = quantity
+        else:
+            totals_map['Total Qty'] += quantity
+        prod_catg = en_obj.sku.sku_category
+        ord_dict = OrderedDict((('Zone Code', zone),
+                                ('Distributor Code', distributor_name),
+                                ('Reseller Code', customer_name),
+                                ('Product Category', prod_catg),
+                                ('SKU Code', sku_code),
+                                ('SKU Quantity', quantity),
+                                ('Warehouse Level', warehouse_level),
+                                ('Enquiry No', uniq_enq_id),
+                                ('Level', warehouse_level),
+                                ('Warehouse', warehouse),
+                                ('Enquiry Aging', days_left),
+                                ('Enquiry Status', extend_status),
+                                ('Corporate Name', corporate_name),
+                                ('Remarks', remarks),
+                                ))
+        temp_data['aaData'].append(ord_dict)
     for en_obj in enquired_sku_qs:
         em_obj = en_obj.enquiry
         uniq_enq_id = str(em_obj.customer_id) + str(em_obj.enquiry_id)

@@ -464,6 +464,7 @@ def get_search_params(request, user=''):
                     'supplier': 'supplier', 'sku_code': 'sku_code', 'category': 'sku_category',
                     'sku_category': 'sku_category', 'sku_type': 'sku_type','sister_warehouse':'sister_warehouse',
                     'class': 'sku_class', 'zone_id': 'zone', 'location': 'location', 'open_po': 'open_po',
+                    'marketplace': 'marketplace','central_order_id':'central_order_id',
                     'marketplace': 'marketplace','source_location':'source_location','destination_location':'destination_location',
                     'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage', 'jo_code': 'jo_code',
                     'sku_class': 'sku_class', 'sku_size': 'sku_size',
@@ -479,7 +480,7 @@ def get_search_params(request, user=''):
                     'aging_period': 'aging_period', 'source_sku_code': 'source_sku_code',
                     'destination_sku_code': 'destination_sku_code',
                     'destination_sku_category': 'destination_sku_category',
-                    'source_sku_category': 'source_sku_category', 'level': 'level'}
+                    'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -848,6 +849,12 @@ def configurations(request, user=''):
         config_dict['grn_fields'] = ''
     else:
         config_dict['grn_fields'] = grn_fields
+
+    po_fields = get_misc_value('po_fields', user.id)
+    if po_fields == 'false' :
+        config_dict['po_fields'] = ''
+    else:
+        config_dict['po_fields'] = po_fields
 
     if config_dict['mail_alerts'] == 'false':
         config_dict['mail_alerts'] = 0
@@ -2372,14 +2379,21 @@ def save_order_extra_fields(request, user=''):
 @get_admin_user
 def save_grn_fields(request, user=''):
     grn_fields = request.GET.get('grn_fields', '')
-    if len(grn_fields.split(',')) <=  4 :
-        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='grn_fields')
+    po_fields = request.GET.get('po_fields', '')
+    if grn_fields:
+        misc_type = 'grn_fields'
+        fields = grn_fields
+    if po_fields:
+        misc_type = 'po_fields'
+        fields = po_fields
+    if len(fields.split(',')) <=  4 :
+        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=misc_type)
         try:
             if not misc_detail.exists():
-                 MiscDetail.objects.create(user=user.id,misc_type='grn_fields',misc_value=grn_fields)
+                 MiscDetail.objects.create(user=user.id,misc_type=misc_type,misc_value=fields)
             else:
                 misc_detail_obj = misc_detail[0]
-                misc_detail_obj.misc_value = grn_fields
+                misc_detail_obj.misc_value = fields
                 misc_detail_obj.save()
         except:
             import traceback
@@ -3833,13 +3847,13 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                                             annotate(tot_rem=F('total_order')-F('total_received')).\
                                             values_list('open_po__sku__sku_code', 'tot_rem'))
 
-    today_filter = datetime.datetime.today()
-    hundred_day_filter = today_filter + datetime.timedelta(days=90)
+    # today_filter = datetime.datetime.today()
+    # hundred_day_filter = today_filter + datetime.timedelta(days=90)
     ints_filters = {'quantity__gt': 0, 'sku__sku_code__in': needed_skus, 'sku__user__in': gen_whs, 'status': 'open'}
     asn_qs = ASNStockDetail.objects.filter(**ints_filters)
     nk_stock = asn_qs.filter(asn_po_num='NON_KITTED_STOCK')
-    intr_obj_100days_qs = asn_qs.filter(Q(arriving_date__lte=hundred_day_filter)| Q(asn_po_num='NON_KITTED_STOCK'))
-    intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
+    # intr_obj_100days_qs = asn_qs.filter(Q(arriving_date__lte=hundred_day_filter)| Q(asn_po_num='NON_KITTED_STOCK'))
+    intr_obj_100days_ids = asn_qs.values_list('id', flat=True)
     asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
     asn_res_100days_qs = asnres_det_qs.filter(orderdetail__isnull=False)  # Reserved Quantity
     asn_res_100days_qty = dict(asn_res_100days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
@@ -3847,8 +3861,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     asn_blk_100days_qty = dict(
         asn_blk_100days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
 
-    needed_stock_data['asn_quantities'] = dict(
-        intr_obj_100days_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+    needed_stock_data['asn_quantities'] = dict(asn_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
     needed_stock_data['nonkitted_stock'] = dict(nk_stock.values_list('sku__sku_code').distinct().annotate(Sum('quantity')))
     needed_stock_data['asn_blocked_quantities'] = {}
     for k, v in needed_stock_data['asn_quantities'].items():
@@ -4192,8 +4205,11 @@ def get_group_data(request, user=''):
                                                        'View Order Statuses': statuses}}))
 
 
-def get_sku_master(user, sub_user):
-    sku_master = SKUMaster.objects.filter(user=user.id)
+def get_sku_master(user, sub_user, is_list=''):
+    if not is_list:
+        sku_master = SKUMaster.objects.filter(user=user.id)
+    else:
+        sku_master = SKUMaster.objects.filter(user__in=user)
     sku_master_ids = sku_master.values_list('id', flat=True)
     if not sub_user.is_staff:
         sub_user_groups = sub_user.groups.filter().exclude(name=user.username).values_list('name', flat=True)
@@ -7524,6 +7540,11 @@ def fetch_unit_price_based_ranges(dest_loc_id, level, admin_id, wms_code):
 def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_objs, is_distributor,
                          order_summary_dict, ship_to, corporate_po_number, client_name, admin_user, sku_total_qty_map,
                          order_user_sku, order_user_objs, address_selected=''):
+    if order_data.get('del_date', ''):
+        if order_data['del_date'] >= order_data['shipment_date']:
+            order_data['shipment_date'] = order_data.get('del_date', '')
+        else:
+            order_data['del_date'] = order_data['shipment_date']
     order_data1 = copy.deepcopy(order_data)
     order_data_excluding_keys = ['warehouse_level', 'margin_data', 'el_price', 'del_date']
     order_unit_price = order_data1['unit_price']
@@ -9684,3 +9705,63 @@ def get_current_weight(request, user=''):
         return HttpResponse(json.dumps({'weight': result_val, 'is_updated': is_updated, 'status': 1}))
     else:
         return HttpResponse(json.dumps({'weight': 0 , 'is_updated': False, 'status': 0}))
+
+
+def fetch_asn_detailed_qty(sku_class_list, sku_users):
+    overall_asn_stock = {'first_and_nk_set': {}, 'second_set': {}, 'third_set': {}}
+    today_filter = datetime.datetime.today()
+    threeday_filter = today_filter + datetime.timedelta(days=10)
+    thirtyday_filter = today_filter + datetime.timedelta(days=45)
+    asn_filters = {'quantity__gt': 0, 'sku__sku_class__in': sku_class_list, 'sku__user__in': sku_users,
+                   'status': 'open'}
+    asn_qs = ASNStockDetail.objects.filter(**asn_filters)
+    asn_3_qs = asn_qs.filter(Q(arriving_date__lte=threeday_filter) | Q(asn_po_num='NON_KITTED_STOCK'))
+    asn_3_ids = asn_3_qs.values_list('id', flat=True)
+    asn_res_3days_qs = ASNReserveDetail.objects.filter(asnstock__in=asn_3_ids)
+    asn_res_3days_qty = dict(
+        asn_res_3days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
+    intr_3d_st = dict(asn_3_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+    for k, v in intr_3d_st.items():
+        if k in asn_res_3days_qty:
+            intr_3d_st[k] = intr_3d_st[k] - asn_res_3days_qty[k]
+
+    asn_30_qs = asn_qs.exclude(arriving_date__lte=threeday_filter).filter(arriving_date__lte=thirtyday_filter)
+    asn_30_ids = asn_30_qs.values_list('id', flat=True)
+    asn_res_30days_qs = ASNReserveDetail.objects.filter(asnstock__in=asn_30_ids)
+    asn_res_30days_qty = dict(
+        asn_res_30days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
+    intr_30d_st = dict(asn_30_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+    for k, v in intr_30d_st.items():
+        if k in asn_res_30days_qty:
+            intr_30d_st[k] = intr_30d_st[k] - asn_res_30days_qty[k]
+
+    asn_100_qs = asn_qs.filter(arriving_date__gt=thirtyday_filter)
+    asn_100_ids = asn_100_qs.values_list('id', flat=True)
+    asn_res_100days_qs = ASNReserveDetail.objects.filter(asnstock__in=asn_100_ids)
+    asn_res_100days_qty = dict(asn_res_100days_qs.values_list('asnstock__sku__sku_code').annotate(
+        in_res=Sum('reserved_qty')))
+    intr_100d_st = dict(asn_100_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+    for k, v in intr_100d_st.items():
+        if k in asn_res_100days_qty:
+            intr_100d_st[k] = intr_100d_st[k] - asn_res_100days_qty[k]
+
+    overall_asn_stock['first_and_nk_set'] = intr_3d_st
+    overall_asn_stock['second_set'] = intr_30d_st
+    overall_asn_stock['third_set'] = intr_100d_st
+    return overall_asn_stock
+
+
+@csrf_exempt
+def get_zonal_admin_id(admin_user, reseller):
+    zonal_id = 0
+    try:
+        zonal_admin_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+            Q(userprofile__zone=reseller.userprofile.zone)).values_list('id', flat=True)
+        if zonal_admin_id:
+            zonal_id = zonal_admin_id[0]
+            return zonal_id
+    except Exception as e:
+        import traceback
+        log.info(traceback.format_exc())
+        log.info('Users List exception raised')
+

@@ -37,6 +37,7 @@
                   <tr>
                     <th ng-if="pop.model_data.barcodes[0].label">Label Code</th>
                     <th ng-if="!pop.model_data.barcodes[0].label">SKU Code</th>
+                    <th ng-if="!pop.model_data.barcodes[0].label">SKU Description</th>
                     <th ng-if='pop.model_data.barcodes[0].pack_id'>SKU Pack Id</th>
                     <th ng-if='!pop.model_data.barcodes[0].pack_id'>Quantity </th>
                     <th ng-if='pop.model_data.barcodes[0].pack_id'>SKU Packs </th>
@@ -52,6 +53,9 @@
                     </td>
                     <td ng-if="!barcode.label">
                       <input type="text" name="wms_code" class="form-control" ng-model="barcode.wms_code">
+                    </td>
+                    <td ng-if="!barcode.label">
+                        <input type="text" ng-model="barcode.sku_desc" size="10" title="{{ barcode.sku_desc }}" class="form-control detectTab" readonly>
                     </td>
                     <td>
                         <input type="text" ng-if='barcode.pack_id' name="pack_id" class="form-control" ng-model="barcode.pack_id">

@@ -8773,6 +8773,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
+    interm_orders = IntermediateOrders.objects.filter(**data_dict).exclude(status = 3)
     interm_orders = IntermediateOrders.objects.filter(**data_dict).exclude(status=3)
     if search_term:
         all_orders = interm_orders.filter(Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term)|
@@ -8794,19 +8795,9 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
         .values('interm_order_id', 'order__original_order_id', 'order_assigned_wh__username', 'status',
                      'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'id',
                      'creation_date', 'project_name', 'remarks', 'alt_sku__sku_code')
-    '''line_items_map = {}
-    for item in ord_items:
-        interm_order_id = item[0]
-        line_items_map.setdefault(interm_order_id, []).append(item[1:])'''
-
-    #temp_data['recordsTotal'] = len(line_items_map.keys())
     temp_data['recordsTotal'] = ord_items.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-
-    #for order_id, dat in line_items_map.items()[start_index:stop_index]:
     for dat in ord_items[start_index:stop_index]:
-        #order_id ,loan_proposal_id, assigned_wh, status, sku_code, sku_desc, quantity, shipment_date, \
-        #id, creation_date, project_name, remarks = dat[0]
         alternate_sku = ''
         order_date = get_local_date(user, dat['creation_date'])
         shipment_date = dat['shipment_date'].strftime("%d/%m/%Y")
@@ -14981,6 +14972,34 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
                                         'courier_name': ''}, cls=DjangoJSONEncoder))
     return HttpResponse(json.dumps({'status': 'No Orders found'}))
 
+@login_required
+@get_admin_user
+def delete_central_order(request, user=''):
+    status = 'Success'
+    orders_dict = dict(request.POST)
+    for i in range(len(orders_dict['interm_id'])):
+        try:
+            interm_obj = IntermediateOrders.objects.filter(id=orders_dict['interm_id'][i],user = user.id)
+            if interm_obj.exists():
+                if interm_obj.filter(order__status__in=['1','3']) or interm_obj.filter(status__in=['2','']):
+                    order_ids = interm_obj.exclude(order__status__in = [0,2]).values('order__id')
+                    for id in order_ids :
+                        OrderDetail.objects.filter(id = id['order__id']).update(status =3)
+                    for obj in interm_obj :
+                        int_order_obj = obj
+                        int_order_obj.remarks = orders_dict['remarks'][i]
+                        int_order_obj.status = 3
+                        int_order_obj.save()
+                else :
+                     status = 'Orders are  Picked or Dispatched Already'
+
+
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Deletion of central order failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(request.POST.dict()), str(e)))
+    return HttpResponse(json.dumps({'status': status}))
 
 @login_required
 @get_admin_user
@@ -15354,7 +15373,7 @@ def dispatch_qc(user, sku_details, order_id, validation_status):
             for dict_obj in value:
                 for key_obj, value_obj in dict_obj.items():
                     disp_imei_map = {}
-                    disp_imei_map['order_id'] = order_id
+                    disp_imei_map['order_id'] = order_id.id
                     disp_imei_map['po_imei_num'] = get_po_imei_qs
                     disp_imei_map['qc_name'] = key_obj
                     dispatch_checklist = DispatchIMEIChecklist.objects.filter(**disp_imei_map)

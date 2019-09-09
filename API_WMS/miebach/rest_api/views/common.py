@@ -464,6 +464,7 @@ def get_search_params(request, user=''):
                     'supplier': 'supplier', 'sku_code': 'sku_code', 'category': 'sku_category',
                     'sku_category': 'sku_category', 'sku_type': 'sku_type','sister_warehouse':'sister_warehouse',
                     'class': 'sku_class', 'zone_id': 'zone', 'location': 'location', 'open_po': 'open_po',
+                    'marketplace': 'marketplace','central_order_id':'central_order_id',
                     'marketplace': 'marketplace','source_location':'source_location','destination_location':'destination_location',
                     'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage', 'jo_code': 'jo_code',
                     'sku_class': 'sku_class', 'sku_size': 'sku_size',
@@ -479,7 +480,7 @@ def get_search_params(request, user=''):
                     'aging_period': 'aging_period', 'source_sku_code': 'source_sku_code',
                     'destination_sku_code': 'destination_sku_code',
                     'destination_sku_category': 'destination_sku_category',
-                    'source_sku_category': 'source_sku_category', 'level': 'level'}
+                    'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -4205,8 +4206,11 @@ def get_group_data(request, user=''):
                                                        'View Order Statuses': statuses}}))
 
 
-def get_sku_master(user, sub_user):
-    sku_master = SKUMaster.objects.filter(user=user.id)
+def get_sku_master(user, sub_user, is_list=''):
+    if not is_list:
+        sku_master = SKUMaster.objects.filter(user=user.id)
+    else:
+        sku_master = SKUMaster.objects.filter(user__in=user)
     sku_master_ids = sku_master.values_list('id', flat=True)
     if not sub_user.is_staff:
         sub_user_groups = sub_user.groups.filter().exclude(name=user.username).values_list('name', flat=True)

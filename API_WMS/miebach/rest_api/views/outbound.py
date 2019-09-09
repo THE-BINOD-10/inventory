@@ -8795,19 +8795,9 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
         .values('interm_order_id', 'order__original_order_id', 'order_assigned_wh__username', 'status',
                      'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'id',
                      'creation_date', 'project_name', 'remarks', 'alt_sku__sku_code')
-    '''line_items_map = {}
-    for item in ord_items:
-        interm_order_id = item[0]
-        line_items_map.setdefault(interm_order_id, []).append(item[1:])'''
-
-    #temp_data['recordsTotal'] = len(line_items_map.keys())
     temp_data['recordsTotal'] = ord_items.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-
-    #for order_id, dat in line_items_map.items()[start_index:stop_index]:
     for dat in ord_items[start_index:stop_index]:
-        #order_id ,loan_proposal_id, assigned_wh, status, sku_code, sku_desc, quantity, shipment_date, \
-        #id, creation_date, project_name, remarks = dat[0]
         alternate_sku = ''
         order_date = get_local_date(user, dat['creation_date'])
         shipment_date = dat['shipment_date'].strftime("%d/%m/%Y")
@@ -15007,6 +14997,8 @@ def delete_central_order(request, user=''):
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
+            log.info('Deletion of central order failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(request.POST.dict()), str(e)))
     return HttpResponse(json.dumps({'status': status}))
 
 @login_required

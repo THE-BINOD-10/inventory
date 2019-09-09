@@ -7005,11 +7005,10 @@ def get_orderflow_data(search_params, user, sub_user):
         order_fields_dict = dict(OrderFields.objects.filter(original_order_id =data['interm_order_id'],user = user.id).values_list('name','value'))
         if data['order__id'] :
            if isprava_permission == 'false':
-               singned_invoice = MasterDocs.objects.filter(master_id =data['order__id'])
+               singned_invoice = MasterDocs.objects.filter(master_id =data['order__id'], master_type='OneAssistSignedCopies')
                if singned_invoice.exists():
                    acknowledgement_status = 'Yes'
 
-               #order_fields_dict = dict(OrderFields.objects.filter(original_order_id =data['interm_order_id'],user = user.id).values_list('name','value'))
                outbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id =data['order__id'],qc_type = 'sales_order')
                if outbound_dispatch_imei.exists():
                    serial_number = outbound_dispatch_imei[0].po_imei_num.imei_number
@@ -7018,7 +7017,7 @@ def get_orderflow_data(search_params, user, sub_user):
                if shipment.exists():
                    shipment_status = 'Dispatched'
 
-               po_obj = OrderMapping.objects.filter(order_id = data['order__id'])
+               po_obj = OrderMapping.objects.filter(order_id = data['order__id'], mapping_type = 'PO')
                if po_obj.exists():
                   inbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id =po_obj[0].mapping_id,qc_type = 'purchase_order').exclude(remarks = '')
                   purchase_order_obj = PurchaseOrder.objects.filter(id =po_obj[0].mapping_id )

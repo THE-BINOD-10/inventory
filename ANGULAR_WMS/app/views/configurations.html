@@ -7,7 +7,12 @@
 <div class="panel">
   <div class="panel-body">
     <div class="panel tab-content" id="configurations">
-      <div class="notifications top-right"></div>
+      <!-- <div class="notifications top-right"></div>
+      <div class = "row">
+        <div class = "col-lg-offset-8 col-md-offset-8">
+      <button type="button" class="btn btn-success" style="width: 150px; margin-bottom:5px" ng-click="showCase.addClassfication()">SKU Classification</button>
+     </div> -->
+     </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
         <div class="col-md-5 col-sm-8 col-xs-12">
           <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i>
@@ -342,6 +347,17 @@
         </div>
         <div class="col-md-1 col-sm-1 col-xs-1"><i ng-click="showCase.switches(showCase.model_data.rtv_prefix_code, 81)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
       </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-th fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Weight Integration Name</strong>
+          </div>
+          <div class="col-md-1 col-sm-2 col-xs-3">
+          <input type="text" class="form-control" id="weight_integration_name" maxlength="25" ng-model="showCase.model_data.weight_integration_name">
+          </div>
+          <div class="col-md-1 col-sm-1 col-xs-1"><i ng-click="showCase.switches(showCase.model_data.weight_integration_name, 91)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
+      </div>
+
       <div class="row col-md-12" style="padding-bottom: 15px" ng-init="showCase.online_enable_save = false">
         <div class="col-md-5 col-sm-8 col-xs-12">
           <i class="fa fa-shopping-cart fa-15px pull-left" style="line-height: 34px;"></i>
@@ -501,6 +517,17 @@
           <input class="grn_fields" type="text" value="{{showCase.model_data.grn_fields}}" ui-jq="tagsInput"/>
         </div>
         <div class="col-md-1 col-sm-1 col-xs-2"><i ng-click="showCase.update_grn_fields()" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-step-forward fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> PO Extra Fields </strong>
+        </div>
+        <div class="bootstrap-tagsinput col-md-6 col-sm-6 col-xs-8">
+          <input class="po_fields" type="text" value="{{showCase.model_data.po_fields}}" ui-jq="tagsInput"/>
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-2"><i ng-click="showCase.update_po_fields()" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">

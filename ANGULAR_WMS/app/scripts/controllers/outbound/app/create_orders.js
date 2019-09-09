@@ -35,6 +35,15 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.brand_filter = $state.params.brand_filter;
   }
   //Session.sagar_fab_filter = {}
+  window.onhashchange = function() {
+    if ($location.$$path == '/App/Brands'){
+      if(localStorage.brand_value != '' || localStorage.category_value != ''){;
+        localStorage.removeItem('brand_value')
+        localStorage.removeItem('category_value')
+        change_filter_data('removefilter');
+      }
+    }
+  }
   vm.test = [{wms_code: '101', sku_desc: 'Description-1'}, {wms_code: '102', sku_desc: 'Description-2'},
              {wms_code: '103', sku_desc: 'Description-3'}, {wms_code: '104', sku_desc: 'Description-4'}];
   vm.modelData = {'profile_name': vm.profile_name, 'ordered_skus':vm.test};
@@ -161,20 +170,25 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.brand = "";
   vm.filterData = {};
 
-  vm.disable_brands_view = function(){
-    if(Session.roles.permissions.disable_brands_view && $state.$current.name == "user.App.Brands"){
+  vm.current_state_view = function(){
+    if(Session.roles.permissions.customer_portal_prefered_view && Session.roles.permissions.customer_portal_prefered_view != 'None'){
+      if (Session.roles.permissions.customer_portal_prefered_view == 'Category View'){
+        $state.go('user.App.Categories');
+      }else if (Session.roles.permissions.customer_portal_prefered_view == 'Brand View'){
+        $state.go('user.App.Brands');
+      }else if (Session.roles.permissions.customer_portal_prefered_view == 'Product View'){
+        $state.go('user.App.Products');
+      }
+    }else if (Session.roles.permissions.disable_brands_view && Session.roles.permissions.disable_categories_view){
+      $state.go('user.App.Products');
+    }else if (Session.roles.permissions.disable_brands_view && $state.$current.name == "user.App.Brands"){
       $state.go('user.App.Categories');
-    }
-  }
-
-  vm.disable_categories_view = function(){
-    if(Session.roles.permissions.disable_categories_view){
+    }else if (Session.roles.permissions.disable_categories_view) {
       $state.go('user.App.Products');
     }
   }
 
-  vm.disable_brands_view();
-  vm.disable_categories_view();
+  vm.current_state_view();
 
   vm.goBack = function(){
     if(Session.roles.permissions.disable_brands_view){
@@ -245,9 +259,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
     if (params_value == "brand_value") {
       if (!(vm.brand)) {
-	if (localStorage.getItem(url)) {
-	  vm.brand = localStorage.getItem(url);
-	}
+      	if (localStorage.getItem(url)) {
+      	  vm.brand = localStorage.getItem(url);
+      	}
       }
       if (vm.brand != 'All') {
         localStorage.setItem(url, vm.brand);
@@ -256,6 +270,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   }
 
   function change_filter_data(brand_value) {
+    if (brand_value == 'removefilter') {
+      vm.categories = [];
+      vm.category = "";
+      vm.brand = "";
+      vm.filterData = {};
+    }
     get_brand_filter_value('brand_value');
     get_brand_filter_value('category_value');
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
@@ -424,7 +444,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
       if(response.message && response.data.search_key == vm.style || !vm.style) {
         vm.gotData = response.data;
-        console.log("done");
         canceller.resolve("done");
         vm.data_loading = false;
         vm.showFilter = false;
@@ -1476,27 +1495,33 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     "1005-Men":"MENS_POLO.png",
     "1006-Women":"LADIES_POLO.png",
     "1007-Men":"MENS_POLO.png",
-    "Bags":"DIFFLE_BAG.png",
-    "Cotton Round Neck":"COTTON_ROUND_NECK.png",
+    "Duffle Bags":"duffle_bag.png",
+    "Cotton Round Neck":"cotton_round_neck.png",
+    "Cotton Round Neck (180)":"cotton_round_neck.png",
+    "Cotton Round Neck (200)":"cotton_round_neck.png",
     "Dryfit Collar":"DRYFIT_POLO.png",
-    "Dryfit Polo":"DRYFIT_POLO.png",
+    "Dryfit Polo":"dry_fit_polo.png",
     "Dryfit Round Neck":"DRYFIT_ROUND_NECK.png",
-    "Ear Phone":"EARPHONE.png",
+    "Earphones":"earphones.png",
     "Grindle Round Neck":"GRINDLE_ROUND_NECK.png",
     "Henley Neck":"HENLEY_ROUND_NECK.png",
     "Hoodie":"HOODIES.png",
-    "Hoodie - 300 GSM":"HOODIES_300_GSM.png",
-    "Hoodie - 300 GSM ZIP":"HOODIES_300_GSM_ZIP.png",
-    "Hoodie - 400 GSM":"HOODIES_400_GSM.png",
-    "Hoodie - 400 GSM ZIP":"HOODIES_400_GSM_ZIP.png",
-    "Jacket":"JACKETS.png",
-    "Jackets":"JACKETS.png",
+    "Hoodie - 300 GSM":"300 gsm.png",
+    "Hoodie - 300 GSM ZIP":"300 gsm.png",
+    "Hoodie - 400 GSM":"400 gsm.png",
+    "Hoodie - 400 GSM ZIP":"400 gsm.png",
+    "Jackets":"jacket.png",
     "Ladies Polo":"LADIES_POLO.png",
     "Men's Polo":"MENS_POLO.png",
     "Round Neck":"ROUND_NECK.png",
-    "Shirts":"SHIRTS.png",
+    "Shirts":"shirts.png",
+    "Cotton Polo - Men":"Cotton_polo_men.png",
+    "Cotton Polo - women":"Cotton_polo_women.png",
     "Slub Round Neck":"SLUB_ROUND_NECK.png",
     "V Neck":"V_NECK.png",
+    "Cotton V Neck":"cotton_v_neck.png",
+    "Dryfit Round Neck":"dry_fit_round_neck.png",
+    "Backpacks":"backpacks.png",
   }
 
   vm.isprava_imgs = {
@@ -1599,8 +1624,8 @@ angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance,
   $ctrl.categories = [];
   $ctrl.categories_loading = true;
   $ctrl.get_categories = function() {
-    get_brand_filter_value('brand_value');
-    get_brand_filter_value('category_value');
+    // get_brand_filter_value('brand_value');
+    // get_brand_filter_value('category_value');
     var data = {brand: '', sale_through: $ctrl.marginData.sale_through};
     Service.apiCall("get_sku_categories/", "GET",data).then(function(data){
       if(data.message) {

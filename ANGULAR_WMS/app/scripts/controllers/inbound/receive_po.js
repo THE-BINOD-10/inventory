@@ -33,6 +33,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $rootScope.collect_imei_details = {};
     vm.failed_serial_number = {};
     vm.passed_serial_number = {};
+    vm.firebase_temp_po = ''
+    vm.quantity_focused = false;
+
     vm.collect_imei_details = $rootScope.collect_imei_details;
     if(vm.permissions.receive_po_mandatory_fields) {
       angular.forEach(vm.permissions.receive_po_mandatory_fields.split(','), function(field){
@@ -358,7 +361,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.close = close;
     function close() {
-
+      if (vm.firebase_temp_po != ''){
+        firebase.database().ref("ReceiveQC/"+Session.parent.userId+"/"+ vm.firebase_temp_po.id).remove()
+        vm.firebase_temp_po = ''
+      }
       vm.model_data = {};
       vm.html = "";
       vm.scanned_wms =[]
@@ -459,6 +465,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             data.supplier_code = resp.data.supplier_code;
             data.ean_number = resp.data.ean_number;
             data.buy_price = resp.data.price;
+            data.weight = resp.data.weight;
 
             data.row_price = (Number(data.value) * Number(data.price));
             vm.getTotals();
@@ -1004,7 +1011,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     if(vm.field == sku.wms_code){
                       if(sku.value < sku.po_quantity) {
                         sku["value"] = Number(sku["value"]) + 1;
-                        vm.calc_total_amt(event, vm.model_data, Number(i), temp_sku_ind);
+                        vm.calc_total_amt(event, vm.model_data, temp_sku_ind,Number(i));
                       } else {
                          Service.showNoty("Received Quantity Equal To PO Quantity");
                       }
@@ -1689,7 +1696,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     fb["remove_po"] = function(po) {
-
       if(po) {
         firebase.database().ref("/GRNLogs/"+Session.parent.userId+"/").push(vm.fb.poData);
         firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+po).once("value", function(data){
@@ -1781,6 +1787,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         po[name]["rejected"] = "";
       })
       console.log(po);
+      vm.firebase_temp_po = po
       firebase.database().ref("/ReceiveQC/"+Session.parent.userId).push(po).then(function(data){
 
         fb.poData = po;
@@ -2008,19 +2015,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           if (!(fb.generate)) {
 
              fb.stop_listening(delete_po["po"]);
-             SweetAlert.swal({
-               title: '',
-               text: 'Receiv+QC confirmed Successfully',
-               type: 'success',
-               showCancelButton: false,
-               confirmButtonColor: '#33cc66',
-               confirmButtonText: 'Ok',
-               closeOnConfirm: true,
-             },
-             function (status) {
-               vm.close();
-               }
-             );
+             // SweetAlert.swal({
+             //   title: '',
+             //   text: 'Receiv+QC confirmed Successfully',
+             //   type: 'success',
+             //   showCancelButton: false,
+             //   confirmButtonColor: '#33cc66',
+             //   confirmButtonText: 'Ok',
+             //   closeOnConfirm: true,
+             // },
+             // function (status) {
+             //   vm.close();
+             //   }
+             // );
             //vm.close();
           }
         }
@@ -2029,7 +2036,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     fb["remove_po"] = function(po) {
-
       if(po) {
         firebase.database().ref("/ReceiveQC/"+Session.parent.userId+"/"+po).once("value", function(data){
           data.ref.remove()
@@ -2465,6 +2471,24 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     })
   }
 
+  vm.get_current_weight = function(event, data, index, parent_index) {
+    if(vm.permissions.weight_integration_name.length > 0) {
+      var sku_row_data = {};
+      angular.copy(data.data[parent_index][index], sku_row_data);
+      vm.service.apiCall('get_current_weight/', 'GET',{}).then(function(res_data){
+        if(res_data.message){
+          if(res_data.data.status && res_data.data.is_updated){
+            data.data[parent_index][index].value = res_data.data.weight;
+            vm.calc_total_amt(event, data, index, parent_index);
+          }
+          if(vm.quantity_focused) {
+            setTimeout(function(){ vm.get_current_weight(event, data, index, parent_index); }, 1000);
+          }
+        }
+      });
+    }
+  }
+
   vm.file_size_check = function(event, file_obj) {
     var file_size = ($(".grn-form").find('[name="files"]')[0].files[0].size/1024)/1024;
     if(file_size > 10) {
@@ -2526,7 +2550,6 @@ angular.module('urbanApp').controller('addNewSkuCtrl', function ($modalInstance,
   };
 
   $ctrl.close = function () {
-
     $modalInstance.dismiss('cancel');
   };
 });

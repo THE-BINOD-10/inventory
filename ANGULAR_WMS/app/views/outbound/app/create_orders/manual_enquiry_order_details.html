@@ -330,20 +330,22 @@
                 <tr>
                   <th>Sku Code</th>
                   <th>WH</th>
-                  <th>L1 Open</th>
+                  <th>L1 Total</th>
                   <th>L1 Blocked</th>
-                  <th>L3 Open</th>
-                  <th>L3 Blocked</th>
+                  <th>L1 Open</th>
+                  <!-- <th>L3 Open</th> -->
+                  <!-- <th>L3 Blocked</th> -->
                 </tr>
               </thead>
               <tbody>
                 <tr ng-repeat="row in data">
                   <td>{{row.sku_code}}</td>
                   <td>{{row.warehouse}}</td>
-                  <td>{{row.wh_open}}</td>
+                  <td>{{row.wh_total}}</td>
                   <td>{{row.wh_blocked}}</td>
-                  <td>{{row.intr_open}}</td>
-                  <td>{{row.intr_blocked}}</td>
+                  <td>{{row.wh_total - row.wh_blocked}}</td>
+                  <!-- <td>{{row.intr_open}}</td> -->
+                  <!-- <td>{{row.intr_blocked}}</td> -->
                 </tr>
               </tbody>
             </table>

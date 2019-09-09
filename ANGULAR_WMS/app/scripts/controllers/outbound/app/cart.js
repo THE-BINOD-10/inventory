@@ -22,6 +22,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.client_logo = Session.parent.logo;
   vm.api_url = Session.host;
   vm.is_portal_lite = Session.roles.permissions.is_portal_lite;
+  vm.bt_disable = false;
 
   vm.unique_levels = {};
   vm.sel_styles = {};
@@ -215,27 +216,38 @@ vm.update_cartdata_for_approval = function() {
   vm.data_status = false;
   vm.insert_cool = true;
   vm.insert_order_data = function(data_dict) {
+    vm.bt_disable = true;
     if (vm.user_type == 'reseller') {
       if (!(vm.model_data.shipment_date) || !(vm.model_data.po_number_header) || !(vm.model_data.client_name_header) || !($("#po-upload")[0].files.length)) {
         vm.service.showNoty("The Shipment Date, PO Number, Client Name and Uploaded PO's are Required Please Select", "success", "bottomRight");
+        vm.bt_disable = false;
       } else if (!(vm.model_data.shipment_time_slot)) {
         vm.service.showNoty("Please Select Shipment Slot", "success", "bottomRight");
-      } else {
+        vm.bt_disable = false;
+      } else if (vm.unique_levels['3']) {
+        Service.showNoty("Order can't be placed to L3 level, Please remove.");
+        vm.bt_disable = false;
+        return false;
+      } else{
         vm.order_data_insertion(data_dict);
       }
     }else if(data_dict && data_dict.is_central_order){
       if (!(vm.model_data.client_name_header)){
         vm.service.showNoty("Project Name is mandatory")
+        vm.bt_disable = false;
       } else if (!(vm.model_data.shipment_date)) {
         vm.service.showNoty("The Shipment Date is Required. Please Select", "success", "bottomRight");
+        vm.bt_disable = false;
       } else {
         vm.order_data_insertion(data_dict);
       }
     }else {
       if (!(vm.model_data.shipment_date)) {
         vm.service.showNoty("The Shipment Date is Required. Please Select", "success", "bottomRight");
+        vm.bt_disable = false;
       } else if (vm.is_distributor && vm.distributor_min_order_price > vm.final_data.total_amount){
         vm.service.showNoty("Minimum order value is required "+ vm.distributor_min_order_price, 'error');
+        vm.bt_disable = false;
       } else {
         vm.order_data_insertion(data_dict);
       }
@@ -310,6 +322,7 @@ vm.update_cartdata_for_approval = function() {
         }
       )
     }
+    vm.bt_disable = false;
   }
 
   vm.get_total_sku_level_quantity = function(data, row) {

@@ -1,25 +1,24 @@
-<div class="clearfix render-items" style="padding-top: 60px;">
+<div class="clearfix render-items" style="padding-top: 35px;">
   <!--<div ng-if="showCase.pdfDownloading" style="position: fixed;z-index: 101;width: 100%;height: 100%;top: 0px;background: rgba(0, 0, 0, 0.1);padding-top: 125px;"><img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;"></div>-->
-  <div class="row style-menu
-  " style="height: 60px;position: absolute;top:0px;width:100%;z-index:100">
+  <div class="row style-menu" style="height: 40px;position: absolute;top:0px;width:100%;z-index:100">
     <div class="col-md-4 col-sm-4 col-xs-4">
-      <div ng-if="!showCase.disable_brands && showCase.disable_categories" class="menu-left" style="line-height: 60px">
+      <div ng-if="!showCase.disable_brands && showCase.disable_categories" class="menu-left" style="line-height: 40px">
         <span ng-click="$state.go('user.App.Brands');showCase.showFilter = false;"><i class="fa fa-arrow-left" style="color:#fff;" title="Go to Brand Page"></i></span>
         <!-- <span ng-click="showCase.change_brand(showCase.brand)" title="Go to Brand Page">Back</span> -->
         <span ng-click="$state.go('user.App.Brands');showCase.showFilter = false;" title="Go to Brand Page">Back</span>
       </div>
-      <div ng-if="showCase.disable_brands && !showCase.disable_categories" class="menu-left" style="line-height: 60px">
+      <div ng-if="showCase.disable_brands && !showCase.disable_categories" class="menu-left" style="line-height: 40px">
         <span ng-click="showCase.change_brand(showCase.brand, 'brand_value')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
         <span ng-click="showCase.change_brand(showCase.brand, 'brand_value')" title="Go to Brand Page">Back</span>
       </div>
-      <div ng-if="!showCase.disable_brands && !showCase.disable_categories" class="menu-left" style="line-height: 60px">
+      <div ng-if="!showCase.disable_brands && !showCase.disable_categories" class="menu-left" style="line-height: 40px">
         <span ng-click="showCase.change_brand(showCase.brand, 'category_value')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
         <span ng-click="showCase.change_brand(showCase.brand, 'category_value')" title="Go to Brand Page">Back</span>
       </div>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-4 brand-title">
-      <img ng-src="images/brands/{{showCase.brands_logos[showCase.brand]}}" ng-if="showCase.brands_logos[showCase.brand]" style="height: 60px;" />
-      <img ng-src="{{showCase.api_url}}static/company_logos/{{showCase.client_logo}}" ng-if="!showCase.brands_logos[showCase.brand] && showCase.client_logo" style="height: 60px;"/>
+      <img ng-src="images/brands/{{showCase.brands_logos[showCase.brand]}}" ng-if="showCase.brands_logos[showCase.brand]" style="height: 40px;" />
+      <img ng-src="{{showCase.api_url}}static/company_logos/{{showCase.client_logo}}" ng-if="!showCase.brands_logos[showCase.brand] && showCase.client_logo" style="height: 40px;"/>
       <h3 style="margin-top:10px;overflow: hidden;text-overflow: ellipsis;white-space: nowrap;" ng-if="!(showCase.brands_logos[showCase.brand])">{{showCase.brand}}</h3>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-4">
@@ -38,7 +37,6 @@
           <li><a ng-click="showCase.logout()">Logout</a></li>
         </ul>
       </div>
-      <a class="hide fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 10px;" ng-click="showCase.logout()">        </a>
       <a href="" class="pull-right" ng-click="$state.go('user.App.Cart')">
         <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 10px;" title="Go To Cart Page"></i>
       </a>

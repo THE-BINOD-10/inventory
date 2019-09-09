@@ -23,7 +23,7 @@
                 </div>
                 <div class="col-md-4 col-sm-6 col-xs-6">
                   <div class="form-group">
-                    <label class="control-label">Location *</label> 
+                    <label class="control-label">Location *</label>
                     <input type="text" name="location" class="form-control anvalid" ng-model="showCase.model_data.location" ng-readonly="showCase.update" required>
                   </div>
                 </div>
@@ -67,7 +67,7 @@
                   <div class="form-group">
                     <label> SKU Groups </label>
                     <select id="maxOption2" class="selectpicker show-menu-arrow form-control" multiple>
-                      <option ng-selected="showCase.check_selected(opt)" value="{{opt}}" ng-repeat="opt in showCase.data.sku_groups">{{opt}}</option>
+                      <option ng-selected="showCase.check_selected(opt)" value="{{opt}}" ng-repeat="opt in showCase.model_data.all_groups">{{opt}}</option>
                     </select>
                   </div>
                 </div>

@@ -13,6 +13,7 @@ from operator import itemgetter
 from itertools import chain
 from django.db.models import Sum, Count
 from rest_api.views.common import get_local_date
+from rest_api.views.miebach_utils import MILKBASKET_BULK_ZONE
 from rest_api.views.integrations import *
 import json
 import datetime
@@ -22,6 +23,7 @@ from rest_api.views.utils import *
 
 today = datetime.datetime.now().strftime("%Y%m%d")
 log = init_logger('logs/integrations_' + today + '.log')
+log_err = init_logger('logs/integration_errors.log')
 storehippo_log = init_logger('logs/storehippo_' + today + '.log')
 create_order_storehippo_log = init_logger('logs/storehippo_create_order_log_' + today + '.log')
 create_update_sku_storehippo_log = init_logger('logs/storehippo_create_update_log_' + today + '.log')
@@ -1224,13 +1226,17 @@ def get_mp_inventory(request):
             error_status.append({'sku': error_sku, 'message': 'SKU Not found', 'status': 5030})
         page_info = scroll_data(request, sku_records, limit=limit, request_type='body')
         sku_records = page_info['data']
+        bulk_zone = MILKBASKET_BULK_ZONE
         if industry_type == 'FMCG':
             sellable_zones = ZoneMaster.objects.filter(user=user.id, segregation='sellable').values_list('zone', flat=True)
             if sellable_zones:
                 sellable_zones = get_all_zones(user, zones=sellable_zones)
-            non_sellable_zones = ZoneMaster.objects.filter(user=user.id, segregation='non_sellable').values_list('zone', flat=True)
+            non_sellable_zones = ZoneMaster.objects.filter(user=user.id, segregation='non_sellable').\
+                exclude(zone=bulk_zone).values_list('zone', flat=True)
             if non_sellable_zones:
                 non_sellable_zones = get_all_zones(user, zones=non_sellable_zones)
+            bulk_zones = get_all_zones(user, zones=[bulk_zone])
+
             stocks = SellerStock.objects.prefetch_related('seller', 'stock', 'stock__location__zone').\
                           filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0, stock__location__zone__zone__in=sellable_zones).\
                                 exclude(Q(stock__location__zone__zone__in=picklist_exclude_zones) |
@@ -1256,27 +1262,32 @@ def get_mp_inventory(request):
                                                     Value('<<>>'), 'stock__batch_detail__weight',
                                           output_field=CharField())).values('group_key').distinct(). \
                           annotate(stock_sum=Sum('quantity'))
+            bulk_zone_stock = SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone__zone').\
+                          filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0,
+                                 stock__location__zone__zone__in=bulk_zones). \
+                          only('stock__sku__sku_code', 'stock__batch_detail__mrp', 'reserved').\
+                          annotate(group_key=Concat('stock__sku__sku_code',Value('<<>>'), 'stock__batch_detail__mrp',
+                                                    Value('<<>>'), 'stock__batch_detail__weight',
+                                          output_field=CharField())).values('group_key').distinct(). \
+                          annotate(stock_sum=Sum('quantity'))
             open_orders = dict(OrderDetail.objects.filter(user=user.id, quantity__gt=0, status=1).\
                                 annotate(group_key=Concat('sku__sku_code', Value('<<>>'), F('customerordersummary__mrp'), output_field=CharField())).\
                                 values_list('group_key').distinct().annotate(Sum('quantity')))
             sku_weight_dict = dict(SKUAttributes.objects.filter(sku__user=user.id, attribute_name='weight').\
                                    exclude(attribute_value='').values_list('sku__sku_code', 'attribute_value'))
 
-            # sku_eans = dict(SKUMaster.objects.filter(user=user.id, ean_number__gt=0, status=1).only('ean_number',
-            #                                         'sku_code').annotate(ean_str=Cast('ean_number', output_field=CharField())).values_list('sku_code', 'ean_str'))
-            # ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1, ean_number__gt=0).\
-            #                 only('ean_number', 'sku__sku_code').\
-            #                 annotate(ean_str=Cast('ean_number', output_field=CharField())).\
-            #                 values_list('sku__sku_code', 'ean_str').order_by('creation_date'))
             sku_open_orders_dict = {}
             for open_order, open_order_qty in open_orders.iteritems():
                 temp_key = open_order.split('<<>>')
                 sku_open_orders_dict.setdefault(temp_key[0], [])
                 sku_open_orders_dict[temp_key[0]].append(open_order)
+
             for sku in sku_records:
                 group_data = stocks.filter(stock__sku__sku_code=sku['sku_code']).values('group_key', 'stock_sum')
-                group_data1 = unsellable_stock.filter(stock__sku__sku_code=sku['sku_code']).\
-                                        exclude(group_key__in=group_data.values_list('group_key', flat=True))
+                group_data1 = unsellable_stock.filter(stock__sku__sku_code=sku['sku_code'])#.\
+                                        #exclude(group_key__in=group_data.values_list('group_key', flat=True))
+                group_data2 = bulk_zone_stock.filter(stock__sku__sku_code=sku['sku_code']) #.\
+                                        #exclude(group_key__in=group_data.values_list('group_key', flat=True))
                 mrp_dict = {}
                 sku_open_orders = sku_open_orders_dict.get(str(sku['sku_code']), [])
                 for stock_dat in group_data:
@@ -1306,6 +1317,10 @@ def get_mp_inventory(request):
                                                 aggregate(Sum('quantity'))['quantity__sum']
                     if not unsellable:
                         unsellable = 0
+                    # bulk_stock = bulk_zone_stock.filter(**sell_filter).\
+                    #                             aggregate(Sum('quantity'))['quantity__sum']
+                    # if not bulk_stock:
+                    #     bulk_stock = 0
                     inventory -= reserved
                     open_order_key = '%s<<>>%s' % (str(sku_code), str(mrp))
                     open_qty = open_orders.get(open_order_key, 0)
@@ -1318,7 +1333,8 @@ def get_mp_inventory(request):
                     mrp_dict.setdefault(sub_group_key, OrderedDict(( ('mrp', mrp), ('weight', weight),
                                                                      ('inventory', OrderedDict((('sellable', 0),
                                                                                                 ('on_hold', 0),
-                                                                                                ('un_sellable', 0)))))))
+                                                                                                ('un_sellable', 0),
+                                                                                                ('bulk_area', 0)))))))
                     mrp_dict[sub_group_key]['inventory']['sellable'] += int(inventory)
                     mrp_dict[sub_group_key]['inventory']['on_hold'] += int(reserved)
                     #mrp_dict[sub_group_key]['inventory']['un_sellable'] += int(unsellable)
@@ -1343,8 +1359,33 @@ def get_mp_inventory(request):
                     mrp_dict.setdefault(sub_group_key, OrderedDict(( ('mrp', mrp), ('weight', weight),
                                                                      ('inventory', OrderedDict((('sellable', 0),
                                                                                                 ('on_hold', 0),
-                                                                                                ('un_sellable', 0)))))))
+                                                                                                ('un_sellable', 0),
+                                                                                                ('bulk_area', 0)))))))
                     mrp_dict[sub_group_key]['inventory']['un_sellable'] += int(inventory)
+                for stock_dat2 in group_data2:
+                    splitted_val = stock_dat2['group_key'].split('<<>>')
+                    sku_code = splitted_val[0]
+                    mrp = splitted_val[1]
+                    #ean = splitted_val[2]
+                    weight = splitted_val[2]
+                    # if not ean:
+                    #     ean = ''
+                    if not weight:
+                        weight = 0
+                    if not mrp:
+                        mrp = 0
+                    sub_group_key = '%s<<>>%s' % (str(mrp), weight)
+                    if not mrp:
+                        mrp = 0
+                    inventory = stock_dat2['stock_sum']
+                    if not inventory:
+                        inventory = 0
+                    mrp_dict.setdefault(sub_group_key, OrderedDict(( ('mrp', mrp), ('weight', weight),
+                                                                     ('inventory', OrderedDict((('sellable', 0),
+                                                                                                ('on_hold', 0),
+                                                                                                ('un_sellable', 0),
+                                                                                                ('bulk_area', 0)))))))
+                    mrp_dict[sub_group_key]['inventory']['bulk_area'] += int(inventory)
                 for sku_open_order in sku_open_orders:
                     open_sku_code, open_sku_mrp = sku_open_order.split('<<>>')
                     # open_ean = 0
@@ -1360,7 +1401,8 @@ def get_mp_inventory(request):
                                                                       ('weight', open_weight), ('inventory',
                                                          OrderedDict((('sellable', 0),
                                                                     ('on_hold', 0),
-                                                                    ('un_sellable', 0)))))))
+                                                                    ('un_sellable', 0),
+                                                                      ('bulk_area', 0)))))))
                     mrp_dict[open_order_grouping_key]['inventory']['sellable'] -= open_orders[sku_open_order]
                     mrp_dict[open_order_grouping_key]['inventory']['on_hold'] += open_orders[sku_open_order]
                 mrp_list = mrp_dict.values()
@@ -1369,7 +1411,8 @@ def get_mp_inventory(request):
                     mrp_list = OrderedDict(( ('mrp', sku_obj.mrp), ('weight', get_sku_weight(sku_obj)),
                                                                      ('inventory', OrderedDict((('sellable', 0),
                                                                                                 ('on_hold', 0),
-                                                                                                ('un_sellable', 0))))))
+                                                                                                ('un_sellable', 0),
+                                                                                                ('bulk_area', 0))))))
                 data.append(OrderedDict(( ('sku', sku['sku_code']), ('data', mrp_list))))
         else:
             stocks = dict(SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone').\

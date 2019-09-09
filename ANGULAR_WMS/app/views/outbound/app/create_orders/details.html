@@ -1,52 +1,51 @@
-<div>
-  <div class="row style-menu" style="line-height: 35px;">
-    <div class="col-lg-4 col-md-4 col-sm-5 col-xs-12">
-      <div class="online-toggle ml10" ng-if= "showCase.priceband_sync != true">
-        <span>Offline</span>
-        <label class="switch switch-info switch-sm square">
-          <input type="checkbox" ng-model="showCase.order_type" ng-change="showCase.change_order_type();">
-          <span>
-            <i class="handle"></i>
-          </span>
-        </label>
-        <span>Made On Order</span>
-      </div>
-    </div>
-    <div class="col-lg-4 col-md-4 col-sm-4 col-xs-5 hidden-xs">
-      <h4 align="center">CREATE ORDERS</h4>
-    </div>
-    <div class="col-lg-4 col-md-4 col-sm-3 col-xs-12">
-      <div class="btn-group pull-right" role="group">
-        <a class="" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-          <i class="fa fa-user fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;"></i>
-        </a>
-        <ul class="dropdown-menu">
-          <li><a ng-click="$state.go('user.App.MyOrders');">Your Orders</a></li>
-          <li><a ng-click="$state.go('user.App.Profile')">Profile</a></li>
-          <li><a ng-if="showCase.user_type=='reseller'" ng-click="$state.go('user.App.ManualEnquiry');">Create Custom Order</a></li>
-          <li ng-if="showCase.permissions.display_sku_cust_mapping"><a ng-click="$state.go('user.App.PendingOrder');">Pending Order</a></li>
-          <li><a ng-click="$state.go('user.App.feedback');">Feedback Form</a></li>
-          <li><a ng-click="showCase.logout()">Logout</a></li>
-        </ul>
-      </div>
-      <a class="fa fa-bell pull-right fa-2x" style="color:#fff;margin-right: 20px;padding-top: 5px;"
-        ng-click="$state.go('user.App.Notifications')">
-        <span class="button__badge" ng-if="showCase.notify_count != 0">{{showCase.notify_count}}</span>
-      </a>
-      <a class="fa fa-filter pull-right fa-2x" style="color:#fff;margin-right: 20px;padding-top: 5px;" ng-click="showCase.showFilters()"></a>
-      <a class="fa fa-user pull-right hide fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="showCase.logout()"></a>
-      <a href="" class="hide pull-right" ng-click="$state.go('user.App.Cart')">
-          <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" title="Go To Cart Page"></i>
-      </a>
+<div class="row style-menu menu-height">
+  <div class="col-lg-4 col-md-4 col-sm-5 col-xs-5">
+    <div class="online-toggles" ng-if= "showCase.priceband_sync != true">
+      <span>Offline</span>
+      <label class="switch switch-info switch-sm square toggle-align">
+        <input type="checkbox" ng-model="showCase.order_type" ng-change="showCase.change_order_type();">
+        <span>
+          <i class="handle"></i>
+        </span>
+      </label>
+      <span class="hidden-xs ml10">Made On Order</span>
+      <span class="col-xs ml10 hidden-lg hidden-md hidden-sm">MO</span>
     </div>
   </div>
-  <div class="row app_body" style="padding: 15px 5px;position: relative">
-    <div style="margin-top:1px;" ng-include="'views/outbound/app/create_orders/filters.html'"></div>
-    <div class="pull-left col-md-2 col-sm-3 col-xs-6" ng-repeat="brand in showCase.brands" ng-if="brand != 'All'">
-      <div style="box-shadow: 1px 1px 15px #333;position: relative;padding:0px;margin-bottom: 15px">
-        <img ng-src="/images/brand-logos/{{(showCase.brands_images[brand])? showCase.brands_images[brand]: 'sagar_fab_default_log.jpg'}}" ng-click="showCase.change_brand(brand);" style="width:100%;cursor:pointer;">
-        <p ng-if="(!(showCase.brands_images[brand]))" style="color: #fff;text-align: center;font-size: 20px;z-index: 1000;position: absolute;top: 30px;width: 100%;">{{brand}}</p>
-      </div>
+  <div class="col-lg-4 col-md-4 col-sm-4 col-xs-5 hidden-xs">
+    <h4 align="center">CREATE ORDERS</h4>
+  </div>
+  <div class="col-lg-4 col-md-4 col-sm-3 col-xs-7">
+    <div class="btn-group pull-right" role="group">
+      <a class="" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        <i class="fa fa-user fa-2x" style="color:#fff;padding-top: 5px;"></i>
+      </a>
+      <ul class="dropdown-menu">
+        <li><a ng-click="$state.go('user.App.MyOrders');">Your Orders</a></li>
+        <li><a ng-click="$state.go('user.App.Profile')">Profile</a></li>
+        <li><a ng-if="showCase.user_type=='reseller'" ng-click="$state.go('user.App.ManualEnquiry');">Create Custom Order</a></li>
+        <li ng-if="showCase.permissions.display_sku_cust_mapping"><a ng-click="$state.go('user.App.PendingOrder');">Pending Order</a></li>
+        <li><a ng-click="$state.go('user.App.feedback');">Feedback Form</a></li>
+        <li><a ng-click="showCase.logout()">Logout</a></li>
+      </ul>
+    </div>
+    <a href="" class="pull-right" ng-click="$state.go('user.App.Cart')">
+      <i class="fa fa-cart-plus fa-2x" style="color:#fff;margin-right: 20px;padding-top: 5px;" title="Go To Cart Page"></i>
+    </a>
+    <a class="fa fa-bell pull-right fa-2x" style="color:#fff;margin-right: 20px;padding-top: 5px;"
+      ng-click="$state.go('user.App.Notifications')">
+      <span class="button__badge" ng-if="showCase.notify_count != 0">{{showCase.notify_count}}</span>
+    </a>
+    <a class="fa fa-filter pull-right fa-2x" style="color:#fff;margin-right: 20px;padding-top: 5px;" ng-click="showCase.showFilters()"></a>
+  </div>
+</div>
+<div class="row app_body" style="padding: 15px 5px;position: relative">
+  <div style="margin-top:1px;" ng-include="'views/outbound/app/create_orders/filters.html'"></div>
+  <div style="margin-top:1px;" ng-include="'views/outbound/app/create_orders/settings.html'"></div>
+  <div class="pull-left col-md-2 col-sm-3 col-xs-6" ng-repeat="brand in showCase.brands" ng-if="brand != 'All'">
+    <div style="box-shadow: 1px 1px 15px #333;position: relative;padding:0px;margin-bottom: 15px">
+      <img ng-src="/images/brand-logos/{{(showCase.brands_images[brand])? showCase.brands_images[brand]: 'sagar_fab_default_log.jpg'}}" ng-click="showCase.change_brand(brand);" style="width:100%;cursor:pointer;">
+      <p ng-if="(!(showCase.brands_images[brand]))" style="color: #fff;text-align: center;font-size: 20px;z-index: 1000;position: absolute;top: 30px;width: 100%;">{{brand}}</p>
     </div>
   </div>
 </div>

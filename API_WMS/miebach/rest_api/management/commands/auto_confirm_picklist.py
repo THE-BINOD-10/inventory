@@ -146,7 +146,7 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
         if stock_quantity < float(order_quantity):
             is_seller_stock_updated = False
             if seller_order:
-                src_stocks = temp_sku_stocks.filter(sellerstock__seller__seller_id=1, **sku_id_stock_filter)
+                src_stocks = temp_sku_stocks.filter(sellerstock__seller__seller_id=1, **sku_id_stock_filter).distinct()
                 if src_stocks:
                     src_sku_id_stocks = src_stocks.values('id', 'sku_id').annotate(total=Sum('sellerstock__quantity')).\
                                                                                     order_by(order_by)
@@ -168,15 +168,28 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
                                            src_seller_id=source_seller.id, dest_seller_id=seller_order.seller_id,
                                            receipt_type='auto seller-seller transfer', receipt_number=receipt_number)
                         trans_id = get_max_seller_transfer_id(user)
-                        seller_transfer = SellerTransfer.objects.create(source_seller_id=source_seller.id,
-                                                                        dest_seller_id=seller_order.seller.id,
-                                                                        transact_id=trans_id,
-                                                                        transact_type='stock_transfer',
-                                                                        creation_date=datetime.datetime.now())
+                        exist_seller_transfer = SellerTransfer.objects.filter(source_seller_id=source_seller.id, dest_seller_id=seller_order.seller.id,
+                                                                            transact_id=trans_id, transact_type='stock_transfer')
+                        if not exist_seller_transfer.exists():
+                            seller_transfer = SellerTransfer.objects.create(source_seller_id=source_seller.id,
+                                                                            dest_seller_id=seller_order.seller.id,
+                                                                            transact_id=trans_id,
+                                                                            transact_type='stock_transfer',
+                                                                            creation_date=datetime.datetime.now())
+                        else:
+                            seller_transfer = exist_seller_transfer[0]
                         seller_st_dict = {'seller_transfer_id': trans_id, 'sku_id': src_sku_id,
                                           'source_location_id': src_stocks[0].location_id,
                                           'dest_location_id': src_stocks[0].location_id}
-                        SellerStockTransfer.objects.create(**seller_st_dict)
+                        exist_obj = SellerStockTransfer.objects.filter(**seller_st_dict)
+                        if not exist_obj:
+                            seller_st_dict['quantity'] = sellers_diff_qty
+                            seller_st_obj = SellerStockTransfer(**seller_st_dict)
+                            seller_st_obj.save()
+                        else:
+                            exist_seller_obj = exist_obj[0]
+                            exist_seller_obj.quantity = exist_seller_obj.quantity + sellers_diff_qty
+                            exist_seller_obj.save()
                         is_seller_stock_updated = True
 
             if not is_seller_stock_updated:
@@ -261,7 +274,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write("Started Updating")
-        users = User.objects.filter(username__in=['NOIDA02'])
+        users = User.objects.filter(username__in=['NOIDA02', 'NOIDA01', 'BLR01', 'HYD01', 'GGN01'])
         log.info(str(datetime.datetime.now()))
         for user in users:
             picklist_exclude_zones = get_exclude_zones(user)
@@ -297,8 +310,13 @@ class Command(BaseCommand):
                     for seller_order in seller_orders:
                         sku_stocks = all_sku_stocks
                         #sku_stocks = all_sku_stocks.filter(sellerstock__seller_id=seller_order.seller_id)
-                        execute_picklist_confirm_process(seller_order, picklist_number, user, sku_combos,
-                                                         sku_stocks, switch_vals, receipt_number, is_seller_order=True)
+                        try:
+                            execute_picklist_confirm_process(seller_order, picklist_number, user, sku_combos,
+                                                             sku_stocks, switch_vals, receipt_number, is_seller_order=True)
+                        except Exception as e:
+                            import traceback
+                            log.debug(traceback.format_exc())
+                            log.info('Order Processing failed for user %s and order id %s' % (str(user.username), str(open_order.original_order_id)))
                 else:
                     log.info("Not Auto Processing %s" % str(open_order.original_order_id))
                     #execute_picklist_confirm_process(seller_order, picklist_number, user, sku_combos,

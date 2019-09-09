@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['angularjs-dropdown-multiselect'])
-  .controller('ConfigCtrl',['$scope', '$http', '$state', '$compile', 'Session' , 'Auth', '$timeout', 'Service', ServerSideProcessingCtrl]);
+  .controller('ConfigCtrl',['$scope', '$http', '$state', '$compile', 'Session' , 'Auth', '$timeout', 'Service','$rootScope', '$modal', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth, $timeout, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth, $timeout, Service,$rootScope, $modal) {
   var vm = this;
   vm.service = Service;
 
@@ -15,7 +15,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'pos_switch': false, 'auto_po_switch': false, 'no_stock_switch': false, 'online_percentage': 0,
                     'mail_alerts': 0, 'prefix': '', 'all_groups': '', 'mail_options': [{'id': 1,'name': 'Default'}],
                     'mail_inputs':[], 'report_freq':'0', 'float_switch': false, 'automate_invoice': false, 'all_stages': '','all_order_fields':'',
-                    'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,'grn_fields':'',
+                    'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,'grn_fields':'', 'po_fields':'',
                     'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': '',
                     'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false,
                     'invoice_remarks': '','invoice_declaration':'', 'raisepo_terms_conditions':'', 'show_disc_invoice': false, 'serial_limit': '',
@@ -30,7 +30,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'combo_allocate_stock': false, 'sno_in_invoice': false, 'unique_mrp_putaway': false,'block_expired_batches_picklist':false,
                     'generate_delivery_challan_before_pullConfiramation':false,'pos_remarks' :'',
                     'rtv_prefix_code': false, 'dispatch_qc_check':false,'sku_less_than_threshold':false,'decimal_limit_price':2,
-                    'non_transacted_skus':false,'all_order_field_options':{},
+                    'non_transacted_skus':false,'all_order_field_options':{}, 'weight_integration_name': '',
                     'update_mrp_on_grn': false,
                     'allow_rejected_serials':false,
                   };
@@ -57,7 +57,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      74: 'sku_pack_config', 75: 'po_sub_user_prefix', 76: 'combo_allocate_stock', 77:'sno_in_invoice', 78:'raisepo_terms_conditions',
                      79: 'generate_delivery_challan_before_pullConfiramation', 80: 'unique_mrp_putaway',
                      81: 'rtv_prefix_code',82:'pos_remarks', 83:'dispatch_qc_check', 84:'block_expired_batches_picklist', 85:'non_transacted_skus',
-                     86:'sku_less_than_threshold', 87:'decimal_limit_price', 88: 'mandate_sku_supplier', 89: 'update_mrp_on_grn', 90: 'allow_rejected_serials'}
+                     86:'sku_less_than_threshold', 87:'decimal_limit_price', 88: 'mandate_sku_supplier', 89: 'update_mrp_on_grn', 90: 'allow_rejected_serials',
+                     91: 'weight_integration_name',
+                     }
 
   vm.check_box_data = [
     {
@@ -710,6 +712,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $(".stages").importTags(vm.model_data.all_stages);
       $(".order_fields").importTags(vm.model_data.all_order_fields);
       $(".grn_fields").importTags(vm.model_data.grn_fields);
+      $(".po_fields").importTags(vm.model_data.po_fields);
       vm.model_data.all_order_fields_list = vm.model_data.all_order_fields.split(",")
       $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
       $(".invoice_types").importTags(vm.model_data.invoice_types);
@@ -840,6 +843,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.update_grn_fields = function() {
     var data = $(".grn_fields").val();
     vm.service.apiCall("save_grn_fields/?grn_fields="+data).then(function(data){
+      if(data.message) {
+        msg = data.data;
+        $scope.showNoty();
+        Auth.status();
+      }
+    });
+  }
+
+  vm.update_po_fields = function() {
+    var data = $(".po_fields").val();
+    vm.service.apiCall("save_grn_fields/?po_fields="+data).then(function(data){
       if(data.message) {
         msg = data.data;
         $scope.showNoty();
@@ -1089,6 +1103,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         break;
       }
     }
+  }
+  vm.addClassfication = function(){
+    var send_data = {}
+    angular.copy(vm.attr_model_data, send_data);
+    var modalInstance = $modal.open({
+      templateUrl: 'views/classification.html',
+      controller: 'ClassificationPOP',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      //windowClass: 'full-modal',
+      resolve: {
+        items: function () {
+          return send_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (result_dat) {
+      vm.model_data.attributes = result_dat;
+    });
   }
 
   vm.update_invoice_remarks = function(invoice_remarks) {

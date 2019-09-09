@@ -236,6 +236,12 @@ def add_user_permissions(request, response_data, user=''):
     response_data['data']['roles']['permissions']['multi_warehouse'] = multi_warehouse
     response_data['data']['roles']['permissions']['show_pull_now'] = show_pull_now
     response_data['data']['roles']['permissions']['order_manage'] = get_misc_value('order_manage', user.id)
+    response_data['data']['roles']['permissions']['customer_portal_prefered_view'] = get_misc_value('customer_portal_prefered_view', request.user.id)
+    if response_data['data']['roles']['permissions']['customer_portal_prefered_view'] == 'false':
+        response_data['data']['roles']['permissions']['customer_portal_prefered_view'] = ''
+    response_data['data']['roles']['permissions']['weight_integration_name'] = get_misc_value('weight_integration_name', request.user.id)
+    if response_data['data']['roles']['permissions']['weight_integration_name'] == 'false':
+        response_data['data']['roles']['permissions']['weight_integration_name'] = ''
     response_data['data']['user_profile'] = {'first_name': request.user.first_name, 'last_name': request.user.last_name,
                                              'registered_date': get_local_date(request.user,
                                                                                user_profile.creation_date),
@@ -454,11 +460,12 @@ def get_search_params(request, user=''):
     data_mapping = {'start': 'start', 'length': 'length', 'draw': 'draw', 'search[value]': 'search_term',
                     'order[0][dir]': 'order_term',
                     'order[0][column]': 'order_index', 'from_date': 'from_date', 'to_date': 'to_date',
-                    'wms_code': 'wms_code',
+                    'wms_code': 'wms_code','status':'status',
                     'supplier': 'supplier', 'sku_code': 'sku_code', 'category': 'sku_category',
                     'sku_category': 'sku_category', 'sku_type': 'sku_type','sister_warehouse':'sister_warehouse',
                     'class': 'sku_class', 'zone_id': 'zone', 'location': 'location', 'open_po': 'open_po',
                     'marketplace': 'marketplace','central_order_id':'central_order_id',
+                    'marketplace': 'marketplace','source_location':'source_location','destination_location':'destination_location',
                     'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage', 'jo_code': 'jo_code',
                     'sku_class': 'sku_class', 'sku_size': 'sku_size',
                     'order_report_status': 'order_report_status', 'customer_id': 'customer_id',
@@ -524,6 +531,9 @@ data_datatable = {  # masters
     'TaxMaster': 'get_tax_master', 'NetworkMaster': 'get_network_master_results',\
     'StaffMaster': 'get_staff_master', 'CorporateMaster': 'get_corporate_master',\
     'WarehouseSKUMappingMaster': 'get_wh_sku_mapping', 'ClusterMaster': 'get_cluster_sku_results',
+    'ReplenushmentMaster':'get_replenushment_master',
+    'LocationMaster' :'get_zone_details',
+
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
     'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data', \
@@ -554,6 +564,7 @@ data_datatable = {  # masters
     'Available+ASN': 'get_availasn_stock',
     'SerialNumberSKU': 'get_stock_summary_serials_excel',
     'AutoSellableSuggestion': 'get_auto_sellable_suggestion_data',
+    'SkuClassification':'get_skuclassification',
     # outbound
     'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders', \
     'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders', \
@@ -568,6 +579,7 @@ data_datatable = {  # masters
     'CustomerInvoicesTab': 'get_customer_invoice_tab_data', 'SellerOrderView': 'get_seller_order_view', \
     'StockTransferInvoice' : 'get_stock_transfer_invoice_data',
     'StockTransferShipment' : 'get_stock_transfer_shipment_data',
+    'PicklistDeliveryChallan':'get_picklist_delivery_challan',
     'AltStockTransferOrders': 'get_stock_transfer_order_level_data', 'RatingsTable': 'get_ratings_data',\
     'MyOrdersTbl' : 'get_customer_orders',\
     'MarketEnqTbl': 'get_enquiry_data', 'CustomOrdersTbl': 'get_manual_enquiry_data',\
@@ -792,8 +804,11 @@ def configurations(request, user=''):
     for key, value in CONFIG_SWITCHES_DICT.iteritems():
         config_dict[key] = get_misc_value(value, user.id)
     for key, value in CONFIG_INPUT_DICT.iteritems():
+        query_user = user
+        if key == 'weight_integration_name':
+            query_user = request.user
         config_dict[key] = ''
-        value = get_misc_value(value, user.id)
+        value = get_misc_value(value, query_user.id)
         if not value == 'false':
             config_dict[key] = value
     all_groups = SKUGroups.objects.filter(user=user.id).values_list('group', flat=True)
@@ -834,6 +849,12 @@ def configurations(request, user=''):
         config_dict['grn_fields'] = ''
     else:
         config_dict['grn_fields'] = grn_fields
+
+    po_fields = get_misc_value('po_fields', user.id)
+    if po_fields == 'false' :
+        config_dict['po_fields'] = ''
+    else:
+        config_dict['po_fields'] = po_fields
 
     if config_dict['mail_alerts'] == 'false':
         config_dict['mail_alerts'] = 0
@@ -1717,7 +1738,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                 dest_batch = dest_stocks.batch_detail
     return dest_batch
 
-def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp='',
+def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp='',
                         weight=''):
     # sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
     sku = check_and_return_mapping_id(wms_code, "", user, False)
@@ -1736,6 +1757,7 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
         move_quantity = float(quantity)
     else:
         return 'Quantity should not be empty'
+
     if seller_id:
         seller_id = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
         if not seller_id:
@@ -1765,7 +1787,7 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
         stock_dict['sellerstock__seller_id'] = seller_id
         reserved_dict["stock__sellerstock__seller_id"] = seller_id
         raw_reserved_dict["stock__sellerstock__seller_id"] = seller_id
-    stocks = StockDetail.objects.filter(**stock_dict)
+    stocks = StockDetail.objects.filter(**stock_dict).distinct()
     if not stocks:
         return 'No Stocks Found'
     stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
@@ -1794,74 +1816,72 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
 
     stock_dict['location_id'] = dest[0].id
     dest_stocks = StockDetail.objects.filter(**stock_dict)
-    update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
+
+    dest_batch = update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
                        dest_seller_id=seller_id)
-    data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
-    data_dict['cycle'] = cycle_id
-    data_dict['sku_id'] = sku_id
-    data_dict['location_id'] = source[0].id
-    data_dict['quantity'] = quantity
-    data_dict['seen_quantity'] = 0
-    data_dict['status'] = 0
-    data_dict['creation_date'] = datetime.datetime.now()
-    data_dict['updation_date'] = datetime.datetime.now()
+    move_inventory_dict = {'sku_id': sku_id, 'source_location_id': source[0].id,
+                           'dest_location_id': dest[0].id, 'quantity': move_quantity, }
+    if seller_id:
+        move_inventory_dict['seller_id'] = seller_id
+    if dest_batch:
+        move_inventory_dict['batch_detail_id'] = dest_batch.id
 
-    cycle_instance = CycleCount.objects.filter(cycle=cycle_id, location_id=source[0].id, sku_id=sku_id)
-    if not cycle_instance:
-        dat = CycleCount(**data_dict)
-        dat.save()
-    else:
-        cycle_instance = cycle_instance[0]
-        cycle_instance.quantity = float(cycle_instance.quantity) + quantity
-        cycle_instance.save()
-    data_dict['location_id'] = dest[0].id
-    data_dict['quantity'] = quantity
-    cycle_instance = CycleCount.objects.filter(cycle=cycle_id, location_id=dest[0].id, sku_id=sku_id)
-    if not cycle_instance:
-        dat = CycleCount(**data_dict)
-        dat.save()
-    else:
-        cycle_instance = cycle_instance[0]
-        cycle_instance.quantity = float(cycle_instance.quantity) + quantity
-        cycle_instance.save()
-
-    data = copy.deepcopy(INVENTORY_FIELDS)
-    data['cycle_id'] = cycle_id
-    data['adjusted_location'] = dest[0].id
-    data['adjusted_quantity'] = quantity
-    data['creation_date'] = datetime.datetime.now()
-    data['updation_date'] = datetime.datetime.now()
-
-    inventory_instance = InventoryAdjustment.objects.filter(cycle_id=cycle_id, adjusted_location=dest[0].id)
-    if not inventory_instance:
-        dat = InventoryAdjustment(**data)
-        dat.save()
-    else:
-        inventory_instance = inventory_instance[0]
-        inventory_instance.adjusted_quantity += float(inventory_instance.adjusted_quantity) + quantity
-        inventory_instance.save()
+    MoveInventory.objects.create(**move_inventory_dict)
 
     return 'Added Successfully'
 
 
-def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet='', batch_no='', mrp='',
-                          seller_master_id='', weight='', receipt_number=1, receipt_type=''):
+def create_invnetory_adjustment_record(user, dat, quantity, reason, location, now, pallet_present, stock='', seller_id='',
+                                       adjustment_objs=''):
+    data = copy.deepcopy(INVENTORY_FIELDS)
+    data['cycle_id'] = dat.id
+    data['adjusted_quantity'] = quantity
+    data['reason'] = reason
+    data['adjusted_location'] = location[0].id
+    data['creation_date'] = now
+    data['updation_date'] = now
+    inv_adj_filter = {'cycle__cycle': dat.cycle, 'adjusted_location': location[0].id,
+                      'cycle__sku__user': user.id}
+    if stock:
+        inv_adj_filter['stock_id'] = stock.id
+        data['stock_id'] = stock.id
+    if seller_id:
+        inv_adj_filter['seller_id'] = seller_id
+        data['seller_id'] = seller_id
+    if pallet_present:
+        inv_adj_filter['pallet_detail_id'] = pallet_present.id
+        data['pallet_detail_id'] = pallet_present.id
+    inv_obj = InventoryAdjustment.objects.filter(**inv_adj_filter)
+    if inv_obj:
+        inv_obj = inv_obj[0]
+        inv_obj.adjusted_quantity = quantity
+        inv_obj.save()
+        dat = inv_obj
+    else:
+        adjustment_objs.append(InventoryAdjustment(**data))
+    return adjustment_objs
+
+
+def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet='', batch_no='', mrp='',
+                          seller_master_id='', weight='', receipt_number=1, receipt_type='',):
     now_date = datetime.datetime.now()
     now = str(now_date)
+    adjustment_objs = []
     if wmscode:
-        sku = SKUMaster.objects.filter(wms_code=wmscode, user=user.id)
+        sku = SKUMaster.objects.filter(user=user.id, sku_code=wmscode)
         if not sku:
             return 'Invalid WMS Code'
         sku_id = sku[0].id
     if loc:
-        location = LocationMaster.objects.filter(location=loc, zone__user=user.id)
+        location = LocationMaster.objects.filter(zone__user=user.id, location=loc)
         if not location:
             return 'Invalid Location'
     if quantity == '':
         return 'Quantity should not be empty'
     quantity = float(quantity)
     stock_dict = {'sku_id': sku_id, 'location_id': location[0].id,
-                  'sku__user': user.id}
+                  'sku__user': user.id, 'quantity__gt': 0}
+    pallet_present = ''
     if pallet:
         pallet_present = PalletDetail.objects.filter(user = user.id, status = 1, pallet_code = pallet)
         if not pallet_present:
@@ -1905,35 +1925,49 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
 
     if quantity:
         #quantity = float(quantity)
-        stocks = StockDetail.objects.filter(**stock_dict)
-        total_stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
+        stocks = StockDetail.objects.filter(**stock_dict).distinct()
+        if user.userprofile.user_type == 'marketplace_user':
+            total_stock_quantity = SellerStock.objects.filter(seller_id=seller_master_id,
+                                                              stock__id__in=stocks.values_list('id', flat=True)). \
+                aggregate(Sum('quantity'))['quantity__sum']
+        else:
+            total_stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
         if not total_stock_quantity:
             total_stock_quantity = 0
         remaining_quantity = total_stock_quantity - quantity
         for stock in stocks:
             if total_stock_quantity < quantity:
                 stock.quantity += abs(remaining_quantity)
-                save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', remaining_quantity, stock)
+                stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', remaining_quantity, stock, stock_stats_objs, bulk_insert=True)
                 stock.save()
                 change_seller_stock(seller_master_id, stock, user, abs(remaining_quantity), 'inc')
+                adjustment_objs = create_invnetory_adjustment_record(user, dat, abs(remaining_quantity), reason, location, now, pallet_present,
+                                                   stock=stock, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
                 break
             else:
                 stock_quantity = float(stock.quantity)
+                if not stock_quantity:
+                    continue
                 if remaining_quantity == 0:
                     break
                 elif stock_quantity >= remaining_quantity:
                     setattr(stock, 'quantity', stock_quantity - remaining_quantity)
-                    save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', -remaining_quantity, stock)
+                    stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', -remaining_quantity, stock, stock_stats_objs, bulk_insert=True)
                     stock.save()
                     change_seller_stock(seller_master_id, stock, user, remaining_quantity, 'dec')
+                    adjustment_objs = create_invnetory_adjustment_record(user, dat, -remaining_quantity, reason, location, now, pallet_present,
+                                                       stock=stock, seller_id=seller_master_id,
+                                                        adjustment_objs=adjustment_objs)
                     remaining_quantity = 0
                 elif stock_quantity < remaining_quantity:
                     setattr(stock, 'quantity', 0)
-                    save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', stock.quantity, stock)
+                    stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', -stock_quantity, stock, stock_stats_objs, bulk_insert=True)
                     stock.save()
                     change_seller_stock(seller_master_id, stock, user, stock_quantity,
                                         'dec')
                     remaining_quantity = remaining_quantity - stock_quantity
+                    adjustment_objs = create_invnetory_adjustment_record(user, dat, -stock_quantity, reason, location, now, pallet_present,
+                                                       stock=stock, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
         if not stocks:
             batch_dict = {}
             if batch_no:
@@ -1957,47 +1991,29 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
                                "quantity": quantity, "status": 1, "creation_date": now_date,
                                "updation_date": now_date
                               })
+            del stock_dict['quantity__gt']
             dest_stocks = StockDetail(**stock_dict)
             dest_stocks.save()
-            save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', dest_stocks.quantity, dest_stocks)
+            stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', dest_stocks.quantity, dest_stocks, stock_stats_objs, bulk_insert=True)
             change_seller_stock(seller_master_id, dest_stocks, user, abs(remaining_quantity), 'create')
+            adjustment_objs = create_invnetory_adjustment_record(user, dat, abs(remaining_quantity), reason, location, now, pallet_present,
+                                               stock=dest_stocks, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
 
-    adj_quantity = quantity - total_stock_quantity
     if quantity == 0:
-        all_stocks = StockDetail.objects.filter(**stock_dict)
-        adj_quantity = all_stocks.aggregate(Sum('quantity'))['quantity__sum']
-        if not adj_quantity:
-            adj_quantity = 0
-        else:
-            adj_quantity = -adj_quantity
-        all_stocks.update(quantity=0)
-        location[0].filled_capacity = 0
-        location[0].save()
-        if seller_master_id:
-            SellerStock.objects.filter(seller_id=seller_master_id,
-                                       stock_id__in=list(all_stocks.values_list('id', flat=True))).update(quantity=0)
+        stock_dict['quantity__gt'] = 0
+        all_stocks = StockDetail.objects.filter(**stock_dict).distinct()
+        for stock in all_stocks:
+            stock_quantity = stock.quantity
+            SellerStock.objects.filter(stock_id=stock.id).update(quantity=0)
+            stock.quantity = 0
+            stock.save()
+            stock_stats_objs = save_sku_stats(user, stock.sku_id, dat.id, 'inventory-adjustment', -stock_quantity, stock, stock_stats_objs, bulk_insert=True)
+            adjustment_objs = create_invnetory_adjustment_record(user, dat, -stock_quantity, reason, location, now, pallet_present,
+                                               stock=stock, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
 
-    data = copy.deepcopy(INVENTORY_FIELDS)
-    data['cycle_id'] = dat.id
-    data['adjusted_quantity'] = quantity
-    data['reason'] = reason
-    data['adjusted_location'] = location[0].id
-    data['creation_date'] = now
-    data['updation_date'] = now
-    inv_obj = InventoryAdjustment.objects.filter(cycle__cycle=dat.cycle, adjusted_location=location[0].id,
-        cycle__sku__user=user.id)
-    if pallet:
-        data['pallet_detail_id'] = pallet_present.id
-        inv_obj = inv_obj.filter(pallet_detail_id = pallet_present.id)
-    if inv_obj:
-        inv_obj = inv_obj[0]
-        inv_obj.adjusted_quantity = quantity
-        inv_obj.save()
-        dat = inv_obj
-    else:
-        dat = InventoryAdjustment(**data)
-        dat.save()
-    return 'Added Successfully'
+    if adjustment_objs:
+        InventoryAdjustment.objects.bulk_create(adjustment_objs)
+    return 'Added Successfully', stock_stats_objs
 
 
 def update_picklist_locations(pick_loc, picklist, update_picked, update_quantity='', decimal_limit=0):
@@ -2363,14 +2379,21 @@ def save_order_extra_fields(request, user=''):
 @get_admin_user
 def save_grn_fields(request, user=''):
     grn_fields = request.GET.get('grn_fields', '')
-    if len(grn_fields.split(',')) <=  4 :
-        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='grn_fields')
+    po_fields = request.GET.get('po_fields', '')
+    if grn_fields:
+        misc_type = 'grn_fields'
+        fields = grn_fields
+    if po_fields:
+        misc_type = 'po_fields'
+        fields = po_fields
+    if len(fields.split(',')) <=  4 :
+        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=misc_type)
         try:
             if not misc_detail.exists():
-                 MiscDetail.objects.create(user=user.id,misc_type='grn_fields',misc_value=grn_fields)
+                 MiscDetail.objects.create(user=user.id,misc_type=misc_type,misc_value=fields)
             else:
                 misc_detail_obj = misc_detail[0]
-                misc_detail_obj.misc_value = grn_fields
+                misc_detail_obj.misc_value = fields
                 misc_detail_obj.save()
         except:
             import traceback
@@ -3045,8 +3068,10 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     customer_address += ("\tEmail: " + customer_details[0]['email_id'])
                 if customer_details[0]['pan_number']:
                     customer_address += ("\tPAN No.: " + customer_details[0]['pan_number'])
-
-                consignee = customer_address
+                if customer_details[0]['shipping_address']:
+                    consignee = customer_details[0]['shipping_address']
+                else:
+                    consignee = customer_address
             else:
                 customer_id = dat.customer_id
                 customer_address = dat.customer_name + '\n' + dat.address + "\nCall: " \
@@ -3826,6 +3851,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     hundred_day_filter = today_filter + datetime.timedelta(days=90)
     ints_filters = {'quantity__gt': 0, 'sku__sku_code__in': needed_skus, 'sku__user__in': gen_whs, 'status': 'open'}
     asn_qs = ASNStockDetail.objects.filter(**ints_filters)
+    nk_stock = asn_qs.filter(asn_po_num='NON_KITTED_STOCK')
     intr_obj_100days_qs = asn_qs.filter(Q(arriving_date__lte=hundred_day_filter)| Q(asn_po_num='NON_KITTED_STOCK'))
     intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
     asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
@@ -3837,6 +3863,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
 
     needed_stock_data['asn_quantities'] = dict(
         intr_obj_100days_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+    needed_stock_data['nonkitted_stock'] = dict(nk_stock.values_list('sku__sku_code').distinct().annotate(Sum('quantity')))
     needed_stock_data['asn_blocked_quantities'] = {}
     for k, v in needed_stock_data['asn_quantities'].items():
         asn_qty = needed_stock_data['asn_quantities'][k]
@@ -4432,7 +4459,11 @@ def get_size_names(requst, user=""):
 @get_admin_user
 def get_sellers_list(request, user=''):
     sellers = SellerMaster.objects.filter(user=user.id).order_by('seller_id')
-    raise_po_terms_conditions = get_misc_value('raisepo_terms_conditions', user.id)
+    terms_condition = UserTextFields.objects.filter(user=user.id, field_type = 'terms_conditions')
+    if terms_condition.exists():
+        raise_po_terms_conditions = terms_condition[0].text_field
+    else:
+        raise_po_terms_conditions = get_misc_value('raisepo_terms_conditions', user.id)
     ship_address_details = []
     ship_address_names = []
     user_ship_address = UserAddresses.objects.filter(user_id=user.id)
@@ -4883,6 +4914,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
                 # total_quantity += needed_stock_data['asn_quantities'].get(prd_sku, 0)
                 total_quantity = total_quantity - float(needed_stock_data['reserved_quantities'].get(prd_sku, 0))
                 total_quantity = total_quantity - float(needed_stock_data['enquiry_res_quantities'].get(prd_sku, 0))
+                total_quantity = total_quantity - float(needed_stock_data['nonkitted_stock'].get(prd_sku, 0))
         if total_quantity < 0:
             total_quantity = 0
         if sku_styles:
@@ -4999,12 +5031,18 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
     pallet_switch = get_misc_value('pallet_switch', user.id)
     availabe_quantity = {}
     industry_type = user.userprofile.industry_type
+    res_qty_dict = {}
+    res_qty_objs = PicklistLocation.objects.filter(picklist__order__user=user.id,
+                                                   stock_id__in=stock_data.values_list('id', flat=True), status=1).\
+        only('stock_id', 'reserved')
+    for res_qty_obj in res_qty_objs:
+        res_qty_dict.setdefault(res_qty_obj.stock_id, 0)
+        res_qty_dict[res_qty_obj.stock_id] += res_qty_obj.reserved
     for stock in stock_data:
-        res_qty = PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id). \
-            aggregate(Sum('reserved'))['reserved__sum']
+        res_qty = res_qty_dict.get(stock.id, 0)
 
-        raw_reserved = RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user.id,
-                                                 stock_id=stock.id).aggregate(Sum('reserved'))['reserved__sum']
+        raw_reserved = RMLocation.objects.filter(material_picklist__jo_material__material_code__user=user.id,
+                                                 stock_id=stock.id, status=1).aggregate(Sum('reserved'))['reserved__sum']
 
         if not res_qty:
             res_qty = 0
@@ -6469,8 +6507,8 @@ def save_order_tracking_data(order, quantity, status='', imei=''):
 
 
 def get_stock_receipt_number(user):
-    receipt_number = StockDetail.objects.filter(sku__user=user.id).aggregate(Max('receipt_number')) \
-        ['receipt_number__max']
+    receipt_number = StockDetail.objects.filter(sku__user=user.id).only('receipt_number').\
+        aggregate(Max('receipt_number'))['receipt_number__max']
     if receipt_number:
         receipt_number = receipt_number + 1
     else:
@@ -7836,10 +7874,17 @@ def get_price_field(user):
     return price_field
 
 
-def save_sku_stats(user, sku_id, transact_id, transact_type, quantity, stock_detail=None):
+def save_sku_stats(user, sku_id, transact_id, transact_type, quantity, stock_detail=None, stock_stats_objs=None,
+                   bulk_insert=False):
     try:
-        SKUDetailStats.objects.create(sku_id=sku_id, transact_id=transact_id, transact_type=transact_type,
-                                  quantity=quantity, creation_date=datetime.datetime.now(), stock_detail=stock_detail)
+        stats_dict = {'sku_id': sku_id, 'transact_id': transact_id, 'transact_type': transact_type,
+                                  'quantity': quantity, 'creation_date': datetime.datetime.now(),
+                      'stock_detail': stock_detail}
+        if bulk_insert:
+            stock_stats_objs.append(SKUDetailStats(**stats_dict))
+            return stock_stats_objs
+        else:
+            SKUDetailStats.objects.create(**stats_dict)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -8629,7 +8674,9 @@ def check_stock_available_quantity(stocks, user, stock_ids=None, seller_master_i
         stock_qty = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
     if not stock_qty:
         return 0
-    res_qty = PicklistLocation.objects.filter(stock_id__in=stock_ids, status=1, picklist__order__user=user.id).\
+    sister_warehouses = get_sister_warehouse(user)
+    sister_warehouse_ids = sister_warehouses.values('user_id')
+    res_qty = PicklistLocation.objects.filter(stock_id__in=stock_ids, status=1, picklist__order__user__in=sister_warehouse_ids).\
         aggregate(Sum('reserved'))['reserved__sum']
     raw_reserved = RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user.id,
                                              stock_id__in=stock_ids).aggregate(Sum('reserved'))['reserved__sum']
@@ -9357,6 +9404,7 @@ def get_all_sellable_zones(user):
 
 
 def cancel_emiza_order(gen_ord_id, cm_id):
+    log.info("Cancelling Emiza Order. Gen Ord: %s and Customer Id: %s" %(gen_ord_id, cm_id))
     customer_qs = CustomerUserMapping.objects.filter(customer_id=cm_id)
     if customer_qs:
         customer_user = customer_qs[0]
@@ -9577,6 +9625,60 @@ def get_firebase_order_data(order_id):
         str(user.username), str(request.POST.dict()), str(e)))
     return result
 
+@get_admin_user
+def get_classfication_settings(request, user =''):
+    classifiaction_dict = {}
+    classifiaction_dict =list(ClassificationSettings.objects.filter(user = user.id).values('id','classification','units_per_day'))
+    return HttpResponse(json.dumps({'data': classifiaction_dict}))
+
+@get_admin_user
+def save_update_classification(request , user =''):
+    data_dict = dict(request.POST)
+    try:
+        for ind in range(0, len(data_dict['id'])):
+            if(data_dict['id'][ind]):
+                classifcations = ClassificationSettings.objects.filter(id=data_dict['id'][ind])
+                if classifcations:
+                    classifcations.update(units_per_day=data_dict['units_per_day'][ind])
+            else:
+                classifcations = ClassificationSettings.objects.filter(classification=data_dict['classification'][ind] , user__id=user.id )
+                if classifcations:
+                    user_attr.update(units_per_day=data_dict['units_per_day'][ind])
+                else:
+                    ClassificationSettings.objects.create(
+                                                  classification=data_dict['classification'][ind],
+                                                  units_per_day=data_dict['units_per_day'][ind],
+                                                  creation_date=datetime.datetime.now(),
+                                                  user_id =user.id)
+        return HttpResponse(json.dumps({'message': 'Updated Successfully'}))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('classification query  failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+
+@get_admin_user
+def delete_classification(request, user=''):
+    id = request.GET.get('data_id', '')
+    if id:
+        ClassificationSettings.objects.filter(id=id).delete()
+    return HttpResponse(json.dumps({'message': 'Updated Successfully', 'status': 1}))
+
+def get_challan_number_for_dc(order , user):
+    challan_sequence = ChallanSequence.objects.filter(user=user.id, status=1, marketplace=order.marketplace)
+    if not challan_sequence:
+        challan_sequence = ChallanSequence.objects.filter(user=user.id, marketplace='')
+    if challan_sequence:
+        challan_sequence = challan_sequence[0]
+        challan_num = int(challan_sequence.value)
+        challan_sequence.value = challan_num + 1
+        challan_sequence.save()
+    else:
+        ChallanSequence.objects.create(marketplace='', prefix='CHN', value=1, status=1, user_id=user.id,
+                                       creation_date=datetime.datetime.now())
+        challan_num = 1
+    return challan_num
+
 
 def get_sku_weight(sku):
     """ Returns SKU Weight"""
@@ -9585,3 +9687,17 @@ def get_sku_weight(sku):
     if weight_obj.exists():
         weight = weight_obj[0].attribute_value
     return weight
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_current_weight(request, user=''):
+    from rest_api.views.weighing_machine_api import get_integration_weight_val
+    weight_topic = get_misc_value('weight_integration_name', request.user.id)
+    if weight_topic != 'false':
+        result_val, is_updated = get_integration_weight_val(weight_topic)
+        result_val = str(result_val).replace('\r\n', '')
+        return HttpResponse(json.dumps({'weight': result_val, 'is_updated': is_updated, 'status': 1}))
+    else:
+        return HttpResponse(json.dumps({'weight': 0 , 'is_updated': False, 'status': 0}))

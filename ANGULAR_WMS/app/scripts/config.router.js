@@ -2192,6 +2192,19 @@ var app = angular.module('urbanApp')
           }
         })
 
+        .state('app.reports.FinancalReport', {
+          url: '/FinancalReport',
+          templateUrl: 'views/reports/financalreport.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/financal_report.js');
+              }]
+          },
+          data: {
+            title: 'Financal Report',
+          }
+        })
+
         .state('app.reports.Stockcover', {
           url: '/StockCoverReport',
           templateUrl: 'views/reports/stock_cover.html',

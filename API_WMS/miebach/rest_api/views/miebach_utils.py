@@ -892,6 +892,28 @@ MARGIN_REPORT_DICT = {
   'print_url': 'print_margin_report',
 }
 
+FINANCIAL_REPORT_DICT =  {
+  'filters': [
+      {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+      {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+      {'label': 'SKU Code', 'name': 'sku_code', 'type': 'input'},
+  ],
+  'dt_headers': ['SKU Code','SKU NAME','Category', 'Sub Category', 'City','Hub','Vendor Name','HSN Code','Weight','GST No',
+  'IGST Tax Rate','CESS Rate','Opening Qty','Opening Price Per Unit( Before Taxes)','Opening Value before Tax', 'Opening CGST', 'Opening SGST',
+  'Opening IGST', 'Opening CESS', 'Opening Value after Tax', 'Purchase Qty', 'Purchase Price Per Unit(Before Taxes)','Purchase Value before Tax', 
+  'Purchase CGST', 'Purchase SGST','Purchase IGST', 'Purchase CESS', 'Purchase Value after Tax', 'Purchase Return Qty', 'Purchase Return Price Per Unit(Before Taxes)','Purchase Return Value before Tax', 
+  'Purchase Return CGST', 'Purchase Return SGST','Purchase Return IGST', 'Purchase Return CESS', 'Purchase Return Value after Tax','Sale to Drsc MRP',
+  'Sale to Drsc Qty','Sale to Drsc Price Per Unit( Before Taxes)','Sale to Drsc Value before Tax', 'Sale to Drsc CGST', 'Sale to Drsc SGST',
+  'Sale to Drsc IGST', 'Sale to Drsc CESS', 'Sale to Drsc Value after Tax','Sale to othr MRP','Sale to othr Qty','Sale to othr Price Per Unit( Before Taxes)','Sale to othr Value before Tax', 
+  'Sale to othr CGST', 'Sale to othr SGST','Sale to othr IGST', 'Sale to othr CESS', 'Sale to othr Value after Tax', 'Stock Transfers MRP','Stock Transfers Qty','Stock Transfers Price Per Unit(Before Taxes)','Stock Transfers Value before Tax', 'Stock Transfers CGST', 'Stock Transfers SGST',
+  'Stock Transfers IGST', 'Stock Transfers CESS', 'Stock Transfers Value after Tax','Sale Return MRP','Sale Return Qty', 'Sale Return Price Per Unit(Before Taxes)','Sale Return Value before Tax', 
+  'Sale Return CGST', 'Sale Return SGST','Sale Return IGST', 'Sale Return CESS', 'Sale Return Value after Tax','Closing Qty', 'Closing Price Per Unit(Before Taxes)','Closing Value before Tax', 
+  'Closing CGST', 'Closing SGST','Closing IGST', 'Closing CESS', 'Closing Value after Tax','Physical Qty', 'Physical Price Per Unit(Before Taxes)','Physical Value before Tax', 
+  'Physical CGST', 'Physical SGST','Physical IGST', 'Physical CESS', 'Physical Value after Tax'],
+  'dt_url': 'get_finacial_report', 'excel_name': 'get_finacial_report',
+  'print_url': 'print_finacial_report',
+}
+
 BASA_REPORT_DICT = {
   'filters': [
       {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -1012,6 +1034,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'stock_cover_report':STOCK_COVER_REPORT_DICT,
                      'basa_report':BASA_REPORT_DICT,
                      'move_inventory_report' : MOVE_TO_INVENTORY_REPORT_DICT,
+                     'financal_report': FINANCIAL_REPORT_DICT,
                     }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -3665,6 +3688,44 @@ def get_openjo_details(search_params, user, sub_user):
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data
 
+def get_finacial_report(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from common import get_misc_value
+    from rest_api.views.common import get_sku_master, get_order_detail_objs, get_local_date
+    milkbasket_user = False
+    milkbasket_users = copy.deepcopy(MILKBASKET_USERS)
+    if user.username in milkbasket_users :
+        milkbasket_user = True
+
+    lis = [''];
+    temp_data = copy.deepcopy(AJAX_DATA)
+    search_parameters = {}
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        search_parameters['sku__sku_code'] = search_params['sku_code']
+
+    temp_data['aaData'].append(OrderedDict((('SKU Code',''),('SKU NAME',''),('Category',''), ('Sub Category',''), ('City',''),('Hub',''),('Vendor Name',''),('HSN Code',''),
+                                            ('Weight',''),('GST No',''),('IGST Tax Rate',''),('CESS Rate',''),('Opening Qty',''),('Opening Price Per Unit( Before Taxes)',''),
+                                            ('Opening Value before Tax',''), ('Opening CGST',''), ('Opening SGST',''),('Opening IGST',''), ('Opening CESS',''), ('Opening Value after Tax',''), 
+                                            ('Purchase Qty',''), ('Purchase Price Per Unit(Before Taxes)',''),('Purchase Value before Tax',''),
+                                            ('Purchase CGST',''), ('Purchase SGST',''),('Purchase IGST',''), ('Purchase CESS',''), ('Purchase Value after Tax',''), 
+                                            ('Purchase Return Qty',''), ('Purchase Return Price Per Unit(Before Taxes)',''),('Purchase Return Value before Tax',''), 
+                                            ('Purchase Return CGST',''), ('Purchase Return SGST',''),('Purchase Return IGST',''), ('Purchase Return CESS',''), ('Purchase Return Value after Tax',''),('Sale to Drsc MRP',''),
+                                            ('Sale to Drsc Qty',''),('Sale to Drsc Price Per Unit( Before Taxes)',''),('Sale to Drsc Value before Tax',''), ('Sale to Drsc CGST',''), ('Sale to Drsc SGST',''),
+                                            ('Sale to Drsc IGST',''), ('Sale to Drsc CESS',''), ('Sale to Drsc Value after Tax',''),('Sale to othr MRP',''),('Sale to othr Qty',''),('Sale to othr Price Per Unit( Before Taxes)',''),('Sale to othr Value before Tax',''), 
+                                            ('Sale to othr CGST',''), ('Sale to othr SGST',''),('Sale to othr IGST',''), ('Sale to othr CESS',''), ('Sale to othr Value after Tax',''), ('Stock Transfers MRP',''),
+                                            ('Stock Transfers Qty',''),('Stock Transfers Price Per Unit(Before Taxes)',''),('Stock Transfers Value before Tax',''), ('Stock Transfers CGST',''), ('Stock Transfers SGST',''),
+                                            ('Stock Transfers IGST',''), ('Stock Transfers CESS',''), ('Stock Transfers Value after Tax',''),('Sale Return MRP',''),('Sale Return Qty',''), ('Sale Return Price Per Unit(Before Taxes)',''),('Sale Return Value before Tax',''), 
+                                            ('Sale Return CGST',''), ('Sale Return SGST',''),('Sale Return IGST',''), ('Sale Return CESS',''), ('Sale Return Value after Tax',''),('Closing Qty',''), ('Closing Price Per Unit(Before Taxes)',''),('Closing Value before Tax',''), 
+                                            ('Closing CGST',''), ('Closing SGST',''),('Closing IGST',''), ('Closing CESS',''), ('Closing Value after Tax',''),('Physical Qty',''), ('Physical Price Per Unit(Before Taxes)',''),('Physical Value before Tax',''), 
+                                            ('Physical CGST',''), ('Physical SGST',''),('Physical IGST',''), ('Physical CESS',''), ('Physical Value after Tax',''))))
 
 def get_order_summary_data(search_params, user, sub_user):
     from miebach_admin.models import *

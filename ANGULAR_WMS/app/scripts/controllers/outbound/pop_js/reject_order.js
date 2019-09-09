@@ -10,32 +10,9 @@ function Rejectorderpop($scope, $http, $state, $timeout, Session, colFilters, Se
      vm.state_data = items;
   }
 
-  // var url_get = "generate_po_data/";
-  // if ($state.current.name == "app.production.BackOrders") {
-  //
-  //   url_get = "generate_rm_po_data/";
-  // } else if ($state.current.name != "app.outbound.BackOrders") {
-  //
-  //   url_get = "generate_order_po_data/";
-  // }
 
   vm.model_data = {};
 
-  // vm.getPoData = function(data){
-  //
-  //   Service.apiCall(url_get, "POST", data, true).then(function(data){
-  //     if(data.message) {
-  //       angular.copy(data.data, vm.model_data)
-  //       angular.forEach(vm.model_data.data_dict, function(sku_data){
-  //         if(sku_data.selected_item == ""){
-  //           sku_data.selected_item = {id: "", name: "None"};
-  //         }
-  //       })
-  //       vm.model_data.supplier_list.push({id: "", name: "None"});
-  //       vm.model_data.filter = vm.state_data.filter
-  //     };
-  //   });
-  // }
   vm.get_sku_data = function(record, item, index) {
 
     record.sku_id = item.wms_code;
@@ -115,6 +92,23 @@ function Rejectorderpop($scope, $http, $state, $timeout, Session, colFilters, Se
 
         }
         vm.confirm_disable = false;
+      });
+  }
+
+
+  vm.delete_central_order = function(form) {
+      if(form.$invalid) {
+        return false;
+      }
+      var elem = $("form:visible").serializeArray();
+
+      vm.confirm_disable = true
+      vm.service.apiCall("delete_central_order/", "POST", elem, true).then(function(data){
+          vm.service.pop_msg(data.data.status);
+          vm.confirm_disable = false;
+          $timeout(function() {
+          vm.ok("succes")
+        }, 2000);
       });
   }
 

@@ -586,6 +586,11 @@
             <span>Open Order Report</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show = "permissions.central_order_mgmt && permissions.multi_warehouse">
+          <a ui-sref="app.reports.Orderflow">
+            <span>Central Order Tracker</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-show = "show_tab('add_skudetailstats')">
           <a ui-sref="app.reports.Stockcover">
             <span>Stock Cover Report</span>
@@ -684,6 +689,11 @@
         <li ui-sref-active="active" ng-show="user.user_profile.user_type == 'marketplace_user' && user.user_profile.industry_type == 'FMCG'">
           <a ui-sref="app.reports.BasaReport">
             <span>BA SA Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('view_moveinventory')">
+          <a ui-sref="app.reports.MoveInventoryReport">
+            <span>Move Inventory Report</span>
           </a>
         </li>
       </ul>

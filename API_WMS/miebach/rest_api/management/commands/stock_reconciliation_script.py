@@ -117,7 +117,7 @@ class Command(BaseCommand):
                                            'rtv': {'quantity': 0, 'unit_price_list': [], 'amount': 0},
                                            'return': {'quantity': 0, 'unit_price_list': [], 'amount': 0},
                                            })
-                if sku_detail.transact_type in ['PO', 'inventory-upload']:
+                if sku_detail.transact_type in ['PO', 'inventory-upload', 'po']:
                     sku_stats_group(group_val, 'PO', sku_stats_dict, sku_detail, mrp, weight, tax, unit_price)
                 elif sku_detail.transact_type == 'inventory-adjustment':
                     sku_stats_group(group_val, 'inventory-adjustment', sku_stats_dict, sku_detail, mrp, weight, tax, unit_price)

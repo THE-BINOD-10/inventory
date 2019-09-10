@@ -313,9 +313,7 @@ class Command(BaseCommand):
                                 sku_stock_transact_data = sku_stocks.get('transact_data', {}).values()
                                 for ind, val in enumerate(sku_stock_transact_data):
                                     sku_stock_transact_data[ind]['field_type'] = 'opening'
-                                opening_stock_dict[sku_id][key]['transact_data'] = \
-                                    list(chain(opening_stock_dict[sku_id][key]['transact_data'],
-                                               sku_stock_transact_data))
+                                opening_stock_dict[sku_id][key]['transact_data'] = sku_stock_transact_data
                 for sku_id, sku_stats in sku_stats_dict.iteritems():
                     opening_stock_dict.setdefault(sku_id, {})
                     for key, sku_stat in sku_stats.iteritems():

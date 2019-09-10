@@ -8549,6 +8549,9 @@ def get_po_putaway_summary(request, user=''):
         data_dict['tax_percent'] = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax + open_po.cess_tax
         d_zone_obj = StockDetail.objects.filter(sku_id =seller_summary.purchase_order.open_po.sku.id,sku__user = seller_summary.purchase_order.open_po.sku.user,location__zone__zone = 'DAMAGED_ZONE')
         if d_zone_obj:
+            po_loc = POLocation.objects.filter(purchase_order_id=seller_summary.purchase_order_id,location__zone__user=seller_summary.purchase_order.open_po.sku.user,location__zone__zone= 'DAMAGED_ZONE')
+            if po_loc.exists():
+                quantity = po_loc[0].original_quantity
             d_zone_qty = d_zone_obj[0].quantity
             d_zone_loc = d_zone_obj[0].location.location
             if quantity <= d_zone_qty:

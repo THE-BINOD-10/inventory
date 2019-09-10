@@ -2194,10 +2194,10 @@ var app = angular.module('urbanApp')
 
         .state('app.reports.FinancalReport', {
           url: '/FinancalReport',
-          templateUrl: 'views/reports/financalreport.html',
+          templateUrl: 'views/reports/financialreport.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/reports/financal_report.js');
+                return $ocLazyLoad.load('scripts/controllers/reports/financial_report.js');
               }]
           },
           data: {

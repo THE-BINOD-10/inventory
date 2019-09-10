@@ -13,7 +13,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.model_data = {};
 
   vm.report_data = {};
-  vm.service.get_report_data("financal_report").then(function(data) {
+  vm.service.get_report_data("financial_report").then(function(data) {
     angular.copy(data, vm.report_data);
     vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(data) {
       vm.empty_data = data.empty_data;

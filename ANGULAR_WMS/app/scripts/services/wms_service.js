@@ -129,7 +129,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       });
 
       var report_name = Object.keys(vm.reports)
-      if (report_name.includes('financal_report')){
+      if (report_name.includes('financial_report')){
         send.empty_data.from_date = ''
       }
       else{

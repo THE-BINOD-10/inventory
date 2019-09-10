@@ -85,7 +85,7 @@ def get_report_data(request, user=''):
             data['filters'][data_index]['values'] = ORDER_SUMMARY_REPORT_STATUS
     elif report_name in ('dist_sales_report', 'reseller_sales_report', 'enquiry_status_report',
                          'zone_target_summary_report', 'zone_target_detailed_report',
-                         'corporate_reseller_mapping_report', ''):
+                         'corporate_reseller_mapping_report', 'financial_report',''):
         if 'order_report_status' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])
@@ -288,6 +288,27 @@ def print_stock_summary_report(request, user=''):
         html_data = create_reports_table(report_data[0].keys(), report_data)
     return HttpResponse(html_data)
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_financial_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_financial_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@get_admin_user
+def print_financial_report_report(request, user=''):
+    search_parameters = {}
+
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_financial_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
 
 @get_admin_user
 def print_order_summary_report(request, user=''):

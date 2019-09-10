@@ -2204,6 +2204,18 @@ var app = angular.module('urbanApp')
             title: 'Financal Report',
           }
         })
+        .state('app.reports.Orderflow', {
+          url: '/OrderFlowReport',
+          templateUrl: 'views/reports/orderflowreport.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/orderflow.js');
+              }]
+          },
+          data: {
+            title: 'CENTRAL ORDER TRACKER',
+          }
+        })
 
         .state('app.reports.Stockcover', {
           url: '/StockCoverReport',

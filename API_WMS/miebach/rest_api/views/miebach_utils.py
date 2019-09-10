@@ -522,7 +522,7 @@ SKU_WISE_GRN_DICT = {'filters' : [
                         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}
 		    ],
-		'dt_headers': ["Received Date", "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Recepient",
+		'dt_headers': ["Received Date", "PO Date", "PO Number", "PO Reference Number", "Supplier ID", "Supplier Name", "Recepient",
                        "SKU Code", "SKU Description", "HSN Code", "SKU Class", "SKU Style Name", "SKU Brand",
                        "SKU Category", "Received Qty", "Unit Rate", "MRP", "Pre-Tax Received Value", "CGST(%)",
                        "SGST(%)", "IGST(%)", "UTGST(%)", "CESS(%)", "APMC(%)", "CGST",
@@ -650,6 +650,18 @@ OPEN_ORDER_REPORT_DICT = {
              'Location'],
      'dt_url': 'get_open_order_report', 'excel_name': 'get_open_order_report',
      'print_url': 'print_open_order_report',
+  }
+ORDER_FLOW_REPORT_DICT = {
+     'filters': [
+         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+         {'label': 'Order ID/SR Number', 'name': 'order_id', 'type': 'input'},
+         {'label': 'Central Order ID', 'name': 'central_order_id', 'type': 'input'},
+         {'label': 'Project Name', 'name': 'project_name', 'type': 'input'},
+     ],
+     'dt_url': 'get_order_flow_report', 'excel_name': 'get_order_flow_report',
+     'print_url': 'print_order_flow_report',
   }
 STOCK_COVER_REPORT_DICT = {
        'filters': [
@@ -1013,6 +1025,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'shipment_report': SHIPMENT_REPORT_DICT, 'dist_sales_report': DIST_SALES_REPORT_DICT,
                      'po_report':PO_REPORT_DICT,
                      'open_order_report':OPEN_ORDER_REPORT_DICT,
+                     'order_flow_report':ORDER_FLOW_REPORT_DICT,
                      'reseller_sales_report': RESELLER_SALES_REPORT_DICT,
                      'dist_target_summary_report': DIST_TARGET_SUMMARY_REPORT,
                      'dist_target_detailed_report': DIST_TARGET_DETAILED_REPORT,
@@ -1599,6 +1612,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_stock_reconciliation_report': 'get_stock_reconciliation_report_data',
                         'get_margin_report':'get_margin_report_data',
                         'get_stock_cover_report':'get_stock_cover_report_data',
+                        'get_order_flow_report':'get_orderflow_data',
                         'get_basa_report':'get_basa_report_data',
                         'get_move_inventory_report':'get_move_inventory_report_data',
                         }
@@ -2957,6 +2971,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          32: 'Invoiced Unit Rate',
                          34: 'Invoiced Total Amount'}
         lis = ['purchase_order__updation_date', 'purchase_order__creation_date', 'purchase_order__order_id',
+               'purchase_order__open_po__po_name',
      	       'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name', 'id',
                'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
                'purchase_order__open_po__sku__hsn_code',
@@ -2985,7 +3000,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier_id',
                          'purchase_order__open_po__supplier__name', 'purchase_order__open_po__supplier__tax_type',
                          'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
-                         'purchase_order__open_po__sku__hsn_code',
+                         'purchase_order__open_po__sku__hsn_code', 'purchase_order__open_po__po_name',
                          'purchase_order__open_po__sku__sku_class', 'purchase_order__open_po__sku__style_name',
                          'purchase_order__open_po__sku__sku_brand', 'purchase_order__open_po__sku__sku_category',
                          'purchase_order__received_quantity', 'purchase_order__open_po__price',
@@ -3003,6 +3018,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          32: 'Invoiced Total Amount'}
         model_name = SellerPOSummary
         lis = ['purchase_order__updation_date', 'purchase_order__creation_date', 'purchase_order__order_id',
+               'purchase_order__open_po__po_name',
                'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name', 'id',
                'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
                'purchase_order__open_po__sku__hsn_code', 'purchase_order__open_po__sku__sku_class',
@@ -3029,7 +3045,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier_id',
                          'purchase_order__open_po__supplier__name',
                          'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
-                         'purchase_order__open_po__sku__hsn_code',
+                         'purchase_order__open_po__sku__hsn_code', 'purchase_order__open_po__po_name',
                          'purchase_order__open_po__sku__sku_class', 'purchase_order__open_po__sku__style_name',
                          'purchase_order__open_po__sku__sku_brand', 'purchase_order__open_po__sku__sku_category',
                          'purchase_order__received_quantity', 'purchase_order__open_po__price',
@@ -3180,6 +3196,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         temp_data['aaData'].append(OrderedDict((('Received Date', get_local_date(user, seller_po_summary.creation_date)),
                             ('PO Date', get_local_date(user, result.creation_date)),
                             ('PO Number', po_number),
+                            ('PO Reference Number',data['purchase_order__open_po__po_name']),
                             ('Supplier ID', data[field_mapping['supplier_id']]),
                             ('Supplier Name', data[field_mapping['supplier_name']]),
                             ('Recepient', user.userprofile.company_name),
@@ -6306,12 +6323,62 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
                                                         Concat('user__username', Value(' - '), 'user__first_name')))
 
     enquired_sku_qs = EnquiredSku.objects.filter(**search_parameters)
-    temp_data['recordsTotal'] = enquired_sku_qs.count()
+    enq_ids = enquired_sku_qs.values_list('id', flat=True)
+    asn_res_qs = ASNReserveDetail.objects.filter(enquirydetail_id__in=enq_ids, enquirydetail__warehouse_level=1)
+    temp_data['recordsTotal'] = enquired_sku_qs.count() + asn_res_qs.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     if stop_index:
         enquired_sku_qs = enquired_sku_qs[start_index:stop_index]
 
     totals_map = {}
+    for asn_obj in asn_res_qs:
+        en_obj = asn_obj.enquirydetail
+        em_obj = en_obj.enquiry
+        uniq_enq_id = str(em_obj.customer_id) + str(em_obj.enquiry_id)
+        if 'enquiry_number' in search_params:
+            if search_params['enquiry_number'] not in uniq_enq_id:
+                continue
+        extend_status = em_obj.extend_status
+        if em_obj.extend_date:
+            days_left_obj = em_obj.extend_date - datetime.datetime.today().date()
+            days_left = days_left_obj.days
+        else:
+            days_left = 0
+        customer_name = resellers_names_map.get(em_obj.customer_id, '')
+        dist_obj = User.objects.get(id=em_obj.user)
+        distributor_name = dist_obj.username + ' - ' + dist_obj.first_name
+        zone = dist_obj.userprofile.zone
+        user_name = en_obj.sku.user
+        warehouse = ''
+        if user_name:
+            user = User.objects.get(id=user_name)
+            warehouse = user.username
+        sku_code = en_obj.sku.sku_code
+        quantity = asn_obj.reserved_qty
+        warehouse_level = 3
+        corporate_name = en_obj.enquiry.corporate_name
+        remarks = en_obj.enquiry.remarks
+        if 'Total Qty' not in totals_map:
+            totals_map['Total Qty'] = quantity
+        else:
+            totals_map['Total Qty'] += quantity
+        prod_catg = en_obj.sku.sku_category
+        ord_dict = OrderedDict((('Zone Code', zone),
+                                ('Distributor Code', distributor_name),
+                                ('Reseller Code', customer_name),
+                                ('Product Category', prod_catg),
+                                ('SKU Code', sku_code),
+                                ('SKU Quantity', quantity),
+                                ('Warehouse Level', warehouse_level),
+                                ('Enquiry No', uniq_enq_id),
+                                ('Level', warehouse_level),
+                                ('Warehouse', warehouse),
+                                ('Enquiry Aging', days_left),
+                                ('Enquiry Status', extend_status),
+                                ('Corporate Name', corporate_name),
+                                ('Remarks', remarks),
+                                ))
+        temp_data['aaData'].append(ord_dict)
     for en_obj in enquired_sku_qs:
         em_obj = en_obj.enquiry
         uniq_enq_id = str(em_obj.customer_id) + str(em_obj.enquiry_id)
@@ -7158,6 +7225,128 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
                                                 ('Quantity',quantity ),('Status',status),('Net Value',net_value),\
                                                 ('CGST',cgst),('SGST',sgst),('IGST',igst),('Price',price),('Total Value',total),\
                                                 ('Source Location',user.username),('Destination',destination))))
+    return temp_data
+
+def get_orderflow_data(search_params, user, sub_user):
+    from rest_api.views.common import get_local_date
+    temp_data = copy.deepcopy(AJAX_DATA)
+    from common import get_misc_value
+    isprava_permission = get_misc_value('order_exceed_stock', user.id)
+    lis = ['interm_order_id','order_assigned_wh__username','customer_name', 'order__customer_name','status','remarks','sku__sku_desc',
+          'sku__wms_code','alt_sku__wms_code','order__original_order_id','order__status','order__id','order__picklist__status',
+           'project_name','sku__sku_category','sku__cost_price', 'order__creation_date', 'order__shipment_date', 'interm_order_id', 'interm_order_id','interm_order_id', 'interm_order_id']
+    status_map = ['Pick List Generated','Pending','Accepted']
+    order_term = search_params.get('order_term', 'asc')
+    start_index = search_params.get('start', 0)
+    col_num = search_params.get('order_index', 0)
+
+    order_status_dict = {'1' :'Open','0' :'Picklist Confirmed','2':'Picklist Confirmed','3':'Cancelled'}
+    central_order_status = {'1':'Accepted','0':'Rejected','2':'Pending'}
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
+    else:
+        stop_index = None
+    search_parameters = {}
+    order_fields_dict = {}
+    order_data = lis[col_num]
+    interm_order_id = ''
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    #for one one_assist
+    if 'order_id' in search_params:
+        orderfield_obj = OrderFields.objects.filter(order_type='intermediate_order', name='original_order_id',user = user.id,
+                                             value = search_params['order_id'])
+        if orderfield_obj.exists():
+            interm_order_id = orderfield_obj[0].original_order_id
+
+    if 'sku_code' in search_params:
+        search_parameters['sku__wms_code'] = search_params['sku_code']
+    if 'central_order_id' in search_params :
+        search_parameters['interm_order_id'] = search_params['central_order_id']
+    if 'project_name' in search_params:
+        search_parameters['project_name'] = search_params['project_name']
+    if interm_order_id :
+        search_parameters['interm_order_id'] = interm_order_id
+
+    search_parameters['user'] = user.id
+    order_flow_data = IntermediateOrders.objects.filter(**search_parameters).\
+                                            order_by(order_data).select_related('order','sku','alt_sku').values('interm_order_id','order_assigned_wh__username','customer_name','status','remarks','order__customer_name','customer_user__first_name',
+                                                                                                                'sku__wms_code','alt_sku__wms_code','order__original_order_id','order__status','order__id','order__picklist__status', 'sku__sku_desc','project_name','sku__sku_category','sku__cost_price', 'order__creation_date', 'order__shipment_date')
+    temp_data['recordsTotal'] = order_flow_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for data in  (order_flow_data[start_index:stop_index]):
+        outbound_qc,inbound_qc,serial_number ,shipment_status  = '','','','open'
+        po_status,po_cancel_reason,acknowledgement_status = '' ,'','No'
+        sku_damaze_remarks ,central_order_remarks,order_status = '','',''
+        order_date,expected_date = '', ''
+        if data['order__creation_date']:
+            order_date = get_local_date(user, data['order__creation_date'])
+        if data['order__shipment_date']:
+            expected_date = get_local_date(user, data['order__shipment_date'])
+        order_fields_dict = dict(OrderFields.objects.filter(original_order_id =data['interm_order_id'],user = user.id).values_list('name','value'))
+        if data['order__id'] :
+           if isprava_permission == 'false':
+               singned_invoice = MasterDocs.objects.filter(master_id =data['order__id'], master_type='OneAssistSignedCopies')
+               if singned_invoice.exists():
+                   acknowledgement_status = 'Yes'
+
+               outbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id =data['order__id'],qc_type = 'sales_order')
+               if outbound_dispatch_imei.exists():
+                   serial_number = outbound_dispatch_imei[0].po_imei_num.imei_number
+                   outbound_qc = ','.join(filter(None,outbound_dispatch_imei.values_list('remarks',flat = True)))
+               shipment = ShipmentInfo.objects.filter(order_id = data['order__id'])
+               if shipment.exists():
+                   shipment_status = 'Dispatched'
+
+               po_obj = OrderMapping.objects.filter(order_id = data['order__id'], mapping_type = 'PO')
+               if po_obj.exists():
+                  inbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id =po_obj[0].mapping_id,qc_type = 'purchase_order').exclude(remarks = '')
+                  purchase_order_obj = PurchaseOrder.objects.filter(id =po_obj[0].mapping_id )
+                  if purchase_order_obj.exists():
+                      po_status = purchase_order_obj[0].status
+                      po_cancel_reason  = purchase_order_obj[0].reason
+                      sku_damaze_remarks = purchase_order_obj[0].remarks
+
+                  if inbound_dispatch_imei.exists():
+                      inbound_qc = ','.join(filter(None,inbound_dispatch_imei.values_list('remarks',flat = True)))
+           if data['order__picklist__status'] :
+               if data['order__picklist__status'] == 'open':
+                   order_status = 'Picklist Generated'
+               if data['order__picklist__status'] == 'picked':
+                   order_status = 'Picklist Confirmed'
+                   if isprava_permission == 'true':
+                       order_status = 'Dispatched'
+               if data['order__picklist__status'] == 'dispatched':
+                   order_status = 'Picklist Confirmed'
+                   if not po_status :
+                       po_status = 'Open'
+
+           else:
+               order_status =  order_status_dict.get(data['order__status'],'')
+        if data['status'] == '3':
+           central_order_remarks = data['remarks']
+           shipment_status,acknowledgement_status = '',''
+        if isprava_permission == 'true':
+           data['customer_name'] = data['order__customer_name']
+           if not data['order_assigned_wh__username']:
+              data['customer_name'] = data['customer_user__first_name']
+        if order_fields_dict.get('original_order_id',''):
+           original_order_id = order_fields_dict.get('original_order_id')
+        else:
+           original_order_id = data['order__original_order_id']
+
+        temp_data['aaData'].append(OrderedDict((('Main SR Number',original_order_id),('Order Id', str(data['interm_order_id'])),('SKU Code', data['sku__wms_code']),
+                                                ('SKU Description',data['sku__sku_desc']), ('Project Name', data['project_name']), ('Category', data['sku__sku_category']),('Customer Name',data['customer_name']),\
+                                                ('Address',order_fields_dict.get('address','')),('Phone No',order_fields_dict.get('mobile_no','')),('Email Id',order_fields_dict.get('email_id','')),\
+                                                ('Alt SKU',data['alt_sku__wms_code']),('Central order status',central_order_status.get(data['status'],'')),('Central Order cancellation remarks',central_order_remarks),
+                                                ('Hub location',data['order_assigned_wh__username']),('Hub location order status',order_status), ('Price',data['sku__cost_price']),\
+                                                ('Order cancellation remarks',''),('Outbound Qc params',outbound_qc),('Serial Number',serial_number),
+                                                ('Shipment Status',shipment_status),('Acknowledgement status',acknowledgement_status),('Receive PO status',po_status),('Inbound Qc params',inbound_qc),
+                                                ('PO cancellation remarks',po_cancel_reason), ('Order Date',order_date), ('Expected Date',expected_date),('SKU damage payment remarks',sku_damaze_remarks))))
     return temp_data
 
 def get_current_stock_report_data(search_params, user, sub_user):

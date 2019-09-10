@@ -3287,6 +3287,7 @@ class ClusterSkuMapping(models.Model):
 class Pofields(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
+    field_type = models.CharField(max_length=32, default='')
     po_number = models.CharField(max_length=128, default='')
     receipt_no = models.CharField(max_length = 34 ,default = 1)
     name = models.CharField(max_length=256, default='')

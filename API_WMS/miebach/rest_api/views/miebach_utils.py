@@ -3731,14 +3731,14 @@ def get_financial_report_data(search_params, user, sub_user):
     stats_params = {}
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
-        search_parameters['creation_date__gt'] = search_params['from_date']
-        fields_parameters['stock_reconciliation__creation_date__gt'] = search_params['from_date']
+        search_parameters['creation_date__gte'] = search_params['from_date']
+        fields_parameters['stock_reconciliation__creation_date__gte'] = search_params['from_date']
         stats_params['creation_date__gt'] = search_params['from_date']
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
-        search_parameters['creation_date__lt'] = search_params['to_date']
-        fields_parameters['stock_reconciliation__creation_date__lt'] = search_params['to_date']
+        search_parameters['creation_date__lte'] = search_params['to_date']
+        fields_parameters['stock_reconciliation__creation_date__lte'] = search_params['to_date']
         stats_params['creation_date__lt'] = search_params['to_date']
     if 'sku_code' in search_params:
         search_parameters['sku__sku_code'] = search_params['sku_code']

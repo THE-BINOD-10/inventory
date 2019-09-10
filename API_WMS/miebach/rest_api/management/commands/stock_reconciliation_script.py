@@ -310,9 +310,12 @@ class Command(BaseCommand):
                             opening_stock_dict[sku_id][key]['avg_rate'] = sum(stock_unit_price_list)/sku_stocks['quantity']
                             opening_stock_dict[sku_id][key]['qty_price_sum'] += sum(stock_unit_price_list)
                             if sku_stocks.get('transact_data', ''):
+                                sku_stock_transact_data = sku_stocks.get('transact_data', {}).values()
+                                for ind, val in enumerate(sku_stock_transact_data):
+                                    sku_stock_transact_data[ind]['field_type'] = 'opening'
                                 opening_stock_dict[sku_id][key]['transact_data'] = \
                                     list(chain(opening_stock_dict[sku_id][key]['transact_data'],
-                                               sku_stocks['transact_data'].values()))
+                                               sku_stock_transact_data))
                 for sku_id, sku_stats in sku_stats_dict.iteritems():
                     opening_stock_dict.setdefault(sku_id, {})
                     for key, sku_stat in sku_stats.iteritems():
@@ -346,6 +349,7 @@ class Command(BaseCommand):
         users = User.objects.filter(username__in=MILKBASKET_USERS)
         #users = User.objects.filter(username='NOIDA02')
         today = datetime.now()
+        print today
         stock_rec_field_objs = []
         stock_rec_obj_ids = []
         for user in users:
@@ -411,6 +415,8 @@ class Command(BaseCommand):
                             stock_reconciliation_dict[key]['opening_avg_rate'] = value['avg_rate']
                         stock_reconciliation_dict[key]['opening_amount'] = abs(value['amount'])
                         if value.get('transact_data'):
+                            for ind, val in enumerate(value.get('transact_data', [])):
+                                value['transact_data'][ind]['field_type'] = 'opening'
                             stock_reconciliation_dict[key]['transact_data'] = \
                                 list(chain(stock_reconciliation_dict[key]['transact_data'], value['transact_data']))
 
@@ -456,8 +462,6 @@ class Command(BaseCommand):
                                                                            defaults={})
                         if not created:
                             stock_rec_obj_ids.append(stock_rec_obj.id)
-                        # if today.date() != stock_rec_obj.creation_date.date():
-                        #     StockReconciliation.objects.filter(id=stock_rec_obj.id).update(creation_date=today)
                         for stock_rec_field in stock_rec_fields:
                             stock_rec_field['stock_reconciliation_id'] = stock_rec_obj.id
                             if 'price_before_tax_values' in stock_rec_field.keys():
@@ -471,6 +475,7 @@ class Command(BaseCommand):
                         if stock_rec_obj_ids:
                             StockReconciliationFields.objects.filter(stock_reconciliation_id__in=stock_rec_obj_ids).\
                                 delete()
+                            #StockReconciliationFields.objects.filter(id__in=stock_rec_obj_ids).update(creation_date=today)
                         StockReconciliationFields.objects.bulk_create(stock_rec_field_objs)
                     except Exception as e:
                         import traceback

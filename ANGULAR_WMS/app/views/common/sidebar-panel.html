@@ -586,6 +586,11 @@
             <span>Open Order Report</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="user.user_profile.user_type == 'marketplace_user' && user.user_profile.industry_type == 'FMCG'">
+          <a ui-sref="app.reports.FinancalReport">
+            <span>Financial Report</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-show = "permissions.central_order_mgmt && permissions.multi_warehouse">
           <a ui-sref="app.reports.Orderflow">
             <span>Central Order Tracker</span>

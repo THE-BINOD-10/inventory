@@ -344,8 +344,8 @@ class Command(BaseCommand):
             stock_reconciliation_dict[key]['%s_amount' % prefix] = data_dict['amount']
             stock_reconciliation_dict[key]['transact_data'] = \
                 list(chain(stock_reconciliation_dict[key]['transact_data'], data_dict['transact_data'].values()))
-        #users = User.objects.filter(username__in=MILKBASKET_USERS)
-        users = User.objects.filter(username='NOIDA02')
+        users = User.objects.filter(username__in=MILKBASKET_USERS)
+        #users = User.objects.filter(username='NOIDA02')
         today = datetime.now()
         print today
         stock_rec_field_objs = []

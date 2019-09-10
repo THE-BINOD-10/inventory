@@ -9674,8 +9674,9 @@ def get_challan_number_for_dc(order , user):
         challan_sequence = ChallanSequence.objects.filter(user=user.id, marketplace='')
     if challan_sequence:
         challan_sequence = challan_sequence[0]
-        challan_num = int(challan_sequence.value)
-        challan_sequence.value = challan_num + 1
+        challan_val = int(challan_sequence.value)
+        challan_sequence.value = challan_val + 1
+        challan_num = challan_sequence.value
         challan_sequence.save()
     else:
         ChallanSequence.objects.create(marketplace='', prefix='CHN', value=1, status=1, user_id=user.id,
@@ -9764,4 +9765,3 @@ def get_zonal_admin_id(admin_user, reseller):
         import traceback
         log.info(traceback.format_exc())
         log.info('Users List exception raised')
-

@@ -313,9 +313,7 @@ class Command(BaseCommand):
                                 sku_stock_transact_data = sku_stocks.get('transact_data', {}).values()
                                 for ind, val in enumerate(sku_stock_transact_data):
                                     sku_stock_transact_data[ind]['field_type'] = 'opening'
-                                opening_stock_dict[sku_id][key]['transact_data'] = \
-                                    list(chain(opening_stock_dict[sku_id][key]['transact_data'],
-                                               sku_stock_transact_data))
+                                opening_stock_dict[sku_id][key]['transact_data'] = sku_stock_transact_data
                 for sku_id, sku_stats in sku_stats_dict.iteritems():
                     opening_stock_dict.setdefault(sku_id, {})
                     for key, sku_stat in sku_stats.iteritems():
@@ -346,8 +344,8 @@ class Command(BaseCommand):
             stock_reconciliation_dict[key]['%s_amount' % prefix] = data_dict['amount']
             stock_reconciliation_dict[key]['transact_data'] = \
                 list(chain(stock_reconciliation_dict[key]['transact_data'], data_dict['transact_data'].values()))
-        users = User.objects.filter(username__in=MILKBASKET_USERS)
-        #users = User.objects.filter(username='NOIDA02')
+        #users = User.objects.filter(username__in=MILKBASKET_USERS)
+        users = User.objects.filter(username='NOIDA02')
         today = datetime.now()
         print today
         stock_rec_field_objs = []

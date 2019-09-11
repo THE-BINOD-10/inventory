@@ -4218,7 +4218,11 @@ def get_sku_master(user, sub_user, is_list=''):
         sku_master = SKUMaster.objects.filter(user__in=user)
     sku_master_ids = sku_master.values_list('id', flat=True)
     if not sub_user.is_staff:
-        sub_user_groups = sub_user.groups.filter().exclude(name=user.username).values_list('name', flat=True)
+        if is_list:
+            usernames = list(User.objects.filter(id__in=user).values_list('username', flat=True))
+            sub_user_groups = sub_user.groups.filter().exclude(name__in=usernames).values_list('name', flat=True)
+        else:
+            sub_user_groups = sub_user.groups.filter().exclude(name=user.username).values_list('name', flat=True)
         brands_list = GroupBrand.objects.filter(group__name__in=sub_user_groups).values_list('brand_list__brand_name',
                                                                                              flat=True)
         if not 'All' in brands_list:

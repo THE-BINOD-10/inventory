@@ -2649,6 +2649,7 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
     data_list = []
     purchase_mapping = get_purchase_order_excel_headers(user)
     misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='po_fields')
+    fields = []
     if misc_detail.exists():
         fields = misc_detail[0].misc_value.lower().split(',')
     purchase_res = dict(zip(purchase_mapping.values(), purchase_mapping.keys()))

@@ -15,6 +15,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.self_life_ratio = Number(vm.permissions.shelf_life_ratio) || 0;
     vm.industry_type = Session.user_profile.industry_type;
     vm.user_type = Session.user_profile.user_type;
+    vm.warehouse_type = Session.user_profile.warehouse_type
+    vm.central_po = true
+    if (vm.warehouse_type == "CENTRAL_ADMIN"){
+      vm.central_po = false
+    }
     vm.parent_username = Session.parent.userName;
     vm.milkbasket_users = ['milkbasket_test', 'NOIDA02', 'NOIDA01', 'GGN01', 'HYD01', 'BLR01'];
     vm.milkbasket_file_check = ['GGN01'];
@@ -103,7 +108,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
 
     var columns = ['PO No', 'PO Reference', 'Customer Name', 'Order Date', 'Expected Date', 'Total Qty', 'Receivable Qty', 'Received Qty',
-                   'Remarks', 'Supplier ID/Name', 'Order Type', 'Receive Status'];
+                   'Remarks', 'Warehouse','Supplier ID/Name', 'Order Type', 'Receive Status'];
     vm.dtColumns = vm.service.build_colums(columns);
 
     var row_click_bind = 'td';
@@ -184,7 +189,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 } else {
                   vm.main_sr_number = ''
                 }
-                vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
+                vm.warehouse = aData['Warehouse']
+                vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId'], warehouse: aData['Warehouse']}).then(function(data){
                   if(data.message) {
                     vm.serial_numbers = [];
                     vm.skus_total_amount = 0;

@@ -223,11 +223,6 @@ vm.update_cartdata_for_approval = function() {
         vm.bt_disable = false;
       } else if (!(vm.model_data.shipment_time_slot)) {
         vm.service.showNoty("Please Select Shipment Slot", "success", "bottomRight");
-        vm.bt_disable = false;
-      } else if (vm.unique_levels['3']) {
-        Service.showNoty("Order can't be placed to L3 level, Please remove.");
-        vm.bt_disable = false;
-        return false;
       } else{
         vm.order_data_insertion(data_dict);
       }

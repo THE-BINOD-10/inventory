@@ -342,4 +342,37 @@ var vm = this;
         })
       }
     }
+    vm.delete_order = function() {
+      {
+        if (Object.values(vm.selected).lastIndexOf(true) === Object.values(vm.selected).indexOf(true)) {
+         var data = [];
+         var index = Object.values(vm.selected).indexOf(true)
+         var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(index)]._aData
+         data.push(temp)
+        var send_data  = {data: data}
+        var modalInstance = $modal.open({
+          templateUrl: 'views/outbound/toggle/cancel_central_order.html',
+          controller: 'Rejectorderpop',
+          controllerAs: 'pop',
+          size: 'lg',
+          backdrop: 'static',
+          keyboard: false,
+          windowClass: 'full-modal',
+          resolve: {
+            items: function () {
+              return send_data;
+            }
+          }
+        });
+        modalInstance.result.then(function (selectedItem) {
+          var data = selectedItem;
+          reloadData();
+        }, function () {
+           $log.info('Modal dismissed at: ' + new Date());
+        });
+      } else {
+        vm.service.showNoty("Select Only One Order")
+      }
+    }
+   }
 }

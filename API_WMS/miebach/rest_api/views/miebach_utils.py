@@ -2738,7 +2738,6 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
         model_data = model_data[start_index:stop_index]
 
     for data in model_data:
-        wms_code_mrp = ''
         if customer_view:
             temp_data['aaData'].append(OrderedDict((('Customer ID', data['order__customer_id']),
                                                     ('Customer Name', data['order__customer_name']),
@@ -2750,10 +2749,15 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                   )))
         else:
             if not serial_view:
+                child_sku_weight = ''
+                child_sku_code = ''
+                child_sku_mrp = ''
+                wms_code_mrp = 0
                 customer_name = data.order.customer_name if data.order.customer_name else ''
                 if data.stock and data.stock.batch_detail:
                     batch_number = data.stock.batch_detail.batch_no
                     batchDetail_mrp = data.stock.batch_detail.mrp
+                    child_sku_weight = data.stock.batch_detail.weight
                     batchDetail_mfgdate = data.stock.batch_detail.manufactured_date.strftime("%d %b %Y") if data.stock.batch_detail.manufactured_date else ''
                     batchDetail_expdate = data.stock.batch_detail.expiry_date.strftime("%d %b %Y") if data.stock.batch_detail.expiry_date else ''
                 else:
@@ -2763,18 +2767,13 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                     order_id = data.order.original_order_id
                     if not order_id:
                         order_id = str(data.order.order_code) + str(data.order.order_id)
-                    child_sku_code = ''
-                    child_sku_mrp = ''
-                    child_sku_weight = ''
                     if data.order.sku.mrp:
                         wms_code_mrp = data.order.sku.mrp
                     if data.order_type == 'combo':
                         child_sku_code = data.sku_code
                         child_sku_mrp = SKUMaster.objects.filter(user=user.id, sku_code = data.sku_code).values('mrp')[0]['mrp']
-                        if data.stock:
-                            child_sku_weight = data.stock.batch_detail.weight
                     temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
-                                                            ('WMS Code MRP', wms_code_mrp),('Child SKU', child_sku_code),
+                                                            ('WMS MRP', wms_code_mrp),('Child SKU', child_sku_code),
                                                             ('Child SKU MRP', child_sku_mrp),('Child SKU Weight', child_sku_weight),
                                                             ('Description', data.order.sku.sku_desc),
                                                             ('Location', 'NO STOCK'),
@@ -2791,14 +2790,19 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                     order_id = data.order.original_order_id
                     if not order_id:
                         order_id = str(data.order.order_code) + str(data.order.order_id)
-                    child_sku_code = ''
                     if data.order_type == 'combo':
                         if data.stock:
+                            if data.stock and data.stock.batch_detail:
+                                child_sku_weight = data.stock.batch_detail.weight
                             child_sku_code = data.stock.sku.sku_code
+                            child_sku_mrp = SKUMaster.objects.filter(user=user.id, sku_code = data.stock.sku.sku_code).values('mrp')[0]['mrp']
                         else:
                             child_sku_code = data.order.sku.sku_code
+                            child_sku_mrp = SKUMaster.objects.filter(user=user.id, sku_code = data.order.sku.sku_code).values('mrp')[0]['mrp']
+                    wms_code_mrp = data.order.sku.mrp
                     temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
-                                                            ('Child SKU', child_sku_code),
+                                                            ('WMS MRP', wms_code_mrp),('Child SKU', child_sku_code),
+                                                            ('Child SKU MRP', child_sku_mrp),('Child SKU Weight', child_sku_weight),
                                                             ('Description', data.order.sku.sku_desc),
                                                             ('Location', pick_loc.stock.location.location),
                                                             ('Quantity', data.order.quantity),

@@ -57,10 +57,12 @@ class Command(BaseCommand):
                 if po_loc.exists():
                     open_po = po_loc[0].purchase_order.open_po
                     if open_po:
-                        taxes['cgst_tax'] = open_po.cgst_tax
-                        taxes['sgst_tax'] = open_po.sgst_tax
-                        taxes['igst_tax'] = open_po.igst_tax
                         taxes['cess_tax'] = open_po.cess_tax
+                        if open_po.supplier.tax_type == 'intra_state':
+                            taxes['cgst_tax'] = float(tax)/2
+                            taxes['sgst_tax'] = float(tax)/2
+                        else:
+                            taxes['igst_tax'] = float(tax)
             elif transact_type == 'po':
                 purchase_order = PurchaseOrder.objects.filter(id=transact_id, open_po__sku__user=user.id)
                 if purchase_order.exists():
@@ -224,6 +226,7 @@ class Command(BaseCommand):
             sku_stock_dict = {}
             search_params['sku__user'] = user.id
             search_params['quantity__gt'] = 0
+            search_params['sku__sku_code'] = 1
             stock_data = StockDetail.objects.exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).filter(**search_params)
             counter = 1
             for stock in stock_data:
@@ -309,11 +312,11 @@ class Command(BaseCommand):
                         if stock_unit_price_list and sku_stocks.get('quantity', 0):
                             opening_stock_dict[sku_id][key]['avg_rate'] = sum(stock_unit_price_list)/sku_stocks['quantity']
                             opening_stock_dict[sku_id][key]['qty_price_sum'] += sum(stock_unit_price_list)
-                            if sku_stocks.get('transact_data', ''):
-                                sku_stock_transact_data = sku_stocks.get('transact_data', {}).values()
-                                for ind, val in enumerate(sku_stock_transact_data):
-                                    sku_stock_transact_data[ind]['field_type'] = 'opening'
-                                opening_stock_dict[sku_id][key]['transact_data'] = sku_stock_transact_data
+                            # if sku_stocks.get('transact_data', ''):
+                            #     sku_stock_transact_data = sku_stocks.get('transact_data', {}).values()
+                            #     for ind, val in enumerate(sku_stock_transact_data):
+                            #         sku_stock_transact_data[ind]['field_type'] = 'opening'
+                            #     opening_stock_dict[sku_id][key]['transact_data'] = sku_stock_transact_data
                 for sku_id, sku_stats in sku_stats_dict.iteritems():
                     opening_stock_dict.setdefault(sku_id, {})
                     for key, sku_stat in sku_stats.iteritems():
@@ -348,7 +351,7 @@ class Command(BaseCommand):
         #users = User.objects.filter(username='NOIDA02')
         today = datetime.now()
         print today
-        stock_rec_field_objs = []
+        #stock_rec_field_objs = []
         stock_rec_obj_ids = []
         for user in users:
             try:
@@ -359,7 +362,7 @@ class Command(BaseCommand):
                 sku_stats_dict = stock_reconciliation_for_po_picklist(user, today, tax_type_dict)
                 sku_stock_dict = get_sku_stock_total(user, tax_type_dict)
                 opening_stock_dict = get_opening_stock_dict(user, today, sku_stats_dict, sku_stock_dict)
-                skus = SKUMaster.objects.filter(user=user.id).only('id', 'sku_code')
+                skus = SKUMaster.objects.filter(user=user.id, sku_code=1).only('id', 'sku_code')
                 for sku in skus:
                     sku_stats = sku_stats_dict.get(sku.id, {})
                     sku_stocks = sku_stock_dict.get(sku.id, {})
@@ -412,7 +415,7 @@ class Command(BaseCommand):
                         else:
                             stock_reconciliation_dict[key]['opening_avg_rate'] = value['avg_rate']
                         stock_reconciliation_dict[key]['opening_amount'] = abs(value['amount'])
-                        if value.get('transact_data'):
+                        if value.get('transact_data', ''):
                             for ind, val in enumerate(value.get('transact_data', [])):
                                 value['transact_data'][ind]['field_type'] = 'opening'
                             stock_reconciliation_dict[key]['transact_data'] = \
@@ -442,7 +445,14 @@ class Command(BaseCommand):
                                         sum(stock_rec_field['price_before_tax_values'])/sum(stock_rec_field['price_before_tax_qtys'])
                                 del stock_rec_field['price_before_tax_values']
                                 del stock_rec_field['price_before_tax_qtys']
-                            stock_rec_field_objs.append(StockReconciliationFields(**stock_rec_field))
+                            exist_recs = StockReconciliationFields.objects.filter(stock_reconciliation_id=stock_rec_obj.id,
+                                                                     field_type=stock_rec_field['field_type'],
+                                                                     cgst_tax=stock_rec_field['cgst_tax'],
+                                                                     sgst_tax=stock_rec_field['sgst_tax'],
+                                                                     igst_tax=stock_rec_field['igst_tax'])
+                            if not exist_recs:
+                                StockReconciliationFields.objects.create(**stock_rec_field)
+                                #stock_rec_field_objs.append(StockReconciliationFields(**stock_rec_field))
                     if not stock_reconciliation_dict:
                         weight = get_sku_weight(sku)
                         for key, stock_reconciliation_data1 in stock_reconciliation_dict.iteritems():
@@ -467,18 +477,26 @@ class Command(BaseCommand):
                                     sum(stock_rec_field['price_before_tax_values'])/sum(stock_rec_field['price_before_tax_qtys'])
                                 del stock_rec_field['price_before_tax_values']
                                 del stock_rec_field['price_before_tax_qtys']
-                            stock_rec_field_objs.append(StockReconciliationFields(**stock_rec_field))
-                if stock_rec_field_objs:
-                    try:
-                        if stock_rec_obj_ids:
-                            StockReconciliationFields.objects.filter(stock_reconciliation_id__in=stock_rec_obj_ids).\
-                                delete()
-                            #StockReconciliationFields.objects.filter(id__in=stock_rec_obj_ids).update(creation_date=today)
-                        StockReconciliationFields.objects.bulk_create(stock_rec_field_objs)
-                    except Exception as e:
-                        import traceback
-                        log.debug(traceback.format_exc())
-                        log.info('Stock Reconciliation Fields creation failed for user %s' % (str(user.username)))
+                            exist_recs = StockReconciliationFields.objects.filter(stock_reconciliation_id=stock_rec_obj.id,
+                                                                     field_type=stock_rec_field['field_type'],
+                                                                     cgst_tax=stock_rec_field['cgst_tax'],
+                                                                     sgst_tax=stock_rec_field['sgst_tax'],
+                                                                     igst_tax=stock_rec_field['igst_tax'])
+                            if not exist_recs:
+                                StockReconciliationFields.objects.create(**stock_rec_field)
+                            #stock_rec_field_objs.append(StockReconciliationFields(**stock_rec_field))
+                # if stock_rec_field_objs:
+                #     try:
+                #         if stock_rec_obj_ids:
+                #             StockReconciliationFields.objects.filter(stock_reconciliation_id__in=stock_rec_obj_ids).\
+                #                 delete()
+                #             #StockReconciliation.objects.filter(id__in=stock_rec_obj_ids).update(creation_date=today)
+                #             #StockReconciliationFields.objects.filter(stock_reconciliation_id__in=stock_rec_obj_ids).update(creation_date=today)
+                #         StockReconciliationFields.objects.bulk_create(stock_rec_field_objs)
+                #     except Exception as e:
+                #         import traceback
+                #         log.debug(traceback.format_exc())
+                #         log.info('Stock Reconciliation Fields creation failed for user %s' % (str(user.username)))
                 log.info("Stock Reconciliation Report Creation Ended for user %s" % (user.username))
             except Exception as e:
                 import traceback

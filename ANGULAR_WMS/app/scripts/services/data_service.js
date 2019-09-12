@@ -6,6 +6,7 @@ app.service('Data',['$rootScope', '$compile','$q', '$http', '$state', '$timeout'
 function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COLORS) {
 
   var self = this;
+  self.industry_type = Session.user_profile.industry_type;
 
   /*** Receive PO  ***/
   self.receive_po = {
@@ -148,14 +149,25 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
     }
 
     //Dispatch Summary Report
-    self.dispatch_summary_report = {
+    if (self.industry_type == 'FMCG') {
+      self.dispatch_summary_report = {
 
-                            alternate_view: false,
-                            view: 'normalView',
-                            tb_headers: {'normalView': ['Order ID', 'WMS Code', 'Child SKU', 'Description', 'Location', 'Quantity', 'Picked Quantity', 'Date', 'Time'],
-                                         'serialView': ['Order ID', 'WMS Code', 'Description', 'Customer Name', 'Serial Number', 'Date', 'Time'],
-                                         'customerView': ['Customer ID', 'Customer Name', 'WMS Code', 'Description', 'Quantity', 'Picked Quantity']}
-                         }
+                              alternate_view: false,
+                              view: 'normalView',
+                              tb_headers: {'normalView': ['Order ID', 'WMS Code', 'WMS MRP', 'Child SKU', 'Child SKU MRP', 'Child SKU Weight', 'Description', 'Location', 'Quantity', 'Picked Quantity', 'Date', 'Time'],
+                                           'serialView': ['Order ID', 'WMS Code', 'Description', 'Customer Name', 'Serial Number', 'Date', 'Time'],
+                                           'customerView': ['Customer ID', 'Customer Name', 'WMS Code', 'Description', 'Quantity', 'Picked Quantity']}
+                           }
+    } else {
+      self.dispatch_summary_report = {
+
+                              alternate_view: false,
+                              view: 'normalView',
+                              tb_headers: {'normalView': ['Order ID', 'WMS Code', 'WMS MRP', 'Child SKU', 'Description', 'Location', 'Quantity', 'Picked Quantity', 'Date', 'Time'],
+                                           'serialView': ['Order ID', 'WMS Code', 'Description', 'Customer Name', 'Serial Number', 'Date', 'Time'],
+                                           'customerView': ['Customer ID', 'Customer Name', 'WMS Code', 'Description', 'Quantity', 'Picked Quantity']}
+                           }
+    }
 
     self.dispatch_summary_view_types = [{ 'name' : 'Order View', 'value' : 'normalView'}, { 'name' : 'Serial Number View', 'value' : 'serialView'}, { 'name' : 'Customer View', 'value' : 'customerView'}]
 

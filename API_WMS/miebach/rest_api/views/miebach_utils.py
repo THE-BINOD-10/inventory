@@ -2767,7 +2767,10 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                     child_sku_weight = ''
                     if data.order_type == 'combo':
                         child_sku_code = data.sku_code
-                        child_sku_mrp = SKUMaster.objects.filter(user=user.id, sku_code = data.sku_code).values('mrp')[0]['mrp']
+                        # child_sku_mrp = SKUMaster.objects.filter(user=user.id, sku_code = data.sku_code).values('mrp')[0]['mrp']
+                        child_sku_mrp_obj = SKUMaster.objects.filter(user=user.id, sku_code = data.sku_code)
+                        if child_sku_mrp_obj.exists():
+                            child_sku_mrp = child_sku_mrp_obj[0].mrp
                         if data.stock:
                             child_sku_weight = data.stock.batch_detail.weight
                     temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),

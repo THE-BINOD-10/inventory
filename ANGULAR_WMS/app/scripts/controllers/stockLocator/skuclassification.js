@@ -34,7 +34,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                     $compile(angular.element(header).contents())($scope);
                 }
             })
-           .withPaginationType('full_numbers');
+            .withOption('initComplete', function( settings ) {
+              vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
+            })
+            .withPaginationType('full_numbers');
+
 
     vm.dtColumns = [
         DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
@@ -49,6 +53,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         DTColumnBuilder.newColumn('sku_code').withTitle('Sku Code'),
         DTColumnBuilder.newColumn('sku_name').withTitle('Sku Name'),
         DTColumnBuilder.newColumn('sku_category').withTitle('Sku Category'),
+        DTColumnBuilder.newColumn('ean_number').withTitle('Ean Number'),
         DTColumnBuilder.newColumn('sheet').withTitle('Sheet'),
         DTColumnBuilder.newColumn('vendor').withTitle('Vendor'),
         DTColumnBuilder.newColumn('reset_stock').withTitle('Reset Stock'),

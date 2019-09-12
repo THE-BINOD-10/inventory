@@ -912,8 +912,8 @@ FINANCIAL_REPORT_DICT =  {
   ],
   'dt_headers': ['SKU Code','SKU NAME','Category', 'Sub Category', 'City','Hub','Vendor Name','HSN Code','Weight', 'MRP', 'GST No',
   'IGST Tax Rate','CESS Rate','Opening Qty','Opening Price Per Unit( Before Taxes)','Opening Value before Tax', 'Opening CGST', 'Opening SGST',
-  'Opening IGST', 'Opening CESS', 'Opening Value after Tax', 'Purchase Qty', 'Purchase Price Per Unit(Before Taxes)','Purchase Value before Tax', 
-  'Purchase CGST', 'Purchase SGST','Purchase IGST', 'Purchase CESS', 'Purchase Value after Tax', 'Purchase Return Qty', 'Purchase Return Price Per Unit(Before Taxes)','Purchase Return Value before Tax', 
+  'Opening IGST', 'Opening CESS', 'Opening Value after Tax', 'Purchase Qty', 'Purchase Price Per Unit(Before Taxes)','Purchase Value before Tax',
+  'Purchase CGST', 'Purchase SGST','Purchase IGST', 'Purchase CESS', 'Purchase Value after Tax', 'Purchase Return Qty', 'Purchase Return Price Per Unit(Before Taxes)','Purchase Return Value before Tax',
   'Purchase Return CGST', 'Purchase Return SGST','Purchase Return IGST', 'Purchase Return CESS', 'Purchase Return Value after Tax',
   'Sale to Drsc Qty','Sale to Drsc Price Per Unit( Before Taxes)','Sale to Drsc Value before Tax', 'Sale to Drsc CGST', 'Sale to Drsc SGST',
   'Sale to Drsc IGST', 'Sale to Drsc CESS', 'Sale to Drsc Value after Tax', 'Sale to othr Qty','Sale to othr Price Per Unit( Before Taxes)','Sale to othr Value before Tax',
@@ -2750,10 +2750,15 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                   )))
         else:
             if not serial_view:
+                child_sku_weight = ''
+                child_sku_code = ''
+                child_sku_mrp = ''
+                wms_code_mrp = 0
                 customer_name = data.order.customer_name if data.order.customer_name else ''
                 if data.stock and data.stock.batch_detail:
                     batch_number = data.stock.batch_detail.batch_no
                     batchDetail_mrp = data.stock.batch_detail.mrp
+                    child_sku_weight = data.stock.batch_detail.weight
                     batchDetail_mfgdate = data.stock.batch_detail.manufactured_date.strftime("%d %b %Y") if data.stock.batch_detail.manufactured_date else ''
                     batchDetail_expdate = data.stock.batch_detail.expiry_date.strftime("%d %b %Y") if data.stock.batch_detail.expiry_date else ''
                 else:
@@ -2763,11 +2768,14 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                     order_id = data.order.original_order_id
                     if not order_id:
                         order_id = str(data.order.order_code) + str(data.order.order_id)
-                    child_sku_code = ''
+                    if data.order.sku.mrp:
+                        wms_code_mrp = data.order.sku.mrp
                     if data.order_type == 'combo':
                         child_sku_code = data.sku_code
+                        child_sku_mrp = SKUMaster.objects.filter(user=user.id, sku_code = data.sku_code).values('mrp')[0]['mrp']
                     temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
-                                                            ('Child SKU', child_sku_code),
+                                                            ('WMS MRP', wms_code_mrp),('Child SKU', child_sku_code),
+                                                            ('Child SKU MRP', child_sku_mrp),('Child SKU Weight', child_sku_weight),
                                                             ('Description', data.order.sku.sku_desc),
                                                             ('Location', 'NO STOCK'),
                                                             ('Quantity', data.order.quantity),
@@ -2783,14 +2791,19 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                     order_id = data.order.original_order_id
                     if not order_id:
                         order_id = str(data.order.order_code) + str(data.order.order_id)
-                    child_sku_code = ''
                     if data.order_type == 'combo':
                         if data.stock:
+                            if data.stock and data.stock.batch_detail:
+                                child_sku_weight = data.stock.batch_detail.weight
                             child_sku_code = data.stock.sku.sku_code
+                            child_sku_mrp = SKUMaster.objects.filter(user=user.id, sku_code = data.stock.sku.sku_code).values('mrp')[0]['mrp']
                         else:
                             child_sku_code = data.order.sku.sku_code
+                            child_sku_mrp = SKUMaster.objects.filter(user=user.id, sku_code = data.order.sku.sku_code).values('mrp')[0]['mrp']
+                    wms_code_mrp = data.order.sku.mrp
                     temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
-                                                            ('Child SKU', child_sku_code),
+                                                            ('WMS MRP', wms_code_mrp),('Child SKU', child_sku_code),
+                                                            ('Child SKU MRP', child_sku_mrp),('Child SKU Weight', child_sku_weight),
                                                             ('Description', data.order.sku.sku_desc),
                                                             ('Location', pick_loc.stock.location.location),
                                                             ('Quantity', data.order.quantity),
@@ -3845,7 +3858,6 @@ def get_financial_report_data(search_params, user, sub_user):
 
                 fields_parameters1['field_type'] = 'internal_sales'
                 isd = get_financial_group_dict(fields_parameters1)
-                import pdb;pdb.set_trace()
                 fields_parameters1['field_type'] = 'stock_transfer'
                 std = get_financial_group_dict(fields_parameters1)
                 fields_parameters1['field_type'] = 'adjustment'

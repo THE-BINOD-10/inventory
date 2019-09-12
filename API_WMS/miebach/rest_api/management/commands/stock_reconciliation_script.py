@@ -226,7 +226,6 @@ class Command(BaseCommand):
             sku_stock_dict = {}
             search_params['sku__user'] = user.id
             search_params['quantity__gt'] = 0
-            search_params['sku__sku_code'] = 1
             stock_data = StockDetail.objects.exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).filter(**search_params)
             counter = 1
             for stock in stock_data:
@@ -362,7 +361,7 @@ class Command(BaseCommand):
                 sku_stats_dict = stock_reconciliation_for_po_picklist(user, today, tax_type_dict)
                 sku_stock_dict = get_sku_stock_total(user, tax_type_dict)
                 opening_stock_dict = get_opening_stock_dict(user, today, sku_stats_dict, sku_stock_dict)
-                skus = SKUMaster.objects.filter(user=user.id, sku_code=1).only('id', 'sku_code')
+                skus = SKUMaster.objects.filter(user=user.id).only('id', 'sku_code')
                 for sku in skus:
                     sku_stats = sku_stats_dict.get(sku.id, {})
                     sku_stocks = sku_stock_dict.get(sku.id, {})

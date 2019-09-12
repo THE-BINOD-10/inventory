@@ -2738,6 +2738,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
         model_data = model_data[start_index:stop_index]
 
     for data in model_data:
+        wms_code_mrp = ''
         if customer_view:
             temp_data['aaData'].append(OrderedDict((('Customer ID', data['order__customer_id']),
                                                     ('Customer Name', data['order__customer_name']),
@@ -2767,8 +2768,6 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                     child_sku_weight = ''
                     if data.order.sku.mrp:
                         wms_code_mrp = data.order.sku.mrp
-                    else:
-                        wms_code_mrp = ''
                     if data.order_type == 'combo':
                         child_sku_code = data.sku_code
                         child_sku_mrp = SKUMaster.objects.filter(user=user.id, sku_code = data.sku_code).values('mrp')[0]['mrp']

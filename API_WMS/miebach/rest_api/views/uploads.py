@@ -5611,6 +5611,9 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                     data_dict[key] = str(int(cell_data))
                 else:
                     data_dict[key] = str(cell_data)
+            elif key in ['source_quantity','dest_quantity']:
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Quantity should not be zero')
             elif key in number_fields:
                 if key in ['source_mrp','dest_mrp'] :
                     if user.username in MILKBASKET_USERS and not cell_data:
@@ -7270,6 +7273,9 @@ def validate_combo_allocate_form(request, reader, user, no_of_rows, no_of_cols, 
                     data_dict['source_updated'] = True
                 else:
                     data_dict[key] = cell_data
+                if key in ['combo_quantity','child_quantity']:
+                    if not cell_data:
+                        index_status.setdefault(row_idx, set()).add('Quantity should not be zero')
 
         if row_idx not in index_status:
             prev_data_dict = copy.deepcopy(data_dict)

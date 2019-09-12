@@ -7,7 +7,7 @@ django.setup()
 from miebach_admin.models import *
 from rest_api.views.outbound import send_mail_enquiry_order_report
 from rest_api.views.common import send_push_notification, get_priceband_admin_user
-from datetime import datetime
+from datetime import datetime,timedelta
 
 
 def init_logger(log_file):
@@ -35,7 +35,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write("Started Updating")
         items = []
-        today_enqs = EnquiryMaster.objects.filter(extend_date=datetime.today().date())
+        today_enqs = EnquiryMaster.objects.filter(extend_date=(datetime.today().date() - timedelta(days=2)))
         for today_enq in today_enqs:
             customer_details = {}
             enquiry_id = today_enq.enquiry_id
@@ -56,7 +56,7 @@ class Command(BaseCommand):
                 tot_amt = enq_sku['invoice_amount']
                 items.append([style_name, qty, tot_amt])
             cont_vals = (enquiry_id, customer_details['customer_name'])
-            contents = {"en": "Enquiry Order %s placed by %s will expire today EOD" % cont_vals}
+            contents = {"en": "Enquiry Order %s placed by %s will expire in 2 Days" % cont_vals}
             users_list = [res_user_id, user.id, admin_user.id]
             send_push_notification(contents, users_list)
             send_mail_enquiry_order_report(items, enquiry_id, user, customer_details, is_expiry=True)

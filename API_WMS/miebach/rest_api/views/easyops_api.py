@@ -94,6 +94,11 @@ class EasyopsAPI:
                     import traceback
                     log.debug(traceback.format_exc())
                     response = {'status': 'Internal Server Error'}
+            else:
+                import traceback
+                log.info("Exception for ProcessSoAtEmiza")
+                log.debug(traceback.format_exc())
+                response = {'status': 'Internal Server Error'}
         if "emizainc.in/emizawms/GetInventory" in url:
             log.info("API call for url is %s headers is %s request is %s\n" % (url, str(self.headers), str(data)))
         else:

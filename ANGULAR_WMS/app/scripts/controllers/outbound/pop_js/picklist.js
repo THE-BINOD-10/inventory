@@ -425,6 +425,7 @@ function view_orders() {
     vm.pdf_data = {};
     vm.picklist_confirmation = picklist_confirmation;
     function picklist_confirmation() {
+      vm.bt_disable = true;
       var elem_dict = {}
       var elem = angular.element($('form'));
       elem = elem[0];

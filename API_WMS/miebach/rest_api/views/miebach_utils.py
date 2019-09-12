@@ -522,7 +522,7 @@ SKU_WISE_GRN_DICT = {'filters' : [
                         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}
 		    ],
-		'dt_headers': ["Received Date", "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Recepient",
+		'dt_headers': ["Received Date", "PO Date", "PO Number", "PO Reference Number", "Supplier ID", "Supplier Name", "Recepient",
                        "SKU Code", "SKU Description", "HSN Code", "SKU Class", "SKU Style Name", "SKU Brand",
                        "SKU Category", "Received Qty", "Unit Rate", "MRP", "Pre-Tax Received Value", "CGST(%)",
                        "SGST(%)", "IGST(%)", "UTGST(%)", "CESS(%)", "APMC(%)", "CGST",
@@ -650,6 +650,18 @@ OPEN_ORDER_REPORT_DICT = {
              'Location'],
      'dt_url': 'get_open_order_report', 'excel_name': 'get_open_order_report',
      'print_url': 'print_open_order_report',
+  }
+ORDER_FLOW_REPORT_DICT = {
+     'filters': [
+         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+         {'label': 'Order ID/SR Number', 'name': 'order_id', 'type': 'input'},
+         {'label': 'Central Order ID', 'name': 'central_order_id', 'type': 'input'},
+         {'label': 'Project Name', 'name': 'project_name', 'type': 'input'},
+     ],
+     'dt_url': 'get_order_flow_report', 'excel_name': 'get_order_flow_report',
+     'print_url': 'print_order_flow_report',
   }
 STOCK_COVER_REPORT_DICT = {
        'filters': [
@@ -892,6 +904,27 @@ MARGIN_REPORT_DICT = {
   'print_url': 'print_margin_report',
 }
 
+FINANCIAL_REPORT_DICT =  {
+  'filters': [
+      {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+      {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+      {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+  ],
+  'dt_headers': ['SKU Code','SKU NAME','Category', 'Sub Category', 'City','Hub','Vendor Name','HSN Code','Weight', 'MRP', 'GST No',
+  'IGST Tax Rate','CESS Rate','Opening Qty','Opening Price Per Unit( Before Taxes)','Opening Value before Tax', 'Opening CGST', 'Opening SGST',
+  'Opening IGST', 'Opening CESS', 'Opening Value after Tax', 'Purchase Qty', 'Purchase Price Per Unit(Before Taxes)','Purchase Value before Tax', 
+  'Purchase CGST', 'Purchase SGST','Purchase IGST', 'Purchase CESS', 'Purchase Value after Tax', 'Purchase Return Qty', 'Purchase Return Price Per Unit(Before Taxes)','Purchase Return Value before Tax', 
+  'Purchase Return CGST', 'Purchase Return SGST','Purchase Return IGST', 'Purchase Return CESS', 'Purchase Return Value after Tax',
+  'Sale to Drsc Qty','Sale to Drsc Price Per Unit( Before Taxes)','Sale to Drsc Value before Tax', 'Sale to Drsc CGST', 'Sale to Drsc SGST',
+  'Sale to Drsc IGST', 'Sale to Drsc CESS', 'Sale to Drsc Value after Tax', 'Sale to othr Qty','Sale to othr Price Per Unit( Before Taxes)','Sale to othr Value before Tax',
+  'Sale to othr CGST', 'Sale to othr SGST','Sale to othr IGST', 'Sale to othr CESS', 'Sale to othr Value after Tax', 'Stock Transfers Qty','Stock Transfers Price Per Unit(Before Taxes)','Stock Transfers Value before Tax', 'Stock Transfers CGST', 'Stock Transfers SGST',
+  'Stock Transfers IGST', 'Stock Transfers CESS', 'Stock Transfers Value after Tax', 'Sale Return Qty', 'Sale Return Price Per Unit(Before Taxes)','Sale Return Value before Tax',
+  'Sale Return CGST', 'Sale Return SGST','Sale Return IGST', 'Sale Return CESS', 'Sale Return Value after Tax','Closing Qty', 'Closing Price Per Unit(Before Taxes)','Closing Value before Tax', 
+  'Closing CGST', 'Closing SGST','Closing IGST', 'Closing CESS', 'Closing Value after Tax','Physical Qty'],
+  'dt_url': 'get_financial_report', 'excel_name': 'get_financial_report',
+  'print_url': 'print_financial_report',
+}
+
 BASA_REPORT_DICT = {
   'filters': [
       {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -971,6 +1004,20 @@ BULK_TO_RETAIL_REPORT_DICT = {
     'print_url': 'print_bulk_to_retail_report',
 }
 
+MOVE_TO_INVENTORY_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label': 'Source Location', 'name': 'source_location', 'type': 'input'},
+        {'label': 'Destination Location', 'name': 'destination_location', 'type': 'input'},
+    ],
+    'dt_headers': ['SKU Code', 'SKU Description','Source Location',
+                   'Destination Location','Quantity','Transaction Date', 'Updated User'],
+    'dt_url': 'get_move_inventory_report', 'excel_name': 'get_move_inventory_report',
+    'print_url': 'print_move_inventory_report',
+}
+
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT,
                      'sku_wise_po_report': SKU_WISE_PO_DICT,
                      'grn_report': GRN_DICT, 'sku_wise_grn_report' : SKU_WISE_GRN_DICT, 'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT,
@@ -978,6 +1025,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'shipment_report': SHIPMENT_REPORT_DICT, 'dist_sales_report': DIST_SALES_REPORT_DICT,
                      'po_report':PO_REPORT_DICT,
                      'open_order_report':OPEN_ORDER_REPORT_DICT,
+                     'order_flow_report':ORDER_FLOW_REPORT_DICT,
                      'reseller_sales_report': RESELLER_SALES_REPORT_DICT,
                      'dist_target_summary_report': DIST_TARGET_SUMMARY_REPORT,
                      'dist_target_detailed_report': DIST_TARGET_DETAILED_REPORT,
@@ -997,6 +1045,8 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'margin_report':MARGIN_REPORT_DICT,
                      'stock_cover_report':STOCK_COVER_REPORT_DICT,
                      'basa_report':BASA_REPORT_DICT,
+                     'move_inventory_report' : MOVE_TO_INVENTORY_REPORT_DICT,
+                     'financial_report': FINANCIAL_REPORT_DICT,
                     }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -1562,7 +1612,9 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_stock_reconciliation_report': 'get_stock_reconciliation_report_data',
                         'get_margin_report':'get_margin_report_data',
                         'get_stock_cover_report':'get_stock_cover_report_data',
+                        'get_order_flow_report':'get_orderflow_data',
                         'get_basa_report':'get_basa_report_data',
+                        'get_move_inventory_report':'get_move_inventory_report_data',
                         }
 # End of Download Excel Report Mapping
 
@@ -1676,6 +1728,7 @@ PERMISSION_DICT = OrderedDict((
                  ('Current Stock Report', 'view_skudetailstats'),
                  ('Inventory Value Report', 'delete_skudetailstats'),
                  ('Stock Cover Report' ,'add_skudetailstats'),
+                 ('MoveInventory Report','view_moveinventory'),
                  ('Bulk To Retail Report', 'view_substitutionsummary'))),
 
     # Uploaded POs
@@ -2918,6 +2971,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          32: 'Invoiced Unit Rate',
                          34: 'Invoiced Total Amount'}
         lis = ['purchase_order__updation_date', 'purchase_order__creation_date', 'purchase_order__order_id',
+               'purchase_order__open_po__po_name',
      	       'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name', 'id',
                'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
                'purchase_order__open_po__sku__hsn_code',
@@ -2946,7 +3000,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier_id',
                          'purchase_order__open_po__supplier__name', 'purchase_order__open_po__supplier__tax_type',
                          'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
-                         'purchase_order__open_po__sku__hsn_code',
+                         'purchase_order__open_po__sku__hsn_code', 'purchase_order__open_po__po_name',
                          'purchase_order__open_po__sku__sku_class', 'purchase_order__open_po__sku__style_name',
                          'purchase_order__open_po__sku__sku_brand', 'purchase_order__open_po__sku__sku_category',
                          'purchase_order__received_quantity', 'purchase_order__open_po__price',
@@ -2964,6 +3018,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          32: 'Invoiced Total Amount'}
         model_name = SellerPOSummary
         lis = ['purchase_order__updation_date', 'purchase_order__creation_date', 'purchase_order__order_id',
+               'purchase_order__open_po__po_name',
                'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name', 'id',
                'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
                'purchase_order__open_po__sku__hsn_code', 'purchase_order__open_po__sku__sku_class',
@@ -2990,7 +3045,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier_id',
                          'purchase_order__open_po__supplier__name',
                          'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
-                         'purchase_order__open_po__sku__hsn_code',
+                         'purchase_order__open_po__sku__hsn_code', 'purchase_order__open_po__po_name',
                          'purchase_order__open_po__sku__sku_class', 'purchase_order__open_po__sku__style_name',
                          'purchase_order__open_po__sku__sku_brand', 'purchase_order__open_po__sku__sku_category',
                          'purchase_order__received_quantity', 'purchase_order__open_po__price',
@@ -3141,6 +3196,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         temp_data['aaData'].append(OrderedDict((('Received Date', get_local_date(user, seller_po_summary.creation_date)),
                             ('PO Date', get_local_date(user, result.creation_date)),
                             ('PO Number', po_number),
+                            ('PO Reference Number',data['purchase_order__open_po__po_name']),
                             ('Supplier ID', data[field_mapping['supplier_id']]),
                             ('Supplier Name', data[field_mapping['supplier_name']]),
                             ('Recepient', user.userprofile.company_name),
@@ -3376,7 +3432,7 @@ def get_stock_summary_data(search_params, user, sub_user):
 
         tracking = dict(zip(map(lambda d: d.get('status_value', ''), status_track),
                             map(lambda d: d.get('total', '0'), status_track)))
-        
+
         for head in extra_headers:
             quantity = tracking.get(head, 0)
             if quantity:
@@ -3649,6 +3705,231 @@ def get_openjo_details(search_params, user, sub_user):
     return temp_data
 
 
+def get_financial_group_dict(fields_parameters1, data_objs=None):
+    data_dict = {'quantity': 0, 'cgst_amount': 0, 'sgst_amount': 0, 'igst_amount': 0, 'cess_amount': 0,
+                     'value_before_tax': 0, 'value_after_tax': 0, 'price_before_tax': 0}
+    if not data_objs:
+        purchase_data = StockReconciliationFields.objects.filter(**fields_parameters1)
+    else:
+        purchase_data = data_objs
+    for data in purchase_data:
+        amount = data.quantity * data.price_before_tax
+        data_dict['quantity'] += data.quantity
+        data_dict['value_before_tax'] += data.value_before_tax
+        data_dict['value_after_tax'] += data.value_after_tax
+        if data.cgst_tax:
+            data_dict['cgst_amount'] += (amount/100) * data.cgst_tax
+        if data.sgst_tax:
+            data_dict['sgst_amount'] += (amount/100) * data.sgst_tax
+        if data.igst_tax:
+            data_dict['igst_amount'] += (amount/100) * data.igst_tax
+        if data.cess_tax:
+            data_dict['igst_amount'] += (amount/100) * data.cess_tax
+        data_dict['value_after_tax'] = data_dict['value_before_tax'] + data_dict['cgst_amount'] + \
+                                        data_dict['sgst_amount'] + data_dict['igst_amount'] + data_dict['cess_amount']
+    if data_dict['quantity']:
+        data_dict['price_before_tax'] = data_dict['value_before_tax'] / data_dict['quantity']
+    return data_dict
+
+
+def get_financial_report_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from common import get_misc_value
+    from rest_api.views.common import get_sku_master, get_order_detail_objs, get_local_date
+    milkbasket_user = False
+    milkbasket_users = copy.deepcopy(MILKBASKET_USERS)
+    if user.username in milkbasket_users :
+        milkbasket_user = True
+
+    lis = ['']
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    temp_data = copy.deepcopy(AJAX_DATA)
+    search_parameters = {}
+    fields_parameters = OrderedDict()
+    stats_params = {}
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gte'] = search_params['from_date']
+        fields_parameters['stock_reconciliation__creation_date__gte'] = search_params['from_date']
+        stats_params['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lte'] = search_params['to_date']
+        fields_parameters['stock_reconciliation__creation_date__lte'] = search_params['to_date']
+        stats_params['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        search_parameters['sku__sku_code'] = search_params['sku_code']
+        fields_parameters['stock_reconciliation__sku__sku_code'] = search_params['sku_code']
+
+    search_parameters['sku__user'] = user.id
+    if 'from_date' in search_params:
+        stock_recs = StockReconciliation.objects.filter(**search_parameters)
+        if stock_recs.exists():
+            if not stop_index:
+                vendor_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                                                                   attribute_name='Vendor').values_list(
+                'sku_id', 'attribute_value'))
+                hub_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                                                                   attribute_name='Hub').values_list(
+                'sku_id', 'attribute_value'))
+            opening_stock_date = stock_recs[0].creation_date.date()
+            closing_stock_date = stock_recs.order_by('-creation_date')[0].creation_date.date()
+            opening_stock_filter = {'stock_reconciliation__creation_date__regex': opening_stock_date,
+                                    'stock_reconciliation__sku__user': user.id,
+                                    'field_type': 'opening'}
+            if 'stock_reconciliation__sku__sku_code' in fields_parameters:
+                opening_stock_filter['stock_reconciliation__sku__sku_code'] = fields_parameters['stock_reconciliation__sku__sku_code']
+            opening_stock_data = StockReconciliationFields.objects.\
+                filter(**opening_stock_filter).values('stock_reconciliation__sku__sku_code', 'stock_reconciliation__sku__sku_desc',
+                                                        'stock_reconciliation__sku__sku_category', 'stock_reconciliation__sku__sub_category',
+                                                        'stock_reconciliation__sku_id',
+                                                        'stock_reconciliation__sku__hsn_code', 'stock_reconciliation__mrp',
+                                                        'stock_reconciliation__weight','cgst_tax', 'sgst_tax', 'igst_tax',
+                                                        'cess_tax').distinct().annotate(Sum('value_before_tax'),
+                                                        Sum('quantity'),
+                                                        cgst_amount=Sum((F('value_before_tax')/Value(100))*F('cgst_tax')),
+                                                        sgst_amount=Sum((F('value_before_tax')/Value(100))*F('sgst_tax')),
+                                                        igst_amount=Sum((F('value_before_tax')/Value(100))*F('igst_tax')),
+                                                        cess_amount=Sum((F('value_before_tax')/Value(100))*F('cess_tax')))
+            temp_data['recordsTotal'] = opening_stock_data.count()
+            temp_data['recordsFiltered'] = temp_data['recordsTotal']
+            closing_objs = StockReconciliationFields.objects.filter(stock_reconciliation__creation_date__regex=closing_stock_date,
+                                                                    stock_reconciliation__sku__user=user.id,
+                                                                    field_type='closing')
+            for opening_stock in opening_stock_data[start_index:stop_index]:
+                #Opening Stock Calculation
+                tax_rate = opening_stock['cgst_tax'] + opening_stock['sgst_tax'] + opening_stock['igst_tax']
+                sku_id = opening_stock['stock_reconciliation__sku_id']
+                cgst_amount = opening_stock['cgst_amount']
+                sgst_amount = opening_stock['sgst_amount']
+                igst_amount = opening_stock['igst_amount']
+                cess_amount = opening_stock['cess_amount']
+                value_after_tax = opening_stock['value_before_tax__sum'] + cgst_amount + sgst_amount + igst_amount + cess_amount
+                mrp = opening_stock['stock_reconciliation__mrp']
+                weight = opening_stock['stock_reconciliation__weight']
+                # Closing Stock Calculation
+                closing_obj_filter = {'stock_reconciliation__sku_id': sku_id,
+                                      'stock_reconciliation__mrp': opening_stock['stock_reconciliation__mrp'],
+                                      'stock_reconciliation__weight': opening_stock['stock_reconciliation__weight'],
+                                      'cgst_tax': opening_stock['cgst_tax'],
+                                      'sgst_tax': opening_stock['sgst_tax'],
+                                      'igst_tax': opening_stock['igst_tax'],
+                                      }
+                fields_parameters1 = copy.deepcopy(fields_parameters)
+                fields_parameters1.update(closing_obj_filter)
+                closing_stock_objs = closing_objs.filter(**closing_obj_filter)
+                closing_dict = get_financial_group_dict(fields_parameters1, data_objs=closing_stock_objs)
+                fields_parameters1['field_type'] = 'purchase'
+                purchase_dict = get_financial_group_dict(fields_parameters1)
+                fields_parameters1['field_type'] = 'rtv'
+                rtv_dict = get_financial_group_dict(fields_parameters1)
+                fields_parameters1['field_type'] = 'returns'
+                returns_dict = get_financial_group_dict(fields_parameters1)
+                fields_parameters1['field_type'] = 'customer_sales'
+                csd = get_financial_group_dict(fields_parameters1)
+                fields_parameters1['field_type'] = 'internal_sales'
+                isd = get_financial_group_dict(fields_parameters1)
+                fields_parameters1['field_type'] = 'stock_transfer'
+                std = get_financial_group_dict(fields_parameters1)
+                physical_qty = StockDetail.objects.filter(sku_id=sku_id, batch_detail__mrp=mrp,
+                                                          batch_detail__weight=weight,
+                                                          batch_detail__tax_percent=tax_rate).distinct().\
+                                                    aggregate(Sum('quantity'))['quantity__sum']
+                if not physical_qty:
+                    physical_qty = 0
+                hub = ''
+                vendor = ''
+                if not stop_index:
+                    hub = hub_dict.get(sku_id, '')
+                    vendor = vendor_dict.get(sku_id, '')
+                else:
+                    hub_obj = SKUAttributes.objects.filter(sku_id=sku_id, attribute_name='Hub')
+                    if hub_obj.exists():
+                        hub = hub_obj[0].attribute_value
+                    vendor_obj = SKUAttributes.objects.filter(sku_id=sku_id, attribute_name='Vendor')
+                    if vendor_obj.exists():
+                        vendor = vendor_obj[0].attribute_value
+                price_before_tax = 0
+                if opening_stock['quantity__sum']:
+                    price_before_tax = float(value_after_tax)/opening_stock['quantity__sum']
+                temp_data['aaData'].append(OrderedDict((('SKU Code', opening_stock['stock_reconciliation__sku__sku_code']),
+                                                        ('SKU NAME', opening_stock['stock_reconciliation__sku__sku_desc']),
+                                                        ('Category', opening_stock['stock_reconciliation__sku__sku_category']),
+                                                        ('Sub Category', opening_stock['stock_reconciliation__sku__sub_category']),
+                                                        ('City',''), ('Hub', hub),('Vendor Name', vendor),
+                                                        ('HSN Code', str(opening_stock['stock_reconciliation__sku__hsn_code'])), ('MRP', mrp),
+                                                        ('Weight', weight), ('GST No', ''),
+                                                        ('IGST Tax Rate', tax_rate),
+                                                        ('CESS Rate', opening_stock['cess_tax']),
+                                                        ('Opening Qty', opening_stock['quantity__sum']),
+                                                        ('Opening Price Per Unit( Before Taxes)', price_before_tax),
+                                                        ('Opening Value before Tax', opening_stock['value_before_tax__sum']),
+                                                        ('Opening CGST', cgst_amount), ('Opening SGST', sgst_amount),
+                                                        ('Opening IGST',igst_amount), ('Opening CESS', cess_amount),
+                                                        ('Opening Value after Tax', value_after_tax),
+                                                        ('Purchase Qty', purchase_dict['quantity']),
+                                                        ('Purchase Price Per Unit(Before Taxes)', purchase_dict['price_before_tax']),
+                                                        ('Purchase Value before Tax', purchase_dict['value_before_tax']),
+                                                        ('Purchase CGST', purchase_dict['cgst_amount']),
+                                                        ('Purchase SGST', purchase_dict['sgst_amount']),
+                                                        ('Purchase IGST', purchase_dict['igst_amount']),
+                                                        ('Purchase CESS', purchase_dict['cess_amount']),
+                                                        ('Purchase Value after Tax', purchase_dict['value_after_tax']),
+                                                        ('Purchase Return Qty', rtv_dict['quantity']),
+                                                        ('Purchase Return Price Per Unit(Before Taxes)', rtv_dict['price_before_tax']),
+                                                        ('Purchase Return Value before Tax', rtv_dict['value_before_tax']),
+                                                        ('Purchase Return CGST', rtv_dict['cgst_amount']),
+                                                        ('Purchase Return SGST', rtv_dict['sgst_amount']),
+                                                        ('Purchase Return IGST', rtv_dict['igst_amount']),
+                                                        ('Purchase Return CESS', rtv_dict['cess_amount']),
+                                                        ('Purchase Return Value after Tax', rtv_dict['value_after_tax']),
+                                                        ('Sale to Drsc Qty', csd['quantity']),
+                                                        ('Sale to Drsc Price Per Unit( Before Taxes)', csd['price_before_tax']),
+                                                        ('Sale to Drsc Value before Tax', csd['value_before_tax']),
+                                                        ('Sale to Drsc CGST', csd['cgst_amount']),
+                                                        ('Sale to Drsc SGST', csd['sgst_amount']),
+                                                        ('Sale to Drsc IGST', csd['igst_amount']),
+                                                        ('Sale to Drsc CESS', csd['cess_amount']),
+                                                        ('Sale to Drsc Value after Tax', csd['value_after_tax']),
+                                                        ('Sale to othr Qty', isd['quantity']),
+                                                        ('Sale to othr Price Per Unit( Before Taxes)', isd['price_before_tax']),
+                                                        ('Sale to othr Value before Tax', isd['value_before_tax']),
+                                                        ('Sale to othr CGST', isd['cgst_amount']),
+                                                        ('Sale to othr SGST', isd['sgst_amount']),
+                                                        ('Sale to othr IGST', isd['igst_amount']),
+                                                        ('Sale to othr CESS', isd['cess_amount']),
+                                                        ('Sale to othr Value after Tax', isd['value_after_tax']),
+                                                        ('Stock Transfers Qty', std['quantity']),
+                                                        ('Stock Transfers Price Per Unit(Before Taxes)', std['price_before_tax']),
+                                                        ('Stock Transfers Value before Tax', std['value_before_tax']),
+                                                        ('Stock Transfers CGST', std['cgst_amount']),
+                                                        ('Stock Transfers SGST', std['sgst_amount']),
+                                                        ('Stock Transfers IGST', std['igst_amount']),
+                                                        ('Stock Transfers CESS', std['cess_amount']),
+                                                        ('Stock Transfers Value after Tax', std['value_after_tax']),
+                                                        ('Sale Return Qty', returns_dict['quantity']),
+                                                        ('Sale Return Price Per Unit(Before Taxes)', returns_dict['price_before_tax']),
+                                                        ('Sale Return Value before Tax', returns_dict['value_before_tax']),
+                                                        ('Sale Return CGST', returns_dict['cgst_amount']),
+                                                        ('Sale Return SGST', returns_dict['sgst_amount']),
+                                                        ('Sale Return IGST', returns_dict['igst_amount']),
+                                                        ('Sale Return CESS', returns_dict['cess_amount']),
+                                                        ('Sale Return Value after Tax', returns_dict['value_after_tax']),
+                                                        ('Closing Qty', closing_dict['quantity']),
+                                                        ('Closing Price Per Unit(Before Taxes)', closing_dict['price_before_tax']),
+                                                        ('Closing Value before Tax', closing_dict['value_before_tax']),
+                                                        ('Closing CGST', closing_dict['cgst_amount']),
+                                                        ('Closing SGST', closing_dict['sgst_amount']),
+                                                        ('Closing IGST', closing_dict['igst_amount']),
+                                                        ('Closing CESS', closing_dict['cess_amount']),
+                                                        ('Closing Value after Tax', closing_dict['value_after_tax']),
+                                                        ('Physical Qty', physical_qty))))
+    return temp_data
+
+
 def get_order_summary_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
@@ -3724,13 +4005,13 @@ def get_order_summary_data(search_params, user, sub_user):
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
                                                                     'sku__sku_desc','sku__price','sellerordersummary__invoice_number','address',
                                                                     'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
-                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace').distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
+                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace').exclude(status = 3).distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
     else:
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size',
                                                                     'sku__sku_desc','sku__price','address','order_code','payment_mode',
                                                                     'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
-                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace').distinct()
+                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace').exclude(status = 3).distinct()
     pick_filters = {}
     for key, value in search_parameters.iteritems():
         pick_filters['order__%s' % key] = value
@@ -6054,12 +6335,62 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
                                                         Concat('user__username', Value(' - '), 'user__first_name')))
 
     enquired_sku_qs = EnquiredSku.objects.filter(**search_parameters)
-    temp_data['recordsTotal'] = enquired_sku_qs.count()
+    enq_ids = enquired_sku_qs.values_list('id', flat=True)
+    asn_res_qs = ASNReserveDetail.objects.filter(enquirydetail_id__in=enq_ids, enquirydetail__warehouse_level=1)
+    temp_data['recordsTotal'] = enquired_sku_qs.count() + asn_res_qs.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     if stop_index:
         enquired_sku_qs = enquired_sku_qs[start_index:stop_index]
 
     totals_map = {}
+    for asn_obj in asn_res_qs:
+        en_obj = asn_obj.enquirydetail
+        em_obj = en_obj.enquiry
+        uniq_enq_id = str(em_obj.customer_id) + str(em_obj.enquiry_id)
+        if 'enquiry_number' in search_params:
+            if search_params['enquiry_number'] not in uniq_enq_id:
+                continue
+        extend_status = em_obj.extend_status
+        if em_obj.extend_date:
+            days_left_obj = em_obj.extend_date - datetime.datetime.today().date()
+            days_left = days_left_obj.days
+        else:
+            days_left = 0
+        customer_name = resellers_names_map.get(em_obj.customer_id, '')
+        dist_obj = User.objects.get(id=em_obj.user)
+        distributor_name = dist_obj.username + ' - ' + dist_obj.first_name
+        zone = dist_obj.userprofile.zone
+        user_name = en_obj.sku.user
+        warehouse = ''
+        if user_name:
+            user = User.objects.get(id=user_name)
+            warehouse = user.username
+        sku_code = en_obj.sku.sku_code
+        quantity = asn_obj.reserved_qty
+        warehouse_level = 3
+        corporate_name = en_obj.enquiry.corporate_name
+        remarks = en_obj.enquiry.remarks
+        if 'Total Qty' not in totals_map:
+            totals_map['Total Qty'] = quantity
+        else:
+            totals_map['Total Qty'] += quantity
+        prod_catg = en_obj.sku.sku_category
+        ord_dict = OrderedDict((('Zone Code', zone),
+                                ('Distributor Code', distributor_name),
+                                ('Reseller Code', customer_name),
+                                ('Product Category', prod_catg),
+                                ('SKU Code', sku_code),
+                                ('SKU Quantity', quantity),
+                                ('Warehouse Level', warehouse_level),
+                                ('Enquiry No', uniq_enq_id),
+                                ('Level', warehouse_level),
+                                ('Warehouse', warehouse),
+                                ('Enquiry Aging', days_left),
+                                ('Enquiry Status', extend_status),
+                                ('Corporate Name', corporate_name),
+                                ('Remarks', remarks),
+                                ))
+        temp_data['aaData'].append(ord_dict)
     for en_obj in enquired_sku_qs:
         em_obj = en_obj.enquiry
         uniq_enq_id = str(em_obj.customer_id) + str(em_obj.enquiry_id)
@@ -6908,6 +7239,128 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
                                                 ('Source Location',user.username),('Destination',destination))))
     return temp_data
 
+def get_orderflow_data(search_params, user, sub_user):
+    from rest_api.views.common import get_local_date
+    temp_data = copy.deepcopy(AJAX_DATA)
+    from common import get_misc_value
+    isprava_permission = get_misc_value('order_exceed_stock', user.id)
+    lis = ['interm_order_id','order_assigned_wh__username','customer_name', 'order__customer_name','status','remarks','sku__sku_desc',
+          'sku__wms_code','alt_sku__wms_code','order__original_order_id','order__status','order__id','order__picklist__status',
+           'project_name','sku__sku_category','sku__cost_price', 'order__creation_date', 'order__shipment_date', 'interm_order_id', 'interm_order_id','interm_order_id', 'interm_order_id']
+    status_map = ['Pick List Generated','Pending','Accepted']
+    order_term = search_params.get('order_term', 'asc')
+    start_index = search_params.get('start', 0)
+    col_num = search_params.get('order_index', 0)
+
+    order_status_dict = {'1' :'Open','0' :'Picklist Confirmed','2':'Picklist Confirmed','3':'Cancelled'}
+    central_order_status = {'1':'Accepted','0':'Rejected','2':'Pending'}
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
+    else:
+        stop_index = None
+    search_parameters = {}
+    order_fields_dict = {}
+    order_data = lis[col_num]
+    interm_order_id = ''
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    #for one one_assist
+    if 'order_id' in search_params:
+        orderfield_obj = OrderFields.objects.filter(order_type='intermediate_order', name='original_order_id',user = user.id,
+                                             value = search_params['order_id'])
+        if orderfield_obj.exists():
+            interm_order_id = orderfield_obj[0].original_order_id
+
+    if 'sku_code' in search_params:
+        search_parameters['sku__wms_code'] = search_params['sku_code']
+    if 'central_order_id' in search_params :
+        search_parameters['interm_order_id'] = search_params['central_order_id']
+    if 'project_name' in search_params:
+        search_parameters['project_name'] = search_params['project_name']
+    if interm_order_id :
+        search_parameters['interm_order_id'] = interm_order_id
+
+    search_parameters['user'] = user.id
+    order_flow_data = IntermediateOrders.objects.filter(**search_parameters).\
+                                            order_by(order_data).select_related('order','sku','alt_sku').values('interm_order_id','order_assigned_wh__username','customer_name','status','remarks','order__customer_name','customer_user__first_name',
+                                                                                                                'sku__wms_code','alt_sku__wms_code','order__original_order_id','order__status','order__id','order__picklist__status', 'sku__sku_desc','project_name','sku__sku_category','sku__cost_price', 'order__creation_date', 'order__shipment_date')
+    temp_data['recordsTotal'] = order_flow_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for data in  (order_flow_data[start_index:stop_index]):
+        outbound_qc,inbound_qc,serial_number ,shipment_status  = '','','','open'
+        po_status,po_cancel_reason,acknowledgement_status = '' ,'','No'
+        sku_damaze_remarks ,central_order_remarks,order_status = '','',''
+        order_date,expected_date = '', ''
+        if data['order__creation_date']:
+            order_date = get_local_date(user, data['order__creation_date'])
+        if data['order__shipment_date']:
+            expected_date = get_local_date(user, data['order__shipment_date'])
+        order_fields_dict = dict(OrderFields.objects.filter(original_order_id =data['interm_order_id'],user = user.id).values_list('name','value'))
+        if data['order__id'] :
+           if isprava_permission == 'false':
+               singned_invoice = MasterDocs.objects.filter(master_id =data['order__id'], master_type='OneAssistSignedCopies')
+               if singned_invoice.exists():
+                   acknowledgement_status = 'Yes'
+
+               outbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id =data['order__id'],qc_type = 'sales_order')
+               if outbound_dispatch_imei.exists():
+                   serial_number = outbound_dispatch_imei[0].po_imei_num.imei_number
+                   outbound_qc = ','.join(filter(None,outbound_dispatch_imei.values_list('remarks',flat = True)))
+               shipment = ShipmentInfo.objects.filter(order_id = data['order__id'])
+               if shipment.exists():
+                   shipment_status = 'Dispatched'
+
+               po_obj = OrderMapping.objects.filter(order_id = data['order__id'], mapping_type = 'PO')
+               if po_obj.exists():
+                  inbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id =po_obj[0].mapping_id,qc_type = 'purchase_order').exclude(remarks = '')
+                  purchase_order_obj = PurchaseOrder.objects.filter(id =po_obj[0].mapping_id )
+                  if purchase_order_obj.exists():
+                      po_status = purchase_order_obj[0].status
+                      po_cancel_reason  = purchase_order_obj[0].reason
+                      sku_damaze_remarks = purchase_order_obj[0].remarks
+
+                  if inbound_dispatch_imei.exists():
+                      inbound_qc = ','.join(filter(None,inbound_dispatch_imei.values_list('remarks',flat = True)))
+           if data['order__picklist__status'] :
+               if data['order__picklist__status'] == 'open':
+                   order_status = 'Picklist Generated'
+               if data['order__picklist__status'] == 'picked':
+                   order_status = 'Picklist Confirmed'
+                   if isprava_permission == 'true':
+                       order_status = 'Dispatched'
+               if data['order__picklist__status'] == 'dispatched':
+                   order_status = 'Picklist Confirmed'
+                   if not po_status :
+                       po_status = 'Open'
+
+           else:
+               order_status =  order_status_dict.get(data['order__status'],'')
+        if data['status'] == '3':
+           central_order_remarks = data['remarks']
+           shipment_status,acknowledgement_status = '',''
+        if isprava_permission == 'true':
+           data['customer_name'] = data['order__customer_name']
+           if not data['order_assigned_wh__username']:
+              data['customer_name'] = data['customer_user__first_name']
+        if order_fields_dict.get('original_order_id',''):
+           original_order_id = order_fields_dict.get('original_order_id')
+        else:
+           original_order_id = data['order__original_order_id']
+
+        temp_data['aaData'].append(OrderedDict((('Main SR Number',original_order_id),('Order Id', str(data['interm_order_id'])),('SKU Code', data['sku__wms_code']),
+                                                ('SKU Description',data['sku__sku_desc']), ('Project Name', data['project_name']), ('Category', data['sku__sku_category']),('Customer Name',data['customer_name']),\
+                                                ('Address',order_fields_dict.get('address','')),('Phone No',order_fields_dict.get('mobile_no','')),('Email Id',order_fields_dict.get('email_id','')),\
+                                                ('Alt SKU',data['alt_sku__wms_code']),('Central order status',central_order_status.get(data['status'],'')),('Central Order cancellation remarks',central_order_remarks),
+                                                ('Hub location',data['order_assigned_wh__username']),('Hub location order status',order_status), ('Price',data['sku__cost_price']),\
+                                                ('Order cancellation remarks',''),('Outbound Qc params',outbound_qc),('Serial Number',serial_number),
+                                                ('Shipment Status',shipment_status),('Acknowledgement status',acknowledgement_status),('Receive PO status',po_status),('Inbound Qc params',inbound_qc),
+                                                ('PO cancellation remarks',po_cancel_reason), ('Order Date',order_date), ('Expected Date',expected_date),('SKU damage payment remarks',sku_damaze_remarks))))
+    return temp_data
+
 def get_current_stock_report_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
@@ -7430,7 +7883,6 @@ def get_basa_report_data(search_params, user, sub_user):
     return temp_data
 
 
-
 def get_stock_reconciliation_report_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date
     temp_data = copy.deepcopy(AJAX_DATA)
@@ -7471,7 +7923,10 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     if stop_index:
         stock_rec_objs = stock_rec_objs[start_index:stop_index]
     for stock_rec_obj in stock_rec_objs:
-        creation_date = get_local_date(user, stock_rec_obj.creation_date, send_date=True).strftime('%d %b %Y')
+        creation_date = stock_rec_obj.creation_date
+        if creation_date.strftime('%H') in ['23']:
+            creation_date = creation_date - datetime.timedelta(1)
+        creation_date = get_local_date(user, creation_date, send_date=True).strftime('%d %b %Y')
         sku = stock_rec_obj.sku
         sku_attr_data = dict(sku.skuattributes_set.filter(attribute_name__in=['Manufacturer', 'Sub Category Type',
                                                                               'Sheet', 'Vendor']).\
@@ -7604,3 +8059,63 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     # if stop_index:
     #     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     # return temp_data
+
+
+def get_move_inventory_report_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master, get_local_date
+    temp_data = copy.deepcopy(AJAX_DATA)
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    lis = ['sku__sku_code','sku__sku_desc','source_location__location','dest_location__location','quantity',
+           'creation_date', 'sku__sku_code', 'batch_detail__weight','batch_detail__mrp', 'seller__name']
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term', 'asc')
+    start_index = search_params.get('start', 0)
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
+    else:
+        stop_index = None
+    search_parameters = {}
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + \
+                                                                           datetime.timedelta(1),
+                                                             datetime.time())
+    if 'sku_code' in search_params:
+        search_parameters['sku__wms_code'] = search_params['sku_code']
+    if 'source_location' in search_params :
+        search_parameters['source_location__location'] = search_params['source_location']
+    if 'destination_location' in search_params :
+        search_parameters['dest_location__location'] = search_params['destination_location']
+
+    search_parameters['sku__id__in'] = sku_master_ids
+    master_data = MoveInventory.objects.filter(**search_parameters).order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for ind, sku_data in enumerate(master_data[start_index:stop_index]):
+        weight = ''
+        mrp = 0
+        date = get_local_date(user, sku_data.creation_date)
+        if sku_data.batch_detail:
+            mrp = sku_data.batch_detail.mrp
+            weight = sku_data.batch_detail.weight
+        seller_name = ''
+        if sku_data.seller:
+            seller_name = sku_data.seller.name
+        version_obj = Version.objects.get_for_object(sku_data)
+        updated_user_name = ''
+        if version_obj.exists():
+            updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
+        temp_data['aaData'].append(OrderedDict((('SKU Code', sku_data.sku.wms_code),
+                                                ('SKU Description', sku_data.sku.sku_desc),
+                                                ('Source Location',sku_data.source_location.location),
+                                                ('Destination Location',sku_data.dest_location.location),
+                                                ('Quantity',sku_data.quantity),('Weight',weight),('MRP',mrp),
+                                                ('Seller', seller_name),
+                                                ('Transaction Date',date),
+                                                ('Updated User', updated_user_name))))
+    return temp_data

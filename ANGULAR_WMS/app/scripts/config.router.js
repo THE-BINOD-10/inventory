@@ -2192,6 +2192,31 @@ var app = angular.module('urbanApp')
           }
         })
 
+        .state('app.reports.FinancalReport', {
+          url: '/FinancalReport',
+          templateUrl: 'views/reports/financialreport.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/financial_report.js');
+              }]
+          },
+          data: {
+            title: 'Financal Report',
+          }
+        })
+        .state('app.reports.Orderflow', {
+          url: '/OrderFlowReport',
+          templateUrl: 'views/reports/orderflowreport.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/orderflow.js');
+              }]
+          },
+          data: {
+            title: 'CENTRAL ORDER TRACKER',
+          }
+        })
+
         .state('app.reports.Stockcover', {
           url: '/StockCoverReport',
           templateUrl: 'views/reports/stock_cover.html',
@@ -2423,6 +2448,18 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Margin Report',
+          }
+        })
+        .state('app.reports.MoveInventoryReport', {
+          url: '/MoveInventoryReport',
+          templateUrl: 'views/reports/move_inventory_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/move_inventory_report.js');
+              }]
+          },
+          data: {
+            title: 'MoveInventory Report',
           }
         })
         .state('app.reports.BasaReport', {

@@ -405,6 +405,20 @@ def get_stock_counts(quantity, single_sku):
             {'available': available, 'name': single_data['name'], 'transit': trans_quantity, 'reserved': reserved})
     return stock_count
 
+
+def get_asn_res_stock(asn_enq_obj):
+    l3_res_stock = 0
+    enq_qs = EnquiredSku.objects.filter(id=asn_enq_obj.enquirydetail_id)
+    if enq_qs.exists():
+        enq_qty = enq_qs[0].quantity
+        enq_level = enq_qs[0].warehouse_level
+        if enq_level == 1:
+            l3_res_stock = enq_qty + asn_enq_obj.reserved_qty
+        else:
+            l3_res_stock = enq_qty
+    return l3_res_stock
+
+
 @fn_timer
 def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
     ret_list = []
@@ -450,19 +464,26 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
         #     ~Q(enquiry__extend_status='rejected')).only('sku_code').values_list('sku_code').annotate(Sum('quantity')))
 
         # ASN Stock Related to SM
-        today_filter = datetime.datetime.today()
+        # today_filter = datetime.datetime.today()
         #hundred_day_filter = today_filter + datetime.timedelta(days=100)
         ints_filters = {'quantity__gt': 0, 'sku__user': user, 'status': 'open'}
         asn_qs = ASNStockDetail.objects.filter(**ints_filters)
-        intr_obj_100days_qs = asn_qs
+        intr_obj_100days_qs = asn_qs.exclude(asn_po_num='NON_KITTED_STOCK')
         intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
-        asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+        #asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+        asnres_det_qs = ASNReserveDetail.objects.filter(enquirydetail__sku__user=user, reserved_qty__gt=0)
         asn_res_100days_qs = asnres_det_qs.filter(orderdetail__isnull=False)  # Reserved Quantity
-        asn_res_100days_qty = dict(
-            asn_res_100days_qs.only('asnstock__sku__sku_code').values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
-        asn_blk_100days_qs = asnres_det_qs.filter(orderdetail__isnull=True, enquirydetail__warehouse_level=3)  # Blocked Quantity
-        asn_blk_100days_qty = dict(
-            asn_blk_100days_qs.only('asnstock__sku__sku_code').values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
+        asn_res_100days_qty = dict(asn_res_100days_qs.only('asnstock__sku__sku_code').values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
+        asn_blk_100days_qs = asnres_det_qs.filter(orderdetail__isnull=True)  # Blocked Quantity
+        asn_blk_100days_qty = {}
+        #for asn_obj in asn_blk_100days_qs:
+        #    each_ord_blk_qty = get_asn_res_stock(asn_obj)
+        #    if asn_obj.enquirydetail.sku.sku_code in asn_blk_100days_qty:
+        #        asn_blk_100days_qty[asn_obj.enquirydetail.sku.sku_code] = asn_blk_100days_qty[asn_obj.enquirydetail.sku.sku_code] + each_ord_blk_qty
+        #    else:
+        #        asn_blk_100days_qty[asn_obj.enquirydetail.sku.sku_code] = each_ord_blk_qty
+        #log.info("asn_blk_100days_qty::: %s, user::%s" %(asn_blk_100days_qty, user))
+        asn_blk_100days_qty = dict(asn_blk_100days_qs.only('asnstock__sku__sku_code').values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
 
         asn_avail_stock = dict(
             intr_obj_100days_qs.only('sku__sku_code').values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
@@ -612,33 +633,41 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
         var = OrderedDict()
         var[header[0]] = sku_det['single_sku']
         for wh in one_data:
-            stats = ['-Total', '-Res', '-Blocked', '-Open', '-NK']
+            stats = ['-Kitted', '-Non-Kitted', '-Total', '-Res', '-Blocked', '-Open',
+                     '-L3GIT', '-L3Total', '-L3Res', '-L3Blocked', '-L3Open']
             for stat in stats:
                 var[wh['name'] + stat] = 0
-        var['ASN Total'] = 0
-        var['ASN Res'] = 0
-        var['ASN Blocked'] = 0
-        var['ASN Open'] = 0
-        var['NON_KITTED'] = 0
+        totals_data = [
+                        'WH L1 Kitted', 'WH L1 Non-Kitted', 'WH L1 Total', 'WH L1 Total Res', 'WH L1 Total Blocked', 'WH L1 Open',
+                        'WH L3 GIT', 'WH L3 Total', 'WH L3 Total Res', 'WH L3 Total Blocked', 'WH L3 Open',
+                        'Overall Total', 'Overall Res', 'Overall Blocked', 'Overall Open']
+        for i in totals_data:
+            var[i] = 0
         for single in one_data:
             if single['name']:
                 wh_name = single['name']
                 var[wh_name + '-Total'] = single['available']
-                fg_stock = single['available'] - single['non_kitted']
-                var[wh_name + '-Stock'] = fg_stock
+                fg_stock = max(single['available'] - single['non_kitted'], 0)
+                var[wh_name + '-Kitted'] = fg_stock
                 var[wh_name + '-Res'] = single['reserved']
                 var[wh_name + '-Blocked'] = single['blocked']
-                var[wh_name + '-NK'] = single['non_kitted']
+                var[wh_name + '-Non-Kitted'] = single['non_kitted']
+                var[wh_name + '-L3GIT'] = single['asn']
+                var[wh_name + '-L3Total'] = single['asn'] + single['non_kitted']
+                var[wh_name + '-L3Res'] = single['asn_res']
+                var[wh_name + '-L3Blocked'] = single['asn_blocked']
+                var[wh_name + '-L3Open'] = max(single['asn'] + single['non_kitted'] - single['asn_res'] - single['asn_blocked'], 0)
                 if not isinstance(single['available'], float):
                     single['available'] = 0
-                net_amt = single['available'] - single['blocked'] - single['reserved'] - single['non_kitted']
-                if net_amt < 0:
-                    net_amt = 0
+                net_amt = max(single['available'] - single['blocked'] - single['reserved'] - single['non_kitted'], 0)
                 var[wh_name + '-Open'] = net_amt
-                wh_level_stock_map = {'WH Net Open': net_amt, 'Total WH': single['available'],
-                                      'Total WH Res': single['reserved'], 'Total WH Blocked': single['blocked'],
-                                      'ASN Total': single['asn'], 'ASN Res': single['asn_res'],
-                                      'ASN Blocked': single['asn_blocked'], 'NON_KITTED': single['non_kitted'],
+                l1_kitted = single['available'] - single['non_kitted']
+                asn_total = single['asn']+single['non_kitted']
+                wh_level_stock_map = {'WH L1 Kitted': l1_kitted, 'WH L1 Non-Kitted': single['non_kitted'],
+                                      'WH L1 Total': single['available'], 'WH L1 Total Res': single['reserved'],
+                                      'WH L1 Total Blocked': single['blocked'],
+                                      'WH L3 GIT':single['asn'], 'WH L3 Total': asn_total, 'WH L3 Total Res': single['asn_res'],
+                                      'WH L3 Total Blocked': single['asn_blocked'],
                                       'Total Stock': fg_stock}
 
                 for header, val in wh_level_stock_map.items():
@@ -646,11 +675,14 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
                         var[header] += val
                     else:
                         var[header] = val
-                net_open = var['Total Stock'] - var['Total WH Res'] - var['Total WH Blocked']
-                var['WH Net Open'] = net_open
-                asn_open = var['ASN Total'] - var['ASN Res'] - var['ASN Blocked']
-                var['ASN Open'] = asn_open
-        var['Net Open'] = var['WH Net Open'] + var['ASN Open']
+                net_open = max(var['WH L1 Kitted'] - var['WH L1 Total Res'] - var['WH L1 Total Blocked'], 0)
+                var['WH L1 Open'] = net_open
+                asn_open = max(var['WH L3 Total'] - var['WH L3 Total Res'] - var['WH L3 Total Blocked'], 0)
+                var['WH L3 Open'] = asn_open
+        var['Overall Total'] = var['WH L1 Kitted'] + var['WH L3 Total']
+        var['Overall Res'] = var['WH L1 Total Res'] + var['WH L3 Total Res']
+        var['Overall Blocked'] = var['WH L1 Total Blocked'] + var['WH L3 Total Blocked']
+        var['Overall Open'] = max(var['Overall Total'] - var['Overall Res'] - var['Overall Blocked'], 0)
 
         temp_data['aaData'].append(var)
 
@@ -659,7 +691,6 @@ def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_
                          asn_true=False):
     data_to_send = []
     other_data = {}
-
     if asn_true:
         lis = ['sku_code']
     else:
@@ -696,7 +727,11 @@ def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_
         user_group_filters = {'admin_user_id': admin_user_id}
     user_groups = list(UserGroups.objects.filter(**user_group_filters).values_list('user_id', flat=True))
     user_groups.append(admin_user_id)
-    sku_master = SKUMaster.objects.filter(user__in=user_groups, **search_params)
+    permissions = get_user_permissions(request, request.user)
+    if request.user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and permissions['permissions']['add_networkmaster'] :
+        sku_master = SKUMaster.objects.filter(user__in=user_groups, status=1, **search_params)
+    else:
+        sku_master = SKUMaster.objects.filter(user__in=user_groups, **search_params)
     if col_num <= 3:
         sku_master = sku_master.order_by(order_data)
     if search_term:
@@ -1100,13 +1135,15 @@ def confirm_move_location_inventory(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def insert_move_inventory(request, user=''):
-    data = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-    if not data:
-        cycle_id = 1
-    else:
-        cycle_id = data[0].cycle + 1
+    # data = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+    # if not data:
+    #     cycle_id = 1
+    # else:
+    #     cycle_id = data[0].cycle + 1
 
+    reversion.set_user(request.user)
     now = str(datetime.datetime.now())
     wms_code = request.GET['wms_code']
     check = False
@@ -1126,8 +1163,7 @@ def insert_move_inventory(request, user=''):
         if not mrp or not weight :
             return HttpResponse("MRP and Weight are Mandatory")
 
-    status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id, batch_no=batch_no, mrp=mrp,
-                                 weight=weight)
+    status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id, batch_no=batch_no, mrp=mrp,weight=weight)
     if 'success' in status.lower():
         update_filled_capacity([source_loc, dest_loc], user.id)
 
@@ -1508,22 +1544,20 @@ def warehouse_headers(request, user=''):
         ware_list = list(User.objects.filter(id__in=warehouses).values_list('username', flat=True))
         user_groups = UserGroups.objects.filter(Q(admin_user_id=user_id) | Q(user_id=user_id))
         if user_groups:
-            admin_user_id = user_groups[0].admin_user_id
             admin_user_name = user_groups[0].admin_user.username
         else:
-            admin_user_id = user_id
             admin_user_name = user.username
         if level:
-            warehouse_suffixes = ['Total', 'Stock', 'NK', 'Res', 'Blocked', 'Open']
+            warehouse_suffixes = ['Kitted', 'Non-Kitted', 'Total', 'Res', 'Blocked', 'Open', 'L3GIT', 'L3Total', 'L3Res', 'L3Blocked', 'L3Open']
             wh_list = []
             for wh in ware_list:
                 wh_list.extend(list(map(lambda x: wh+'-'+x, warehouse_suffixes)))
-            total_wh_dets = ['Total WH', 'Total WH Res', 'Total WH Blocked']
+            total_wh_dets = ['WH L1 Kitted', 'WH L1 Non-Kitted', 'WH L1 Total', 'WH L1 Total Res', 'WH L1 Total Blocked', 'WH L1 Open']
             wh_list.extend(total_wh_dets)
-            wh_list.append('WH Net Open')
-            intr_headers = ['ASN Total', 'ASN Res', 'ASN Blocked', 'ASN Open', 'Net Open']
+            intr_headers = ['WH L3 GIT', 'WH L3 Total', 'WH L3 Total Res', 'WH L3 Total Blocked', 'WH L3 Open']
             wh_list.extend(intr_headers)
-            wh_list.append('NON_KITTED')
+            total_headers = ['Overall Total', 'Overall Res', 'Overall Blocked', 'Overall Open']
+            wh_list.extend(total_headers)
             headers = header + wh_list
         else:
             headers = header + [admin_user_name] + ware_list
@@ -2611,11 +2645,11 @@ def auto_sellable_confirm(request, user=''):
             data_list[index]['seller_id'] = seller_master[0].id
             data_list[index]['quantity'] = quantity
             data_list[index]['suggestion_obj'] = suggestion
-        cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-        if not cycle_count:
-            cycle_id = 1
-        else:
-            cycle_id = cycle_count[0].cycle + 1
+        # cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+        # if not cycle_count:
+        #     cycle_id = 1
+        # else:
+        #     cycle_id = cycle_count[0].cycle + 1
         for data in data_list:
             suggestion = data['suggestion_obj']
             seller_id, batch_no, mrp = '', '', 0
@@ -2625,7 +2659,7 @@ def auto_sellable_confirm(request, user=''):
                 batch_no = ''
             if data.get('MRP', 0):
                 mrp = float(data['MRP'])
-            status = move_stock_location(cycle_id, suggestion.stock.sku.wms_code, suggestion.stock.location.location,
+            status = move_stock_location(suggestion.stock.sku.wms_code, suggestion.stock.location.location,
                                          data['dest_location'], data['quantity'], user, seller_id,
                                          batch_no=batch_no, mrp=mrp)
             if 'success' in status.lower():
@@ -2881,8 +2915,8 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
                                      'replenushment_qty', 'sku_avail_qty', 'avail_quantity',
                                      'min_stock_qty', 'max_stock_qty', 'status', 'remarks',
                        'source_stock__location__location', 'dest_location__location',
-                                     'sku__relation_type').distinct().\
-                annotate(Sum('reserved'), creation_date_only=Cast('creation_date', DateField())).order_by(order_data)
+                                     'sku__relation_type', 'creation_date').distinct().\
+                annotate(Sum('reserved')).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     if stop_index:
@@ -2954,7 +2988,7 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
             rack = sku_rack_dict.get(data['sku__sku_code'], '')
             shelf = sku_shelf_dict.get(data['sku__sku_code'], '')
         temp_data['aaData'].append(
-            OrderedDict((('', checkbox), ('generation_time', str(data['creation_date_only'])),
+            OrderedDict((('', checkbox), ('generation_time', get_local_date(user, data['creation_date'])),
                          ('sku_code', data['sku__sku_code']),('sku_name', data['sku__sku_desc']),
                          ('sku_category', data['sku__sku_category']),
                          ('sheet', sheet),
@@ -3031,11 +3065,11 @@ def cal_ba_to_sa(request, user=''):
                     suggested_qty = 0
                 confirm_data_list.append({'classification_obj': classification_obj, 'dest_loc': dest_loc_obj[0],
                                           'reserved_quantity': reserved_quantity, 'seller': seller})
-            data = CycleCount.objects.filter(sku__user=user.id).aggregate(Max('cycle'))['cycle__max']
-            if not data:
-                cycle_id = 1
-            else:
-                cycle_id = data + 1
+            # data = CycleCount.objects.filter(sku__user=user.id).aggregate(Max('cycle'))['cycle__max']
+            # if not data:
+            #     cycle_id = 1
+            # else:
+            #     cycle_id = data + 1
             for final_data in confirm_data_list:
                 classification_obj = final_data['classification_obj']
                 wms_code = classification_obj.source_stock.sku.sku_code
@@ -3050,7 +3084,7 @@ def cal_ba_to_sa(request, user=''):
                     batch_no = classification_obj.source_stock.batch_detail.batch_no
                     mrp = classification_obj.source_stock.batch_detail.mrp
                     weight = classification_obj.source_stock.batch_detail.weight
-                status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id,
+                status = move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id,
                                              batch_no=batch_no, mrp=mrp,
                                              weight=weight)
                 if 'success' in status.lower():
@@ -3163,6 +3197,7 @@ def ba_to_sa_calculate_now(request, user=''):
 
         log.info("BA to SA calculating segregation for user %s ended at %s" % (user.username, str(datetime.datetime.now())))
         sku_classification_objs = []
+        # Removing of older objects, change the datetime update while changing the below 3 lines
         older_objs = SkuClassification.objects.filter(sku__user=user.id, status=1)
         if older_objs.exists():
             older_objs.delete()
@@ -3277,6 +3312,10 @@ def ba_to_sa_calculate_now(request, user=''):
                                                                 remarks_sku_ids)
         if sku_classification_objs:
             SkuClassification.objects.bulk_create(sku_classification_objs)
+            # Updating the same datetime for all the created objects
+            creation_date = datetime.datetime.now()
+            SkuClassification.objects.filter(sku__user=user.id, status=1).update(creation_date=creation_date)
+
         log.info(
             "BA to SA calculation ended for user %s at %s" % (user.username, str(datetime.datetime.now())))
     except Exception as e:

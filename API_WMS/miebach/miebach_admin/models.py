@@ -809,6 +809,26 @@ class InventoryAdjustment(models.Model):
         return str(self.id)
 
 
+@reversion.register()
+class MoveInventory(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    source_location = models.ForeignKey(LocationMaster, blank=True, null=True)
+    dest_location = models.ForeignKey(LocationMaster, blank=True, null=True, related_name='dest_move_location')
+    quantity = models.FloatField(default=0)
+    batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True)
+    pallet_detail = models.ForeignKey(PalletDetail, blank=True, null=True)
+    seller = models.ForeignKey(SellerMaster, blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MOVE_INVENTORY'
+
+    def __unicode__(self):
+        return str(self.id)
+
+
 class Issues(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)
@@ -3217,6 +3237,28 @@ class StockReconciliation(models.Model):
     class Meta:
         db_table = 'STOCK_RECONCILIATION'
         unique_together = ('sku', 'mrp', 'weight', 'creation_date')
+        index_together = (('sku', 'mrp', 'weight', 'creation_date'),)
+
+
+class StockReconciliationFields(models.Model):
+    id = BigAutoField(primary_key=True)
+    stock_reconciliation = models.ForeignKey(StockReconciliation, blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    field_type = models.CharField(max_length=32, default='')
+    price_before_tax = models.FloatField(default=0)
+    value_before_tax = models.FloatField(default=0)
+    value_after_tax = models.FloatField(default=0)
+    cgst_tax = models.FloatField(default=0)
+    sgst_tax = models.FloatField(default=0)
+    igst_tax = models.FloatField(default=0)
+    cess_tax = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'STOCK_RECONCILIATION_FIELDS'
+        index_together = ('stock_reconciliation', 'field_type')
+
 
 class MiscDetailOptions(models.Model):
     id = BigAutoField(primary_key=True)
@@ -3245,6 +3287,7 @@ class ClusterSkuMapping(models.Model):
 class Pofields(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
+    field_type = models.CharField(max_length=32, default='')
     po_number = models.CharField(max_length=128, default='')
     receipt_no = models.CharField(max_length = 34 ,default = 1)
     name = models.CharField(max_length=256, default='')

@@ -3705,11 +3705,11 @@ def get_openjo_details(search_params, user, sub_user):
     return temp_data
 
 
-def get_financial_group_dict(fields_parameters, data_objs=None):
+def get_financial_group_dict(fields_parameters1, data_objs=None):
     data_dict = {'quantity': 0, 'cgst_amount': 0, 'sgst_amount': 0, 'igst_amount': 0, 'cess_amount': 0,
                      'value_before_tax': 0, 'value_after_tax': 0, 'price_before_tax': 0}
     if not data_objs:
-        purchase_data = StockReconciliationFields.objects.filter(**fields_parameters)
+        purchase_data = StockReconciliationFields.objects.filter(**fields_parameters1)
     else:
         purchase_data = data_objs
     for data in purchase_data:
@@ -3725,7 +3725,10 @@ def get_financial_group_dict(fields_parameters, data_objs=None):
             data_dict['igst_amount'] += (amount/100) * data.igst_tax
         if data.cess_tax:
             data_dict['igst_amount'] += (amount/100) * data.cess_tax
-    data_dict['price_before_tax'] = data_dict['value_before_tax'] / data_dict['quantity']
+        data_dict['value_after_tax'] = data_dict['value_before_tax'] + data_dict['cgst_amount'] + \
+                                        data_dict['sgst_amount'] + data_dict['igst_amount'] + data_dict['cess_amount']
+    if data_dict['quantity']:
+        data_dict['price_before_tax'] = data_dict['value_before_tax'] / data_dict['quantity']
     return data_dict
 
 
@@ -3780,55 +3783,59 @@ def get_financial_report_data(search_params, user, sub_user):
             if 'stock_reconciliation__sku__sku_code' in fields_parameters:
                 opening_stock_filter['stock_reconciliation__sku__sku_code'] = fields_parameters['stock_reconciliation__sku__sku_code']
             opening_stock_data = StockReconciliationFields.objects.\
-                filter(**opening_stock_filter)
+                filter(**opening_stock_filter).values('stock_reconciliation__sku__sku_code', 'stock_reconciliation__sku__sku_desc',
+                                                        'stock_reconciliation__sku__sku_category', 'stock_reconciliation__sku__sub_category',
+                                                        'stock_reconciliation__sku_id',
+                                                        'stock_reconciliation__sku__hsn_code', 'stock_reconciliation__mrp',
+                                                        'stock_reconciliation__weight','cgst_tax', 'sgst_tax', 'igst_tax',
+                                                        'cess_tax').distinct().annotate(Sum('value_before_tax'),
+                                                        Sum('quantity'),
+                                                        cgst_amount=Sum((F('value_before_tax')/Value(100))*F('cgst_tax')),
+                                                        sgst_amount=Sum((F('value_before_tax')/Value(100))*F('sgst_tax')),
+                                                        igst_amount=Sum((F('value_before_tax')/Value(100))*F('igst_tax')),
+                                                        cess_amount=Sum((F('value_before_tax')/Value(100))*F('cess_tax')))
             temp_data['recordsTotal'] = opening_stock_data.count()
             temp_data['recordsFiltered'] = temp_data['recordsTotal']
             closing_objs = StockReconciliationFields.objects.filter(stock_reconciliation__creation_date__regex=closing_stock_date,
                                                                     stock_reconciliation__sku__user=user.id,
                                                                     field_type='closing')
             for opening_stock in opening_stock_data[start_index:stop_index]:
-                stock_rec = opening_stock.stock_reconciliation
-                sku = stock_rec.sku
                 #Opening Stock Calculation
-                tax_rate = opening_stock.cgst_tax + opening_stock.sgst_tax + opening_stock.igst_tax
-                amount = opening_stock.quantity * opening_stock.price_before_tax
-                cgst_amount = 0
-                if opening_stock.cgst_tax:
-                    cgst_amount = float(amount/100) * opening_stock.cgst_tax
-                sgst_amount = 0
-                if opening_stock.sgst_tax:
-                    sgst_amount = float(amount/100) * opening_stock.sgst_tax
-                igst_amount = 0
-                if opening_stock.igst_tax:
-                    igst_amount = float(amount/100) * opening_stock.igst_tax
-                cess_amount = 0
-                if opening_stock.cess_tax:
-                    cess_amount = float(amount/100) * opening_stock.cess_tax
-                value_after_tax = amount + cgst_amount + sgst_amount + igst_amount + cess_amount
+                tax_rate = opening_stock['cgst_tax'] + opening_stock['sgst_tax'] + opening_stock['igst_tax']
+                sku_id = opening_stock['stock_reconciliation__sku_id']
+                cgst_amount = opening_stock['cgst_amount']
+                sgst_amount = opening_stock['sgst_amount']
+                igst_amount = opening_stock['igst_amount']
+                cess_amount = opening_stock['cess_amount']
+                value_after_tax = opening_stock['value_before_tax__sum'] + cgst_amount + sgst_amount + igst_amount + cess_amount
+                mrp = opening_stock['stock_reconciliation__mrp']
+                weight = opening_stock['stock_reconciliation__weight']
                 # Closing Stock Calculation
-                closing_obj_filter = {'stock_reconciliation__sku_id': sku.id,
-                                      'stock_reconciliation__mrp': stock_rec.mrp,
-                                      'stock_reconciliation__weight': stock_rec.weight,
-                                      'cgst_tax': opening_stock.cgst_tax,
-                                      'sgst_tax': opening_stock.sgst_tax,
-                                      'igst_tax': opening_stock.igst_tax,
+                closing_obj_filter = {'stock_reconciliation__sku_id': sku_id,
+                                      'stock_reconciliation__mrp': opening_stock['stock_reconciliation__mrp'],
+                                      'stock_reconciliation__weight': opening_stock['stock_reconciliation__weight'],
+                                      'cgst_tax': opening_stock['cgst_tax'],
+                                      'sgst_tax': opening_stock['sgst_tax'],
+                                      'igst_tax': opening_stock['igst_tax'],
                                       }
+                fields_parameters1 = copy.deepcopy(fields_parameters)
+                fields_parameters1.update(closing_obj_filter)
                 closing_stock_objs = closing_objs.filter(**closing_obj_filter)
-                closing_dict = get_financial_group_dict(fields_parameters, data_objs=closing_stock_objs)
-                fields_parameters['field_type'] = 'purchase'
-                purchase_dict = get_financial_group_dict(fields_parameters)
-                fields_parameters['field_type'] = 'rtv'
-                rtv_dict = get_financial_group_dict(fields_parameters)
-                fields_parameters['field_type'] = 'returns'
-                returns_dict = get_financial_group_dict(fields_parameters)
-                fields_parameters['field_type'] = 'customer_sales'
-                csd = get_financial_group_dict(fields_parameters)
-                fields_parameters['field_type'] = 'internal_sales'
-                isd = get_financial_group_dict(fields_parameters)
-                fields_parameters['field_type'] = 'stock_transfer'
-                std = get_financial_group_dict(fields_parameters)
-                physical_qty = StockDetail.objects.filter(sku_id=sku.id, batch_detail__mrp=stock_rec.mrp,
-                                                          batch_detail__weight=stock_rec.weight,
+                closing_dict = get_financial_group_dict(fields_parameters1, data_objs=closing_stock_objs)
+                fields_parameters1['field_type'] = 'purchase'
+                purchase_dict = get_financial_group_dict(fields_parameters1)
+                fields_parameters1['field_type'] = 'rtv'
+                rtv_dict = get_financial_group_dict(fields_parameters1)
+                fields_parameters1['field_type'] = 'returns'
+                returns_dict = get_financial_group_dict(fields_parameters1)
+                fields_parameters1['field_type'] = 'customer_sales'
+                csd = get_financial_group_dict(fields_parameters1)
+                fields_parameters1['field_type'] = 'internal_sales'
+                isd = get_financial_group_dict(fields_parameters1)
+                fields_parameters1['field_type'] = 'stock_transfer'
+                std = get_financial_group_dict(fields_parameters1)
+                physical_qty = StockDetail.objects.filter(sku_id=sku_id, batch_detail__mrp=mrp,
+                                                          batch_detail__weight=weight,
                                                           batch_detail__tax_percent=tax_rate).distinct().\
                                                     aggregate(Sum('quantity'))['quantity__sum']
                 if not physical_qty:
@@ -3836,25 +3843,30 @@ def get_financial_report_data(search_params, user, sub_user):
                 hub = ''
                 vendor = ''
                 if not stop_index:
-                    hub = hub_dict.get(sku.id, '')
-                    vendor = vendor_dict.get(sku.id, '')
+                    hub = hub_dict.get(sku_id, '')
+                    vendor = vendor_dict.get(sku_id, '')
                 else:
-                    hub_obj = SKUAttributes.objects.filter(sku_id=sku.id, attribute_name='Hub')
+                    hub_obj = SKUAttributes.objects.filter(sku_id=sku_id, attribute_name='Hub')
                     if hub_obj.exists():
                         hub = hub_obj[0].attribute_value
-                    vendor_obj = SKUAttributes.objects.filter(sku_id=sku.id, attribute_name='Vendor')
+                    vendor_obj = SKUAttributes.objects.filter(sku_id=sku_id, attribute_name='Vendor')
                     if vendor_obj.exists():
                         vendor = vendor_obj[0].attribute_value
-                temp_data['aaData'].append(OrderedDict((('SKU Code', sku.sku_code), ('SKU NAME', sku.sku_desc),
-                                                        ('Category', sku.sku_category), ('Sub Category', sku.sub_category),
+                price_before_tax = 0
+                if opening_stock['quantity__sum']:
+                    price_before_tax = float(value_after_tax)/opening_stock['quantity__sum']
+                temp_data['aaData'].append(OrderedDict((('SKU Code', opening_stock['stock_reconciliation__sku__sku_code']),
+                                                        ('SKU NAME', opening_stock['stock_reconciliation__sku__sku_desc']),
+                                                        ('Category', opening_stock['stock_reconciliation__sku__sku_category']),
+                                                        ('Sub Category', opening_stock['stock_reconciliation__sku__sub_category']),
                                                         ('City',''), ('Hub', hub),('Vendor Name', vendor),
-                                                        ('HSN Code', str(sku.hsn_code)), ('MRP', stock_rec.mrp),
-                                                        ('Weight',stock_rec.weight), ('GST No', ''),
+                                                        ('HSN Code', str(opening_stock['stock_reconciliation__sku__hsn_code'])), ('MRP', mrp),
+                                                        ('Weight', weight), ('GST No', ''),
                                                         ('IGST Tax Rate', tax_rate),
-                                                        ('CESS Rate', opening_stock.cess_tax),
-                                                        ('Opening Qty', stock_rec.opening_quantity),
-                                                        ('Opening Price Per Unit( Before Taxes)', opening_stock.price_before_tax),
-                                                        ('Opening Value before Tax', opening_stock.value_before_tax),
+                                                        ('CESS Rate', opening_stock['cess_tax']),
+                                                        ('Opening Qty', opening_stock['quantity__sum']),
+                                                        ('Opening Price Per Unit( Before Taxes)', price_before_tax),
+                                                        ('Opening Value before Tax', opening_stock['value_before_tax__sum']),
                                                         ('Opening CGST', cgst_amount), ('Opening SGST', sgst_amount),
                                                         ('Opening IGST',igst_amount), ('Opening CESS', cess_amount),
                                                         ('Opening Value after Tax', value_after_tax),

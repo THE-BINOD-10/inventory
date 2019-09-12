@@ -1092,6 +1092,8 @@ def excel_reports(request, user=''):
             continue
         if len(temp) > 1 and temp[1]:
             if 'date' in dat:
+                if '%2F' in temp[1]:
+                    temp[1] = temp[1].replace('%2F', '/')
                 temp[1] = datetime.datetime.strptime(temp[1], '%m/%d/%Y')
             search_params[temp[0]] = temp[1]
     params = [search_params, user, request.user]

@@ -154,6 +154,15 @@ def get_combo_allocate_excel_headers(user):
 
 def get_purchase_order_excel_headers(user):
     excel_headers = copy.deepcopy(PURCHASE_ORDER_UPLOAD_MAPPING)
+    misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='po_fields')
+    if misc_detail:
+        extra_headers = OrderedDict()
+        fields = misc_detail[0].misc_value.split(',')
+        for field in fields:
+            key = field
+            value = field.lower()
+            extra_headers[key] = value
+        excel_headers.update(extra_headers)
     userprofile = user.userprofile
     if not userprofile.user_type == 'marketplace_user':
         del excel_headers["Seller ID"]
@@ -1785,7 +1794,13 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
     inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
-    if not set(['receipt_date', 'quantity', 'wms_code', 'location']).issubset(excel_mapping.keys()):
+    excel_check_list = ['receipt_date', 'quantity', 'wms_code', 'location']
+    if user.userprofile.user_type == 'marketplace_user':
+        excel_check_list.append('seller_id')
+    if user.userprofile.industry_type == 'FMCG':
+        excel_check_list.append('mrp')
+        excel_check_list.append('weight')
+    if not set(excel_check_list).issubset(excel_mapping.keys()):
         return 'Invalid File', []
     number_fields = ['quantity', 'mrp']
     optional_fields = ['mrp']
@@ -2633,6 +2648,10 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
     index_status = {}
     data_list = []
     purchase_mapping = get_purchase_order_excel_headers(user)
+    misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='po_fields')
+    fields = []
+    if misc_detail.exists():
+        fields = misc_detail[0].misc_value.lower().split(',')
     purchase_res = dict(zip(purchase_mapping.values(), purchase_mapping.keys()))
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  purchase_mapping)
@@ -2739,6 +2758,12 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
                 data_dict[key] = cell_data
+
+            elif key in fields:
+                if isinstance(cell_data, (int, float)):
+                    cell_data = str(int(cell_data))
+                data_dict[key] = cell_data
+
             elif cell_data:
                 if key in number_fields:
                     try:
@@ -2751,9 +2776,10 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
             elif cell_data == '':
                 if key in number_fields:
                     data_dict[key] = cell_data
-        for data in data_list:
-            if data['sku']== data_dict['sku'] and data['supplier'] == data_dict['supplier']:
-                index_status.setdefault(row_idx, set()).add('SKU added in multiple rows for same supplier')
+        if not index_status:
+            for data in data_list:
+                if data['sku']== data_dict['sku'] and data['supplier'] == data_dict['supplier']:
+                    index_status.setdefault(row_idx, set()).add('SKU added in multiple rows for same supplier')
 
         data_list.append(data_dict)
     if not index_status:
@@ -2883,6 +2909,14 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         order_data['status'] = 0
         data1 = OpenPO(**order_data)
         data1.save()
+        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='po_fields')
+        seller_receipt_id = 0
+        if misc_detail:
+            fields = misc_detail[0].misc_value.lower().split(',')
+            if set(final_dict.keys()).issuperset(fields):
+                for field in fields:
+                    value = final_dict[field]
+                    Pofields.objects.create(user= user.id,po_number = po_id,receipt_no= seller_receipt_id,name=field,value=value,field_type='po_field')
         if seller_id:
             SellerPO.objects.create(seller_id=seller_id, open_po_id=data1.id,
                                     seller_quantity=order_data['order_quantity'], unit_price=order_data['price'],
@@ -3170,8 +3204,14 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
     inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
-    if not set(['wms_code', 'source', 'destination', 'quantity']).issubset(excel_mapping.keys()):
-        return 'Invalid File'
+    excel_check_list = ['wms_code', 'source', 'destination', 'quantity']
+    if user.userprofile.user_type == 'marketplace_user':
+        excel_check_list.append('seller_id')
+    if user.userprofile.industry_type == 'FMCG':
+        excel_check_list.append('mrp')
+        excel_check_list.append('weight')
+    if not set(excel_check_list).issubset(excel_mapping.keys()):
+        return 'Invalid File', None
     fields_mapping = {'quantity': 'Quantity', 'mrp': 'MRP'}
     number_fields = ['quantity', 'mrp']
     for row_idx in range(1, no_of_rows):
@@ -3647,8 +3687,14 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
     inv_mapping = get_inventory_adjustment_excel_upload_headers(user)
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
-    if not set(['wms_code', 'location', 'quantity', 'reason']).issubset(excel_mapping.keys()):
-        return 'Invalid File'
+    excel_check_list = ['wms_code', 'location', 'quantity', 'reason']
+    if user.userprofile.user_type == 'marketplace_user':
+        excel_check_list.append('seller_id')
+    if user.userprofile.industry_type == 'FMCG':
+        excel_check_list.append('mrp')
+        excel_check_list.append('weight')
+    if not set(excel_check_list).issubset(excel_mapping.keys()):
+        return 'Invalid File', None
     for row_idx in range(1, no_of_rows):
         print row_idx
         data_dict = {}
@@ -5526,7 +5572,10 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                                                  inv_mapping)
     if not set(['source_sku_code', 'source_location', 'source_quantity', 'dest_sku_code',
                 'dest_location', 'dest_quantity']).issubset(excel_mapping.keys()):
-        return 'Invalid File'
+        return 'Invalid File', None
+    if user.userprofile.user_type == 'marketplace_user':
+        if 'seller_id' not in excel_mapping.keys():
+            return 'Invalid File', None
     number_fields = ['source_quantity', 'source_mrp','dest_quantity', 'dest_mrp']
     prev_data_dict = {}
     for row_idx in range(1, no_of_rows):
@@ -6623,7 +6672,7 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                                 if avail_stock < cell_data:
                                     index_status.setdefault(row_idx, set()).add('Stock Outage.Pls check stock in WH')
                             elif level == 3:
-                                asn_avail_stock = ret_list[0]['asn']
+                                asn_avail_stock = ret_list[0]['asn'] + ret_list[0]['non_kitted']
                                 if asn_avail_stock < cell_data:
                                     index_status.setdefault(row_idx, set()).add('Stock Outage.Pls check stock in WH')
             elif key == 'reseller_name':
@@ -7160,14 +7209,14 @@ def validate_combo_allocate_form(request, reader, user, no_of_rows, no_of_cols, 
                                                  inv_mapping)
     if not set(['combo_sku_code', 'combo_location', 'combo_quantity', 'child_sku_code',
                 'child_location', 'child_quantity']).issubset(excel_mapping.keys()):
-        return 'Invalid File'
+        return 'Invalid File', None
     if user.userprofile.industry_type == 'FMCG':
         if not set(['combo_batch_no', 'combo_mrp', 'child_quantity', 'child_batch_no',
                     'child_mrp', 'child_weight']).issubset(excel_mapping.keys()):
-            return 'Invalid File'
+            return 'Invalid File', None
     if user.userprofile.user_type == 'marketplace_user':
         if 'seller_id' not in excel_mapping.keys():
-            return 'Invalid File'
+            return 'Invalid File', None
     number_fields = ['combo_quantity', 'combo_mrp', 'child_quantity', 'child_mrp']
     prev_data_dict = {}
     final_data = OrderedDict()

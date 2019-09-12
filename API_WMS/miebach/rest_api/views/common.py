@@ -1816,7 +1816,31 @@ def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_i
 
     stock_dict['location_id'] = dest[0].id
     dest_stocks = StockDetail.objects.filter(**stock_dict)
+    cycle_instance = CycleCount.objects.filter(cycle=cycle_id, location_id=source[0].id, sku_id=sku_id)
+    if not cycle_instance:
+        dat = CycleCount(**data_dict)
+        dat.save()
+    else:
+        cycle_instance = cycle_instance[0]
+        cycle_instance.quantity = float(cycle_instance.quantity) + quantity
+        cycle_instance.save()
+    data_dict['location_id'] = dest[0].id
+    data_dict['quantity'] = quantity
+    cycle_instance = CycleCount.objects.filter(cycle=cycle_id, location_id=dest[0].id, sku_id=sku_id)
+    if not cycle_instance:
+        dat = CycleCount(**data_dict)
+        dat.save()
+    else:
+        cycle_instance = cycle_instance[0]
+        cycle_instance.quantity = float(cycle_instance.quantity) + float(quantity)
+        cycle_instance.save()
 
+    data = copy.deepcopy(INVENTORY_FIELDS)
+    data['cycle_id'] = cycle_id
+    data['adjusted_location'] = dest[0].id
+    data['adjusted_quantity'] = quantity
+    data['creation_date'] = datetime.datetime.now()
+    data['updation_date'] = datetime.datetime.now()
     dest_batch = update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
                        dest_seller_id=seller_id)
     move_inventory_dict = {'sku_id': sku_id, 'source_location_id': source[0].id,

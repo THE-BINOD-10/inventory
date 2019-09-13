@@ -2422,7 +2422,7 @@ def validate_supplier_sku_form(open_sheet, user_id):
                             index_status.setdefault(row_idx, set()).add('Markup Percentage is Mandatory For Markup Based')
                         elif not isinstance(cell_data_markup, (int, float)):
                             index_status.setdefault(row_idx, set()).add('Markup % Should be in integer or float')
-                        elif not float(cell_data_markup) in range(0, 100):
+                        elif  float(cell_data_markup) < 0 or float(cell_data_markup) > 100:
                             index_status.setdefault(row_idx, set()).add('Markup % Should be in between 0 and 100')
 
 

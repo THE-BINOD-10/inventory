@@ -58,7 +58,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
         vm.date = datearray[0] + '/' + datearray[1] + '/' + datearray[2];
       } else {
-        
+
         vm.date = datearray[1] + '/' + datearray[0] + '/' + datearray[2];
       }
     }
@@ -74,7 +74,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.filters = {'datatable': 'ReturnToVendor', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
                   , 'search5': '', 'search6': '', 'search7': '', 'from_date': vm.date};
-    
+
     vm.dtOptions = DTOptionsBuilder.newOptions()
      .withOption('ajax', {
             url: Session.url+'results_data/',
@@ -208,7 +208,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     //RTV Pop Data
-    vm.rtv_details = {supplier_id:'Supplier ID', supplier_name:'Supplier Name', 
+    vm.rtv_details = {supplier_id:'Supplier ID', supplier_name:'Supplier Name',
                       invoice_number:'Invoice Number', invoice_date:'Invoice Date'};
     vm.rtv_details_keys = Object.keys(vm.rtv_details);
 
@@ -250,7 +250,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.check_rest_qty(sku, data);
         sku.return_qty = vm.rest_qty;
         Service.showNoty("You can enter "+sku.return_qty+" quantity");
-        
+
         sku.rest_qty = 0;
       } else if (Number(vm.total_qty) > Number(sku.quantity) && sku.rest_qty) {
         vm.check_rest_qty(sku, data);
@@ -267,7 +267,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
 
     }
-    
+
     vm.check_rest_qty = function(sku, data){
       var total_qty = 0;
       for (var i = 0; i < data.length; i++) {
@@ -279,7 +279,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           sku.return_qty = sku.quantity - total_qty;
       }
 
-      vm.rest_qty = sku.quantity - total_qty; 
+      vm.rest_qty = sku.quantity - total_qty;
     }
 
     vm.totol_qty_check = function(data){
@@ -299,7 +299,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.model_data.data.push([{"wms_code":"", "sku_desc":"", "received_quantity":"", "batch_no":"", "mrp": '',
                                 "location": '', is_new: true, "return_qty": ""}]);
       } else {
-        vm.model_data.data.push([{"wms_code":"", "sku_desc":"", "received_quantity":"", "location": '', 
+        vm.model_data.data.push([{"wms_code":"", "sku_desc":"", "received_quantity":"", "location": '',
                                   is_new: true, "return_qty": ""}]);
       }
     }
@@ -317,6 +317,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
       elem.push({'name': 'enable_dc_returns', 'value': vm.enable_dc_return});
+      elem.push({'name': 'rtv_reasons', 'value': vm.model_data.rtv_reasons});
 
       angular.forEach(vm.model_data.data, function(row){
         angular.forEach(row, function(sku){
@@ -358,6 +359,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
       elem.push({'name': 'enable_dc_returns', 'value': vm.enable_dc_return});
+      elem.push({'name': 'rtv_reasons', 'value': vm.model_data.rtv_reasons});
 
       angular.forEach(vm.model_data.data, function(row){
         angular.forEach(row, function(sku){

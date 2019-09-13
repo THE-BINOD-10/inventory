@@ -8532,6 +8532,11 @@ def get_po_putaway_summary(request, user=''):
     invoice_date = get_local_date(user, seller_summary_objs[0].creation_date, send_date=True).strftime("%d %b, %Y")
     if seller_summary_objs[0].invoice_date:
         invoice_date = seller_summary_objs[0].invoice_date.strftime("%d %b, %Y")
+    rtv_reason = get_misc_value('rtv_reasons', user.id)
+    if rtv_reason == 'false' :
+        rtv_reasons = ''
+    else:
+        rtv_reasons = rtv_reason.split(',')
     orders = []
     order_data = {}
     order_ids = []
@@ -8586,7 +8591,7 @@ def get_po_putaway_summary(request, user=''):
                                     'po_reference': po_reference, 'order_ids': order_ids,
                                     'supplier_name': supplier_name, 'order_date': order_date,
                                     'remarks': remarks, 'seller_details': seller_details,
-                                    'invoice_number': invoice_number, 'invoice_date': invoice_date}))
+                                    'invoice_number': invoice_number, 'invoice_date': invoice_date, 'rtv_reasons':rtv_reasons}))
 
 def get_debit_note_data(rtv_number, user):
     return_to_vendor = ReturnToVendor.objects.select_related('seller_po_summary__purchase_order__open_po__sku').\
@@ -8614,6 +8619,7 @@ def get_debit_note_data(rtv_number, user):
     if len(ware_house):
         data_dict['warehouse_details'] = ware_house[0]
     for obj in return_to_vendor:
+        data_dict['return_reason'] = obj.return_reason
         get_po = obj.seller_po_summary.purchase_order.open_po
         data_dict['supplier_name'] = get_po.supplier.name
         data_dict['supplier_address'] = get_po.supplier.address
@@ -8711,6 +8717,8 @@ def prepare_rtv_json_data(request_data, user):
         data_dict = {}
         if 'rtv_id' in request_data:
             data_dict['rtv_id'] = request_data['rtv_id'][ind]
+        if 'rtv_reasons' in request_data:
+            data_dict['rtv_reasons'] = request_data['rtv_reasons'][ind]
         if request_data['location'][ind] and request_data['return_qty'][ind]:
             quantity = float(request_data['return_qty'][ind])
             seller_summary = SellerPOSummary.objects.get(id=request_data['summary_id'][ind])
@@ -8764,19 +8772,22 @@ def prepare_rtv_json_data(request_data, user):
 def save_update_rtv(data_list, return_type=''):
     updated_rtvs = []
     for ind, final_dict in enumerate(data_list):
+        rtv_reason = final_dict.get('rtv_reasons', '')
         if final_dict.get('rtv_id', '') and final_dict['rtv_id'] not in updated_rtvs:
             rtv_obj = ReturnToVendor.objects.get(id=final_dict['rtv_id'])
             rtv_obj.location_id = final_dict['location'].id
             if return_type:
                 rtv_obj.return_type = return_type
             rtv_obj.quantity = final_dict['quantity']
+            rtv_obj.return_reason = rtv_reason
             rtv_obj.save()
             updated_rtvs.append(final_dict['rtv_id'])
         else:
+
             rtv_obj = ReturnToVendor.objects.create(seller_po_summary_id=final_dict['summary_id'],
                                                     quantity=final_dict['quantity'], status=1,
                                                     location_id=final_dict['location'].id,
-                                                    return_type=return_type,
+                                                    return_type=return_type,return_reason= rtv_reason,
                                                     creation_date=datetime.datetime.now())
             data_list[ind]['rtv_id'] = rtv_obj.id
     return data_list
@@ -8840,10 +8851,12 @@ def create_rtv(request, user=''):
                 update_stock_detail(final_dict['stocks'], float(final_dict['quantity']), user, final_dict['rtv_id'])
                 #ReturnToVendor.objects.create(rtv_number=rtv_number, seller_po_summary_id=final_dict['summary_id'],
                 #                              quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
+                rtv_reason = final_dict.get('rtv_reasons', '')
                 rtv_obj = ReturnToVendor.objects.get(id=final_dict['rtv_id'])
                 rtv_obj.rtv_number = rtv_number
                 rtv_obj.return_type = return_type
                 rtv_obj.status=0
+                rtv_obj.return_reason = rtv_reason
                 rtv_obj.save()
             report_data_dict = {}
             show_data_invoice = get_debit_note_data(rtv_number, user)

@@ -2763,9 +2763,10 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     cell_data = str(int(cell_data))
                 data_dict[key] = cell_data
 
-            elif  key == 'mrp' and  user.username in MILKBASKET_USERS :
+            elif key == 'mrp' and user.username in MILKBASKET_USERS :
                 if not cell_data :
-                    index_status.setdefault(row_idx, set()).add('mrp is mandatory')
+                    index_status.setdefault(row_idx, set()).add('MRP is mandatory')
+                data_dict[key] = cell_data
             elif key in fields:
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))

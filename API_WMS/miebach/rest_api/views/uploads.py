@@ -2413,7 +2413,7 @@ def validate_supplier_sku_form(open_sheet, user_id):
                             index_status.setdefault(row_idx, set()).add('MarkDown Percentage is Mandatory For Margin Based')
                         elif not isinstance(cell_data_margin, (int, float)):
                             index_status.setdefault(row_idx, set()).add('MarkDown % Should be in integer or float')
-                        elif not float(cell_data_margin) in range(0, 100):
+                        elif  float(cell_data_margin) < 0  or float(cell_data_margin) >  100:
                             index_status.setdefault(row_idx, set()).add('MarkDown % Should be in between 0 and 100')
 
                     elif cell_data == 'Markup Based' :

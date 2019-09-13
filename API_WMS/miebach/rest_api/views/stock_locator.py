@@ -1131,7 +1131,7 @@ def insert_move_inventory(request, user=''):
         if not mrp or not weight :
             return HttpResponse("MRP and Weight are Mandatory")
 
-    status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id, batch_no=batch_no, mrp=mrp,weight=weight)
+    status = move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id, batch_no=batch_no, mrp=mrp,weight=weight)
     if 'success' in status.lower():
         update_filled_capacity([source_loc, dest_loc], user.id)
 

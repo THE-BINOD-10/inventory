@@ -2907,11 +2907,6 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
             sku_attrs.filter(attribute_name='Shelf').values_list('sku__sku_code', 'attribute_value'))
     for data in master_data:
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data['sku__sku_code'], data['reserved__sum'])
-        if data['replenushment_qty'] != 0:
-            qty = data['replenushment_qty']
-            data['replenushment_qty'] = int((qty+49)//50 * 50)
-        if data['replenushment_qty'] <= data['avail_quantity']:
-                data['avail_quantity'] = data['replenushment_qty']
         mrp = 0
         weight = ''
         source_location = ''
@@ -3256,9 +3251,13 @@ def ba_to_sa_calculate_now(request, user=''):
             #if ba_stock_objs.exists():
             if replenishment_qty < 20 :
                 replenishment_qty = 20
+            if replenishment_qty:
+                replenishment_qty = int((replenishment_qty+49)//50 * 50)
             if ba_stock_dict:
                 total_ba_stock = ba_stock_dict['total_quantity'] #ba_stock_objs.aggregate(Sum('sellerstock__quantity'))['sellerstock__quantity__sum']
-                if total_ba_stock < replenishment_qty:
+                if replenishment_qty <= total_ba_stock:
+                        total_ba_stock = replenishment_qty
+                if total_ba_stock <= replenishment_qty:
                     needed_qty = total_ba_stock
                 else:
                     needed_qty = replenishment_qty

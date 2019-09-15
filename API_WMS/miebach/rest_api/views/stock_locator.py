@@ -2909,7 +2909,7 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data['sku__sku_code'], data['reserved__sum'])
         if data['replenushment_qty'] != 0:
             qty = data['replenushment_qty']
-            data['replenushment_qty'] = int((qty+49)/50 * 50)
+            data['replenushment_qty'] = int((qty+49)//50 * 50)
         if data['replenushment_qty'] <= data['avail_quantity']:
                 data['avail_quantity'] = data['replenushment_qty']
         mrp = 0

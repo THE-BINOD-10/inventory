@@ -256,6 +256,7 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
             rto_stocks = stock_detail.filter(location__zone__zone='RTO_ZONE')
             stock_detail = list(chain(rto_stocks, stock_detail))
         for stock in stock_detail:
+            stock.refresh_from_db()
             stock_count, stock_diff = get_stock_count(order, stock, stock_diff, user, order_quantity)
             if not stock_count:
                 continue

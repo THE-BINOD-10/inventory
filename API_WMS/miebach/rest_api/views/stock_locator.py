@@ -2907,6 +2907,11 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
             sku_attrs.filter(attribute_name='Shelf').values_list('sku__sku_code', 'attribute_value'))
     for data in master_data:
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data['sku__sku_code'], data['reserved__sum'])
+        if data['replenushment_qty'] != 0:
+            qty = data['replenushment_qty']
+            data['replenushment_qty'] = int(round(qty + 49, -1))
+        if data['replenushment_qty'] <= data['avail_quantity']:
+                data['avail_quantity'] = data['replenushment_qty']
         mrp = 0
         weight = ''
         source_location = ''

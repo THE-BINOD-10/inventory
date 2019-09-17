@@ -3208,7 +3208,7 @@ def ba_to_sa_calculate_now(request, user=''):
                 sku_rep_dict = replenish_dict.get((data.sku_size, classification), {})
                 if not sku_rep_dict:
                 #if not replenishment_obj.exists():
-                    remarks = 'Replenushment Master Not Found'
+                    #remarks = 'Replenushment Master Not Found'
                     # min_days, max_days, min_stock, max_stock = 0, 0, 0, 0
                     min_stock = 20
                     max_stock = 30

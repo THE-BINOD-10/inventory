@@ -210,7 +210,6 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
         if stock_quantity < float(order_quantity):
             is_seller_stock_updated = False
             if seller_order:
-                import pdb;pdb.set_trace()
                 src_stocks = temp_sku_stocks.filter(sellerstock__seller__seller_id=1, sku_id=member.id,**sku_id_stock_filter).distinct()
                 if src_stocks:
                     seller_id_stocks = SellerStock.objects.filter(

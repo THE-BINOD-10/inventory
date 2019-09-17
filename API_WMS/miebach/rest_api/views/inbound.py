@@ -1714,6 +1714,9 @@ def insert_inventory_adjust(request, user=''):
     seller_master_id = ''
     receipt_number = get_stock_receipt_number(user)
     stock_stats_objs = []
+    if user.username in MILKBASKET_USERS :
+        if not mrp or not weight :
+            return HttpResponse("MRP and Weight are Mandatory")
     if seller_id:
         seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
         if not seller_master:

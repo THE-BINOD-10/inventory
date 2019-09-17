@@ -1925,7 +1925,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
 
     if quantity:
         #quantity = float(quantity)
-        stocks = StockDetail.objects.filter(**stock_dict).order_by('-creation_date').distinct()
+        stocks = StockDetail.objects.filter(**stock_dict).distinct()
         if user.userprofile.user_type == 'marketplace_user':
             total_stock_quantity = SellerStock.objects.filter(seller_id=seller_master_id,
                                                               stock__id__in=stocks.values_list('id', flat=True)). \
@@ -1983,9 +1983,10 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                 del stock_dict["batch_detail__weight"]
             if 'sellerstock__seller_id' in stock_dict.keys():
                 del stock_dict['sellerstock__seller_id']
-            latest_stock = StockDetail.objects.filter(**stock_dict1).order_by('-creation_date')
+            latest_stock = StockDetail.objects.filter(**stock_dict1)
             if latest_stock.exists():
-                batch_obj = latest_stock[0].batch_detail
+                latest_stock_obj = latest_stock.latest('id')
+                batch_obj = latest_stock_obj.batch_detail
                 stock_dict["batch_detail_id"] = batch_obj.id
             elif batch_dict.keys():
                 batch_obj = BatchDetail.objects.create(**batch_dict)
@@ -7551,7 +7552,7 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
                          order_summary_dict, ship_to, corporate_po_number, client_name, admin_user, sku_total_qty_map,
                          order_user_sku, order_user_objs, address_selected=''):
     if order_data.get('del_date', ''):
-        if order_data['del_date'] >= order_data['shipment_date']:
+        if order_data['del_date'].date() >= order_data['shipment_date']:
             order_data['shipment_date'] = order_data.get('del_date', '')
         else:
             order_data['del_date'] = order_data['shipment_date']

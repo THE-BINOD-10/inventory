@@ -90,10 +90,16 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
     combo_sku_ids.append(order.sku_id)
     sku_id_stock_filter = {'sku_id__in': combo_sku_ids}
     needed_mrp_filter = 0
+    sku_mrp_dict = {}
     if add_mrp_filter:
         if 'st_po' not in dir(order) and order.customerordersummary_set.filter().exists():
-            needed_mrp_filter = order.customerordersummary_set.filter()[0].mrp
-            sku_id_stock_filter['batch_detail__mrp'] = needed_mrp_filter
+            if order.sku.relation_type == 'combo' and not combo_allocate_stock:
+                combo_data = sku_combos.filter(parent_sku_id=order.sku.id)
+                needed_mrp_filter = list(combo_data.values_list('member_sku__mrp', flat=True))
+            else:
+                needed_mrp_filter = [order.customerordersummary_set.filter()[0].mrp]
+                sku_mrp_dict[order.sku_id] = order.customerordersummary_set.filter()[0].mrp
+            sku_id_stock_filter['batch_detail__mrp__in'] = needed_mrp_filter
     if seller_order:
         temp_sku_stocks = sku_stocks
         sku_stocks = sku_stocks.filter(sellerstock__seller_id=seller_order.seller_id)
@@ -118,17 +124,50 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
         for combo in combo_data:
             member_check_quantity = order_check_quantity * combo.quantity
             members[combo.member_sku] = member_check_quantity
+            if add_mrp_filter:
+                needed_mrp_filter = combo.member_sku.mrp
+                sku_mrp_dict[combo.member_sku_id] = needed_mrp_filter
             stock_detail, stock_quantity, sku_code = get_sku_stock(combo.member_sku, sku_stocks, user,
                                                                    val_dict, sku_id_stocks,
                                                                    add_mrp_filter=add_mrp_filter,
                                                                    needed_mrp_filter=needed_mrp_filter)
             if stock_quantity < float(member_check_quantity):
                 if not no_stock_switch:
-                    stock_status.append(str(combo.member_sku.sku_code))
-                    members = {}
-                    break
+                    if user.userprofile.user_type == 'marketplace_user':
+                        src_stocks = temp_sku_stocks.filter(sellerstock__seller__seller_id=1, sku_id=combo.member_sku_id,
+                                                            **sku_id_stock_filter).distinct()
+                        if src_stocks:
+                            src_sku_id_stocks = src_stocks.values('id', 'sku_id').annotate(
+                                total=Sum('sellerstock__quantity')). \
+                                order_by(order_by)
+                            src_val_dict = prepare_picklist_val_dict(user, src_sku_id_stocks,
+                                                                     is_seller_order, add_mrp_filter)
+                            src_stock_detail, src_stock_quantity, src_sku_code = get_sku_stock(combo.member_sku, src_stocks,
+                                                                                               user, src_val_dict,
+                                                                                               src_sku_id_stocks)
+                            total_sellers_qty = src_stock_quantity + stock_quantity
+                            sellers_diff_qty = member_check_quantity - stock_quantity
+                            if sellers_diff_qty <= 0:
+                                log.info("Found the sellers quantity difference")
+                                continue
+                            if total_sellers_qty < float(member_check_quantity):
+                                stock_status.append(str(combo.member_sku.sku_code))
+                                members = {}
+                                break
+                        else:
+                            stock_status.append(str(combo.member_sku.sku_code))
+                            members = {}
+                            break
+
+
+                    else:
+                        stock_status.append(str(combo.member_sku.sku_code))
+                        members = {}
+                        break
 
     for member, member_qty in members.iteritems():
+        if add_mrp_filter:
+            needed_mrp_filter = sku_mrp_dict[member.id]
         stock_detail, stock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
                                                                sku_id_stocks, add_mrp_filter=add_mrp_filter,
                                                                needed_mrp_filter=needed_mrp_filter)
@@ -140,13 +179,14 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
             stock_quantity += stock_quantity1
         elif order.sku.relation_type == 'combo' and not combo_allocate_stock:
             stock_detail, stock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
-                                                                   sku_id_stocks)
+                                                                   sku_id_stocks, add_mrp_filter=add_mrp_filter,
+                                                               needed_mrp_filter=needed_mrp_filter)
 
         order_quantity = member_qty
         if stock_quantity < float(order_quantity):
             is_seller_stock_updated = False
             if seller_order:
-                src_stocks = temp_sku_stocks.filter(sellerstock__seller__seller_id=1, **sku_id_stock_filter).distinct()
+                src_stocks = temp_sku_stocks.filter(sellerstock__seller__seller_id=1, sku_id=member.id,**sku_id_stock_filter).distinct()
                 if src_stocks:
                     src_sku_id_stocks = src_stocks.values('id', 'sku_id').annotate(total=Sum('sellerstock__quantity')).\
                                                                                     order_by(order_by)
@@ -216,6 +256,7 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
             rto_stocks = stock_detail.filter(location__zone__zone='RTO_ZONE')
             stock_detail = list(chain(rto_stocks, stock_detail))
         for stock in stock_detail:
+            stock.refresh_from_db()
             stock_count, stock_diff = get_stock_count(order, stock, stock_diff, user, order_quantity)
             if not stock_count:
                 continue
@@ -275,6 +316,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write("Started Updating")
         users = User.objects.filter(username__in=['NOIDA02', 'NOIDA01', 'BLR01', 'HYD01', 'GGN01'])
+        #users = User.objects.filter(username__in=['NOIDA02'])
         log.info(str(datetime.datetime.now()))
         for user in users:
             picklist_exclude_zones = get_exclude_zones(user)

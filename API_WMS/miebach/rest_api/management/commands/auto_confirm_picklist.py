@@ -102,10 +102,21 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
             sku_id_stock_filter['batch_detail__mrp__in'] = needed_mrp_filter
     if seller_order:
         temp_sku_stocks = sku_stocks
-        sku_stocks = sku_stocks.filter(sellerstock__seller_id=seller_order.seller_id)
+        sku_stocks = sku_stocks.filter(sellerstock__seller_id=seller_order.seller_id).distinct()
     if seller_master_id:
-        sku_id_stocks = sku_stocks.filter(sellerstock__seller_id=seller_master_id, **sku_id_stock_filter).values('id', 'sku_id'). \
-            annotate(total=Sum('sellerstock__quantity')).order_by(order_by)
+        seller_filter_dict = {}
+        for stock_filter_key, stock_filter_val in sku_id_stock_filter.iteritems():
+            seller_filter_dict['%s__%s' % ('stock', str(stock_filter_key))] = stock_filter_val
+        seller_id_stocks = SellerStock.objects.filter(stock_id__in=sku_stocks.values_list('id', flat=True),
+                                                      seller_id=seller_master_id, **seller_filter_dict)
+        sku_id_stocks_dict = OrderedDict()
+        for seller_id_stock in seller_id_stocks:
+            sku_id_stocks_dict.setdefault(seller_id_stock.stock_id, {'total': 0, 'sku_id': seller_id_stock.stock.sku_id,
+                                  'id': seller_id_stock.stock_id})
+            sku_id_stocks_dict[seller_id_stock.stock_id]['total'] += seller_id_stock.quantity
+        sku_id_stocks = sku_id_stocks_dict.values()
+        # sku_id_stocks = sku_stocks.filter(sellerstock__seller_id=seller_master_id, **sku_id_stock_filter).values('id', 'sku_id'). \
+        #     annotate(total=Sum('sellerstock__quantity')).order_by(order_by)
     else:
         sku_id_stocks = sku_stocks.filter(**sku_id_stock_filter).values('id', 'sku_id'). \
             annotate(total=Sum('quantity')).order_by(order_by)
@@ -137,9 +148,22 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
                         src_stocks = temp_sku_stocks.filter(sellerstock__seller__seller_id=1, sku_id=combo.member_sku_id,
                                                             **sku_id_stock_filter).distinct()
                         if src_stocks:
-                            src_sku_id_stocks = src_stocks.values('id', 'sku_id').annotate(
-                                total=Sum('sellerstock__quantity')). \
-                                order_by(order_by)
+                            # src_sku_id_stocks = src_stocks.values('id', 'sku_id').annotate(
+                            #     total=Sum('sellerstock__quantity')). \
+                            #     order_by(order_by)
+                            # seller_filter_dict = {}
+                            # for stock_filter_key, stock_filter_val in sku_id_stock_filter.iteritems():
+                            #     seller_filter_dict['%s__%s' % ('stock', str(stock_filter_key))] = stock_filter_val
+                            seller_id_stocks = SellerStock.objects.filter(
+                                stock_id__in=src_stocks.values_list('id', flat=True),
+                                seller_id=seller_master_id, **seller_filter_dict)
+                            src_sku_id_stocks_dict = OrderedDict()
+                            for seller_id_stock in seller_id_stocks:
+                                src_sku_id_stocks_dict.setdefault(seller_id_stock.stock_id,
+                                                              {'total': 0, 'sku_id': seller_id_stock.stock.sku_id,
+                                                               'id': seller_id_stock.stock_id})
+                                src_sku_id_stocks_dict[seller_id_stock.stock_id]['total'] += seller_id_stock.quantity
+                            src_sku_id_stocks = src_sku_id_stocks_dict.values()
                             src_val_dict = prepare_picklist_val_dict(user, src_sku_id_stocks,
                                                                      is_seller_order, add_mrp_filter)
                             src_stock_detail, src_stock_quantity, src_sku_code = get_sku_stock(combo.member_sku, src_stocks,
@@ -186,10 +210,21 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
         if stock_quantity < float(order_quantity):
             is_seller_stock_updated = False
             if seller_order:
+                import pdb;pdb.set_trace()
                 src_stocks = temp_sku_stocks.filter(sellerstock__seller__seller_id=1, sku_id=member.id,**sku_id_stock_filter).distinct()
                 if src_stocks:
-                    src_sku_id_stocks = src_stocks.values('id', 'sku_id').annotate(total=Sum('sellerstock__quantity')).\
-                                                                                    order_by(order_by)
+                    seller_id_stocks = SellerStock.objects.filter(
+                        stock_id__in=src_stocks.values_list('id', flat=True),
+                        seller__seller_id=1, **seller_filter_dict)
+                    src_sku_id_stocks_dict = OrderedDict()
+                    for seller_id_stock in seller_id_stocks:
+                        src_sku_id_stocks_dict.setdefault(seller_id_stock.stock_id,
+                                                          {'total': 0, 'sku_id': seller_id_stock.stock.sku_id,
+                                                           'id': seller_id_stock.stock_id})
+                        src_sku_id_stocks_dict[seller_id_stock.stock_id]['total'] += seller_id_stock.quantity
+                    src_sku_id_stocks = src_sku_id_stocks_dict.values()
+                    # src_sku_id_stocks = src_stocks.values('id', 'sku_id').annotate(total=Sum('sellerstock__quantity')).\
+                    #                                                                 order_by(order_by)
                     src_val_dict = prepare_picklist_val_dict(user, src_sku_id_stocks,
                                                              is_seller_order, add_mrp_filter)
                     src_stock_detail, src_stock_quantity, src_sku_code = get_sku_stock(member, src_stocks,

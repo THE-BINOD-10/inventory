@@ -1815,7 +1815,7 @@ def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_i
     #         return 'Source Quantity reserved for Picklist'
 
     stock_dict['location_id'] = dest[0].id
-    dest_stocks = StockDetail.objects.filter(**stock_dict)
+    dest_stocks = StockDetail.objects.filter(**stock_dict).distinct()
 
     dest_batch = update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
                        dest_seller_id=seller_id)

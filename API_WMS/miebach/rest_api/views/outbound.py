@@ -440,7 +440,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
             if not prepare_str and picklist_obj[0].order:
                 order_id = picklist_obj[0].order.original_order_id
                 if admin_user.username == 'isprava_admin':
-                    project_details = IntermediateOrders.objects.filter(order__order_id = picklist_obj[0].order.order_id, user_id = admin_user.id).values('project_name')
+                    project_details = IntermediateOrders.objects.filter(order__order_id = picklist_obj[0].order.order_id, order_assigned_wh= user.id).values('project_name')
                     if project_details.exists():
                         project_name = project_details[0]['project_name']
                 if order_id:
@@ -4406,7 +4406,7 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
         elif key == 'del_date':
             value = myDict[key][i]
             if value:
-                order_data[key] = datetime.datetime.strptime(value, '%d/%m/%Y')
+                order_data[key] = datetime.datetime.strptime(value, '%d/%m/%Y').date()
         elif key == 'payment_modes' :
             if not payment_mode :
                 payment_dict = myDict['payment_modes'][0]
@@ -4543,7 +4543,7 @@ def create_central_order(request, user):
         return HttpResponse('Failed')
     project_name = request.POST.get('client_name', '') #Corporates In SM is used as Projects for ISPRAVA
     ship_date = ship_date.split('/')
-    shipment_date = datetime.date(int(ship_date[2]), int(ship_date[0]), int(ship_date[1]))
+    shipment_date = datetime.date(int(ship_date[2]), int(ship_date[1]), int(ship_date[0]))
     cart_items = CustomerCartData.objects.filter(customer_user_id=customer_id)
     if not cart_items:
         return HttpResponse('No Data in Cart')

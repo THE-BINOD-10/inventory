@@ -8716,7 +8716,7 @@ def prepare_rtv_json_data(request_data, user):
     for ind in range(0, len(request_data['summary_id'])):
         data_dict = {}
         if 'rtv_id' in request_data:
-            data_dict['rtv_id'] = request_data['rtv_id'][ind]
+            data_dict['rtv_id'] = request_data['rtv_id'][0]
         if 'rtv_reasons' in request_data:
             data_dict['rtv_reasons'] = request_data['rtv_reasons'][ind]
         if request_data['location'][ind] and request_data['return_qty'][ind]:

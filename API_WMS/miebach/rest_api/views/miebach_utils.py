@@ -1616,6 +1616,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_order_flow_report':'get_orderflow_data',
                         'get_basa_report':'get_basa_report_data',
                         'get_move_inventory_report':'get_move_inventory_report_data',
+                        'get_financial_report':'get_financial_report_data',
                         }
 # End of Download Excel Report Mapping
 
@@ -3762,7 +3763,9 @@ def get_financial_report_data(search_params, user, sub_user):
 
     lis = ['']
     start_index = search_params.get('start', 0)
-    stop_index = start_index + search_params.get('length', 0)
+    stop_index = None
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     fields_parameters = OrderedDict()

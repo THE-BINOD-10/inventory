@@ -1131,7 +1131,7 @@ def insert_move_inventory(request, user=''):
         if not mrp or not weight :
             return HttpResponse("MRP and Weight are Mandatory")
 
-    status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id, batch_no=batch_no, mrp=mrp,weight=weight)
+    status = move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id, batch_no=batch_no, mrp=mrp,weight=weight)
     if 'success' in status.lower():
         update_filled_capacity([source_loc, dest_loc], user.id)
 
@@ -3208,7 +3208,7 @@ def ba_to_sa_calculate_now(request, user=''):
                 sku_rep_dict = replenish_dict.get((data.sku_size, classification), {})
                 if not sku_rep_dict:
                 #if not replenishment_obj.exists():
-                    remarks = 'Replenushment Master Not Found'
+                    #remarks = 'Replenushment Master Not Found'
                     # min_days, max_days, min_stock, max_stock = 0, 0, 0, 0
                     min_stock = 20
                     max_stock = 30

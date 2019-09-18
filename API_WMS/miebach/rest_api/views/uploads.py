@@ -2763,9 +2763,10 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     cell_data = str(int(cell_data))
                 data_dict[key] = cell_data
 
-            elif  key == 'mrp' and  user.username in MILKBASKET_USERS :
-                if not cell_data :
-                    index_status.setdefault(row_idx, set()).add('mrp is mandatory')
+            # elif key == 'mrp' and user.username in MILKBASKET_USERS :
+            #     if not cell_data :
+            #         index_status.setdefault(row_idx, set()).add('MRP is mandatory')
+            #     data_dict[key] = cell_data
             elif key in fields:
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
@@ -3761,8 +3762,8 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                         index_status.setdefault(row_idx, set()).add('Invalid MRP')
             elif key == 'weight' :
                 data_dict[key] = cell_data
-                if user.username in MILKBASKET_USERS and not cell_data:
-                    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
+                #if user.username in MILKBASKET_USERS and not cell_data:
+                #    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
             else:
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
@@ -5673,9 +5674,9 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                     data_dict[key] = str(int(cell_data))
                 else:
                     data_dict[key] = str(cell_data)
-            elif key in ['source_quantity','dest_quantity']:
-                if not cell_data:
-                    index_status.setdefault(row_idx, set()).add('Quantity should not be zero')
+            #elif key in ['source_quantity','dest_quantity']:
+            #    if not cell_data:
+            #        index_status.setdefault(row_idx, set()).add('Quantity should not be zero')
             elif key in number_fields:
                 if key in ['source_mrp','dest_mrp'] :
                     if user.username in MILKBASKET_USERS and not cell_data:

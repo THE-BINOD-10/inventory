@@ -2249,16 +2249,25 @@ def picklist_confirmation(request, user=''):
                     for stock in total_stock:
 
                         update_picked = 0
-                        pre_stock = float(stock.quantity)
+                        if user.userprofile.user_type == 'marketplace_user' and picklist.order:
+                            seller_order = picklist.order.sellerorder_set.filter()
+                            if seller_order:
+                                stock_quantity = SellerStock.objects.filter(stock_id=stock.id, seller_id=seller_order[0].seller_id,
+                                                                        quantity__gt=0).aggregate(Sum('quantity'))['quantity__sum']
+                                if not stock_quantity:
+                                    stock_quantity = 0
+                        else:
+                            stock_quantity = stock.quantity
+                        pre_stock = float(stock_quantity)
                         if picking_count == 0:
                             break
 
-                        if picking_count > stock.quantity:
-                            update_picked = float(stock.quantity)
-                            picking_count -= stock.quantity
-                            picklist.reserved_quantity -= stock.quantity
+                        if picking_count > stock_quantity:
+                            update_picked = float(stock_quantity)
+                            picking_count -= stock_quantity
+                            picklist.reserved_quantity -= stock_quantity
 
-                            stock.quantity = 0
+                            stock.quantity = stock.quantity - stock_quantity
                         else:
                             update_picked = picking_count
                             stock.quantity -= picking_count

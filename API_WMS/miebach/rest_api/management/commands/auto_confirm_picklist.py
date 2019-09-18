@@ -108,7 +108,7 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
         for stock_filter_key, stock_filter_val in sku_id_stock_filter.iteritems():
             seller_filter_dict['%s__%s' % ('stock', str(stock_filter_key))] = stock_filter_val
         seller_id_stocks = SellerStock.objects.filter(stock_id__in=sku_stocks.values_list('id', flat=True),
-                                                      seller_id=seller_master_id, **seller_filter_dict)
+                                                      seller_id=seller_master_id, quantity__gt=0, **seller_filter_dict)
         sku_id_stocks_dict = OrderedDict()
         for seller_id_stock in seller_id_stocks:
             sku_id_stocks_dict.setdefault(seller_id_stock.stock_id, {'total': 0, 'sku_id': seller_id_stock.stock.sku_id,
@@ -156,7 +156,7 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
                             #     seller_filter_dict['%s__%s' % ('stock', str(stock_filter_key))] = stock_filter_val
                             seller_id_stocks = SellerStock.objects.filter(
                                 stock_id__in=src_stocks.values_list('id', flat=True),
-                                seller_id=seller_master_id, **seller_filter_dict)
+                                seller__seller_id=1, quantity__gt=0, **seller_filter_dict)
                             src_sku_id_stocks_dict = OrderedDict()
                             for seller_id_stock in seller_id_stocks:
                                 src_sku_id_stocks_dict.setdefault(seller_id_stock.stock_id,
@@ -214,7 +214,7 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
                 if src_stocks:
                     seller_id_stocks = SellerStock.objects.filter(
                         stock_id__in=src_stocks.values_list('id', flat=True),
-                        seller__seller_id=1, **seller_filter_dict)
+                        seller__seller_id=1, quantity__gt=0, **seller_filter_dict)
                     src_sku_id_stocks_dict = OrderedDict()
                     for seller_id_stock in seller_id_stocks:
                         src_sku_id_stocks_dict.setdefault(seller_id_stock.stock_id,
@@ -291,7 +291,10 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
             stock_detail = list(chain(rto_stocks, stock_detail))
         for stock in stock_detail:
             stock.refresh_from_db()
-            stock_count, stock_diff = get_stock_count(order, stock, stock_diff, user, order_quantity)
+            seller_master_id = ''
+            if seller_order:
+                seller_master_id = seller_order.seller_id
+            stock_count, stock_diff = get_stock_count(order, stock, stock_diff, user, order_quantity, seller_master_id=seller_master_id)
             if not stock_count:
                 continue
 

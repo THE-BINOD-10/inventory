@@ -6847,14 +6847,19 @@ def get_sku_stock(sku, sku_stocks, user, val_dict, sku_id_stocks='', add_mrp_fil
     return stock_detail, stock_count, sku.wms_code
 
 
-def get_stock_count(order, stock, stock_diff, user, order_quantity, prev_reserved=False):
+def get_stock_count(order, stock, stock_diff, user, order_quantity, prev_reserved=False, seller_master_id=''):
     reserved_quantity = \
     PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id).aggregate(
         Sum('reserved'))['reserved__sum']
     if not reserved_quantity:
         reserved_quantity = 0
 
-    stock_quantity = float(stock.quantity) - reserved_quantity
+    if seller_master_id:
+        stock_quantity = SellerStock.objects.filter(stock_id=stock.id, seller_id=seller_master_id).aggregate(Sum('quantity'))['quantity__sum']
+        if not stock_quantity:
+            stock_quantity = 0
+    else:
+        stock_quantity = float(stock.quantity) - reserved_quantity
     # if prev_reserved:
     #    if stock_quantity >= 0:
     #        #return order_quantity, 0

@@ -1815,7 +1815,7 @@ def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_i
     #         return 'Source Quantity reserved for Picklist'
 
     stock_dict['location_id'] = dest[0].id
-    dest_stocks = StockDetail.objects.filter(**stock_dict)
+    dest_stocks = StockDetail.objects.filter(**stock_dict).distinct()
 
     dest_batch = update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
                        dest_seller_id=seller_id)
@@ -1970,6 +1970,8 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                                                        stock=stock, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
         if not stocks:
             batch_dict = {}
+            stock_dict1 = copy.deepcopy(stock_dict)
+            del stock_dict1['quantity__gt']
             if batch_no:
                 batch_dict = {'batch_no': batch_no}
                 del stock_dict["batch_detail__batch_no"]
@@ -1981,7 +1983,12 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                 del stock_dict["batch_detail__weight"]
             if 'sellerstock__seller_id' in stock_dict.keys():
                 del stock_dict['sellerstock__seller_id']
-            if batch_dict.keys():
+            latest_stock = StockDetail.objects.filter(**stock_dict1)
+            if latest_stock.exists():
+                latest_stock_obj = latest_stock.latest('id')
+                batch_obj = latest_stock_obj.batch_detail
+                stock_dict["batch_detail_id"] = batch_obj.id
+            elif batch_dict.keys():
                 batch_obj = BatchDetail.objects.create(**batch_dict)
                 stock_dict["batch_detail_id"] = batch_obj.id
             if pallet:
@@ -4212,7 +4219,11 @@ def get_sku_master(user, sub_user, is_list=''):
         sku_master = SKUMaster.objects.filter(user__in=user)
     sku_master_ids = sku_master.values_list('id', flat=True)
     if not sub_user.is_staff:
-        sub_user_groups = sub_user.groups.filter().exclude(name=user.username).values_list('name', flat=True)
+        if is_list:
+            usernames = list(User.objects.filter(id__in=user).values_list('username', flat=True))
+            sub_user_groups = sub_user.groups.filter().exclude(name__in=usernames).values_list('name', flat=True)
+        else:
+            sub_user_groups = sub_user.groups.filter().exclude(name=user.username).values_list('name', flat=True)
         brands_list = GroupBrand.objects.filter(group__name__in=sub_user_groups).values_list('brand_list__brand_name',
                                                                                              flat=True)
         if not 'All' in brands_list:
@@ -6824,7 +6835,7 @@ def get_sku_stock(sku, sku_stocks, user, val_dict, sku_id_stocks='', add_mrp_fil
         order_by = 'location_id__pick_sequence'
     if add_mrp_filter and needed_mrp_filter:
         data_dict['batch_detail__mrp'] = needed_mrp_filter
-    stock_detail = sku_stocks.filter(**data_dict).order_by(order_by)
+    stock_detail = sku_stocks.filter(**data_dict).order_by(order_by).distinct()
     stock_count = 0
     if sku.id in val_dict['sku_ids']:
         indices = [i for i, x in enumerate(sku_id_stocks) if x['sku_id'] == sku.id]
@@ -6928,8 +6939,20 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                 needed_mrp_filter = order.customerordersummary_set.filter()[0].mrp
                 sku_id_stock_filter['batch_detail__mrp'] = needed_mrp_filter
         if seller_master_id:
-            sku_id_stocks = sku_stocks.filter(sellerstock__seller_id=seller_master_id, **sku_id_stock_filter).values('id', 'sku_id').\
-                                        annotate(total=Sum('sellerstock__quantity')).order_by(order_by)
+            seller_filter_dict = {}
+            for stock_filter_key, stock_filter_val in sku_id_stock_filter.iteritems():
+                seller_filter_dict['%s__%s' % ('stock', str(stock_filter_key))] = stock_filter_val
+            seller_id_stocks = SellerStock.objects.filter(stock_id__in=sku_stocks.values_list('id', flat=True),
+                                                          seller_id=seller_master_id, **seller_filter_dict)
+            sku_id_stocks_dict = OrderedDict()
+            for seller_id_stock in seller_id_stocks:
+                sku_id_stocks_dict.setdefault(seller_id_stock.stock_id,
+                                              {'total': 0, 'sku_id': seller_id_stock.stock.sku_id,
+                                               'id': seller_id_stock.stock_id})
+                sku_id_stocks_dict[seller_id_stock.stock_id]['total'] += seller_id_stock.quantity
+            sku_id_stocks = sku_id_stocks_dict.values()
+            # sku_id_stocks = sku_stocks.filter(sellerstock__seller_id=seller_master_id, **sku_id_stock_filter).values('id', 'sku_id').\
+            #                             annotate(total=Sum('sellerstock__quantity')).order_by(order_by)
         else:
             sku_id_stocks = sku_stocks.filter(**sku_id_stock_filter).values('id', 'sku_id').\
                                         annotate(total=Sum('quantity')).order_by(order_by)
@@ -7541,7 +7564,7 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
                          order_summary_dict, ship_to, corporate_po_number, client_name, admin_user, sku_total_qty_map,
                          order_user_sku, order_user_objs, address_selected=''):
     if order_data.get('del_date', ''):
-        if order_data['del_date'] >= order_data['shipment_date']:
+        if order_data['del_date'].date() >= order_data['shipment_date']:
             order_data['shipment_date'] = order_data.get('del_date', '')
         else:
             order_data['del_date'] = order_data['shipment_date']

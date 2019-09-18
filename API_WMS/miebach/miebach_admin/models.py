@@ -2032,7 +2032,8 @@ class SellerStock(models.Model):
     class Meta:
         db_table = 'SELLER_STOCK'
         unique_together = ('seller', 'stock', 'seller_po_summary')
-        index_together = (('seller', 'stock', 'seller_po_summary'), ('seller', 'stock'), ('seller', 'stock', 'quantity'))
+        index_together = (('seller', 'stock', 'seller_po_summary'), ('seller', 'stock'), ('seller', 'stock', 'quantity'),
+                            ('stock',))
 
 
 class SellerMarginMapping(models.Model):
@@ -3237,6 +3238,28 @@ class StockReconciliation(models.Model):
     class Meta:
         db_table = 'STOCK_RECONCILIATION'
         unique_together = ('sku', 'mrp', 'weight', 'creation_date')
+        index_together = (('sku', 'mrp', 'weight', 'creation_date'),)
+
+
+class StockReconciliationFields(models.Model):
+    id = BigAutoField(primary_key=True)
+    stock_reconciliation = models.ForeignKey(StockReconciliation, blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    field_type = models.CharField(max_length=32, default='')
+    price_before_tax = models.FloatField(default=0)
+    value_before_tax = models.FloatField(default=0)
+    value_after_tax = models.FloatField(default=0)
+    cgst_tax = models.FloatField(default=0)
+    sgst_tax = models.FloatField(default=0)
+    igst_tax = models.FloatField(default=0)
+    cess_tax = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'STOCK_RECONCILIATION_FIELDS'
+        index_together = ('stock_reconciliation', 'field_type')
+
 
 class MiscDetailOptions(models.Model):
     id = BigAutoField(primary_key=True)

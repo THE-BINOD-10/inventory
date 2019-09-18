@@ -8712,13 +8712,14 @@ def get_debit_note_data(rtv_number, user):
 
 
 def prepare_rtv_json_data(request_data, user):
+    import pdb; pdb.set_trace()
     data_list = []
     for ind in range(0, len(request_data['summary_id'])):
         data_dict = {}
         if 'rtv_id' in request_data:
-            data_dict['rtv_id'] = request_data['rtv_id'][0]
+            data_dict['rtv_id'] = request_data['rtv_id'][ind]
         if 'rtv_reasons' in request_data:
-            data_dict['rtv_reasons'] = request_data['rtv_reasons'][ind]
+            data_dict['rtv_reasons'] = request_data['rtv_reasons'][0]
         if request_data['location'][ind] and request_data['return_qty'][ind]:
             quantity = float(request_data['return_qty'][ind])
             seller_summary = SellerPOSummary.objects.get(id=request_data['summary_id'][ind])

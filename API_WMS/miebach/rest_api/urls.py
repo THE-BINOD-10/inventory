@@ -512,7 +512,11 @@ urlpatterns = [
     url(r'^print_bulk_to_retail_report/$', print_bulk_to_retail_report),
     url(r'^get_stock_cover_report/$', get_stock_cover_report),
     url(r'^print_stock_cover_report/$', print_stock_cover_report),
+    url(r'^get_order_flow_report/$', get_order_flow_report),
+    url(r'^print_order_flow_report/$', print_order_flow_report),
     url(r'^get_move_inventory_report/$', get_move_inventory_report),
+    url(r'^get_financial_report/$', get_financial_report),
+    url(r'^print_financial_report_report/$', print_financial_report_report),
 ]
 
 # urlpatterns += patterns('rest_api.views',
@@ -687,7 +691,7 @@ urlpatterns += [
     url(r'^picklist_delete/$', picklist_delete),
     url(r'^delete_order_data/$', delete_order_data),
     url(r'^order_delete/$', order_delete),
-
+    url(r'^delete_central_order/$', delete_central_order),
     # uploads
     url(r'sales_returns_upload/$', sales_returns_upload),
     url(r'sales_returns_form/$', sales_returns_form),

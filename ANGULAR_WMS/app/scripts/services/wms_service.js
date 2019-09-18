@@ -128,7 +128,13 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         send.empty_data[data.name] = ""
       });
 
-      send.empty_data.from_date = new Date(new Date().getFullYear(), new Date().getMonth() - 1, new Date().getDate()).toLocaleDateString('en-US');
+      var report_name = Object.keys(vm.reports)
+      if (report_name.includes('financial_report')){
+        send.empty_data.from_date = ''
+      }
+      else{
+        send.empty_data.from_date = new Date(new Date().getFullYear(), new Date().getMonth() - 1, new Date().getDate()).toLocaleDateString('en-US');
+      }
       send.empty_data.to_date = ''
 
       send.dtOptions = DTOptionsBuilder.newOptions()

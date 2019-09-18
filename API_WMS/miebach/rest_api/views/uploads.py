@@ -2649,6 +2649,7 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
     data_list = []
     purchase_mapping = get_purchase_order_excel_headers(user)
     misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='po_fields')
+    fields = []
     if misc_detail.exists():
         fields = misc_detail[0].misc_value.lower().split(',')
     purchase_res = dict(zip(purchase_mapping.values(), purchase_mapping.keys()))
@@ -4935,14 +4936,41 @@ def validate_po_serial_mapping(request, reader, user, no_of_rows, fname, file_ty
                         index_status.setdefault(count, set()).add('Invalid Location')
                 if location_master:
                     po_details['location_id'] = location_master[0].id
-
             elif key == 'unit_price':
                 try:
                     value = float(value)
                 except:
                     value = 0
                 po_details['unit_price'] = value
-
+            elif key == 'po_reference_no':
+                try:
+                    value = str(value)
+                except:
+                    value = ''
+                po_details['po_reference_no'] = value
+            elif key == 'invoice_num':
+                try:
+                    value = str(value)
+                except:
+                    value = ''
+                po_details['invoice_num'] = value
+            elif key == 'lr_number':
+                try:
+                    value = str(value)
+                except:
+                    value = ''
+                po_details['lr_number'] = value
+            elif key in ['cgst_tax', 'sgst_tax', 'igst_tax']:
+                try:
+                    po_details[key] = float(value)
+                except:
+                    po_details[key] = 0
+            elif key == 'process_date':
+                try:
+                    year, month, day, hour, minute, second = xldate_as_tuple(value, 0)
+                    po_details['process_date'] = datetime.datetime(year, month, day, hour, minute, second)
+                except:
+                    po_details['process_date'] = datetime.datetime.now()
             elif key == 'imei_number':
                 imei_number = ''
                 try:
@@ -4985,11 +5013,19 @@ def create_po_serial_mapping(final_data_dict, user):
     for key, value in final_data_dict.iteritems():
         quantity = len(value['imei_list'])
         po_details = value['po_details']
+        if po_details['process_date']:
+            NOW = po_details['process_date']
+        if po_details['invoice_num']:
+            invoice_num = po_details['invoice_num']
+        if po_details['lr_number']:
+            lr_number = po_details['lr_number']
         location_master = LocationMaster.objects.get(id=po_details['location_id'], zone__user=user.id)
         sku = SKUMaster.objects.get(id=po_details['sku_id'], user=user.id)
-        open_po_dict = {'creation_date': NOW, 'order_quantity': quantity,
+        open_po_dict = {'creation_date': NOW, 'order_quantity': quantity, 'po_name': po_details['po_reference_no'],
                         'price': po_details['unit_price'], 'status': 0, 'sku_id': po_details['sku_id'],
-                        'supplier_id': po_details['supplier_id'], 'measurement_unit': sku.measurement_type}
+                        'supplier_id': po_details['supplier_id'],'igst_tax': po_details['igst_tax'],
+                        'cgst_tax': po_details['cgst_tax'],'sgst_tax': po_details['sgst_tax'],
+                         'measurement_unit': sku.measurement_type}
         open_po_obj = OpenPO(**open_po_dict)
         open_po_obj.save()
         order_id = order_id_dict.get(po_details['supplier_id'], '')
@@ -5000,20 +5036,35 @@ def create_po_serial_mapping(final_data_dict, user):
             order_id_dict[po_details['supplier_id']] = order_id
         purchase_order_dict = {'open_po_id': open_po_obj.id, 'received_quantity': quantity, 'saved_quantity': 0,
                                'po_date': NOW, 'status': po_details['status'], 'prefix': user_profile.prefix,
-                               'order_id': order_id, 'creation_date': NOW}
+                               'order_id': order_id, 'creation_date': NOW,'updation_date':NOW}
         purchase_order = PurchaseOrder(**purchase_order_dict)
         purchase_order.save()
+        if lr_number:
+            lr_details = LRDetail(lr_number=lr_number, quantity=quantity,
+                                  creation_date=NOW, updation_date=NOW,
+                                  purchase_order_id=purchase_order.id)
+            lr_details.save()
+        if invoice_num:
+            seller_po_summary = SellerPOSummary.objects.create(quantity=quantity,
+                                                                invoice_number = invoice_num,
+                                                                invoice_date = NOW,
+                                                                receipt_number=receipt_number,
+                                                                putaway_quantity=quantity,
+                                                                location_id=None,
+                                                                purchase_order_id=purchase_order.id,
+                                                                creation_date=NOW)
+
         imei_nos = ','.join(value['imei_list'])
         insert_po_mapping(imei_nos, purchase_order, user.id)
 
         po_location_dict = {'creation_date': NOW, 'status': 0, 'quantity': 0, 'original_quantity': quantity,
-                            'location_id': po_details['location_id'], 'purchase_order_id': purchase_order.id}
+                            'location_id': po_details['location_id'], 'purchase_order_id': purchase_order.id, 'updation_date':NOW}
         po_location = POLocation(**po_location_dict)
         po_location.save()
         stock_dict = StockDetail.objects.create(receipt_number=receipt_number, receipt_date=NOW, quantity=quantity,
                                                 status=1, location_id=po_details['location_id'],
                                                 sku_id=po_details['sku_id'],
-                                                receipt_type='purchase order', creation_date=NOW)
+                                                receipt_type='purchase order', creation_date=NOW, updation_date=NOW)
         # SKU Stats
         save_sku_stats(user, stock_dict.sku_id, purchase_order.id, 'po', quantity, stock_dict)
         mod_locations.append(location_master.location)
@@ -6671,7 +6722,7 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                                 if avail_stock < cell_data:
                                     index_status.setdefault(row_idx, set()).add('Stock Outage.Pls check stock in WH')
                             elif level == 3:
-                                asn_avail_stock = ret_list[0]['asn']
+                                asn_avail_stock = ret_list[0]['asn'] + ret_list[0]['non_kitted']
                                 if asn_avail_stock < cell_data:
                                     index_status.setdefault(row_idx, set()).add('Stock Outage.Pls check stock in WH')
             elif key == 'reseller_name':

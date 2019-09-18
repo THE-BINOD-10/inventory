@@ -355,7 +355,7 @@
               </div>
             </div>
           </div>
-          <div class="row" style="padding-top: 35px;">
+          <div class="row" style="padding-top: 35px;"  ng-show="showCase.central_po">
               <div class="form-group col-md-3">
                 <div>File Upload</div>
                  <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 250px;">Choose File
@@ -388,11 +388,13 @@
       <!-- body end-->
       <div class="modal-footer">
         <button ng-if="(!(showCase.print_enable))" type="button" class="pull-left btn pop pop-green col-xs-12 col-sm-3 col-md-2" ng-click="showCase.close_po(form)">Close PO</button>
+        <div ng-show="showCase.central_po" >
         <button ng-if="(!(showCase.print_enable)) && !showCase.display_approval_button" type="button" class="btn pop pop-green pull-right col-xs-12 col-sm-3 col-md-2" ng-click="showCase.submit(form)">Save</button>
         <button ng-if="(!(showCase.print_enable)) && showCase.display_approval_button" type="button" class="btn pop pop-green pull-right col-xs-12 col-sm-3 col-md-2" ng-click="showCase.submit(form)">Send for Approval</button>
         <button ng-if="(!(showCase.print_enable)) && !showCase.display_approval_button" type="button" class="btn pop pop-normal pull-right col-xs-12 col-sm-4 col-md-3" data-dismiss="modal" ng-click="showCase.confirm_grn(form)">Generate GRN</button>
         <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green pull-right" ng-click="showCase.print_grn()">Print</button>
         <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
+      </div>
       </div>
     </div>
     <!-- /.modal-content -->

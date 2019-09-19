@@ -48,7 +48,7 @@
                       <div>{{record.sku_code}}
                         <!-- this is for 72networks -->
                         {% if record.imeis   %}
-                         {% if record.quantity == 1 %}
+                         {% if record.quantity == record.imeis|length %}
                          {% for imei in record.imeis %}
                         <br><span class="tax-percentage">({{ imei }})</span>
                           {% endfor %}

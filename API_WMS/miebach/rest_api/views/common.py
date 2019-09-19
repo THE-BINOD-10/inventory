@@ -1987,7 +1987,8 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
             if latest_stock.exists():
                 latest_stock_obj = latest_stock.latest('id')
                 batch_obj = latest_stock_obj.batch_detail
-                stock_dict["batch_detail_id"] = batch_obj.id
+                if batch_obj:
+                    stock_dict["batch_detail_id"] = batch_obj.id
             elif batch_dict.keys():
                 batch_obj = BatchDetail.objects.create(**batch_dict)
                 stock_dict["batch_detail_id"] = batch_obj.id

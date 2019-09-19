@@ -6372,7 +6372,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
 
     enquired_sku_qs = EnquiredSku.objects.filter(**search_parameters)
     enq_ids = enquired_sku_qs.values_list('id', flat=True)
-    asn_res_qs = ASNReserveDetail.objects.filter(enquirydetail_id__in=enq_ids, enquirydetail__warehouse_level=1)
+    asn_res_qs = ASNReserveDetail.objects.filter(enquirydetail_id__in=enq_ids, enquirydetail__warehouse_level=1, reserved_qty__gt=0)
     temp_data['recordsTotal'] = enquired_sku_qs.count() + asn_res_qs.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     if stop_index:

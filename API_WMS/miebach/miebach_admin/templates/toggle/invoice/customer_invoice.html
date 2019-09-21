@@ -1,3 +1,11 @@
+      <style>
+      table {
+        border-collapse: collapse;
+      }
+      table, td, th {
+        border: 1px solid black;
+      }
+      </style>
       {% load tag_extras %}
 
       {% for title in titles %}
@@ -9,7 +17,7 @@
             <div class="invoice-body">
                 {% include "toggle/invoice/normal_details.html" %}
 
-              <table class="table table-bordered table-responsive bl br cal-table m0">
+              <table>
                 <thead>
                   <tr class="fs14">
                     {% if show_sno == 'true' %}
@@ -106,7 +114,7 @@
                         {% endfor %}
                       </tr>
                     {% else %}
-                      <tr class="rm-border" style="height: 38px;" ng-repeat="empty in page.empty_data">
+                      <tr class="rm-border" style="height: 41px;" ng-repeat="empty in page.empty_data">
                         {% for td in html_data.empty_tds %}
                         <td><p style="height:10px"></p></td>
                         {% endfor %}

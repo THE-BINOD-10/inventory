@@ -6689,7 +6689,7 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add("Quantity Missing")
                 else:
-                    if not isinstance(cell_data, (int, float)):
+                    if not isinstance(cell_data, (int, float)) and cell_data < 0:
                         index_status.setdefault(row_idx, set()).add('Invalid Quantity Amount')
                     else:
                         sku_code = get_cell_data(row_idx, blockstock_file_mapping['sku_code'], reader, file_type)
@@ -6698,12 +6698,12 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                         usr_obj = User.objects.filter(username=wh_name).values_list('id', flat=True)
                         ret_list = get_quantity_data(usr_obj, [sku_code], asn_true=False)
                         if ret_list:
-                            avail_stock = ret_list[0]['available']
+                            avail_stock = ret_list[0]['available'] - ret_list[0]['non_kitted'] - ret_list[0]['reserved'] - ret_list[0]['blocked']
                             if level == 1:
                                 if avail_stock < cell_data:
                                     index_status.setdefault(row_idx, set()).add('Stock Outage.Pls check stock in WH')
                             elif level == 3:
-                                asn_avail_stock = ret_list[0]['asn'] + ret_list[0]['non_kitted']
+                                asn_avail_stock = ret_list[0]['asn'] + ret_list[0]['non_kitted'] - ret_list[0]['asn_res'] - ret_list[0]['asn_blocked']
                                 if asn_avail_stock < cell_data:
                                     index_status.setdefault(row_idx, set()).add('Stock Outage.Pls check stock in WH')
             elif key == 'reseller_name':

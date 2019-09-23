@@ -1142,6 +1142,56 @@ def update_orders(request):
         status = {'messages': 'Internal Server Error', 'status': 0}
     return HttpResponse(json.dumps(status))
 
+@csrf_exempt
+@login_required
+def get_orders(request):
+    record = []
+    limit = request.POST.get('limit', '')
+    search_parameters = {}
+    request.user.id = 3
+    headers, search_params, filter_params = get_search_params(request)
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    search_parameters['user'] = request.user.id
+    order_records = OrderDetail.objects.filter(**search_parameters).values_list('original_order_id',flat= True).distinct()
+    page_info = scroll_data(request, order_records, limit=limit)
+    for order in page_info['data']:
+        data_dict = OrderDetail.objects.filter(user=request.user.id,original_order_id=order)
+        shipment = data_dict[0].shipment_date.strftime('%Y-%m-%d %H:%M:%S')
+        created = data_dict[0].creation_date.strftime('%Y-%m-%d %H:%M:%S')
+        items = []
+        charge_amount= 0
+        discount_amount = 0
+        for data in data_dict:
+            tax_data = CustomerOrderSummary.objects.filter(order_id=data.id)
+            charge = OrderCharges.objects.filter(order_id = data.original_order_id, user=request.user.id, charge_name = 'Shipping Charge').values('charge_amount')
+            if charge:
+                charge_amount = charge[0]
+            if tax_data.exists():
+                discount_amount = tax_data[0].discount
+                if tax_data[0].cgst_tax:
+                    item_dict['tax_percent'] = {'CGST': tax_data[0].cgst_tax, 'SGST': tax_data[0].sgst_tax}
+                elif tax_data[0].igst_tax:
+                    item_dict['tax_percent'] = {'IGST': tax_data[0].igst_tax}
+            item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'quantity':data.quantity, 'unit_price':data.unit_price, 'shipment_charge':charge_amount, 'discount_amount':discount_amount}
+            items.append(item_dict)
+        billing_address = {"customer_id": data_dict[0].customer_id,
+               "name": data_dict[0].customer_name,
+               "email": data_dict[0].email_id,
+               "phone_number": data_dict[0].telephone,
+               "address": data_dict[0].address,
+               "city": data_dict[0].city,
+               "state": data_dict[0].state,
+               "pincode": data_dict[0].pin_code}
+        record.append(OrderedDict(( ('order_id',data_dict[0].original_order_id),('order_date',created),('shipment_date',shipment),('source',data_dict[0].marketplace),('billing_address',billing_address ),('items',items))))
+    page_info['data'] = record
+    page_info['message'] = 'success'
+    return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
 
 @csrf_exempt
 @login_required

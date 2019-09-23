@@ -1148,7 +1148,6 @@ def get_orders(request):
     record = []
     limit = request.POST.get('limit', '')
     search_parameters = {}
-    request.user.id = 3
     headers, search_params, filter_params = get_search_params(request)
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())

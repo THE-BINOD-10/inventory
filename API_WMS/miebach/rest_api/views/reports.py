@@ -766,9 +766,9 @@ def get_adjust_filter_data(search_params, user, sub_user):
                                                      ('Quantity', data['quantity']),
                                                      ('Average Cost', avg_cost),
                                                      ('Value', amount),
-                                                     ('Remarks', data['reason']),
+                                                     ('Reason', data['reason']),
                                                      ('User', updated_user_name),
-                                                     ('Date', data['creation_date']),
+                                                     ('Transaction Date', data['creation_date']),
 
                                                   )))
     else:

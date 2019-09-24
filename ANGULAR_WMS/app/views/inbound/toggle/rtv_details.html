@@ -39,6 +39,15 @@
                 <div class="col-xs-8">: {{showCase.model_data.seller_details['name']}}</div>
               </div>
 
+              <div class="row">
+                <div class="col-xs-4 form-group"><b> Returning Reason</b></div>
+                <select class="form-control" style="width:120px" name="rtv_reasons" class="form-control" ng-model="showCase.model_data.rtv_reasons">
+                  <option value="" ng-selected="showCase.model_data.rtv_reasons == ''">None</option>
+                  <option ng-repeat="rtv_reasons in showCase.model_data.rtv_reasons" value="{{rtv_reasons}}" ng-selected="showCase.model_data.rtv_reasons == zone">{{rtv_reasons}}</option>
+                </select>
+              </div>
+
+
             </div>
             <div class="col-sm-12"><hr></div>
           </div>

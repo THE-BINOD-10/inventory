@@ -877,7 +877,7 @@ RETURN_TO_VENDOR_REPORT = {
         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
         {'label': 'RTV Number', 'name': 'rtv_number', 'type': 'input'}
     ],
-    'dt_headers': ['RTV Number', 'Supplier ID', 'Supplier Name', 'Order ID', 'Invoice Number', 'Return Date'],
+    'dt_headers': ['RTV Number', 'Supplier ID', 'Supplier Name', 'Order ID', 'Invoice Number', 'Return Date', 'Reason'],
     'dt_url': 'get_rtv_report', 'excel_name': 'get_rtv_report',
     'print_url': 'print_rtv_report',
 }
@@ -919,7 +919,7 @@ FINANCIAL_REPORT_DICT =  {
   'Sale to Drsc IGST', 'Sale to Drsc CESS', 'Sale to Drsc Value after Tax', 'Sale to othr Qty','Sale to othr Price Per Unit( Before Taxes)','Sale to othr Value before Tax',
   'Sale to othr CGST', 'Sale to othr SGST','Sale to othr IGST', 'Sale to othr CESS', 'Sale to othr Value after Tax', 'Stock Transfers Qty','Stock Transfers Price Per Unit(Before Taxes)','Stock Transfers Value before Tax', 'Stock Transfers CGST', 'Stock Transfers SGST',
   'Stock Transfers IGST', 'Stock Transfers CESS', 'Stock Transfers Value after Tax', 'Sale Return Qty', 'Sale Return Price Per Unit(Before Taxes)','Sale Return Value before Tax',
-  'Sale Return CGST', 'Sale Return SGST','Sale Return IGST', 'Sale Return CESS', 'Sale Return Value after Tax','Closing Qty', 'Closing Price Per Unit(Before Taxes)','Closing Value before Tax', 
+  'Sale Return CGST', 'Sale Return SGST','Sale Return IGST', 'Sale Return CESS', 'Sale Return Value after Tax','Closing Qty', 'Closing Price Per Unit(Before Taxes)','Closing Value before Tax',
   'Closing CGST', 'Closing SGST','Closing IGST', 'Closing CESS', 'Closing Value after Tax','Physical Qty', 'Adjustment Qty',
                  'Adjustment Price Per Unit(Before Taxes)', 'Adjustment Value', 'Margin Percentage'],
   'dt_url': 'get_financial_report', 'excel_name': 'get_financial_report',
@@ -4842,7 +4842,7 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
     search_parameters = {}
     lis = ['rtv_number', 'seller_po_summary__purchase_order__open_po__supplier_id',
            'seller_po_summary__purchase_order__open_po__supplier__name', 'seller_po_summary__purchase_order__order_id',
-           'seller_po_summary__invoice_number', 'return_date']
+           'seller_po_summary__invoice_number', 'return_date', 'return_reason']
     search_parameters['seller_po_summary__purchase_order__open_po__sku__user'] = user.id
     search_parameters['quantity__gt'] = 0
     search_parameters['seller_po_summary__purchase_order__open_po__sku_id__in'] = sku_master_ids
@@ -4890,8 +4890,12 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
         model_data = model_data[start_index:stop_index]
 
     for data in model_data:
+        rtv_reason = ''
         rtv = ReturnToVendor.objects.filter(seller_po_summary__purchase_order__open_po__sku__user=user.id, status=0,
                                             rtv_number=data['rtv_number'])
+        if rtv:
+            rtv_reason = rtv[0].return_reason
+
         order_id = get_po_reference(rtv[0].seller_po_summary.purchase_order)
         date = get_local_date(user, rtv[0].creation_date)
         temp_data['aaData'].append(OrderedDict((('RTV Number', data['rtv_number']),
@@ -4899,7 +4903,7 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
                                     ('Supplier Name', data['seller_po_summary__purchase_order__open_po__supplier__name']),
                                     ('Order ID', order_id),
                                     ('Invoice Number', data['seller_po_summary__invoice_number']),
-                                    ('Return Date', date)
+                                    ('Return Date', date), ('Reason',rtv_reason)
                                 )))
     return temp_data
 
@@ -7841,7 +7845,7 @@ def get_basa_report_data(search_params, user, sub_user):
     #    search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
     stock_data = StockDetail.objects.filter(**search_parameters).values('sku__sku_code','sku__sku_desc','batch_detail__mrp',\
                                                                      'batch_detail__weight','sku__id',
-                                                                     'sku__sku_brand','sku__sku_category','sku__sub_category').annotate(total_quantity=Sum('quantity'),average_cp = Sum(F('quantity')*F('batch_detail__buy_price'))).order_by(sort_data).distinct()
+                                                                     'sku__sku_brand','sku__sku_category','sku__sub_category').distinct().annotate(total_quantity=Sum('quantity'),average_cp = Sum(F('quantity')*F('batch_detail__buy_price'))).order_by(sort_data)
 
     quantity = 0
     mrp = 0
@@ -7862,34 +7866,24 @@ def get_basa_report_data(search_params, user, sub_user):
     for data in chaining:
         if data.get('sku__sku_code',''):
             sku_code = data['sku__sku_code']
+            sku_id = data['sku__id']
+            sku_desc = data['sku__sku_desc']
+            sku_category = data['sku__sku_category']
+            mrp = data['batch_detail__mrp']
+            sku_brand = data['sku__sku_brand']
+            sub_category = data['sku__sub_category']
+            quantity = data['total_quantity']
+            weight = data['batch_detail__weight']
         else:
             sku_code = data['sku_code']
-        if data.get('sku__id',''):
-            sku_id = data['sku__id']
-        else:
             sku_id = data['id']
-
-        if data.get('sku__sku_desc',''):
-            sku_desc = data['sku__sku_desc']
-        else:
             sku_desc = data['sku_desc']
-
-        if data.get('sku__sku_category', ''):
-            sku_category = data['sku__sku_category']
-        else:
             sku_category = data['sku_category']
-
-        if data.get('batch_detail__mrp',''):
-            mrp = data['batch_detail__mrp']
-
-        if data.get('sku__sku_brand',''):
-            sku_brand = data['sku__sku_brand']
-        else:
+            mrp = data['mrp']
             sku_brand = data['sku_brand']
-        if data.get('sku__sub_category',''):
-            sub_category = data['sku__sub_category']
-        else:
             sub_category = data['sub_category']
+            quantity = 0
+
         if not stop_index:
             grn_price = sku_grn_price.get(sku_code, 0)
             grn_quantity = sku_grn_quantity.get(sku_code, 0)
@@ -7901,25 +7895,18 @@ def get_basa_report_data(search_params, user, sub_user):
                     grn_price = seller_po.batch_detail.buy_price
             except:
                 grn_price = 0
-        if data.get('total_quantity', ''):
-            quantity = data['total_quantity']
         if quantity and data.get('average_cp',''):
             average_cost_price = data['average_cp']/quantity
         else:
             average_cost_price = 0
-        sku_attribute_dict = {}
         sku_attribute_dict = dict(SKUAttributes.objects.filter(sku__id=sku_id,attribute_name__in=['Manufacturer', 'Sub Category Type','Sheet', 'Vendor','Weight']).values_list('attribute_name','attribute_value'))
-        if sku_attribute_dict.get('Sheet',''):
-           sheet = sku_attribute_dict.get('Sheet','')
-        else:
-            sheet = ''
-        if sku_attribute_dict.get('Sub Category Type',''):
-            sub_category_type = sku_attribute_dict.get('Sub Category Type','')
-        else:
-            sub_category_type = ''
+        sheet = sku_attribute_dict.get('Sheet','')
+        sub_category_type = sku_attribute_dict.get('Sub Category Type','')
+        if not data.get('sku__sku_code',''):
+           weight = sku_attribute_dict.get('Weight','')
         temp_data['aaData'].append(OrderedDict(( ('SKU Code', sku_code),('SKU Desc',sku_desc),
                                                  ('Brand',sku_brand), ('Category',sku_category),('Sheet',sheet),('Sub Category Type',sub_category_type),
-                                                 ('Sub Category', sub_category), ('Stock( Only BA and SA)', quantity),('Weight',sku_attribute_dict.get('Weight','')),('MRP',mrp),('Avg CP',"%.2f" %average_cost_price),('Latest GRN Qty',grn_quantity),('Latest GRN CP',grn_price))))
+                                                 ('Sub Category', sub_category), ('Stock( Only BA and SA)', quantity),('Weight',weight),('MRP',mrp),('Avg CP',"%.2f" %average_cost_price),('Latest GRN Qty',grn_quantity),('Latest GRN CP',grn_price))))
     return temp_data
 
 

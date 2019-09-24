@@ -2413,7 +2413,7 @@ def validate_supplier_sku_form(open_sheet, user_id):
                             index_status.setdefault(row_idx, set()).add('MarkDown Percentage is Mandatory For Margin Based')
                         elif not isinstance(cell_data_margin, (int, float)):
                             index_status.setdefault(row_idx, set()).add('MarkDown % Should be in integer or float')
-                        elif not float(cell_data_margin) in range(0, 100):
+                        elif  float(cell_data_margin) < 0  or float(cell_data_margin) >  100:
                             index_status.setdefault(row_idx, set()).add('MarkDown % Should be in between 0 and 100')
 
                     elif cell_data == 'Markup Based' :
@@ -2422,7 +2422,7 @@ def validate_supplier_sku_form(open_sheet, user_id):
                             index_status.setdefault(row_idx, set()).add('Markup Percentage is Mandatory For Markup Based')
                         elif not isinstance(cell_data_markup, (int, float)):
                             index_status.setdefault(row_idx, set()).add('Markup % Should be in integer or float')
-                        elif not float(cell_data_markup) in range(0, 100):
+                        elif  float(cell_data_markup) < 0 or float(cell_data_markup) > 100:
                             index_status.setdefault(row_idx, set()).add('Markup % Should be in between 0 and 100')
 
 
@@ -5674,9 +5674,6 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                     data_dict[key] = str(int(cell_data))
                 else:
                     data_dict[key] = str(cell_data)
-            #elif key in ['source_quantity','dest_quantity']:
-            #    if not cell_data:
-            #        index_status.setdefault(row_idx, set()).add('Quantity should not be zero')
             elif key in number_fields:
                 if key in ['source_mrp','dest_mrp'] :
                     if user.username in MILKBASKET_USERS and not cell_data:

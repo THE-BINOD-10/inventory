@@ -856,6 +856,12 @@ def configurations(request, user=''):
     else:
         config_dict['po_fields'] = po_fields
 
+    rtv_reasons = get_misc_value('rtv_reasons', user.id)
+    if rtv_reasons == 'false' :
+        config_dict['rtv_reasons'] = ''
+    else:
+        config_dict['rtv_reasons'] = rtv_reasons
+
     if config_dict['mail_alerts'] == 'false':
         config_dict['mail_alerts'] = 0
     if config_dict['production_switch'] == 'false':
@@ -2387,12 +2393,16 @@ def save_order_extra_fields(request, user=''):
 def save_grn_fields(request, user=''):
     grn_fields = request.GET.get('grn_fields', '')
     po_fields = request.GET.get('po_fields', '')
+    rtv_reasons = request.GET.get('rtv_reasons', '')
     if grn_fields:
         misc_type = 'grn_fields'
         fields = grn_fields
     if po_fields:
         misc_type = 'po_fields'
         fields = po_fields
+    if rtv_reasons:
+        misc_type = 'rtv_reasons'
+        fields = rtv_reasons
     if len(fields.split(',')) <=  4 :
         misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=misc_type)
         try:
@@ -9792,4 +9802,3 @@ def get_zonal_admin_id(admin_user, reseller):
         import traceback
         log.info(traceback.format_exc())
         log.info('Users List exception raised')
-

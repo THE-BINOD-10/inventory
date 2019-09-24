@@ -3262,8 +3262,6 @@ def ba_to_sa_calculate_now(request, user=''):
 
             if ba_stock_dict:
                 total_ba_stock = ba_stock_dict['total_quantity'] #ba_stock_objs.aggregate(Sum('sellerstock__quantity'))['sellerstock__quantity__sum']
-                if replenishment_qty <= total_ba_stock:
-                        total_ba_stock = replenishment_qty
                 if total_ba_stock <= replenishment_qty:
                     needed_qty = total_ba_stock
                 else:

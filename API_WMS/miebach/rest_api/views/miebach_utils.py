@@ -7837,7 +7837,7 @@ def get_basa_report_data(search_params, user, sub_user):
     #    search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
     stock_data = StockDetail.objects.filter(**search_parameters).values('sku__sku_code','sku__sku_desc','batch_detail__mrp',\
                                                                      'batch_detail__weight','sku__id',
-                                                                     'sku__sku_brand','sku__sku_category','sku__sub_category').annotate(total_quantity=Sum('quantity'),average_cp = Sum(F('quantity')*F('batch_detail__buy_price'))).order_by(sort_data).distinct()
+                                                                     'sku__sku_brand','sku__sku_category','sku__sub_category').distinct().annotate(total_quantity=Sum('quantity'),average_cp = Sum(F('quantity')*F('batch_detail__buy_price'))).order_by(sort_data)
 
     quantity = 0
     mrp = 0
@@ -7858,34 +7858,24 @@ def get_basa_report_data(search_params, user, sub_user):
     for data in chaining:
         if data.get('sku__sku_code',''):
             sku_code = data['sku__sku_code']
+            sku_id = data['sku__id']
+            sku_desc = data['sku__sku_desc']
+            sku_category = data['sku__sku_category']
+            mrp = data['batch_detail__mrp']
+            sku_brand = data['sku__sku_brand']
+            sub_category = data['sku__sub_category']
+            quantity = data['total_quantity']
+            weight = data['batch_detail__weight']
         else:
             sku_code = data['sku_code']
-        if data.get('sku__id',''):
-            sku_id = data['sku__id']
-        else:
             sku_id = data['id']
-
-        if data.get('sku__sku_desc',''):
-            sku_desc = data['sku__sku_desc']
-        else:
             sku_desc = data['sku_desc']
-
-        if data.get('sku__sku_category', ''):
-            sku_category = data['sku__sku_category']
-        else:
             sku_category = data['sku_category']
-
-        if data.get('batch_detail__mrp',''):
-            mrp = data['batch_detail__mrp']
-
-        if data.get('sku__sku_brand',''):
-            sku_brand = data['sku__sku_brand']
-        else:
+            mrp = data['mrp']
             sku_brand = data['sku_brand']
-        if data.get('sku__sub_category',''):
-            sub_category = data['sku__sub_category']
-        else:
             sub_category = data['sub_category']
+            quantity = 0
+
         if not stop_index:
             grn_price = sku_grn_price.get(sku_code, 0)
             grn_quantity = sku_grn_quantity.get(sku_code, 0)
@@ -7897,25 +7887,18 @@ def get_basa_report_data(search_params, user, sub_user):
                     grn_price = seller_po.batch_detail.buy_price
             except:
                 grn_price = 0
-        if data.get('total_quantity', ''):
-            quantity = data['total_quantity']
         if quantity and data.get('average_cp',''):
             average_cost_price = data['average_cp']/quantity
         else:
             average_cost_price = 0
-        sku_attribute_dict = {}
         sku_attribute_dict = dict(SKUAttributes.objects.filter(sku__id=sku_id,attribute_name__in=['Manufacturer', 'Sub Category Type','Sheet', 'Vendor','Weight']).values_list('attribute_name','attribute_value'))
-        if sku_attribute_dict.get('Sheet',''):
-           sheet = sku_attribute_dict.get('Sheet','')
-        else:
-            sheet = ''
-        if sku_attribute_dict.get('Sub Category Type',''):
-            sub_category_type = sku_attribute_dict.get('Sub Category Type','')
-        else:
-            sub_category_type = ''
+        sheet = sku_attribute_dict.get('Sheet','')
+        sub_category_type = sku_attribute_dict.get('Sub Category Type','')
+        if not data.get('sku__sku_code',''):
+           weight = sku_attribute_dict.get('Weight','')
         temp_data['aaData'].append(OrderedDict(( ('SKU Code', sku_code),('SKU Desc',sku_desc),
                                                  ('Brand',sku_brand), ('Category',sku_category),('Sheet',sheet),('Sub Category Type',sub_category_type),
-                                                 ('Sub Category', sub_category), ('Stock( Only BA and SA)', quantity),('Weight',sku_attribute_dict.get('Weight','')),('MRP',mrp),('Avg CP',"%.2f" %average_cost_price),('Latest GRN Qty',grn_quantity),('Latest GRN CP',grn_price))))
+                                                 ('Sub Category', sub_category), ('Stock( Only BA and SA)', quantity),('Weight',weight),('MRP',mrp),('Avg CP',"%.2f" %average_cost_price),('Latest GRN Qty',grn_quantity),('Latest GRN CP',grn_price))))
     return temp_data
 
 

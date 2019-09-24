@@ -894,6 +894,7 @@ def get_picklist_data(data_id, user_id):
             order_status = orders.status
     if not order_status:
         order_status = 'picked'
+    use_imei = get_misc_value('use_imei', user_id)
     if order_status == "batch_open":
         batch_data = {}
         for order in picklist_orders:
@@ -982,9 +983,10 @@ def get_picklist_data(data_id, user_id):
                     except:
                         expiry_date =''
             reserved_quantity = order.reserved_quantity
-            sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
-            for sku_code, imei_number in sku_filtered_imei_number:
-                sku_imeis_map.setdefault(sku_code, []).append(imei_number)
+            if use_imei == 'true':
+                sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
+                for sku_code, imei_number in sku_filtered_imei_number:
+                    sku_imeis_map.setdefault(sku_code, []).append(imei_number)
             match_condition = (location, batch_no, manufactured_date,pallet_detail, wms_code, sku_code, title)
             if match_condition not in batch_data:
                 if order.reserved_quantity == 0:
@@ -1130,9 +1132,10 @@ def get_picklist_data(data_id, user_id):
                                   order_by('-updation_date').values_list('location__location',
                                                                          flat=True).distinct()[:2]
                 last_picked_locs = ','.join(last_picked)
-            sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
-            for sku_code, imei_number in sku_filtered_imei_number:
-                sku_imeis_map.setdefault(sku_code, []).append(imei_number)
+            if use_imei == 'true':
+                sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
+                for sku_code, imei_number in sku_filtered_imei_number:
+                    sku_imeis_map.setdefault(sku_code, []).append(imei_number)
 
             if not original_order_id:
                 original_order_id = str(order_id) + str(order_code)
@@ -1229,9 +1232,10 @@ def get_picklist_data(data_id, user_id):
                                   order_by('-updation_date').values_list('location__location',
                                                                          flat=True).distinct()[:2]
                 last_picked_locs = ','.join(last_picked)
-            sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
-            for sku_code, imei_number in sku_filtered_imei_number:
-                sku_imeis_map.setdefault(sku_code, []).append(imei_number)
+            if use_imei == 'true':
+                sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
+                for sku_code, imei_number in sku_filtered_imei_number:
+                    sku_imeis_map.setdefault(sku_code, []).append(imei_number)
 
             if not original_order_id:
                 original_order_id = str(order_id) + str(order_code)

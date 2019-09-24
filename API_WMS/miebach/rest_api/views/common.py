@@ -6975,11 +6975,14 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         val_dict['sku_ids'] = map(lambda d: d['sku_id'], sku_id_stocks)
         val_dict['stock_ids'] = map(lambda d: d['id'], sku_id_stocks)
         val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)
-        pc_loc_filter = {'status': 1}
-        if is_seller_order or add_mrp_filter:
-            pc_loc_filter['stock_id__in'] = val_dict['stock_ids']
-        pick_res_locat = PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(**pc_loc_filter). \
-            filter(picklist__order__user=user.id).values('stock__sku_id').annotate(total=Sum('reserved'))
+        pc_loc_filter = OrderedDict()
+        pc_loc_filter['picklist__order__user'] = user.id
+        #if is_seller_order or add_mrp_filter:
+        pc_loc_filter['stock_id__in'] = val_dict['stock_ids']
+        pc_loc_filter['status'] = 1
+        print pc_loc_filter
+        pick_res_locat = PicklistLocation.objects.filter(**pc_loc_filter).values('stock__sku_id').\
+                                                distinct().annotate(total=Sum('reserved'))
 
         val_dict['pic_res_ids'] = map(lambda d: d['stock__sku_id'], pick_res_locat)
         val_dict['pic_res_quans'] = map(lambda d: d['total'], pick_res_locat)

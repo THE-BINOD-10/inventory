@@ -8712,7 +8712,6 @@ def get_debit_note_data(rtv_number, user):
 
 
 def prepare_rtv_json_data(request_data, user):
-    import pdb; pdb.set_trace()
     data_list = []
     for ind in range(0, len(request_data['summary_id'])):
         data_dict = {}

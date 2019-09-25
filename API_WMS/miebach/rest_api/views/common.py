@@ -5857,6 +5857,11 @@ def build_invoice(invoice_data, user, css=False):
     no_of_skus = int(render_space / inv_product)
     data_length = len(invoice_data['data'])
     data_value = 0
+    no_of_sku_count = 0
+    if get_misc_value('show_imei_invoice', user.id) == 'false':
+        invoice_data['imei_data'] = []
+        for data in invoice_data['data']:
+            data['imeis'] = []
     if invoice_data['imei_data']:
         count = 0
         for imei in invoice_data['imei_data']:

@@ -4945,20 +4945,23 @@ def validate_po_serial_mapping(request, reader, user, no_of_rows, fname, file_ty
                 po_details['unit_price'] = value
             elif key == 'po_reference_no':
                 try:
-                    value = str(value)
-                    po_reference_no = str(value)
+                    if isinstance(value, float):
+                        value = str(int(value))
+                    po_reference_no = value
                 except:
                     value = ''
                 po_details['po_reference_no'] = value
             elif key == 'invoice_num':
                 try:
-                    value = str(value)
+                    if isinstance(value, float):
+                        value = str(int(value))
                 except:
                     value = ''
                 po_details['invoice_num'] = value
             elif key == 'lr_number':
                 try:
-                    value = str(value)
+                    if isinstance(value, float):
+                        value = str(int(value))
                 except:
                     value = ''
                 po_details['lr_number'] = value

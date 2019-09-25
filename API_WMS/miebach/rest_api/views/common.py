@@ -5864,7 +5864,7 @@ def build_invoice(invoice_data, user, css=False):
                 imei_count
             count+=imei_count
         no_of_sku_count = int(count/2)
-        if no_of_sku_count > 7 and data_length < no_of_sku_count :
+        if no_of_sku_count + data_length > 14:
             data_value = 1
             data_length = no_of_sku_count + data_length
 

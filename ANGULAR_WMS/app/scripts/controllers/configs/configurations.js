@@ -249,7 +249,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       model_name: "show_imei_invoice",
       param_no: 39,
       class_name: "fa fa-refresh",
-      display: vm.marketplace_user
+      display: true
     },
     {
       name: "Create Seller Order",

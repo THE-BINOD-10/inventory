@@ -2987,7 +2987,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                'purchase_order__open_po__cess_tax', 'purchase_order__open_po__apmc_tax', 'id',
                'seller_po__margin_percent', 'seller_po__margin_percent',
                'id', 'overall_discount', 'id',
-               'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'remarks', 'id','purchase_order__open_po__po_name', 'id']
+               'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'remarks', 'id','purchase_order__id', 'id']
         model_name = SellerPOSummary
         field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date',
                          'order_id': 'purchase_order__order_id',
@@ -3011,7 +3011,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price',
                          'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number','overall_discount',
-                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks','purchase_order__open_po__supplier__tin_number','purchase_order__open_po__po_name']
+                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks','purchase_order__open_po__supplier__tin_number','purchase__id']
     else:
         unsorted_dict = {16: 'Pre-Tax Received Value', 29: 'Post-Tax Received Value',
                          30: 'Invoiced Unit Rate',
@@ -3032,7 +3032,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                'purchase_order__open_po__igst_tax', 'purchase_order__open_po__utgst_tax',
                'purchase_order__open_po__cess_tax', 'purchase_order__open_po__apmc_tax',
                'id', 'seller_po__margin_percent', 'overall_discount', 'id',
-               'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'remarks', 'id','purchase_order__open_po__po_name', 'id']
+               'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'remarks', 'id','purchase_order__id', 'id']
 
         field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date',
                          'order_id': 'purchase_order__order_id',
@@ -3057,7 +3057,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price','overall_discount',
                          'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number',
                          'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks', 'purchase_order__open_po__supplier__tin_number',
-                         'purchase_order__open_po__po_name'
+                         'purchase_order__id'
                          ]
     excl_status = {'purchase_order__status': ''}
     ord_quan = 'quantity'
@@ -3183,6 +3183,11 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         if version_obj.exists():
             updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
         seller_po_summary = SellerPOSummary.objects.get(id=data['id'])
+        lr_detail_no = ''
+        if data['purchase_order__id']:
+            lr_detail = LRDetail.objects.filter(purchase_order = data['purchase_order__id'], purchase_order__open_po__sku__user = user.id )
+            if lr_detail.exists():
+                lr_detail_no = lr_detail[0].lr_number
         remarks = ''
         if data['remarks']:
             custom_remarks = []
@@ -3239,7 +3244,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                             ('Remarks', remarks),
                             ('Updated User', updated_user_name),
                             ('GST NO', data[field_mapping['gst_num']]),
-                            ('LR-NUMBER', data['purchase_order__open_po__po_name'])
+                            ('LR-NUMBER', lr_detail_no)
 
 	)))
     if stop_index and custom_search:

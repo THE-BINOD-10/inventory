@@ -1,4 +1,4 @@
-      {% load tag_extras %}
+{% load tag_extras %}
 
       {% for title in titles %}
         <!-- <div class="invoice_titles" style="padding-bottom: 70px" ng-repeat="title in showCase.pdf_data.titles"> -->
@@ -48,7 +48,7 @@
                       <div>{{record.sku_code}}
                         <!-- this is for 72networks -->
                         {% if record.imeis   %}
-                         {% if record.quantity == 1 %}
+                         {% if record.quantity == record.imeis|length %}
                          {% for imei in record.imeis %}
                         <br><span class="tax-percentage">({{ imei }})</span>
                           {% endfor %}

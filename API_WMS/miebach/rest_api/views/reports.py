@@ -275,7 +275,7 @@ def print_order_flow_report(request, user=''):
         html_data = create_reports_table(report_data[0].keys(), report_data)
     return HttpResponse(html_data)
 
-    
+
 @get_admin_user
 def print_stock_summary_report(request, user=''):
     search_parameters = {}
@@ -899,6 +899,10 @@ def print_po_reports(request, user=''):
     overall_discount = 0
     for data in results:
         receipt_type = ''
+        lr_number = ''
+        lr_number_obj = LRDetail.objects.filter(purchase_order_id = data.id, purchase_order__open_po__sku__user = user.id)
+        if lr_number_obj.exists():
+            lr_number = lr_number_obj[0].lr_number
         if po_id:
             quantity = data.received_quantity
             bill_date = data.updation_date
@@ -1036,7 +1040,7 @@ def print_po_reports(request, user=''):
                    'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,'overall_discount':overall_discount,
                    'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': total_tax,'net_amount':net_amount,
-                   'company_address': company_address, 'sr_number': sr_number})
+                   'company_address': company_address, 'sr_number': sr_number, 'lr_number': lr_number})
 
 
 @csrf_exempt

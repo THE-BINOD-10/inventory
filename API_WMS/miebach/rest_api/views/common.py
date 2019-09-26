@@ -856,6 +856,12 @@ def configurations(request, user=''):
     else:
         config_dict['po_fields'] = po_fields
 
+    rtv_reasons = get_misc_value('rtv_reasons', user.id)
+    if rtv_reasons == 'false' :
+        config_dict['rtv_reasons'] = ''
+    else:
+        config_dict['rtv_reasons'] = rtv_reasons
+
     if config_dict['mail_alerts'] == 'false':
         config_dict['mail_alerts'] = 0
     if config_dict['production_switch'] == 'false':
@@ -1987,7 +1993,8 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
             if latest_stock.exists():
                 latest_stock_obj = latest_stock.latest('id')
                 batch_obj = latest_stock_obj.batch_detail
-                stock_dict["batch_detail_id"] = batch_obj.id
+                if batch_obj:
+                    stock_dict["batch_detail_id"] = batch_obj.id
             elif batch_dict.keys():
                 batch_obj = BatchDetail.objects.create(**batch_dict)
                 stock_dict["batch_detail_id"] = batch_obj.id
@@ -2387,12 +2394,16 @@ def save_order_extra_fields(request, user=''):
 def save_grn_fields(request, user=''):
     grn_fields = request.GET.get('grn_fields', '')
     po_fields = request.GET.get('po_fields', '')
+    rtv_reasons = request.GET.get('rtv_reasons', '')
     if grn_fields:
         misc_type = 'grn_fields'
         fields = grn_fields
     if po_fields:
         misc_type = 'po_fields'
         fields = po_fields
+    if rtv_reasons:
+        misc_type = 'rtv_reasons'
+        fields = rtv_reasons
     if len(fields.split(',')) <=  4 :
         misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=misc_type)
         try:
@@ -5857,6 +5868,23 @@ def build_invoice(invoice_data, user, css=False):
         render_space = inv_height - (inv_details + inv_footer + inv_totals + inv_header + inv_total)
     no_of_skus = int(render_space / inv_product)
     data_length = len(invoice_data['data'])
+    data_value = 0
+    no_of_sku_count = 0
+    if get_misc_value('show_imei_invoice', user.id) == 'false':
+        invoice_data['imei_data'] = []
+        for data in invoice_data['data']:
+            data['imeis'] = []
+    if invoice_data['imei_data']:
+        count = 0
+        for imei in invoice_data['imei_data']:
+            for imei_count in range(len(imei)+1):
+                imei_count
+            count+=imei_count
+        no_of_sku_count = int(count/2)
+        if no_of_sku_count + data_length > 14:
+            data_value = 1
+            data_length = no_of_sku_count + data_length
+
     '''
     if user.username in top_logo_users:
         no_of_skus -= 2
@@ -5873,7 +5901,10 @@ def build_invoice(invoice_data, user, css=False):
         temp_render_space = 0
         temp_render_space = inv_height - (inv_details + inv_header)
         temp_no_of_skus = int(temp_render_space / inv_product)
-        for i in range(int(math.ceil(float(data_length) / temp_no_of_skus))):
+        number_of_pages = int(math.ceil(float(data_length) / temp_no_of_skus))
+        if data_value :
+            number_of_pages = number_of_pages + 1
+        for i in range(number_of_pages):
             temp_page = {'data': []}
             temp_page['data'] = invoice_data['data'][i * temp_no_of_skus: (i + 1) * temp_no_of_skus]
             temp_page['empty_data'] = []
@@ -5900,6 +5931,8 @@ def build_invoice(invoice_data, user, css=False):
         temp = invoice_data['data']
         invoice_data['data'] = []
         #empty_data = [""] * (no_of_skus - data_length)
+        if no_of_sku_count > 0:
+            data_length = data_length+no_of_sku_count
         no_of_space = (13 - data_length)
         if no_of_space < 0:
             no_of_space = 0
@@ -6847,14 +6880,19 @@ def get_sku_stock(sku, sku_stocks, user, val_dict, sku_id_stocks='', add_mrp_fil
     return stock_detail, stock_count, sku.wms_code
 
 
-def get_stock_count(order, stock, stock_diff, user, order_quantity, prev_reserved=False):
+def get_stock_count(order, stock, stock_diff, user, order_quantity, prev_reserved=False, seller_master_id=''):
     reserved_quantity = \
     PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id).aggregate(
         Sum('reserved'))['reserved__sum']
     if not reserved_quantity:
         reserved_quantity = 0
 
-    stock_quantity = float(stock.quantity) - reserved_quantity
+    if seller_master_id:
+        stock_quantity = SellerStock.objects.filter(stock_id=stock.id, seller_id=seller_master_id).aggregate(Sum('quantity'))['quantity__sum']
+        if not stock_quantity:
+            stock_quantity = 0
+    else:
+        stock_quantity = float(stock.quantity) - reserved_quantity
     # if prev_reserved:
     #    if stock_quantity >= 0:
     #        #return order_quantity, 0
@@ -6960,11 +6998,14 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         val_dict['sku_ids'] = map(lambda d: d['sku_id'], sku_id_stocks)
         val_dict['stock_ids'] = map(lambda d: d['id'], sku_id_stocks)
         val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)
-        pc_loc_filter = {'status': 1}
-        if is_seller_order or add_mrp_filter:
-            pc_loc_filter['stock_id__in'] = val_dict['stock_ids']
-        pick_res_locat = PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(**pc_loc_filter). \
-            filter(picklist__order__user=user.id).values('stock__sku_id').annotate(total=Sum('reserved'))
+        pc_loc_filter = OrderedDict()
+        pc_loc_filter['picklist__order__user'] = user.id
+        #if is_seller_order or add_mrp_filter:
+        pc_loc_filter['stock_id__in'] = val_dict['stock_ids']
+        pc_loc_filter['status'] = 1
+        print pc_loc_filter
+        pick_res_locat = PicklistLocation.objects.filter(**pc_loc_filter).values('stock__sku_id').\
+                                                distinct().annotate(total=Sum('reserved'))
 
         val_dict['pic_res_ids'] = map(lambda d: d['stock__sku_id'], pick_res_locat)
         val_dict['pic_res_quans'] = map(lambda d: d['total'], pick_res_locat)
@@ -7564,7 +7605,7 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
                          order_summary_dict, ship_to, corporate_po_number, client_name, admin_user, sku_total_qty_map,
                          order_user_sku, order_user_objs, address_selected=''):
     if order_data.get('del_date', ''):
-        if order_data['del_date'].date() >= order_data['shipment_date']:
+        if order_data['del_date'] >= order_data['shipment_date']:
             order_data['shipment_date'] = order_data.get('del_date', '')
         else:
             order_data['del_date'] = order_data['shipment_date']
@@ -9697,8 +9738,9 @@ def get_challan_number_for_dc(order , user):
         challan_sequence = ChallanSequence.objects.filter(user=user.id, marketplace='')
     if challan_sequence:
         challan_sequence = challan_sequence[0]
-        challan_num = int(challan_sequence.value)
-        challan_sequence.value = challan_num + 1
+        challan_val = int(challan_sequence.value)
+        challan_sequence.value = challan_val + 1
+        challan_num = challan_sequence.value
         challan_sequence.save()
     else:
         ChallanSequence.objects.create(marketplace='', prefix='CHN', value=1, status=1, user_id=user.id,
@@ -9787,4 +9829,3 @@ def get_zonal_admin_id(admin_user, reseller):
         import traceback
         log.info(traceback.format_exc())
         log.info('Users List exception raised')
-

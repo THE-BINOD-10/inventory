@@ -207,7 +207,6 @@ class Command(BaseCommand):
                                     field_type, tax_type_dict)
                 elif sku_detail.transact_type == 'picklist' and order_type:
                     field_type = order_type
-                    sku_stats_dict[sku_detail.sku_id][group_val][order_type]['quantity'] += sku_detail.quantity
                     # qty_price = (sku_detail.quantity * unit_price) - discount
                     # amount = qty_price
                     # tax_rate = 0

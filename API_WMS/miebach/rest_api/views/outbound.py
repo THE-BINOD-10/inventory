@@ -894,6 +894,7 @@ def get_picklist_data(data_id, user_id):
             order_status = orders.status
     if not order_status:
         order_status = 'picked'
+    use_imei = get_misc_value('use_imei', user_id)
     if order_status == "batch_open":
         batch_data = {}
         for order in picklist_orders:
@@ -982,9 +983,10 @@ def get_picklist_data(data_id, user_id):
                     except:
                         expiry_date =''
             reserved_quantity = order.reserved_quantity
-            sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
-            for sku_code, imei_number in sku_filtered_imei_number:
-                sku_imeis_map.setdefault(sku_code, []).append(imei_number)
+            if use_imei == 'true':
+                sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
+                for sku_code, imei_number in sku_filtered_imei_number:
+                    sku_imeis_map.setdefault(sku_code, []).append(imei_number)
             match_condition = (location, batch_no, manufactured_date,pallet_detail, wms_code, sku_code, title)
             if match_condition not in batch_data:
                 if order.reserved_quantity == 0:
@@ -1130,9 +1132,10 @@ def get_picklist_data(data_id, user_id):
                                   order_by('-updation_date').values_list('location__location',
                                                                          flat=True).distinct()[:2]
                 last_picked_locs = ','.join(last_picked)
-            sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
-            for sku_code, imei_number in sku_filtered_imei_number:
-                sku_imeis_map.setdefault(sku_code, []).append(imei_number)
+            if use_imei == 'true':
+                sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
+                for sku_code, imei_number in sku_filtered_imei_number:
+                    sku_imeis_map.setdefault(sku_code, []).append(imei_number)
 
             if not original_order_id:
                 original_order_id = str(order_id) + str(order_code)
@@ -1229,9 +1232,10 @@ def get_picklist_data(data_id, user_id):
                                   order_by('-updation_date').values_list('location__location',
                                                                          flat=True).distinct()[:2]
                 last_picked_locs = ','.join(last_picked)
-            sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
-            for sku_code, imei_number in sku_filtered_imei_number:
-                sku_imeis_map.setdefault(sku_code, []).append(imei_number)
+            if use_imei == 'true':
+                sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
+                for sku_code, imei_number in sku_filtered_imei_number:
+                    sku_imeis_map.setdefault(sku_code, []).append(imei_number)
 
             if not original_order_id:
                 original_order_id = str(order_id) + str(order_code)
@@ -2249,16 +2253,25 @@ def picklist_confirmation(request, user=''):
                     for stock in total_stock:
 
                         update_picked = 0
-                        pre_stock = float(stock.quantity)
+                        if user.userprofile.user_type == 'marketplace_user' and picklist.order:
+                            seller_order = picklist.order.sellerorder_set.filter()
+                            if seller_order:
+                                stock_quantity = SellerStock.objects.filter(stock_id=stock.id, seller_id=seller_order[0].seller_id,
+                                                                        quantity__gt=0).aggregate(Sum('quantity'))['quantity__sum']
+                                if not stock_quantity:
+                                    stock_quantity = 0
+                        else:
+                            stock_quantity = stock.quantity
+                        pre_stock = float(stock_quantity)
                         if picking_count == 0:
                             break
 
-                        if picking_count > stock.quantity:
-                            update_picked = float(stock.quantity)
-                            picking_count -= stock.quantity
-                            picklist.reserved_quantity -= stock.quantity
+                        if picking_count > stock_quantity:
+                            update_picked = float(stock_quantity)
+                            picking_count -= stock_quantity
+                            picklist.reserved_quantity -= stock_quantity
 
-                            stock.quantity = 0
+                            stock.quantity = stock.quantity - stock_quantity
                         else:
                             update_picked = picking_count
                             stock.quantity -= picking_count
@@ -7188,7 +7201,7 @@ def generate_order_invoice(request, user=''):
     invoice_data = add_consignee_data(invoice_data, ord_ids, user)
     user_profile = UserProfile.objects.get(user_id=user.id)
     # invoice_data = build_invoice(invoice_data, user, False)
-    if get_misc_value('show_imei_invoice', user.id) == 'true':
+    if get_misc_value('show_imei_invoice', user.id) == 'true' and user.userprofile.user_type == 'marketplace_user':
         invoice_data = build_marketplace_invoice(invoice_data, user, False)
     else:
         invoice_data = build_invoice(invoice_data, user, False)
@@ -11626,7 +11639,7 @@ def generate_customer_invoice_tab(request, user=''):
             return render(request, 'templates/toggle/delivery_challan.html', invoice_data)
         elif return_data:
             invoice_data = json.dumps(invoice_data)
-        elif get_misc_value('show_imei_invoice', user.id) == 'true':
+        elif get_misc_value('show_imei_invoice', user.id) == 'true' and user.userprofile.user_type == 'marketplace_user':
             invoice_data = build_marketplace_invoice(invoice_data, user, False)
         else:
             invoice_data = build_invoice(invoice_data, user, False)
@@ -11855,7 +11868,7 @@ def generate_customer_invoice(request, user=''):
             return render(request, 'templates/toggle/delivery_challan.html', invoice_data)
         elif return_data:
             invoice_data = json.dumps(invoice_data)
-        elif get_misc_value('show_imei_invoice', user.id) == 'true':
+        elif get_misc_value('show_imei_invoice', user.id) == 'true' and user.userprofile.user_type == 'marketplace_user':
             invoice_data = build_marketplace_invoice(invoice_data, user, False)
         else:
             invoice_data = build_invoice(invoice_data, user, False)
@@ -15509,7 +15522,7 @@ def invoice_print_manifest(request, user=''):
         if central_order_reassigning:
             invoice_data['manifest_number']= manifest_number
         invoice_data = modify_invoice_data(invoice_data, user)
-        if get_misc_value('show_imei_invoice', user.id) == 'true':
+        if get_misc_value('show_imei_invoice', user.id) == 'true' and user.userprofile.user_type == 'marketplace_user':
             invoice_data = build_marketplace_invoice(invoice_data, user, False)
         else:
             invoice_data = build_invoice(invoice_data, user, False)

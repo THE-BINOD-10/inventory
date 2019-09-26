@@ -1160,7 +1160,7 @@ def update_skus(skus, user='', company_name=''):
         sizes_dict = dict(SizeMaster.objects.filter(user=user.id).values_list('size_name', 'size_value'))
         mysql_file_path = 'static/mysql_files'
         folder_check(mysql_file_path)
-        file_time_stamp = str(datetime.datetime.now()).replace(' ', '_').replace(':', '_').split('.')[0]
+        file_time_stamp = str(datetime.datetime.now()).replace(':','_').replace('.', '_').replace(' ', '_')
         load_file_path = '%s/%s' % (mysql_file_path, 'sku_attr_' + file_time_stamp + '.txt')
         load_file = open(load_file_path, 'w')
         columns = ['sku_id', 'attribute_name', 'attribute_value']

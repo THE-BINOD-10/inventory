@@ -529,14 +529,14 @@ SKU_WISE_GRN_DICT = {'filters' : [
                        "SGST", "IGST", "UTGST", "CESS", "APMC", "Post-Tax Received Value", "Invoiced Unit Rate",
                        "Overall Discount",
                        "Invoiced Total Amount", "Invoice Number", "Invoice Date", "Challan Number",
-                       "Challan Date", "Remarks", "Updated User", "GST NO"],
+                       "Challan Date", "Remarks", "Updated User", "GST NO","LR-NUMBER"],
 		'mk_dt_headers': [ "Received Date", "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Recepient",
                            "SKU Code", "SKU Description", "HSN Code", "SKU Class", "SKU Style Name", "SKU Brand", "SKU Category",
                            "Received Qty", "Unit Rate", "MRP", "Pre-Tax Received Value", "CGST(%)", "SGST(%)",
                            "IGST(%)", "UTGST(%)", "CESS(%)", "APMC(%)", "CGST",
                             "SGST", "IGST", "UTGST", "CESS", "APMC", "Post-Tax Received Value", "Margin %",
                            "Margin", "Invoiced Unit Rate","Overall Discount", "Invoiced Total Amount", "Invoice Number", "Invoice Date",
-                           "Challan Number", "Challan Date", "Remarks", "Updated User", "GST NO"],
+                           "Challan Number", "Challan Date", "Remarks", "Updated User", "GST NO", "LR-NUMBER"],
 		'dt_url': 'get_sku_wise_po_filter', 'excel_name': 'goods_receipt', 'print_url': '',
 	   }
 
@@ -2112,10 +2112,10 @@ ORDER_SERIAL_EXCEL_MAPPING = OrderedDict(
      ('quantity', 5), ('unit_price', 6), ('cgst_tax', 7), ('sgst_tax', 8), ('igst_tax', 9),
      ('order_type', 10)))
 
-PO_SERIAL_EXCEL_HEADERS = ['Supplier ID', 'SKU Code', 'Location', 'Unit Price', 'Serial Number']
+PO_SERIAL_EXCEL_HEADERS = ['Supplier ID', 'Processed Date(yyyy-mm-dd)', 'Location', 'SKU Code', 'Po Reference Number', 'Unit Price', 'Serial Number', 'LR Number', 'Invoice No', 'IGST(%)', 'CGST(%)', 'SGST(%)']
 
-PO_SERIAL_EXCEL_MAPPING = OrderedDict((('supplier_id', 0), ('sku_code', 1), ('location', 2), ('unit_price', 3),
-                                       ('imei_number', 4)))
+PO_SERIAL_EXCEL_MAPPING = OrderedDict((('supplier_id', 0), ('process_date', 1), ('location', 2), ('sku_code', 3), ('po_reference_no', 4), ('unit_price', 5),
+                                       ('imei_number', 6), ('lr_number', 7), ('invoice_num', 8),  ('igst_tax', 9), ('cgst_tax', 10), ('sgst_tax', 11) ))
 
 TARGET_MASTER_HEADERS = ['Distributor Code', 'Reseller Code', 'Corporate Name', 'Target Amount', 'Target Duration (Days)']
 TARGET_MASTER_HEADER = OrderedDict([('Distributor Code', 'distributor_id'), ('Reseller Code', 'reseller_id'),
@@ -3006,7 +3006,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                'purchase_order__open_po__cess_tax', 'purchase_order__open_po__apmc_tax', 'id',
                'seller_po__margin_percent', 'seller_po__margin_percent',
                'id', 'overall_discount', 'id',
-               'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'remarks', 'id']
+               'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'remarks', 'id','purchase_order__id', 'id']
         model_name = SellerPOSummary
         field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date',
                          'order_id': 'purchase_order__order_id',
@@ -3030,7 +3030,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price',
                          'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number','overall_discount',
-                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks','purchase_order__open_po__supplier__tin_number']
+                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks','purchase_order__open_po__supplier__tin_number','purchase__id']
     else:
         unsorted_dict = {16: 'Pre-Tax Received Value', 29: 'Post-Tax Received Value',
                          30: 'Invoiced Unit Rate',
@@ -3051,7 +3051,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                'purchase_order__open_po__igst_tax', 'purchase_order__open_po__utgst_tax',
                'purchase_order__open_po__cess_tax', 'purchase_order__open_po__apmc_tax',
                'id', 'seller_po__margin_percent', 'overall_discount', 'id',
-               'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'remarks', 'id']
+               'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'remarks', 'id','purchase_order__id', 'id']
 
         field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date',
                          'order_id': 'purchase_order__order_id',
@@ -3075,7 +3075,8 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'seller_po__margin_percent', 'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price','overall_discount',
                          'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number',
-                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks', 'purchase_order__open_po__supplier__tin_number'
+                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks', 'purchase_order__open_po__supplier__tin_number',
+                         'purchase_order__id'
                          ]
     excl_status = {'purchase_order__status': ''}
     ord_quan = 'quantity'
@@ -3201,6 +3202,11 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         if version_obj.exists():
             updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
         seller_po_summary = SellerPOSummary.objects.get(id=data['id'])
+        lr_detail_no = ''
+        if data['purchase_order__id']:
+            lr_detail = LRDetail.objects.filter(purchase_order = data['purchase_order__id'], purchase_order__open_po__sku__user = user.id )
+            if lr_detail.exists():
+                lr_detail_no = lr_detail[0].lr_number
         remarks = ''
         if data['remarks']:
             custom_remarks = []
@@ -3256,7 +3262,8 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                             ('receipt_no', 'receipt_no'),
                             ('Remarks', remarks),
                             ('Updated User', updated_user_name),
-                            ('GST NO', data[field_mapping['gst_num']])
+                            ('GST NO', data[field_mapping['gst_num']]),
+                            ('LR-NUMBER', lr_detail_no)
 
 	)))
     if stop_index and custom_search:
@@ -6380,7 +6387,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
 
     enquired_sku_qs = EnquiredSku.objects.filter(**search_parameters)
     enq_ids = enquired_sku_qs.values_list('id', flat=True)
-    asn_res_qs = ASNReserveDetail.objects.filter(enquirydetail_id__in=enq_ids, enquirydetail__warehouse_level=1)
+    asn_res_qs = ASNReserveDetail.objects.filter(enquirydetail_id__in=enq_ids, enquirydetail__warehouse_level=1, reserved_qty__gt=0)
     temp_data['recordsTotal'] = enquired_sku_qs.count() + asn_res_qs.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     if stop_index:

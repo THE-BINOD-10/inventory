@@ -15,7 +15,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'pos_switch': false, 'auto_po_switch': false, 'no_stock_switch': false, 'online_percentage': 0,
                     'mail_alerts': 0, 'prefix': '', 'all_groups': '', 'mail_options': [{'id': 1,'name': 'Default'}],
                     'mail_inputs':[], 'report_freq':'0', 'float_switch': false, 'automate_invoice': false, 'all_stages': '','all_order_fields':'',
-                    'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,'grn_fields':'', 'po_fields':'',
+                    'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,'grn_fields':'', 'po_fields':'', 'rtv_reasons':'',
                     'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': '',
                     'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false,
                     'invoice_remarks': '','invoice_declaration':'', 'raisepo_terms_conditions':'', 'show_disc_invoice': false, 'serial_limit': '',
@@ -713,6 +713,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $(".order_fields").importTags(vm.model_data.all_order_fields);
       $(".grn_fields").importTags(vm.model_data.grn_fields);
       $(".po_fields").importTags(vm.model_data.po_fields);
+      $(".rtv_reasons").importTags(vm.model_data.rtv_reasons);
       vm.model_data.all_order_fields_list = vm.model_data.all_order_fields.split(",")
       $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
       $(".invoice_types").importTags(vm.model_data.invoice_types);
@@ -854,6 +855,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.update_po_fields = function() {
     var data = $(".po_fields").val();
     vm.service.apiCall("save_grn_fields/?po_fields="+data).then(function(data){
+      if(data.message) {
+        msg = data.data;
+        $scope.showNoty();
+        Auth.status();
+      }
+    });
+  }
+
+  vm.update_rtv_reasons = function() {
+    var data = $(".rtv_reasons").val();
+    vm.service.apiCall("save_grn_fields/?rtv_reasons="+data).then(function(data){
       if(data.message) {
         msg = data.data;
         $scope.showNoty();

@@ -766,9 +766,9 @@ def get_adjust_filter_data(search_params, user, sub_user):
                                                      ('Quantity', data['quantity']),
                                                      ('Average Cost', avg_cost),
                                                      ('Value', amount),
-                                                     ('Remarks', data['reason']),
+                                                     ('Reason', data['reason']),
                                                      ('User', updated_user_name),
-                                                     ('Date', data['creation_date']),
+                                                     ('Transaction Date', data['creation_date']),
 
                                                   )))
     else:
@@ -1096,6 +1096,8 @@ def excel_reports(request, user=''):
             continue
         if len(temp) > 1 and temp[1]:
             if 'date' in dat:
+                if '%2F' in temp[1]:
+                    temp[1] = temp[1].replace('%2F', '/')
                 temp[1] = datetime.datetime.strptime(temp[1], '%m/%d/%Y')
             search_params[temp[0]] = temp[1]
     params = [search_params, user, request.user]

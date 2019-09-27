@@ -2032,7 +2032,8 @@ class SellerStock(models.Model):
     class Meta:
         db_table = 'SELLER_STOCK'
         unique_together = ('seller', 'stock', 'seller_po_summary')
-        index_together = (('seller', 'stock', 'seller_po_summary'), ('seller', 'stock'), ('seller', 'stock', 'quantity'))
+        index_together = (('seller', 'stock', 'seller_po_summary'), ('seller', 'stock'), ('seller', 'stock', 'quantity'),
+                            ('stock',))
 
 
 class SellerMarginMapping(models.Model):
@@ -2999,6 +3000,7 @@ class ReturnToVendor(models.Model):
     location = models.ForeignKey(LocationMaster, blank=True, null=True)
     quantity = models.FloatField(default=0)
     status = models.IntegerField(default=1)
+    return_reason = models.CharField(max_length=64, default='')
     return_type = models.CharField(max_length=32, default='Invoice')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

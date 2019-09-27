@@ -1802,7 +1802,7 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
         excel_check_list.append('weight')
     if not set(excel_check_list).issubset(excel_mapping.keys()):
         return 'Invalid File', []
-    number_fields = ['quantity', 'mrp']
+    number_fields = ['quantity']
     optional_fields = ['mrp']
     mandatory_fields = ['receipt_date', 'location', 'quantity', 'receipt_type']
     fields_mapping = {'manufactured_date': 'Manufactured Date', 'expiry_date': 'Expiry Date'}
@@ -1871,6 +1871,10 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 data_dict['weight'] = cell_data
                 if user.username in MILKBASKET_USERS and not cell_data:
                     index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
+            elif key == 'mrp':
+                data_dict['mrp'] = cell_data
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
             elif key in number_fields:
                 try:
                     data_dict[key] = float(cell_data)
@@ -2409,7 +2413,7 @@ def validate_supplier_sku_form(open_sheet, user_id):
                             index_status.setdefault(row_idx, set()).add('MarkDown Percentage is Mandatory For Margin Based')
                         elif not isinstance(cell_data_margin, (int, float)):
                             index_status.setdefault(row_idx, set()).add('MarkDown % Should be in integer or float')
-                        elif not float(cell_data_margin) in range(0, 100):
+                        elif  float(cell_data_margin) < 0  or float(cell_data_margin) >  100:
                             index_status.setdefault(row_idx, set()).add('MarkDown % Should be in between 0 and 100')
 
                     elif cell_data == 'Markup Based' :
@@ -2418,7 +2422,7 @@ def validate_supplier_sku_form(open_sheet, user_id):
                             index_status.setdefault(row_idx, set()).add('Markup Percentage is Mandatory For Markup Based')
                         elif not isinstance(cell_data_markup, (int, float)):
                             index_status.setdefault(row_idx, set()).add('Markup % Should be in integer or float')
-                        elif not float(cell_data_markup) in range(0, 100):
+                        elif  float(cell_data_markup) < 0 or float(cell_data_markup) > 100:
                             index_status.setdefault(row_idx, set()).add('Markup % Should be in between 0 and 100')
 
 
@@ -2759,11 +2763,14 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     cell_data = str(int(cell_data))
                 data_dict[key] = cell_data
 
+            # elif key == 'mrp' and user.username in MILKBASKET_USERS :
+            #     if not cell_data :
+            #         index_status.setdefault(row_idx, set()).add('MRP is mandatory')
+            #     data_dict[key] = cell_data
             elif key in fields:
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
                 data_dict[key] = cell_data
-
             elif cell_data:
                 if key in number_fields:
                     try:
@@ -3213,7 +3220,7 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
     if not set(excel_check_list).issubset(excel_mapping.keys()):
         return 'Invalid File', None
     fields_mapping = {'quantity': 'Quantity', 'mrp': 'MRP'}
-    number_fields = ['quantity', 'mrp']
+    number_fields = ['quantity']
     for row_idx in range(1, no_of_rows):
         data_dict = {}
         for key, value in excel_mapping.iteritems():
@@ -3274,6 +3281,15 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                 if isinstance(cell_data, float):
                     cell_data = str(int(cell_data))
                 data_dict[key] = cell_data
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
+            elif key == 'mrp':
+                if not isinstance(cell_data, (int, float)):
+                   index_status.setdefault(row_idx, set()).add('Invalid Entry for MRP Value')
+                else:
+                    data_dict[key] = cell_data
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
             elif key in number_fields:
                 if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % fields_mapping[key])
@@ -3735,6 +3751,8 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                 except:
                     index_status.setdefault(row_idx, set()).add('Invalid Quantity')
             elif key == 'mrp':
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
                 if cell_data:
                     try:
                         data_dict['mrp'] = float(cell_data)
@@ -3742,6 +3760,10 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                             index_status.setdefault(row_idx, set()).add('Invalid MRP')
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid MRP')
+            elif key == 'weight' :
+                data_dict[key] = cell_data
+                #if user.username in MILKBASKET_USERS and not cell_data:
+                #    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
             else:
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
@@ -5627,7 +5649,8 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                                                  inv_mapping)
     if not set(['source_sku_code', 'source_location', 'source_quantity', 'dest_sku_code',
                 'dest_location', 'dest_quantity']).issubset(excel_mapping.keys()):
-        return 'Invalid File', None
+        return 'Invalid File'
+    number_fields = ['source_quantity','dest_quantity','source_mrp','dest_mrp']
     if user.userprofile.user_type == 'marketplace_user':
         if 'seller_id' not in excel_mapping.keys():
             return 'Invalid File', None
@@ -5700,11 +5723,16 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                     cell_data = str(int(cell_data))
                     data_dict[key] = cell_data
             elif key in ['source_weight','dest_weight'] :
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
                 if isinstance(cell_data, (int, float)):
                     data_dict[key] = str(int(cell_data))
                 else:
                     data_dict[key] = str(cell_data)
             elif key in number_fields:
+                if key in ['source_mrp','dest_mrp'] :
+                    if user.username in MILKBASKET_USERS and not cell_data:
+                        index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
                 if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
                 elif 'source' in key and prev_data_dict.get(key, ''):
@@ -6713,7 +6741,7 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add("Quantity Missing")
                 else:
-                    if not isinstance(cell_data, (int, float)):
+                    if not isinstance(cell_data, (int, float)) and cell_data < 0:
                         index_status.setdefault(row_idx, set()).add('Invalid Quantity Amount')
                     else:
                         sku_code = get_cell_data(row_idx, blockstock_file_mapping['sku_code'], reader, file_type)
@@ -6722,12 +6750,12 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                         usr_obj = User.objects.filter(username=wh_name).values_list('id', flat=True)
                         ret_list = get_quantity_data(usr_obj, [sku_code], asn_true=False)
                         if ret_list:
-                            avail_stock = ret_list[0]['available']
+                            avail_stock = ret_list[0]['available'] - ret_list[0]['non_kitted'] - ret_list[0]['reserved'] - ret_list[0]['blocked']
                             if level == 1:
                                 if avail_stock < cell_data:
                                     index_status.setdefault(row_idx, set()).add('Stock Outage.Pls check stock in WH')
                             elif level == 3:
-                                asn_avail_stock = ret_list[0]['asn'] + ret_list[0]['non_kitted']
+                                asn_avail_stock = ret_list[0]['asn'] + ret_list[0]['non_kitted'] - ret_list[0]['asn_res'] - ret_list[0]['asn_blocked']
                                 if asn_avail_stock < cell_data:
                                     index_status.setdefault(row_idx, set()).add('Stock Outage.Pls check stock in WH')
             elif key == 'reseller_name':
@@ -7342,11 +7370,16 @@ def validate_combo_allocate_form(request, reader, user, no_of_rows, no_of_cols, 
                     cell_data = str(int(cell_data))
                     data_dict[key] = cell_data
             elif key in ['combo_weight','child_weight'] :
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
                 if isinstance(cell_data, (int, float)):
                     data_dict[key] = str(int(cell_data))
                 else:
                     data_dict[key] = str(cell_data)
             elif key in number_fields:
+                if key in ['combo_mrp','child_mrp'] :
+                    if user.username in MILKBASKET_USERS and not cell_data:
+                        index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
                 if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
                 elif 'child' in key and prev_data_dict.get(key, ''):
@@ -7354,6 +7387,9 @@ def validate_combo_allocate_form(request, reader, user, no_of_rows, no_of_cols, 
                     data_dict['source_updated'] = True
                 else:
                     data_dict[key] = cell_data
+                if key in ['combo_quantity','child_quantity']:
+                    if not cell_data:
+                        index_status.setdefault(row_idx, set()).add('Quantity should not be zero')
 
         if row_idx not in index_status:
             prev_data_dict = copy.deepcopy(data_dict)

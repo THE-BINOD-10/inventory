@@ -1227,6 +1227,7 @@ def get_mp_inventory(request):
         page_info = scroll_data(request, sku_records, limit=limit, request_type='body')
         sku_records = page_info['data']
         bulk_zone = MILKBASKET_BULK_ZONE
+        combo_allocate_stock = get_misc_value('combo_allocate_stock', user.id)
         if industry_type == 'FMCG':
             sellable_zones = ZoneMaster.objects.filter(user=user.id, segregation='sellable').values_list('zone', flat=True)
             if sellable_zones:
@@ -1276,11 +1277,28 @@ def get_mp_inventory(request):
             sku_weight_dict = dict(SKUAttributes.objects.filter(sku__user=user.id, attribute_name='weight').\
                                    exclude(attribute_value='').values_list('sku__sku_code', 'attribute_value'))
 
+            combo_sku_list = list(SKUMaster.objects.filter(user=user.id, relation_type='combo').\
+                                  values_list('sku_code', flat=True))
             sku_open_orders_dict = {}
-            for open_order, open_order_qty in open_orders.iteritems():
+            open_orders1 = copy.deepcopy(open_orders)
+            for open_order, open_order_qty in open_orders1.iteritems():
                 temp_key = open_order.split('<<>>')
-                sku_open_orders_dict.setdefault(temp_key[0], [])
-                sku_open_orders_dict[temp_key[0]].append(open_order)
+                if temp_key[0] in combo_sku_list and combo_allocate_stock != 'true':
+                    sku_combos = SKURelation.objects.filter(parent_sku__user=user.id, parent_sku__sku_code=temp_key[0],
+                                               relation_type='combo').annotate(str_mrp=Cast('member_sku__mrp', CharField()))
+                    for sku_combo in sku_combos:
+                        member_sku_code = str(sku_combo.member_sku.sku_code)
+                        open_order_combo_key = '%s<<>>%s' % (member_sku_code, sku_combo.str_mrp)
+                        sku_open_orders_dict.setdefault(member_sku_code, [])
+                        if open_order_combo_key not in sku_open_orders_dict[member_sku_code]:
+                            sku_open_orders_dict[member_sku_code].append(open_order_combo_key)
+                        open_orders.setdefault(open_order_combo_key, 0)
+                        open_orders[open_order_combo_key] += (sku_combo.quantity * open_order_qty)
+                    del open_orders[open_order]
+                else:
+                    sku_open_orders_dict.setdefault(temp_key[0], [])
+                    if open_order not in sku_open_orders_dict[temp_key[0]]:
+                        sku_open_orders_dict[temp_key[0]].append(open_order)
 
             for sku in sku_records:
                 group_data = stocks.filter(stock__sku__sku_code=sku['sku_code']).values('group_key', 'stock_sum')

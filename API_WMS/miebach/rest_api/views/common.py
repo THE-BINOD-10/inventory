@@ -1993,7 +1993,8 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
             if latest_stock.exists():
                 latest_stock_obj = latest_stock.latest('id')
                 batch_obj = latest_stock_obj.batch_detail
-                stock_dict["batch_detail_id"] = batch_obj.id
+                if batch_obj:
+                    stock_dict["batch_detail_id"] = batch_obj.id
             elif batch_dict.keys():
                 batch_obj = BatchDetail.objects.create(**batch_dict)
                 stock_dict["batch_detail_id"] = batch_obj.id
@@ -5867,6 +5868,23 @@ def build_invoice(invoice_data, user, css=False):
         render_space = inv_height - (inv_details + inv_footer + inv_totals + inv_header + inv_total)
     no_of_skus = int(render_space / inv_product)
     data_length = len(invoice_data['data'])
+    data_value = 0
+    no_of_sku_count = 0
+    if get_misc_value('show_imei_invoice', user.id) == 'false':
+        invoice_data['imei_data'] = []
+        for data in invoice_data['data']:
+            data['imeis'] = []
+    if invoice_data['imei_data']:
+        count = 0
+        for imei in invoice_data['imei_data']:
+            for imei_count in range(len(imei)+1):
+                imei_count
+            count+=imei_count
+        no_of_sku_count = int(count/2)
+        if no_of_sku_count + data_length > 14:
+            data_value = 1
+            data_length = no_of_sku_count + data_length
+
     '''
     if user.username in top_logo_users:
         no_of_skus -= 2
@@ -5883,7 +5901,10 @@ def build_invoice(invoice_data, user, css=False):
         temp_render_space = 0
         temp_render_space = inv_height - (inv_details + inv_header)
         temp_no_of_skus = int(temp_render_space / inv_product)
-        for i in range(int(math.ceil(float(data_length) / temp_no_of_skus))):
+        number_of_pages = int(math.ceil(float(data_length) / temp_no_of_skus))
+        if data_value :
+            number_of_pages = number_of_pages + 1
+        for i in range(number_of_pages):
             temp_page = {'data': []}
             temp_page['data'] = invoice_data['data'][i * temp_no_of_skus: (i + 1) * temp_no_of_skus]
             temp_page['empty_data'] = []
@@ -5910,6 +5931,8 @@ def build_invoice(invoice_data, user, css=False):
         temp = invoice_data['data']
         invoice_data['data'] = []
         #empty_data = [""] * (no_of_skus - data_length)
+        if no_of_sku_count > 0:
+            data_length = data_length+no_of_sku_count
         no_of_space = (13 - data_length)
         if no_of_space < 0:
             no_of_space = 0
@@ -7582,7 +7605,7 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
                          order_summary_dict, ship_to, corporate_po_number, client_name, admin_user, sku_total_qty_map,
                          order_user_sku, order_user_objs, address_selected=''):
     if order_data.get('del_date', ''):
-        if order_data['del_date'].date() >= order_data['shipment_date']:
+        if order_data['del_date'] >= order_data['shipment_date']:
             order_data['shipment_date'] = order_data.get('del_date', '')
         else:
             order_data['del_date'] = order_data['shipment_date']
@@ -9715,8 +9738,9 @@ def get_challan_number_for_dc(order , user):
         challan_sequence = ChallanSequence.objects.filter(user=user.id, marketplace='')
     if challan_sequence:
         challan_sequence = challan_sequence[0]
-        challan_num = int(challan_sequence.value)
-        challan_sequence.value = challan_num + 1
+        challan_val = int(challan_sequence.value)
+        challan_sequence.value = challan_val + 1
+        challan_num = challan_sequence.value
         challan_sequence.save()
     else:
         ChallanSequence.objects.create(marketplace='', prefix='CHN', value=1, status=1, user_id=user.id,

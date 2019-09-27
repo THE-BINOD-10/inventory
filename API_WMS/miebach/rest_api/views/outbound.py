@@ -7201,7 +7201,7 @@ def generate_order_invoice(request, user=''):
     invoice_data = add_consignee_data(invoice_data, ord_ids, user)
     user_profile = UserProfile.objects.get(user_id=user.id)
     # invoice_data = build_invoice(invoice_data, user, False)
-    if get_misc_value('show_imei_invoice', user.id) == 'true':
+    if get_misc_value('show_imei_invoice', user.id) == 'true' and user.userprofile.user_type == 'marketplace_user':
         invoice_data = build_marketplace_invoice(invoice_data, user, False)
     else:
         invoice_data = build_invoice(invoice_data, user, False)
@@ -11639,7 +11639,7 @@ def generate_customer_invoice_tab(request, user=''):
             return render(request, 'templates/toggle/delivery_challan.html', invoice_data)
         elif return_data:
             invoice_data = json.dumps(invoice_data)
-        elif get_misc_value('show_imei_invoice', user.id) == 'true':
+        elif get_misc_value('show_imei_invoice', user.id) == 'true' and user.userprofile.user_type == 'marketplace_user':
             invoice_data = build_marketplace_invoice(invoice_data, user, False)
         else:
             invoice_data = build_invoice(invoice_data, user, False)
@@ -11868,7 +11868,7 @@ def generate_customer_invoice(request, user=''):
             return render(request, 'templates/toggle/delivery_challan.html', invoice_data)
         elif return_data:
             invoice_data = json.dumps(invoice_data)
-        elif get_misc_value('show_imei_invoice', user.id) == 'true':
+        elif get_misc_value('show_imei_invoice', user.id) == 'true' and user.userprofile.user_type == 'marketplace_user':
             invoice_data = build_marketplace_invoice(invoice_data, user, False)
         else:
             invoice_data = build_invoice(invoice_data, user, False)
@@ -15522,7 +15522,7 @@ def invoice_print_manifest(request, user=''):
         if central_order_reassigning:
             invoice_data['manifest_number']= manifest_number
         invoice_data = modify_invoice_data(invoice_data, user)
-        if get_misc_value('show_imei_invoice', user.id) == 'true':
+        if get_misc_value('show_imei_invoice', user.id) == 'true' and user.userprofile.user_type == 'marketplace_user':
             invoice_data = build_marketplace_invoice(invoice_data, user, False)
         else:
             invoice_data = build_invoice(invoice_data, user, False)

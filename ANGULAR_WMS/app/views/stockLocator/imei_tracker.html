@@ -18,9 +18,9 @@
               <div class="col-sm-6 col-xs-5">
                 <textarea class="form-control" rows="1" ng-model="showCase.imei" ng-keydown="showCase.scan_imei($event, showCase.imei)" auto-focus="" focus-on="focusIMEI"></textarea>
               </div>
-            </div>
           </div>
         </div>
+
         <div class="row mb20" ng-if="showCase.model_data.sku_details && showCase.scan_item_type=='PO'">
           <div class="col-md-2 col-sm-1 hidden-xs">
           </div>
@@ -302,7 +302,26 @@
             </div>
           </div>
         </div>
+        <form name="form" class="ng-pristine ng-valid" role="form" ui-jq="validate" ui-options="validationOpt">
+        <div class="modal-body">
+          <div class="col-md-8">
+            <div class="form-group">
+              <label class="col-sm-3 col-xs-5 control-label text-right" style="line-height: 30px">PDF Format</label>
+              <div class="col-sm-6 col-xs-5">
+                <select class="form-control" name="pdf_format">
+                  <option ng-repeat="format in showCase.model_data.format_types" value="{{format}}">{{format}}</option>
+                </select>
+              </div>
+              <button type="button" class="btn btn-info col-md-3 col-sm-3 col-xs-12" style="width: 150px; margin-bottom:5px"
+                      ng-click="showCase.generate_barcodes(form)">Print Barcodes</button>
+            </div>
+          </div>
+        </div>
+        </form>
+        </div>
       </div>
+
     </div>
   </div>
+</div>
 </div>

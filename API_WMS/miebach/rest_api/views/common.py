@@ -5254,6 +5254,15 @@ def get_imei_data(request, user=''):
                                                                                            flat=True).distinct()
     sku_details = {}
     log.info('Get IMEI Tracker History data for ' + user.username + ' is ' + str(request.GET.dict()))
+    format_types = {}
+    for i in BarcodeSettings.objects.filter(user=request.user).order_by('-format_type'):
+        if i.size:
+            try:
+                size = "%sX%s" % eval(i.size)
+            except:
+                size = i.size
+            format_t = "_".join([i.format_type, size])
+            format_types.update({format_t: i.format_type})
     try:
         for index, po_mapping in enumerate(po_imei_mapping):
             imei_data = {}
@@ -5361,7 +5370,7 @@ def get_imei_data(request, user=''):
         result_data = []
         log.info('Get IMEI Tracker History Data failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(request.GET.dict()), str(e)))
-    status = {'imei': imei, 'sku_details': sku_details, 'imei_status': imei_status, 'data': data, 'message': 'Success'}
+    status = {'imei': imei, 'sku_details': sku_details, 'imei_status': imei_status, 'data': data, 'format_types': format_types, 'message': 'Success'}
     return HttpResponse(json.dumps(status))
 
 
@@ -5479,6 +5488,13 @@ def generate_barcode_dict(pdf_format, myDicts, user):
 
                 barcodes_list.append(single)
 
+        elif myDict.has_key('imei'):
+            single = myDict
+            single['SKUPrintQty'] = "1"
+            single['Label'] = myDict['imei']
+            if single['wms_code']:
+                single.pop('wms_code')
+            barcodes_list.append(single)
 
         else:
         #for ind in range(0, len(myDict['wms_code'])):
@@ -5595,6 +5611,9 @@ def make_data_dict(barcodes_list, user_prf, pdf_format):
             return data_dict
     data_dict = {'customer': user_prf.user.username, 'info': barcodes_list}
     data_dict.update(settings.BARCODE_DEFAULT)
+    if data_dict['info']:
+        if data_dict['info'][0].has_key('imei'):
+            data_dict['show_fields'] = []
     return data_dict
 
 

@@ -12,6 +12,9 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "miebach.settings")
 django.setup()
 from itertools import chain
 from django.db.models import Count
+from django.db.models.functions import Cast, Concat
+from django.db.models.fields import DateField, CharField
+from django.db.models import Value
 from datetime import datetime, date, timedelta
 from miebach_admin.models import *
 from rest_api.views.common import get_sku_weight, get_all_sellable_zones, get_work_sheet
@@ -43,29 +46,67 @@ class Command(BaseCommand):
             column_count += 1
             return ws, column_count
 
+        def get_excel_variables(file_name, sheet_name, headers):
+            wb, ws = get_work_sheet(sheet_name, inv_value_headers)
+            file_name = '%s.%s' % (file_name, 'xls')
+            path = ('static/excel_files/%s') % file_name
+            if not os.path.exists('static/excel_files/'):
+                os.makedirs('static/excel_files/')
+            return wb, ws, path, file_name
+
         users = User.objects.filter(username__in=MILKBASKET_USERS)
         category_list = list(SKUMaster.objects.filter(user__in=users).exclude(sku_category='').\
                              values_list('sku_category', flat=True).distinct())
         inv_value_dict = OrderedDict()
+        doc_value_dict = OrderedDict()
         inv_value_headers = ['Category']
         user_mapping = dict(users.values_list('id', 'username'))
         inv_value_headers = list(chain(inv_value_headers, user_mapping.values()))
         try:
-            wb, ws = get_work_sheet('central_inventory_value', inv_value_headers)
-            file_name = '%s.%s' % ('central_inventory_value_report', 'xls')
-            path = ('static/excel_files/%s') % file_name
-            if not os.path.exists('static/excel_files/'):
-                os.makedirs('static/excel_files/')
+            report_file_names = []
             for category in category_list:
+                print category
                 for user in users:
                     inv_value_dict.setdefault(category, {})
                     inv_value_dict[category].setdefault(int(user.id), 0)
-                master_data = SellerStock.objects.filter(stock__sku__user__in=users, stock__sku__sku_category=category). \
-                    exclude(stock__receipt_number=0). \
-                    values('stock__sku__sku_category', 'stock__sku__user').distinct(). \
+                    doc_value_dict.setdefault(category, {})
+                    doc_value_dict[category].setdefault(int(user.id), 0)
+                    no_stock_days = list(StockStats.objects.filter(sku__sku_category=category, sku__user=user.id, closing_stock=0). \
+                                         annotate(creation_date_only=Cast('creation_date', DateField())).values(
+                        'creation_date_only').distinct(). \
+                                         order_by('-creation_date_only').values_list('creation_date_only', flat=True)[
+                                         :7])
+                    order_detail_objs = OrderDetail.objects.filter(user=user.id, sku__sku_category=category,
+                                                                   customerordersummary__isnull=False). \
+                                            annotate(creation_date_only=Cast('creation_date', DateField())). \
+                                            exclude(creation_date_only__in=no_stock_days).values(
+                        'creation_date_only').distinct(). \
+                                            order_by('-creation_date_only').\
+                        annotate(quantity_sum=Sum('quantity'),value_sum=Sum((F('quantity') * F('unit_price')) +\
+                                    ((F('quantity')*F('unit_price')/Value('100'))*(F('customerordersummary__cgst_tax')+\
+                                     F('customerordersummary__sgst_tax')+F('customerordersummary__igst_tax')+\
+                                                                                   F('customerordersummary__cess_tax'))) ))[:7]
+                    total_sale_value = 0
+                    if order_detail_objs.exists():
+                        for order_detail_obj in order_detail_objs:
+                            total_sale_value += order_detail_obj['value_sum']
+                    avg_sale_value = total_sale_value/7
+                    doc_value_dict[category][int(user.id)] = avg_sale_value
+                master_data = SellerStock.objects.filter(stock__sku__user__in=users, stock__sku__sku_category=category,
+                                                         stock__batch_detail__isnull=False, quantity__gt=0). \
+                    exclude(Q(stock__receipt_number=0)). \
+                    values('stock__sku__sku_category', 'stock__sku__user', 'stock__batch_detail__tax_percent').distinct(). \
                     annotate(total_value=Sum(F('quantity') * F('stock__batch_detail__buy_price')))
                 for data in master_data:
-                    inv_value_dict[data['stock__sku__sku_category']][int(data['stock__sku__user'])] += data['total_value']
+                    tax_percent = 0
+                    if data['stock__batch_detail__tax_percent']:
+                        tax_percent = data['stock__batch_detail__tax_percent']
+                    total_value = data['total_value']
+                    if tax_percent:
+                        total_value += (total_value/100)*tax_percent
+                    inv_value_dict[data['stock__sku__sku_category']][int(data['stock__sku__user'])] += total_value
+            name = 'inventory_value_report'
+            wb, ws, path, file_name = get_excel_variables(name, 'inventory_value', inv_value_headers)
             row_count = 1
             for category, user_value in inv_value_dict.iteritems():
                 ws, column_count = write_excel_col(ws, row_count, 0, category)
@@ -75,8 +116,30 @@ class Command(BaseCommand):
                     ws, column_count = write_excel_col(ws, row_count, column_count, value)
                 row_count += 1
             wb.save(path)
+            report_file_names.append({'name': file_name, 'path': path})
+            name = 'days_of_cover_report'
+            wb, ws, path, file_name = get_excel_variables(name, 'Days of Cover', inv_value_headers)
+            row_count = 1
+            for category, user_value in doc_value_dict.iteritems():
+                ws, column_count = write_excel_col(ws, row_count, 0, category)
+                for user, value in user_value.iteritems():
+                    column_count = (user_mapping.keys().index(user)) + 1
+                    doc_value = 0
+                    if value:
+                        stock_value = inv_value_dict[category][user]
+                        doc_value = stock_value/value
+                    doc_value = float("%.2f" % doc_value)
+                    ws, column_count = write_excel_col(ws, row_count, column_count, doc_value)
+                row_count += 1
+            wb.save(path)
+            report_file_names.append({'name': file_name, 'path': path})
+            send_to = ['sreekanth@mieone.com']
+            subject = '%s Reports dated %s' % ('Milkbasket', datetime.now().date())
+            text = 'Please find the scheduled reports in the attachment dated: %s' % str(
+                datetime.now().date())
+            send_mail_attachment(send_to, subject, text, files=report_file_names)
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
-            log.info('Milkbasket BA SA report creation failed for user %s and error statement is %s' %
+            log.info('Milkbasket Central report creation failed for user %s and error statement is %s' %
                      (str(user.username), str(e)))

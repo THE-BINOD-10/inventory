@@ -185,10 +185,10 @@ function view_orders() {
             record_serial_data = [...new Set(record_serial_data)]
             vm.record_serial_dict[vm.model_data.data[i].wms_code] = record_serial_data
           }
-        }
-        if(!vm.record_serial_dict.hasOwnProperty(vm.model_data.data[i].wms_code)) {
-          vm.service.showNoty("No Serial Number Present");
-          return false;
+          if(!vm.record_serial_dict.hasOwnProperty(vm.model_data.data[i].wms_code)) {
+            vm.service.showNoty("No Serial Number Present");
+            return false;
+          }
         }
       }
       return true;
@@ -204,9 +204,10 @@ function view_orders() {
             vm.record_serial_dict[vm.model_data.data[i].wms_code] = record_serial_data
             vm.record_serial_data = $.map(vm.record_serial_data, function(n,i){return n.toUpperCase();});
           }
-        }
-        if(!vm.record_serial_dict.hasOwnProperty(vm.model_data.data[i].wms_code)) {
-          vm.service.showNoty("No Serial Number Present");
+          if(!vm.record_serial_dict.hasOwnProperty(vm.model_data.data[i].wms_code)) {
+            vm.service.showNoty("No Serial Number Present");
+            return false;
+          }
         }
       }
     }

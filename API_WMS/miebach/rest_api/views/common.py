@@ -9805,3 +9805,12 @@ def get_zonal_admin_id(admin_user, reseller):
         import traceback
         log.info(traceback.format_exc())
         log.info('Users List exception raised')
+
+
+def get_utc_start_date(date_obj, user):
+    # Getting Time zone aware start time
+
+    ist_unaware = datetime.datetime.strptime(str(date_obj.date()), '%Y-%m-%d')
+    ist_aware = pytz.timezone("Asia/Calcutta").localize(ist_unaware)
+    converted_date = ist_aware.astimezone(pytz.UTC)
+    return converted_date

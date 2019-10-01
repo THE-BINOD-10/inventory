@@ -17,7 +17,7 @@ from django.db.models.fields import DateField, CharField
 from django.db.models import Value
 from datetime import datetime, date, timedelta
 from miebach_admin.models import *
-from rest_api.views.common import get_sku_weight, get_all_sellable_zones, get_work_sheet
+from rest_api.views.common import get_sku_weight, get_all_sellable_zones, get_work_sheet, get_utc_start_date
 from rest_api.views.miebach_utils import MILKBASKET_USERS, fn_timer
 from rest_api.views.mail_server import send_mail_attachment
 
@@ -59,6 +59,8 @@ class Command(BaseCommand):
                              values_list('sku_category', flat=True).distinct())
         inv_value_dict = OrderedDict()
         doc_value_dict = OrderedDict()
+        margin_value_dict = OrderedDict()
+        margin_percent_dict = OrderedDict()
         inv_value_headers = ['Category']
         user_mapping = dict(users.values_list('id', 'username'))
         inv_value_headers = list(chain(inv_value_headers, user_mapping.values()))
@@ -71,13 +73,19 @@ class Command(BaseCommand):
                     inv_value_dict[category].setdefault(int(user.id), 0)
                     doc_value_dict.setdefault(category, {})
                     doc_value_dict[category].setdefault(int(user.id), 0)
+                    margin_value_dict.setdefault(category, {})
+                    margin_value_dict[category].setdefault(int(user.id), 0)
+                    margin_percent_dict.setdefault(category, {})
+                    margin_percent_dict[category].setdefault(int(user.id), 0)
+                    # Doc Value Calculation Starts
                     no_stock_days = list(StockStats.objects.filter(sku__sku_category=category, sku__user=user.id, closing_stock=0). \
                                          annotate(creation_date_only=Cast('creation_date', DateField())).values(
                         'creation_date_only').distinct(). \
                                          order_by('-creation_date_only').values_list('creation_date_only', flat=True)[
                                          :7])
-                    order_detail_objs = OrderDetail.objects.filter(user=user.id, sku__sku_category=category,
-                                                                   customerordersummary__isnull=False). \
+                    all_orders = OrderDetail.objects.filter(user=user.id, sku__sku_category=category,
+                                                                   customerordersummary__isnull=False)
+                    order_detail_objs = all_orders. \
                                             annotate(creation_date_only=Cast('creation_date', DateField())). \
                                             exclude(creation_date_only__in=no_stock_days).values(
                         'creation_date_only').distinct(). \
@@ -92,6 +100,26 @@ class Command(BaseCommand):
                             total_sale_value += order_detail_obj['value_sum']
                     avg_sale_value = total_sale_value/7
                     doc_value_dict[category][int(user.id)] = avg_sale_value
+                    # Doc Value Calculation Ends
+
+                    # Margin Value and Percent Calculation Starts
+                    today_start = get_utc_start_date(datetime.now(), user)
+                    today_end = today_start + timedelta(days=1)
+                    pick_locs = PicklistLocation.objects.filter(picklist__order__user=user.id,
+                                                                picklist__order__sku__sku_category=category,
+                                                                creation_date__gte=today_start,
+                                                    creation_date__lte=today_end).only('quantity',
+                                                    'stock__batch_detail__buy_price', 'picklist__order__unit_price')
+                    pick_sale_val = 0
+                    pick_cost_val = 0
+                    for pick_loc in pick_locs:
+                        buy_price = pick_loc.stock.batch_detail.buy_price
+                        pick_cost_val += (pick_loc.quantity * buy_price)
+                        pick_sale_val += (pick_loc.quantity * pick_loc.picklist.order.unit_price)
+                    if pick_sale_val:
+                        margin_value_dict[category][int(user.id)] = pick_sale_val - pick_cost_val
+                        margin_percent_dict[category][int(user.id)] = (pick_sale_val - pick_cost_val)/pick_sale_val
+                    # Margin Value and Percent Calculation Ends
                 master_data = SellerStock.objects.filter(stock__sku__user__in=users, stock__sku__sku_category=category,
                                                          stock__batch_detail__isnull=False, quantity__gt=0). \
                     exclude(Q(stock__receipt_number=0)). \
@@ -130,6 +158,26 @@ class Command(BaseCommand):
                         doc_value = stock_value/value
                     doc_value = float("%.2f" % doc_value)
                     ws, column_count = write_excel_col(ws, row_count, column_count, doc_value)
+                row_count += 1
+            wb.save(path)
+            report_file_names.append({'name': file_name, 'path': path})
+            name = 'consolidated_margin_percent'
+            wb, ws, path, file_name = get_excel_variables(name, 'consolidated_margin_percent', inv_value_headers)
+            row_count = 1
+            for category, user_value in margin_value_dict.iteritems():
+                ws, column_count = write_excel_col(ws, row_count, 0, category)
+                for user, value in user_value.iteritems():
+                    column_count = (user_mapping.keys().index(user)) + 1
+                    value = float("%.2f" % value)
+                    ws, column_count = write_excel_col(ws, row_count, column_count, value)
+                row_count += 1
+            row_count += 2
+            for category, user_value in margin_percent_dict.iteritems():
+                ws, column_count = write_excel_col(ws, row_count, 0, category)
+                for user, value in user_value.iteritems():
+                    column_count = (user_mapping.keys().index(user)) + 1
+                    value = float("%.2f" % value)
+                    ws, column_count = write_excel_col(ws, row_count, column_count, value)
                 row_count += 1
             wb.save(path)
             report_file_names.append({'name': file_name, 'path': path})

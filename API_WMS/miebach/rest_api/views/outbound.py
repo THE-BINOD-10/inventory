@@ -3312,12 +3312,14 @@ def check_imei(request, user=''):
     is_rm_picklist = request.GET.get('is_rm_picklist', False)
     order_id = request.GET.get('order_id', '')
     groupby = request.GET.get('groupby', '')
+    cost_check = request.GET.get('cost_check', False)
     log.info('Request params for Check IMEI ' + user.username + ' is ' + str(request.GET.dict()))
     shipping_quantity = 0
+    cost_price = 0
     try:
         for key, value in request.GET.iteritems():
             picklist = ''
-            if key in ['is_shipment', 'order_id', 'groupby', 'is_rm_picklist']:
+            if key in ['is_shipment', 'order_id', 'groupby', 'is_rm_picklist', 'cost_check']:
                 continue
             sku_code = ''
             order = None
@@ -3340,6 +3342,9 @@ def check_imei(request, user=''):
                         order = picklist.order
             po_mapping, status, imei_data = check_get_imei_details(value, sku_code, user.id, check_type='order_mapping',
                                                                    order=order, job_order=job_order)
+            if cost_check and po_mapping[0].purchase_order:
+                cost_price = po_mapping[0].purchase_order.open_po.price
+                
             if imei_data.get('wms_code', ''):
                 sku_code = imei_data['wms_code']
 
@@ -3410,7 +3415,7 @@ def check_imei(request, user=''):
         log.debug(traceback.format_exc())
         log.info('Check IMEI failed for params ' + str(request.POST.dict()) + ' error statement is ' + str(e))
     return HttpResponse(json.dumps({'status': status, 'data': {'sku_code': sku_code, 'quantity': quantity,
-                                                               'shipping_quantity': shipping_quantity}}))
+                                                               'shipping_quantity': shipping_quantity,'cost_price':cost_price}}))
 
 
 @get_admin_user

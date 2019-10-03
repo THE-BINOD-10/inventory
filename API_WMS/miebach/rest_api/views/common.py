@@ -545,6 +545,7 @@ data_datatable = {  # masters
     'POPaymentTrackerInvBased': 'get_inv_based_po_payment_data', \
     'ReturnToVendor': 'get_po_putaway_data', \
     'CreatedRTV': 'get_saved_rtvs', \
+    'PastPO':'get_past_po',\
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -919,7 +920,7 @@ def configurations(request, user=''):
 
 
 @csrf_exempt
-def get_work_sheet(sheet_name, sheet_headers, f_name=''):
+def get_work_sheet(sheet_name, sheet_headers, f_name='', headers_index=0):
     if '.xlsx' in f_name:
         wb = xlsxwriter.Workbook(f_name)
         ws = wb.add_worksheet(sheet_name)
@@ -929,7 +930,7 @@ def get_work_sheet(sheet_name, sheet_headers, f_name=''):
         ws = wb.add_sheet(sheet_name)
         header_style = easyxf('font: bold on')
     for count, header in enumerate(sheet_headers):
-        ws.write(0, count, header, header_style)
+        ws.write(headers_index, count, header, header_style)
     return wb, ws
 
 
@@ -9829,3 +9830,12 @@ def get_zonal_admin_id(admin_user, reseller):
         import traceback
         log.info(traceback.format_exc())
         log.info('Users List exception raised')
+
+
+def get_utc_start_date(date_obj, user):
+    # Getting Time zone aware start time
+
+    ist_unaware = datetime.datetime.strptime(str(date_obj.date()), '%Y-%m-%d')
+    ist_aware = pytz.timezone("Asia/Calcutta").localize(ist_unaware)
+    converted_date = ist_aware.astimezone(pytz.UTC)
+    return converted_date

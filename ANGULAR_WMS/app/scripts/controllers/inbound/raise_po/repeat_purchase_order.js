@@ -1,13 +1,12 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('RaisePurchaseOrderCtrl',['$scope', '$http', '$q', '$state', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
+  .controller('PastPoCtrl',['$scope', '$http', '$q', '$state', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service, Data) {
-
     var vm = this;
-    vm.apply_filters = colFilters;
     vm.service = Service;
+    vm.apply_filters = colFilters;
     vm.extra_width = { 'width': '1250px' };
     vm.selected = {};
     vm.selectAll = false;
@@ -20,7 +19,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.warehouse_type = vm.user_profile.warehouse_type;
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
-    vm.filters = {'datatable': 'RaisePO', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
+    vm.filters = {'datatable': 'PastPO', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -33,7 +32,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
        .withDataProp('data')
        .withOption('drawCallback', function(settings) {
          vm.service.make_selected(settings, vm.selected);
-         $scope.$apply(function() {vm.bt_disable = true;vm.selectAll = false;});
        })
        .withOption('processing', true)
        .withOption('serverSide', true)
@@ -47,38 +45,32 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
             }
         })
        .withPaginationType('full_numbers')
-       .withOption('rowCallback', rowCallback)
        .withOption('initComplete', function( settings ) {
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
-       });
+       })
+       .withOption('rowCallback', rowCallback);
 
-    var columns = ["Supplier ID", "Supplier Name", "Total Quantity", "Order Type"];
-    vm.dtColumns = vm.service.build_colums(columns);
-    vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
-                .renderWith(function(data, type, full, meta) {
-                  if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
-                    vm.selected = {};
-                  }
-                  vm.selected[meta.row] = false;
-                  return vm.service.frontHtml + meta.row + vm.service.endHtml;
-                }))
+    vm.dtColumns = [
+        DTColumnBuilder.newColumn('PO Number').withTitle('PO Number'),
+        DTColumnBuilder.newColumn('Supplier ID').withTitle('Supplier ID'),
+        DTColumnBuilder.newColumn('Supplier Name').withTitle('Supplier Name'),
+        DTColumnBuilder.newColumn('PO Date').withTitle('PO Date')
+    ];
 
     vm.dtInstance = {};
-
     $scope.$on('change_filters_data', function(){
       if($("#"+vm.dtInstance.id+":visible").length != 0) {
         vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
         vm.service.refresh(vm.dtInstance);
       }
     });
-
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
       $('td:not(td:first)', nRow).unbind('click');
       $('td:not(td:first)', nRow).bind('click', function() {
         $scope.$apply(function() {
           vm.extra_width = { 'width': '1250px' };
           vm.supplier_id = aData['Supplier ID'];
-          var data = {supplier_id: aData['Supplier ID'], order_type: aData['Order Type'], po_type:''};
+          var data = {supplier_id: aData['Supplier ID'], order_type: aData['Order Type'], po_type:'PastPO'};
           vm.service.apiCall('generated_po_data/', 'GET', data).then(function(data){
             if (data.message) {
 
@@ -359,17 +351,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       }
     }
 
-    vm.save_raise_po = function(data) {
-
-      if (data.$valid) {
-        if(vm.update) {
-          vm.update_raise_po();
-        } else {
-          vm.add_raise_po();
-        }
-      }
-    }
-
     vm.barcode = function() {
 
       vm.barcode_title = 'Barcode Generation';
@@ -427,42 +408,27 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
     vm.confirm = function(data) {
       if (data.$valid) {
-        if (vm.warehouse_type == 'CENTRAL_ADMIN') {
-          var elem = angular.element($('form'))
-          elem = elem[0]
-          elem = $(elem).serializeArray()
-          vm.common_confirm('confirm_central_po/', elem)
-        } else {
-          if(!(vm.update)) {
             vm.confirm_add_po();
-          } else {
-            vm.confirm_po();
-          }
         }
       }
-    }
 
     vm.confirm_add_po = function() {
 
       var elem = angular.element($('form'));
-      elem = elem[0];
+      elem = elem[1];
       elem = $(elem).serializeArray();
       vm.common_confirm('confirm_add_po/', elem);
     }
 
     vm.confirm_po = function() {
-
       var elem = angular.element($('form'));
-      elem = elem[0];
+      elem = elem[1];
       elem = $(elem).serializeArray();
       vm.common_confirm('confirm_po/', elem);
     }
 
     vm.common_confirm = function(url, elem) {
       var confirm_url = 'validate_wms/';
-      if (vm.warehouse_type == 'CENTRAL_ADMIN') {
-        elem.push({name:'is_central_po', value:true});
-      }
       vm.service.apiCall(confirm_url, 'POST', elem, true).then(function(data){
         if(data.message) {
           if (data.data == "success") {
@@ -501,46 +467,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     }
 
     vm.confirm_print = false;
-    vm.confirm_po1 = function() {
-      vm.bt_disable = true;
-      var that = vm;
-      var data = [];
-      angular.forEach(vm.selected, function(value, key) {
-        if(value) {
-          var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
-          data.push({name: temp['_aData']["Order Type"], value :temp['_aData']['Supplier ID']});
-        }
-      });
-      vm.service.alert_msg("Do you want to Raise PO").then(function(msg) {
-        if (msg == "true") {
-          vm.service.apiCall('confirm_po1/', 'POST', data, true).then(function(data){
-            if(data.message) {
-              vm.confirm_print = false;
-              vm.print_enable = true;
-              angular.element(".modal-body").html('');
-              $state.go('app.inbound.RaisePo.PurchaseOrder');
-              vm.service.pop_msg(data.data);
-              vm.service.refresh(vm.dtInstance);
-              if(data.data.search("<div") != -1) {
-                if (vm.model_data.receipt_type == 'Hosted Warehouse') {
-                  vm.title = $(data.data).find('.modal-header h4').text().trim();
-                }
-                vm.html = $(data.data)[0];
-                vm.extra_width = {'width': '990px'};
-                $timeout(function() {
-                  $("#page-pop .modal-body.show").html(vm.html)
-                  vm.confirm_print = false;
-                }, 2000);
-              } else {
-                vm.service.pop_msg(data.data);
-              }
-            }
-          });
-        } else {
-          vm.bt_disable = false;
-        }
-      });
-    }
+    
 
    vm.delete_po_group = delete_po_group;
    function delete_po_group() {
@@ -569,9 +496,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
      vm.service.apiCall("get_supplier_sku_prices/", "POST", data).then(function(data) {
 
        if(data.message) {
-	 if (!$.isEmptyObject(data.data)) {
+   if (!$.isEmptyObject(data.data)) {
            d.resolve(data.data);
-	 }
+   }
        }
      });
      return d.promise;
@@ -615,8 +542,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
         return false;
       }
       if(vm.permissions.show_purchase_history) {
-	    $timeout( function() {
-	        vm.populate_last_transaction('')
+      $timeout( function() {
+          vm.populate_last_transaction('')
         }, 2000 );
       }
       product.fields.sku.wms_code = item.wms_code;
@@ -830,11 +757,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
     vm.last_transaction_table = {}
     vm.last_transaction_wms_code = []
-	vm.supplier_level_last_transaction = false
-	vm.supplier_wise_table = []
-	vm.sku_wise_table = []
+  vm.supplier_level_last_transaction = false
+  vm.supplier_wise_table = []
+  vm.sku_wise_table = []
 
-	vm.supplier_level = function(toggle_value) {
+  vm.supplier_level = function(toggle_value) {
         vm.supplier_level_last_transaction = toggle_value
         if (vm.supplier_level_last_transaction) {
             vm.last_transaction_table = vm.supplier_wise_table;
@@ -846,33 +773,33 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.populate_last_transaction = function(delete_obj) {
       vm.last_transaction_details = {}
       var new_elem = []
-	  var elem = angular.element($('form').find('input[name=supplier_id], select[name=seller_id]'));
+    var elem = angular.element($('form').find('input[name=supplier_id], select[name=seller_id]'));
       elem = $(elem).serializeArray();
       var wms_code_flag = true;
-	  if (delete_obj == 'delete') {
-		vm.purchase_history_wms_code = angular.element($('form').find('input[name=wms_code]')).val();
-	  } else {
-		angular.forEach(elem, function(list_obj) {
-			if (list_obj['name'] == 'wms_code') {
-				list_obj['value'] = vm.purchase_history_wms_code;
-				wms_code_flag = false;
-			}
-			if (list_obj['value'] != '' && list_obj['value'] != '? undefined:undefined ?' ) {
-				new_elem.push(list_obj)
-			}
-		})
-	  }
-      if (wms_code_flag) {
-		var wms_code_dict = {'name':'wms_code', 'value':vm.purchase_history_wms_code}
-		new_elem.push(wms_code_dict)
+    if (delete_obj == 'delete') {
+    vm.purchase_history_wms_code = angular.element($('form').find('input[name=wms_code]')).val();
+    } else {
+    angular.forEach(elem, function(list_obj) {
+      if (list_obj['name'] == 'wms_code') {
+        list_obj['value'] = vm.purchase_history_wms_code;
+        wms_code_flag = false;
       }
-	  vm.service.apiCall('last_transaction_details/', 'POST', new_elem, true).then(function(data) {
+      if (list_obj['value'] != '' && list_obj['value'] != '? undefined:undefined ?' ) {
+        new_elem.push(list_obj)
+      }
+    })
+    }
+      if (wms_code_flag) {
+    var wms_code_dict = {'name':'wms_code', 'value':vm.purchase_history_wms_code}
+    new_elem.push(wms_code_dict)
+      }
+    vm.service.apiCall('last_transaction_details/', 'POST', new_elem, true).then(function(data) {
         if (data.message) {
-			vm.display_purchase_history_table = true;
+      vm.display_purchase_history_table = true;
             vm.last_transaction_details = data.data;
-			vm.supplier_wise_table = data.data.supplier_wise_table_data;
-			vm.sku_wise_table = data.data.sku_wise_table_data;
-			vm.supplier_level(vm.supplier_level_last_transaction);
+      vm.supplier_wise_table = data.data.supplier_wise_table_data;
+      vm.sku_wise_table = data.data.sku_wise_table_data;
+      vm.supplier_level(vm.supplier_level_last_transaction);
         } else {
             vm.last_transaction_details = {};
         }
@@ -895,4 +822,4 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     });
   }
 
-}
+  }

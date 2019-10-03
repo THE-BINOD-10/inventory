@@ -70,7 +70,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
         $scope.$apply(function() {
           vm.extra_width = { 'width': '1250px' };
           vm.supplier_id = aData['Supplier ID'];
-          var data = {supplier_id: aData['Supplier ID'], order_type: aData['Order Type'], po_type:'PastPO'};
+          var data = {supplier_id: aData['Supplier ID'], order_type: aData['Order Type'], po_type:'PastPO', po_number:aData['PO Number']};
           vm.service.apiCall('generated_po_data/', 'GET', data).then(function(data){
             if (data.message) {
 

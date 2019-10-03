@@ -740,6 +740,8 @@ def generated_po_data(request, user=''):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     status_dict = {'Self Receipt': 'SR', 'Vendor Receipt': 'VR'}
     receipt_type = ''
+    if request.GET['po_number']:
+        po_number = request.GET['po_number']
     generated_id = request.GET['supplier_id']
     order_type_val = request.GET['order_type']
     rev_order_types = dict(zip(PO_ORDER_TYPES.values(), PO_ORDER_TYPES.keys()))
@@ -748,7 +750,7 @@ def generated_po_data(request, user=''):
     #    order_type_val = rev_receipt_types.get(order_type_val, '')
     order_type = rev_order_types.get(order_type_val, '')
     if request.GET['po_type'] =='PastPO':
-        record = OpenPO.objects.filter(supplier_id=generated_id,sku__user=user.id, order_type=order_type, sku_id__in=sku_master_ids)
+        record = OpenPO.objects.filter(purchaseorder__order_id=po_number,supplier_id=generated_id,sku__user=user.id, order_type=order_type, sku_id__in=sku_master_ids)
     else:
         record = OpenPO.objects.filter(supplier_id=generated_id,status__in=['Manual', 'Automated', ''],sku__user=user.id, order_type=order_type, sku_id__in=sku_master_ids)
     total_data = []

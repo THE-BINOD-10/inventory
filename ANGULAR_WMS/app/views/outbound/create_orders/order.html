@@ -272,6 +272,7 @@
               <th ng-if="showCase.model_data.blind_order && showCase.permissions.use_imei">Serial Scan</th>
               <!--<th class="w10_">Selected Quantity</th>-->
               <th class="w10_">Quantity</th>
+              <th ng-if="showCase.model_data.blind_order">Cost Price</th>
               <th>MRP</th>
               <th ng-show="showCase.fields.indexOf('Unit Price') == -1">Unit Price</th>
               <th ng-show="showCase.fields.indexOf('Amount') == -1">Amount</th>
@@ -308,6 +309,9 @@
               </td>
               <td>
                 <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-change="showCase.change_quantity(data)" size="12" ng-readonly="showCase.model_data.blind_order && showCase.permissions.use_imei" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Quantity', $index, data)"></div>
+              </td>
+              <td>
+                <input type="text" name="cost_price" class="form-control" size="12" ng-model="data.cost_price" ng-class="service.get_decimal_perm()">
               </td>
               <td>
                 <input type="text" name="mrp" class="form-control" size="12" ng-model="data.mrp" ng-class="service.get_decimal_perm()">

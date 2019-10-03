@@ -46,8 +46,8 @@ class Command(BaseCommand):
             column_count += 1
             return ws, column_count
 
-        def get_excel_variables(file_name, sheet_name, headers):
-            wb, ws = get_work_sheet(sheet_name, inv_value_headers)
+        def get_excel_variables(file_name, sheet_name, headers, headers_index=0):
+            wb, ws = get_work_sheet(sheet_name, headers, headers_index=headers_index)
             file_name = '%s.%s' % (file_name, 'xls')
             path = ('static/excel_files/%s') % file_name
             if not os.path.exists('static/excel_files/'):
@@ -162,17 +162,21 @@ class Command(BaseCommand):
             wb.save(path)
             report_file_names.append({'name': file_name, 'path': path})
             name = 'consolidated_margin_percent'
-            wb, ws, path, file_name = get_excel_variables(name, 'consolidated_margin_percent', inv_value_headers)
-            row_count = 1
-            for category, user_value in margin_value_dict.iteritems():
+            wb, ws, path, file_name = get_excel_variables(name, 'consolidated_margin_percent', inv_value_headers,
+                                                          headers_index=1)
+            ws.write_merge(0, 0, 1, 3, 'Consolidated Margin Percentage')
+            row_count = 2
+            for category, user_value in margin_percent_dict.iteritems():
                 ws, column_count = write_excel_col(ws, row_count, 0, category)
                 for user, value in user_value.iteritems():
                     column_count = (user_mapping.keys().index(user)) + 1
                     value = float("%.2f" % value)
                     ws, column_count = write_excel_col(ws, row_count, column_count, value)
                 row_count += 1
-            row_count += 2
-            for category, user_value in margin_percent_dict.iteritems():
+            row_count += 1
+            ws.write_merge(row_count,row_count,1,3, 'Consolidated Margin Value')
+            row_count += 1
+            for category, user_value in margin_value_dict.iteritems():
                 ws, column_count = write_excel_col(ws, row_count, 0, category)
                 for user, value in user_value.iteritems():
                     column_count = (user_mapping.keys().index(user)) + 1
@@ -190,4 +194,4 @@ class Command(BaseCommand):
             import traceback
             log.debug(traceback.format_exc())
             log.info('Milkbasket Central report creation failed for user %s and error statement is %s' %
-                     (str(user.username), str(e)))
+                     (str(user), str(e)))

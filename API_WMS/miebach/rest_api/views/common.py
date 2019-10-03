@@ -919,7 +919,7 @@ def configurations(request, user=''):
 
 
 @csrf_exempt
-def get_work_sheet(sheet_name, sheet_headers, f_name=''):
+def get_work_sheet(sheet_name, sheet_headers, f_name='', headers_index=0):
     if '.xlsx' in f_name:
         wb = xlsxwriter.Workbook(f_name)
         ws = wb.add_worksheet(sheet_name)
@@ -929,7 +929,7 @@ def get_work_sheet(sheet_name, sheet_headers, f_name=''):
         ws = wb.add_sheet(sheet_name)
         header_style = easyxf('font: bold on')
     for count, header in enumerate(sheet_headers):
-        ws.write(0, count, header, header_style)
+        ws.write(headers_index, count, header, header_style)
     return wb, ws
 
 

@@ -3117,9 +3117,10 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
         if wms_code:
             po_imei = POIMEIMapping.objects.filter(status=1, sku__user=user_id, imei_number__in=[key], purchase_order_id=po_id)
             if po_imei:
-                po_data = po_imei[0]
-                po_data.status = 0
-                po_data.save()
+                if validation_status == 'FAIL':
+                    po_data = po_imei[0]
+                    po_data.status = 0
+                    po_data.save()
                 get_po_imei_qs = po_imei
         else:
             po_imei = POIMEIMapping.objects.filter(status=1, sku__user=user_id, imei_number__in=[key])

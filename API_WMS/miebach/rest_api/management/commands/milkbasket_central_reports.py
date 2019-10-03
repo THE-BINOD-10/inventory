@@ -54,7 +54,7 @@ class Command(BaseCommand):
                 os.makedirs('static/excel_files/')
             return wb, ws, path, file_name
 
-        users = User.objects.filter(username__in=MILKBASKET_USERS)
+        users = User.objects.filter(username__in=['GGN01', 'NOIDA01', 'NOIDA02', 'HYD01', 'BLR01'])
         category_list = list(SKUMaster.objects.filter(user__in=users, status=1).exclude(sku_category='').\
                              values_list('sku_category', flat=True).distinct())
         inv_value_dict = OrderedDict()

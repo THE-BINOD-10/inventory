@@ -1415,7 +1415,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     }
     return status;
   }
-
+  vm.model_data.data[0]['cost_price'] = 0
   vm.serial_scan = function(event, scan, sku_data) {
     if ( event.keyCode == 13 && scan) {
       event.preventDefault();
@@ -1425,7 +1425,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
       } else if(!sku_data.location) {
         vm.service.showNoty("Please Select Location First");
       } else {
-        var elem = {serial: scan};
+        var elem = {serial: scan, cost_check:vm.model_data.blind_order};
         vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
           if(data.message) {
             if(data.data.status == "") {
@@ -1440,6 +1440,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
                 vm.cal_percentage(sku_data);
               }
             } else {
+              vm.model_data.data[0]['cost_price'] = data.data.data.cost_price
               vm.service.showNoty(data.data.status);
             }
           }

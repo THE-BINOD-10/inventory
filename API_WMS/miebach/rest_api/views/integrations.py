@@ -1177,6 +1177,8 @@ def update_skus(skus, user='', company_name=''):
                                                                                exist_ean_list)
             all_sku_masters.append(sku_master)
             if sku_data.has_key('child_skus') and sku_data['child_skus'] and isinstance(sku_data['child_skus'], list):
+                exist_member_ids = list(SKURelation.objects.filter(parent_sku_id=sku_master.id, relation_type='combo').\
+                                            values_list('member_sku_id', flat=True))
                 for child_data in sku_data['child_skus']:
                     child_sku_master = SKUMaster.objects.filter(user=user.id, sku_code=child_data['sku_code']).only('id', 'sku_code')
                     if not child_sku_master.exists():
@@ -1190,6 +1192,8 @@ def update_skus(skus, user='', company_name=''):
                     except:
                         quantity = 1
                     NOW = datetime.datetime.now()
+                    if child_obj.id in exist_member_ids:
+                        exist_member_ids.remove(child_obj.id)
                     if child_obj and sku_master:
                         sku_relation = SKURelation.objects.filter(parent_sku_id=sku_master.id, member_sku_id=child_obj.id)
                         if not sku_relation.exists():
@@ -1204,6 +1208,15 @@ def update_skus(skus, user='', company_name=''):
                             sku_relation.quantity = quantity
                             sku_relation.save()
                         all_sku_masters.append(child_obj)
+                if exist_member_ids:
+                    SKURelation.objects.filter(parent_sku_id=sku_master.id, relation_type='combo',
+                                               member_sku_id__in=exist_member_ids).delete()
+            elif sku_data.has_key('child_skus') and sku_master:
+                sku_rel_check = SKURelation.objects.filter(parent_sku_id=sku_master.id, relation_type='combo')
+                if sku_rel_check.exists():
+                    sku_rel_check.delete()
+                    sku_master.relation_type = ''
+                    sku_master.save()
         if new_ean_objs:
             try:
                 EANNumbers.objects.bulk_create(new_ean_objs)

@@ -5031,6 +5031,7 @@ def validate_po_serial_mapping(request, reader, user, no_of_rows, fname, file_ty
 
 def create_po_serial_mapping(final_data_dict, user):
     order_id_dict = {}
+    lr_number, invoice_num = '', ''
     receipt_number = get_stock_receipt_number(user)
     NOW = datetime.datetime.now()
     user_profile = UserProfile.objects.get(user_id=user.id)

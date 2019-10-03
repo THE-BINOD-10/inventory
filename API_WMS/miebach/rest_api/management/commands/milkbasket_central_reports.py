@@ -55,7 +55,7 @@ class Command(BaseCommand):
             return wb, ws, path, file_name
 
         users = User.objects.filter(username__in=MILKBASKET_USERS)
-        category_list = list(SKUMaster.objects.filter(user__in=users).exclude(sku_category='').\
+        category_list = list(SKUMaster.objects.filter(user__in=users, status=1).exclude(sku_category='').\
                              values_list('sku_category', flat=True).distinct())
         inv_value_dict = OrderedDict()
         doc_value_dict = OrderedDict()
@@ -67,7 +67,7 @@ class Command(BaseCommand):
         try:
             report_file_names = []
             for category in category_list:
-                print category
+                log.info("Calculation started for Category %s" % category)
                 for user in users:
                     inv_value_dict.setdefault(category, {})
                     inv_value_dict[category].setdefault(int(user.id), 0)
@@ -185,7 +185,7 @@ class Command(BaseCommand):
                 row_count += 1
             wb.save(path)
             report_file_names.append({'name': file_name, 'path': path})
-            send_to = ['sreekanth@mieone.com']
+            send_to = ['sreekanth@mieone.com', 'shishir.sharma@milkbasket.com']
             subject = '%s Reports dated %s' % ('Milkbasket', datetime.now().date())
             text = 'Please find the scheduled reports in the attachment dated: %s' % str(
                 datetime.now().date())

@@ -238,6 +238,9 @@ function view_orders() {
     if(rowdata.sub_data[0].passed_serial_number.length != 0){
       vm.temp_imei_list = (vm.temp_imei_list).concat(rowdata.sub_data[0].passed_serial_number)
     }
+    if(rowdata.sub_data[0].failed_serial_number.length != 0){
+      vm.temp_imei_list = (vm.temp_imei_list).concat(rowdata.sub_data[0].failed_serial_number)
+    }
     return vm.temp_imei_list
   }
   vm.get_array_difference =function(arr1, arr2){

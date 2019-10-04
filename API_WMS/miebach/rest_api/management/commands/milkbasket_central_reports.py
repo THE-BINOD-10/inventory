@@ -20,6 +20,8 @@ from miebach_admin.models import *
 from rest_api.views.common import get_sku_weight, get_all_sellable_zones, get_work_sheet, get_utc_start_date
 from rest_api.views.miebach_utils import MILKBASKET_USERS, fn_timer
 from rest_api.views.mail_server import send_mail_attachment
+from xlwt import  easyxf
+
 
 def init_logger(log_file):
     log = logging.getLogger(log_file)
@@ -37,12 +39,15 @@ ba_location = 'BA'
 
 class Command(BaseCommand):
     help = "Milkbasket Central Reports Mail"
-
     def handle(self, *args, **options):
         self.stdout.write("Milkbasket Central Reports Script")
 
-        def write_excel_col(ws, row_count, column_count, value):
-            ws.write(row_count, column_count, value)
+        def write_excel_col(ws, row_count, column_count, value,bold = False):
+            if bold:
+                header_style = easyxf('font: bold on')
+                ws.write(row_count, column_count, value,header_style)
+            else:
+                ws.write(row_count, column_count, value)
             column_count += 1
             return ws, column_count
 
@@ -54,7 +59,7 @@ class Command(BaseCommand):
                 os.makedirs('static/excel_files/')
             return wb, ws, path, file_name
 
-        users = User.objects.filter(username__in=['GGN01', 'NOIDA01', 'NOIDA02', 'HYD01', 'BLR01'])
+        users = User.objects.filter(username__in=['milkbasket','GGN01', 'NOIDA01', 'NOIDA02', 'HYD01', 'BLR01'])
         category_list = list(SKUMaster.objects.filter(user__in=users, status=1).exclude(sku_category='').\
                              values_list('sku_category', flat=True).distinct())
         inv_value_dict = OrderedDict()
@@ -62,10 +67,43 @@ class Command(BaseCommand):
         margin_value_dict = OrderedDict()
         margin_percent_dict = OrderedDict()
         inv_value_headers = ['Category']
+        today_start = get_utc_start_date(datetime.now(), users[0])
+        today_end = today_start + timedelta(days=1)
+        adjustment_dict = OrderedDict()
         user_mapping = dict(users.values_list('id', 'username'))
         inv_value_headers = list(chain(inv_value_headers, user_mapping.values()))
         try:
             report_file_names = []
+            col1 = 1
+            col2 = 2
+            name = 'adjustment_report'
+            wb, ws, path, file_name = get_excel_variables(name, 'adjustment', [])
+            ws.write_merge(0, 0, 1,5,'Adjustment Report')
+            adjustment_column_dict ={3:'Positive Adjustment',4:'Negative Adjustment',5:'Total'}
+            for key,value in adjustment_column_dict.iteritems() :
+                ws, column_count = write_excel_col(ws,key,0, value,bold = True)
+            for user in users :
+                positive_quantity = SKUDetailStats.objects.filter(sku__user = user.id,transact_type = 'inventory-adjustment',\
+                                               creation_date__gte=today_start,creation_date__lte=today_end,quantity__gt=0).aggregate(Sum('quantity'))['quantity__sum']
+                negative_quantity = SKUDetailStats.objects.filter(sku__user = user.id,transact_type = 'inventory-adjustment',\
+                                                creation_date__gte=today_start,creation_date__lte=today_end,quantity__lt=0).aggregate(Sum('quantity'))['quantity__sum']
+                if not positive_quantity : positive_quantity = 0
+                if not negative_quantity :
+                    negative_quantity = 0
+                else:
+                    negative_quantity = abs(negative_quantity)
+                total = positive_quantity + abs(negative_quantity)
+
+                ws.write_merge(1, 1, col1,col2,user.username.upper())
+                ws, column_count = write_excel_col(ws,2,col1, 'Amount',bold = True)
+                ws, column_count = write_excel_col(ws,2,col2, 'Realized',bold = True)
+                ws, column_count = write_excel_col(ws,3,col1, positive_quantity)
+                ws, column_count = write_excel_col(ws,4,col1, negative_quantity)
+                ws, column_count = write_excel_col(ws,5,col1, total)
+                col1+=2
+                col2+=2
+            wb.save(path)
+            report_file_names.append({'name': file_name, 'path': path})
             for category in category_list:
                 log.info("Calculation started for Category %s" % category)
                 for user in users:
@@ -103,8 +141,7 @@ class Command(BaseCommand):
                     # Doc Value Calculation Ends
 
                     # Margin Value and Percent Calculation Starts
-                    today_start = get_utc_start_date(datetime.now(), user)
-                    today_end = today_start + timedelta(days=1)
+
                     pick_locs = PicklistLocation.objects.filter(picklist__order__user=user.id,
                                                                 picklist__order__sku__sku_category=category,
                                                                 creation_date__gte=today_start,
@@ -185,7 +222,7 @@ class Command(BaseCommand):
                 row_count += 1
             wb.save(path)
             report_file_names.append({'name': file_name, 'path': path})
-            send_to = ['sreekanth@mieone.com', 'shishir.sharma@milkbasket.com']
+            send_to = ['sreekanth@mieone.com', 'avadhani@mieone.com','shishir.sharma@milkbasket.com']
             subject = '%s Reports dated %s' % ('Milkbasket', datetime.now().date())
             text = 'Please find the scheduled reports in the attachment dated: %s' % str(
                 datetime.now().date())
@@ -193,5 +230,5 @@ class Command(BaseCommand):
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
-            log.info('Milkbasket Central report creation failed for user %s and error statement is %s' %
-                     (str(user), str(e)))
+            log.info('Milkbasket Central report creation failed and error statement is %s' %
+                     str(e))

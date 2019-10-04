@@ -3009,7 +3009,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     order_date, order_id, marketplace, consignee, order_no, purchase_type, seller_address, customer_address, email = '', '', '', '', '', '', '', '', ''
     tax_type, seller_company, order_reference, order_reference_date = '', '', '', ''
     invoice_header = ''
-    total_quantity, total_amt, total_taxable_amt, total_invoice, total_tax, total_mrp, _total_tax,profit_price,marginal_flag = 0, 0, 0, 0, 0, 0, 0, 0, 0
+    total_quantity, total_amt, total_taxable_amt, total_invoice, total_tax, total_mrp, _total_tax = 0, 0, 0, 0, 0, 0, 0
     total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'utgst_amt': 0, 'cess_amt': 0}
     hsn_summary = {}
     partial_order_quantity_price = 0
@@ -3110,6 +3110,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             is_gst_invoice = True
 
         for dat in order_data:
+            profit_price,marginal_flag = 0, 0
             order_id = dat.original_order_id
             gen_ord_num = GenericOrderDetailMapping.objects.filter(orderdetail_id=order_data[0].id)
             if gen_ord_num and user.userprofile.warehouse_type == 'DIST':
@@ -3212,23 +3213,30 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                             cost_price = cost_price_obj[0]['picklist__stock__unit_price']
                             profit_price = (unit_price * quantity) - (cost_price * quantity)
                             if profit_price < 1:
-                                cgst_tax,sgst_tax,igst_tax = 0, 0 ,0
+                                cgst_tax,sgst_tax,igst_tax,utgst_tax = 0, 0 ,0, 0
 
             amt = (unit_price * quantity) - discount
-            amt_tax = amt
             base_price = "%.2f" % (unit_price * quantity)
-            if marginal_flag:
-                amt_tax = profit_price
             hsn_code = ''
             if dat.sku.hsn_code:
                 hsn_code = str(dat.sku.hsn_code)
 
             if is_gst_invoice:
-                cgst_amt = float(cgst_tax) * (float(amt_tax) / 100)
-                sgst_amt = float(sgst_tax) * (float(amt_tax) / 100)
-                igst_amt = float(igst_tax) * (float(amt_tax) / 100)
-                utgst_amt = float(utgst_tax) * (float(amt) / 100)
-                cess_amt = float(cess_tax) * (float(amt) / 100)
+                if marginal_flag:
+                    marginal_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax
+                    tax_amount = (profit_price * marginal_tax)/(100 + marginal_tax)
+                    amt = profit_price - tax_amount
+                    if cgst_tax:
+                        cgst_amt = tax_amount/2
+                        sgst_amt = tax_amount/2
+                    else:
+                        igst_amt = tax_amount
+                else:
+                    cgst_amt = float(cgst_tax) * (float(amt) / 100)
+                    sgst_amt = float(sgst_tax) * (float(amt) / 100)
+                    igst_amt = float(igst_tax) * (float(amt) / 100)
+                    utgst_amt = float(utgst_tax) * (float(amt) / 100)
+                    cess_amt = float(cess_tax) * (float(amt) / 100)
                 taxes_dict = {'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax, 'utgst_tax': utgst_tax,
                               'cess_tax': cess_tax, 'cgst_amt': '%.2f' % cgst_amt, 'sgst_amt': '%.2f' % sgst_amt,
                               'igst_amt': '%.2f' % igst_amt,
@@ -3269,9 +3277,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             invoice_amount = _tax + amt
             total_invoice += _tax + amt
             total_taxable_amt += amt
-            if profit_price:
-                total_taxable_amt = profit_price
-                amt = profit_price
             sku_code = dat.sku.sku_code
             sku_desc = dat.sku.sku_desc
             measurement_type = dat.sku.measurement_type

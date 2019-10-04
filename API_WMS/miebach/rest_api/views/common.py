@@ -3175,7 +3175,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     invoice_date = order_summary[0].invoice_date
             total_tax += float(tax)
             total_mrp += float(mrp_price)
-
             picklist = Picklist.objects.exclude(order_type='combo').filter(order_id=dat.id). \
                 aggregate(Sum('picked_quantity'))['picked_quantity__sum']
             quantity = picklist
@@ -3208,7 +3207,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 if sku_attr_obj:
                     if sku_attr_obj[0].attribute_value.upper() == 'YES':
                         marginal_flag = 1
-                        cost_price_obj = seller_summary.filter(order_id = dat.id).values('picklist__stock__unit_price')
+                        cost_price_obj = seller_summary.filter(order_id = dat.id, ).values('picklist__stock__unit_price')
                         if cost_price_obj:
                             cost_price = cost_price_obj[0]['picklist__stock__unit_price']
                             profit_price = (unit_price * quantity) - (cost_price * quantity)
@@ -3223,14 +3222,23 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
 
             if is_gst_invoice:
                 if marginal_flag:
+                    cess_amt = 0
                     marginal_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax
                     tax_amount = (profit_price * marginal_tax)/(100 + marginal_tax)
-                    amt = profit_price - tax_amount
+                    taxable_amt = profit_price - tax_amount
                     if cgst_tax:
                         cgst_amt = tax_amount/2
                         sgst_amt = tax_amount/2
-                    else:
+                        igst_amt, utgst_amt = 0, 0
+                    elif igst_tax:
                         igst_amt = tax_amount
+                        cgst_amt, sgst_amt, utgst_amt = 0, 0, 0
+                    elif utgst_tax:
+                        utgst_amt = tax_amount
+                        cgst_amt, sgst_amt, igst_amt = 0, 0, 0
+                    else :
+                        cgst_tax,sgst_tax,igst_tax,utgst_tax = 0, 0 ,0, 0
+
                 else:
                     cgst_amt = float(cgst_tax) * (float(amt) / 100)
                     sgst_amt = float(sgst_tax) * (float(amt) / 100)
@@ -3277,6 +3285,10 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             invoice_amount = _tax + amt
             total_invoice += _tax + amt
             total_taxable_amt += amt
+            if marginal_flag:
+                total_invoice = total_invoice - tax_amount
+                amt = taxable_amt
+                invoice_amount = invoice_amount - tax_amount
             sku_code = dat.sku.sku_code
             sku_desc = dat.sku.sku_desc
             measurement_type = dat.sku.measurement_type
@@ -3409,7 +3421,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         gstin_no = seller.tin_number
         company_address = company_address.replace("\n", " ")
         company_name = seller.name #'SHPROC Procurement Pvt. Ltd.'
-
     if math.ceil(total_quantity) == total_quantity:
         total_quantity = int(total_quantity)
     invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name,'company_pan_number':pan_number,

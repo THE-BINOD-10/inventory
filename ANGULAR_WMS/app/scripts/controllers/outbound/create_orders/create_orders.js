@@ -1367,7 +1367,6 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   }
 
   vm.change_quantity = function(data) {
-
     var flag = false;
     if(vm.model_data.blind_order) {
 
@@ -1428,7 +1427,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
         var elem = {serial: scan, cost_check:vm.model_data.blind_order};
         vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
           if(data.message) {
-            if(data.data.status == "") {
+            if(data.data.status == "Success") {
               if (data.data.data.sku_code != sku_data.sku_id) {
                 vm.service.showNoty("IMEI Code not matching with SKU code");
               } else if(vm.checkAndAdd(scan)) {
@@ -1438,9 +1437,9 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
                 sku_data.quantity = sku_data.serials.length;
                 sku_data.invoice_amount = vm.service.multi(sku_data.quantity, sku_data.price);
                 vm.cal_percentage(sku_data);
+                vm.model_data.data[0]['cost_price'] = data.data.data.cost_price
               }
             } else {
-              vm.model_data.data[0]['cost_price'] = data.data.data.cost_price
               vm.service.showNoty(data.data.status);
             }
           }

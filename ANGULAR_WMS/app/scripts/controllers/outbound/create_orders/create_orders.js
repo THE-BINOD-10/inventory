@@ -1367,7 +1367,6 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   }
 
   vm.change_quantity = function(data) {
-    debugger
     var flag = false;
     if(vm.model_data.blind_order) {
 

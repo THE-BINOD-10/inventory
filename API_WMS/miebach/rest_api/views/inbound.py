@@ -740,7 +740,7 @@ def generated_po_data(request, user=''):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     status_dict = {'Self Receipt': 'SR', 'Vendor Receipt': 'VR'}
     receipt_type = ''
-    if request.GET['po_number']:
+    if request.GET.get('po_number', ''):
         po_number = request.GET['po_number']
     generated_id = request.GET['supplier_id']
     order_type_val = request.GET['order_type']

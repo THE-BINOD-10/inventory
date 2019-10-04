@@ -92,7 +92,7 @@ class Command(BaseCommand):
                     negative_quantity = 0
                 else:
                     negative_quantity = abs(negative_quantity)
-                total = positive_quantity + abs(negative_quantity)
+                total = positive_quantity + negative_quantity
 
                 ws.write_merge(1, 1, col1,col2,user.username.upper())
                 ws, column_count = write_excel_col(ws,2,col1, 'Amount',bold = True)
@@ -100,6 +100,8 @@ class Command(BaseCommand):
                 ws, column_count = write_excel_col(ws,3,col1, positive_quantity)
                 ws, column_count = write_excel_col(ws,4,col1, negative_quantity)
                 ws, column_count = write_excel_col(ws,5,col1, total)
+                for i in [3,4,5] :
+                    ws, column_count = write_excel_col(ws,i,col2, 0)
                 col1+=2
                 col2+=2
             wb.save(path)

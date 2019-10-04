@@ -108,7 +108,8 @@ class Command(BaseCommand):
                     pick_locs = PicklistLocation.objects.filter(picklist__order__user=user.id,
                                                                 picklist__order__sku__sku_category=category,
                                                                 creation_date__gte=today_start,
-                                                    creation_date__lte=today_end).only('quantity',
+                                                    creation_date__lte=today_end,
+                                                                picklist__order__sellerorder__seller__seller_id=2).only('quantity',
                                                     'stock__batch_detail__buy_price', 'picklist__order__unit_price')
                     pick_sale_val = 0
                     pick_cost_val = 0
@@ -136,13 +137,23 @@ class Command(BaseCommand):
             name = 'inventory_value_report'
             wb, ws, path, file_name = get_excel_variables(name, 'inventory_value', inv_value_headers)
             row_count = 1
+            total_inventory_value = {}
             for category, user_value in inv_value_dict.iteritems():
                 ws, column_count = write_excel_col(ws, row_count, 0, category)
                 for user, value in user_value.iteritems():
                     column_count = (user_mapping.keys().index(user)) + 1
-                    value = float("%.2f" % value)
+                    value = int(value)
                     ws, column_count = write_excel_col(ws, row_count, column_count, value)
+                    total_inventory_value.setdefault(user, 0)
+                    total_inventory_value[user] += value
                 row_count += 1
+            #Adding Totals in Bottom for Inventory Value report
+            column_count = 0
+            ws, column_count = write_excel_col(ws, row_count, column_count, 'Total')
+            for user, value in total_inventory_value.iteritems():
+                column_count = (user_mapping.keys().index(user)) + 1
+                ws, column_count = write_excel_col(ws, row_count, column_count, value)
+
             wb.save(path)
             report_file_names.append({'name': file_name, 'path': path})
             name = 'days_of_cover_report'
@@ -170,7 +181,7 @@ class Command(BaseCommand):
                 ws, column_count = write_excel_col(ws, row_count, 0, category)
                 for user, value in user_value.iteritems():
                     column_count = (user_mapping.keys().index(user)) + 1
-                    value = float("%.2f" % value)
+                    value = float("%.2f" % value) * 100
                     ws, column_count = write_excel_col(ws, row_count, column_count, value)
                 row_count += 1
             row_count += 1

@@ -3344,7 +3344,7 @@ def check_imei(request, user=''):
                                                                    order=order, job_order=job_order)
             if cost_check and po_mapping[0].purchase_order:
                 cost_price = po_mapping[0].purchase_order.open_po.price
-                
+
             if imei_data.get('wms_code', ''):
                 sku_code = imei_data['wms_code']
 
@@ -11768,6 +11768,20 @@ def generate_customer_invoice(request, user=''):
     log.info('Request params for ' + user.username + ' is ' + str(request.GET.dict()))
     admin_user = get_priceband_admin_user(user)
     try:
+        pick_number_list = []
+        if data_dict['seller_summary_id']:
+            value = data_dict['seller_summary_id'][0]
+            if '<<>>' in value:
+                ids_list = value.split('<<>>')
+                for id_value in ids_list:
+                    if ':' in id_value:
+                        pic_num = id_value.split(':')
+                        pick_number_list.append(pic_num[1])
+            elif ':' in value:
+                pic_num = value.split(':')
+                pick_number_list.append(pic_num[1])
+            else:
+                pick_number_list.append(1)
         seller_summary_dat = data_dict.get('seller_summary_id', '')
         delivery_challan_pickid = data_dict.get('picklist_id', '')
         seller_summary_dat = seller_summary_dat[0]
@@ -11826,7 +11840,7 @@ def generate_customer_invoice(request, user=''):
                     merge_data[detail[field_mapping['sku_code']]] = detail['total_quantity']
                 else:
                     merge_data[detail[field_mapping['sku_code']]] += detail['total_quantity']
-        invoice_data = get_invoice_data(order_ids, user, merge_data=merge_data, is_seller_order=True, sell_ids=sell_ids)
+        invoice_data = get_invoice_data(order_ids, user, merge_data=merge_data, pick_num = pick_number_list, is_seller_order=True, sell_ids=sell_ids)
         edit_invoice = request.GET.get('edit_invoice', '')
         edit_dc = request.GET.get('edit_dc', '')
         if edit_invoice != 'true' or edit_dc != 'true':

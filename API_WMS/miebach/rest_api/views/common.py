@@ -3002,7 +3002,7 @@ def get_mapping_imeis(user, dat, seller_summary, sor_id='', sell_ids=''):
     return imeis
 
 
-def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell_ids='', from_pos=False):
+def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell_ids='', pick_num = '', from_pos=False):
     """ Build Invoice Json Data"""
     # Initializing Default Values
     data, imei_data, customer_details = [], [], []
@@ -3207,9 +3207,13 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 if sku_attr_obj:
                     if sku_attr_obj[0].attribute_value.upper() == 'YES':
                         marginal_flag = 1
-                        cost_price_obj = seller_summary.filter(order_id = dat.id, ).values('picklist__stock__unit_price')
+                        if pick_num:
+                            cost_price_obj = seller_summary.filter(order_id = dat.id, pick_number__in = pick_num).values('picklist__stock__unit_price')
+                        else:
+                            cost_price_obj = seller_summary.filter(order_id = dat.id, pick_number__in ='1').values('picklist__stock__unit_price')
                         if cost_price_obj:
                             cost_price = cost_price_obj[0]['picklist__stock__unit_price']
+                            quantity = cost_price_obj.aggregate(Sum('quantity'))['quantity__sum']
                             profit_price = (unit_price * quantity) - (cost_price * quantity)
                             if profit_price < 1:
                                 cgst_tax,sgst_tax,igst_tax,utgst_tax = 0, 0 ,0, 0

@@ -63,6 +63,7 @@ class Command(BaseCommand):
         category_list = list(SKUMaster.objects.filter(user__in=users, status=1).exclude(sku_category='').\
                              values_list('sku_category', flat=True).distinct())
         inv_value_dict = OrderedDict()
+        inv_value_dict_wod = OrderedDict()
         doc_value_dict = OrderedDict()
         margin_value_dict = OrderedDict()
         margin_percent_dict = OrderedDict()
@@ -168,7 +169,7 @@ class Command(BaseCommand):
                 inventory_value_objs = master_data. \
                     values('stock__sku__sku_category', 'stock__sku__user', 'stock__batch_detail__tax_percent').distinct(). \
                     annotate(total_value=Sum(F('quantity') * F('stock__batch_detail__buy_price')))
-                doc_inventory_value = master_data.exclude(zone__zone='DAMAGED_ZONE').\
+                doc_inventory_value = master_data.exclude(stock__location__zone__zone='DAMAGED_ZONE').\
                     values('stock__sku__sku_category', 'stock__sku__user', 'stock__batch_detail__tax_percent').distinct(). \
                     annotate(total_value=Sum(F('quantity') * F('stock__batch_detail__buy_price')))
                 for data in inventory_value_objs:
@@ -250,7 +251,7 @@ class Command(BaseCommand):
                 row_count += 1
             wb.save(path)
             report_file_names.append({'name': file_name, 'path': path})
-            send_to = ['sreekanth@mieone.com', 'avadhani@mieone.com','shishir.sharma@milkbasket.com']
+            send_to = ['sreekanth@mieone.com', 'avadhani@mieone.com','shishir.sharma@milkbasket.com', 'vimal@mieone.com']
             subject = '%s Reports dated %s' % ('Milkbasket', datetime.now().date())
             text = 'Please find the scheduled reports in the attachment dated: %s' % str(
                 datetime.now().date())

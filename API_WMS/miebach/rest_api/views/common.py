@@ -989,6 +989,8 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
         file_name = "%s.%s" % (user.id, excel_name.split('=')[-1])
     if not file_type:
         file_type = 'xls'
+    if len(temp_data['aaData']) > 65535:
+        file_type = 'csv'
     path = ('static/excel_files/%s.%s') % (file_name, file_type)
     if not os.path.exists('static/excel_files/'):
         os.makedirs('static/excel_files/')

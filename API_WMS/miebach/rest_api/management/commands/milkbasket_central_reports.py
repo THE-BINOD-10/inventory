@@ -111,6 +111,8 @@ class Command(BaseCommand):
                 for user in users:
                     inv_value_dict.setdefault(category, {})
                     inv_value_dict[category].setdefault(int(user.id), 0)
+                    inv_value_dict_wod.setdefault(category, {})
+                    inv_value_dict_wod[category].setdefault(int(user.id), 0)
                     doc_value_dict.setdefault(category, {})
                     doc_value_dict[category].setdefault(int(user.id), 0)
                     margin_value_dict.setdefault(category, {})
@@ -162,10 +164,14 @@ class Command(BaseCommand):
                     # Margin Value and Percent Calculation Ends
                 master_data = SellerStock.objects.filter(stock__sku__user__in=users, stock__sku__sku_category=category,
                                                          stock__batch_detail__isnull=False, quantity__gt=0). \
-                    exclude(Q(stock__receipt_number=0)). \
+                    exclude(Q(stock__receipt_number=0))
+                inventory_value_objs = master_data. \
                     values('stock__sku__sku_category', 'stock__sku__user', 'stock__batch_detail__tax_percent').distinct(). \
                     annotate(total_value=Sum(F('quantity') * F('stock__batch_detail__buy_price')))
-                for data in master_data:
+                doc_inventory_value = master_data.exclude(zone__zone='DAMAGED_ZONE').\
+                    values('stock__sku__sku_category', 'stock__sku__user', 'stock__batch_detail__tax_percent').distinct(). \
+                    annotate(total_value=Sum(F('quantity') * F('stock__batch_detail__buy_price')))
+                for data in inventory_value_objs:
                     tax_percent = 0
                     if data['stock__batch_detail__tax_percent']:
                         tax_percent = data['stock__batch_detail__tax_percent']
@@ -173,6 +179,15 @@ class Command(BaseCommand):
                     if tax_percent:
                         total_value += (total_value/100)*tax_percent
                     inv_value_dict[data['stock__sku__sku_category']][int(data['stock__sku__user'])] += total_value
+                for data in doc_inventory_value:
+                    tax_percent = 0
+                    if data['stock__batch_detail__tax_percent']:
+                        tax_percent = data['stock__batch_detail__tax_percent']
+                    total_value = data['total_value']
+                    if tax_percent:
+                        total_value += (total_value/100)*tax_percent
+                    inv_value_dict_wod[data['stock__sku__sku_category']][int(data['stock__sku__user'])] += total_value
+
             name = 'inventory_value_report'
             wb, ws, path, file_name = get_excel_variables(name, 'inventory_value', inv_value_headers)
             row_count = 1
@@ -204,7 +219,7 @@ class Command(BaseCommand):
                     column_count = (user_mapping.keys().index(user)) + 1
                     doc_value = 0
                     if value:
-                        stock_value = inv_value_dict[category][user]
+                        stock_value = inv_value_dict_wod[category][user]
                         doc_value = stock_value/value
                     doc_value = float("%.2f" % doc_value)
                     ws, column_count = write_excel_col(ws, row_count, column_count, doc_value)

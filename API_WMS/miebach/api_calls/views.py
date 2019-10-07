@@ -413,7 +413,7 @@ def get_order_detail(request):
         supplier_code = SKUSupplier.objects.filter(supplier_id=supplier_id, sku_id=sku_id)
         if supplier_code:
             design_code = supplier_code[0].supplier_code
-        
+
         #img_url = "/".join([request.META['HTTP_HOST'], order.open_po.sku.image_url.lstrip("/")]) if order.open_po.sku.image_url.startswith("/static") else order.open_po.sku.image_url
         img_url = form_default_domain(request, order.open_po.sku.image_url)
         order_data.append(OrderedDict(( ('id', order.id), ('design_code', design_code), ('order_quantity', order.open_po.order_quantity), ('price', order.open_po.price), ('image_url', img_url), ('wms_code', order.open_po.sku.wms_code) )))
@@ -1198,11 +1198,25 @@ def get_orders(request):
 @csrf_exempt
 @login_required
 def update_mp_orders(request):
+    import os
+    date = datetime.datetime.now()
+    date_time = get_local_date(request.user, date, True).strftime("%d %b,%Y -%H:%M:%S")
+    # get the current script path.
+    here = os.path.dirname(os.path.realpath(__file__))
+    subdir = "MB_Text_File_Logs"
+    filename = "update_mp_orders.txt"
+    filepath = os.path.join(here, subdir, filename)
     try:
         orders = json.loads(request.body)
     except:
         return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}), status=400)
     log.info('Request params for ' + request.user.username + ' is ' + str(orders))
+    if not os.path.exists(os.path.dirname(filepath)):
+        # create your subdirectory
+        os.mkdir(os.path.join(here, subdir))
+    open_file = open(filepath, "a+")
+    open_file.write('\n\n' + date_time  + '\n\n' +'Request params for ' + request.user.username + ' is ' + str(orders))
+    open_file.close()
     try:
         validation_dict, failed_status, final_data_dict = validate_seller_orders_format(orders, user=request.user, company_name='mieone')
         if validation_dict:
@@ -1223,6 +1237,13 @@ def update_mp_orders(request):
         import traceback
         log.debug(traceback.format_exc())
         log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        if not os.path.exists(os.path.dirname(filepath)):
+            # create your subdirectory
+            os.mkdir(os.path.join(here, subdir))
+        open_file = open(filepath, "a+")
+        open_file.write('\n\n' + date_time  + '\n\n' +'Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        open_file.close()
+
         status = {'messages': 'Internal Server Error', 'status': 0}
     return HttpResponse(json.dumps(status))
 
@@ -1769,7 +1790,7 @@ def order_edit_storehippo(store_hippo_data, user_obj):
 	cancel_order = order_cancel_functionality(ids_of_orders)
         order_edit_storehippo_log.info('Output Response' + str(cancel_order))
     return store_hippo_data
-    
+
 
 def store_hippo(request):
     a = datetime.datetime.now()
@@ -1793,4 +1814,3 @@ def store_hippo(request):
     time_taken = str(delta.total_seconds())
     storehippo_log.info('------------End Time Taken in Seconds --- ' + time_taken + '-----')
     return HttpResponse(json.dumps(status_resp.sku_code))
-

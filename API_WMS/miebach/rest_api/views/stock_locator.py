@@ -2292,9 +2292,13 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                              filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'batch_detail__batch_no',
-           'batch_detail__mrp', 'batch_detail__weight', 'batch_detail__manufactured_date', 'batch_detail__expiry_date',
+           'batch_detail__mrp', 'batch_detail__weight', 'batch_detail__buy_price', 'batch_detail__tax_percent',
+           'batch_detail__manufactured_date', 'batch_detail__expiry_date',
            'location__zone__zone', 'location__location', 'pallet_detail__pallet_code',
            'quantity', 'receipt_type']
+    pallet_switch = get_misc_value('pallet_switch', user.id)
+    if pallet_switch == 'false' and 'pallet_detail__pallet_code' in lis:
+        del lis[lis.index('pallet_detail__pallet_code')]
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -2324,17 +2328,20 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     counter = 1
-    pallet_switch = get_misc_value('pallet_switch', user.id)
     for data in master_data[start_index:stop_index]:
         _date = get_local_date(user, data.receipt_date, True)
         _date = _date.strftime("%d %b, %Y")
         batch_no = manufactured_date = expiry_date = ''
         mrp = 0
         weight = ''
+        price = data.unit_price
+        tax = 0
         if data.batch_detail:
             batch_no = data.batch_detail.batch_no
             mrp = data.batch_detail.mrp
             weight = data.batch_detail.weight
+            price = data.batch_detail.buy_price
+            tax = data.batch_detail.tax_percent
             manufactured_date = data.batch_detail.manufactured_date.strftime("%d %b %Y") if data.batch_detail.manufactured_date else ''
             expiry_date = data.batch_detail.expiry_date.strftime("%d %b %Y") if data.batch_detail.expiry_date else ''
         if pallet_switch == 'true':
@@ -2347,6 +2354,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                                     ('Product Description', data.sku.sku_desc),
                                                     ('Batch Number', batch_no),
                                                     ('MRP', mrp), ('Weight', weight),
+                                                    ('Price', price), ('Tax Percent', tax),
                                                     ('Manufactured Date', manufactured_date), ('Expiry Date', expiry_date),
                                                     ('Zone', data.location.zone.zone),
                                                     ('Location', data.location.location),
@@ -2358,7 +2366,9 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                                     ('WMS Code', data.sku.wms_code),
                                                     ('Product Description', data.sku.sku_desc),
                                                     ('Batch Number', batch_no),
-                                                    ('MRP', mrp), ('Weight', weight), ('Manufactured Date', manufactured_date),
+                                                    ('MRP', mrp), ('Weight', weight),
+                                                    ('Price', price), ('Tax Percent', tax),
+                                                    ('Manufactured Date', manufactured_date),
                                                     ('Expiry Date', expiry_date),
                                                     ('Zone', data.location.zone.zone),
                                                     ('Location', data.location.location),

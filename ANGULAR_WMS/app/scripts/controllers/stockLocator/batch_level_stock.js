@@ -41,6 +41,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         DTColumnBuilder.newColumn('Batch Number').withTitle('Batch Number'),
         DTColumnBuilder.newColumn('MRP').withTitle('MRP'),
         DTColumnBuilder.newColumn('Weight').withTitle('Weight'),
+        DTColumnBuilder.newColumn('Price').withTitle('Price'),
+        DTColumnBuilder.newColumn('Tax Percent').withTitle('Tax Percent'),
         DTColumnBuilder.newColumn('Manufactured Date').withTitle('Manufactured Date'),
         DTColumnBuilder.newColumn('Expiry Date').withTitle('Expiry Date'),
         DTColumnBuilder.newColumn('Zone').withTitle('Zone'),

@@ -2640,7 +2640,7 @@ def get_receipt_filter_data(search_params, user, sub_user):
 def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer_view=False):
     from miebach_admin.models import *
     from miebach_admin.views import *
-    from rest_api.views.common import get_sku_master, get_order_detail_objs
+    from rest_api.views.common import get_sku_master, get_order_detail_objs, get_utc_start_date
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters = {}
     warehouse_users = {}
@@ -2678,12 +2678,14 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
 
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
         search_parameters['updation_date__gte'] = search_params['from_date']
     else:
         search_parameters['updation_date__gte'] = date.today()+relativedelta(months=-1)
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
         search_parameters['updation_date__lt'] = search_params['to_date']
     if 'wms_code' in search_params:
         search_parameters[param_keys['wms_code']] = search_params['wms_code']

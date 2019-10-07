@@ -68,7 +68,7 @@ class Command(BaseCommand):
         margin_value_dict = OrderedDict()
         margin_percent_dict = OrderedDict()
         inv_value_headers = ['Category']
-        today_start = get_utc_start_date(datetime.now(), users[0])
+        today_start = get_utc_start_date(datetime.now())
         today_end = today_start + timedelta(days=1)
         adjustment_dict = OrderedDict()
         user_mapping = dict(users.values_list('id', 'username'))

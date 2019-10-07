@@ -65,6 +65,7 @@ class Command(BaseCommand):
         inv_value_dict = OrderedDict()
         inv_value_dict_wod = OrderedDict()
         doc_value_dict = OrderedDict()
+        total_doc_dict = OrderedDict()
         margin_value_dict = OrderedDict()
         margin_percent_dict = OrderedDict()
         inv_value_headers = ['Category']
@@ -106,9 +107,9 @@ class Command(BaseCommand):
                 ws.write_merge(1, 1, col1,col2,user.username.upper())
                 ws, column_count = write_excel_col(ws,2,col1, 'Amount',bold = True)
                 ws, column_count = write_excel_col(ws,2,col2, 'Realized',bold = True)
-                ws, column_count = write_excel_col(ws,3,col1, positive_quantity)
-                ws, column_count = write_excel_col(ws,4,col1, negative_quantity)
-                ws, column_count = write_excel_col(ws,5,col1, total)
+                ws, column_count = write_excel_col(ws,3,col1, float("%.2f" % positive_quantity))
+                ws, column_count = write_excel_col(ws,4,col1, float("%.2f" % negative_quantity))
+                ws, column_count = write_excel_col(ws,5,col1, float("%.2f" % total))
                 for i in [3,4,5] :
                     ws, column_count = write_excel_col(ws,i,col2, 0)
                 col1+=2
@@ -129,7 +130,7 @@ class Command(BaseCommand):
                     margin_percent_dict.setdefault(category, {})
                     margin_percent_dict[category].setdefault(int(user.id), 0)
                     # Doc Value Calculation Starts
-                    no_stock_days = list(StockStats.objects.filter(sku__sku_category=category, sku__user=user.id, closing_stock=0). \
+                    no_zero_stock_days = list(StockStats.objects.filter(sku__sku_category=category, sku__user=user.id, closing_stock__gt=0). \
                                          annotate(creation_date_only=Cast('creation_date', DateField())).values(
                         'creation_date_only').distinct(). \
                                          order_by('-creation_date_only').values_list('creation_date_only', flat=True)[
@@ -138,7 +139,7 @@ class Command(BaseCommand):
                                                                    customerordersummary__isnull=False)
                     order_detail_objs = all_orders. \
                                             annotate(creation_date_only=Cast('creation_date', DateField())). \
-                                            exclude(creation_date_only__in=no_stock_days).values(
+                                            filter(creation_date_only__in=no_zero_stock_days).values(
                         'creation_date_only').distinct(). \
                                             order_by('-creation_date_only').\
                         annotate(quantity_sum=Sum('quantity'),value_sum=Sum((F('quantity') * F('unit_price')) +\
@@ -171,6 +172,24 @@ class Command(BaseCommand):
                         margin_value_dict[category][int(user.id)] = pick_sale_val - pick_cost_val
                         margin_percent_dict[category][int(user.id)] = (pick_sale_val - pick_cost_val)/pick_sale_val
                     # Margin Value and Percent Calculation Ends
+                    '''closing_amount = StockReconciliation.objects.filter(sku__user=user.id, sku__sku_category=category,
+                                        creation_date__regex=today_start.date()).aggregate(Sum('closing_amount'))['closing_amount__sum']
+                    seven_day_sales = StockReconciliation.objects.filter(sku__user=user.id, sku__sku_category=category).\
+                                                                    annotate(creation_date_only=Cast('creation_date', DateField())).\
+                                                                    filter(creation_date_only__in=no_zero_stock_days).\
+                                                                    aggregate(Sum('customer_sales_amount'))['customer_sales_amount__sum']
+                    if not closing_amount:
+                        closing_amount = 0
+                    if not seven_day_sales:
+                        seven_day_sales = 0
+
+		    doc_value_dict.setdefault(category, {})
+		    doc_value_dict[category].setdefault(int(user.id), 0)
+                    total_doc_dict.setdefault(int(user.id), {'total_sales': 0, 'total_inventory': 0})
+                    if closing_amount and seven_day_sales:
+                        total_doc_dict[int(user.id)]['total_sales'] += (seven_day_sales/7)
+                        total_doc_dict[int(user.id)]['total_inventory'] += closing_amount
+                        doc_value_dict[category][int(user.id)] += closing_amount/(seven_day_sales/7)'''
                 master_data = SellerStock.objects.filter(stock__sku__user__in=users, stock__sku__sku_category=category,
                                                          stock__batch_detail__isnull=False, quantity__gt=0). \
                     exclude(Q(stock__receipt_number=0))
@@ -227,12 +246,27 @@ class Command(BaseCommand):
                 for user, value in user_value.iteritems():
                     column_count = (user_mapping.keys().index(user)) + 1
                     doc_value = 0
+                    total_doc_dict.setdefault(user, {'total_sales': 0, 'total_inventory': 0})
                     if value:
                         stock_value = inv_value_dict_wod[category][user]
+                        total_doc_dict[user]['total_sales'] += value
+                        total_doc_dict[user]['total_inventory'] += stock_value
+                        log.info("Category %s, User %s, Total Avg Sale %s, Total Inventory %s" % (category, str(user), str(value), str(stock_value)))
                         doc_value = stock_value/value
                     doc_value = float("%.2f" % doc_value)
                     ws, column_count = write_excel_col(ws, row_count, column_count, doc_value)
                 row_count += 1
+            #Adding Totals in Bottom for Doc Report
+            column_count = 0
+            ws, column_count = write_excel_col(ws, row_count, column_count, 'Total')
+            for user, value in total_doc_dict.iteritems():
+                column_count = (user_mapping.keys().index(user)) + 1
+                total_doc = 0
+                if value['total_sales']:
+                    total_doc = value['total_inventory']/value['total_sales']
+                log.info("Total Inventory %s, Total Sale %s for DOC, User %s" % (str(value['total_inventory']), str(value['total_sales']), str(user)))
+                ws, column_count = write_excel_col(ws, row_count, column_count, total_doc)
+
             wb.save(path)
             report_file_names.append({'name': file_name, 'path': path})
             name = 'consolidated_margin_percent'
@@ -260,6 +294,7 @@ class Command(BaseCommand):
             wb.save(path)
             report_file_names.append({'name': file_name, 'path': path})
             send_to = ['sreekanth@mieone.com', 'avadhani@mieone.com','shishir.sharma@milkbasket.com', 'vimal@mieone.com']
+            #send_to = ['sreekanth@mieone.com']
             subject = '%s Reports dated %s' % ('Milkbasket', datetime.now().date())
             text = 'Please find the scheduled reports in the attachment dated: %s' % str(
                 datetime.now().date())

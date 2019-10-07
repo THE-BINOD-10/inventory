@@ -63,7 +63,6 @@ class Command(BaseCommand):
         category_list = list(SKUMaster.objects.filter(user__in=users, status=1).exclude(sku_category='').\
                              values_list('sku_category', flat=True).distinct())
         inv_value_dict = OrderedDict()
-        inv_value_dict_wod = OrderedDict()
         doc_value_dict = OrderedDict()
         total_doc_dict = OrderedDict()
         margin_value_dict = OrderedDict()
@@ -121,8 +120,6 @@ class Command(BaseCommand):
                 for user in users:
                     inv_value_dict.setdefault(category, {})
                     inv_value_dict[category].setdefault(int(user.id), 0)
-                    inv_value_dict_wod.setdefault(category, {})
-                    inv_value_dict_wod[category].setdefault(int(user.id), 0)
                     doc_value_dict.setdefault(category, {})
                     doc_value_dict[category].setdefault(int(user.id), 0)
                     margin_value_dict.setdefault(category, {})
@@ -172,31 +169,10 @@ class Command(BaseCommand):
                         margin_value_dict[category][int(user.id)] = pick_sale_val - pick_cost_val
                         margin_percent_dict[category][int(user.id)] = (pick_sale_val - pick_cost_val)/pick_sale_val
                     # Margin Value and Percent Calculation Ends
-                    '''closing_amount = StockReconciliation.objects.filter(sku__user=user.id, sku__sku_category=category,
-                                        creation_date__regex=today_start.date()).aggregate(Sum('closing_amount'))['closing_amount__sum']
-                    seven_day_sales = StockReconciliation.objects.filter(sku__user=user.id, sku__sku_category=category).\
-                                                                    annotate(creation_date_only=Cast('creation_date', DateField())).\
-                                                                    filter(creation_date_only__in=no_zero_stock_days).\
-                                                                    aggregate(Sum('customer_sales_amount'))['customer_sales_amount__sum']
-                    if not closing_amount:
-                        closing_amount = 0
-                    if not seven_day_sales:
-                        seven_day_sales = 0
-
-		    doc_value_dict.setdefault(category, {})
-		    doc_value_dict[category].setdefault(int(user.id), 0)
-                    total_doc_dict.setdefault(int(user.id), {'total_sales': 0, 'total_inventory': 0})
-                    if closing_amount and seven_day_sales:
-                        total_doc_dict[int(user.id)]['total_sales'] += (seven_day_sales/7)
-                        total_doc_dict[int(user.id)]['total_inventory'] += closing_amount
-                        doc_value_dict[category][int(user.id)] += closing_amount/(seven_day_sales/7)'''
                 master_data = SellerStock.objects.filter(stock__sku__user__in=users, stock__sku__sku_category=category,
                                                          stock__batch_detail__isnull=False, quantity__gt=0). \
-                    exclude(Q(stock__receipt_number=0))
+                    exclude(Q(stock__receipt_number=0) | Q(stock__location__zone__zone='DAMAGED_ZONE'))
                 inventory_value_objs = master_data. \
-                    values('stock__sku__sku_category', 'stock__sku__user', 'stock__batch_detail__tax_percent').distinct(). \
-                    annotate(total_value=Sum(F('quantity') * F('stock__batch_detail__buy_price')))
-                doc_inventory_value = master_data.exclude(stock__location__zone__zone='DAMAGED_ZONE').\
                     values('stock__sku__sku_category', 'stock__sku__user', 'stock__batch_detail__tax_percent').distinct(). \
                     annotate(total_value=Sum(F('quantity') * F('stock__batch_detail__buy_price')))
                 for data in inventory_value_objs:
@@ -207,14 +183,6 @@ class Command(BaseCommand):
                     if tax_percent:
                         total_value += (total_value/100)*tax_percent
                     inv_value_dict[data['stock__sku__sku_category']][int(data['stock__sku__user'])] += total_value
-                for data in doc_inventory_value:
-                    tax_percent = 0
-                    if data['stock__batch_detail__tax_percent']:
-                        tax_percent = data['stock__batch_detail__tax_percent']
-                    total_value = data['total_value']
-                    if tax_percent:
-                        total_value += (total_value/100)*tax_percent
-                    inv_value_dict_wod[data['stock__sku__sku_category']][int(data['stock__sku__user'])] += total_value
 
             name = 'inventory_value_report'
             wb, ws, path, file_name = get_excel_variables(name, 'inventory_value', inv_value_headers)
@@ -248,7 +216,7 @@ class Command(BaseCommand):
                     doc_value = 0
                     total_doc_dict.setdefault(user, {'total_sales': 0, 'total_inventory': 0})
                     if value:
-                        stock_value = inv_value_dict_wod[category][user]
+                        stock_value = inv_value_dict[category][user]
                         total_doc_dict[user]['total_sales'] += value
                         total_doc_dict[user]['total_inventory'] += stock_value
                         log.info("Category %s, User %s, Total Avg Sale %s, Total Inventory %s" % (category, str(user), str(value), str(stock_value)))
@@ -293,8 +261,8 @@ class Command(BaseCommand):
                 row_count += 1
             wb.save(path)
             report_file_names.append({'name': file_name, 'path': path})
-            send_to = ['sreekanth@mieone.com', 'avadhani@mieone.com','shishir.sharma@milkbasket.com', 'vimal@mieone.com']
-            #send_to = ['sreekanth@mieone.com']
+            #send_to = ['sreekanth@mieone.com', 'avadhani@mieone.com','shishir.sharma@milkbasket.com', 'vimal@mieone.com']
+            send_to = ['sreekanth@mieone.com', 'shishir.sharma@milkbasket.com']
             subject = '%s Reports dated %s' % ('Milkbasket', datetime.now().date())
             text = 'Please find the scheduled reports in the attachment dated: %s' % str(
                 datetime.now().date())

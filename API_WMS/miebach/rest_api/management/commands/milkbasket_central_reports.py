@@ -83,16 +83,16 @@ class Command(BaseCommand):
             for key,value in adjustment_column_dict.iteritems() :
                 ws, column_count = write_excel_col(ws,key,0, value,bold = True)
             for user in users :
-                positive_quantity = SKUDetailStats.objects.filter(sku__user = user.id,transact_type = 'inventory-adjustment',\
-                                                             creation_date__gte=today_start,creation_date__lte=today_end,quantity__gt=0)\
-                                                             .annotate(total_price = F('quantity') * F('stock_detail__batch_detail__buy_price'))\
-                                                             .annotate(total_price_tax = F('total_price') + F('total_price') *F('stock_detail__batch_detail__tax_percent')/100)\
+                positive_quantity = InventoryAdjustment.objects.filter(stock__sku__user = user.id,
+                                                             creation_date__gte=today_start,creation_date__lte=today_end,adjusted_quantity__gt=0)\
+                                                             .annotate(total_price = F('adjusted_quantity') * F('stock__batch_detail__buy_price'))\
+                                                             .annotate(total_price_tax = F('total_price') + (F('total_price')/100) *F('stock__batch_detail__tax_percent'))\
                                                              .aggregate(Sum('total_price_tax'))['total_price_tax__sum']
 
-                negative_quantity = SKUDetailStats.objects.filter(sku__user = user.id,transact_type = 'inventory-adjustment',\
-                                                creation_date__gte=today_start,creation_date__lte=today_end,quantity__lt=0)\
-                                                .annotate(total_price = F('quantity') * F('stock_detail__batch_detail__buy_price'))\
-                                                .annotate(total_price_tax = F('total_price') + F('total_price') *F('stock_detail__batch_detail__tax_percent')/100)\
+                negative_quantity = InventoryAdjustment.objects.filter(stock__sku__user = user.id,
+                                                creation_date__gte=today_start,creation_date__lte=today_end,adjusted_quantity__lt=0)\
+                                                .annotate(total_price = F('adjusted_quantity') * F('stock__batch_detail__buy_price'))\
+                                                .annotate(total_price_tax = F('total_price') + F('total_price') *F('stock__batch_detail__tax_percent')/100)\
                                                 .aggregate(Sum('total_price_tax'))['total_price_tax__sum']
 
                 if not positive_quantity : positive_quantity = 0

@@ -85,9 +85,17 @@ class Command(BaseCommand):
                 ws, column_count = write_excel_col(ws,key,0, value,bold = True)
             for user in users :
                 positive_quantity = SKUDetailStats.objects.filter(sku__user = user.id,transact_type = 'inventory-adjustment',\
-                                               creation_date__gte=today_start,creation_date__lte=today_end,quantity__gt=0).aggregate(Sum('quantity'))['quantity__sum']
+                                                             creation_date__gte=today_start,creation_date__lte=today_end,quantity__gt=0)\
+                                                             .annotate(total_price = F('quantity') * F('stock_detail__batch_detail__buy_price'))\
+                                                             .annotate(total_price_tax = F('total_price') + F('total_price') *F('stock_detail__batch_detail__tax_percent')/100)\
+                                                             .aggregate(Sum('total_price_tax'))['total_price_tax__sum']
+
                 negative_quantity = SKUDetailStats.objects.filter(sku__user = user.id,transact_type = 'inventory-adjustment',\
-                                                creation_date__gte=today_start,creation_date__lte=today_end,quantity__lt=0).aggregate(Sum('quantity'))['quantity__sum']
+                                                creation_date__gte=today_start,creation_date__lte=today_end,quantity__lt=0)\
+                                                .annotate(total_price = F('quantity') * F('stock_detail__batch_detail__buy_price'))\
+                                                .annotate(total_price_tax = F('total_price') + F('total_price') *F('stock_detail__batch_detail__tax_percent')/100)\
+                                                .aggregate(Sum('total_price_tax'))['total_price_tax__sum']
+
                 if not positive_quantity : positive_quantity = 0
                 if not negative_quantity :
                     negative_quantity = 0

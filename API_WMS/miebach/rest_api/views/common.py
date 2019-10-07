@@ -1944,7 +1944,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
         for stock in stocks:
             if total_stock_quantity < quantity:
                 stock.quantity += abs(remaining_quantity)
-                stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', remaining_quantity, stock, stock_stats_objs, bulk_insert=True)
+                stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', abs(remaining_quantity), stock, stock_stats_objs, bulk_insert=True)
                 stock.save()
                 change_seller_stock(seller_master_id, stock, user, abs(remaining_quantity), 'inc')
                 adjustment_objs = create_invnetory_adjustment_record(user, dat, abs(remaining_quantity), reason, location, now, pallet_present,

@@ -1157,6 +1157,8 @@ def get_orders(request):
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
         search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'order_id' in search_params:
+        search_parameters['original_order_id'] = search_params['order_id']
     search_parameters['user'] = request.user.id
     order_records = OrderDetail.objects.filter(**search_parameters).values_list('original_order_id',flat= True).distinct()
     page_info = scroll_data(request, order_records, limit=limit)
@@ -1167,6 +1169,7 @@ def get_orders(request):
         items = []
         charge_amount= 0
         discount_amount = 0
+        item_dict = {}
         for data in data_dict:
             tax_data = CustomerOrderSummary.objects.filter(order_id=data.id)
             charge = OrderCharges.objects.filter(order_id = data.original_order_id, user=request.user.id, charge_name = 'Shipping Charge').values('charge_amount')

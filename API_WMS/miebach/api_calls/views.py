@@ -12,11 +12,12 @@ from dateutil.relativedelta import relativedelta
 from operator import itemgetter
 from itertools import chain
 from django.db.models import Sum, Count
-from rest_api.views.common import get_local_date
+from rest_api.views.common import get_local_date, folder_check
 from rest_api.views.miebach_utils import MILKBASKET_BULK_ZONE
 from rest_api.views.integrations import *
 import json
 import datetime
+import os
 from django.db.models import Q, F
 from django.core.serializers.json import DjangoJSONEncoder
 from rest_api.views.utils import *
@@ -1198,25 +1199,17 @@ def get_orders(request):
 @csrf_exempt
 @login_required
 def update_mp_orders(request):
-    import os
-    date = datetime.datetime.now()
-    date_time = get_local_date(request.user, date, True).strftime("%d %b,%Y -%H:%M:%S")
-    # get the current script path.
-    here = os.path.dirname(os.path.realpath(__file__))
-    subdir = "MB_Text_File_Logs"
-    filename = "update_mp_orders.txt"
-    filepath = os.path.join(here, subdir, filename)
     try:
         orders = json.loads(request.body)
     except:
         return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}), status=400)
     log.info('Request params for ' + request.user.username + ' is ' + str(orders))
-    if not os.path.exists(os.path.dirname(filepath)):
-        # create your subdirectory
-        os.mkdir(os.path.join(here, subdir))
-    open_file = open(filepath, "a+")
-    open_file.write('\n\n' + date_time  + '\n\n' +'Request params for ' + request.user.username + ' is ' + str(orders))
-    open_file.close()
+    order_file_path = 'static/order_files'
+    folder_check(order_file_path)
+    file_time_stamp = str(datetime.datetime.now()).replace(':', '_').replace('.', '_').replace(' ', '_')
+    load_file_path = '%s/%s' % (order_file_path, 'mp_orders_' + file_time_stamp + '.txt')
+    load_file = open(load_file_path, 'w')
+    load_file.write(json.dumps(orders))
     try:
         validation_dict, failed_status, final_data_dict = validate_seller_orders_format(orders, user=request.user, company_name='mieone')
         if validation_dict:
@@ -1235,15 +1228,8 @@ def update_mp_orders(request):
         log.info(status)
     except Exception as e:
         import traceback
-        log.debug(traceback.format_exc())
-        log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
-        if not os.path.exists(os.path.dirname(filepath)):
-            # create your subdirectory
-            os.mkdir(os.path.join(here, subdir))
-        open_file = open(filepath, "a+")
-        open_file.write('\n\n' + date_time  + '\n\n' +'Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
-        open_file.close()
-
+        log_err.debug(traceback.format_exc())
+        log_err.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'messages': 'Internal Server Error', 'status': 0}
     return HttpResponse(json.dumps(status))
 

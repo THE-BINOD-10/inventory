@@ -1414,7 +1414,6 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     }
     return status;
   }
-  vm.model_data.data[0]['cost_price'] = 0
   vm.serial_scan = function(event, scan, sku_data) {
     if ( event.keyCode == 13 && scan) {
       event.preventDefault();
@@ -1437,7 +1436,11 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
                 sku_data.quantity = sku_data.serials.length;
                 sku_data.invoice_amount = vm.service.multi(sku_data.quantity, sku_data.price);
                 vm.cal_percentage(sku_data);
-                vm.model_data.data[0]['cost_price'] = data.data.data.cost_price
+                for(var i = 0; i < vm.model_data.data.length ; i++) {
+                  if (vm.model_data.data[i]["sku_id"] == data.data.data.sku_code) {
+                    vm.model_data.data[i]['cost_price'] = data.data.data.cost_price;
+                  }
+                }
               }
             } else {
               vm.service.showNoty(data.data.status);

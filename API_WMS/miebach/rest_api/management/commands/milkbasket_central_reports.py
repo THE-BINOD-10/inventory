@@ -75,7 +75,7 @@ class Command(BaseCommand):
         inv_value_headers = list(chain(inv_value_headers, user_mapping.values()))
         try:
             report_file_names = []
-            col1 = 1
+            '''col1 = 1
             col2 = 2
             name = 'adjustment_report'
             wb, ws, path, file_name = get_excel_variables(name, 'adjustment', [])
@@ -114,7 +114,7 @@ class Command(BaseCommand):
                 col1+=2
                 col2+=2
             wb.save(path)
-            report_file_names.append({'name': file_name, 'path': path})
+            report_file_names.append({'name': file_name, 'path': path})'''
             for category in category_list:
                 log.info("Calculation started for Category %s" % category)
                 for user in users:
@@ -127,7 +127,7 @@ class Command(BaseCommand):
                     margin_percent_dict.setdefault(category, {})
                     margin_percent_dict[category].setdefault(int(user.id), 0)
                     # Doc Value Calculation Starts
-                    no_zero_stock_days = list(StockStats.objects.filter(sku__sku_category=category, sku__user=user.id, closing_stock__gt=0). \
+                    '''no_zero_stock_days = list(StockStats.objects.filter(sku__sku_category=category, sku__user=user.id, closing_stock__gt=0). \
                                          annotate(creation_date_only=Cast('creation_date', DateField())).values(
                         'creation_date_only').distinct(). \
                                          order_by('-creation_date_only').values_list('creation_date_only', flat=True)[
@@ -167,7 +167,7 @@ class Command(BaseCommand):
                         pick_sale_val += (pick_loc.quantity * pick_loc.picklist.order.unit_price)
                     if pick_sale_val:
                         margin_value_dict[category][int(user.id)] = pick_sale_val - pick_cost_val
-                        margin_percent_dict[category][int(user.id)] = (pick_sale_val - pick_cost_val)/pick_sale_val
+                        margin_percent_dict[category][int(user.id)] = (pick_sale_val - pick_cost_val)/pick_sale_val'''
                     # Margin Value and Percent Calculation Ends
                 master_data = SellerStock.objects.filter(stock__sku__user__in=users, stock__sku__sku_category=category,
                                                          stock__batch_detail__isnull=False, quantity__gt=0). \
@@ -189,6 +189,8 @@ class Command(BaseCommand):
             row_count = 1
             total_inventory_value = {}
             for category, user_value in inv_value_dict.iteritems():
+                if sum(user_value.values()) <= 0:
+                    continue
                 ws, column_count = write_excel_col(ws, row_count, 0, category)
                 for user, value in user_value.iteritems():
                     column_count = (user_mapping.keys().index(user)) + 1
@@ -206,7 +208,7 @@ class Command(BaseCommand):
 
             wb.save(path)
             report_file_names.append({'name': file_name, 'path': path})
-            name = 'days_of_cover_report'
+            '''name = 'days_of_cover_report'
             wb, ws, path, file_name = get_excel_variables(name, 'Days of Cover', inv_value_headers)
             row_count = 1
             for category, user_value in doc_value_dict.iteritems():
@@ -260,9 +262,9 @@ class Command(BaseCommand):
                     ws, column_count = write_excel_col(ws, row_count, column_count, value)
                 row_count += 1
             wb.save(path)
-            report_file_names.append({'name': file_name, 'path': path})
+            report_file_names.append({'name': file_name, 'path': path})'''
             #send_to = ['sreekanth@mieone.com', 'avadhani@mieone.com','shishir.sharma@milkbasket.com', 'vimal@mieone.com']
-            send_to = ['sreekanth@mieone.com', 'shishir.sharma@milkbasket.com']
+            send_to = ['shishir.sharma@milkbasket.com', 'gaurav.srivastava@milkbasket.com', 'anubhav.gupta@milkbasket.com', 'anubhavsood@milkbasket.com']
             subject = '%s Reports dated %s' % ('Milkbasket', datetime.now().date())
             text = 'Please find the scheduled reports in the attachment dated: %s' % str(
                 datetime.now().date())

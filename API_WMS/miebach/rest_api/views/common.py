@@ -3596,6 +3596,8 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     quantity = request_data.get('quantity', 0)
     delivery_date = request_data.get('delivery_date', '')
     dimensions = request_data.get('dimensions', {})
+    brand_categorization_exclude = request_data.get('brand_categorization', '')
+    brand_categorization = get_misc_value('brand_categorization', user.id)
     customer_master = None
     if not quantity:
         quantity = 0
@@ -3614,7 +3616,6 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     customer_data_id = request_data.get('customer_data_id', '')
     price_type = ''
     customer_id = ''
-
     disp_sku_map = get_misc_value('display_sku_cust_mapping', user.id)
     if disp_sku_map == 'true':
         cust_mapped_skus = CustomerSKU.objects.filter(sku__user=user.id).values_list('sku_id', flat=True)
@@ -3665,7 +3666,20 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                                                     field_value='1').values_list('sku_id', flat=True)
         filter_params['id__in'] = hot_release_data
         filter_params1['id__in'] = hot_release_data
-
+    start, stop = indexes.split(':')
+    start, stop = int(start), int(stop)
+    if brand_categorization == 'true' and brand_categorization_exclude != 'true':
+        sku_brand_list, sku_class_list = [], []
+        sku_brands = SKUMaster.objects.filter(user=user.id, sku_category=sku_category, status = 1).values_list('sku_brand', flat=True).distinct()
+        for sku_brand in sku_brands:
+            sku_class_list.extend(list(SKUMaster.objects.filter(user=user.id, sku_category=sku_category, sku_brand=sku_brand, status = 1).distinct().values_list('sku_class', flat=True)[:5]))
+        sku_brand_list.extend(list(SKUMaster.objects.filter(user=user.id, sku_category=sku_category, sku_class__in=sku_class_list, status = 1).values_list('id', flat=True)))
+        if sku_brand_list:
+            filter_params.setdefault('id__in',[])
+            filter_params1.setdefault('id__in',[])
+            filter_params['id__in'] = list(chain(filter_params['id__in'], sku_brand_list))
+            filter_params1['id__in'] = list(chain(filter_params1['id__in'], sku_brand_list))
+            start, stop = 0, len(sku_brand_list)
     skumaster_qs = SKUMaster.objects.exclude(sku_class='')
     if admin_user:
         filter_params1['sku__user'] = admin_user.id
@@ -3675,8 +3689,6 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         cluster_sku_list = list(ClusterSkuMapping.objects.filter(cluster_name = cluster, sku__user = filter_params1['sku__user']).values_list('sku__sku_code', flat=True))
         filter_params['sku_code__in'] = cluster_sku_list
         filter_params1['sku__sku_code__in'] = cluster_sku_list
-    start, stop = indexes.split(':')
-    start, stop = int(start), int(stop)
     if sku_class:
         filter_params['sku_class__icontains'] = sku_class
         filter_params1['sku__sku_class__icontains'] = sku_class
@@ -3755,7 +3767,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                     filter(Q(skuattributes__attribute_name='Internal Breadth') &
                            Q(skuattributes__attribute_value__lte=Value(intto_Breadth)))
     all_pricing_ids = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type).values_list('sku_id',
-                                                                                                       flat=True)
+                                                                                                    flat=True)
     if is_margin_percentage == 'true':
         pricemaster = PriceMaster.objects.prefetch_related('sku').filter(price_type=price_type).annotate(
             new_price=F('price') + ((F('price') / Value(100)) * Value(custom_margin))).filter(**filter_params1)
@@ -4921,7 +4933,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
     for product in product_styles_filtered[start: stop]:
         prd_sku_codes = sku_master.filter(sku_class=product).only('sku_code').values_list('sku_code', flat=True)
         sku_object = sku_master.filter(user=user.id, sku_class=product)
-        sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id'). \
+        sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id', 'sku_brand'). \
             order_by('-image_url')
         if central_order_mgmt == 'true':
             sku_id = sku_object[0].id

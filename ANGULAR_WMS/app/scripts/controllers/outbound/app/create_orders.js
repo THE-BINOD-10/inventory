@@ -6,7 +6,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
   $scope.msg = "start";
   var vm = this;
-
   vm.model_data = {};
   vm.brand_size_data = [];//To get Sizes for some brands
   vm.size_filter = {};//Size Filter Search
@@ -16,6 +15,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.size_filter_data = {};
   vm.size_toggle = true;
   vm.brand_size_collect = {};
+  vm.carouselData = {};
+  vm.checkCarouselDataPush = {};
+  vm.index={};
+  vm.showmore_button={};
   vm.notify_count = Session.notification_count;
   vm.permissions = Session.roles.permissions;
   vm.user_type = Session.roles.permissions.user_type;
@@ -23,6 +26,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.buttons_width = (Session.roles.permissions.create_order_po)? 4: 6;
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
   vm.disable_brands = Session.roles.permissions.disable_brands_view;
+  vm.brand_categorization = Session.roles.permissions.brand_categorization;
   vm.disable_categories = Session.roles.permissions.disable_categories_view;
   vm.is_portal_lite = Session.roles.permissions.is_portal_lite;
   vm.date = new Date();
@@ -37,7 +41,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   //Session.sagar_fab_filter = {}
   window.onhashchange = function() {
     if ($location.$$path == '/App/Brands'){
-      if(localStorage.brand_value != '' || localStorage.category_value != ''){;
+      if(localStorage.brand_value != '' || localStorage.category_value != ''){
         localStorage.removeItem('brand_value')
         localStorage.removeItem('category_value')
         change_filter_data('removefilter');
@@ -433,6 +437,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.gotData = {};
   vm.data_loading = false;
   vm.getingData = function(data) {
+    vm.temp_request = data
     get_brand_filter_value('category_value');
     vm.catDisplay = false;
     if(vm.data_loading) {
@@ -444,6 +449,13 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
       if(response.message && response.data.search_key == vm.style || !vm.style) {
         vm.gotData = response.data;
+        if(vm.brand_categorization){
+          vm.carouselData={};
+          vm.checkCarouselDataPush={};
+          vm.index={};
+          vm.showmore_button={};
+          vm.CarouselDataCtrl(vm.gotData.data);
+        }
         canceller.resolve("done");
         vm.data_loading = false;
         vm.showFilter = false;
@@ -456,7 +468,60 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     };
     return canceller.promise;
   }
-
+  vm.get_brand_category_data = function(request, brand, index) {
+    vm.current_brand = brand
+    vm.show_more_loading = true;
+    if (request['brand'] || request['brand'] == ''){
+      request['brand_categorization'] = true
+      request['brand'] = brand
+      request['index'] = index
+    }
+    if (String(index) != "undefined"){
+      vm.index[brand] = ''
+    } else {
+      request['index'] = ''
+    }
+    vm.service.apiCall("get_sku_catalogs/", "POST", request).then(function(response) {
+      if(response.message && response.data.search_key == vm.style || !vm.style) {
+        if (response.data.data.length != 0){
+          vm.CarouselDataCtrl(response.data.data);
+          vm.index[request['brand']] = response.data.next_index
+          if(response.data.data.length <= 19){
+            vm.show_more_loading = false
+            vm.showmore_button[brand] = false;
+          }
+        } else {
+          vm.show_more_loading = false
+          vm.showmore_button[brand] = false;
+        }
+      }
+    });
+  }
+  vm.CarouselDataCtrl = function (data){
+    angular.forEach(data, function(item){
+      vm.showmore_button[item.sku_brand] = true;
+      if(String(vm.carouselData[item.sku_brand]) == 'undefined'){
+        vm.carouselData[item.sku_brand] = [item]
+        vm.push_item_check_carousel(item)
+      } else {
+        if (String(vm.checkCarouselDataPush[item.sku_brand]) == 'undefined') {
+          vm.carouselData[item.sku_brand].push(item)
+          vm.push_item_check_carousel(item)
+        } else if(vm.checkCarouselDataPush[item.sku_brand].indexOf(item.sku_class) == -1){
+          vm.carouselData[item.sku_brand].push(item)
+          vm.push_item_check_carousel(item)
+        }
+      }
+    });
+    vm.show_more_loading = false
+  }
+  vm.push_item_check_carousel = function(item){
+    if(String(vm.checkCarouselDataPush[item.sku_brand]) != 'undefined'){
+      vm.checkCarouselDataPush[item.sku_brand].push(item.sku_class)
+    } else {
+      vm.checkCarouselDataPush[item.sku_brand] = [item.sku_class]
+    }
+  }
   vm.redirect_from_orders = function(status, scroll){
     if (!vm.catlog_data.data) {
       vm.get_category(status, scroll);
@@ -464,7 +529,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   }
 
   vm.get_category = function(status, scroll) {
-
     if(vm.showFilter) {
       return false;
     }
@@ -650,6 +714,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   }
 
   vm.change_category = function(category, cluster='') {
+    vm.carouselData = {};
+    vm.checkCarouselDataPush = {};
     if (cluster == 'cluster_name'){
       vm.cluster = category
       vm.category = ''

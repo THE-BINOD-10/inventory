@@ -2646,7 +2646,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
     warehouse_users = {}
     central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
     if customer_view:
-        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__user']#'order__quantity', 'picked_quantity']
+        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category', 'order__sku__user']#'order__quantity', 'picked_quantity']
         model_obj = Picklist
         param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
         search_parameters.update({'status__in': ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched'],
@@ -2657,7 +2657,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                 })
     else:
         if serial_view:
-            lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__customer_name',
+            lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category', 'order__customer_name',
                    'po_imei__imei_number',
                    'updation_date', 'updation_date']
             model_obj = OrderIMEIMapping
@@ -2666,7 +2666,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
             # search_parameters['order__user'] = user.id
             # search_parameters['order__sku_id__in'] = sku_master_ids
         else:
-            lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__sku_desc', 'stock__location__location',
+            lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category',
+                    'stock__location__location',
                    'picked_quantity', 'picked_quantity', 'updation_date', 'updation_date', 'order__customer_name', 'stock__batch_detail__batch_no', 'stock__batch_detail__mrp', 'stock__batch_detail__manufactured_date', 'stock__batch_detail__expiry_date']
             model_obj = Picklist
             param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
@@ -2747,6 +2748,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                     ('Customer Name', data['order__customer_name']),
                                                     ('WMS Code', data['order__sku__wms_code']),
                                                     ('Description', data['order__sku__sku_desc']),
+                                                    ('SKU Category', data['order__sku__sku_category']),
                                                     ('Quantity', data['qty']),
                                                     ('Picked Quantity', data['qty'] - data['res_qty']),
                                                     ('Warehouse', warehouse_users.get(data['order__sku__user']))
@@ -2780,6 +2782,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('WMS MRP', wms_code_mrp),('Child SKU', child_sku_code),
                                                             ('Child SKU MRP', child_sku_mrp),('Child SKU Weight', child_sku_weight),
                                                             ('Description', data.order.sku.sku_desc),
+                                                            ('SKU Category', data.order.sku.sku_category),
                                                             ('Location', 'NO STOCK'),
                                                             ('Quantity', data.order.quantity),
                                                             ('Picked Quantity', data.picked_quantity),
@@ -2808,6 +2811,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('WMS MRP', wms_code_mrp),('Child SKU', child_sku_code),
                                                             ('Child SKU MRP', child_sku_mrp),('Child SKU Weight', child_sku_weight),
                                                             ('Description', data.order.sku.sku_desc),
+                                                            ('SKU Category', data.order.sku.sku_category),
                                                             ('Location', pick_loc.stock.location.location),
                                                             ('Quantity', data.order.quantity),
                                                             ('Picked Quantity', picked_quantity),
@@ -2829,6 +2833,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                 date = get_local_date(user, data.updation_date).split(' ')
                 temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.wms_code),
                                                         ('Description', data.order.sku.sku_desc),
+                                                        ('SKU Category', data.order.sku.sku_category),
                                                         ('Customer Name', data.order.customer_name),
                                                         ('Serial Number', serial_number),
                                                         ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])),

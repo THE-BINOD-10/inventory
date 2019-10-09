@@ -2666,9 +2666,12 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
             # search_parameters['order__user'] = user.id
             # search_parameters['order__sku_id__in'] = sku_master_ids
         else:
-            lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category',
-                    'stock__location__location',
-                   'picked_quantity', 'picked_quantity', 'updation_date', 'updation_date', 'order__customer_name', 'stock__batch_detail__batch_no', 'stock__batch_detail__mrp', 'stock__batch_detail__manufactured_date', 'stock__batch_detail__expiry_date']
+            lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__wms_code',
+                   'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category',
+                    'stock__location__location', 'picked_quantity', 'picked_quantity', 'stock__batch_detail__buy_price',
+                   'stock_id', 'updation_date', 'updation_date',
+                   'order__customer_name', 'stock__batch_detail__batch_no', 'stock__batch_detail__mrp',
+                   'stock__batch_detail__manufactured_date', 'stock__batch_detail__expiry_date']
             model_obj = Picklist
             param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
             search_parameters['status__in'] = ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched']
@@ -2735,7 +2738,6 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
         if search_params['order_term'] == 'desc':
             order_data = "-%s" % order_data
         model_data = model_data.order_by(order_data)
-
     temp_data['recordsTotal'] = model_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
@@ -2759,6 +2761,15 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                 child_sku_code = ''
                 child_sku_mrp = ''
                 wms_code_mrp = 0
+                cost_price = 0
+                tax_percent = 0
+                cod = data.order.customerordersummary_set.filter()
+                if cod:
+                    cod = cod[0]
+                    if cod.cgst_tax:
+                        tax_percent = cod.cgst_tax + cod.sgst_tax
+                    else:
+                        tax_percent = cod.igst_tax
                 customer_name = data.order.customer_name if data.order.customer_name else ''
                 if data.stock and data.stock.batch_detail:
                     batch_number = data.stock.batch_detail.batch_no
@@ -2786,6 +2797,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Location', 'NO STOCK'),
                                                             ('Quantity', data.order.quantity),
                                                             ('Picked Quantity', data.picked_quantity),
+                                                            ('Cost Price', cost_price), ('Sale Tax Percent', tax_percent),
                                                             ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])), ('Customer Name', customer_name),
                                                             ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
                                                             ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate),
@@ -2806,6 +2818,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                         else:
                             child_sku_code = data.order.sku.sku_code
                             child_sku_mrp = SKUMaster.objects.filter(user=user.id, sku_code = data.order.sku.sku_code).values('mrp')[0]['mrp']
+                    if data.stock and data.stock.batch_detail:
+                        cost_price = data.stock.batch_detail.buy_price
                     wms_code_mrp = data.order.sku.mrp
                     temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
                                                             ('WMS MRP', wms_code_mrp),('Child SKU', child_sku_code),
@@ -2815,7 +2829,9 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Location', pick_loc.stock.location.location),
                                                             ('Quantity', data.order.quantity),
                                                             ('Picked Quantity', picked_quantity),
-                                                            ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])), ('Customer Name', customer_name),
+                                                            ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])),
+                                                            ('Cost Price', cost_price), ('Sale Tax Percent', tax_percent),
+                                                            ('Customer Name', customer_name),
                                                             ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
                                                             ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate),
                                                             ('Warehouse', warehouse_users.get(data.order.user)))))

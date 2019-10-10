@@ -1698,11 +1698,12 @@ def add_po(request, user=''):
 @reversion.create_revision(atomic=False)
 def insert_inventory_adjust(request, user=''):
     reversion.set_user(request.user)
-    data = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-    if not data:
+    cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
+    #CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+    if not cycle_count:
         cycle_id = 1
     else:
-        cycle_id = data[0].cycle + 1
+        cycle_id = cycle_count + 1
     wmscode = request.GET['wms_code']
     quantity = request.GET['quantity']
     reason = request.GET['reason']

@@ -38,6 +38,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         DTColumnBuilder.newColumn('Receipt Date').withTitle('Receipt Date'),
         DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
+        DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
         DTColumnBuilder.newColumn('Batch Number').withTitle('Batch Number'),
         DTColumnBuilder.newColumn('MRP').withTitle('MRP'),
         DTColumnBuilder.newColumn('Weight').withTitle('Weight'),

@@ -2291,7 +2291,7 @@ def inventory_adj_reasons(request, user=''):
 def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                              filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'batch_detail__batch_no',
+    lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'sku__sku_category', 'batch_detail__batch_no',
            'batch_detail__mrp', 'batch_detail__weight', 'batch_detail__buy_price', 'batch_detail__tax_percent',
            'batch_detail__manufactured_date', 'batch_detail__expiry_date',
            'location__zone__zone', 'location__location', 'pallet_detail__pallet_code',
@@ -2320,7 +2320,8 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                                 Q(location__zone__zone__icontains=search_term) |
                                                Q(sku__sku_code__icontains=search_term) |
                                                Q(sku__sku_desc__icontains=search_term) |
-                                               Q(location__location__icontains=search_term)).order_by(order_data)
+                                               Q(location__location__icontains=search_term) |
+                                               Q(sku__sku_category__icontains=search_term)).order_by(order_data)
 
     else:
         master_data = stock_detail_objs.order_by(order_data)
@@ -2352,6 +2353,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                                     ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
                                                     ('WMS Code', data.sku.wms_code),
                                                     ('Product Description', data.sku.sku_desc),
+                                                    ('SKU Category', data.sku.sku_category),
                                                     ('Batch Number', batch_no),
                                                     ('MRP', mrp), ('Weight', weight),
                                                     ('Price', price), ('Tax Percent', tax),
@@ -2365,6 +2367,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                                     ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
                                                     ('WMS Code', data.sku.wms_code),
                                                     ('Product Description', data.sku.sku_desc),
+                                                    ('SKU Category', data.sku.sku_category),
                                                     ('Batch Number', batch_no),
                                                     ('MRP', mrp), ('Weight', weight),
                                                     ('Price', price), ('Tax Percent', tax),

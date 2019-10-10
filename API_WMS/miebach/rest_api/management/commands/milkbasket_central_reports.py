@@ -60,6 +60,7 @@ class Command(BaseCommand):
             return wb, ws, path, file_name
 
         users = User.objects.filter(username__in=['GGN01', 'NOIDA01', 'NOIDA02', 'HYD01', 'BLR01'])
+        #users = User.objects.filter(username__in=['GGN01'])
         category_list = list(SKUMaster.objects.filter(user__in=users, status=1).exclude(sku_category='').\
                              values_list('sku_category', flat=True).distinct())
         inv_value_dict = OrderedDict()
@@ -75,7 +76,7 @@ class Command(BaseCommand):
         inv_value_headers = list(chain(inv_value_headers, user_mapping.values()))
         try:
             report_file_names = []
-            '''col1 = 1
+            col1 = 1
             col2 = 2
             name = 'adjustment_report'
             wb, ws, path, file_name = get_excel_variables(name, 'adjustment', [])
@@ -100,21 +101,21 @@ class Command(BaseCommand):
                 if not negative_quantity :
                     negative_quantity = 0
                 else:
-                    negative_quantity = abs(negative_quantity)
+                    negative_quantity = negative_quantity
                 total = positive_quantity + negative_quantity
 
                 ws.write_merge(1, 1, col1,col2,user.username.upper())
                 ws, column_count = write_excel_col(ws,2,col1, 'Amount',bold = True)
                 ws, column_count = write_excel_col(ws,2,col2, 'Realized',bold = True)
                 ws, column_count = write_excel_col(ws,3,col1, float("%.2f" % positive_quantity))
-                ws, column_count = write_excel_col(ws,4,col1, float("%.2f" % negative_quantity))
+                ws, column_count = write_excel_col(ws,4,col1, float("%.2f" % abs(negative_quantity)))
                 ws, column_count = write_excel_col(ws,5,col1, float("%.2f" % total))
                 for i in [3,4,5] :
                     ws, column_count = write_excel_col(ws,i,col2, 0)
                 col1+=2
                 col2+=2
             wb.save(path)
-            report_file_names.append({'name': file_name, 'path': path})'''
+            report_file_names.append({'name': file_name, 'path': path})
             for category in category_list:
                 log.info("Calculation started for Category %s" % category)
                 for user in users:
@@ -133,7 +134,7 @@ class Command(BaseCommand):
                                          order_by('-creation_date_only').values_list('creation_date_only', flat=True)[
                                          :7])
                     all_orders = OrderDetail.objects.filter(user=user.id, sku__sku_category=category,
-                                                                   customerordersummary__isnull=False)
+                                                                   customerordersummary__isnull=False, sellerorder__seller__seller_id=2)
                     order_detail_objs = all_orders. \
                                             annotate(creation_date_only=Cast('creation_date', DateField())). \
                                             filter(creation_date_only__in=no_zero_stock_days).values(
@@ -148,41 +149,64 @@ class Command(BaseCommand):
                         for order_detail_obj in order_detail_objs:
                             total_sale_value += order_detail_obj['value_sum']
                     avg_sale_value = total_sale_value/7
-                    doc_value_dict[category][int(user.id)] = avg_sale_value
+                    doc_value_dict[category][int(user.id)] = avg_sale_value'''
                     # Doc Value Calculation Ends
 
                     # Margin Value and Percent Calculation Starts
-
+                    drspl_order_ids = list(SellerOrder.objects.filter(order__creation_date__gte=today_start,order__creation_date__lte=today_end,
+                                                                order__user=user.id, order__sku__sku_category=category,
+                                                                seller__seller_id=2).\
+                                                        values_list('order_id', flat=True))
                     pick_locs = PicklistLocation.objects.filter(picklist__order__user=user.id,
                                                                 picklist__order__sku__sku_category=category,
-                                                                creation_date__gte=today_start,
-                                                    creation_date__lte=today_end,
-                                                                picklist__order__sellerorder__seller__seller_id=2).only('quantity',
-                                                    'stock__batch_detail__buy_price', 'picklist__order__unit_price')
+                                                                picklist__order__creation_date__gte=today_start,
+                                                    picklist__order__creation_date__lte=today_end,
+                                                    picklist__order_id__in=drspl_order_ids)#.only('quantity',
+                                                    #'stock__batch_detail__buy_price', 'picklist__order__unit_price',
+                                                    #'stock__batch_detail__tax_percent', 'picklist__order_id')
                     pick_sale_val = 0
                     pick_cost_val = 0
                     for pick_loc in pick_locs:
                         buy_price = pick_loc.stock.batch_detail.buy_price
-                        pick_cost_val += (pick_loc.quantity * buy_price)
-                        pick_sale_val += (pick_loc.quantity * pick_loc.picklist.order.unit_price)
+                        cost_price_tax = pick_loc.stock.batch_detail.tax_percent
+                        cod = CustomerOrderSummary.objects.filter(order_id=pick_loc.picklist.order_id)
+                        sale_price_tax = 0
+                        if cod:
+                            cod = cod[0]
+                            if cod.cgst_tax:
+                                sale_price_tax = cod.cgst_tax + cod.sgst_tax
+                            else:
+                                sale_price_tax = cod.igst_tax
+                        cost_amt = pick_loc.quantity * buy_price
+                        cost_amt_tax = (cost_amt/100)*sale_price_tax
+                        pick_cost_val += (cost_amt + cost_amt_tax)
+                        pick_sale_val += (pick_loc.quantity * pick_loc.picklist.order.unit_price) +\
+                                            (((pick_loc.quantity * pick_loc.picklist.order.unit_price)/100)*sale_price_tax)
                     if pick_sale_val:
                         margin_value_dict[category][int(user.id)] = pick_sale_val - pick_cost_val
-                        margin_percent_dict[category][int(user.id)] = (pick_sale_val - pick_cost_val)/pick_sale_val'''
+                        margin_percent_dict[category][int(user.id)] = (pick_sale_val - pick_cost_val)/pick_sale_val
                     # Margin Value and Percent Calculation Ends
-                master_data = SellerStock.objects.filter(stock__sku__user__in=users, stock__sku__sku_category=category,
-                                                         stock__batch_detail__isnull=False, quantity__gt=0). \
+                '''master_data = SellerStock.objects.filter(stock__sku__user__in=users, stock__sku__sku_category=category,
+                                                         quantity__gt=0). \
                     exclude(Q(stock__receipt_number=0) | Q(stock__location__zone__zone='DAMAGED_ZONE'))
                 inventory_value_objs = master_data. \
                     values('stock__sku__sku_category', 'stock__sku__user', 'stock__batch_detail__tax_percent').distinct(). \
-                    annotate(total_value=Sum(F('quantity') * F('stock__batch_detail__buy_price')))
+                    annotate(total_value=Sum(F('quantity') * F('stock__batch_detail__buy_price')))'''
+                inventory_value_objs = StockDetail.objects.filter(sku__user__in=users, sku__sku_category=category, quantity__gt=0).\
+                                                exclude(Q(receipt_number=0) | Q(location__zone__zone='DAMAGED_ZONE')).\
+                                                values('sku__sku_category', 'sku__user', 'batch_detail__tax_percent',
+                                                            'quantity', 'batch_detail__buy_price')
                 for data in inventory_value_objs:
                     tax_percent = 0
-                    if data['stock__batch_detail__tax_percent']:
-                        tax_percent = data['stock__batch_detail__tax_percent']
-                    total_value = data['total_value']
+                    if data['batch_detail__tax_percent']:
+                        tax_percent = data['batch_detail__tax_percent']
+                    buy_price = 0
+                    if data['batch_detail__buy_price']:
+                        buy_price = data['batch_detail__buy_price']
+                    total_value = data['quantity'] * buy_price
                     if tax_percent:
                         total_value += (total_value/100)*tax_percent
-                    inv_value_dict[data['stock__sku__sku_category']][int(data['stock__sku__user'])] += total_value
+                    inv_value_dict[data['sku__sku_category']][int(data['sku__user'])] += total_value
 
             name = 'inventory_value_report'
             wb, ws, path, file_name = get_excel_variables(name, 'inventory_value', inv_value_headers)
@@ -238,7 +262,7 @@ class Command(BaseCommand):
                 ws, column_count = write_excel_col(ws, row_count, column_count, total_doc)
 
             wb.save(path)
-            report_file_names.append({'name': file_name, 'path': path})
+            report_file_names.append({'name': file_name, 'path': path})'''
             name = 'consolidated_margin_percent'
             wb, ws, path, file_name = get_excel_variables(name, 'consolidated_margin_percent', inv_value_headers,
                                                           headers_index=1)
@@ -262,9 +286,9 @@ class Command(BaseCommand):
                     ws, column_count = write_excel_col(ws, row_count, column_count, value)
                 row_count += 1
             wb.save(path)
-            report_file_names.append({'name': file_name, 'path': path})'''
-            #send_to = ['sreekanth@mieone.com', 'avadhani@mieone.com','shishir.sharma@milkbasket.com', 'vimal@mieone.com']
-            send_to = ['shishir.sharma@milkbasket.com', 'gaurav.srivastava@milkbasket.com', 'anubhav.gupta@milkbasket.com', 'anubhavsood@milkbasket.com']
+            report_file_names.append({'name': file_name, 'path': path})
+            send_to = ['sreekanth@mieone.com']
+            #send_to = ['shishir.sharma@milkbasket.com', 'gaurav.srivastava@milkbasket.com', 'anubhav.gupta@milkbasket.com', 'anubhavsood@milkbasket.com']
             subject = '%s Reports dated %s' % ('Milkbasket', datetime.now().date())
             text = 'Please find the scheduled reports in the attachment dated: %s' % str(
                 datetime.now().date())

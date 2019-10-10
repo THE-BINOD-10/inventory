@@ -154,7 +154,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
                               alternate_view: false,
                               view: 'normalView',
-                              tb_headers: {'normalView': ['Order ID', 'WMS Code', 'WMS MRP', 'Child SKU', 'Child SKU MRP', 'Child SKU Weight', 'Description', 'SKU Category', 'Location', 'Quantity', 'Picked Quantity', 'Cost Price', 'Sale Tax Percent', 'Date', 'Time'],
+                              tb_headers: {'normalView': ['Order ID', 'WMS Code', 'WMS MRP', 'Child SKU', 'Child SKU MRP', 'Child SKU Weight', 'Description', 'SKU Category', 'Location', 'Quantity', 'Picked Quantity', 'Selling Price', 'Cost Price', 'Sale Tax Percent', 'Date', 'Time'],
                                            'serialView': ['Order ID', 'WMS Code', 'Description', 'SKU Category', 'Customer Name', 'Serial Number', 'Date', 'Time'],
                                            'customerView': ['Customer ID', 'Customer Name', 'WMS Code', 'Description', 'SKU Category', 'Quantity', 'Picked Quantity']}
                            }
@@ -163,7 +163,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
                               alternate_view: false,
                               view: 'normalView',
-                              tb_headers: {'normalView': ['Order ID', 'WMS Code', 'WMS MRP', 'Child SKU', 'Description', 'SKU Category', 'Location', 'Quantity', 'Picked Quantity', 'Cost Price', 'Sale Tax Percent', 'Date', 'Time'],
+                              tb_headers: {'normalView': ['Order ID', 'WMS Code', 'WMS MRP', 'Child SKU', 'Description', 'SKU Category', 'Location', 'Quantity', 'Picked Quantity', 'Selling Price', 'Cost Price', 'Sale Tax Percent', 'Date', 'Time'],
                                            'serialView': ['Order ID', 'WMS Code', 'Description', 'SKU Category', 'Customer Name', 'Serial Number', 'Date', 'Time'],
                                            'customerView': ['Customer ID', 'Customer Name', 'WMS Code', 'Description', 'SKU Category', 'Quantity', 'Picked Quantity']}
                            }

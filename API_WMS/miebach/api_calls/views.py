@@ -12,11 +12,12 @@ from dateutil.relativedelta import relativedelta
 from operator import itemgetter
 from itertools import chain
 from django.db.models import Sum, Count
-from rest_api.views.common import get_local_date
+from rest_api.views.common import get_local_date, folder_check
 from rest_api.views.miebach_utils import MILKBASKET_BULK_ZONE
 from rest_api.views.integrations import *
 import json
 import datetime
+import os
 from django.db.models import Q, F
 from django.core.serializers.json import DjangoJSONEncoder
 from rest_api.views.utils import *
@@ -413,7 +414,7 @@ def get_order_detail(request):
         supplier_code = SKUSupplier.objects.filter(supplier_id=supplier_id, sku_id=sku_id)
         if supplier_code:
             design_code = supplier_code[0].supplier_code
-        
+
         #img_url = "/".join([request.META['HTTP_HOST'], order.open_po.sku.image_url.lstrip("/")]) if order.open_po.sku.image_url.startswith("/static") else order.open_po.sku.image_url
         img_url = form_default_domain(request, order.open_po.sku.image_url)
         order_data.append(OrderedDict(( ('id', order.id), ('design_code', design_code), ('order_quantity', order.open_po.order_quantity), ('price', order.open_po.price), ('image_url', img_url), ('wms_code', order.open_po.sku.wms_code) )))
@@ -1032,13 +1033,14 @@ def update_customer(request):
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(customers))
     try:
-        status = update_customers(customers, user=request.user, company_name='mieone')
+        message = update_customers(customers, user=request.user, company_name='mieone')
+        status = {'status': 1, 'message': message}
         log.info(status)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Update Customers data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
-        status = {'message': 'Internal Server Error'}
+        status = {'status': 0,'message': 'Internal Server Error'}
     return HttpResponse(json.dumps(status))
 
 @csrf_exempt
@@ -1181,7 +1183,7 @@ def get_orders(request):
                 elif tax_data[0].igst_tax:
                     item_dict['tax_percent'] = {'IGST': tax_data[0].igst_tax}
             item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'quantity':data.quantity, 'unit_price':data.unit_price, 'shipment_charge':charge_amount, 'discount_amount':discount_amount}
-            items.append(item_dict)
+            items.append(item_dict)       
         billing_address = {"customer_id": data_dict[0].customer_id,
                "name": data_dict[0].customer_name,
                "email": data_dict[0].email_id,
@@ -1203,6 +1205,12 @@ def update_mp_orders(request):
     except:
         return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}), status=400)
     log.info('Request params for ' + request.user.username + ' is ' + str(orders))
+    order_file_path = 'static/order_files'
+    folder_check(order_file_path)
+    file_time_stamp = str(datetime.datetime.now()).replace(':', '_').replace('.', '_').replace(' ', '_')
+    load_file_path = '%s/%s' % (order_file_path, 'mp_orders_' + file_time_stamp + '.txt')
+    load_file = open(load_file_path, 'w')
+    load_file.write(json.dumps(orders))
     try:
         validation_dict, failed_status, final_data_dict = validate_seller_orders_format(orders, user=request.user, company_name='mieone')
         if validation_dict:
@@ -1221,8 +1229,8 @@ def update_mp_orders(request):
         log.info(status)
     except Exception as e:
         import traceback
-        log.debug(traceback.format_exc())
-        log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        log_err.debug(traceback.format_exc())
+        log_err.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'messages': 'Internal Server Error', 'status': 0}
     return HttpResponse(json.dumps(status))
 
@@ -1769,7 +1777,7 @@ def order_edit_storehippo(store_hippo_data, user_obj):
 	cancel_order = order_cancel_functionality(ids_of_orders)
         order_edit_storehippo_log.info('Output Response' + str(cancel_order))
     return store_hippo_data
-    
+
 
 def store_hippo(request):
     a = datetime.datetime.now()
@@ -1793,4 +1801,3 @@ def store_hippo(request):
     time_taken = str(delta.total_seconds())
     storehippo_log.info('------------End Time Taken in Seconds --- ' + time_taken + '-----')
     return HttpResponse(json.dumps(status_resp.sku_code))
-

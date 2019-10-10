@@ -288,7 +288,8 @@ class Command(BaseCommand):
             wb.save(path)
             report_file_names.append({'name': file_name, 'path': path})
             send_to = ['sreekanth@mieone.com']
-            #send_to = ['shishir.sharma@milkbasket.com', 'gaurav.srivastava@milkbasket.com', 'anubhav.gupta@milkbasket.com', 'anubhavsood@milkbasket.com']
+            #send_to = ['shishir.sharma@milkbasket.com', 'gaurav.srivastava@milkbasket.com', 'anubhav.gupta@milkbasket.com', 'anubhavsood@milkbasket.com',
+            #            'sahil.madan@milkbasket.com']
             subject = '%s Reports dated %s' % ('Milkbasket', datetime.now().date())
             text = 'Please find the scheduled reports in the attachment dated: %s' % str(
                 datetime.now().date())

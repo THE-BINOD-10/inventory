@@ -178,10 +178,10 @@ class Command(BaseCommand):
                             else:
                                 sale_price_tax = cod.igst_tax
                         cost_amt = pick_loc.quantity * buy_price
-                        cost_amt_tax = (cost_amt/100)*sale_price_tax
+                        cost_amt_tax = (cost_amt/100)*cost_price_tax
                         pick_cost_val += (cost_amt + cost_amt_tax)
-                        pick_sale_val += (pick_loc.quantity * pick_loc.picklist.order.unit_price) +\
-                                            (((pick_loc.quantity * pick_loc.picklist.order.unit_price)/100)*sale_price_tax)
+                        pick_sale_val += (pick_loc.quantity * pick_loc.picklist.order.unit_price) #+\
+                                            #(((piick_loc.quantity * pick_loc.picklist.order.unit_price)/100)*sale_price_tax)
                     if pick_sale_val:
                         margin_value_dict[category][int(user.id)] = pick_sale_val - pick_cost_val
                         margin_percent_dict[category][int(user.id)] = (pick_sale_val - pick_cost_val)/pick_sale_val

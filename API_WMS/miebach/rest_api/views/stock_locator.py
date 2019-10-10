@@ -2335,7 +2335,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
         batch_no = manufactured_date = expiry_date = ''
         mrp = 0
         weight = ''
-        price = data.unit_price
+        price = 0
         tax = 0
         if data.batch_detail:
             batch_no = data.batch_detail.batch_no

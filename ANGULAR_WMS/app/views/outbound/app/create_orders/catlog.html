@@ -212,7 +212,6 @@
 
    </div>
   </div>
-  
   <div ng-if="showCase.brand_categorization">
     <div class="row search-items mt15 search-box pd_bottom">
       <div class="row">
@@ -250,7 +249,8 @@
         </div>
       </div>
     </div>
-    <div class="row" ng-repeat="brand in showCase.carouselData">
+    <div class="loader" ng-if="showCase.brand_categorization && showCase.circular_loader"></div>
+    <div class="row animate-bottom" ng-repeat="brand in showCase.carouselData">
       <div class="header_background"><strong class="padding_header">{{brand[0].sku_brand}}</strong></div>
       <div class="row">
         <div ng-include="'views/outbound/app/create_orders/filters.html'"></div>

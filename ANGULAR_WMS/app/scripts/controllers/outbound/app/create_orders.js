@@ -10,6 +10,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.brand_size_data = [];//To get Sizes for some brands
   vm.size_filter = {};//Size Filter Search
   vm.show_no_data = false;//Show No Data
+  vm.circular_loader = false;
   vm.images_urls = Session.host.slice(0,-1)
   vm.size_filter_show = false;
   vm.size_filter_data = {};
@@ -512,6 +513,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
           vm.push_item_check_carousel(item)
         }
       }
+      vm.circular_loader = false;
     });
     vm.show_more_loading = false
   }
@@ -714,6 +716,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   }
 
   vm.change_category = function(category, cluster='') {
+    vm.circular_loader = true;
     vm.carouselData = {};
     vm.checkCarouselDataPush = {};
     if (cluster == 'cluster_name'){

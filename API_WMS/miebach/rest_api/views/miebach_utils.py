@@ -2668,8 +2668,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
         else:
             lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__wms_code',
                    'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category',
-                   'stock__location__location', 'picked_quantity', 'picked_quantity', 'order__unit_price',
-                   'stock__batch_detail__buy_price', 'stock_id', 'updation_date', 'updation_date',
+                   'stock__location__location', 'picked_quantity', 'picked_quantity', 'order__unit_price', 'order_id',
+                   'stock__batch_detail__buy_price', 'stock__batch_detail__tax_percent', 'stock_id', 'updation_date', 'updation_date',
                    'order__customer_name', 'stock__batch_detail__batch_no', 'stock__batch_detail__mrp',
                    'stock__batch_detail__manufactured_date', 'stock__batch_detail__expiry_date']
             model_obj = Picklist
@@ -2763,6 +2763,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                 wms_code_mrp = 0
                 cost_price = 0
                 tax_percent = 0
+                cost_tax_percent = 0
                 cod = data.order.customerordersummary_set.filter()
                 if cod:
                     cod = cod[0]
@@ -2797,8 +2798,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Location', 'NO STOCK'),
                                                             ('Quantity', data.order.quantity),
                                                             ('Picked Quantity', data.picked_quantity),
-                                                            ('Selling Price', data.order.unit_price),
-                                                            ('Cost Price', cost_price), ('Sale Tax Percent', tax_percent),
+                                                            ('Selling Price', data.order.unit_price), ('Sale Tax Percent', tax_percent),
+                                                            ('Cost Price', cost_price), ('Cost Tax Percent', cost_tax_percent),
                                                             ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])), ('Customer Name', customer_name),
                                                             ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
                                                             ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate),
@@ -2822,6 +2823,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                     cost_price = 0
                     if data.stock and data.stock.batch_detail:
                         cost_price = data.stock.batch_detail.buy_price
+                        cost_tax_percent = data.stock.batch_detail.tax_percent
                     wms_code_mrp = data.order.sku.mrp
                     temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
                                                             ('WMS MRP', wms_code_mrp),('Child SKU', child_sku_code),
@@ -2832,8 +2834,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Quantity', data.order.quantity),
                                                             ('Picked Quantity', picked_quantity),
                                                             ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])),
-                                                            ('Selling Price', data.order.unit_price),
-                                                            ('Cost Price', cost_price), ('Sale Tax Percent', tax_percent),
+                                                            ('Selling Price', data.order.unit_price), ('Sale Tax Percent', tax_percent),
+                                                            ('Cost Price', cost_price), ('Cost Tax Percent', cost_tax_percent),
                                                             ('Customer Name', customer_name),
                                                             ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
                                                             ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate),

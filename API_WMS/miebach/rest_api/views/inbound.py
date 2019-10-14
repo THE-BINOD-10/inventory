@@ -5953,7 +5953,7 @@ def create_purchase_order(request, myDict, i, user='', exist_id=0):
                     'po_name': po_order[0].open_po.po_name,
                     'order_type': po_order[0].open_po.order_type, 'tax_type': po_order[0].open_po.tax_type,
                     'measurement_unit': sku_master[0].measurement_type,
-                    'creation_date': datetime.datetime.now()}
+                    'creation_date': datetime.datetime.now(), 'status': 0}
         if 'mrp' in myDict.keys():
             new_data['mrp'] = myDict['mrp'][i]
         if 'tax_percent' in myDict.keys() and myDict['tax_percent'][i]:

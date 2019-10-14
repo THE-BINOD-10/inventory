@@ -30,6 +30,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
   vm.dtColumns = [
       DTColumnBuilder.newColumn('sku_code').withTitle('SKU Code'),
+      DTColumnBuilder.newColumn('sku_category').withTitle('SKU Category'),
+      DTColumnBuilder.newColumn('sub_category').withTitle('SKU Sub Category'),
+      DTColumnBuilder.newColumn('sku_brand').withTitle('SKU Brand'),
       DTColumnBuilder.newColumn('order_id').withTitle('Order ID'),
       DTColumnBuilder.newColumn('customer_id').withTitle('Customer ID'),
       DTColumnBuilder.newColumn('return_date').withTitle('Return Date'),
@@ -69,7 +72,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                     'customer_id': '',
                     'creation_date': '',
                     'to_date':'',
-                    'marketplace': ''
+                    'marketplace': '',
+                    'sku_category': '',
+                    'sub_category': '',
+                    'sku_brand': ''
                     };
 
   vm.model_data = {};

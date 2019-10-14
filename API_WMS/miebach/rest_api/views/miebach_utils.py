@@ -472,7 +472,10 @@ OPEN_JO_REP_DICT = {
 SKU_WISE_PO_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'},
                                 {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
                                 {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
-                                {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
+                                {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+                                {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
+                                {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
+                                {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},],
                     'dt_headers': ['PO Reference', 'PO Date', 'Supplier', 'SKU Code', 'Order Quantity', 'Received Quantity',
                                    'Receivable Quantity', 'Rejected Quantity', 'Receipt Date', 'Status'],
                     'mk_dt_headers': ['PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'SKU Code',
@@ -490,7 +493,7 @@ GRN_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'dat
                         {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
                         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
                         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
-                        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}],
+                        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
             'dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
             'mk_dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
             # 'mk_dt_headers': ['Received Date', 'PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'Recepient',
@@ -941,6 +944,7 @@ CURRENT_STOCK_REPORT_DICT = {
     'filters': [
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
+        {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
         {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'},
         {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'}
     ],
@@ -957,6 +961,9 @@ STOCK_RECONCILIATION_REPORT_DICT = {
       {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
       {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
       {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+      {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
+      {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
+      {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'},
   ],
   'dt_headers': ['Created Date', 'SKU Code', 'SKU Desc', 'MRP', 'Weight', 'Vendor Name', 'Brand', 'Category',
                  'Sub Category', 'Sub Category Type', 'Sheet', 'Opening Qty', 'Opening Avg Rate', 'Opening Amount After Tax',
@@ -977,10 +984,11 @@ INVENTORY_VALUE_REPORT_DICT = {
     'filters': [
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
+        {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
         {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'},
         {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'}
     ],
-    'dt_headers': ['Seller ID', 'Seller Name','SKU Code', 'SKU Description', 'Category', 'Weight', 'MRP', 'Batch Number',
+    'dt_headers': ['Seller ID', 'Seller Name','SKU Code', 'SKU Description', 'Category', 'Sub Category', 'Brand', 'Weight', 'MRP', 'Batch Number',
                    'Ean Number', 'Manufactured Date', 'Expiry Date', 'Quantity','Value','Average Cost Price','Warehouse Name','Report Generation Time'],
     'dt_url': 'get_inventory_value_report', 'excel_name': 'get_inventory_value_report',
     'print_url': 'print_inventory_value_report',
@@ -992,13 +1000,17 @@ BULK_TO_RETAIL_REPORT_DICT = {
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'Source SKU Code', 'name': 'source_sku_code', 'type': 'source_sku_search'},
         {'label': 'Source SKU Category', 'name': 'source_sku_category', 'type': 'input'},
+        {'label': 'Source SKU Sub Category', 'name': 'source_sku_sub_category', 'type': 'input'},
+        {'label': 'Source SKU Brand', 'name': 'source_sku_brand', 'type': 'input'},
         {'label': 'Destination SKU Code', 'name': 'destination_sku_code', 'type': 'destination_sku_search'},
         {'label': 'Destination SKU Category', 'name': 'destination_sku_category', 'type': 'input'},
+        {'label': 'Destination SKU Sub Category', 'name': 'destination_sku_sub_category', 'type': 'input'},
+        {'label': 'Destination SKU Brand', 'name': 'destination_sku_brand', 'type': 'input'},
     ],
     'dt_headers': ['Transaction ID', 'Date', 'Seller ID', 'Seller Name', 'Source SKU Code', 'Source SKU Description',
-                   'Source SKU Category', 'Source Location',
+                   'Source SKU Category',  'Source SKU Sub Category',  'Source SKU Brand', 'Source Location',
                    'Source Weight', 'Source MRP', 'Source Quantity', 'Destination SKU Code',
-                   'Destination SKU Description', 'Destination SKU Category', 'Destination Location',
+                   'Destination SKU Description', 'Destination SKU Category', 'Destination SKU Sub Category',  'Destination SKU Brand', 'Destination Location',
                    'Destination Weight', 'Destination MRP', 'Destination Quantity', 'Warehouse Name',
                    'Report Generation Time'],
     'dt_url': 'get_bulk_to_retail_report', 'excel_name': 'get_bulk_to_retail_report',
@@ -2416,7 +2428,7 @@ def get_sku_filter_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    cmp_data = ('sku_code', 'wms_code', 'sku_category', 'sku_type', 'sku_class')
+    cmp_data = ('sku_code', 'wms_code', 'sku_category', 'sku_type', 'sku_class','sub_category','sku_brand')
     for data in cmp_data:
         if data in search_params:
             search_parameters['%s__%s' % (data, 'iexact')] = search_params[data]
@@ -2439,6 +2451,7 @@ def get_sku_filter_data(search_params, user, sub_user):
         temp_data['aaData'].append(
             OrderedDict((('SKU Code', data.sku_code), ('WMS Code', data.wms_code), ('SKU Group', data.sku_group),
                          ('SKU Type', data.sku_type), ('SKU Category', data.sku_category),
+                         ('SKU Sub Category', data.sub_category),('SKU Brand', data.sku_brand),
                          ('SKU Class', data.sku_class),
                          ('Put Zone', zone), ('Threshold Quantity', data.threshold_quantity))))
 
@@ -2454,6 +2467,7 @@ def get_location_stock_data(search_params, user, sub_user):
     search_parameters = {}
     search_mapping = {'sku_code': 'sku__sku_code__iexact', 'sku_category': 'sku__sku_category__iexact',
                       'sku_type': 'sku__sku_type__iexact', 'sku_class': 'sku__sku_class__iexact',
+                      'sub_category': 'sku__sub_category__iexact', 'sku_brand': 'sku__sku_brand__iexact',
                       'zone': 'location__zone__zone__iexact',
                       'location': 'location__location__iexact', 'wms_code': 'sku__wms_code', 'ean': 'sku__ean_number__iexact'}
     results_data['draw'] = search_params.get('draw', 1)
@@ -2467,7 +2481,7 @@ def get_location_stock_data(search_params, user, sub_user):
     search_parameters['sku__user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
     distinct_list = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_brand']
-    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__ean_number', 'batch_detail__mrp', 'location__zone__zone', 'location__location',
+    lis = ['sku__wms_code', 'sku__sku_category', 'sku__sub_category', 'sku__sku_brand', 'sku__sku_desc', 'sku__ean_number', 'batch_detail__mrp', 'location__zone__zone', 'location__location',
            'tsum', 'tsum', 'tsum']
     order_term = search_params.get('order_term', 0)
     col_num = search_params.get('order_index', 0)
@@ -2533,6 +2547,9 @@ def get_location_stock_data(search_params, user, sub_user):
         if not ean_num:
             ean_num = ''
         results_data['aaData'].append(OrderedDict((('SKU Code', sku_master.sku_code), ('WMS Code', sku_master.wms_code),
+                                                   ('SKU Category', sku_master.sku_category),
+                                                   ('SKU Sub Category', sku_master.sub_category),
+                                                   ('SKU Brand', sku_master.sku_brand),
                                                    ('Product Description', sku_master.sku_desc),
                                                    ('EAN', str(ean_num)),
                                                    ('MRP', mrp),
@@ -2586,6 +2603,12 @@ def get_receipt_filter_data(search_params, user, sub_user):
         search_parameters[query_prefix + 'open_po__sku__wms_code__iexact'] = search_params['wms_code']
     if 'sku_code' in search_params:
         search_parameters[query_prefix + 'open_po__sku__sku_code__iexact'] = search_params['sku_code']
+    if 'sku_category' in search_params:
+        search_parameters[query_prefix + 'open_po__sku__sku_category__iexact'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters[query_prefix + 'open_po__sku__sub_category__iexact'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters[query_prefix + 'open_po__sku__sku_brand__iexact'] = search_params['sku_brand']
     if 'order_id' in search_params:
         temp = re.findall('\d+', search_params['order_id'])
         if temp:
@@ -2627,6 +2650,9 @@ def get_receipt_filter_data(search_params, user, sub_user):
         if version_obj.exists():
             updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
         temp_data['aaData'].append(OrderedDict((('PO Reference', po_reference), ('WMS Code', data.open_po.sku.wms_code),
+                                                ('SKU Category', data.open_po.sku.sku_category),
+                                                ('SKU Sub Category', data.open_po.sku.sub_category),
+                                                ('Sku Brand', data.open_po.sku.sku_brand),
                                                 ('Description', data.open_po.sku.sku_desc),
                                                 ('Supplier',
                                                  '%s (%s)' % (data.open_po.supplier.name, data.open_po.supplier_id)),
@@ -2860,6 +2886,12 @@ def sku_wise_purchase_data(search_params, user, sub_user):
         columns = SKU_WISE_PO_DICT['mk_dt_headers']
     if 'sku_code' in search_params:
         search_parameters['open_po__sku__sku_code'] = search_params['sku_code']
+    if 'sku_category' in search_params:
+        search_parameters['open_po__sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['open_po__sku__sub_category'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters['open_po__sku__sku_brand'] = search_params['sku_brand']
     if 'supplier' in search_params:
         supp_search = search_params['supplier'].split(':')
         search_parameters['open_po__supplier_id'] = supp_search[0]
@@ -7203,7 +7235,7 @@ def print_sku_wise_data(search_params, user, sub_user):
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
-    cmp_data = ('sku_code', 'wms_code', 'sku_category', 'sku_type', 'sku_class')
+    cmp_data = ('sku_code', 'wms_code', 'sku_category', 'sku_type', 'sku_class', 'sub_category', 'sku_brand')
     for data in cmp_data:
         if data in search_params:
             search_parameters['%s__%s' % (data, 'icontains')] = search_params[data]
@@ -7230,6 +7262,8 @@ def print_sku_wise_data(search_params, user, sub_user):
         temp_data['aaData'].append(OrderedDict((('SKU Code', data.sku_code), ('WMS Code', data.wms_code),
                                                 ('Product Description', data.sku_desc),
                                                 ('SKU Category', data.sku_category),
+                                                ('SKU Sub Category', data.sub_category),
+                                                ('Sku Brand', data.sku_brand),
                                                 ('Total Quantity', total_quantity))))
     return temp_data
 
@@ -7440,6 +7474,9 @@ def get_current_stock_report_data(search_params, user, sub_user):
     if 'sku_category' in search_params:
         if search_params['sku_category']:
             search_parameters['stock__sku__sku_category__icontains'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        if search_params['sub_category']:
+            search_parameters['stock__sku__sub_category__icontains'] = search_params['sub_category']
     if 'sku_class' in search_params:
         if search_params['sku_class']:
             search_parameters['stock__sku__sku_class__icontains'] = search_params['sku_class']
@@ -7558,6 +7595,9 @@ def get_inventory_value_report_data(search_params, user, sub_user):
     if 'sku_category' in search_params:
         if search_params['sku_category']:
             search_parameters['stock__sku__sku_category__icontains'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        if search_params['sku_category']:
+            search_parameters['stock__sku__sub_category__icontains'] = search_params['sub_category']
     if 'sku_class' in search_params:
         if search_params['sku_class']:
             search_parameters['stock__sku__sku_class__icontains'] = search_params['sku_class']
@@ -7573,7 +7613,8 @@ def get_inventory_value_report_data(search_params, user, sub_user):
                                                  'stock__batch_detail__mrp',
                                                  'stock__batch_detail__buy_price',
                                                  'stock__sku__sku_desc',
-                                                 'stock__sku__sku_category').distinct().\
+                                                 'stock__sku__sku_category',
+                                                 'stock__sku__sub_category','stock__sku__sku_brand').distinct().\
                                             annotate(total=Sum('quantity')).\
                                             order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
@@ -7618,6 +7659,8 @@ def get_inventory_value_report_data(search_params, user, sub_user):
                                                 ('SKU Code', sku_data['stock__sku__wms_code']),
                                                 ('SKU Description', sku_data['stock__sku__sku_desc']),
                                                 ('Category', sku_data['stock__sku__sku_category']),
+                                                ('Sub Category', sku_data['stock__sku__sub_category']),
+                                                ('Brand', sku_data['stock__sku__sku_brand']),
                                                 ('Weight', weight), ('MRP', mrp),
                                                 ('Batch Number', sku_data['stock__batch_detail__batch_no']),
                                                 ('Ean Number', ean_number), ('Manufactured Date', manufactured_date),
@@ -7664,12 +7707,24 @@ def get_bulk_to_retail_report_data(search_params, user, sub_user):
     if 'source_sku_category' in search_params:
         if search_params['source_sku_category']:
             search_parameters['source_sku_code__sku_category__icontains'] = search_params['source_sku_category']
+    if 'source_sku_sub_category' in search_params:
+        if search_params['source_sku_sub_category']:
+            search_parameters['source_sku_code__sub_category__icontains'] = search_params['source_sku_sub_category']
+    if 'source_sku_brand' in search_params:
+        if search_params['source_sku_brand']:
+            search_parameters['source_sku_code__sku_brand__icontains'] = search_params['source_sku_brand']
     if 'destination_sku_code' in search_params:
         if search_params['destination_sku_code']:
             search_parameters['destination_sku_code__sku_code'] = search_params['destination_sku_code']
     if 'destination_sku_category' in search_params:
         if search_params['destination_sku_category']:
             search_parameters['destination_sku_code__sku_category__icontains'] = search_params['destination_sku_category']
+    if 'destination_sku_sub_category' in search_params:
+        if search_params['destination_sku_sub_category']:
+            search_parameters['destination_sku_code__sub_category__icontains'] = search_params['destination_sku_sub _category']
+    if 'destination_sku_brand' in search_params:
+        if search_params['destination_sku_brand']:
+            search_parameters['destination_sku_code__sku_brand__icontains'] = search_params['destination_sku_brand']
     search_parameters['source_sku_code__id__in'] = sku_master_ids
     search_parameters['seller__isnull'] = False
     search_parameters['source_sku_code__user'] = user.id
@@ -7677,10 +7732,12 @@ def get_bulk_to_retail_report_data(search_params, user, sub_user):
     master_data = SubstitutionSummary.objects.filter(**search_parameters).\
                                             values('seller__seller_id', 'seller__name', 'source_sku_code__sku_code',
                                                    'source_sku_code__sku_desc', 'source_sku_code__sku_category',
+                                                   'source_sku_code__sub_category', 'source_sku_code__sku_brand',
                                                    'source_location', 'source_batch__weight', 'source_batch__mrp',
                                                    'source_quantity', 'destination_sku_code__sku_code',
                                                    'destination_sku_code__sku_desc',
                                                    'destination_sku_code__sku_category',
+                                                   'destination_sku_code__sub_category', 'destination_sku_code__sku_brand',
                                                    'destination_location', 'dest_batch__weight', 'dest_batch__mrp',
                                                    'destination_quantity', 'transact_number').\
                                             annotate(date_only=Cast('creation_date', DateField())).\
@@ -7706,12 +7763,16 @@ def get_bulk_to_retail_report_data(search_params, user, sub_user):
                                                 ('Source SKU Code', sku_data['source_sku_code__sku_code']),
                                                 ('Source SKU Description', sku_data['source_sku_code__sku_desc']),
                                                 ('Source SKU Category', sku_data['source_sku_code__sku_category']),
+                                                ('Source SKU Sub Category', sku_data['source_sku_code__sub_category']),
+                                                ('Source SKU Brand', sku_data['source_sku_code__sku_brand']),
                                                 ('Source Location', sku_data['source_location']),
                                                 ('Source Weight', source_weight), ('Source MRP', source_mrp),
                                                 ('Source Quantity', sku_data['source_quantity']),
                                                 ('Destination SKU Code', sku_data['destination_sku_code__sku_code']),
                                                 ('Destination SKU Description', sku_data['destination_sku_code__sku_desc']),
                                                 ('Destination SKU Category', sku_data['destination_sku_code__sku_category']),
+                                                ('Destination SKU Sub Category', sku_data['destination_sku_code__sub_category']),
+                                                ('Destination SKU Brand', sku_data['destination_sku_code__sku_brand']),
                                                 ('Destination Location', sku_data['destination_location']),
                                                 ('Destination Weight', dest_weight), ('Destination MRP', dest_mrp),
                                                 ('Destination Quantity', sku_data['destination_quantity']),
@@ -7942,6 +8003,15 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
         if search_params['sku_code']:
             search_parameters['sku__sku_code'] = search_params['sku_code']
     search_parameters['sku_id__in'] = sku_master_ids
+    if 'sku_category' in search_params:
+        if search_params['sku_category']:
+            search_parameters['sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        if search_params['sub_category']:
+            search_parameters['sku__sub_category'] = search_params['sub_category']
+    if 'brand' in search_params:
+        if search_params['brand']:
+            search_parameters['sku__sku_brand'] = search_params['brand']
     if 'from_date' in search_params:
         search_parameters['creation_date__gt'] = search_params['from_date']
     if 'to_date' in search_params:

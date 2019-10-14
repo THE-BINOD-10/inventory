@@ -29,6 +29,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('SKU Group').withTitle('SKU Group'),
         DTColumnBuilder.newColumn('SKU Type').withTitle('SKU Type'),
         DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
+        DTColumnBuilder.newColumn('SKU Sub Category').withTitle('SKU Sub Category'),
+        DTColumnBuilder.newColumn('SKU Brand').withTitle('SKU Brand'),
         DTColumnBuilder.newColumn('SKU Class').withTitle('SKU Class'),
         DTColumnBuilder.newColumn('Put Zone').withTitle('Put Zone'),
         DTColumnBuilder.newColumn('Threshold Quantity').withTitle('Threshold Quantity')
@@ -41,7 +43,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                     'sku_category': '',
                     'sku_type': '',
                     'sku_class': '',
-                    'wms_code': ''
+                    'wms_code': '',
+                    'sub_category':'',
+                    'sku_brand':'',
                     };
 
    vm.sku_groups = []
@@ -56,4 +60,3 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
    })
 
   }
-

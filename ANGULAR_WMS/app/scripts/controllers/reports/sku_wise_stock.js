@@ -29,6 +29,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
         DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
+        DTColumnBuilder.newColumn('SKU Sub Category').withTitle('SKU Sub Category'),
+        DTColumnBuilder.newColumn('Sku Brand').withTitle('Sku Brand'),
         DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity')
     ];
 
@@ -39,7 +41,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                     'sku_category': '',
                     'sku_type': '',
                     'sku_class': '',
-                    'wms_code': ''
+                    'wms_code': '',
+                    'sub_category':'',
+                    'sku_brand':'',
                     };
 
    vm.sku_groups = [0, 123, 23, 1234]
@@ -53,4 +57,3 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       }
     })
   }
-

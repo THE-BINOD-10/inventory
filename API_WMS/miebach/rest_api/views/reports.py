@@ -573,6 +573,12 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
         search_parameters['order__order_id'] = value
     if 'customer_id' in search_params:
         search_parameters['order__customer_id'] = search_params['customer_id']
+    if 'sku_category' in search_params:
+        search_parameters['sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['sku__sub_category'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters['sku__sku_brand'] = search_params['sku_brand']
     if 'marketplace' in search_params:
         marketplace = search_params['marketplace']
     start_index = search_params.get('start', 0)
@@ -608,7 +614,11 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
         if is_excel:
             if reasons:
                 for reason in reasons:
-                    temp_data['aaData'].append(OrderedDict((('SKU Code', data.sku.sku_code), ('Order ID', order_id),
+                    temp_data['aaData'].append(OrderedDict((('SKU Code', data.sku.sku_code),
+                                                            ('SKU Category', data.sku.sku_category),
+                                                            ('SKU Sub Category', data.sku.sub_category),
+                                                            ('SKU Brand', data.sku.sku_brand),
+                                                            ('Order ID', order_id),
                                                             ('Customer ID', customer_id),
                                                             ('Return Date', return_date),
                                                             ('Market Place', marketplace),
@@ -616,7 +626,11 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
                                                             ('Status', reason.status)
                                                             )))
             else:
-                temp_data['aaData'].append(OrderedDict((('SKU Code', data.sku.sku_code), ('Order ID', order_id),
+                temp_data['aaData'].append(OrderedDict((('SKU Code', data.sku.sku_code),
+                                                        ('SKU Category', data.sku.sku_category),
+                                                        ('SKU Sub Category', data.sku.sub_category),
+                                                        ('SKU Brand', data.sku.sku_brand),
+                                                        ('Order ID', order_id),
                                                         ('Customer ID', customer_id),
                                                         ('Return Date', return_date),
                                                         ('Market Place', marketplace), ('Quantity', data.quantity),
@@ -631,7 +645,11 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
                 reasons_data.append({'quantity': data.quantity, 'reason': data.reason, 'status': data.status})
 
             temp_data['aaData'].append(
-                OrderedDict((('sku_code', data.sku.sku_code), ('order_id', order_id), ('id', data.id),
+                OrderedDict((('sku_code', data.sku.sku_code),
+                             ('sku_category', data.sku.sku_category),
+                             ('sub_category', data.sku.sub_category),
+                             ('sku_brand', data.sku.sku_brand),
+                             ('order_id', order_id), ('id', data.id),
                              ('customer_id', customer_id), ('return_date', return_date),
                              ('status', status_dict[str(data.status)]), ('marketplace', marketplace),
                              ('quantity', data.quantity), ('reasons_data', reasons_data),

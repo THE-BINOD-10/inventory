@@ -29,6 +29,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('Supplier').withTitle('Supplier'),
         DTColumnBuilder.newColumn('PO Reference').withTitle('PO Reference'),
         DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
+        DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
+        DTColumnBuilder.newColumn('SKU Sub Category').withTitle('SKU Sub Category'),
+        DTColumnBuilder.newColumn('Sku Brand').withTitle('Sku Brand'),
         DTColumnBuilder.newColumn('Description').withTitle('Description'),
         //DTColumnBuilder.newColumn('Received Quantity').withTitle('Received Quantity')
     ];
@@ -51,7 +54,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                     'to_date': '',
                     'wms_code': '',
                     'supplier': '',
-                    'sku_code': ''
+                    'sku_code': '',
+                    'sku_category':'',
+                    'sub_category':'',
+                    'sku_brand':'',
                     };
 
   vm.model_data = {};
@@ -65,4 +71,3 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       }
    })
 }
-

@@ -28,6 +28,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
     vm.dtColumns = [
         DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
+        DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
+        DTColumnBuilder.newColumn('SKU Sub Category').withTitle('SKU Sub Category'),
+        DTColumnBuilder.newColumn('SKU Brand').withTitle('SKU Brand'),
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
         DTColumnBuilder.newColumn('EAN').withTitle('EAN'),
         DTColumnBuilder.newColumn('Zone').withTitle('Zone'),
@@ -45,6 +48,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.empty_data = {
                     'sku_code': '',
                     'sku_category': '',
+                    'sub_category': '',
+                    'sku_brand': '',
                     'sku_type': '',
                     'sku_class': '',
                     'location': '',
@@ -64,4 +69,3 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     })
 
   }
-

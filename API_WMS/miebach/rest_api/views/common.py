@@ -3241,7 +3241,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                         utgst_amt = tax_amount
                         cgst_amt, sgst_amt, igst_amt = 0, 0, 0
                     else :
-                        cgst_tax,sgst_tax,igst_tax,utgst_tax = 0, 0 ,0, 0
+                        cgst_amt,sgst_amt,igst_amt,utgst_amt = 0, 0 ,0, 0
 
                 else:
                     cgst_amt = float(cgst_tax) * (float(amt) / 100)

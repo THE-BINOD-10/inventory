@@ -8698,7 +8698,7 @@ def get_debit_note_data(rtv_number, user):
                 data_dict_item['igst'] = temp_tax_percent
                 data_dict_item['sgst'] = 0
                 data_dict_item['cgst'] = 0
-        if obj.seller_po_summary.cess_tax:
+        if obj.seller_po_summary:
             data_dict_item['cess'] = obj.seller_po_summary.cess_tax
         if obj.seller_po_summary.apmc_tax:
             data_dict_item['apmc'] = obj.seller_po_summary.apmc_tax

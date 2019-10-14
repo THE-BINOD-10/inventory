@@ -3212,7 +3212,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                         else:
                             cost_price_obj = seller_summary.filter(order_id = dat.id).values('picklist__stock__unit_price', 'quantity')
                         if cost_price_obj:
-                            cost_price = cost_price_obj.aggregate(cp=Sum(F('picklist__stock__unit_price') * F('quantity')))['cp']
+                            cost_price = cost_price = cost_price_obj[0]['picklist__stock__unit_price']
                             quantity = cost_price_obj.aggregate(Sum('quantity'))['quantity__sum']
                             profit_price = (unit_price * quantity) - (cost_price * quantity)
                             if profit_price < 1:

@@ -1033,13 +1033,14 @@ def update_customer(request):
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(customers))
     try:
-        status = update_customers(customers, user=request.user, company_name='mieone')
+        message = update_customers(customers, user=request.user, company_name='mieone')
+        status = {'status': 1, 'message': message}
         log.info(status)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Update Customers data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
-        status = {'message': 'Internal Server Error'}
+        status = {'status': 0,'message': 'Internal Server Error'}
     return HttpResponse(json.dumps(status))
 
 @csrf_exempt
@@ -1182,7 +1183,7 @@ def get_orders(request):
                 elif tax_data[0].igst_tax:
                     item_dict['tax_percent'] = {'IGST': tax_data[0].igst_tax}
             item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'quantity':data.quantity, 'unit_price':data.unit_price, 'shipment_charge':charge_amount, 'discount_amount':discount_amount}
-            items.append(item_dict)
+            items.append(item_dict)       
         billing_address = {"customer_id": data_dict[0].customer_id,
                "name": data_dict[0].customer_name,
                "email": data_dict[0].email_id,

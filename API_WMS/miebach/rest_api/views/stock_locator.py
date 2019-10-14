@@ -659,7 +659,8 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
                 var[wh_name + '-L3Open'] = max(single['asn'] + single['non_kitted'] - single['asn_res'] - single['asn_blocked'], 0)
                 if not isinstance(single['available'], float):
                     single['available'] = 0
-                net_amt = max(single['available'] - single['blocked'] - single['reserved'] - single['non_kitted'], 0)
+                #net_amt = max(single['available'] - single['blocked'] - single['reserved'] - single['non_kitted'], 0)
+                net_amt = single['available'] - single['blocked'] - single['reserved'] - single['non_kitted']
                 var[wh_name + '-Open'] = net_amt
                 l1_kitted = single['available'] - single['non_kitted']
                 asn_total = single['asn']+single['non_kitted']
@@ -675,14 +676,17 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
                         var[header] += val
                     else:
                         var[header] = val
-                net_open = max(var['WH L1 Kitted'] - var['WH L1 Total Res'] - var['WH L1 Total Blocked'], 0)
+                #net_open = max(var['WH L1 Kitted'] - var['WH L1 Total Res'] - var['WH L1 Total Blocked'], 0)
+                net_open = var['WH L1 Kitted'] - var['WH L1 Total Res'] - var['WH L1 Total Blocked']
                 var['WH L1 Open'] = net_open
-                asn_open = max(var['WH L3 Total'] - var['WH L3 Total Res'] - var['WH L3 Total Blocked'], 0)
+                #asn_open = max(var['WH L3 Total'] - var['WH L3 Total Res'] - var['WH L3 Total Blocked'], 0)
+                asn_open = var['WH L3 Total'] - var['WH L3 Total Res'] - var['WH L3 Total Blocked']
                 var['WH L3 Open'] = asn_open
         var['Overall Total'] = var['WH L1 Kitted'] + var['WH L3 Total']
         var['Overall Res'] = var['WH L1 Total Res'] + var['WH L3 Total Res']
         var['Overall Blocked'] = var['WH L1 Total Blocked'] + var['WH L3 Total Blocked']
-        var['Overall Open'] = max(var['Overall Total'] - var['Overall Res'] - var['Overall Blocked'], 0)
+	#var['Overall Open'] = max(var['Overall Total'] - var['Overall Res'] - var['Overall Blocked'], 0)
+        var['Overall Open'] = var['Overall Total'] - var['Overall Res'] - var['Overall Blocked']
 
         temp_data['aaData'].append(var)
 
@@ -2335,7 +2339,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
         batch_no = manufactured_date = expiry_date = ''
         mrp = 0
         weight = ''
-        price = data.unit_price
+        price = 0
         tax = 0
         if data.batch_detail:
             batch_no = data.batch_detail.batch_no

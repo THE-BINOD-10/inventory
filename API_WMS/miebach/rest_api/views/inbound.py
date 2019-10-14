@@ -1698,11 +1698,12 @@ def add_po(request, user=''):
 @reversion.create_revision(atomic=False)
 def insert_inventory_adjust(request, user=''):
     reversion.set_user(request.user)
-    data = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-    if not data:
+    cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
+    #CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+    if not cycle_count:
         cycle_id = 1
     else:
-        cycle_id = data[0].cycle + 1
+        cycle_id = cycle_count + 1
     wmscode = request.GET['wms_code']
     quantity = request.GET['quantity']
     reason = request.GET['reason']
@@ -8697,7 +8698,7 @@ def get_debit_note_data(rtv_number, user):
                 data_dict_item['igst'] = temp_tax_percent
                 data_dict_item['sgst'] = 0
                 data_dict_item['cgst'] = 0
-        if obj.seller_po_summary.cess_tax:
+        if obj.seller_po_summary:
             data_dict_item['cess'] = obj.seller_po_summary.cess_tax
         if obj.seller_po_summary.apmc_tax:
             data_dict_item['apmc'] = obj.seller_po_summary.apmc_tax

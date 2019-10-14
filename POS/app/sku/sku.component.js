@@ -580,48 +580,50 @@
                 }).catch(function(error){
                     console.log("order id updated error "+error);
                 });
-                reduceSKUQty(order_data);
+                //reduceSKUQty(order_data);
               }
           }
             clear_fields();
           },function(error){
+            self.submit_enable = false;
+            alert("Internet disconnected");
 
             //change the network status
-            order_data.summary.nw_status = OFFLINE;
-            $rootScope.sync_status = true;
-            $rootScope.$broadcast('change_sync_status');
-
-            setSynOrdersData(urlService.userData.parent_id,order_data,self.qty_switch).
-                  then(function(data){
-
-                      if(data.is_all_return==true){
-                        urlService.current_order.order_id = "return";
-                      }else{
-                      urlService.current_order.order_id = data.order_id;
-                      }
-
-                      var state = 1;
-                      store_data(urlService.current_order, state);
-                      print_order(urlService.current_order, urlService.userData)
-                      console.log(data);
-                      self.submit_enable = false;
-
-
-                    }).then(function(){
-
-                      clear_fields();
-                       //auto sync when network available
-                      syncPOSData(false).then(function(data){
-
-                       // $rootScope.sync_status = false;
-                       // $rootScope.$broadcast('change_sync_status');
-                      });
-
-                    }).catch(function(error){
-                       console.log("order saving error "+error);
-                       urlService.show_toast("order creation error "+error);
-                    });
-
+//            order_data.summary.nw_status = OFFLINE;
+//            $rootScope.sync_status = true;
+//            $rootScope.$broadcast('change_sync_status');
+//
+//            setSynOrdersData(urlService.userData.parent_id,order_data,self.qty_switch).
+//                  then(function(data){
+//
+//                      if(data.is_all_return==true){
+//                        urlService.current_order.order_id = "return";
+//                      }else{
+//                      urlService.current_order.order_id = data.order_id;
+//                      }
+//
+//                      var state = 1;
+//                      store_data(urlService.current_order, state);
+//                      print_order(urlService.current_order, urlService.userData)
+//                      console.log(data);
+//                      self.submit_enable = false;
+//
+//
+//                    }).then(function(){
+//
+//                      clear_fields();
+//                       //auto sync when network available
+//                      syncPOSData(false).then(function(data){
+//
+//                       // $rootScope.sync_status = false;
+//                       // $rootScope.$broadcast('change_sync_status');
+//                      });
+//
+//                    }).catch(function(error){
+//                       console.log("order saving error "+error);
+//                       urlService.show_toast("order creation error "+error);
+//                    });
+//
           });
        }
 

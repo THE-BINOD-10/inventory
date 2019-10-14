@@ -126,11 +126,12 @@ def search_product_data(request, user=''):
                       if style else []
     else:
         try:
+            ean_skus = list(EANNumbers.objects.filter(sku__user=user.id, ean_number=search_key).values_list('sku_id', flat=True))
             master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
-                                                                          Q(sku_desc__icontains=search_key) |
-                                                                          Q(ean_number=int(search_key)) |
-                                                                          Q(eannumbers__ean_number=int(search_key)),
-                                                                          status = 1, user=user.id)
+                                                                              Q(sku_desc__icontains=search_key) |
+                                                                              Q(ean_number=search_key) |
+                                                                              Q(id__in=ean_skus),
+                                                                              status = 1, user=user.id)
         except:
             master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
                                                                       Q(sku_desc__icontains=search_key),status = 1,user=user.id)

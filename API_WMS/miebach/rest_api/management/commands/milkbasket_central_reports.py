@@ -59,40 +59,24 @@ class Command(BaseCommand):
                 os.makedirs('static/excel_files/')
             return wb, ws, path, file_name
 
-        users = User.objects.filter(username__in=['GGN01', 'NOIDA01', 'NOIDA02', 'HYD01', 'BLR01'])
-        #users = User.objects.filter(username__in=['GGN01'])
-        category_list = list(SKUMaster.objects.filter(user__in=users, status=1).exclude(sku_category='').\
-                             values_list('sku_category', flat=True).distinct())
-        inv_value_dict = OrderedDict()
-        doc_value_dict = OrderedDict()
-        total_doc_dict = OrderedDict()
-        margin_value_dict = OrderedDict()
-        margin_percent_dict = OrderedDict()
-        inv_value_headers = ['Category']
-        today_start = get_utc_start_date(datetime.now())
-        today_end = today_start + timedelta(days=1)
-        adjustment_dict = OrderedDict()
-        user_mapping = dict(users.values_list('id', 'username'))
-        inv_value_headers = list(chain(inv_value_headers, user_mapping.values()))
-        try:
-            report_file_names = []
+        def get_adjustment_report(users, start_date, end_date, report_file_names, report_file_name):
             col1 = 1
             col2 = 2
-            name = 'adjustment_report'
-            wb, ws, path, file_name = get_excel_variables(name, 'adjustment', [])
+            name = report_file_name
+            wb, ws, path, file_name = get_excel_variables(name, report_file_name, [])
             ws.write_merge(0, 0, 1,5,'Adjustment Report')
             adjustment_column_dict ={3:'Positive Adjustment',4:'Negative Adjustment',5:'Total'}
             for key,value in adjustment_column_dict.iteritems() :
                 ws, column_count = write_excel_col(ws,key,0, value,bold = True)
             for user in users :
                 positive_quantity = InventoryAdjustment.objects.filter(stock__sku__user = user.id,
-                                                             creation_date__gte=today_start,creation_date__lte=today_end,adjusted_quantity__gt=0)\
+                                                             creation_date__gte=start_date,creation_date__lte=end_date,adjusted_quantity__gt=0)\
                                                              .annotate(total_price = F('adjusted_quantity') * F('stock__batch_detail__buy_price'))\
                                                              .annotate(total_price_tax = F('total_price') + (F('total_price')/100) *F('stock__batch_detail__tax_percent'))\
                                                              .aggregate(Sum('total_price_tax'))['total_price_tax__sum']
 
                 negative_quantity = InventoryAdjustment.objects.filter(stock__sku__user = user.id,
-                                                creation_date__gte=today_start,creation_date__lte=today_end,adjusted_quantity__lt=0)\
+                                                creation_date__gte=start_date,creation_date__lte=end_date,adjusted_quantity__lt=0)\
                                                 .annotate(total_price = F('adjusted_quantity') * F('stock__batch_detail__buy_price'))\
                                                 .annotate(total_price_tax = F('total_price') + F('total_price') *F('stock__batch_detail__tax_percent')/100)\
                                                 .aggregate(Sum('total_price_tax'))['total_price_tax__sum']
@@ -116,6 +100,33 @@ class Command(BaseCommand):
                 col2+=2
             wb.save(path)
             report_file_names.append({'name': file_name, 'path': path})
+            return report_file_names
+
+        users = User.objects.filter(username__in=['GGN01', 'NOIDA01', 'NOIDA02', 'HYD01', 'BLR01'])
+        #users = User.objects.filter(username__in=['GGN01'])
+        category_list = list(SKUMaster.objects.filter(user__in=users, status=1).exclude(sku_category='').\
+                             values_list('sku_category', flat=True).distinct())
+        inv_value_dict = OrderedDict()
+        doc_value_dict = OrderedDict()
+        total_doc_dict = OrderedDict()
+        margin_value_dict = OrderedDict()
+        margin_percent_dict = OrderedDict()
+        inv_value_headers = ['Category']
+        today_start = get_utc_start_date(datetime.now())
+        today_end = today_start + timedelta(days=1)
+        adjustment_dict = OrderedDict()
+        user_mapping = dict(users.values_list('id', 'username'))
+        inv_value_headers = list(chain(inv_value_headers, user_mapping.values()))
+        try:
+            report_file_names = []
+            #Week Report
+            start_date = get_utc_start_date(datetime.now()-timedelta(6))
+            end_date = start_date + timedelta(days=7)
+            report_file_names = get_adjustment_report(users, start_date, end_date, report_file_names, report_file_name='Adjustment Report Weekly')
+            #MTD Report
+            start_date = get_utc_start_date(datetime.now().replace(day=1))
+            end_date = get_utc_start_date(datetime.now()+timedelta(days=1))
+            report_file_names = get_adjustment_report(users, start_date, end_date, report_file_names, report_file_name='Adjustment Report-MTD')
             for category in category_list:
                 log.info("Calculation started for Category %s" % category)
                 for user in users:
@@ -153,7 +164,7 @@ class Command(BaseCommand):
                     # Doc Value Calculation Ends
 
                     # Margin Value and Percent Calculation Starts
-                    drspl_order_ids = list(SellerOrder.objects.filter(order__creation_date__gte=today_start,order__creation_date__lte=today_end,
+                    '''drspl_order_ids = list(SellerOrder.objects.filter(order__creation_date__gte=today_start,order__creation_date__lte=today_end,
                                                                 order__user=user.id, order__sku__sku_category=category,
                                                                 seller__seller_id=2).\
                                                         values_list('order_id', flat=True))
@@ -184,14 +195,8 @@ class Command(BaseCommand):
                                             #(((piick_loc.quantity * pick_loc.picklist.order.unit_price)/100)*sale_price_tax)
                     if pick_sale_val:
                         margin_value_dict[category][int(user.id)] = pick_sale_val - pick_cost_val
-                        margin_percent_dict[category][int(user.id)] = (pick_sale_val - pick_cost_val)/pick_sale_val
+                        margin_percent_dict[category][int(user.id)] = (pick_sale_val - pick_cost_val)/pick_sale_val'''
                     # Margin Value and Percent Calculation Ends
-                '''master_data = SellerStock.objects.filter(stock__sku__user__in=users, stock__sku__sku_category=category,
-                                                         quantity__gt=0). \
-                    exclude(Q(stock__receipt_number=0) | Q(stock__location__zone__zone='DAMAGED_ZONE'))
-                inventory_value_objs = master_data. \
-                    values('stock__sku__sku_category', 'stock__sku__user', 'stock__batch_detail__tax_percent').distinct(). \
-                    annotate(total_value=Sum(F('quantity') * F('stock__batch_detail__buy_price')))'''
                 inventory_value_objs = StockDetail.objects.filter(sku__user__in=users, sku__sku_category=category, quantity__gt=0).\
                                                 exclude(Q(receipt_number=0) | Q(location__zone__zone='DAMAGED_ZONE')).\
                                                 values('sku__sku_category', 'sku__user', 'batch_detail__tax_percent',
@@ -262,7 +267,7 @@ class Command(BaseCommand):
                 ws, column_count = write_excel_col(ws, row_count, column_count, total_doc)
 
             wb.save(path)
-            report_file_names.append({'name': file_name, 'path': path})'''
+            report_file_names.append({'name': file_name, 'path': path})
             name = 'consolidated_margin_percent'
             wb, ws, path, file_name = get_excel_variables(name, 'consolidated_margin_percent', inv_value_headers,
                                                           headers_index=1)
@@ -286,10 +291,10 @@ class Command(BaseCommand):
                     ws, column_count = write_excel_col(ws, row_count, column_count, value)
                 row_count += 1
             wb.save(path)
-            report_file_names.append({'name': file_name, 'path': path})
-            send_to = ['sreekanth@mieone.com']
-            #send_to = ['shishir.sharma@milkbasket.com', 'gaurav.srivastava@milkbasket.com', 'anubhav.gupta@milkbasket.com', 'anubhavsood@milkbasket.com',
-            #            'sahil.madan@milkbasket.com']
+            report_file_names.append({'name': file_name, 'path': path})'''
+            #send_to = ['sreekanth@mieone.com']
+            send_to = ['shishir.sharma@milkbasket.com', 'gaurav.srivastava@milkbasket.com', 'anubhav.gupta@milkbasket.com', 'anubhavsood@milkbasket.com',
+                        'sahil.madan@milkbasket.com']
             subject = '%s Reports dated %s' % ('Milkbasket', datetime.now().date())
             text = 'Please find the scheduled reports in the attachment dated: %s' % str(
                 datetime.now().date())

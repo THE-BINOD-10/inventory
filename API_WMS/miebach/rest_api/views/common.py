@@ -3208,11 +3208,11 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     if sku_attr_obj[0].attribute_value.upper() == 'YES':
                         marginal_flag = 1
                         if pick_num:
-                            cost_price_obj = seller_summary.filter(order_id = dat.id, pick_number__in = pick_num).values('picklist__stock__unit_price')
+                            cost_price_obj = seller_summary.filter(order_id = dat.id, pick_number__in = pick_num).values('picklist__stock__unit_price', 'quantity')
                         else:
-                            cost_price_obj = seller_summary.filter(order_id = dat.id, pick_number__in ='1').values('picklist__stock__unit_price')
+                            cost_price_obj = seller_summary.filter(order_id = dat.id).values('picklist__stock__unit_price', 'quantity')
                         if cost_price_obj:
-                            cost_price = cost_price_obj[0]['picklist__stock__unit_price']
+                            cost_price = cost_price_obj.aggregate(cp=Sum(F('picklist__stock__unit_price') * F('quantity')))['cp']
                             quantity = cost_price_obj.aggregate(Sum('quantity'))['quantity__sum']
                             profit_price = (unit_price * quantity) - (cost_price * quantity)
                             if profit_price < 1:

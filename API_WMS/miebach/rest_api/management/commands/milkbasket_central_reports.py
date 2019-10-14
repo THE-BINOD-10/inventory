@@ -139,11 +139,12 @@ class Command(BaseCommand):
                     margin_percent_dict.setdefault(category, {})
                     margin_percent_dict[category].setdefault(int(user.id), 0)
                     # Doc Value Calculation Starts
-                    '''no_zero_stock_days = list(StockStats.objects.filter(sku__sku_category=category, sku__user=user.id, closing_stock__gt=0). \
+                    no_zero_stock_days = list(StockStats.objects.filter(sku__sku_category=category, sku__user=user.id, closing_stock__gt=0). \
                                          annotate(creation_date_only=Cast('creation_date', DateField())).values(
                         'creation_date_only').distinct(). \
                                          order_by('-creation_date_only').values_list('creation_date_only', flat=True)[
                                          :7])
+
                     all_orders = OrderDetail.objects.filter(user=user.id, sku__sku_category=category,
                                                                    customerordersummary__isnull=False, sellerorder__seller__seller_id=2)
                     order_detail_objs = all_orders. \
@@ -151,16 +152,16 @@ class Command(BaseCommand):
                                             filter(creation_date_only__in=no_zero_stock_days).values(
                         'creation_date_only').distinct(). \
                                             order_by('-creation_date_only').\
-                        annotate(quantity_sum=Sum('quantity'),value_sum=Sum((F('quantity') * F('unit_price')) +\
-                                    ((F('quantity')*F('unit_price')/Value('100'))*(F('customerordersummary__cgst_tax')+\
-                                     F('customerordersummary__sgst_tax')+F('customerordersummary__igst_tax')+\
-                                                                                   F('customerordersummary__cess_tax'))) ))[:7]
+                        annotate(quantity_sum=Sum('quantity'),value_sum=Sum((F('quantity') * F('unit_price'))))[:7] # +\
+                                    #((F('quantity')*F('unit_price')/Value('100'))*(F('customerordersummary__cgst_tax')+\
+                                    # F('customerordersummary__sgst_tax')+F('customerordersummary__igst_tax')+\
+                                    #                                               F('customerordersummary__cess_tax'))) ))[:7]
                     total_sale_value = 0
                     if order_detail_objs.exists():
                         for order_detail_obj in order_detail_objs:
                             total_sale_value += order_detail_obj['value_sum']
                     avg_sale_value = total_sale_value/7
-                    doc_value_dict[category][int(user.id)] = avg_sale_value'''
+                    doc_value_dict[category][int(user.id)] = avg_sale_value
                     # Doc Value Calculation Ends
 
                     # Margin Value and Percent Calculation Starts
@@ -237,7 +238,7 @@ class Command(BaseCommand):
 
             wb.save(path)
             report_file_names.append({'name': file_name, 'path': path})
-            '''name = 'days_of_cover_report'
+            name = 'days_of_cover_report'
             wb, ws, path, file_name = get_excel_variables(name, 'Days of Cover', inv_value_headers)
             row_count = 1
             for category, user_value in doc_value_dict.iteritems():
@@ -268,7 +269,7 @@ class Command(BaseCommand):
 
             wb.save(path)
             report_file_names.append({'name': file_name, 'path': path})
-            name = 'consolidated_margin_percent'
+            '''name = 'consolidated_margin_percent'
             wb, ws, path, file_name = get_excel_variables(name, 'consolidated_margin_percent', inv_value_headers,
                                                           headers_index=1)
             ws.write_merge(0, 0, 1, 3, 'Consolidated Margin Percentage')
@@ -294,7 +295,7 @@ class Command(BaseCommand):
             report_file_names.append({'name': file_name, 'path': path})'''
             #send_to = ['sreekanth@mieone.com']
             send_to = ['shishir.sharma@milkbasket.com', 'gaurav.srivastava@milkbasket.com', 'anubhav.gupta@milkbasket.com', 'anubhavsood@milkbasket.com',
-                        'sahil.madan@milkbasket.com']
+                        'sahil.madan@milkbasket.com', 'anurag@milkbasket.com']
             subject = '%s Reports dated %s' % ('Milkbasket', datetime.now().date())
             text = 'Please find the scheduled reports in the attachment dated: %s' % str(
                 datetime.now().date())

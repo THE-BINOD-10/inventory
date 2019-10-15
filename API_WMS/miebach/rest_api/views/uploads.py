@@ -5090,7 +5090,7 @@ def create_po_serial_mapping(final_data_dict, user):
         po_location.save()
         stock_dict = StockDetail.objects.create(receipt_number=receipt_number, receipt_date=NOW, quantity=quantity,
                                                 status=1, location_id=po_details['location_id'],
-                                                sku_id=po_details['sku_id'],
+                                                sku_id=po_details['sku_id'], unit_price = po_details['unit_price'],
                                                 receipt_type='purchase order', creation_date=NOW, updation_date=NOW)
         # SKU Stats
         save_sku_stats(user, stock_dict.sku_id, purchase_order.id, 'po', quantity, stock_dict)

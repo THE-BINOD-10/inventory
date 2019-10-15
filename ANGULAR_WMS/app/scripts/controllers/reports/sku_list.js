@@ -6,6 +6,8 @@ angular.module('urbanApp', ['datatables'])
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
     var vm = this;
     vm.service = Service;
+    vm.user_type = Session.user_profile.user_type;
+    vm.industry_type = Session.user_profile.industry_type;
     vm.service.print_enable = false;
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -29,12 +31,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('SKU Group').withTitle('SKU Group'),
         DTColumnBuilder.newColumn('SKU Type').withTitle('SKU Type'),
         DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
-        DTColumnBuilder.newColumn('SKU Sub Category').withTitle('SKU Sub Category'),
+        DTColumnBuilder.newColumn('Sub Category').withTitle('Sub Category'),
         DTColumnBuilder.newColumn('SKU Brand').withTitle('SKU Brand'),
         DTColumnBuilder.newColumn('SKU Class').withTitle('SKU Class'),
         DTColumnBuilder.newColumn('Put Zone').withTitle('Put Zone'),
         DTColumnBuilder.newColumn('Threshold Quantity').withTitle('Threshold Quantity')
     ];
+    if(vm.user_type == 'marketplace_user' && vm.industry_type == 'FMCG')
+    {
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Manufacturer').withTitle('Manufacturer')),
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Searchable').withTitle('Searchable')),
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Bundle').withTitle('Bundle'))
+
+    }
 
     vm.dtInstance = {};
 
@@ -46,6 +55,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                     'wms_code': '',
                     'sub_category':'',
                     'sku_brand':'',
+                    'manufacturer':'',
+                    'searchable':'',
+                    'bundle':'',
                     };
 
    vm.sku_groups = []

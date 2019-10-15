@@ -2432,6 +2432,13 @@ def get_sku_filter_data(search_params, user, sub_user):
     for data in cmp_data:
         if data in search_params:
             search_parameters['%s__%s' % (data, 'iexact')] = search_params[data]
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['skuattributes__attribute_value'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['skuattributes__attribute_value'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['skuattributes__attribute_value'] = search_params['bundle']
 
     search_parameters['user'] = user.id
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
@@ -2444,16 +2451,33 @@ def get_sku_filter_data(search_params, user, sub_user):
         sku_master = sku_master[start_index:stop_index]
 
     zone = ''
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in sku_master:
+        manufacturer,searchable,bundle = '','',''
         if data.zone:
             zone = data.zone.zone
+        attributes_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name__in= attributes_list)
+        manufacturer_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name='Manufacturer')
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
 
-        temp_data['aaData'].append(
-            OrderedDict((('SKU Code', data.sku_code), ('WMS Code', data.wms_code), ('SKU Group', data.sku_group),
-                         ('SKU Type', data.sku_type), ('SKU Category', data.sku_category),
-                         ('SKU Sub Category', data.sub_category),('SKU Brand', data.sku_brand),
-                         ('SKU Class', data.sku_class),
-                         ('Put Zone', zone), ('Threshold Quantity', data.threshold_quantity))))
+        ord_dict = OrderedDict((('SKU Code', data.sku_code), ('WMS Code', data.wms_code), ('SKU Group', data.sku_group),
+                     ('SKU Type', data.sku_type), ('SKU Category', data.sku_category),
+                     ('Sub Category', data.sub_category),('SKU Brand', data.sku_brand),
+                     ('SKU Class', data.sku_class),
+                     ('Put Zone', zone), ('Threshold Quantity', data.threshold_quantity)))
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            ord_dict['Manufacturer'] = manufacturer
+            ord_dict['Searchable'] = searchable
+            ord_dict['Bundle'] = bundle
+
+        temp_data['aaData'].append(ord_dict)
 
     return temp_data
 

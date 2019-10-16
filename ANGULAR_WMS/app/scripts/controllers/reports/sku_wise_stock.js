@@ -8,6 +8,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     var vm = this;
     vm.service = Service;
     vm.service.print_enable = false;
+    vm.industry_type = Session.user_profile.industry_type;
+    vm.user_type = Session.user_profile.user_type;
+
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -33,6 +36,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('Sku Brand').withTitle('Sku Brand'),
         DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity')
     ];
+    if (vm.industry_type == "FMCG" && vm.user_type == "marketplace_user") {
+      vm.dtColumns.splice(5, 0, DTColumnBuilder.newColumn('Manufacturer').withTitle('Manufacturer'))
+      vm.dtColumns.splice(6, 0, DTColumnBuilder.newColumn('Searchable').withTitle('Searchable'))
+      vm.dtColumns.splice(7, 0, DTColumnBuilder.newColumn('Bundle').withTitle('Bundle'))
+
+    }
 
     vm.dtInstance = {};
 
@@ -44,6 +53,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                     'wms_code': '',
                     'sub_category':'',
                     'sku_brand':'',
+                    'manufacturer':'',
+                    'searchable':'',
+                    'bundle':'',
                     };
 
    vm.sku_groups = [0, 123, 23, 1234]

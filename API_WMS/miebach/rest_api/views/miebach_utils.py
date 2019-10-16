@@ -2457,7 +2457,7 @@ def get_sku_filter_data(search_params, user, sub_user):
         if data.zone:
             zone = data.zone.zone
         attributes_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name__in= attributes_list)
-        manufacturer_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name='Manufacturer')
+
         if attributes_obj.exists():
             for attribute in attributes_obj:
                 if attribute.attribute_name == 'Manufacturer':
@@ -2498,6 +2498,13 @@ def get_location_stock_data(search_params, user, sub_user):
     for key, value in search_mapping.iteritems():
         if key in search_params:
             search_parameters[value] = search_params[key]
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['sku__skuattributes__attribute_value'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['sku__skuattributes__attribute_value'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['sku__skuattributes__attribute_value'] = search_params['bundle']
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     stock_detail = []
@@ -2506,7 +2513,7 @@ def get_location_stock_data(search_params, user, sub_user):
     search_parameters['sku_id__in'] = sku_master_ids
     distinct_list = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_brand']
     lis = ['sku__wms_code', 'sku__sku_category', 'sku__sub_category', 'sku__sku_brand', 'sku__sku_desc', 'sku__ean_number', 'batch_detail__mrp', 'location__zone__zone', 'location__location',
-           'tsum', 'tsum', 'tsum']
+           'tsum', 'tsum', 'tsum','tsum', 'tsum', 'tsum']
     order_term = search_params.get('order_term', 0)
     col_num = search_params.get('order_index', 0)
     order_data = lis[col_num]
@@ -2570,7 +2577,19 @@ def get_location_stock_data(search_params, user, sub_user):
         ean_num = sku_master.ean_number
         if not ean_num:
             ean_num = ''
-        results_data['aaData'].append(OrderedDict((('SKU Code', sku_master.sku_code), ('WMS Code', sku_master.wms_code),
+        attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
+        manufacturer,searchable,bundle = '','',''
+        attributes_obj = SKUAttributes.objects.filter(sku_id=sku_master.id, attribute_name__in= attributes_list)
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
+
+        ord_dict = OrderedDict((('SKU Code', sku_master.sku_code), ('WMS Code', sku_master.wms_code),
                                                    ('SKU Category', sku_master.sku_category),
                                                    ('SKU Sub Category', sku_master.sub_category),
                                                    ('SKU Brand', sku_master.sku_brand),
@@ -2581,7 +2600,12 @@ def get_location_stock_data(search_params, user, sub_user):
                                                    ('Location', location_master.location), ('Total Quantity', total),
                                                    ('Available Quantity', quantity), ('Reserved Quantity', reserved),
                                                  ))
-                                     )
+
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            ord_dict['Manufacturer'] = manufacturer
+            ord_dict['Searchable'] = searchable
+            ord_dict['Bundle'] = bundle
+        results_data['aaData'].append(ord_dict)
     return results_data, total_quantity
 
 

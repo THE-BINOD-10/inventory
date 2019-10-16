@@ -723,6 +723,23 @@ def get_adjust_filter_data(search_params, user, sub_user):
         search_parameters['cycle__sku__wms_code'] = search_params['wms_code'].upper()
     if 'location' in search_params:
         search_parameters['cycle__location__location'] = search_params['location'].upper()
+    if 'sku_brand' in search_params:
+        if search_params['sku_brand']:
+            search_parameters['cycle__sku__sku_brand__icontains'] = search_params['sku_brand']
+    if 'sku_category' in search_params:
+        if search_params['sku_category']:
+            search_parameters['cycle__sku__sku_category__icontains'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        if search_params['sku_category']:
+            search_parameters['cycle__sku__sub_category__icontains'] = search_params['sub_category']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['cycle__sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['cycle__sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['cycle__sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     order_term = search_params.get('order_term', 'asc')
@@ -740,7 +757,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
                'cycle__sku__sku_brand', 'cycle__sku__sku_category', 'cycle__sku__sub_category',
                'cycle__sku__sku_code', 'cycle__location__location',
                'adjusted_quantity', 'cycle__sku__sku_code', 'cycle__sku__sku_code', 'reason', 'cycle__sku__sku_code',
-               'cycle__sku__sku_code']
+               'cycle__sku__sku_code','cycle__sku__sku_code','cycle__sku__sku_code','cycle__sku__sku_code']
         order_data = lis[order_index]
         if order_term == 'desc':
             order_data = '-%s' % order_data
@@ -779,6 +796,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
         if stop_index:
             adjustments = adjustments[start_index:stop_index]
+        attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
         for data in adjustments:
             sku = data['sku']
             attributes_data = dict(sku.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
@@ -793,6 +811,16 @@ def get_adjust_filter_data(search_params, user, sub_user):
                 updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
             if amount and qty:
                 avg_cost = amount/qty
+            manufacturer,searchable,bundle = '','',''
+            attributes_obj = SKUAttributes.objects.filter(sku_id= sku.id, attribute_name__in= attributes_list)
+            if attributes_obj.exists():
+                for attribute in attributes_obj:
+                    if attribute.attribute_name == 'Manufacturer':
+                        manufacturer = attribute.attribute_value
+                    if attribute.attribute_name == 'Searchable':
+                        searchable = attribute.attribute_value
+                    if attribute.attribute_name == 'Bundle':
+                        bundle = attribute.attribute_value
             temp_data['aaData'].append(OrderedDict(( ('SKU Code', sku.sku_code),
                                                      ('Name', sku.sku_desc),
                                                      ('Weight', weight),
@@ -803,6 +831,9 @@ def get_adjust_filter_data(search_params, user, sub_user):
                                                      ('Brand', sku.sku_brand),
                                                      ('Category', sku.sku_category),
                                                      ('Sub Category', sku.sub_category),
+                                                     ('Manufacturer', manufacturer),
+                                                     ('Searchable', searchable),
+                                                     ('Bundle', bundle),
                                                      ('Sub Category type', attributes_data.get('Sub Category type','')),
                                                      ('Location', data['location']),
                                                      ('Quantity', data['quantity']),
@@ -821,6 +852,9 @@ def get_adjust_filter_data(search_params, user, sub_user):
         for data in adjustments:
             quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
             temp_data['aaData'].append(OrderedDict(( ('SKU Code', data.cycle.sku.sku_code),
+                                                     ('Brand', data.cycle.sku.sku_brand),
+                                                     ('Category', data.cycle.sku.sku_category),
+                                                     ('Sub Category', data.cycle.sku.sub_category),
                                                      ('Location', data.cycle.location.location),
                                                      ('Quantity', quantity),
                                                      ('Pallet Code', data.pallet_detail.pallet_code if data.pallet_detail else ''),

@@ -936,8 +936,13 @@ BASA_REPORT_DICT = {
       {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
       {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
       {'label': 'SKU Code', 'name': 'sku_code', 'type': 'input'},
+      {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
+      {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
+      {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
   ],
-  'dt_headers': ['SKU Code','SKU Desc','Weight','MRP','Brand', 'Category', 'Sub Category','Sub Category Type','Sheet','Stock( Only BA and SA)','Avg CP','Latest GRN Qty','Latest GRN CP'],
+  'dt_headers': ['SKU Code','SKU Desc','Weight','MRP','Brand', 'Category', 'Sub Category','Sub Category Type',
+                 'Manufacturer', 'Searchable', 'Bundle',
+                 'Sheet','Stock( Only BA and SA)','Avg CP','Latest GRN Qty','Latest GRN CP'],
   'dt_url': 'get_basa_report', 'excel_name': 'get_basa_report',
   'print_url': 'print_basa_report',
 }
@@ -950,7 +955,7 @@ CURRENT_STOCK_REPORT_DICT = {
         {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'},
         {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'}
     ],
-    'dt_headers': ['Seller ID', 'Seller Name', 'SKU Code', 'SKU Description','Manufacturer', 'Brand', 'Category',
+    'dt_headers': ['Seller ID', 'Seller Name', 'SKU Code', 'SKU Description','Manufacturer', 'Searchable', 'Bundle', 'Brand', 'Category',
     'Sub Category', 'Sub Category type','Sheet','Vendor','Location', 'Weight', 'MRP', 'Available Quantity',
     'Reserved Quantity', 'Total Quantity','Tax %','Avg CP with Tax','Amount with Tax','Cost Price W/O Tax',
     'Amount W/O tax','Warehouse Name','Report Generation Time'],
@@ -968,7 +973,8 @@ STOCK_RECONCILIATION_REPORT_DICT = {
       {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'},
   ],
   'dt_headers': ['Created Date', 'SKU Code', 'SKU Desc', 'MRP', 'Weight', 'Vendor Name', 'Brand', 'Category',
-                 'Sub Category', 'Sub Category Type', 'Sheet', 'Opening Qty', 'Opening Avg Rate', 'Opening Amount After Tax',
+                 'Sub Category', 'Sub Category Type', 'Manufacturer', 'Searchable', 'Bundle', 'Sheet', 'Opening Qty',
+                  'Opening Avg Rate', 'Opening Amount After Tax',
                  'Purchases Qty', 'Purchases Avg Rate', 'Purchases Amount After Tax',
                  'RTV Qty', 'RTV Avg Rate', 'RTV Amount After Tax',
                  'Customer Sales Qty', 'Customer Sales Avg Rate', 'Customer Sales Amount After Tax',
@@ -990,7 +996,7 @@ INVENTORY_VALUE_REPORT_DICT = {
         {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'},
         {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'}
     ],
-    'dt_headers': ['Seller ID', 'Seller Name','SKU Code', 'SKU Description', 'Category', 'Sub Category', 'Brand', 'Weight', 'MRP', 'Batch Number',
+    'dt_headers': ['Seller ID', 'Seller Name','SKU Code', 'SKU Description', 'Category', 'Sub Category', 'Brand', 'Manufacturer', 'Searchable', 'Bundle', 'Weight', 'MRP', 'Batch Number',
                    'Ean Number', 'Manufactured Date', 'Expiry Date', 'Quantity','Value','Average Cost Price','Warehouse Name','Report Generation Time'],
     'dt_url': 'get_inventory_value_report', 'excel_name': 'get_inventory_value_report',
     'print_url': 'print_inventory_value_report',
@@ -1026,8 +1032,12 @@ MOVE_TO_INVENTORY_REPORT_DICT = {
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'Source Location', 'name': 'source_location', 'type': 'input'},
         {'label': 'Destination Location', 'name': 'destination_location', 'type': 'input'},
+        {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
+        {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
+        {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
     ],
-    'dt_headers': ['SKU Code', 'SKU Description','Source Location',
+    'dt_headers': ['SKU Code', 'SKU Description','Source Location', 'SKU Category',
+                   'Sub Category', 'SKU Brand', 'Manufacturer', 'Searchable', 'Bundle',
                    'Destination Location','Quantity','Transaction Date', 'Updated User'],
     'dt_url': 'get_move_inventory_report', 'excel_name': 'get_move_inventory_report',
     'print_url': 'print_move_inventory_report',
@@ -3086,6 +3096,10 @@ def sku_wise_purchase_data(search_params, user, sub_user):
                                 ('Warehouse Name', user.username),
                                 ('Report Generation Time', time)
                                 ))
+            if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                temp['Manufacturer'] = manufacturer
+                temp['Searchable'] = searchable
+                temp['Bundle'] = bundle
             if status == 'Received':
                 received_list.append(temp)
             else:
@@ -7567,7 +7581,10 @@ def get_current_stock_report_data(search_params, user, sub_user):
     lis = ['seller__seller_id', 'seller__name', 'stock__sku__sku_code','stock__sku__sku_desc',
            'stock__sku__sku_category', 'stock__location__location',
            'stock__batch_detail__weight', 'stock__batch_detail__mrp', 'total', 'total', 'total',
-           'seller__seller_id','seller__seller_id']
+           'seller__seller_id','seller__seller_id','seller__seller_id','seller__seller_id','seller__seller_id','seller__seller_id',
+           'seller__seller_id','seller__seller_id','seller__seller_id','seller__seller_id','seller__seller_id',
+           'seller__seller_id','seller__seller_id','seller__seller_id',
+           'seller__seller_id','seller__seller_id','seller__seller_id']
     sort_cols = ['Seller ID', 'Seller Name', 'SKU Code', 'SKU Description', 'Location', 'Weight', 'MRP', 'Available Quantity',
                    'Reserved Quantity', 'Total Quantity']
     col_num = search_params.get('order_index', 0)
@@ -7596,6 +7613,13 @@ def get_current_stock_report_data(search_params, user, sub_user):
     if 'sku_class' in search_params:
         if search_params['sku_class']:
             search_parameters['stock__sku__sku_class__icontains'] = search_params['sku_class']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['stock__sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['stock__sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['stock__sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
     search_parameters['stock__sku_id__in'] = sku_master_ids
     search_parameters['stock__quantity__gt'] = 0
     master_data = SellerStock.objects.filter(stock__sku__user=user.id, **search_parameters).\
@@ -7663,6 +7687,8 @@ def get_current_stock_report_data(search_params, user, sub_user):
                                                 ('SKU Code', sku_data['stock__sku__wms_code']),
                                                 ('SKU Description', sku_data['stock__sku__sku_desc']),
                                                 ('Manufacturer',attributes_data.get('Manufacturer','')),
+                                                ('Searchable',attributes_data.get('Searchable','')),
+                                                ('Bundle',attributes_data.get('Bundle','')),
                                                 ('Brand',brand),
                                                 ('Category', sku_data['stock__sku__sku_category']),
                                                 ('Sub Category',sub_category),
@@ -7688,7 +7714,7 @@ def get_inventory_value_report_data(search_params, user, sub_user):
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['seller__seller_id', 'seller__name','stock__sku__sku_code','stock__sku__sku_desc','stock__sku__sku_category',
            'stock__batch_detail__weight', 'stock__batch_detail__mrp','stock__batch_detail__batch_no','stock__batch_detail__ean_number','stock__batch_detail__manufactured_date',
-           'stock__batch_detail__expiry_date','total', 'total','total', 'total', 'total']
+           'stock__batch_detail__expiry_date','total', 'total','total', 'total', 'total', 'total','total', 'total', 'total', 'total','total', 'total', 'total']
     sort_cols = ['Seller ID', 'Seller Name', 'SKU Code', 'SKU Description', 'Location', 'Weight', 'MRP', 'Available Quantity',
                    'Reserved Quantity', 'Total Quantity']
     col_num = search_params.get('order_index', 0)
@@ -7717,11 +7743,19 @@ def get_inventory_value_report_data(search_params, user, sub_user):
     if 'sku_class' in search_params:
         if search_params['sku_class']:
             search_parameters['stock__sku__sku_class__icontains'] = search_params['sku_class']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['stock__sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['stock__sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['stock__sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
     search_parameters['stock__sku_id__in'] = sku_master_ids
     search_parameters['stock__quantity__gt'] = 0
     master_data = SellerStock.objects.filter(stock__sku__user=user.id, **search_parameters).\
                                         exclude(stock__receipt_number=0).\
-                                            values('seller__seller_id', 'seller__name', 'stock__sku__wms_code',
+                                            values('seller__seller_id', 'seller__name', 'stock__sku__wms_code','stock__sku__id',
                                                  'stock__batch_detail__weight', 'stock__batch_detail__batch_no',
                                                  'stock__batch_detail__ean_number',
                                                  'stock__batch_detail__manufactured_date',
@@ -7738,6 +7772,7 @@ def get_inventory_value_report_data(search_params, user, sub_user):
     if 'stock__quantity__gt' in search_parameters.keys():
         del search_parameters['stock__quantity__gt']
     time = get_local_date(user, datetime.datetime.now())
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for ind, sku_data in enumerate(master_data[start_index:stop_index]):
         quantity = sku_data['total']
         sku_data1 = copy.deepcopy(sku_data)
@@ -7760,6 +7795,17 @@ def get_inventory_value_report_data(search_params, user, sub_user):
         weight = ''
         mrp = 0
         ean_number = ''
+        if sku_data['stock__sku__id']:
+            manufacturer,searchable,bundle = '','',''
+            attributes_obj = SKUAttributes.objects.filter(sku_id=sku_data['stock__sku__id'], attribute_name__in= attributes_list)
+            if attributes_obj.exists():
+                for attribute in attributes_obj:
+                    if attribute.attribute_name == 'Manufacturer':
+                        manufacturer = attribute.attribute_value
+                    if attribute.attribute_name == 'Searchable':
+                        searchable = attribute.attribute_value
+                    if attribute.attribute_name == 'Bundle':
+                        bundle = attribute.attribute_value
         if sku_data['stock__batch_detail__manufactured_date']:
             manufactured_date = str(sku_data['stock__batch_detail__manufactured_date'])
         if sku_data['stock__batch_detail__expiry_date']:
@@ -7777,6 +7823,9 @@ def get_inventory_value_report_data(search_params, user, sub_user):
                                                 ('Category', sku_data['stock__sku__sku_category']),
                                                 ('Sub Category', sku_data['stock__sku__sub_category']),
                                                 ('Brand', sku_data['stock__sku__sku_brand']),
+                                                ('Manufacturer', manufacturer),
+                                                ('Searchable', searchable),
+                                                ('Bundle', bundle),
                                                 ('Weight', weight), ('MRP', mrp),
                                                 ('Batch Number', sku_data['stock__batch_detail__batch_no']),
                                                 ('Ean Number', ean_number), ('Manufactured Date', manufactured_date),
@@ -7996,7 +8045,8 @@ def get_basa_report_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['sku__sku_code','sku__sku_desc','batch_detail__weight','batch_detail__mrp','sku__sku_brand', 'sku__sku_category',
-           'sku__sub_category', 'sku__sub_category', 'sku__sku_code', 'quantity', 'sku__sku_code', 'sku__sku_code', 'sku__sku_code']
+           'sku__sub_category', 'sku__sub_category', 'sku__sku_code', 'quantity', 'sku__sku_code', 'sku__sku_code', 'sku__sku_code',
+           'sku__sku_code', 'sku__sku_code', 'sku__sku_code']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)
@@ -8016,6 +8066,20 @@ def get_basa_report_data(search_params, user, sub_user):
     if 'sku_code' in search_params:
         if search_params['sku_code']:
             search_parameters['sku__sku_code'] = search_params['sku_code']
+    if 'sku_category' in search_params:
+        search_parameters['sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['sku__sub_category'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters['sku__sku_brand'] = search_params['sku_brand']
+    if 'manufacturer' in search_params:
+        search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+    if 'searchable' in search_params:
+        search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+    if 'bundle' in search_params:
+        search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
+
     search_parameters['sku_id__in'] = sku_master_ids
     search_params['location__location__in'] = locations
     search_parameters['quantity__gt'] = 0
@@ -8043,6 +8107,7 @@ def get_basa_report_data(search_params, user, sub_user):
     temp_data['recordsTotal'] = len(chaining)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     chaining = chaining[start_index:stop_index]
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in chaining:
         if data.get('sku__sku_code',''):
             sku_code = data['sku__sku_code']
@@ -8079,12 +8144,13 @@ def get_basa_report_data(search_params, user, sub_user):
             average_cost_price = data['average_cp']/quantity
         else:
             average_cost_price = 0
-        sku_attribute_dict = dict(SKUAttributes.objects.filter(sku__id=sku_id,attribute_name__in=['Manufacturer', 'Sub Category Type','Sheet', 'Vendor','Weight']).values_list('attribute_name','attribute_value'))
+        sku_attribute_dict = dict(SKUAttributes.objects.filter(sku__id=sku_id,attribute_name__in=['Manufacturer', 'Sub Category Type','Sheet', 'Vendor','Weight', 'Searchable', 'Bundle']).values_list('attribute_name','attribute_value'))
         sheet = sku_attribute_dict.get('Sheet','')
         sub_category_type = sku_attribute_dict.get('Sub Category Type','')
         if not data.get('sku__sku_code',''):
            weight = sku_attribute_dict.get('Weight','')
         temp_data['aaData'].append(OrderedDict(( ('SKU Code', sku_code),('SKU Desc',sku_desc),
+                                                 ('Manufacturer',sku_attribute_dict.get('Manufacturer','')),('Searchable',sku_attribute_dict.get('Searchable','')),('Bundle',sku_attribute_dict.get('Bundle','')),
                                                  ('Brand',sku_brand), ('Category',sku_category),('Sheet',sheet),('Sub Category Type',sub_category_type),
                                                  ('Sub Category', sub_category), ('Stock( Only BA and SA)', quantity),('Weight',weight),('MRP',mrp),('Avg CP',"%.2f" %average_cost_price),('Latest GRN Qty',grn_quantity),('Latest GRN CP',grn_price))))
     return temp_data
@@ -8103,7 +8169,7 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
            'stock_transfer_quantity', 'stock_transfer_avg_rate', 'stock_transfer_amount',
            'returns_quantity', 'returns_avg_rate', 'returns_amount',
            'adjustment_quantity', 'adjustment_avg_rate', 'adjustment_amount',
-           'closing_quantity', 'closing_avg_rate', 'closing_amount', 'id', 'id']
+           'closing_quantity', 'closing_avg_rate', 'closing_amount', 'id', 'id', 'id', 'id', 'id', 'id']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
     order_data = lis[col_num]
@@ -8132,6 +8198,14 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
         search_parameters['creation_date__gt'] = search_params['from_date']
     if 'to_date' in search_params:
         search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
     search_parameters['sku__user'] = user.id
     stock_rec_objs = StockReconciliation.objects.filter(**search_parameters).order_by(order_data)
     temp_data['recordsTotal'] = stock_rec_objs.count()
@@ -8145,7 +8219,7 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
         creation_date = get_local_date(user, creation_date, send_date=True).strftime('%d %b %Y')
         sku = stock_rec_obj.sku
         sku_attr_data = dict(sku.skuattributes_set.filter(attribute_name__in=['Manufacturer', 'Sub Category Type',
-                                                                              'Sheet', 'Vendor']).\
+                                                                              'Sheet', 'Vendor', 'Searchable', 'Bundle']).\
                                                 values_list('attribute_name', 'attribute_value'))
         temp_data['aaData'].append(OrderedDict(( ('Created Date', creation_date),
                                                  ('SKU Code', sku.sku_code), ('SKU Desc', sku.sku_desc),
@@ -8155,6 +8229,9 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
                                                  ('Category', sku.sku_category),
                                                  ('Sub Category', sku.sub_category),
                                                  ('Sub Category Type', sku_attr_data.get('Sub Category Type', '')),
+                                                 ('Manufacturer', sku_attr_data.get('Manufacturer', '')),
+                                                 ('Searchable', sku_attr_data.get('Searchable', '')),
+                                                 ('Bundle', sku_attr_data.get('Bundle', '')),
                                                  ('Sheet', sku_attr_data.get('Sheet', '')),
                                                  ('Opening Qty',  stock_rec_obj.opening_quantity),
                                                  ('Opening Avg Rate', "%.2f" % stock_rec_obj.opening_avg_rate),
@@ -8282,6 +8359,7 @@ def get_move_inventory_report_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['sku__sku_code','sku__sku_desc','source_location__location','dest_location__location','quantity',
+            'sku__sku_category','sku__sub_category','sku__sku_brand','sku__sku_category','sku__sub_category','sku__sku_brand',
            'creation_date', 'sku__sku_code', 'batch_detail__weight','batch_detail__mrp', 'seller__name']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
@@ -8303,18 +8381,43 @@ def get_move_inventory_report_data(search_params, user, sub_user):
                                                              datetime.time())
     if 'sku_code' in search_params:
         search_parameters['sku__wms_code'] = search_params['sku_code']
+    if 'sku_category' in search_params:
+        search_parameters['sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['sku__sub_category'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters['sku__sku_brand'] = search_params['sku_brand']
     if 'source_location' in search_params :
         search_parameters['source_location__location'] = search_params['source_location']
     if 'destination_location' in search_params :
         search_parameters['dest_location__location'] = search_params['destination_location']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
 
     search_parameters['sku__id__in'] = sku_master_ids
     master_data = MoveInventory.objects.filter(**search_parameters).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for ind, sku_data in enumerate(master_data[start_index:stop_index]):
         weight = ''
         mrp = 0
+        manufacturer,searchable,bundle = '','',''
+        attributes_obj = SKUAttributes.objects.filter(sku_id=sku_data.sku.id, attribute_name__in= attributes_list)
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
         date = get_local_date(user, sku_data.creation_date)
         if sku_data.batch_detail:
             mrp = sku_data.batch_detail.mrp
@@ -8328,6 +8431,12 @@ def get_move_inventory_report_data(search_params, user, sub_user):
             updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
         temp_data['aaData'].append(OrderedDict((('SKU Code', sku_data.sku.wms_code),
                                                 ('SKU Description', sku_data.sku.sku_desc),
+                                                ('SKU Category', sku_data.sku.sku_category),
+                                                ('Sub Category', sku_data.sku.sub_category),
+                                                ('SKU Brand', sku_data.sku.sku_brand),
+                                                ('Manufacturer', manufacturer),
+                                                ('Searchable', searchable),
+                                                ('Bundle', bundle),
                                                 ('Source Location',sku_data.source_location.location),
                                                 ('Destination Location',sku_data.dest_location.location),
                                                 ('Quantity',sku_data.quantity),('Weight',weight),('MRP',mrp),

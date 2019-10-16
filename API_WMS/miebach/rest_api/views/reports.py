@@ -581,6 +581,14 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
         search_parameters['sku__sku_brand'] = search_params['sku_brand']
     if 'marketplace' in search_params:
         marketplace = search_params['marketplace']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     search_parameters['sku__user'] = user.id
@@ -592,11 +600,22 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
     temp_data['recordsFiltered'] = len(sales_return)
     if stop_index:
         sales_return = sales_return[start_index:stop_index]
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in sales_return:
         order_id = ''
         customer_id = ''
         marketplace = ''
         customer_name = ''
+        manufacturer,searchable,bundle = '','',''
+        attributes_obj = SKUAttributes.objects.filter(sku_id=data.sku.id, attribute_name__in= attributes_list)
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
         if data.order:
             order_id = str(data.order.order_code) + str(data.order.order_id)
             customer_id = data.order.customer_id
@@ -644,17 +663,22 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
             else:
                 reasons_data.append({'quantity': data.quantity, 'reason': data.reason, 'status': data.status})
 
-            temp_data['aaData'].append(
-                OrderedDict((('sku_code', data.sku.sku_code),
-                             ('sku_category', data.sku.sku_category),
-                             ('sub_category', data.sku.sub_category),
-                             ('sku_brand', data.sku.sku_brand),
-                             ('order_id', order_id), ('id', data.id),
-                             ('customer_id', customer_id), ('return_date', return_date),
-                             ('status', status_dict[str(data.status)]), ('marketplace', marketplace),
-                             ('quantity', data.quantity), ('reasons_data', reasons_data),
-                             ('customer_name', customer_name),
-                             ('description', data.sku.sku_desc))))
+            temp = OrderedDict((('sku_code', data.sku.sku_code),
+                         ('sku_category', data.sku.sku_category),
+                         ('sub_category', data.sku.sub_category),
+                         ('sku_brand', data.sku.sku_brand),
+                         ('order_id', order_id), ('id', data.id),
+                         ('customer_id', customer_id), ('return_date', return_date),
+                         ('status', status_dict[str(data.status)]), ('marketplace', marketplace),
+                         ('quantity', data.quantity), ('reasons_data', reasons_data),
+                         ('customer_name', customer_name),
+                         ('description', data.sku.sku_desc)))
+            if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                temp['Manufacturer'] = manufacturer
+                temp['Searchable'] = searchable
+                temp['Bundle'] = bundle
+            temp_data['aaData'].append(temp)
+
     return temp_data
 
 

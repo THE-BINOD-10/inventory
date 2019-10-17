@@ -888,6 +888,20 @@ def get_aging_filter_data(search_params, user, sub_user):
         search_parameters['sku__sku_code'] = search_params['sku_code'].upper()
     if 'sku_category' in search_params:
         search_parameters['sku__sku_category'] = search_params['sku_category']
+    if 'sku_brand' in search_params:
+        if search_params['sku_brand']:
+            search_parameters['sku__sku_brand__icontains'] = search_params['sku_brand']
+    if 'sub_category' in search_params:
+        if search_params['sub_category']:
+            search_parameters['sku__sub_category__icontains'] = search_params['sub_category']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     if user.username == 'isprava_admin':
@@ -905,12 +919,13 @@ def get_aging_filter_data(search_params, user, sub_user):
     search_parameters['quantity__gt'] = 0
     search_parameters['sku_id__in'] = sku_master_ids
     filtered = StockDetail.objects.filter(**search_parameters). \
-        values('receipt_date', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'location__location', 'sku__user'). \
+        values('receipt_date', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'location__location', 'sku__user', 'sku__sub_category', 'sku__sku_brand', 'sku_id'). \
         annotate(total=Sum('quantity'))
 
     for stock in filtered:
         cond = (stock['sku__sku_code'], stock['sku__sku_desc'], stock['sku__sku_category'],
-                (datetime.datetime.now().date() - stock['receipt_date'].date()).days, stock['location__location'], stock['sku__user'])
+                (datetime.datetime.now().date() - stock['receipt_date'].date()).days, stock['location__location'], stock['sku__user'],
+                 stock['sku__sub_category'],stock['sku__sku_brand'],stock['sku_id'])
         all_data.setdefault(cond, 0)
         all_data[cond] += stock['total']
     temp_data['recordsTotal'] = len(all_data)
@@ -919,10 +934,27 @@ def get_aging_filter_data(search_params, user, sub_user):
     all_data = all_data.keys()
     if stop_index:
         all_data = all_data[start_index:stop_index]
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in all_data:
-        temp_data['aaData'].append(
-            OrderedDict((('SKU Code', data[0]), ('SKU Description', data[1]), ('SKU Category', data[2]),
-                         ('Location', data[4]), ('Quantity', temp[data]), ('As on Date(Days)', data[3]), ('Warehouse', warehouse_users.get(data[5])))))
+        if data[8]:
+            manufacturer,searchable,bundle = '','',''
+            attributes_obj = SKUAttributes.objects.filter(sku_id=data[8], attribute_name__in= attributes_list)
+            if attributes_obj.exists():
+                for attribute in attributes_obj:
+                    if attribute.attribute_name == 'Manufacturer':
+                        manufacturer = attribute.attribute_value
+                    if attribute.attribute_name == 'Searchable':
+                        searchable = attribute.attribute_value
+                    if attribute.attribute_name == 'Bundle':
+                        bundle = attribute.attribute_value
+        ord_dict = OrderedDict((('SKU Code', data[0]), ('SKU Description', data[1]), ('SKU Category', data[2]),
+                     ('SKU Sub Category', data[6]),('Sku Brand', data[7]),
+                     ('Location', data[4]), ('Quantity', temp[data]), ('As on Date(Days)', data[3]), ('Warehouse', warehouse_users.get(data[5]))))
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            ord_dict['Manufacturer'] = manufacturer
+            ord_dict['Searchable'] = searchable
+            ord_dict['Bundle'] = bundle
+        temp_data['aaData'].append(ord_dict)
     return temp_data
 
 

@@ -24,6 +24,15 @@
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label">Brands</label>
+                  <select name="sku_category" class="form-control" ng-model="showCase.model_data.sku_category">
+                    <option value="" selected>All</option>
+                    <option ng-repeat="sku_category in showCase.data.sku_category" value="{{sku_category}}">{{sku_category}}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">SKU Category</label>
                   <select name="brand" class="form-control" ng-model="showCase.model_data.brand">
                     <option value="" selected>All</option>
                     <option ng-repeat="brand in showCase.data.brands" value="{{brand}}">{{brand}}</option>
@@ -41,6 +50,31 @@
                   </select>
                 </div>
               </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">SKU Sub Category</label>
+                  <input name="sub_category" class="form-control" type="text" ng-model="showCase.model_data.sub_category">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
+                <div class="form-group">
+                  <label class="control-label"> Manufacturer </label>
+                  <input name="manufacturer" class="form-control" type="text" ng-model="showCase.model_data.manufacturer">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
+                <div class="form-group">
+                  <label class="control-label"> Searchable </label>
+                  <input name="searchable" class="form-control" type="text" ng-model="showCase.model_data.searchable">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
+                <div class="form-group">
+                  <label class="control-label"> Bundle </label>
+                  <input name="bundle" class="form-control" type="text" ng-model="showCase.model_data.bundle">
+                </div>
+              </div>
+
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.parent_username == 'isprava_admin'">
                 <div class="form-group">

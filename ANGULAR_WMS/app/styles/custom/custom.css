@@ -1561,6 +1561,7 @@ pre {
   display: none;
 }
 .header_background {
+  cursor: pointer;
   background: -webkit-linear-gradient(left, #e8e8e8, transparent);
   line-height: 40px;
   font-size: 18px;
@@ -1604,15 +1605,6 @@ pre {
     height: 185px;
   }
 }
-.loader {
-  border: 5px solid #f1f1f1 !important;
-  border-radius: 50%;
-  border-top: 5px solid #565656 !important;
-  width: 60px !important;
-  height: 60px !important;
-  -webkit-animation: spin 2s linear infinite; /* Safari */
-  animation: spin 2s linear infinite;
-}
 .animate-bottom {
   position: relative;
   -webkit-animation-name: animatebottom;
@@ -1629,4 +1621,8 @@ pre {
 @keyframes animatebottom { 
   from{ bottom:-100px; opacity:0 } 
   to{ bottom:0; opacity:1 }
+}
+.item_styles{
+  border: none !important;
+  box-shadow: 0px 0px 3px #a09595 !important;
 }

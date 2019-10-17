@@ -28,6 +28,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
   vm.disable_brands = Session.roles.permissions.disable_brands_view;
   vm.brand_categorization = Session.roles.permissions.brand_categorization;
+  vm.single_brand_category = false;
   vm.disable_categories = Session.roles.permissions.disable_categories_view;
   vm.is_portal_lite = Session.roles.permissions.is_portal_lite;
   vm.date = new Date();
@@ -571,6 +572,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                 to_price: vm.toPrice, quantity: vm.quantity, delivery_date: vm.delivery_date, is_margin_percentage: vm.marginData.is_margin_percentage,
                 margin: vm.marginData.margin, hot_release: vm.hot_release, margin_data: JSON.stringify(Data.marginSKUData.data),
                 dimensions: dimension_data};
+    if(vm.single_brand_category) {
+      data['brand_categorization'] = true
+    }
     if(vm.cluster){
       data['cluster'] = vm.cluster
     }
@@ -714,7 +718,18 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       });
     }
   }
-
+  vm.brand_categorization_values = function (category, brand) {
+    if (brand == 'backcheck') {
+      localStorage.removeItem('brand_value')
+      vm.single_brand_category = false;
+      vm.brand = ''
+      vm.change_category(category) 
+    } else {
+      vm.single_brand_category = true;
+      vm.brand = brand
+      vm.change_category(category)
+    }
+  }
   vm.change_category = function(category, cluster='') {
     vm.circular_loader = true;
     vm.carouselData = {};

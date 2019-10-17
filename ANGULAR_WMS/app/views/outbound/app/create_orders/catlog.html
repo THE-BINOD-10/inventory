@@ -3,17 +3,13 @@
   <div class="row style-menu" style="height: 40px;position: absolute;top:0px;width:100%;z-index:100">
     <div class="col-md-4 col-sm-4 col-xs-4">
       <div ng-if="!showCase.disable_brands && showCase.disable_categories" class="menu-left" style="line-height: 40px">
-        <span ng-click="$state.go('user.App.Brands');showCase.showFilter = false;"><i class="fa fa-arrow-left" style="color:#fff;" title="Go to Brand Page"></i></span>
-        <!-- <span ng-click="showCase.change_brand(showCase.brand)" title="Go to Brand Page">Back</span> -->
-        <span ng-click="$state.go('user.App.Brands');showCase.showFilter = false;" title="Go to Brand Page">Back</span>
+        <span ng-click="$state.go('user.App.Brands');showCase.showFilter = false;"><i class="fa fa-arrow-left" style="color:#fff;" title="Go to Brand Page"></i> Back</span>
       </div>
       <div ng-if="showCase.disable_brands && !showCase.disable_categories" class="menu-left" style="line-height: 40px">
-        <span ng-click="showCase.change_brand(showCase.brand, 'brand_value')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
-        <span ng-click="showCase.change_brand(showCase.brand, 'brand_value')" title="Go to Brand Page">Back</span>
+        <span ng-click="showCase.change_brand(showCase.brand, 'brand_value')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i> Back</span>
       </div>
       <div ng-if="!showCase.disable_brands && !showCase.disable_categories" class="menu-left" style="line-height: 40px">
-        <span ng-click="showCase.change_brand(showCase.brand, 'category_value')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
-        <span ng-click="showCase.change_brand(showCase.brand, 'category_value')" title="Go to Brand Page">Back</span>
+        <span ng-click="showCase.change_brand(showCase.brand, 'category_value')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i> Back</span>
       </div>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-4 brand-title">
@@ -249,9 +245,11 @@
         </div>
       </div>
     </div>
-    <div class="loader" ng-if="showCase.brand_categorization && showCase.circular_loader"></div>
+    <div class="row col-md-12 col-sm-12 col-xs-12" ng-if="showCase.brand_categorization && showCase.circular_loader">
+      <img ng-src="images/default_loader.gif" style="margin: auto;display: block;width: 80px;">
+    </div>
     <div class="row animate-bottom" ng-repeat="brand in showCase.carouselData">
-      <div class="header_background"><strong class="padding_header">{{brand[0].sku_brand}}</strong></div>
+      <div class="header_background" ng-click="$state.go('user.App.BrandCategorization');showCase.brand_categorization_values(showCase.temp_request['category'], brand[0].sku_brand)"><strong class="padding_header">{{brand[0].sku_brand}}</strong></div>
       <div class="row">
         <div ng-include="'views/outbound/app/create_orders/filters.html'"></div>
         <div class="container-fluid testimonial-group div_controller">

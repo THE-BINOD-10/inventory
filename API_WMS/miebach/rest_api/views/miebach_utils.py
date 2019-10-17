@@ -2300,6 +2300,9 @@ CUSTOM_ORDER_DEF_EXCEL = OrderedDict((
 CLUSTER_SKU_MAPPING = OrderedDict((
                                   ('Cluster Name', 0),
                                   ('Sku Code', 1), ('Sequence', 2)))
+
+BATCH_DETAIL_HEADERS = ['Receipt Number', 'Receipt Date', 'WMS Code', 'Product Description', 'SKU Category', 'Batch Number', 'MRP', 'Weight',
+                        'Price', 'Tax Percent', 'Manufactured Date', 'Expiry Date', 'Zone', 'Location', 'Quantity', 'Receipt Type']
 #PICKLIST_EXCLUDE_ZONES = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
 
 def fn_timer(function):

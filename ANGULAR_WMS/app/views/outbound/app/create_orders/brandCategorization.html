@@ -1,36 +1,47 @@
 <div class="clearfix render-items" style="padding-top: 5px;">
 	<div class="row style-menu" style="height: 40px;position: absolute;top:0px;width:100%;z-index:100">
-    <div class="col-md-4 col-sm-4 col-xs-4">
-      <div class="menu-left" style="line-height: 40px">
-        <span ng-click="$state.go('user.App.Products');showCase.brand_categorization_values(showCase.temp_request['category'], 'backcheck')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i> Back</span>
+    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+      <div class="col-md-4 col-sm-4 col-xs-4">
+        <div class="menu-left" style="line-height: 40px">
+          <span ng-click="$state.go('user.App.Products');showCase.brand_categorization_values(showCase.temp_request['category'], 'backcheck')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i> Back</span>
+        </div>
       </div>
-    </div>
-    <div class="col-md-4 col-sm-4 col-xs-4 brand-title">
-      <img ng-src="images/brands/{{showCase.brands_logos[showCase.brand]}}" ng-if="showCase.brands_logos[showCase.brand]" style="height: 40px;" />
-      <img ng-src="{{showCase.api_url}}static/company_logos/{{showCase.client_logo}}" ng-if="!showCase.brands_logos[showCase.brand] && showCase.client_logo" style="height: 40px;"/>
-      <h3 style="margin-top:10px;overflow: hidden;text-overflow: ellipsis;white-space: nowrap;" ng-if="!(showCase.brands_logos[showCase.brand])">{{showCase.brand}}</h3>
-    </div>
-    <div class="col-md-4 col-sm-4 col-xs-4">
-      <div class="btn-group pull-right" role="group">
-        <a class="" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-          <i class="fa fa-user fa-2x" style="color:#fff;padding-right: 10px;padding-top: 10px;"></i>
+      <div class="col-md-4 col-sm-4 col-xs-4 brand-title">
+        <img ng-src="images/brands/{{showCase.brands_logos[showCase.brand]}}" ng-if="showCase.brands_logos[showCase.brand]" style="height: 40px;" />
+        <img ng-src="{{showCase.api_url}}static/company_logos/{{showCase.client_logo}}" ng-if="!showCase.brands_logos[showCase.brand] && showCase.client_logo" style="height: 40px;"/>
+        <h3 style="margin-top:10px;overflow: hidden;text-overflow: ellipsis;white-space: nowrap;" ng-if="!(showCase.brands_logos[showCase.brand])">{{showCase.brand}}</h3>
+      </div>
+      <div class="col-md-4 col-sm-4 col-xs-4">
+        <div class="btn-group pull-right" role="group">
+          <a class="" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <i class="fa fa-user fa-2x" style="color:#fff;padding-right: 10px;padding-top: 10px;"></i>
+          </a>
+          <ul class="dropdown-menu">
+            <li><a ng-click="$state.go('user.App.MyOrders');showCase.get_orders();">Your Orders</a></li>
+            <li><a ng-click="$state.go('user.App.Profile')">Profile</a></li>
+            <li><a ng-if="showCase.user_type=='reseller'" ng-click="$state.go('user.App.ManualEnquiry');">Create Custom Order</a></li>
+            <li ng-if="showCase.permissions.display_sku_cust_mapping"><a ng-click="$state.go('user.App.PendingOrder');">Pending Order</a></li>
+            <li><a ng-click="$state.go('user.App.feedback');">Feedback Form</a></li>
+            <li><a ng-click="showCase.logout()">Logout</a></li>
+          </ul>
+        </div>
+        <a href="" class="pull-right" ng-click="$state.go('user.App.Cart')">
+          <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 10px;" title="Go To Cart Page"></i>
         </a>
-        <ul class="dropdown-menu">
-          <li><a ng-click="$state.go('user.App.MyOrders');showCase.get_orders();">Your Orders</a></li>
-          <li><a ng-click="$state.go('user.App.Profile')">Profile</a></li>
-          <li><a ng-if="showCase.user_type=='reseller'" ng-click="$state.go('user.App.ManualEnquiry');">Create Custom Order</a></li>
-          <li ng-if="showCase.permissions.display_sku_cust_mapping"><a ng-click="$state.go('user.App.PendingOrder');">Pending Order</a></li>
-          <li><a ng-click="$state.go('user.App.feedback');">Feedback Form</a></li>
-          <li><a ng-click="showCase.logout()">Logout</a></li>
-        </ul>
       </div>
-      <a href="" class="pull-right" ng-click="$state.go('user.App.Cart')">
-        <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 10px;" title="Go To Cart Page"></i>
-      </a>
+    </div>
+    <div class="col-md-12 col-lg-12 col-xs-12 col-sm-12 search-items search-box pd_bottom">
+      <div class="col-lg-2 col-md-2"></div>
+      <div class="col-lg-8 col-md-8 col-sm-12 col-xs-12">
+        <div class="input-group">
+          <span class="input-group-addon" style="background: #ed1c24;color: white;"><i style="background: #ed1c24;width: 15px;font-size: 15px;" class="fa fa-search"></i></span>
+          <input type="text" class="form-control" placeholder="Search for Products" ng-model="showCase.style" ng-change="showCase.catlog_data.index='';showCase.get_category(true, true);" ng-debounce>
+        </div>
+      </div>
     </div>
   </div>
-  <div class="app_body" scrolly="showCase.scroll(e)" style="position: relative">
-  	<div class="row search-items search-box pd_bottom">
+  <div class="app_body brand_cat" scrolly="showCase.scroll(e)" style="position: relative; padding-top: 35px;">
+  	<!-- <div class="row search-items search-box pd_bottom">
     	<div class="col-lg-2 col-md-2"></div>
     	<div class="col-lg-8 col-md-8 col-sm-12 col-xs-12">
         <div class="input-group">
@@ -38,7 +49,7 @@
           <input type="text" class="form-control" placeholder="Search for Products" ng-model="showCase.style" ng-change="showCase.catlog_data.index='';showCase.get_category(true, true);" ng-debounce>
         </div>
     	</div>
-    </div>
+    </div> -->
     <div class="row" ng-if="!showCase.catDisplay" style="text-align: center;">
       <div class="col-md-2 col-sm-3 col-xs-6 class-item" ng-repeat="item in showCase.catlog_data.data" ng-click="$state.go('user.App.Style', {styleId: item.sku_class})" style="position: relative;">
         <div class="item_styles">

@@ -154,18 +154,18 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
                               alternate_view: false,
                               view: 'normalView',
-                              tb_headers: {'normalView': ['Order ID', 'WMS Code', 'WMS MRP', 'Child SKU', 'Child SKU MRP', 'Child SKU Weight', 'Description', 'Location', 'Quantity', 'Picked Quantity', 'Date', 'Time'],
-                                           'serialView': ['Order ID', 'WMS Code', 'Description', 'Customer Name', 'Serial Number', 'Date', 'Time'],
-                                           'customerView': ['Customer ID', 'Customer Name', 'WMS Code', 'Description', 'Quantity', 'Picked Quantity']}
+                              tb_headers: {'normalView': ['Order ID', 'WMS Code', 'WMS MRP', 'Child SKU', 'Child SKU MRP', 'Child SKU Weight', 'Description', 'SKU Category', 'Location', 'Quantity', 'Picked Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
+                                           'serialView': ['Order ID', 'WMS Code', 'Description', 'SKU Category', 'Customer Name', 'Serial Number', 'Date', 'Time'],
+                                           'customerView': ['Customer ID', 'Customer Name', 'WMS Code', 'Description', 'SKU Category', 'Quantity', 'Picked Quantity']}
                            }
     } else {
       self.dispatch_summary_report = {
 
                               alternate_view: false,
                               view: 'normalView',
-                              tb_headers: {'normalView': ['Order ID', 'WMS Code', 'WMS MRP', 'Child SKU', 'Description', 'Location', 'Quantity', 'Picked Quantity', 'Date', 'Time'],
-                                           'serialView': ['Order ID', 'WMS Code', 'Description', 'Customer Name', 'Serial Number', 'Date', 'Time'],
-                                           'customerView': ['Customer ID', 'Customer Name', 'WMS Code', 'Description', 'Quantity', 'Picked Quantity']}
+                              tb_headers: {'normalView': ['Order ID', 'WMS Code', 'WMS MRP', 'Child SKU', 'Description', 'SKU Category', 'Location', 'Quantity', 'Picked Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
+                                           'serialView': ['Order ID', 'WMS Code', 'Description', 'SKU Category', 'Customer Name', 'Serial Number', 'Date', 'Time'],
+                                           'customerView': ['Customer ID', 'Customer Name', 'WMS Code', 'Description', 'SKU Category', 'Quantity', 'Picked Quantity']}
                            }
     }
 

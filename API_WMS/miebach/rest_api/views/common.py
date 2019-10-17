@@ -546,6 +546,7 @@ data_datatable = {  # masters
     'POPaymentTrackerInvBased': 'get_inv_based_po_payment_data', \
     'ReturnToVendor': 'get_po_putaway_data', \
     'CreatedRTV': 'get_saved_rtvs', \
+    'PastPO':'get_past_po',\
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -920,7 +921,7 @@ def configurations(request, user=''):
 
 
 @csrf_exempt
-def get_work_sheet(sheet_name, sheet_headers, f_name=''):
+def get_work_sheet(sheet_name, sheet_headers, f_name='', headers_index=0):
     if '.xlsx' in f_name:
         wb = xlsxwriter.Workbook(f_name)
         ws = wb.add_worksheet(sheet_name)
@@ -930,7 +931,7 @@ def get_work_sheet(sheet_name, sheet_headers, f_name=''):
         ws = wb.add_sheet(sheet_name)
         header_style = easyxf('font: bold on')
     for count, header in enumerate(sheet_headers):
-        ws.write(0, count, header, header_style)
+        ws.write(headers_index, count, header, header_style)
     return wb, ws
 
 
@@ -989,6 +990,8 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
         file_name = "%s.%s" % (user.id, excel_name.split('=')[-1])
     if not file_type:
         file_type = 'xls'
+    if len(temp_data['aaData']) > 65535:
+        file_type = 'csv'
     path = ('static/excel_files/%s.%s') % (file_name, file_type)
     if not os.path.exists('static/excel_files/'):
         os.makedirs('static/excel_files/')
@@ -1932,7 +1935,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
 
     if quantity:
         #quantity = float(quantity)
-        stocks = StockDetail.objects.filter(**stock_dict).distinct()
+        stocks = StockDetail.objects.filter(**stock_dict).distinct().order_by('-id')
         if user.userprofile.user_type == 'marketplace_user':
             total_stock_quantity = SellerStock.objects.filter(seller_id=seller_master_id,
                                                               stock__id__in=stocks.values_list('id', flat=True)). \
@@ -1945,7 +1948,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
         for stock in stocks:
             if total_stock_quantity < quantity:
                 stock.quantity += abs(remaining_quantity)
-                stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', remaining_quantity, stock, stock_stats_objs, bulk_insert=True)
+                stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', abs(remaining_quantity), stock, stock_stats_objs, bulk_insert=True)
                 stock.save()
                 change_seller_stock(seller_master_id, stock, user, abs(remaining_quantity), 'inc')
                 adjustment_objs = create_invnetory_adjustment_record(user, dat, abs(remaining_quantity), reason, location, now, pallet_present,
@@ -9830,3 +9833,12 @@ def get_zonal_admin_id(admin_user, reseller):
         import traceback
         log.info(traceback.format_exc())
         log.info('Users List exception raised')
+
+
+def get_utc_start_date(date_obj):
+    # Getting Time zone aware start time
+
+    ist_unaware = datetime.datetime.strptime(str(date_obj.date()), '%Y-%m-%d')
+    ist_aware = pytz.timezone("Asia/Calcutta").localize(ist_unaware)
+    converted_date = ist_aware.astimezone(pytz.UTC)
+    return converted_date

@@ -14,11 +14,11 @@
       $scope.customerUrl = urlService.mainUrl;
       $scope.stockoneUrl = urlService.stockoneUrl;
       $scope.user_data = urlService.userData;
-      $scope.sync_status = $rootScope.sync_status;
-      $scope.sync_msg = "Not Synced !";
-      $scope.$on('change_sync_status', function(){
-        $scope.sync_status = $rootScope.sync_status;
-      })
+//      $scope.sync_status = $rootScope.sync_status;
+//      $scope.sync_msg = "Not Synced !";
+//      $scope.$on('change_sync_status', function(){
+//        $scope.sync_status = $rootScope.sync_status;
+//      })
       
 
       // Fullscreen
@@ -37,45 +37,45 @@
        };
 
 	  //Synchronize DB
-	  $scope.sync = function () {
-		//$scope.is_disable = "true";
-		
-		if(navigator.onLine){
-            //sync pos data 
-            navigator.serviceWorker.ready.then(function() {
-            	if(POS_UPDATE_FOUND){
-            		reloadPOSPage();
-            	}else if(POS_ENABLE_SYNC===false){
-	                urlService.show_loading();
-	                syncPOSTransactionData().then(function(){
-	                	//check user info and user id 
-	                	checkUserInfo().then(function(data){
-	                		$rootScope.sync_status = false;
-	                    	$rootScope.$broadcast('change_sync_status');
-	                	}).catch(function(error){
-	                		$scope.sync_msg=error;
-	                		$rootScope.sync_status = true;
-	                    	$rootScope.$broadcast('change_sync_status');
-	                	});
-	                    urlService.hide_loading();
-	                    POS_ENABLE_SYNC=false;
-	                    //check update for update
-	                    reloadPOSPage();
-	                }).catch(function(){
-	                    urlService.hide_loading();
-	                    POS_ENABLE_SYNC=false;
-	                    //check update for update
-	                    reloadPOSPage();
-	                });
-                }
-            });
-        }else{
-            console.log( "offline");
-            urlService.hide_loading();
-            urlService.show_toast(NETWORK_ERROR);
-        }
-
-      };
+//	  $scope.sync = function () {
+//		//$scope.is_disable = "true";
+//
+//		if(navigator.onLine){
+//            //sync pos data
+//            navigator.serviceWorker.ready.then(function() {
+//            	if(POS_UPDATE_FOUND){
+//            		reloadPOSPage();
+//            	}else if(POS_ENABLE_SYNC===false){
+//	                urlService.show_loading();
+//	                syncPOSTransactionData().then(function(){
+//	                	//check user info and user id
+//	                	checkUserInfo().then(function(data){
+//	                		$rootScope.sync_status = false;
+//	                    	$rootScope.$broadcast('change_sync_status');
+//	                	}).catch(function(error){
+//	                		$scope.sync_msg=error;
+//	                		$rootScope.sync_status = true;
+//	                    	$rootScope.$broadcast('change_sync_status');
+//	                	});
+//	                    urlService.hide_loading();
+//	                    POS_ENABLE_SYNC=false;
+//	                    //check update for update
+//	                    reloadPOSPage();
+//	                }).catch(function(){
+//	                    urlService.hide_loading();
+//	                    POS_ENABLE_SYNC=false;
+//	                    //check update for update
+//	                    reloadPOSPage();
+//	                });
+//                }
+//            });
+//        }else{
+//            console.log( "offline");
+//            urlService.hide_loading();
+//            urlService.show_toast(NETWORK_ERROR);
+//        }
+//
+//      };
 
       //sync assign to url service
       urlService.pos_sync=$scope.sync;
@@ -117,7 +117,7 @@
 	window.addEventListener('online', function(e) {
 	  console.log("And we're back");
 	  urlService.show_toast(CONNECTED_NETWORK);
-	  $scope.sync();
+	  //$scope.sync();
 	}, false);
 
 	window.addEventListener('offline', function(e) {

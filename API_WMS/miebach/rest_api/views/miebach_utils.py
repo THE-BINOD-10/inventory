@@ -2809,9 +2809,10 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
     warehouse_users = {}
     central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
     if customer_view:
-        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category', 'order__sku__user']#'order__quantity', 'picked_quantity']
+        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category', 'order__sku__sub_category','order__sku__sku_brand', 'order__sku__user',
+               'order__sku__sub_category','order__sku__sku_brand', 'order__sku__user']#'order__quantity', 'picked_quantity']
         model_obj = Picklist
-        param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
+        param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code','manufacturer':'order__sku__skuattributes__attribute_value__iexact'}
         search_parameters.update({'status__in': ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched'],
                                   #'picked_quantity__gt': 0,
                                   'stock__gt': 0,
@@ -2820,23 +2821,25 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                 })
     else:
         if serial_view:
-            lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category', 'order__customer_name',
-                   'po_imei__imei_number',
+            lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category', 'order__sku__sub_category','order__sku__sku_brand', 'order__customer_name',
+                   'po_imei__imei_number','updation_date', 'updation_date','updation_date', 'updation_date',
                    'updation_date', 'updation_date']
             model_obj = OrderIMEIMapping
-            param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
+            param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code','manufacturer':'order__sku__skuattributes__attribute_value__iexact'}
             search_parameters['status'] = 1
             # search_parameters['order__user'] = user.id
             # search_parameters['order__sku_id__in'] = sku_master_ids
         else:
             lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__wms_code',
-                   'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category',
+                   'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category','order__sku__sub_category','order__sku__sku_brand',
                    'stock__location__location', 'picked_quantity', 'picked_quantity', 'order__unit_price', 'order_id',
                    'stock__batch_detail__buy_price', 'stock__batch_detail__tax_percent', 'stock_id', 'updation_date', 'updation_date',
                    'order__customer_name', 'stock__batch_detail__batch_no', 'stock__batch_detail__mrp',
+                   'stock__batch_detail__manufactured_date', 'stock__batch_detail__expiry_date',
+                   'stock__batch_detail__manufactured_date', 'stock__batch_detail__expiry_date',
                    'stock__batch_detail__manufactured_date', 'stock__batch_detail__expiry_date']
             model_obj = Picklist
-            param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
+            param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code','manufacturer':'order__sku__skuattributes__attribute_value__iexact'}
             search_parameters['status__in'] = ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched']
             search_parameters['picked_quantity__gt'] = 0
             #search_parameters['stock__gt'] = 0
@@ -2862,6 +2865,20 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
         search_parameters['order__customer_id'] = search_params['customer_id']
     if 'imei_number' in search_params and serial_view:
         search_parameters['po_imei__imei_number'] = search_params['imei_number']
+    if 'sku_category' in search_params:
+        search_parameters['order__sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['order__sku__sub_category'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters['order__sku__sku_brand'] = search_params['sku_brand']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['order__sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['order__sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['order__sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
     if user.username == 'isprava_admin':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
@@ -2907,18 +2924,54 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
     if stop_index:
         model_data = model_data[start_index:stop_index]
 
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in model_data:
         if customer_view:
-            temp_data['aaData'].append(OrderedDict((('Customer ID', data['order__customer_id']),
+            manufacturer,searchable,bundle = '','',''
+            if data['order__sku__wms_code']:
+                sku_code_attr = data['order__sku__wms_code']
+            if sku_code_attr:
+                attributes_obj = SKUAttributes.objects.filter(sku__sku_code=sku_code_attr, attribute_name__in= attributes_list)
+                if attributes_obj.exists():
+                    for attribute in attributes_obj:
+                        if attribute.attribute_name == 'Manufacturer':
+                            manufacturer = attribute.attribute_value
+                        if attribute.attribute_name == 'Searchable':
+                            searchable = attribute.attribute_value
+                        if attribute.attribute_name == 'Bundle':
+                            bundle = attribute.attribute_value
+
+            ord_dict = OrderedDict((('Customer ID', data['order__customer_id']),
                                                     ('Customer Name', data['order__customer_name']),
                                                     ('WMS Code', data['order__sku__wms_code']),
                                                     ('Description', data['order__sku__sku_desc']),
                                                     ('SKU Category', data['order__sku__sku_category']),
+                                                    ('Sub Category', data['order__sku__sub_category']),
+                                                    ('SKU Brand', data['order__sku__sku_brand']),
                                                     ('Quantity', data['qty']),
                                                     ('Picked Quantity', data['qty'] - data['res_qty']),
                                                     ('Warehouse', warehouse_users.get(data['order__sku__user']))
-                                                  )))
+                                                  ))
+            if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                ord_dict['Manufacturer'] = manufacturer
+                ord_dict['Searchable'] = searchable
+                ord_dict['Bundle'] = bundle
+            temp_data['aaData'].append(ord_dict)
         else:
+            manufacturer,searchable,bundle = '','',''
+            if data.order.sku.sku_code:
+                sku_code_attr = data.order.sku.sku_code
+            if sku_code_attr:
+                attributes_obj = SKUAttributes.objects.filter(sku__sku_code=sku_code_attr, attribute_name__in= attributes_list)
+                if attributes_obj.exists():
+                    for attribute in attributes_obj:
+                        if attribute.attribute_name == 'Manufacturer':
+                            manufacturer = attribute.attribute_value
+                        if attribute.attribute_name == 'Searchable':
+                            searchable = attribute.attribute_value
+                        if attribute.attribute_name == 'Bundle':
+                            bundle = attribute.attribute_value
+
             if not serial_view:
                 child_sku_weight = ''
                 child_sku_code = ''
@@ -2953,11 +3006,13 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                     if data.order_type == 'combo':
                         child_sku_code = data.sku_code
                         child_sku_mrp = SKUMaster.objects.filter(user=user.id, sku_code = data.sku_code).values('mrp')[0]['mrp']
-                    temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
+                    ord_dict = OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
                                                             ('WMS MRP', wms_code_mrp),('Child SKU', child_sku_code),
                                                             ('Child SKU MRP', child_sku_mrp),('Child SKU Weight', child_sku_weight),
                                                             ('Description', data.order.sku.sku_desc),
                                                             ('SKU Category', data.order.sku.sku_category),
+                                                            ('Sub Category',data.order.sku.sub_category),
+                                                            ('SKU Brand', data.order.sku.sku_brand),
                                                             ('Location', 'NO STOCK'),
                                                             ('Quantity', data.order.quantity),
                                                             ('Picked Quantity', data.picked_quantity),
@@ -2966,7 +3021,12 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])), ('Customer Name', customer_name),
                                                             ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
                                                             ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate),
-                                                            ('Warehouse', warehouse_users.get(data.order.user)))))
+                                                            ('Warehouse', warehouse_users.get(data.order.user))))
+                    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                        ord_dict['Manufacturer'] = manufacturer
+                        ord_dict['Searchable'] = searchable
+                        ord_dict['Bundle'] = bundle
+                    temp_data['aaData'].append(ord_dict)
                 pick_locs = data.picklistlocation_set.exclude(reserved=0, quantity=0)
                 for pick_loc in pick_locs:
                     picked_quantity = float(pick_loc.quantity) - float(pick_loc.reserved)
@@ -2988,11 +3048,13 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                         cost_price = data.stock.batch_detail.buy_price
                         cost_tax_percent = data.stock.batch_detail.tax_percent
                     wms_code_mrp = data.order.sku.mrp
-                    temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
+                    ord_dict = OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
                                                             ('WMS MRP', wms_code_mrp),('Child SKU', child_sku_code),
                                                             ('Child SKU MRP', child_sku_mrp),('Child SKU Weight', child_sku_weight),
                                                             ('Description', data.order.sku.sku_desc),
                                                             ('SKU Category', data.order.sku.sku_category),
+                                                            ('Sub Category',data.order.sku.sub_category),
+                                                            ('SKU Brand', data.order.sku.sku_brand),
                                                             ('Location', pick_loc.stock.location.location),
                                                             ('Quantity', data.order.quantity),
                                                             ('Picked Quantity', picked_quantity),
@@ -3002,7 +3064,12 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Customer Name', customer_name),
                                                             ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
                                                             ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate),
-                                                            ('Warehouse', warehouse_users.get(data.order.user)))))
+                                                            ('Warehouse', warehouse_users.get(data.order.user))))
+                    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                        ord_dict['Manufacturer'] = manufacturer
+                        ord_dict['Searchable'] = searchable
+                        ord_dict['Bundle'] = bundle
+                    temp_data['aaData'].append(ord_dict)
             else:
                 order_id = data.order.original_order_id
                 if not order_id:
@@ -3015,13 +3082,21 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                 if data.po_imei:
                     serial_number = data.po_imei.imei_number
                 date = get_local_date(user, data.updation_date).split(' ')
-                temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.wms_code),
+                ord_dict = OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.wms_code),
                                                         ('Description', data.order.sku.sku_desc),
                                                         ('SKU Category', data.order.sku.sku_category),
+                                                        ('Sub Category',data.order.sku.sub_category),
+                                                        ('SKU Brand', data.order.sku.sku_brand),
                                                         ('Customer Name', data.order.customer_name),
                                                         ('Serial Number', serial_number),
                                                         ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])),
-                                                        ('Warehouse', warehouse_users.get(data.order.user)))))
+                                                        ('Warehouse', warehouse_users.get(data.order.user))))
+                if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                    ord_dict['Manufacturer'] = manufacturer
+                    ord_dict['Searchable'] = searchable
+                    ord_dict['Bundle'] = bundle
+                temp_data['aaData'].append(ord_dict)
+
     return temp_data
 
 

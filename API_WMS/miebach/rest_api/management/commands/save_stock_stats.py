@@ -70,6 +70,9 @@ class Command(BaseCommand):
                                                         values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
                     rm_picklist_objs = dict(all_sku_stats.filter(transact_type='rm_picklist').\
                                                         values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
+                    rtv_objs = dict(all_sku_stats.filter(transact_type='rtv').\
+                                                        values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
+
                     putaway_quantity = putaway_objs.get(sku.id, 0)
                     uploaded_quantity = stock_uploaded_objs.get(sku.id, 0)
                     stock_quantity = stock_objs.get(sku.id, 0)
@@ -78,12 +81,13 @@ class Command(BaseCommand):
                     dispatched = market_data.get(sku.id, 0)
                     produced_quantity = jo_putaway_objs.get(sku.id, 0)
                     consumed = rm_picklist_objs.get(sku.id, 0)
-                    openinig_stock = stock_quantity - (putaway_quantity + uploaded_quantity + return_quantity +\
+                    rtv_quantity = rtv_objs.get(sku.id,0)
+                    openinig_stock = stock_quantity+rtv_quantity - (putaway_quantity + uploaded_quantity + return_quantity +\
                                                        produced_quantity) + (dispatched + consumed) - adjusted
                     stock_stat = StockStats.objects.filter(sku_id=sku.id, creation_date__startswith=today)
                     data_dict = {'opening_stock': openinig_stock, 'receipt_qty': putaway_quantity,
                                  'uploaded_qty': uploaded_quantity, 'produced_qty': produced_quantity,
-                                 'dispatch_qty': dispatched, 'return_qty': return_quantity,
+                                 'dispatch_qty': dispatched, 'return_qty': return_quantity,'rtv_quantity':rtv_quantity,
                                  'adjustment_qty': adjusted, 'closing_stock': stock_quantity,
                                   'uploaded_qty': uploaded_quantity, 'consumed_qty': consumed,
                                   'creation_date': today

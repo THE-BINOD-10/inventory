@@ -101,7 +101,7 @@
             <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
           </div>
 
-          <div class="row" ng-if="!Style.data_loading">
+          <div class="table-responsive table-body row" ng-if="!Style.data_loading">
             <div>
               <table class="table table-bordered" ng-if="Style.def_lead_tm">
                 <thead>
@@ -173,7 +173,7 @@
             <h5><b>WISH LIST</b></h5><hr>
           </div>
           <span ng-if="!Style.style_data.quantity"><b>No items selected</b></span>
-          <div class="row" ng-repeat="data in Style.wish_list">
+          <!-- <div class="row" ng-repeat="data in Style.wish_list">
               <div class="col-md-6 col-xs-6 no-padding">
                 <span class="pull-left">{{data.wms_code}}</span>
               </div>
@@ -181,7 +181,18 @@
               <div class="col-md-4 col-sm-4 no-padding">
                 <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> {{data.row_total_price | number}}</span>
               </div>
-          </div>
+          </div> -->
+
+          <table>
+            <tbody cellspacing="15">
+              <tr class="row" ng-repeat="data in Style.wish_list">
+                <td style="margin: 10px; padding: 5px;">{{data.wms_code}}</td>
+                <td style="margin: 10px; padding: 5px;">{{data.quantity}}</td>
+                <td class="pull-right" style="margin: 10px; padding: 5px;"><i class="fa fa-inr" aria-hidden="true"></i>{{data.row_total_price | number}}</td>
+              </tr>
+            </tbody>
+          </table>
+
           <!-- <hr>
           <div class="row">
             <div class="col-md-6 col-xs-6 no-padding">

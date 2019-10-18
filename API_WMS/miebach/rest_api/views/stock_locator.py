@@ -420,15 +420,29 @@ def get_asn_res_stock(asn_enq_obj):
 
 
 @fn_timer
-def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
+def get_quantity_data(user_groups, sku_codes_list,asn_true=False,request = ''):
     ret_list = []
+    search_params = {}
+    if request :
+        zones = request.POST.getlist('zones[]')
+        if len(zones) > 0 :
+            search_params['location__zone__zone__in'] = zones
 
     stock_user_dict, purch_dict = {}, {}
-    stock_qty_qs = StockDetail.objects.filter(sku__user__in=user_groups).exclude(location__zone__zone='DAMAGED_ZONE').only(
-        'sku__sku_code').values_list('sku__user', 'sku__sku_code').distinct().annotate(total=Sum('quantity'))
-    for user, sku_code, qty in stock_qty_qs:
-        stock_user_dict.setdefault(str(user), {})
-        stock_user_dict[str(user)][sku_code] = qty
+    stock_value_tax = {}
+    stock_qty_qs = StockDetail.objects.filter(sku__user__in=user_groups,**search_params).exclude(location__zone__zone='DAMAGED_ZONE').only(
+        'sku__sku_code').values('sku__user', 'sku__sku_code').distinct()\
+                        .annotate(total=Sum('quantity'))\
+                        .annotate(total_price = F('quantity') * F('batch_detail__buy_price'))\
+                        .annotate(total_price_tax = F('total_price') + F('total_price') *F('batch_detail__tax_percent'))
+    for obj in stock_qty_qs:
+        wms_code = str(obj.get('sku__sku_code'))
+        user = str(obj.get('sku__user'))
+        group_key = (user,wms_code)
+        stock_user_dict.setdefault(group_key,{'quantity':0,'value_tax' : 0})
+        stock_user_dict[group_key]['quantity']+= obj.get('total',0)
+        if obj.get('total_price_tax',0) :
+            stock_user_dict[group_key]['value_tax']+=obj.get('total_price_tax',0)
 
     purch_sku_qty_qs = PurchaseOrder.objects.filter(open_po__sku__user__in=user_groups).\
         exclude(status__in=['location-assigned', 'confirmed-putaway']). \
@@ -505,7 +519,14 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
             trans_quantity = 0
             if single_sku in purch_dict.get(str(user), []):
                 trans_quantity = purch_dict[str(user)][single_sku]['total_order'] - purch_dict[str(user)][single_sku]['total_received']
-            quantity = stock_user_dict.get(str(user), {}).get(single_sku, 0)
+            group_key = (str(user),str(single_sku))
+            if group_key in stock_user_dict.keys():
+                quantity = stock_user_dict[group_key].get('quantity',0)
+                value_with_tax = stock_user_dict[group_key].get('value_tax',0)
+            else:
+                quantity = 0
+                value_with_tax = 0
+
             pic_reserved = pick_reserved_dict.get(single_sku, 0)
             raw_reserved = raw_reserved_dict.get(single_sku, 0)
             enq_reserved = enq_block_stock_map.get(str(user), {}).get(single_sku, 0)
@@ -515,7 +536,7 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
                 available = quantity
             if available < 0:
                 available = 0
-            ret_list.append({'available': available, 'name': ware, 'transit': trans_quantity, 'reserved': pic_reserved,
+            ret_list.append({'available': available, 'name': ware, 'transit': trans_quantity, 'reserved': pic_reserved,'value_with_tax':value_with_tax,
                              'user': user, 'sku_code': single_sku, 'asn': asn_stock_qty, 'blocked': enq_reserved,
                              'asn_res': asn_res_qty, 'asn_blocked': asn_blk_qty, 'non_kitted': non_kitted_qty})
     return ret_list
@@ -526,7 +547,6 @@ def get_available_stock(start_index, stop_index, temp_data, search_term, order_t
                                                       col_num, request, user, filters)
 
     list_da = {}
-
     for i in da:
         if i['available'] is None:
             i['available'] = 0
@@ -544,7 +564,11 @@ def get_available_stock(start_index, stop_index, temp_data, search_term, order_t
         for single in one_data:
             available = single['available']
             name = single['name']
-            var[name] = available
+            if user.username in MILKBASKET_USERS :
+                var[name+' quantity'] = available
+                var[name+' value with tax'] = single['value_with_tax']
+            else:
+                var[name] = available
         temp_data['aaData'].append(var)
 
 
@@ -577,7 +601,11 @@ def get_availintra_stock(start_index, stop_index, temp_data, search_term, order_
             else:
                 available = avail + intra
             name = single['name']
-            var[name] = available
+            if user.username in MILKBASKET_USERS :
+                var[name+' quantity'] = available
+                var[name+' value with tax'] = single['value_with_tax']
+            else:
+                var[name] = available
         temp_data['aaData'].append(var)
 
 
@@ -613,7 +641,11 @@ def get_avinre_stock(start_index, stop_index, temp_data, search_term, order_term
             else:
                 available = avail + intra + reserv
             name = single['name']
-            var[name] = available
+            if user.username in MILKBASKET_USERS :
+                var[name+' quantity'] = available
+                var[name+' value with tax'] = single['value_with_tax']
+            else:
+                var[name] = available
         temp_data['aaData'].append(var)
 
 
@@ -704,6 +736,12 @@ def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_
         search_params = get_filtered_params(filters, lis)
     else:
         search_params = {}
+    if request.POST.get('sub_category' ,'') :
+        search_params['sub_category'] = request.POST.get('sub_category')
+    if request.POST.get('category','') :
+        search_params['sku_category'] = request.POST.get('category','')
+    if request.POST.get('brand','') :
+        search_params['sku_brand'] = request.POST.get('brand','')
 
     if col_num <= 3:
         order_data = lis[col_num]
@@ -756,7 +794,7 @@ def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_
             data_to_send.append(quantity)
             other_data['rem'].append({'single_sku': single_sku})
     else:
-        user_quantity_dict = get_quantity_data(user_groups, sku_codes[start_index:stop_index])
+        user_quantity_dict = get_quantity_data(user_groups, sku_codes[start_index:stop_index],False,request)
         sku_master_dat = sku_master.values('sku_code', 'sku_desc', 'sku_brand', 'sku_category').distinct()
         sku_descs = dict(zip(map(lambda d: d['sku_code'], sku_master_dat), map(lambda d: d['sku_desc'], sku_master_dat)))
         sku_brands = dict(zip(map(lambda d: d['sku_code'], sku_master_dat), map(lambda d: d['sku_brand'], sku_master_dat)))
@@ -776,7 +814,9 @@ def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_
 @fn_timer
 def get_aggregate_data(user_groups, sku_list):
     data = []
+
     users_objs = User.objects.filter(id__in=user_groups)
+
     stock_qty_map = dict(StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code__in=sku_list,
                                                                          sku__user__in=user_groups).only(
         'quantity').values_list('sku__user').annotate(Sum('quantity')))
@@ -1482,6 +1522,11 @@ def warehouse_headers(request, user=''):
     user_id = user.id
     if price_band_flag == 'true':
         user = get_admin(user)
+    zones = []
+    milkbasket_user = False
+    if user.username in MILKBASKET_USERS:
+        zones = list(ZoneMaster.objects.filter(user = user.id).values_list('zone',flat = True))
+        milkbasket_user = True
     if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
         header = ["SKU Code"]
     else:
@@ -1564,9 +1609,24 @@ def warehouse_headers(request, user=''):
             wh_list.extend(total_headers)
             headers = header + wh_list
         else:
-            headers = header + [admin_user_name] + ware_list
+            warehouse_tax_list = []
+            for warehouse in ware_list :
+                if user.username in MILKBASKET_USERS :
+                    warehouse_tax_list.append(warehouse+" quantity")
+                    warehouse_tax_list.append(warehouse+" value with tax")
+                else:
+                    warehouse_tax_list.append(warehouse)
+
+            if user.username in MILKBASKET_USERS :
+                headers = header + [admin_user_name+' quantity']
+                headers += [admin_user_name+' value with tax']
+            else:
+                headers = header + [admin_user_name]
+
+            headers += warehouse_tax_list
     return HttpResponse(json.dumps({'table_headers': headers, 'size_types': size_list,
-                                    'warehouse_names': user_list, 'market_places': market_places }))
+                                    'warehouse_names': user_list, 'market_places': market_places,
+                                    'zones':zones,'milkbasket_user':milkbasket_user }))
 
 @csrf_exempt
 def get_seller_stock_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,

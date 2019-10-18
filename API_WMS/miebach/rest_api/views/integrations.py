@@ -1953,7 +1953,7 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
 
                             final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details,
                                                                  final_data_dict=final_data_dict)
-                        if not failed_status and not insert_status:
+                        if order_create:
                             order_summary_dict['mrp'] = mrp
                             order_summary_dict['cgst_tax'] = 0
                             order_summary_dict['sgst_tax'] = 0

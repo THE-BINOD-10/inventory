@@ -17,8 +17,8 @@ from django.db.models.fields import DateField, CharField
 from django.db.models import Value
 from datetime import datetime, date, timedelta
 from miebach_admin.models import *
-from rest_api.views.common import get_sku_weight, get_all_sellable_zones, get_work_sheet, get_utc_start_date
-from rest_api.views.miebach_utils import MILKBASKET_USERS, fn_timer
+from rest_api.views.common import get_sku_weight, get_all_sellable_zones, get_work_sheet, get_utc_start_date, get_local_date
+from rest_api.views.miebach_utils import MILKBASKET_USERS, fn_timer, BATCH_DETAIL_HEADERS
 from rest_api.views.mail_server import send_mail_attachment
 from xlwt import  easyxf
 
@@ -102,6 +102,38 @@ class Command(BaseCommand):
             report_file_names.append({'name': file_name, 'path': path})
             return report_file_names
 
+        def get_batch_detail_report(users, report_file_names, report_file_name='SKU Inventory Value'):
+            batch_detail_headers = copy.deepcopy(BATCH_DETAIL_HEADERS)
+            for user in users:
+                stock_detail_objs = StockDetail.objects.select_related('sku', 'location', 'location__zone', 'pallet_detail',
+                                                           'batch_detail').prefetch_related('sku', 'location',
+                                                                                            'location__zone').\
+                                            exclude(Q(receipt_number=0)|Q(batch_detail__buy_price=0)).\
+                                            filter(sku__user=user.id, quantity__gt=0).values_list('receipt_number', 'receipt_date',
+                                            'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'batch_detail__batch_no', 'batch_detail__mrp',
+                                            'batch_detail__weight', 'batch_detail__buy_price', 'batch_detail__tax_percent',
+                                            'batch_detail__manufactured_date', 'batch_detail__expiry_date', 'location__zone__zone',
+                                            'location__location', 'quantity', 'receipt_type')
+                name = '%s_%s' % (user.username, report_file_name)
+                wb, ws, path, file_name = get_excel_variables(name, name, batch_detail_headers)
+                row_count = 1
+                for stock_detail_vals in stock_detail_objs:
+                    for col_count, stock_detail_val in enumerate(stock_detail_vals):
+                        if col_count in [1]:
+                            stock_detail_val = get_local_date(user, stock_detail_val, send_date=True).strftime("%d %b %Y")
+                        elif col_count in [10,11]:
+                            if stock_detail_val:
+                                stock_detail_val = stock_detail_val.strftime("%d %b %Y")
+                            else:
+                                stock_detail_val = ''
+                        ws, column_count = write_excel_col(ws, row_count, col_count, stock_detail_val)
+                    row_count += 1
+                wb.save(path)
+                report_file_names.append({'name': file_name, 'path': path})
+            return report_file_names
+
+
+
         users = User.objects.filter(username__in=['GGN01', 'NOIDA01', 'NOIDA02', 'HYD01', 'BLR01'])
         #users = User.objects.filter(username__in=['GGN01'])
         category_list = list(SKUMaster.objects.filter(user__in=users, status=1).exclude(sku_category='').\
@@ -127,6 +159,7 @@ class Command(BaseCommand):
             start_date = get_utc_start_date(datetime.now().replace(day=1))
             end_date = get_utc_start_date(datetime.now()+timedelta(days=1))
             report_file_names = get_adjustment_report(users, start_date, end_date, report_file_names, report_file_name='Adjustment Report-MTD')
+            report_file_names = get_batch_detail_report(users, report_file_names, report_file_name='SKU Inventory Value')
             for category in category_list:
                 log.info("Calculation started for Category %s" % category)
                 for user in users:
@@ -139,11 +172,12 @@ class Command(BaseCommand):
                     margin_percent_dict.setdefault(category, {})
                     margin_percent_dict[category].setdefault(int(user.id), 0)
                     # Doc Value Calculation Starts
-                    '''no_zero_stock_days = list(StockStats.objects.filter(sku__sku_category=category, sku__user=user.id, closing_stock__gt=0). \
+                    no_zero_stock_days = list(StockStats.objects.filter(sku__sku_category=category, sku__user=user.id, closing_stock__gt=0). \
                                          annotate(creation_date_only=Cast('creation_date', DateField())).values(
                         'creation_date_only').distinct(). \
                                          order_by('-creation_date_only').values_list('creation_date_only', flat=True)[
                                          :7])
+
                     all_orders = OrderDetail.objects.filter(user=user.id, sku__sku_category=category,
                                                                    customerordersummary__isnull=False, sellerorder__seller__seller_id=2)
                     order_detail_objs = all_orders. \
@@ -151,16 +185,16 @@ class Command(BaseCommand):
                                             filter(creation_date_only__in=no_zero_stock_days).values(
                         'creation_date_only').distinct(). \
                                             order_by('-creation_date_only').\
-                        annotate(quantity_sum=Sum('quantity'),value_sum=Sum((F('quantity') * F('unit_price')) +\
-                                    ((F('quantity')*F('unit_price')/Value('100'))*(F('customerordersummary__cgst_tax')+\
-                                     F('customerordersummary__sgst_tax')+F('customerordersummary__igst_tax')+\
-                                                                                   F('customerordersummary__cess_tax'))) ))[:7]
+                        annotate(quantity_sum=Sum('quantity'),value_sum=Sum((F('quantity') * F('unit_price'))))[:7] # +\
+                                    #((F('quantity')*F('unit_price')/Value('100'))*(F('customerordersummary__cgst_tax')+\
+                                    # F('customerordersummary__sgst_tax')+F('customerordersummary__igst_tax')+\
+                                    #                                               F('customerordersummary__cess_tax'))) ))[:7]
                     total_sale_value = 0
                     if order_detail_objs.exists():
                         for order_detail_obj in order_detail_objs:
                             total_sale_value += order_detail_obj['value_sum']
                     avg_sale_value = total_sale_value/7
-                    doc_value_dict[category][int(user.id)] = avg_sale_value'''
+                    doc_value_dict[category][int(user.id)] = avg_sale_value
                     # Doc Value Calculation Ends
 
                     # Margin Value and Percent Calculation Starts
@@ -237,7 +271,7 @@ class Command(BaseCommand):
 
             wb.save(path)
             report_file_names.append({'name': file_name, 'path': path})
-            '''name = 'days_of_cover_report'
+            name = 'days_of_cover_report'
             wb, ws, path, file_name = get_excel_variables(name, 'Days of Cover', inv_value_headers)
             row_count = 1
             for category, user_value in doc_value_dict.iteritems():
@@ -268,7 +302,7 @@ class Command(BaseCommand):
 
             wb.save(path)
             report_file_names.append({'name': file_name, 'path': path})
-            name = 'consolidated_margin_percent'
+            '''name = 'consolidated_margin_percent'
             wb, ws, path, file_name = get_excel_variables(name, 'consolidated_margin_percent', inv_value_headers,
                                                           headers_index=1)
             ws.write_merge(0, 0, 1, 3, 'Consolidated Margin Percentage')
@@ -294,7 +328,7 @@ class Command(BaseCommand):
             report_file_names.append({'name': file_name, 'path': path})'''
             #send_to = ['sreekanth@mieone.com']
             send_to = ['shishir.sharma@milkbasket.com', 'gaurav.srivastava@milkbasket.com', 'anubhav.gupta@milkbasket.com', 'anubhavsood@milkbasket.com',
-                        'sahil.madan@milkbasket.com']
+                        'sahil.madan@milkbasket.com', 'anurag@milkbasket.com', 'rajiv.joshi@milkbasket.com', 'saurabh.kumar@milkbasket.com']
             subject = '%s Reports dated %s' % ('Milkbasket', datetime.now().date())
             text = 'Please find the scheduled reports in the attachment dated: %s' % str(
                 datetime.now().date())

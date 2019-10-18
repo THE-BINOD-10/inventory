@@ -3905,10 +3905,23 @@ def confirm_sales_return(request, user=''):
                 return_loc_params.update({'is_rto': True})
             if return_dict.get('mrp') or return_dict.get('manufactured_date') or \
                     return_dict.get('expiry_date', ''):
-                batch_dict = {'mrp': float(return_dict.get('mrp', 0)),
+                try:
+                    buy_price = float(return_dict.get('buy_price', 0))
+                except:
+                    buy_price = 0
+                try:
+                    mrp = float(return_dict.get('mrp', 0))
+                except:
+                    mrp = 0
+                try:
+                    tax_percent = float(return_dict.get('tax_percent', 0))
+                except:
+                    tax_percent = 0
+                batch_dict = {'mrp': mrp,
                               'manufactured_date': return_dict.get('manufactured_date', ''),
                               'expiry_date': return_dict.get('expiry_date', ''),
-                              'batch_no': ''}
+                              'batch_no': '', 'buy_price': buy_price,
+                              'tax_percent': tax_percent}
                 add_ean_weight_to_batch_detail(order_returns[0].sku, batch_dict)
                 return_loc_params['batch_dict'] = batch_dict
             locations_status = save_return_locations(**return_loc_params)

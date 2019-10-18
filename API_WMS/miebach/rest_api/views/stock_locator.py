@@ -443,6 +443,8 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False,request = ''):
         stock_user_dict[group_key]['quantity']+= obj.get('total',0)
         if obj.get('total_price_tax',0) :
             stock_user_dict[group_key]['value_tax']+=obj.get('total_price_tax',0)
+        else:
+            stock_user_dict[group_key]['value_tax']+=0
 
     purch_sku_qty_qs = PurchaseOrder.objects.filter(open_po__sku__user__in=user_groups).\
         exclude(status__in=['location-assigned', 'confirmed-putaway']). \

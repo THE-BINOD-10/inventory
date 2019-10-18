@@ -573,7 +573,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             if int(quantity_check) == 0:
                 index_status.setdefault(count, set()).add('Quantity is given zero')
             if get_misc_value('float_switch', user.id) == 'false':
-                if isinstance(quantity_check, float):
+                if not quantity_check.is_integer():
                     index_status.setdefault(count, set()).add('Decimal Not Allowed In Qty')
 
         if type(cell_data) == float:
@@ -1884,7 +1884,8 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                     if key == 'quantity':
                         if isinstance(cell_data, float):
                             if get_misc_value('float_switch', user.id) == 'false':
-                                index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
+                                if not cell_data.is_integer():
+                                    index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
                     data_dict[key] = float(cell_data)
                 except:
                     if key not in optional_fields:
@@ -2748,7 +2749,8 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                         index_status.setdefault(row_idx, set()).add('Quantity should be integer')
                     elif isinstance(cell_data, float):
                         if get_misc_value('float_switch', user.id) == 'false':
-                            index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
+                            if not cell_data.is_integer():
+                                index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
                         data_dict[key] = float(cell_data)
                     else:
                         data_dict[key] = float(cell_data)
@@ -3305,7 +3307,8 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
             elif key in number_fields:
                 if isinstance(cell_data, float):
                     if get_misc_value('float_switch', user.id) == 'false':
-                        index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
+                        if not cell_data.is_integer():
+                            index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
                 if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % fields_mapping[key])
                 else:
@@ -3558,7 +3561,8 @@ def validate_bom_form(open_sheet, user, bom_excel):
                         #    index_status.setdefault(row_idx, set()).add('Quantity Should not be empty')
                     if isinstance(cell_data, float):
                         if get_misc_value('float_switch', user.id) == 'false':
-                            index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
+                            if not cell_data.is_integer():
+                                index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
             elif key == 'wastage_percent':
                 cell_data = open_sheet.cell(row_idx, bom_excel[key]).value
                 if cell_data:
@@ -3643,7 +3647,8 @@ def validate_combo_sku_form(open_sheet, user):
                     index_status.setdefault(row_idx, set()).add(message)
                 if isinstance(cell_data, float):
                     if get_misc_value('float_switch', user.id) == 'false':
-                        index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
+                        if not cell_data.is_integer():
+                            index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
             else:
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
@@ -3768,7 +3773,8 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                 try:
                     if isinstance(cell_data, float):
                         if get_misc_value('float_switch', user.id) == 'false':
-                            index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
+                            if not cell_data.is_integer():
+                                index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
                     data_dict['quantity'] = float(cell_data)
                     if data_dict['quantity'] < 0:
                         index_status.setdefault(row_idx, set()).add('Invalid Quantity')
@@ -4155,7 +4161,8 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                         index_status.setdefault(row_idx, set()).add('Return Quantity should not be in negative')
                 if isinstance(cell_data, float):
                     if get_misc_value('float_switch', user.id) == 'false':
-                        index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
+                        if not cell_data.is_integer():
+                            index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
 
             elif key == 'damaged_quantity':
                 if not isinstance(cell_data, (int, float)) and cell_data:
@@ -4167,7 +4174,8 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                         index_status.setdefault(row_idx, set()).add('Damaged Quantity should not be in negative')
                 if isinstance(cell_data, float):
                     if get_misc_value('float_switch', user.id) == 'false':
-                        index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
+                        if not cell_data.is_integer():
+                            index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
 
             elif key == 'return_id':
                 sku_cod = get_cell_data(row_idx, order_mapping['sku_id'], reader, file_type)
@@ -4828,7 +4836,8 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
                     index_status.setdefault(count, set()).add('Quantity should be greater than Zero')
                 elif isinstance(value, float):
                     if get_misc_value('float_switch', user.id) == 'false':
-                        index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
+                        if not value.is_integer():
+                            index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
                 else:
                     order_details['quantity'] = value
                     seller_order_details['quantity'] = value
@@ -5218,7 +5227,8 @@ def validate_job_order(request, reader, user, no_of_rows, fname, file_type='xls'
                     if value:
                         if isinstance(value, float):
                             if get_misc_value('float_switch', user.id) == 'false':
-                                index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
+                                if not value.is_integer():
+                                    index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
                     value = float(value)
                 except:
                     value = 0
@@ -5577,7 +5587,8 @@ def validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols,
                 try:
                     if isinstance(cell_data, float):
                         if get_misc_value('float_switch', user.id) == 'false':
-                            index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
+                            if not cell_data.is_integer():
+                                index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
                     data_dict[key] = float(cell_data)
                 except:
                     index_status.setdefault(row_idx, set()).add('%s should be number' % exc_reverse[key])
@@ -5784,7 +5795,8 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                     if cell_data:
                         if isinstance(cell_data, float):
                             if get_misc_value('float_switch', user.id) == 'false':
-                                index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
+                                if not cell_data.is_integer():
+                                    index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
         if row_idx not in index_status:
             prev_data_dict = copy.deepcopy(data_dict)
             stock_dict = {"sku_id": data_dict['source_sku_code_obj'].id,
@@ -6533,7 +6545,8 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                     if key == 'quantity':
                         if isinstance(cell_data, float):
                             if get_misc_value('float_switch', user.id) == 'false':
-                                index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
+                                if not cell_data.is_integer():
+                                    index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
                 elif key == 'quantity':
                     index_status.setdefault(count, set()).add('Quantity is mandatory')
 
@@ -6795,7 +6808,8 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                         index_status.setdefault(row_idx, set()).add('Invalid Quantity Amount')
                     elif isinstance(cell_data, float):
                         if get_misc_value('float_switch', user.id) == 'false':
-                            index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
+                            if not cell_data.is_integer():
+                                index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
                     else:
                         sku_code = get_cell_data(row_idx, blockstock_file_mapping['sku_code'], reader, file_type)
                         wh_name = get_cell_data(row_idx, blockstock_file_mapping['warehouse'], reader, file_type)
@@ -7082,7 +7096,8 @@ def validate_custom_order_form(reader, user, no_of_rows, no_of_cols, fname, file
                         index_status.setdefault(row_idx, set()).add('Invalid Quantity Amount')
                     if isinstance(cell_data, float):
                         if get_misc_value('float_switch', user.id) == 'false':
-                            index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
+                            if not cell_data.is_integer():
+                                index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
             elif key == 'client_po_rate':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Client PO Rate is Missing')
@@ -7449,7 +7464,8 @@ def validate_combo_allocate_form(request, reader, user, no_of_rows, no_of_cols, 
                     if cell_data:
                         if isinstance(cell_data, float):
                             if get_misc_value('float_switch', user.id) == 'false':
-                                index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
+                                if not cell_data.is_integer():
+                                    index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
                         data_dict[key] = float(cell_data)
 
         if row_idx not in index_status:

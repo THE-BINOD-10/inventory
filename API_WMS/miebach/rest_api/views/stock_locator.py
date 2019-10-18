@@ -568,7 +568,7 @@ def get_available_stock(start_index, stop_index, temp_data, search_term, order_t
             name = single['name']
             if user.username in MILKBASKET_USERS :
                 var[name+' quantity'] = available
-                var[name+' value with tax'] = single['value_with_tax']
+                var[name+' value with tax'] = single.get('value_with_tax',0)
             else:
                 var[name] = available
         temp_data['aaData'].append(var)

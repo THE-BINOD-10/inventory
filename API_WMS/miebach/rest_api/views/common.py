@@ -8110,7 +8110,9 @@ def update_order_batch_details(user, order):
                 group_key = '%s:%s:%s' % (str(batch_detail.mrp), str(batch_detail.manufactured_date),
                                           str(batch_detail.expiry_date))
                 batch_data.setdefault(group_key, {'mrp': batch_detail.mrp, 'manufactured_date': mfg_date,
-                                    'expiry_date': exp_date, 'quantity': 0})
+                                                   'expiry_date': exp_date, 'quantity': 0,
+                                                  'buy_price': batch_detail.buy_price,
+                                                  'tax_percent': batch_detail.tax_percent})
                 batch_data[group_key]['quantity'] += pick.quantity
     return batch_data.values()
 

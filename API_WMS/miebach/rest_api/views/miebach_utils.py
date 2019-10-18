@@ -594,7 +594,7 @@ STOCK_LEDGER_REPORT_DICT = {
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
     ],
     'dt_headers': ['Date', 'SKU Code', 'SKU Description', 'Style Name', 'Brand', 'Category',
-                   'Size', 'Opening Stock', 'Receipt Quantity', 'Produced Quantity', 'Dispatch Quantity',
+                   'Size', 'Opening Stock', 'Receipt Quantity', 'Produced Quantity', 'Dispatch Quantity','RTV Quantity',
                    'Return Quantity', 'Adjustment Quantity', 'Consumed Quantity', 'Closing Stock'],
     'dt_url': 'get_stock_ledger_report', 'excel_name': 'stock_ledger_report',
     'print_url': 'print_stock_ledger_report',
@@ -2304,6 +2304,9 @@ CUSTOM_ORDER_DEF_EXCEL = OrderedDict((
 CLUSTER_SKU_MAPPING = OrderedDict((
                                   ('Cluster Name', 0),
                                   ('Sku Code', 1), ('Sequence', 2)))
+
+BATCH_DETAIL_HEADERS = ['Receipt Number', 'Receipt Date', 'WMS Code', 'Product Description', 'SKU Category', 'Batch Number', 'MRP', 'Weight',
+                        'Price', 'Tax Percent', 'Manufactured Date', 'Expiry Date', 'Zone', 'Location', 'Quantity', 'Receipt Type']
 #PICKLIST_EXCLUDE_ZONES = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
 
 def fn_timer(function):
@@ -2672,8 +2675,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
         else:
             lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__wms_code',
                    'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category',
-                   'stock__location__location', 'picked_quantity', 'picked_quantity', 'order__unit_price',
-                   'stock__batch_detail__buy_price', 'stock_id', 'updation_date', 'updation_date',
+                   'stock__location__location', 'picked_quantity', 'picked_quantity', 'order__unit_price', 'order_id',
+                   'stock__batch_detail__buy_price', 'stock__batch_detail__tax_percent', 'stock_id', 'updation_date', 'updation_date',
                    'order__customer_name', 'stock__batch_detail__batch_no', 'stock__batch_detail__mrp',
                    'stock__batch_detail__manufactured_date', 'stock__batch_detail__expiry_date']
             model_obj = Picklist
@@ -2767,6 +2770,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                 wms_code_mrp = 0
                 cost_price = 0
                 tax_percent = 0
+                cost_tax_percent = 0
                 cod = data.order.customerordersummary_set.filter()
                 if cod:
                     cod = cod[0]
@@ -2801,8 +2805,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Location', 'NO STOCK'),
                                                             ('Quantity', data.order.quantity),
                                                             ('Picked Quantity', data.picked_quantity),
-                                                            ('Selling Price', data.order.unit_price),
-                                                            ('Cost Price', cost_price), ('Sale Tax Percent', tax_percent),
+                                                            ('Selling Price', data.order.unit_price), ('Sale Tax Percent', tax_percent),
+                                                            ('Cost Price', cost_price), ('Cost Tax Percent', cost_tax_percent),
                                                             ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])), ('Customer Name', customer_name),
                                                             ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
                                                             ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate),
@@ -2826,6 +2830,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                     cost_price = 0
                     if data.stock and data.stock.batch_detail:
                         cost_price = data.stock.batch_detail.buy_price
+                        cost_tax_percent = data.stock.batch_detail.tax_percent
                     wms_code_mrp = data.order.sku.mrp
                     temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
                                                             ('WMS MRP', wms_code_mrp),('Child SKU', child_sku_code),
@@ -2836,8 +2841,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Quantity', data.order.quantity),
                                                             ('Picked Quantity', picked_quantity),
                                                             ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])),
-                                                            ('Selling Price', data.order.unit_price),
-                                                            ('Cost Price', cost_price), ('Sale Tax Percent', tax_percent),
+                                                            ('Selling Price', data.order.unit_price), ('Sale Tax Percent', tax_percent),
+                                                            ('Cost Price', cost_price), ('Cost Tax Percent', cost_tax_percent),
                                                             ('Customer Name', customer_name),
                                                             ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
                                                             ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate),
@@ -3056,7 +3061,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price',
                          'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number','overall_discount',
-                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks','purchase_order__open_po__supplier__tin_number','purchase__id']
+                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks','purchase_order__open_po__supplier__tin_number','purchase_order__id']
     else:
         unsorted_dict = {16: 'Pre-Tax Received Value', 29: 'Post-Tax Received Value',
                          30: 'Invoiced Unit Rate',
@@ -4862,7 +4867,7 @@ def get_stock_ledger_data(search_params, user, sub_user):
                                  ('Receipt Quantity', obj.receipt_qty + obj.uploaded_qty),
                                  ('Produced Quantity', obj.produced_qty),
                                  ('Dispatch Quantity', obj.dispatch_qty), ('Return Quantity', obj.return_qty),
-                                 ('Consumed Quantity', obj.consumed_qty),
+                                 ('Consumed Quantity', obj.consumed_qty),('RTV Quantity',obj.rtv_quantity),
                                  ('Adjustment Quantity', obj.adjustment_qty), ('Closing Stock', obj.closing_stock)
                                  )))
     temp_data['aaData'] = data

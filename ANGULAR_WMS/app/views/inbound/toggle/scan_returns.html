@@ -122,6 +122,8 @@
                  <th> Unit Price </th>
                  <th ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" class="mp_field"> Market place </th>
                  <th ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"> MRP </th>
+                 <th ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"> Buy Price </th>
+                 <th ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"> Tax Percent </th>
                  <th ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" class="mf_field"> Mfg.Date </th>
                  <th ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" class="ex_field"> Exp.Date </th>
                  <th>SGST</th>
@@ -161,6 +163,8 @@
                  </td>
 
                  <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"> <input type="text" name="mrp" class="form-control decimal mrp_field" ng-model="data_split.mrp" > </td>
+                 <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"> <input type="text" name="buy_price" class="form-control decimal mrp_field" ng-model="data_split.buy_price" > </td>
+                 <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"> <input type="text" name="tax_percent" class="form-control decimal mrp_field" ng-model="data_split.tax_percent" > </td>
                  <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"><input ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" ui-jq="datepicker" ng-model="data_split.manufactured_date" class="form-control stk-readonly mfd_field" type="text" id="manufactured_date" readonly name="manufactured_date" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Manufactured Date"></td>
                  <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"><input ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" ui-jq="datepicker" ng-model="data_split.expiry_date" class="form-control stk-readonly exp_field" type="text" id="expiry_date" readonly name="expiry_date" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Expiry Date"></td>
                  <td><input type="text" class="form-control ig_ifield" ng-model="data_split.sgst" readonly ></td>

@@ -319,9 +319,9 @@ def get_orders_count(request, user=''):
     filter_params = {'user': user.id, 'quantity__gt': 0}
     orders = filter_or_none(OrderDetail, filter_params)
     orders_count = orders.count()
-    
+
     return HttpResponse(json.dumps({'orders': orders_count}))
-    
+
 
 @csrf_exempt
 @login_required
@@ -999,7 +999,7 @@ def save_image_file(image_file, data, user, extra_image=''):
         sku_image = SKUImages.objects.filter(sku_id=data.id, image_url=image_url)
         if not sku_image:
             SKUImages.objects.create(sku_id=data.id, image_url=image_url, creation_date=NOW)
-            
+
     except:
         print 'not saved'
 
@@ -1760,7 +1760,7 @@ def print_po_reports(request, user=''):
         w_address = user_profile.address
     table_headers = ('WMS CODE', 'Description', 'Received Quantity', 'Unit Price')
     return render(request, 'templates/toggle/po_template.html', {'table_headers': table_headers, 'data': po_data, 'address': address,
-                           'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total, 
+                           'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total,
                            'po_reference': po_reference, 'w_address': w_address, 'company_name': user_profile.company_name,
                            'display': 'display-none' })
 
@@ -2585,6 +2585,7 @@ def switches(request, user=''):
                     'auto_po_switch': request.GET.get('auto_po_switch', ''),
                     'no_stock_switch': request.GET.get('no_stock_switch', ''),
                     'tax_inclusive': request.GET.get('tax_inclusive', ''),
+                    'loc_serial_mapping_switch': request.GET.get('loc_serial_mapping_switch', ''),
                   }
 
     for key, value in toggle_data.iteritems():
@@ -2729,6 +2730,7 @@ def configurations(request, user=''):
     if not permissionpage(request):
         return render(request, 'templates/permission_denied.html')
     fifo_switch = get_misc_value('fifo_switch', user.id)
+    loc_serial_mapping_switch = get_misc_value('loc_serial_mapping_switch', user.id)
     batch_switch = get_misc_value('batch_switch', user.id)
     send_message = get_misc_value('send_message', user.id)
     use_imei = get_misc_value('use_imei', user.id)
@@ -2793,6 +2795,7 @@ def configurations(request, user=''):
         picklist_display_address = picklist_display_address[0].misc_value
 
     return render(request, 'templates/configurations.html', {'batch_switch': batch_switch, 'fifo_switch': fifo_switch, 'pos_switch': pos_switch,
+                                                             'loc_serial_mapping_switch':loc_serial_mapping_switch,
                                                              'send_message': send_message, 'use_imei': use_imei, 'back_order': back_order,
                                                              'show_image': show_image, 'online_percentage': online_percentage,
                                                              'prefix': prefix, 'pallet_switch': pallet_switch,
@@ -3561,7 +3564,7 @@ def get_quality_check_data(start_index, stop_index, temp_data, search_term, orde
         temp_data['aaData'].append({'DT_RowId': key[0], 'Purchase Order ID': po_reference, 'Supplier ID': key[1],
                                     'Supplier Name': key[2], 'Order Type': order_type, 'Total Quantity': value})
 
-    sort_col = lis[col_num]    
+    sort_col = lis[col_num]
     if order_term == 'asc':
         temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col))
     else:
@@ -3699,7 +3702,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                           'Receive Status': receive_status})
 
     sort_col = lis[col_num]
-    
+
     if order_term == 'asc':
         data_list = sorted(data_list, key=itemgetter(sort_col))
     else:
@@ -5131,7 +5134,7 @@ def order_upload(request, user=''):
     if (fname.name).split('.')[-1] == 'csv':
         count = 0
         reader = [[val.replace('\n', '').replace('\t', '').replace('\r','') for val in row] for row in csv.reader(fname.read().splitlines())]
-        
+
         for row in reader:
             if not row:
                continue
@@ -6302,7 +6305,7 @@ def insert_order_serial(picklist, val):
         elif imei and not po_mapping:
             order_mapping = {'order_id': picklist.order.id, 'po_imei_id': None, 'imei_number': imei}
             imei_mapping = OrderIMEIMapping(**order_mapping)
-            imei_mapping.save() 
+            imei_mapping.save()
 
 def update_picklist_locations(pick_loc, picklist, update_picked, update_quantity=''):
     for pic_loc in pick_loc:
@@ -6768,7 +6771,7 @@ def get_move_inventory(start_index, stop_index, temp_data, search_term, status, 
 
             if positive_difference == 0:
                 positive_items.remove(positive)
-                break    
+                break
     all_data = []
     if status == 'adj':
         total_items = positive_items + negative_items
@@ -7885,7 +7888,7 @@ def validate_putaway(all_data,user):
                     sku_code = order_data['sku_code']
                     pick_res_quantity = PicklistLocation.objects.filter(picklist__order__sku__sku_code=sku_code,
                                                                         stock__location__zone__zone="BAY_AREA",
-                                                                        status=1, picklist__status__icontains='open', 
+                                                                        status=1, picklist__status__icontains='open',
                                                                         picklist__order__user=user.id).\
                                                                         aggregate(Sum('reserved'))['reserved__sum']
                     po_loc_quantity = POLocation.objects.filter(purchase_order__open_po__sku__sku_code=sku_code, status=1,
@@ -11619,7 +11622,7 @@ def get_warehouse_user_results(start_index, stop_index, temp_data, search_term, 
         master_data2 = UserGroups.objects.filter(**search_params2).values_list('admin_user__username','admin_user__first_name',
                                                  'admin_user__email').order_by(order_data, order_data)
         master_data = list(chain(master_data1, master_data2))
-            
+
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     for data in master_data[start_index:stop_index]:
@@ -11668,9 +11671,9 @@ def add_warehouse_user(request, user=''):
 def get_warehouse_user_data(request, user=''):
     username = request.GET['username']
     user_profile = UserProfile.objects.get(user__username=username)
-    data = {'username': user_profile.user.username, 'first_name': user_profile.user.first_name, 'last_name': user_profile.user.last_name, 
+    data = {'username': user_profile.user.username, 'first_name': user_profile.user.first_name, 'last_name': user_profile.user.last_name,
             'phone_number': user_profile.phone_number, 'email': user_profile.user.email, 'country': user_profile.country,
-            'state': user_profile.state, 'city': user_profile.city, 'address': user_profile.address, 'pin_code': user_profile.pin_code} 
+            'state': user_profile.state, 'city': user_profile.city, 'address': user_profile.address, 'pin_code': user_profile.pin_code}
     return render(request, 'templates/toggle/update_warehouse_user.html', {'data': data, 'headers': WAREHOUSE_HEADERS,
                                                                'add_user_fields': WAREHOUSE_UPDATE_FIELDS })
 

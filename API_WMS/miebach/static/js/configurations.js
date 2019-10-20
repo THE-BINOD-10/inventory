@@ -1,6 +1,7 @@
 $(document).ready(function(){
 $("#batch-conf-switch").bootstrapSwitch();
 $("#fifo-conf-switch").bootstrapSwitch();
+$("#loc-serial-mapping-switch").bootstrapSwitch();
 $("#message-switch").bootstrapSwitch();
 $("#show-image-switch").bootstrapSwitch();
 $("#show-sync-switch").bootstrapSwitch();
@@ -53,6 +54,25 @@ $("#batch-conf-switch").on('switchChange.bootstrapSwitch', function(event, state
       }
     }});
   });
+
+  $("#loc-serial-mapping-switch").on('switchChange.bootstrapSwitch', function(event, state) {
+     var state = state;
+     if(state == true) {
+         state = "true"
+         }
+     else{
+         state = "false"
+     }
+     $.ajax({url: '/switches?fifo_switch=' + state,
+         'success': function(response) {
+       if(state == true) {
+           $("#loc-serial-mapping-switch").attr("checked", true);
+       }
+       else {
+           $("#loc-serial-mapping-switch").attr("checked", false);
+       }
+     }});
+   });
 
  $("#show-sync-switch").on('switchChange.bootstrapSwitch', function(event, state) {
     var state = state;
@@ -299,4 +319,3 @@ $("#batch-conf-switch").on('switchChange.bootstrapSwitch', function(event, state
   });
 
 });
-

@@ -11,6 +11,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   vm.order_exceed_stock = Boolean(Session.roles.permissions.order_exceed_stock);
   vm.permissions = Session.roles.permissions;
   vm.model_data = {}
+  vm.dispatch_data = []
   vm.auto_shipment = false;
   vm.date = new Date();
   vm.payment_status = ['To Pay', 'VPP', 'Paid'];
@@ -787,6 +788,95 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     });
     $state.go("app.outbound.CreateOrders.customer");
   }
+
+
+  vm.title = "Dispatch Serial Numbers";
+  vm.dispatch_data = []
+  vm.dispatch_serial_numbers_pop = function() {
+    angular.copy(empty_data, vm.model_data);
+    $state.go("app.outbound.CreateOrders.DispatchSerialNumbers");
+  }
+
+  // vm.elem = []
+  // vm.scan_imei = function(event, field) {
+  //     if ( event.keyCode == 13 && field) {
+  //       field = field.toUpperCase();
+  //       Service.apiCall('get_imei_data/', 'GET', {imei:field}, true).then(function(data){
+  //         if(data.data.message == "Success") {
+  //           vm.dispatch_data.push(data.data['dispatch_summary_imei_details'])
+  //         } else {
+  //           Service.showNoty(data.data.message);
+  //         }
+  //       })
+  //       vm.imei="";
+  //     }
+  //   }
+
+  vm.SerialcheckAndAdd = function(scan) {
+
+    var status = false;
+    for(var i = 0; i < vm.scan_codes.length; i++) {
+
+      if(vm.scan_codes.indexOf(scan) > -1){
+        status = true;
+        break;
+      }
+    }
+    return status;
+  }
+
+  vm.elem = []
+  vm.scan_codes = []
+  vm.scan_imei = function(event, field) {
+      if ( event.keyCode == 13 && field) {
+        field = field.toUpperCase();
+        var elem = {serial: field, cost_check:vm.model_data.blind_order};
+        vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
+        if(data.message) {
+          if(data.data.status == "Success") {
+            if(vm.SerialcheckAndAdd(field)) {
+              vm.service.showNoty("Already Scanned")
+            }
+            else {
+              vm.dispatch_data.push(data.data['dispatch_summary_imei_details'])
+              vm.scan_codes.push(field)
+            }
+          } else {
+            vm.service.showNoty(data.data.status);
+          }
+        }
+      });
+        vm.imei="";
+      }
+    }
+
+    vm.submit_dispatch_data = function(event, form) {
+      if (form.$valid){
+        var elem = [];
+        var send = vm.dispatch_data;
+        elem.push({'name':'dispatch_Serial_data','value':JSON.stringify(vm.dispatch_data)})
+        vm.service.apiCall('dispatch_serial_numbers/', 'POST', elem).then(function(data){
+         if(data.message) {
+           if(data.data.serial_data){
+             vm.serial_data = data.data.serial_data;
+             vm.model_data.blind_order = true;
+             vm.model_data.data = []
+             angular.forEach(data.data.serial_data, function(serial_data){
+               vm.qty = serial_data.serial_number;
+               vm.inv_amt = serial_data.selling_price;
+               vm.model_data.data.push({sku_id: serial_data.sku_code, quantity: vm.qty.length, description: serial_data.sku_desc,
+                                        invoice_amount: vm.inv_amt, price: "", tax: "", total_amount:vm.inv_amt, unit_price: "",location: serial_data.location,
+                                        serials: vm.scan_codes, serial: "", capacity: 0, extra: '', discount: ""})
+             })
+           }
+         }
+       });
+      }
+      vm.model_data.blind_order = true;
+      $state.go('app.outbound.CreateOrders');
+    }
+
+
   vm.submit = function(data){
     if (data.$valid) {
       vm.service.apiCall('insert_customer/', 'POST', vm.customer_data, true).then(function(data){

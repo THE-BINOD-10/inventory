@@ -5020,7 +5020,6 @@ def validate_po_serial_mapping(request, reader, user, no_of_rows, fname, file_ty
         final_data_dict = check_and_add_dict(group_key, 'imei_list', [imei_number], final_data_dict=final_data_dict,
                                              is_list=True)
         # log.info("Order Saving Started %s" %(datetime.datetime.now()))
-
     if index_status:
         f_name = generate_error_excel(index_status, fname, reader, file_type)
         return f_name
@@ -5037,6 +5036,7 @@ def create_po_serial_mapping(final_data_dict, user):
     log.info('PO Serial Mapping data for ' + user.username + ' is ' + str(final_data_dict))
     mod_locations = []
     po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+    lr_number,invoice_num = '',''
     for key, value in final_data_dict.iteritems():
         quantity = len(value['imei_list'])
         po_details = value['po_details']
@@ -5081,8 +5081,6 @@ def create_po_serial_mapping(final_data_dict, user):
                                                                 purchase_order_id=purchase_order.id,
                                                                 creation_date=NOW)
 
-        imei_nos = ','.join(value['imei_list'])
-        insert_po_mapping(imei_nos, purchase_order, user.id)
 
         po_location_dict = {'creation_date': NOW, 'status': 0, 'quantity': 0, 'original_quantity': quantity,
                             'location_id': po_details['location_id'], 'purchase_order_id': purchase_order.id, 'updation_date':NOW}
@@ -5092,6 +5090,15 @@ def create_po_serial_mapping(final_data_dict, user):
                                                 status=1, location_id=po_details['location_id'],
                                                 sku_id=po_details['sku_id'], unit_price = po_details['unit_price'],
                                                 receipt_type='purchase order', creation_date=NOW, updation_date=NOW)
+
+        loc_serial_mapping_switch = get_misc_value('loc_serial_mapping_switch', user.id)
+        if loc_serial_mapping_switch == 'true':
+            imei_nos = ','.join(value['imei_list'])
+            insert_po_mapping(imei_nos, purchase_order, user.id, stock_dict)
+        else:
+            imei_nos = ','.join(value['imei_list'])
+            insert_po_mapping(imei_nos, purchase_order, user.id)
+
         # SKU Stats
         save_sku_stats(user, stock_dict.sku_id, purchase_order.id, 'po', quantity, stock_dict)
         mod_locations.append(location_master.location)

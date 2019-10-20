@@ -1378,6 +1378,12 @@ var app = angular.module('urbanApp')
              url: '/customer',
              templateUrl: 'views/outbound/toggle/customer.html'
            })
+
+           .state('app.outbound.CreateOrders.DispatchSerialNumbers', {
+              url: '/DispatchSerialNumbers',
+              templateUrl: 'views/outbound/toggle/dispatch_serial_numbers.html'
+            })
+
         .state('app.outbound.CreateCustomOrder', {
           url: '/CreateCustomOrder',
           permission: 'add_orderdetail',

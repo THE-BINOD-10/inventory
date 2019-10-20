@@ -3308,6 +3308,7 @@ def check_imei(request, user=''):
     sku_code = ''
     quantity = 0
     shipped_orders_dict = {}
+    dispatch_summary_imei_details = {}
     is_shipment = request.GET.get('is_shipment', False)
     is_rm_picklist = request.GET.get('is_rm_picklist', False)
     order_id = request.GET.get('order_id', '')
@@ -3342,6 +3343,14 @@ def check_imei(request, user=''):
                         order = picklist.order
             po_mapping, status, imei_data = check_get_imei_details(value, sku_code, user.id, check_type='order_mapping',
                                                                    order=order, job_order=job_order)
+
+            if po_mapping.exists():
+                if po_mapping[0].stock_id:
+                    dispatch_summary_imei_details['serial_number'] = value
+                    dispatch_summary_imei_details['sku_code'] = po_mapping[0].sku.sku_code
+                    dispatch_summary_imei_details['cost_price'] = po_mapping[0].stock.unit_price
+                    dispatch_summary_imei_details['location'] = po_mapping[0].stock.location.location
+
             if cost_check and po_mapping[0].purchase_order:
                 cost_price = po_mapping[0].purchase_order.open_po.price
 
@@ -3414,7 +3423,7 @@ def check_imei(request, user=''):
         import traceback
         log.debug(traceback.format_exc())
         log.info('Check IMEI failed for params ' + str(request.POST.dict()) + ' error statement is ' + str(e))
-    return HttpResponse(json.dumps({'status': status, 'data': {'sku_code': sku_code, 'quantity': quantity,
+    return HttpResponse(json.dumps({'status': status, 'dispatch_summary_imei_details':dispatch_summary_imei_details , 'data': {'sku_code': sku_code, 'quantity': quantity,
                                                                'shipping_quantity': shipping_quantity,'cost_price':cost_price}}))
 
 
@@ -8352,6 +8361,37 @@ def create_orders_data(request, user=''):
     mode_of_transport = get_mode_of_transport(user)
     return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_types,
                                     'invoice_types': invoice_types, 'mode_of_transport': mode_of_transport }))
+
+
+@csrf_exempt
+@get_admin_user
+def dispatch_serial_numbers(request, user=''):
+    myDict = dict(request.POST.iterlists())
+    if myDict['dispatch_Serial_data'][0]:
+        data = json.loads(myDict['dispatch_Serial_data'][0])
+    else:
+        return HttpResponse("Enter Dispatch Data")
+    final_data = OrderedDict()
+    data_dict = OrderedDict()
+    sku_code,sku_id,sku_desc = '','',''
+    for i in range(0, len(data)):
+        sku_code = data[i]['sku_code']
+        if sku_code:
+            sku = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+            if sku.exists():
+                sku_id = sku[0].id
+                sku_desc = sku[0].sku_desc
+        serial_number = data[i]['serial_number']
+        cost_price = float(data[i]['cost_price'])
+        selling_price = float(data[i]['selling_price'])
+        group_key = sku_code
+        final_data.setdefault(group_key, {'sku_code': sku_code, 'sku_id': sku_id,'sku_desc': sku_desc, 'serial_number': [], 'cost_price':0, 'selling_price':0})
+        final_data[group_key]['selling_price'] += selling_price
+        final_data[group_key]['cost_price'] += cost_price
+        final_data[group_key]['serial_number'].append(serial_number)
+    final_data = final_data.values()
+
+    return HttpResponse(json.dumps({'serial_data': final_data}))
 
 
 @csrf_exempt

@@ -6616,7 +6616,7 @@ def get_stock_receipt_number(user):
 
 
 @csrf_exempt
-def insert_po_mapping(imei_nos, data, user_id):
+def insert_po_mapping(imei_nos, data, user_id, stock=''):
     ''' Inserting IMEI Mapping throught PO'''
     imei_list = []
     imei_nos = list(set(imei_nos.split(',')))
@@ -6624,6 +6624,8 @@ def insert_po_mapping(imei_nos, data, user_id):
     all_po_labels = []
     all_st_purchases = STPurchaseOrder.objects.filter(open_st__sku__user=user_id)
     all_po_labels = POLabels.objects.filter(sku__user=user_id, status=1)
+    if stock:
+        stock = stock.id
     for imei in imei_nos:
         if not imei:
             continue
@@ -6635,7 +6637,8 @@ def insert_po_mapping(imei_nos, data, user_id):
                 OrderIMEIMapping.objects.filter(po_imei_id__in=po_mapping_ids, status=1).update(status=0)
                 ReturnsIMEIMapping.objects.filter(order_imei__po_imei_id__in=po_mapping_ids, imei_status=1).update(
                     imei_status=0)
-            imei_mapping = {'purchase_order_id': data.id, 'imei_number': imei, 'status': 1,
+            imei_mapping = {'purchase_order_id': data.id, 'imei_number': imei,
+                            'status': 1,'stock_id':stock,
                             'sku_id': order_data['sku'].id,
                             'creation_date': datetime.datetime.now(),
                             'updation_date': datetime.datetime.now()}

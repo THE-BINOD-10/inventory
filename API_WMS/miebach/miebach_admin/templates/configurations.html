@@ -71,6 +71,18 @@
           </div>
 
           <div class="row" style="padding-bottom: 15px">
+            <div class="col-md-1" style="width: 3%;"><a><i class="glyphicon glyphicon-sort fa-15px"></i></a></div>
+            <div class="col-md-3"><strong> Location Serial Mapping </strong> </div>
+           <div class="col-md-2">
+               {%if loc_serial_mapping_switch == "true"%}
+              <input type="checkbox"  data-on-text = "Yes" data-off-text="No" id='loc-serial-mapping-switch' checked />
+              {% else %}
+               <input type="checkbox" data-on-text="Yes" data-off-text="No" id='loc-serial-mapping-switch' />
+              {% endif %}
+          </div>
+        </div>
+
+          <div class="row" style="padding-bottom: 15px">
              <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-file-image-o fa-15px"></i></a></div>
              <div class="col-md-3">
                  <strong> Show Images in Picklist </strong>

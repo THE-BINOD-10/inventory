@@ -46,6 +46,14 @@
               <input name="custom_order" type="hidden" value="{{showCase.custom_order}}">
             </div>
           </div>
+
+          <div class="col-md-2 col-sm-3 col-xs-12 mt10" ng-if = "showCase.model_data.blind_order">
+            <button type="button" class="btn btn-primary visible-md visible-lg pull-left" ng-click="showCase.dispatch_serial_numbers_pop()">Dispatch Serials</button>
+            <button type="button" class="btn btn-primary visible-xs" style="width: 100%" ng-click="showCase.dispatch_serial_numbers_pop()">Dispatch Serials</button>
+          </div>
+
+
+
           <div class="col-md-4 col-sm-12 mt10">
             <div class="col-md-3 pull-right">
               <label class="switch switch-sm square pull-right ml10">

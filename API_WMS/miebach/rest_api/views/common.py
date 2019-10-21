@@ -9829,3 +9829,10 @@ def get_zonal_admin_id(admin_user, reseller):
         import traceback
         log.info(traceback.format_exc())
         log.info('Users List exception raised')
+
+
+def get_decimal_data(cell_data, index_status, count, user):
+    if get_misc_value('float_switch', user.id) == 'false':
+        if not cell_data.is_integer():
+            index_status.setdefault(count, set()).add('Decimal Not Allowed In Qty')
+    return index_status

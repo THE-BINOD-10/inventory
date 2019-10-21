@@ -262,7 +262,7 @@
             </div>
             <div class="data class-item" ng-model="showCase.showmore_button[brand[0].sku_brand]" ng-click="showCase.get_brand_category_data(showCase.temp_request, brand[0].sku_brand, showCase.index[brand[0].sku_brand])" style="padding: 3px;background: white;margin-bottom: 150px;" ng-if="showCase.showmore_button[brand[0].sku_brand]">
               <button ng-if="showCase.show_more_loading && showCase.current_brand == brand[0].sku_brand" type="button" class="btn btn-xs background_c">Loading ..</button>
-              <button ng-if="!showCase.show_more_loading" type="button" class="btn btn-xs background_c">Show More</button>
+              <button ng-if="!showCase.show_more_loading" type="button" class="btn btn-xs background_c"><i class="glyphicon fa fa-arrow-right"></i></button>
             </div>
           </div>
         </div>

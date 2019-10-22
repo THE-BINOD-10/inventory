@@ -1527,7 +1527,7 @@ def warehouse_headers(request, user=''):
     zones = []
     milkbasket_user = False
     if user.username in MILKBASKET_USERS:
-        zones = list(ZoneMaster.objects.filter(user = user.id).values_list('zone',flat = True))
+        zones = list(ZoneMaster.objects.filter(user = user.id).exclude(zone='DAMAGED_ZONE').values_list('zone',flat = True))
         milkbasket_user = True
     if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
         header = ["SKU Code"]

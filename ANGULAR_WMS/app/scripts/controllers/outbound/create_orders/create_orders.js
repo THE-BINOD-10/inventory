@@ -75,8 +75,13 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     }
     vm.add_customer = false;
     angular.copy(item, vm.selected)
-    vm.change_sku_prices();
-    vm.change_tax_type();
+    if (!vm.model_data.blind_order){
+      vm.change_sku_prices();
+      vm.change_tax_type();
+    }
+    else {
+      vm.change_tax_type();
+    }
   }
 
   vm.check_id = function(id) {
@@ -688,7 +693,15 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     vm.discountPercentageChange(data, false);
     vm.get_tax_value(data);
     var per = Number(data.tax);
-    data.total_amount = ((Number(data.invoice_amount - Number(data.discount))/100)*per)+(Number(data.invoice_amount)-Number(data.discount));
+    vm.marginal_flag = data.marginal_flag;
+    if (vm.marginal_flag){
+      data.total_amount = Number(data.invoice_amount)
+
+    }else{
+      data.total_amount = ((Number(data.invoice_amount - Number(data.discount))/100)*per)+(Number(data.invoice_amount)-Number(data.discount));
+
+    }
+
 
     if(!no_total) {
       vm.cal_total();
@@ -812,6 +825,19 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   //     }
   //   }
 
+  vm.update_data_serial = update_data_serial;
+  function update_data_serial(index, data, last) {
+    console.log(data);
+    if (last && (!vm.dispatch_data[index].serial_number)) {
+      return false;
+    }
+    if (last) {
+      vm.dispatch_data.push({serial_number: "", sku_code: "", location: "", cost_price: "", selling_price: ""});
+    } else {
+      vm.dispatch_data.splice(index,1);
+    }
+  }
+
   vm.SerialcheckAndAdd = function(scan) {
 
     var status = false;
@@ -863,17 +889,18 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
              vm.model_data.data = []
              angular.forEach(data.data.serial_data, function(serial_data){
                vm.qty = serial_data.serial_number;
-               vm.inv_amt = serial_data.selling_price;
+               vm.unit_price = serial_data.selling_price/vm.qty.length;
+               // vm.marginal_flag = serial_data.marginal_flag
                vm.model_data.data.push({sku_id: serial_data.sku_code, quantity: vm.qty.length, description: serial_data.sku_desc,
-                                        invoice_amount: vm.inv_amt, price: "", tax: "", total_amount:vm.inv_amt, unit_price: "",location: serial_data.location,
-                                        serials: vm.scan_codes, serial: "", capacity: 0, extra: '', discount: ""})
+                                        invoice_amount:serial_data.selling_price, price: vm.unit_price , tax: "", total_amount:'', unit_price: "",location: serial_data.location,
+                                        serials: serial_data.serial_number, serial: "", capacity: 0, extra: '', discount: ""})
              })
            }
+           vm.model_data.blind_order = true;
+           $state.go('app.outbound.CreateOrders');
          }
        });
       }
-      vm.model_data.blind_order = true;
-      $state.go('app.outbound.CreateOrders');
     }
 
 
@@ -999,6 +1026,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
           vm.get_customer_sku_prices(record.sku_id).then(function(data){
             if(data.length > 0) {
               console.log(data);
+              record.marginal_flag = data[0]['marginal_flag']
               record.taxes = data[0].taxes;
               vm.cal_percentage(record, false);
             }

@@ -5178,7 +5178,7 @@ def insert_order_data(request, user=''):
             order_data['unit_price'] = 0
             order_data['sku_code'] = myDict['sku_id'][i]
             vendor_items = ['printing_vendor', 'embroidery_vendor', 'production_unit']
-            exclude_order_items = ['warehouse_level', 'margin_data', 'el_price', 'del_date', 'vehicle_num', 'cost_price']
+            exclude_order_items = ['warehouse_level', 'margin_data', 'el_price', 'del_date', 'vehicle_num', 'cost_price','marginal_flag']
 
             # Written a separate function to make the code simpler
             order_data, order_summary_dict, sku_master, extra_order_fields = construct_order_data_dict(
@@ -5341,6 +5341,7 @@ def insert_order_data(request, user=''):
                     for item in exclude_order_items:
                         if item in order_data:
                             order_data.pop(item)
+
                     order_detail = OrderDetail(**order_data)
                     order_detail.save()
                     created_order_objs.append(order_detail)
@@ -5496,11 +5497,20 @@ def direct_dispatch_orders(user, dispatch_orders, creation_date=datetime.datetim
         filter(sku__user=user.id, quantity__gt=0)
     picklist_number = int(get_picklist_number(user)) + 1
     mod_locations = []
-
+    loc_serial_mapping_switch = get_misc_value('loc_serial_mapping_switch', user.id)
+    serial_nums = ''
     for order_id, orders in dispatch_orders.iteritems():
         order = orders['order_instance']
         for data in orders.get('data', []):
-            order_stocks = sku_stocks.filter(sku_id=order.sku_id, location__location=data['location'], quantity__gt=0)
+            if loc_serial_mapping_switch == 'true':
+                if data['serials']:
+                    serial_nums = data['serials'].split(',')
+                po_imei_mapping = POIMEIMapping.objects.filter(sku__user=user.id,
+                                                               imei_number__in=serial_nums)
+                po_mapping_ids = list(po_imei_mapping.values_list('stock_id', flat=True))
+                order_stocks = sku_stocks.filter(id__in = po_mapping_ids, sku_id=order.sku_id, location__location=data['location'], quantity__gt=0)
+            else:
+                order_stocks = sku_stocks.filter(sku_id=order.sku_id, location__location=data['location'], quantity__gt=0)
             needed_quantity = float(data['quantity'])
             val = {}
             val['wms_code'] = order.sku.wms_code
@@ -8373,19 +8383,24 @@ def dispatch_serial_numbers(request, user=''):
         return HttpResponse("Enter Dispatch Data")
     final_data = OrderedDict()
     data_dict = OrderedDict()
-    sku_code,sku_id,sku_desc = '','',''
+    sku_code,sku_id,sku_desc,location = '','','',''
     for i in range(0, len(data)):
         sku_code = data[i]['sku_code']
+        serial_number = data[i]['serial_number']
+        if serial_number:
+            check_params = {'imei_number': serial_number, 'sku__user': user.id}
+            po_mapping = POIMEIMapping.objects.filter(**check_params)
+            if po_mapping.exists():
+                location = po_mapping[0].stock.location.location
         if sku_code:
             sku = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
             if sku.exists():
                 sku_id = sku[0].id
                 sku_desc = sku[0].sku_desc
-        serial_number = data[i]['serial_number']
         cost_price = float(data[i]['cost_price'])
         selling_price = float(data[i]['selling_price'])
         group_key = sku_code
-        final_data.setdefault(group_key, {'sku_code': sku_code, 'sku_id': sku_id,'sku_desc': sku_desc, 'serial_number': [], 'cost_price':0, 'selling_price':0})
+        final_data.setdefault(group_key, {'sku_code': sku_code, 'location':location, 'sku_id': sku_id,'sku_desc': sku_desc, 'serial_number': [], 'cost_price':0, 'selling_price':0})
         final_data[group_key]['selling_price'] += selling_price
         final_data[group_key]['cost_price'] += cost_price
         final_data[group_key]['serial_number'].append(serial_number)

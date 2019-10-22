@@ -4093,6 +4093,7 @@ def get_customer_sku_prices(request, user=""):
     sgst_tax = ''
     cgst_tax = ''
     product_type = ''
+    marginal_flag = 0
     log.info('Get Customer SKU Prices data for ' + user.username + ' is ' + str(request.POST.dict()))
 
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
@@ -4122,6 +4123,11 @@ def get_customer_sku_prices(request, user=""):
             data = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
             if data:
                 data = data[0]
+                sku_attr_obj = SKUAttributes.objects.filter(sku_id=data.id,
+                                        attribute_name='MARGINAL GST').only('attribute_value')
+                if sku_attr_obj:
+                    if sku_attr_obj[0].attribute_value.upper() == 'YES':
+                        marginal_flag = 1
             else:
                 return "sku_doesn't exist"
             tax_masters = TaxMaster.objects.filter(user_id=user.id, product_type=data.product_type,
@@ -4157,7 +4163,7 @@ def get_customer_sku_prices(request, user=""):
                     discount = price_master_objs[0].discount
             result_data.append(
                 {'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': price, 'discount': discount,
-                 'taxes': taxes_data, 'price_bands_map': price_bands_list, 'mrp': data.mrp, 'product_type': product_type, 'igst_tax': igst_tax, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax})
+                 'taxes': taxes_data, 'price_bands_map': price_bands_list, 'mrp': data.mrp, 'product_type': product_type, 'igst_tax': igst_tax, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'marginal_flag':marginal_flag})
 
     except Exception as e:
         import traceback

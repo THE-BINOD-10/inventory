@@ -8403,7 +8403,7 @@ def get_past_po(start_index, stop_index, temp_data, search_term, order_term, col
         result = PurchaseOrder.objects.filter(Q(order_id__icontains=search_term) |Q(open_po__supplier__id__icontains=search_term) |Q(open_po__supplier__name__icontains=search_term)| Q(creation_date__regex=search_term), open_po__sku__user=user.id, **search_params).\
                                                             values('open_po__supplier__id',
                                                                    'order_id', 'open_po__supplier__name',
-                                                                   'creation_date','open_po__order_type').order_by(order_data)
+                                                                   'creation_date','open_po__order_type').order_by(order_data).distinct()
     else:
         result = PurchaseOrder.objects.filter(open_po__sku__user=user.id, **search_params).distinct().values('open_po__supplier__id',
                                                                    'order_id', 'open_po__supplier__name',

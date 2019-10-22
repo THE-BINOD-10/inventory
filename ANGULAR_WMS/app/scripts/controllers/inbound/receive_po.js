@@ -2472,7 +2472,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
   vm.get_current_weight = function(event, data, index, parent_index) {
-    if(vm.permissions.weight_integration_name.length > 0) {
+    if(vm.permissions.weight_integration_name.length > 0 && ['KGS','GRAMS'].includes(vm.model_data.data[parent_index][index].unit)) {
       var sku_row_data = {};
       angular.copy(data.data[parent_index][index], sku_row_data);
       vm.service.apiCall('get_current_weight/', 'GET',{}).then(function(res_data){

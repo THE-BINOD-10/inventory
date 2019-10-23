@@ -4917,6 +4917,7 @@ def validate_po_serial_mapping(request, reader, user, no_of_rows, fname, file_ty
         sku_code = ''
         supplier_id = ''
         po_reference_no = ''
+        unit_price = 0
         for key, val in order_mapping.iteritems():
             value = get_cell_data(row_idx, order_mapping[key], reader, file_type)
 
@@ -4965,6 +4966,7 @@ def validate_po_serial_mapping(request, reader, user, no_of_rows, fname, file_ty
                 except:
                     value = 0
                 po_details['unit_price'] = value
+                unit_price = value
             elif key == 'po_reference_no':
                 try:
                     if isinstance(value, float):
@@ -5015,7 +5017,7 @@ def validate_po_serial_mapping(request, reader, user, no_of_rows, fname, file_ty
                     if c_status:
                         index_status.setdefault(count, set()).add(c_status)
 
-        group_key = (str(supplier_id) + ':' + str(sku_code) + ':' + str(po_reference_no))
+        group_key = (str(supplier_id) + ':' + str(sku_code) + ':' + str(po_reference_no) + ':' + str(unit_price))
         final_data_dict = check_and_add_dict(group_key, 'po_details', po_details, final_data_dict=final_data_dict)
         final_data_dict = check_and_add_dict(group_key, 'imei_list', [imei_number], final_data_dict=final_data_dict,
                                              is_list=True)

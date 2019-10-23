@@ -3291,7 +3291,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             total_taxable_amt += amt
             if marginal_flag:
                 total_invoice = total_invoice - tax_amount
-                amt = taxable_amt
+                amt  = taxable_amt if taxable_amt >= 0 else 0
                 invoice_amount = invoice_amount - tax_amount
             sku_code = dat.sku.sku_code
             sku_desc = dat.sku.sku_desc

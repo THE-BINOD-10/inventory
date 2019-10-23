@@ -594,7 +594,7 @@ STOCK_LEDGER_REPORT_DICT = {
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
     ],
     'dt_headers': ['Date', 'SKU Code', 'SKU Description', 'Style Name', 'Brand', 'Category',
-                   'Size', 'Opening Stock', 'Receipt Quantity', 'Produced Quantity', 'Dispatch Quantity',
+                   'Size', 'Opening Stock', 'Receipt Quantity', 'Produced Quantity', 'Dispatch Quantity','RTV Quantity',
                    'Return Quantity', 'Adjustment Quantity', 'Consumed Quantity', 'Closing Stock'],
     'dt_url': 'get_stock_ledger_report', 'excel_name': 'stock_ledger_report',
     'print_url': 'print_stock_ledger_report',
@@ -2168,7 +2168,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'barcode_generate_opt': 'barcode_generate_opt', 'online_percentage': 'online_percentage',
                         'mail_alerts': 'mail_alerts',
                         'detailed_invoice': 'detailed_invoice', 'invoice_titles': 'invoice_titles',
-                        'show_image': 'show_image',
+                        'show_image': 'show_image','repeat_po':'repeat_po',
                         'auto_generate_picklist': 'auto_generate_picklist', 'auto_po_switch': 'auto_po_switch',
                         'fifo_switch': 'fifo_switch',
                         'internal_mails': 'Internal Emails', 'increment_invoice': 'increment_invoice',
@@ -2300,6 +2300,9 @@ CUSTOM_ORDER_DEF_EXCEL = OrderedDict((
 CLUSTER_SKU_MAPPING = OrderedDict((
                                   ('Cluster Name', 0),
                                   ('Sku Code', 1), ('Sequence', 2)))
+
+BATCH_DETAIL_HEADERS = ['Receipt Number', 'Receipt Date', 'WMS Code', 'Product Description', 'SKU Category', 'Batch Number', 'MRP', 'Weight',
+                        'Price', 'Tax Percent', 'Manufactured Date', 'Expiry Date', 'Zone', 'Location', 'Quantity', 'Receipt Type']
 #PICKLIST_EXCLUDE_ZONES = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
 
 def fn_timer(function):
@@ -2640,13 +2643,13 @@ def get_receipt_filter_data(search_params, user, sub_user):
 def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer_view=False):
     from miebach_admin.models import *
     from miebach_admin.views import *
-    from rest_api.views.common import get_sku_master, get_order_detail_objs
+    from rest_api.views.common import get_sku_master, get_order_detail_objs, get_utc_start_date
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters = {}
     warehouse_users = {}
     central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
     if customer_view:
-        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__user']#'order__quantity', 'picked_quantity']
+        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category', 'order__sku__user']#'order__quantity', 'picked_quantity']
         model_obj = Picklist
         param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
         search_parameters.update({'status__in': ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched'],
@@ -2657,7 +2660,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                 })
     else:
         if serial_view:
-            lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__customer_name',
+            lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category', 'order__customer_name',
                    'po_imei__imei_number',
                    'updation_date', 'updation_date']
             model_obj = OrderIMEIMapping
@@ -2666,8 +2669,12 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
             # search_parameters['order__user'] = user.id
             # search_parameters['order__sku_id__in'] = sku_master_ids
         else:
-            lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__sku_desc', 'stock__location__location',
-                   'picked_quantity', 'picked_quantity', 'updation_date', 'updation_date', 'order__customer_name', 'stock__batch_detail__batch_no', 'stock__batch_detail__mrp', 'stock__batch_detail__manufactured_date', 'stock__batch_detail__expiry_date']
+            lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__wms_code',
+                   'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category',
+                   'stock__location__location', 'picked_quantity', 'picked_quantity', 'order__unit_price', 'order_id',
+                   'stock__batch_detail__buy_price', 'stock__batch_detail__tax_percent', 'stock_id', 'updation_date', 'updation_date',
+                   'order__customer_name', 'stock__batch_detail__batch_no', 'stock__batch_detail__mrp',
+                   'stock__batch_detail__manufactured_date', 'stock__batch_detail__expiry_date']
             model_obj = Picklist
             param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
             search_parameters['status__in'] = ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched']
@@ -2678,12 +2685,14 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
 
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
         search_parameters['updation_date__gte'] = search_params['from_date']
     else:
         search_parameters['updation_date__gte'] = date.today()+relativedelta(months=-1)
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
         search_parameters['updation_date__lt'] = search_params['to_date']
     if 'wms_code' in search_params:
         search_parameters[param_keys['wms_code']] = search_params['wms_code']
@@ -2732,7 +2741,6 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
         if search_params['order_term'] == 'desc':
             order_data = "-%s" % order_data
         model_data = model_data.order_by(order_data)
-
     temp_data['recordsTotal'] = model_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
@@ -2745,6 +2753,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                     ('Customer Name', data['order__customer_name']),
                                                     ('WMS Code', data['order__sku__wms_code']),
                                                     ('Description', data['order__sku__sku_desc']),
+                                                    ('SKU Category', data['order__sku__sku_category']),
                                                     ('Quantity', data['qty']),
                                                     ('Picked Quantity', data['qty'] - data['res_qty']),
                                                     ('Warehouse', warehouse_users.get(data['order__sku__user']))
@@ -2755,6 +2764,16 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                 child_sku_code = ''
                 child_sku_mrp = ''
                 wms_code_mrp = 0
+                cost_price = 0
+                tax_percent = 0
+                cost_tax_percent = 0
+                cod = data.order.customerordersummary_set.filter()
+                if cod:
+                    cod = cod[0]
+                    if cod.cgst_tax:
+                        tax_percent = cod.cgst_tax + cod.sgst_tax
+                    else:
+                        tax_percent = cod.igst_tax
                 customer_name = data.order.customer_name if data.order.customer_name else ''
                 if data.stock and data.stock.batch_detail:
                     batch_number = data.stock.batch_detail.batch_no
@@ -2778,9 +2797,12 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('WMS MRP', wms_code_mrp),('Child SKU', child_sku_code),
                                                             ('Child SKU MRP', child_sku_mrp),('Child SKU Weight', child_sku_weight),
                                                             ('Description', data.order.sku.sku_desc),
+                                                            ('SKU Category', data.order.sku.sku_category),
                                                             ('Location', 'NO STOCK'),
                                                             ('Quantity', data.order.quantity),
                                                             ('Picked Quantity', data.picked_quantity),
+                                                            ('Selling Price', data.order.unit_price), ('Sale Tax Percent', tax_percent),
+                                                            ('Cost Price', cost_price), ('Cost Tax Percent', cost_tax_percent),
                                                             ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])), ('Customer Name', customer_name),
                                                             ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
                                                             ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate),
@@ -2801,15 +2823,23 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                         else:
                             child_sku_code = data.order.sku.sku_code
                             child_sku_mrp = SKUMaster.objects.filter(user=user.id, sku_code = data.order.sku.sku_code).values('mrp')[0]['mrp']
+                    cost_price = 0
+                    if data.stock and data.stock.batch_detail:
+                        cost_price = '%.2f' %(data.stock.batch_detail.buy_price)
+                        cost_tax_percent = data.stock.batch_detail.tax_percent
                     wms_code_mrp = data.order.sku.mrp
                     temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
                                                             ('WMS MRP', wms_code_mrp),('Child SKU', child_sku_code),
                                                             ('Child SKU MRP', child_sku_mrp),('Child SKU Weight', child_sku_weight),
                                                             ('Description', data.order.sku.sku_desc),
+                                                            ('SKU Category', data.order.sku.sku_category),
                                                             ('Location', pick_loc.stock.location.location),
                                                             ('Quantity', data.order.quantity),
                                                             ('Picked Quantity', picked_quantity),
-                                                            ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])), ('Customer Name', customer_name),
+                                                            ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])),
+                                                            ('Selling Price', data.order.unit_price), ('Sale Tax Percent', tax_percent),
+                                                            ('Cost Price', cost_price), ('Cost Tax Percent', cost_tax_percent),
+                                                            ('Customer Name', customer_name),
                                                             ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
                                                             ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate),
                                                             ('Warehouse', warehouse_users.get(data.order.user)))))
@@ -2827,6 +2857,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                 date = get_local_date(user, data.updation_date).split(' ')
                 temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.wms_code),
                                                         ('Description', data.order.sku.sku_desc),
+                                                        ('SKU Category', data.order.sku.sku_category),
                                                         ('Customer Name', data.order.customer_name),
                                                         ('Serial Number', serial_number),
                                                         ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])),
@@ -3026,7 +3057,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price',
                          'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number','overall_discount',
-                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks','purchase_order__open_po__supplier__tin_number','purchase__id']
+                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks','purchase_order__open_po__supplier__tin_number','purchase_order__id']
     else:
         unsorted_dict = {16: 'Pre-Tax Received Value', 29: 'Post-Tax Received Value',
                          30: 'Invoiced Unit Rate',
@@ -3163,13 +3194,13 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
             data['purchase_order__open_po__cess_tax'] = 0
         if data['cess_tax']:
             data['purchase_order__open_po__cess_tax'] = data['cess_tax']
-        amount = float(data['total_received'] * price)
+        amount = '%.2f'% (float(data['total_received'] * price))
         if data['discount_percent']:
-            amount = amount - (amount * float(data['discount_percent'])/100)
+            amount = '%.2f'%  (amount - (amount * float(data['discount_percent'])/100))
         tot_tax = float(data['purchase_order__open_po__cgst_tax']) + float(data['purchase_order__open_po__sgst_tax']) +\
                   float(data['purchase_order__open_po__igst_tax']) + float(data['purchase_order__open_po__utgst_tax'])\
                     + float(data['purchase_order__open_po__cess_tax'])
-        aft_unit_price = float(price) + (float(price / 100) * tot_tax)
+        aft_unit_price = '%.2f'% (float(price) + (float(price / 100) * tot_tax))
         if data['discount_percent']:
             aft_unit_price = aft_unit_price - (aft_unit_price * float(data['discount_percent'])/100)
         post_amount = aft_unit_price * float(data['total_received'])
@@ -3182,7 +3213,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         # if margin_price < 0:
         #     margin_price = 0
         # margin_price = "%.2f" % (margin_price * float(data['total_received']))
-        final_price = aft_unit_price
+        final_price = '%.2f'% (aft_unit_price)
         invoice_total_amount = float(final_price) * float(data['total_received'])
         #invoice_total_amount = truncate_float(invoice_total_amount, 2)
         hsn_code = ''
@@ -3978,7 +4009,7 @@ def get_order_summary_data(search_params, user, sub_user):
     from miebach_admin.views import *
     from common import get_misc_value
 
-    from rest_api.views.common import get_sku_master, get_order_detail_objs, get_local_date
+    from rest_api.views.common import get_sku_master, get_order_detail_objs, get_local_date, get_utc_start_date
     milkbasket_user = False
     milkbasket_users = copy.deepcopy(MILKBASKET_USERS)
     if user.username in milkbasket_users :
@@ -3994,10 +4025,12 @@ def get_order_summary_data(search_params, user, sub_user):
     search_parameters = {}
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
         search_parameters['creation_date__gt'] = search_params['from_date']
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
         search_parameters['creation_date__lt'] = search_params['to_date']
     if 'sku_code' in search_params:
         search_parameters['sku__sku_code'] = search_params['sku_code']
@@ -4202,7 +4235,7 @@ def get_order_summary_data(search_params, user, sub_user):
                 if sku_quantity > 0 and qty_price > 0 :
                     cost_price = float(qty_price / sku_quantity)
 
-            cost_price_dict['Cost Price']  = cost_price
+            cost_price_dict['Cost Price']  = '%.2f'% cost_price
 
 
         # ['Open', 'Picklist generated', 'Partial Picklist generated', 'Picked', 'Partially picked']
@@ -4266,7 +4299,7 @@ def get_order_summary_data(search_params, user, sub_user):
         if order_charges_obj.exists():
             total_charge_amount = order_charges_obj.aggregate(Sum('charge_amount'))['charge_amount__sum']
             total_charge_tax = order_charges_obj.aggregate(Sum('charge_tax_value'))['charge_tax_value__sum']
-            invoice_amount = float(invoice_amount)+float(total_charge_amount)+float(total_charge_tax)
+            invoice_amount = '%.2f' %(float(invoice_amount)+float(total_charge_amount)+float(total_charge_tax))
         #payment mode
         payment_obj = OrderFields.objects.filter(user=user.id, name__icontains="payment_",\
                                       original_order_id=data['original_order_id']).values_list('name', 'value')
@@ -4461,9 +4494,9 @@ def get_seller_invoices_filter_data(search_params, user, sub_user):
     for data in seller_pos:
         accepted_quan = 0
         rejected_quan = 0
-        final_price = float(data.open_po.price)
+        final_price = '%.2f' %(float(data.open_po.price))
         if data.unit_price:
-            final_price = float(data.unit_price)
+            final_price = '%.2f' % (float(data.unit_price))
         if data.open_po.tax:
             final_price = float('%.2f' % ((final_price * 100) / (100 + float(data.open_po.tax))))
         amount = final_price * float(data.open_po.order_quantity)
@@ -4830,7 +4863,7 @@ def get_stock_ledger_data(search_params, user, sub_user):
                                  ('Receipt Quantity', obj.receipt_qty + obj.uploaded_qty),
                                  ('Produced Quantity', obj.produced_qty),
                                  ('Dispatch Quantity', obj.dispatch_qty), ('Return Quantity', obj.return_qty),
-                                 ('Consumed Quantity', obj.consumed_qty),
+                                 ('Consumed Quantity', obj.consumed_qty),('RTV Quantity',obj.rtv_quantity),
                                  ('Adjustment Quantity', obj.adjustment_qty), ('Closing Stock', obj.closing_stock)
                                  )))
     temp_data['aaData'] = data
@@ -7281,8 +7314,8 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
 
 
         temp_data['aaData'].append(OrderedDict((('Date',date),('SKU Code', data.sku.sku_code), ('SKU Description',data.sku.sku_desc),('Invoice Number',data.order_id),\
-                                                ('Quantity',quantity ),('Status',status),('Net Value',net_value),\
-                                                ('CGST',cgst),('SGST',sgst),('IGST',igst),('Price',price),('Total Value',total),\
+                                                ('Quantity',quantity ),('Status',status),('Net Value','%.2f' % net_value),\
+                                                ('CGST',cgst),('SGST',sgst),('IGST',igst),('Price',price),('Total Value','%.2f' %total),\
                                                 ('Source Location',user.username),('Destination',destination))))
     return temp_data
 
@@ -7521,8 +7554,8 @@ def get_current_stock_report_data(search_params, user, sub_user):
                                                 ('Available Quantity', quantity),
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total_quantity),
                                                 ('Tax %',tax),('Avg CP with Tax',avg_cp_w_tax),
-                                                ('Amount with Tax',total_amt),
-                                                ('Cost Price W/O Tax',avg_cp_wo_tax),('Amount W/O tax',avg_buy_price),
+                                                ('Amount with Tax', '%.2f' % total_amt),
+                                                ('Cost Price W/O Tax', '%.2f' % avg_cp_wo_tax),('Amount W/O tax', '%.2f' % avg_buy_price),
                                                 ('Warehouse Name',user.username), ('Report Generation Time', time))))
     return temp_data
 
@@ -7909,7 +7942,7 @@ def get_basa_report_data(search_params, user, sub_user):
            weight = sku_attribute_dict.get('Weight','')
         temp_data['aaData'].append(OrderedDict(( ('SKU Code', sku_code),('SKU Desc',sku_desc),
                                                  ('Brand',sku_brand), ('Category',sku_category),('Sheet',sheet),('Sub Category Type',sub_category_type),
-                                                 ('Sub Category', sub_category), ('Stock( Only BA and SA)', quantity),('Weight',weight),('MRP',mrp),('Avg CP',"%.2f" %average_cost_price),('Latest GRN Qty',grn_quantity),('Latest GRN CP',grn_price))))
+                                                 ('Sub Category', sub_category), ('Stock( Only BA and SA)', quantity),('Weight',weight),('MRP',mrp),('Avg CP',"%.2f" %average_cost_price),('Latest GRN Qty',grn_quantity),('Latest GRN CP', "%.2f" % grn_price))))
     return temp_data
 
 

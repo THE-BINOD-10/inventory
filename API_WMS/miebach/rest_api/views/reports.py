@@ -660,7 +660,7 @@ def print_sales_returns(request, user=''):
 
 
 def get_adjust_filter_data(search_params, user, sub_user):
-    from rest_api.views.common import get_sku_master
+    from rest_api.views.common import get_sku_master, get_utc_start_date
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
@@ -668,12 +668,14 @@ def get_adjust_filter_data(search_params, user, sub_user):
     temp_data['draw'] = search_params.get('draw')
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
         search_parameters['cycle__creation_date__gte'] = search_params['from_date']
     else:
         search_parameters['cycle__creation_date__gte'] = date.today()+relativedelta(months=-1)
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
         search_parameters['cycle__creation_date__lt'] = search_params['to_date']
     if 'sku_code' in search_params:
         search_parameters['cycle__sku__sku_code'] = search_params['sku_code'].upper()
@@ -742,7 +744,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
             attributes_data = dict(sku.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
             mrp = data['mrp']
             weight = data['weight']
-            amount = data['amount']
+            amount = '%.2f' % (data['amount'])
             qty = data['quantity']
             updated_user_name = user.username
             avg_cost = 0
@@ -750,7 +752,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
             if version_obj.exists():
                 updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
             if amount and qty:
-                avg_cost = amount/qty
+                avg_cost = '%.2f' %(amount/qty)
             temp_data['aaData'].append(OrderedDict(( ('SKU Code', sku.sku_code),
                                                      ('Name', sku.sku_desc),
                                                      ('Weight', weight),

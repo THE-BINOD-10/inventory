@@ -186,7 +186,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                                 ('Available Quantity', quantity),
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total),
 						 ('Open Order Quantity', open_order_qty),
-                                                ('Unit of Measurement', sku.measurement_type), ('Stock Value', total_stock_value ),
+                                                ('Unit of Measurement', sku.measurement_type), ('Stock Value', '%.2f'% total_stock_value ),
                                                 ('DT_RowId', data[0]) )))
 
 
@@ -659,7 +659,8 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
                 var[wh_name + '-L3Open'] = max(single['asn'] + single['non_kitted'] - single['asn_res'] - single['asn_blocked'], 0)
                 if not isinstance(single['available'], float):
                     single['available'] = 0
-                net_amt = max(single['available'] - single['blocked'] - single['reserved'] - single['non_kitted'], 0)
+                #net_amt = max(single['available'] - single['blocked'] - single['reserved'] - single['non_kitted'], 0)
+                net_amt = single['available'] - single['blocked'] - single['reserved'] - single['non_kitted']
                 var[wh_name + '-Open'] = net_amt
                 l1_kitted = single['available'] - single['non_kitted']
                 asn_total = single['asn']+single['non_kitted']
@@ -675,14 +676,17 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
                         var[header] += val
                     else:
                         var[header] = val
-                net_open = max(var['WH L1 Kitted'] - var['WH L1 Total Res'] - var['WH L1 Total Blocked'], 0)
+                #net_open = max(var['WH L1 Kitted'] - var['WH L1 Total Res'] - var['WH L1 Total Blocked'], 0)
+                net_open = var['WH L1 Kitted'] - var['WH L1 Total Res'] - var['WH L1 Total Blocked']
                 var['WH L1 Open'] = net_open
-                asn_open = max(var['WH L3 Total'] - var['WH L3 Total Res'] - var['WH L3 Total Blocked'], 0)
+                #asn_open = max(var['WH L3 Total'] - var['WH L3 Total Res'] - var['WH L3 Total Blocked'], 0)
+                asn_open = var['WH L3 Total'] - var['WH L3 Total Res'] - var['WH L3 Total Blocked']
                 var['WH L3 Open'] = asn_open
         var['Overall Total'] = var['WH L1 Kitted'] + var['WH L3 Total']
         var['Overall Res'] = var['WH L1 Total Res'] + var['WH L3 Total Res']
         var['Overall Blocked'] = var['WH L1 Total Blocked'] + var['WH L3 Total Blocked']
-        var['Overall Open'] = max(var['Overall Total'] - var['Overall Res'] - var['Overall Blocked'], 0)
+	#var['Overall Open'] = max(var['Overall Total'] - var['Overall Res'] - var['Overall Blocked'], 0)
+        var['Overall Open'] = var['Overall Total'] - var['Overall Res'] - var['Overall Blocked']
 
         temp_data['aaData'].append(var)
 
@@ -931,7 +935,7 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
                                                     ('Location', data.location.location),
                                                     ('Quantity', stock_quantity),
                                                     ('Pallet Code', pallet_code), ('Receipt Type', data.receipt_type),
-                                                    ('Stock Value', taken_unit_price * stock_quantity)
+                                                    ('Stock Value','%.2f'% (taken_unit_price * stock_quantity))
                                                     )))
         else:
             temp_data['aaData'].append(OrderedDict((('Receipt ID', data.receipt_number), ('DT_RowClass', 'results'),
@@ -942,7 +946,7 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
                                                     ('Location', data.location.location),
                                                     ('Quantity', stock_quantity),
                                                     ('Receipt Type', data.receipt_type),
-                                                    ('Stock Value', taken_unit_price * stock_quantity)
+                                                    ('Stock Value','%.2f'% (taken_unit_price * stock_quantity))
                                                     )))
 
 
@@ -2291,10 +2295,14 @@ def inventory_adj_reasons(request, user=''):
 def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                              filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'batch_detail__batch_no',
-           'batch_detail__mrp', 'batch_detail__weight', 'batch_detail__manufactured_date', 'batch_detail__expiry_date',
+    lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'sku__sku_category', 'batch_detail__batch_no',
+           'batch_detail__mrp', 'batch_detail__weight', 'batch_detail__buy_price', 'batch_detail__tax_percent',
+           'batch_detail__manufactured_date', 'batch_detail__expiry_date',
            'location__zone__zone', 'location__location', 'pallet_detail__pallet_code',
            'quantity', 'receipt_type']
+    pallet_switch = get_misc_value('pallet_switch', user.id)
+    if pallet_switch == 'false' and 'pallet_detail__pallet_code' in lis:
+        del lis[lis.index('pallet_detail__pallet_code')]
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -2316,7 +2324,8 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                                 Q(location__zone__zone__icontains=search_term) |
                                                Q(sku__sku_code__icontains=search_term) |
                                                Q(sku__sku_desc__icontains=search_term) |
-                                               Q(location__location__icontains=search_term)).order_by(order_data)
+                                               Q(location__location__icontains=search_term) |
+                                               Q(sku__sku_category__icontains=search_term)).order_by(order_data)
 
     else:
         master_data = stock_detail_objs.order_by(order_data)
@@ -2324,17 +2333,20 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     counter = 1
-    pallet_switch = get_misc_value('pallet_switch', user.id)
     for data in master_data[start_index:stop_index]:
         _date = get_local_date(user, data.receipt_date, True)
         _date = _date.strftime("%d %b, %Y")
         batch_no = manufactured_date = expiry_date = ''
         mrp = 0
         weight = ''
+        price = 0
+        tax = 0
         if data.batch_detail:
             batch_no = data.batch_detail.batch_no
             mrp = data.batch_detail.mrp
             weight = data.batch_detail.weight
+            price = data.batch_detail.buy_price
+            tax = data.batch_detail.tax_percent
             manufactured_date = data.batch_detail.manufactured_date.strftime("%d %b %Y") if data.batch_detail.manufactured_date else ''
             expiry_date = data.batch_detail.expiry_date.strftime("%d %b %Y") if data.batch_detail.expiry_date else ''
         if pallet_switch == 'true':
@@ -2345,8 +2357,10 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                                     ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
                                                     ('WMS Code', data.sku.wms_code),
                                                     ('Product Description', data.sku.sku_desc),
+                                                    ('SKU Category', data.sku.sku_category),
                                                     ('Batch Number', batch_no),
                                                     ('MRP', mrp), ('Weight', weight),
+                                                    ('Price', price), ('Tax Percent', tax),
                                                     ('Manufactured Date', manufactured_date), ('Expiry Date', expiry_date),
                                                     ('Zone', data.location.zone.zone),
                                                     ('Location', data.location.location),
@@ -2357,8 +2371,11 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                                     ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
                                                     ('WMS Code', data.sku.wms_code),
                                                     ('Product Description', data.sku.sku_desc),
+                                                    ('SKU Category', data.sku.sku_category),
                                                     ('Batch Number', batch_no),
-                                                    ('MRP', mrp), ('Weight', weight), ('Manufactured Date', manufactured_date),
+                                                    ('MRP', mrp), ('Weight', weight),
+                                                    ('Price', price), ('Tax Percent', tax),
+                                                    ('Manufactured Date', manufactured_date),
                                                     ('Expiry Date', expiry_date),
                                                     ('Zone', data.location.zone.zone),
                                                     ('Location', data.location.location),
@@ -3001,9 +3018,9 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
                          ('rack', rack),
                          ('shelf', shelf),
                          ('combo_flag', combo_flag),
-                         ('avg_sales_day', data['avg_sales_day']),
-                         ('avg_sales_day_value', data['avg_sales_day_value']),
-                         ('cumulative_contribution', data['cumulative_contribution']),
+                         ('avg_sales_day', '%.2f' % (data['avg_sales_day'])),
+                         ('avg_sales_day_value', '%.2f' % (data['avg_sales_day_value'])),
+                         ('cumulative_contribution', '%.2f' % (data['cumulative_contribution'])),
                          ('classification', data['classification']), ('mrp', mrp),
                          ('weight', weight),
                          ('replenushment_qty', data['replenushment_qty']),

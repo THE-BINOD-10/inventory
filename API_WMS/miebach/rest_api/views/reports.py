@@ -831,12 +831,15 @@ def get_aging_filter_data(search_params, user, sub_user):
     search_parameters['quantity__gt'] = 0
     search_parameters['sku_id__in'] = sku_master_ids
     filtered = StockDetail.objects.filter(**search_parameters). \
-        values('receipt_date', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'location__location', 'sku__user'). \
+        values('receipt_date', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'location__location', 'sku__user',
+               'receipt_type', 'receipt_number'). \
         annotate(total=Sum('quantity'))
 
     for stock in filtered:
+        stock_date = get_stock_starting_date(stock['receipt_number'], stock['receipt_type'], user.id, stock['receipt_date'])
+        age_days = (datetime.datetime.now().date() - stock_date.date()).days
         cond = (stock['sku__sku_code'], stock['sku__sku_desc'], stock['sku__sku_category'],
-                (datetime.datetime.now().date() - stock['receipt_date'].date()).days, stock['location__location'], stock['sku__user'])
+                age_days, stock['location__location'], stock['sku__user'])
         all_data.setdefault(cond, 0)
         all_data[cond] += stock['total']
     temp_data['recordsTotal'] = len(all_data)

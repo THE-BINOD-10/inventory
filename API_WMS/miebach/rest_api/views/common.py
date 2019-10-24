@@ -9843,3 +9843,20 @@ def get_utc_start_date(date_obj):
     ist_aware = pytz.timezone("Asia/Calcutta").localize(ist_unaware)
     converted_date = ist_aware.astimezone(pytz.UTC)
     return converted_date
+
+
+def get_stock_starting_date(receipt_number, receipt_type, user_id, stock_date):
+    if receipt_type == 'purchase order':
+        st_purchase = PurchaseOrder.objects.filter(order_id=receipt_number,
+                                                   stpurchaseorder__open_st__sku__user=user_id)
+        if st_purchase.exists():
+            stock_receipt = st_purchase.\
+                values_list('stpurchaseorder__stocktransfer__storder__picklist__stock__receipt_date',
+                       'stpurchaseorder__stocktransfer__storder__picklist__stock__receipt_number',
+                       'stpurchaseorder__stocktransfer__storder__picklist__stock__receipt_type',
+                       'stpurchaseorder__stocktransfer__storder__picklist__stock__sku__user')[0]
+            user_id = stock_receipt[3]
+            stock_date = stock_receipt[0]
+            stock_date = get_stock_starting_date(stock_receipt[1], stock_receipt[2], user_id, stock_date)
+    return stock_date
+

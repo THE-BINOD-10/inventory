@@ -143,6 +143,7 @@
                    <input type="text" name="order_id" class="form-control order_field" ng-model="data_split.order_id"
                           ng-readonly="showCase.return_process != 'sku_code' || data_split.order_id =='' || !showCase.allocate_order"
                           ng-blur="showCase.changeOrderId(data_split.return_quantity, $index, data_split)">
+                   <input type="hidden" name="order_detail_id" value="{{ data_split.order_detail_id }}">
                  </td>
                  <td><input type="text" name="sku_code" class="form-control sku_field" ng-model="data_split.sku_code" readonly></td>
                  <td><input type="text" name="sku_desc" class="form-control" ng-model="data_split.sku_desc" readonly></td>

@@ -77,11 +77,8 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     angular.copy(item, vm.selected)
     if (!vm.model_data.blind_order){
       vm.change_sku_prices();
-      vm.change_tax_type();
     }
-    else {
-      vm.change_tax_type();
-    }
+    vm.change_tax_type();
   }
 
   vm.check_id = function(id) {
@@ -806,24 +803,8 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   vm.title = "Dispatch Serial Numbers";
   vm.dispatch_data = []
   vm.dispatch_serial_numbers_pop = function() {
-    angular.copy(empty_data, vm.model_data);
     $state.go("app.outbound.CreateOrders.DispatchSerialNumbers");
   }
-
-  // vm.elem = []
-  // vm.scan_imei = function(event, field) {
-  //     if ( event.keyCode == 13 && field) {
-  //       field = field.toUpperCase();
-  //       Service.apiCall('get_imei_data/', 'GET', {imei:field}, true).then(function(data){
-  //         if(data.data.message == "Success") {
-  //           vm.dispatch_data.push(data.data['dispatch_summary_imei_details'])
-  //         } else {
-  //           Service.showNoty(data.data.message);
-  //         }
-  //       })
-  //       vm.imei="";
-  //     }
-  //   }
 
   vm.update_data_serial = update_data_serial;
   function update_data_serial(index, data, last) {

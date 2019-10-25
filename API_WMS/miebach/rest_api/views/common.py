@@ -3211,116 +3211,33 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                             cost_price_obj = seller_summary.filter(order_id = dat.id, pick_number__in = pick_num).values('picklist__stock__unit_price', 'quantity')
                         else:
                             cost_price_obj = seller_summary.filter(order_id = dat.id).values('picklist__stock__unit_price', 'quantity')
-                        if cost_price_obj:
-                            cost_price = cost_price = cost_price_obj[0]['picklist__stock__unit_price']
-                            quantity = cost_price_obj.aggregate(Sum('quantity'))['quantity__sum']
+                        for margin_cost_price_obj in cost_price_obj:
+                            cost_price = cost_price = margin_cost_price_obj['picklist__stock__unit_price']
+                            quantity = margin_cost_price_obj['quantity']
                             profit_price = (unit_price * quantity) - (cost_price * quantity)
                             if profit_price < 1:
                                 cgst_tax,sgst_tax,igst_tax,utgst_tax = 0, 0 ,0, 0
-
-            amt = (unit_price * quantity) - discount
-            base_price = "%.2f" % (unit_price * quantity)
-            hsn_code = ''
-            if dat.sku.hsn_code:
-                hsn_code = str(dat.sku.hsn_code)
-
-            if is_gst_invoice:
-                if marginal_flag:
-                    cess_amt = 0
-                    marginal_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax
-                    tax_amount = (profit_price * marginal_tax)/(100 + marginal_tax)
-                    taxable_amt = profit_price - tax_amount
-                    if cgst_tax:
-                        cgst_amt = tax_amount/2
-                        sgst_amt = tax_amount/2
-                        igst_amt, utgst_amt = 0, 0
-                    elif igst_tax:
-                        igst_amt = tax_amount
-                        cgst_amt, sgst_amt, utgst_amt = 0, 0, 0
-                    elif utgst_tax:
-                        utgst_amt = tax_amount
-                        cgst_amt, sgst_amt, igst_amt = 0, 0, 0
-                    else :
-                        cgst_amt,sgst_amt,igst_amt,utgst_amt = 0, 0 ,0, 0
+                            data,total_invoice,_total_tax = common_calculations(unit_price,quantity,discount,dat,is_gst_invoice,marginal_flag,
+                                                                                   cgst_tax,sgst_tax,igst_tax,utgst_tax,cess_tax,profit_price,hsn_summary,
+                                                                                   total_quantity,partial_order_quantity_price,_total_tax,
+                                                                                   total_invoice,total_taxable_amt,display_customer_sku,customer_sku_codes,
+                                                                                   user,sor_id,sell_ids,seller_summary,data,order_id,title,tax_type,vat,mrp_price,
+                                                                                   shipment_date,count,total_taxes,imei_data)
 
                 else:
-                    cgst_amt = float(cgst_tax) * (float(amt) / 100)
-                    sgst_amt = float(sgst_tax) * (float(amt) / 100)
-                    igst_amt = float(igst_tax) * (float(amt) / 100)
-                    utgst_amt = float(utgst_tax) * (float(amt) / 100)
-                    cess_amt = float(cess_tax) * (float(amt) / 100)
-                taxes_dict = {'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax, 'utgst_tax': utgst_tax,
-                              'cess_tax': cess_tax, 'cgst_amt': '%.2f' % cgst_amt, 'sgst_amt': '%.2f' % sgst_amt,
-                              'igst_amt': '%.2f' % igst_amt,
-                              'utgst_amt': '%.2f' % utgst_amt, 'cess_amt': '%.2f' % cess_amt}
-                total_taxes['cgst_amt'] += float(taxes_dict['cgst_amt'])
-                total_taxes['sgst_amt'] += float(taxes_dict['sgst_amt'])
-                total_taxes['igst_amt'] += float(taxes_dict['igst_amt'])
-                total_taxes['utgst_amt'] += float(taxes_dict['utgst_amt'])
-                total_taxes['cess_amt'] += float(taxes_dict['cess_amt'])
-                _tax = float(taxes_dict['cgst_amt']) + float(taxes_dict['sgst_amt']) + float(taxes_dict['igst_amt']) + \
-                       float(taxes_dict['utgst_amt']) + float(taxes_dict['cess_amt'])
-                summary_key = str(hsn_code) + "@" + str(cgst_tax + sgst_tax + igst_tax + utgst_tax+cess_tax)
-                if hsn_summary.get(summary_key, ''):
-                    hsn_summary[summary_key]['taxable'] += float("%.2f" % float(amt))
-                    hsn_summary[summary_key]['sgst_amt'] += float("%.2f" % float(sgst_amt))
-                    hsn_summary[summary_key]['cgst_amt'] += float("%.2f" % float(cgst_amt))
-                    hsn_summary[summary_key]['igst_amt'] += float("%.2f" % float(igst_amt))
-                    hsn_summary[summary_key]['utgst_amt'] += float("%.2f" % float(utgst_amt))
-                    hsn_summary[summary_key]['cess_amt'] += float("%.2f" % float(cess_amt))
-                else:
-                    hsn_summary[summary_key] = {}
-                    hsn_summary[summary_key]['taxable'] = float("%.2f" % float(amt))
-                    hsn_summary[summary_key]['sgst_amt'] = float("%.2f" % float(sgst_amt))
-                    hsn_summary[summary_key]['cgst_amt'] = float("%.2f" % float(cgst_amt))
-                    hsn_summary[summary_key]['igst_amt'] = float("%.2f" % float(igst_amt))
-                    hsn_summary[summary_key]['utgst_amt'] = float("%.2f" % float(utgst_amt))
-                    hsn_summary[summary_key]['cess_amt'] = float("%.2f" % float(cess_amt))
-            else:
-                _tax = (amt * (vat / 100))
+                    data,total_invoice,_total_tax = common_calculations(unit_price,quantity,discount,dat,is_gst_invoice,marginal_flag,
+                                            cgst_tax,sgst_tax,igst_tax,utgst_tax,cess_tax,profit_price,hsn_summary,
+                                            total_quantity,partial_order_quantity_price,_total_tax,
+                                            total_invoice,total_taxable_amt,display_customer_sku,customer_sku_codes,
+                                            user,sor_id,sell_ids,seller_summary,data,order_id,title,tax_type,vat,mrp_price,
+                                            shipment_date,count,total_taxes,imei_data)
 
-            discount_percentage = 0
-            if (quantity * unit_price):
-                discount_percentage = "%.1f" % (float((discount * 100) / (quantity * unit_price)))
-            unit_price = "%.2f" % unit_price
-            total_quantity += quantity
-            partial_order_quantity_price += (float(unit_price) * float(quantity))
-            _total_tax += _tax
-            invoice_amount = _tax + amt
-            total_invoice += _tax + amt
-            total_taxable_amt += amt
-            if marginal_flag:
-                total_invoice = total_invoice - tax_amount
-                amt  = taxable_amt if taxable_amt >= 0 else 0
-                invoice_amount = invoice_amount - tax_amount
-            sku_code = dat.sku.sku_code
-            sku_desc = dat.sku.sku_desc
-            measurement_type = dat.sku.measurement_type
-            if display_customer_sku == 'true':
-                customer_sku_code_ins = customer_sku_codes.filter(customer__customer_id=dat.customer_id,
-                                                                  sku__sku_code=sku_code)
-                if customer_sku_code_ins:
-                    sku_code = customer_sku_code_ins[0]['customer_sku_code']
-
-            temp_imeis = []
-            temp_imeis = get_mapping_imeis(user, dat, seller_summary, sor_id, sell_ids=sell_ids)
-            imei_data.append(temp_imeis)
-            if sku_code in [x['sku_code'] for x in data]:
-                continue
-            if math.ceil(quantity) == quantity:
-                quantity = int(quantity)
-            quantity = get_decimal_limit(user.id ,quantity)
-            invoice_amount = get_decimal_limit(user.id ,invoice_amount ,'price')
-            count = count +1
-            data.append(
-                {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
-                 'title': title, 'invoice_amount': str(invoice_amount),
-                 'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price, 'tax_type': tax_type,
-                 'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
-                 'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
-                 'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
-                 'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date,'sno':count,
-                 'measurement_type': measurement_type})
+    # arg_data = {'unit_price':unit_price,'quantity':quantity,'discount':discount,'dat':dat,'is_gst_invoice':is_gst_invoice,'marginal_flag':marginal_flag,
+    #             'cgst_tax':cgst_tax,'sgst_tax':sgst_tax,'igst_tax':igst_tax,'utgst_tax':utgst_tax,'cess_tax':cess_tax,'profit_price':profit_price,'hsn_summary':hsn_summary,
+    #             'total_quantity':total_quantity,'partial_order_quantity_price':partial_order_quantity_price,'_total_tax':_total_tax,
+    #             'total_invoice':total_invoice,'total_taxable_amt':total_taxable_amt,'display_customer_sku':display_customer_sku,'customer_sku_codes':customer_sku_codes,
+    #             'user':user,'sor_id':sor_id,'sell_ids':sell_ids,'seller_summary':seller_summary,'data':data,'order_id':order_id,'title':title,'tax_type':tax_type,'vat':vat,'mrp_price':mrp_price,
+    #             'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data}
 
     is_cess_tax_flag = 'true'
     for ord_dict in data:
@@ -3457,6 +3374,118 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'show_mrp': show_mrp, 'mode_of_transport' : mode_of_transport, 'vehicle_number' : vehicle_number,
                     'is_cess_tax_flag': is_cess_tax_flag, 'is_igst_tax_flag': is_igst_tax_flag}
     return invoice_data
+
+def common_calculations(unit_price,quantity,discount,dat,is_gst_invoice,marginal_flag,
+                        cgst_tax,sgst_tax,igst_tax,utgst_tax,cess_tax,profit_price,hsn_summary,
+                        total_quantity,partial_order_quantity_price,_total_tax,
+                        total_invoice,total_taxable_amt,display_customer_sku,customer_sku_codes,
+                        user,sor_id,sell_ids,seller_summary,data,order_id,title,tax_type,vat,mrp_price,
+                        shipment_date,count,total_taxes,imei_data):
+
+    amt = (unit_price * quantity) - discount
+    base_price = "%.2f" % (unit_price * quantity)
+    hsn_code = ''
+    if dat.sku.hsn_code:
+        hsn_code = str(dat.sku.hsn_code)
+
+    if is_gst_invoice:
+        if marginal_flag:
+            cess_amt = 0
+            marginal_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax
+            tax_amount = (profit_price * marginal_tax)/(100 + marginal_tax)
+            taxable_amt = profit_price - tax_amount
+            if cgst_tax:
+                cgst_amt = tax_amount/2
+                sgst_amt = tax_amount/2
+                igst_amt, utgst_amt = 0, 0
+            elif igst_tax:
+                igst_amt = tax_amount
+                cgst_amt, sgst_amt, utgst_amt = 0, 0, 0
+            elif utgst_tax:
+                utgst_amt = tax_amount
+                cgst_amt, sgst_amt, igst_amt = 0, 0, 0
+            else :
+                cgst_amt,sgst_amt,igst_amt,utgst_amt = 0, 0 ,0, 0
+
+        else:
+            cgst_amt = float(cgst_tax) * (float(amt) / 100)
+            sgst_amt = float(sgst_tax) * (float(amt) / 100)
+            igst_amt = float(igst_tax) * (float(amt) / 100)
+            utgst_amt = float(utgst_tax) * (float(amt) / 100)
+            cess_amt = float(cess_tax) * (float(amt) / 100)
+        taxes_dict = {'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax, 'utgst_tax': utgst_tax,
+                      'cess_tax': cess_tax, 'cgst_amt': '%.2f' % cgst_amt, 'sgst_amt': '%.2f' % sgst_amt,
+                      'igst_amt': '%.2f' % igst_amt,
+                      'utgst_amt': '%.2f' % utgst_amt, 'cess_amt': '%.2f' % cess_amt}
+        total_taxes['cgst_amt'] += float(taxes_dict['cgst_amt'])
+        total_taxes['sgst_amt'] += float(taxes_dict['sgst_amt'])
+        total_taxes['igst_amt'] += float(taxes_dict['igst_amt'])
+        total_taxes['utgst_amt'] += float(taxes_dict['utgst_amt'])
+        total_taxes['cess_amt'] += float(taxes_dict['cess_amt'])
+        _tax = float(taxes_dict['cgst_amt']) + float(taxes_dict['sgst_amt']) + float(taxes_dict['igst_amt']) + \
+               float(taxes_dict['utgst_amt']) + float(taxes_dict['cess_amt'])
+        summary_key = str(hsn_code) + "@" + str(cgst_tax + sgst_tax + igst_tax + utgst_tax+cess_tax)
+        if hsn_summary.get(summary_key, ''):
+            hsn_summary[summary_key]['taxable'] += float("%.2f" % float(amt))
+            hsn_summary[summary_key]['sgst_amt'] += float("%.2f" % float(sgst_amt))
+            hsn_summary[summary_key]['cgst_amt'] += float("%.2f" % float(cgst_amt))
+            hsn_summary[summary_key]['igst_amt'] += float("%.2f" % float(igst_amt))
+            hsn_summary[summary_key]['utgst_amt'] += float("%.2f" % float(utgst_amt))
+            hsn_summary[summary_key]['cess_amt'] += float("%.2f" % float(cess_amt))
+        else:
+            hsn_summary[summary_key] = {}
+            hsn_summary[summary_key]['taxable'] = float("%.2f" % float(amt))
+            hsn_summary[summary_key]['sgst_amt'] = float("%.2f" % float(sgst_amt))
+            hsn_summary[summary_key]['cgst_amt'] = float("%.2f" % float(cgst_amt))
+            hsn_summary[summary_key]['igst_amt'] = float("%.2f" % float(igst_amt))
+            hsn_summary[summary_key]['utgst_amt'] = float("%.2f" % float(utgst_amt))
+            hsn_summary[summary_key]['cess_amt'] = float("%.2f" % float(cess_amt))
+    else:
+        _tax = (amt * (vat / 100))
+
+    discount_percentage = 0
+    if (quantity * unit_price):
+        discount_percentage = "%.1f" % (float((discount * 100) / (quantity * unit_price)))
+    unit_price = "%.2f" % unit_price
+    total_quantity += quantity
+    partial_order_quantity_price += (float(unit_price) * float(quantity))
+    _total_tax += _tax
+    invoice_amount = _tax + amt
+    total_invoice += _tax + amt
+    total_taxable_amt += amt
+    if marginal_flag:
+        total_invoice = total_invoice - tax_amount
+        amt  = '%.2f'% taxable_amt if taxable_amt >= 0 else 0
+        invoice_amount = invoice_amount - tax_amount
+    sku_code = dat.sku.sku_code
+    sku_desc = dat.sku.sku_desc
+    measurement_type = dat.sku.measurement_type
+    if display_customer_sku == 'true':
+        customer_sku_code_ins = customer_sku_codes.filter(customer__customer_id=dat.customer_id,
+                                                          sku__sku_code=sku_code)
+        if customer_sku_code_ins:
+            sku_code = customer_sku_code_ins[0]['customer_sku_code']
+
+    temp_imeis = []
+    temp_imeis = get_mapping_imeis(user, dat, seller_summary, sor_id, sell_ids=sell_ids)
+    imei_data.append(temp_imeis)
+    # if sku_code in [x['sku_code'] for x in data]:
+    #     continue
+    if math.ceil(quantity) == quantity:
+        quantity = int(quantity)
+    quantity = get_decimal_limit(user.id ,quantity)
+    invoice_amount = get_decimal_limit(user.id ,invoice_amount ,'price')
+    count = count +1
+    data.append(
+        {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
+         'title': title, 'invoice_amount': str(invoice_amount),
+         'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price, 'tax_type': tax_type,
+         'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
+         'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt':amt, 'taxes': taxes_dict,
+         'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
+         'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date,'sno':count,
+         'measurement_type': measurement_type})
+    return data,total_invoice,_total_tax
 
 
 def get_sku_categories_data(request, user, request_data={}, is_catalog=''):

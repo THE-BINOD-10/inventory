@@ -5171,15 +5171,17 @@ def insert_order_data(request, user=''):
             # order_data['order_id'] = order_id
             order_data['status'] = order_status_key
             order_data['order_code'] = 'MN'
-            order_data['marketplace'] = 'Offline'
+            if order_data.get('marketplace','') :
+                order_data['marketplace'] = order_data['market_list']
+            else:
+                order_data['marketplace'] = 'Offline'
             if custom_order == 'true':
                 order_data['order_code'] = 'CO'
             order_data['user'] = user.id
             order_data['unit_price'] = 0
             order_data['sku_code'] = myDict['sku_id'][i]
             vendor_items = ['printing_vendor', 'embroidery_vendor', 'production_unit']
-            exclude_order_items = ['warehouse_level', 'margin_data', 'el_price', 'del_date', 'vehicle_num', 'cost_price','marginal_flag']
-
+            exclude_order_items = ['warehouse_level', 'margin_data', 'el_price', 'del_date', 'vehicle_num', 'cost_price','marginal_flag','market_list']
             # Written a separate function to make the code simpler
             order_data, order_summary_dict, sku_master, extra_order_fields = construct_order_data_dict(
                 request, i, order_data, myDict, all_sku_codes, custom_order)
@@ -5219,6 +5221,7 @@ def insert_order_data(request, user=''):
                     if not order_obj:
                         el_price = order_data['el_price']
                         del_date = order_data['del_date']
+
                         for item in exclude_order_items:
                             if item in order_data:
                                 order_data.pop(item)

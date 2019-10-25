@@ -58,6 +58,10 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     }
   }
 
+  vm.market_list = ["Flipkart","Snapdeal","Paytm","Amazon","Shopclues","HomeShop18","Jabong","Indiatimes","Myntra",
+                "Voonik","Mr Voonik","Vilara", "Limeroad"];
+
+
   vm.selected = {}
   vm.get_customer_data = function(item, model, label, event) {
     vm.model_data["customer_id"] = item.customer_id;

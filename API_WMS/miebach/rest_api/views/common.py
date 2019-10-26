@@ -3212,10 +3212,15 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                             cost_price_obj = seller_summary.filter(order_id = dat.id, pick_number__in = pick_num).values('picklist__stock__unit_price', 'quantity')
                         else:
                             cost_price_obj = seller_summary.filter(order_id = dat.id).values('picklist__stock__unit_price', 'quantity')
-                        for margin_cost_price_obj in cost_price_obj:
+                        for index,margin_cost_price_obj in enumerate(cost_price_obj):
                             cost_price = cost_price = margin_cost_price_obj['picklist__stock__unit_price']
                             quantity = margin_cost_price_obj['quantity']
                             profit_price = (unit_price * quantity) - (cost_price * quantity)
+                            seller_id_value = seller_summary[index].id
+                            if pick_num:
+                                seller_summary_imei = seller_summary.filter(order_id = dat.id, pick_number__in = pick_num, id= seller_id_value)
+                            else:
+                                seller_summary_imei = seller_summary.filter(order_id = dat.id, id= seller_id_value)
                             if profit_price < 1:
                                 cgst_tax,sgst_tax,igst_tax,utgst_tax = 0, 0 ,0, 0
                             arg_data = {'unit_price':unit_price,'quantity':quantity,'discount':discount,'dat':dat,'is_gst_invoice':is_gst_invoice,'marginal_flag':marginal_flag,
@@ -3223,7 +3228,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                                         'total_quantity':total_quantity,'partial_order_quantity_price':partial_order_quantity_price,'_total_tax':_total_tax,
                                         'total_invoice':total_invoice,'total_taxable_amt':total_taxable_amt,'display_customer_sku':display_customer_sku,'customer_sku_codes':customer_sku_codes,
                                         'user':user,'sor_id':sor_id,'sell_ids':sell_ids,'seller_summary':seller_summary,'data':data,'order_id':order_id,'title':title,'tax_type':tax_type,'vat':vat,'mrp_price':mrp_price,
-                                        'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal}
+                                        'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal, 'taxes_dict':taxes_dict, 'seller_summary_imei':seller_summary_imei}
 
                             data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity = common_calculations(arg_data)
 
@@ -3233,7 +3238,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                                 'total_quantity':total_quantity,'partial_order_quantity_price':partial_order_quantity_price,'_total_tax':_total_tax,
                                 'total_invoice':total_invoice,'total_taxable_amt':total_taxable_amt,'display_customer_sku':display_customer_sku,'customer_sku_codes':customer_sku_codes,
                                 'user':user,'sor_id':sor_id,'sell_ids':sell_ids,'seller_summary':seller_summary,'data':data,'order_id':order_id,'title':title,'tax_type':tax_type,'vat':vat,'mrp_price':mrp_price,
-                                'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal}
+                                'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal,'taxes_dict':taxes_dict, 'seller_summary_imei':''}
                     data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity = common_calculations(arg_data)
 
     is_cess_tax_flag = 'true'
@@ -3460,9 +3465,12 @@ def common_calculations(arg_data):
                                                           sku__sku_code=sku_code)
         if customer_sku_code_ins:
             sku_code = customer_sku_code_ins[0]['customer_sku_code']
-
+            
     temp_imeis = []
-    temp_imeis = get_mapping_imeis(user, dat, seller_summary, sor_id, sell_ids=sell_ids)
+    if seller_summary_imei:
+        temp_imeis = get_mapping_imeis(user, dat, seller_summary_imei, sor_id, sell_ids=sell_ids)
+    else:
+        temp_imeis = get_mapping_imeis(user, dat, seller_summary, sor_id, sell_ids=sell_ids)
     imei_data.append(temp_imeis)
     # if sku_code in [x['sku_code'] for x in data]:
     #     continue

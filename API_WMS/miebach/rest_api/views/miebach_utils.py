@@ -8633,6 +8633,7 @@ def get_basa_report_data(search_params, user, sub_user):
     else:
         stop_index = None
     search_parameters = {}
+    search_parameters_sku = {}
     sort_data = lis[col_num]
     zones  = get_all_sellable_zones(user)
     locations = []
@@ -8643,18 +8644,25 @@ def get_basa_report_data(search_params, user, sub_user):
     if 'sku_code' in search_params:
         if search_params['sku_code']:
             search_parameters['sku__sku_code'] = search_params['sku_code']
+            search_parameters_sku['sku_code'] = search_params['sku_code']
     if 'sku_category' in search_params:
         search_parameters['sku__sku_category'] = search_params['sku_category']
+        search_parameters_sku['sku_category'] = search_params['sku_category']
     if 'sub_category' in search_params:
         search_parameters['sku__sub_category'] = search_params['sub_category']
+        search_parameters_sku['sub_category'] = search_params['sub_category']
     if 'sku_brand' in search_params:
         search_parameters['sku__sku_brand'] = search_params['sku_brand']
+        search_parameters_sku['sku_brand'] = search_params['sku_brand']
     if 'manufacturer' in search_params:
         search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        search_parameters_sku['skuattributes__attribute_value__iexact'] = search_params['manufacturer']
     if 'searchable' in search_params:
         search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        search_parameters_sku['skuattributes__attribute_value__iexact'] = search_params['searchable']
     if 'bundle' in search_params:
         search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+        search_parameters_sku['skuattributes__attribute_value__iexact'] = search_params['bundle']
 
 
     search_parameters['sku_id__in'] = sku_master_ids
@@ -8679,7 +8687,7 @@ def get_basa_report_data(search_params, user, sub_user):
         grn_data = SellerPOSummary.objects.prefetch_related('purchase_order__open_po__sku').filter(batch_detail__isnull=False, purchase_order__open_po__sku_id__in=stock_sku_ids)
         sku_grn_price = OrderedDict(grn_data.values_list('purchase_order__open_po__sku__sku_code', 'batch_detail__buy_price').order_by('id'))
         sku_grn_quantity = OrderedDict(grn_data.values_list('purchase_order__open_po__sku__sku_code', 'quantity').order_by('id'))
-    skumaster_data = SKUMaster.objects.filter(user=user.id).exclude(id__in=list(stock_data.values_list('sku_id', flat=True))).values('sku_code','sku_desc','sku_category','sku_brand','mrp','id','sub_category')
+    skumaster_data = SKUMaster.objects.filter(user=user.id,**search_parameters_sku).exclude(id__in=list(stock_data.values_list('sku_id', flat=True))).values('sku_code','sku_desc','sku_category','sku_brand','mrp','id','sub_category')
     chaining = list(chain(stock_data, skumaster_data))
     temp_data['recordsTotal'] = len(chaining)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']

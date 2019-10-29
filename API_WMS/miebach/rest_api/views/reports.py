@@ -1205,6 +1205,7 @@ def excel_reports(request, user=''):
             func_name = eval(EXCEL_REPORT_MAPPING[temp[1]])
             continue
         if len(temp) > 1 and temp[1]:
+            temp[1] = str(temp[1]).replace('%26', '&')
             if 'date' in dat:
                 if '%2F' in temp[1]:
                     temp[1] = temp[1].replace('%2F', '/')

@@ -836,7 +836,7 @@ def get_aging_filter_data(search_params, user, sub_user):
         annotate(total=Sum('quantity'))
 
     for stock in filtered:
-        stock_date = get_stock_starting_date(stock['receipt_number'], stock['receipt_type'], user.id, stock['receipt_date'])
+        stock_date = get_stock_starting_date(stock['receipt_number'], stock['receipt_type'], stock['sku__user'], stock['receipt_date'])
         age_days = (datetime.datetime.now().date() - stock_date.date()).days
         cond = (stock['sku__sku_code'], stock['sku__sku_desc'], stock['sku__sku_category'],
                 age_days, stock['location__location'], stock['sku__user'])

@@ -3207,6 +3207,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                                         attribute_name='MARGINAL GST').only('attribute_value')
                 if sku_attr_obj:
                     if sku_attr_obj[0].attribute_value.upper() == 'YES':
+                        imei_data_sku_wise = []
                         marginal_flag = 1
                         if pick_num:
                             cost_price_obj = seller_summary.filter(order_id = dat.id, pick_number__in = pick_num).values('picklist__stock__unit_price', 'quantity')
@@ -3216,7 +3217,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                             cost_price = cost_price = margin_cost_price_obj['picklist__stock__unit_price']
                             quantity = margin_cost_price_obj['quantity']
                             profit_price = (unit_price * quantity) - (cost_price * quantity)
-                            seller_id_value = seller_summary[index].id
+                            seller_summary_obj_sku_wise = seller_summary.filter(order__sku_id = dat.sku_id)
+                            seller_id_value = seller_summary_obj_sku_wise[index].id
+                            # seller_id_value = seller_summary[index].id
                             if pick_num:
                                 seller_summary_imei = seller_summary.filter(order_id = dat.id, pick_number__in = pick_num, id= seller_id_value)
                             else:
@@ -3228,7 +3231,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                                         'total_quantity':total_quantity,'partial_order_quantity_price':partial_order_quantity_price,'_total_tax':_total_tax,
                                         'total_invoice':total_invoice,'total_taxable_amt':total_taxable_amt,'display_customer_sku':display_customer_sku,'customer_sku_codes':customer_sku_codes,
                                         'user':user,'sor_id':sor_id,'sell_ids':sell_ids,'seller_summary':seller_summary,'data':data,'order_id':order_id,'title':title,'tax_type':tax_type,'vat':vat,'mrp_price':mrp_price,
-                                        'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal, 'taxes_dict':taxes_dict, 'seller_summary_imei':seller_summary_imei}
+                                        'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal, 'taxes_dict':taxes_dict, 'seller_summary_imei':seller_summary_imei, 'imei_data_sku_wise':imei_data_sku_wise}
 
                             data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity = common_calculations(arg_data)
 
@@ -3465,13 +3468,26 @@ def common_calculations(arg_data):
                                                           sku__sku_code=sku_code)
         if customer_sku_code_ins:
             sku_code = customer_sku_code_ins[0]['customer_sku_code']
-            
+
     temp_imeis = []
     if seller_summary_imei:
-        temp_imeis = get_mapping_imeis(user, dat, seller_summary_imei, sor_id, sell_ids=sell_ids)
+        # temp_imeis = get_mapping_imeis(user, dat, seller_summary_imei, sor_id, sell_ids=sell_ids)
+        imeis = list(
+            OrderIMEIMapping.objects.filter(sku__user=user.id, order_id=dat.id).order_by('creation_date'). \
+            values_list('po_imei__imei_number', flat=True))
+        if seller_summary_imei[0].quantity == len(imeis):
+            temp_imeis.extend(imeis)
+        else:
+            stop_index = int(seller_summary_imei[0].quantity)
+            for del_item in imei_data_sku_wise:
+                if del_item in imeis:
+                    imeis.remove(del_item)
+            imei_details = imeis[0 : stop_index]
+            temp_imeis.extend(imei_details)
     else:
         temp_imeis = get_mapping_imeis(user, dat, seller_summary, sor_id, sell_ids=sell_ids)
     imei_data.append(temp_imeis)
+    imei_data_sku_wise.extend(temp_imeis)
     # if sku_code in [x['sku_code'] for x in data]:
     #     continue
     if math.ceil(quantity) == quantity:

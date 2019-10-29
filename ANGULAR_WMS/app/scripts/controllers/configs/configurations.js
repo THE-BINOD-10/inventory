@@ -654,9 +654,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       angular.copy(data.data, vm.model_data);
       vm.model_data["tax_details"] = {'CST': {}};
       vm.model_data['prefix_data'] = [];
+      vm.model_data['prefix_dc_data'] = [];
       angular.forEach(data.data.prefix_data, function(data){
         vm.model_data.prefix_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix,
                                         marketplace_interfix: data.interfix, marketplace_date_type: data.date_type});
+      })
+      angular.forEach(data.data.prefix_dc_data, function(data){
+        vm.model_data.prefix_dc_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix});
       })
       angular.forEach(vm.model_data, function(value, key) {
         if (value == "true") {
@@ -1095,6 +1099,113 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.filterMarkeplaces = function() {
     vm.saved_marketplaces = [];
     angular.forEach(vm.model_data.prefix_data, function(data){
+      vm.saved_marketplaces.push(data.marketplace_name);
+    })
+    for(var i=0; i < vm.model_data.marketplaces.length; i++) {
+      if (vm.saved_marketplaces.indexOf(vm.model_data.marketplaces[i]) == -1) {
+        vm.model_data.marketplace_name = vm.model_data.marketplaces[i];
+        break;
+      }
+    }
+  }
+
+  vm.marketplace_add_show_dc = false;
+  vm.saveMarketplaceDc = function(name, value) {
+
+    if(!name) {
+
+      Service.showNoty("Please Enter Name");
+      return false;
+    } else {
+      vm.updateMarketplaceDc(name, value, 'save')
+      //vm.switches("{'tax_"+name+"':'"+value+"'}", 31);
+      var found = false;
+      for(var i = 0; i < vm.model_data.prefix_dc_data.length; i++) {
+
+        if(vm.model_data.prefix_dc_data[i].marketplace_name == vm.model_data.marketplace_name) {
+
+          vm.model_data.prefix_dc_data[i].marketplace_name = vm.model_data.marketplace_name;
+          vm.model_data.prefix_dc_data[i].marketplace_prefix = vm.model_data.marketplace_prefix;
+          vm.model_data.prefix_dc_data[i].marketplace_interfix = vm.model_data.marketplace_interfix;
+          vm.model_data.prefix_dc_data[i].marketplace_date_type = vm.model_data.marketplace_date_type;
+          found = true;
+          break;
+        }
+      }
+      if(!found) {
+
+        vm.model_data.prefix_dc_data.push({marketplace_name: vm.model_data.marketplace_name,
+                                        marketplace_prefix: vm.model_data.marketplace_prefix,
+                                        marketplace_interfix: vm.model_data.marketplace_interfix,
+                                        marketplace_date_type: vm.model_data.marketplace_date_type});
+      }
+      vm.marketplace_add_show_dc = false;
+      vm.marketplace_selected_dc = "";
+      vm.model_data.marketplace_name = "";
+      vm.model_data.marketplace_prefix = "";
+      vm.model_data.marketplace_interfix = "";
+      vm.model_data.marketplace_date_type = "";
+      vm.model_data.marketplace_new = true;
+    }
+  }
+
+   vm.marketplaceSelectedDc = function(name) {
+
+    if (name) {
+
+      for(var i = 0; i < vm.model_data.prefix_dc_data.length; i++) {
+
+        if(vm.model_data.prefix_dc_data[i].marketplace_name == name) {
+
+          vm.model_data.marketplace_name = vm.model_data.prefix_dc_data[i].marketplace_name;
+          vm.model_data.marketplace_prefix = vm.model_data.prefix_dc_data[i].marketplace_prefix;
+          vm.model_data.marketplace_interfix = vm.model_data.prefix_dc_data[i].marketplace_interfix;
+          vm.model_data.marketplace_date_type = vm.model_data.prefix_dc_data[i].marketplace_date_type;
+          vm.model_data["marketplace_new"] = false;
+          vm.marketplace_add_show_dc = true;
+          break;
+        }
+      }
+    } else {
+
+      vm.model_data["marketplace_new"] = true;
+      vm.marketplace_add_show = false;
+      vm.model_data.marketplace_name = "";
+      vm.model_data.marketplace_prefix = "";
+    }
+  }
+
+  vm.updateMarketplaceDc = function(name, value, type) {
+
+      var send = {marketplace_name : name, marketplace_prefix: value,
+                  marketplace_interfix: vm.model_data.marketplace_interfix,
+                  marketplace_date_type: vm.model_data.marketplace_date_type}
+      if (type != 'save') {
+        send['delete'] = true;
+
+        for(var i = 0; i < vm.model_data.prefix_dc_data.length; i++) {
+
+          if(vm.model_data.prefix_dc_data[i].marketplace_name == vm.model_data.marketplace_name) {
+
+            vm.model_data.prefix_dc_data.splice(i, 1);
+            break;
+          }
+        }
+        vm.marketplace_add_show_dc = false;
+        vm.marketplace_selected_dc = "";
+        vm.model_data.marketplace_name = "";
+        vm.model_data.marketplace_prefix = "";
+        vm.model_data.marketplace_new = true;
+      }
+      vm.service.apiCall("update_dc_sequence/", "GET", send).then(function(data) {
+
+        console.log(data);
+      })
+  }
+  vm.saved_marketplaces = [];
+  vm.filterMarkeplacesDc = function() {
+    vm.saved_marketplaces = [];
+    angular.forEach(vm.model_data.prefix_dc_data, function(data){
       vm.saved_marketplaces.push(data.marketplace_name);
     })
     for(var i=0; i < vm.model_data.marketplaces.length; i++) {

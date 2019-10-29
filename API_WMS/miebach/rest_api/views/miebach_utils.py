@@ -8776,9 +8776,9 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     if 'sub_category' in search_params:
         if search_params['sub_category']:
             search_parameters['sku__sub_category'] = search_params['sub_category']
-    if 'brand' in search_params:
-        if search_params['brand']:
-            search_parameters['sku__sku_brand'] = search_params['brand']
+    if 'sku_brand' in search_params:
+        if search_params['sku_brand']:
+            search_parameters['sku__sku_brand'] = search_params['sku_brand']
     if 'from_date' in search_params:
         search_parameters['creation_date__gt'] = search_params['from_date']
     if 'to_date' in search_params:

@@ -883,6 +883,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
            }
            vm.model_data.blind_order = true;
            $state.go('app.outbound.CreateOrders');
+           vm.change_tax_type();
          }
        });
       }

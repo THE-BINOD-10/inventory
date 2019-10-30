@@ -3207,9 +3207,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             if dat.sku.sku_code:
                 sku_attr_obj = SKUAttributes.objects.filter(sku_id=dat.sku_id,
                                         attribute_name='MARGINAL GST').only('attribute_value')
+                imei_data_sku_wise = []
                 if sku_attr_obj:
                     if sku_attr_obj[0].attribute_value.upper() == 'YES':
-                        imei_data_sku_wise = []
                         marginal_flag = 1
                         if pick_num:
                             cost_price_obj = seller_summary.filter(order_id = dat.id, pick_number__in = pick_num).values('picklist__stock__unit_price', 'quantity')
@@ -3243,7 +3243,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                                 'total_quantity':total_quantity,'partial_order_quantity_price':partial_order_quantity_price,'_total_tax':_total_tax,
                                 'total_invoice':total_invoice,'total_taxable_amt':total_taxable_amt,'display_customer_sku':display_customer_sku,'customer_sku_codes':customer_sku_codes,
                                 'user':user,'sor_id':sor_id,'sell_ids':sell_ids,'seller_summary':seller_summary,'data':data,'order_id':order_id,'title':title,'tax_type':tax_type,'vat':vat,'mrp_price':mrp_price,
-                                'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal,'taxes_dict':taxes_dict, 'seller_summary_imei':''}
+                                'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal,'taxes_dict':taxes_dict, 'seller_summary_imei':'','imei_data_sku_wise':imei_data_sku_wise}
                     data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity = common_calculations(arg_data)
 
     is_cess_tax_flag = 'true'

@@ -12,6 +12,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.parent_username = Session.parent.userName
   vm.central_order_mgmt = Session.roles.permissions.central_order_mgmt
   vm.dispatch_summary_view_types = Data.dispatch_summary_view_types;
+  vm.industry_type = Session.user_profile.industry_type;
+  vm.user_type = Session.user_profile.user_type;
   vm.model_data = {'datatable': vm.g_data.view}
   vm.dtOptions = DTOptionsBuilder.newOptions()
      .withOption('ajax', {
@@ -79,5 +81,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       vm.dtColumns.pop(DTColumnBuilder.newColumn('Expiry Date').withTitle('Expiry Date'))
     }
   }
+
+  vm.sku_groups = [0, 123, 23, 1234]
+  vm.service.apiCall('sku_category_list/').then(function(data){
+     if(data.message) {
+       vm.sku_groups = data.data.categories;
+     }
+   })
 
 }

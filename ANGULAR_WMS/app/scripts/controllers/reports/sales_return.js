@@ -11,6 +11,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   var vm = this;
   vm.service = Service;
   vm.service.print_enable = false;
+  vm.industry_type = Session.user_profile.industry_type;
+  vm.user_type = Session.user_profile.user_type;
 
   vm.dtOptions = DTOptionsBuilder.newOptions()
      .withOption('ajax', {
@@ -30,12 +32,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
   vm.dtColumns = [
       DTColumnBuilder.newColumn('sku_code').withTitle('SKU Code'),
+      DTColumnBuilder.newColumn('sku_category').withTitle('SKU Category'),
+      DTColumnBuilder.newColumn('sub_category').withTitle('SKU Sub Category'),
+      DTColumnBuilder.newColumn('sku_brand').withTitle('SKU Brand'),
       DTColumnBuilder.newColumn('order_id').withTitle('Order ID'),
       DTColumnBuilder.newColumn('customer_id').withTitle('Customer ID'),
       DTColumnBuilder.newColumn('return_date').withTitle('Return Date'),
       DTColumnBuilder.newColumn('quantity').withTitle('Quantity'),
       DTColumnBuilder.newColumn('marketplace').withTitle('Market Place')
   ];
+  if (vm.industry_type == "FMCG" && vm.user_type == "marketplace_user") {
+    vm.dtColumns.splice(5, 0, DTColumnBuilder.newColumn('Manufacturer').withTitle('Manufacturer'))
+    vm.dtColumns.splice(6, 0, DTColumnBuilder.newColumn('Searchable').withTitle('Searchable'))
+    vm.dtColumns.splice(7, 0, DTColumnBuilder.newColumn('Bundle').withTitle('Bundle'))
+
+  }
 
   vm.dtInstance = {};
 
@@ -69,7 +80,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                     'customer_id': '',
                     'creation_date': '',
                     'to_date':'',
-                    'marketplace': ''
+                    'marketplace': '',
+                    'sku_category': '',
+                    'sub_category': '',
+                    'sku_brand': '',
+                    'manufacturer':'',
+                    'searchable':'',
+                    'bundle':'',
                     };
 
   vm.model_data = {};

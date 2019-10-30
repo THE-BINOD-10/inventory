@@ -3280,15 +3280,15 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             quantity = get_decimal_limit(user.id ,quantity)
             invoice_amount = get_decimal_limit(user.id ,invoice_amount ,'price')
             count = count +1
+            received_quantity, invoice_qty = '', ''
             if is_sample_option == 'true':
+                order_quantity = SellerOrderSummary.objects.filter(order_id=dat.id).aggregate(Sum('quantity'))
                 mappingData = list(OrderMapping.objects.filter(mapping_type='PO', order_id=dat.id).values_list('mapping_id', flat=True))
                 if mappingData:
                     purchase_order_data = PurchaseOrder.objects.filter(id=mappingData[0]).values('received_quantity')
                     if purchase_order_data:
                         received_quantity = purchase_order_data[0].get('received_quantity', 0)
-                        invoice_qty = quantity - received_quantity
-            else:
-                received_quantity, invoice_qty = '', ''
+                        invoice_qty = order_quantity['quantity__sum'] - received_quantity
             data.append(
                 {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
                  'title': title, 'invoice_amount': str(invoice_amount),

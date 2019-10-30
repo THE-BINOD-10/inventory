@@ -363,6 +363,8 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                 supplier = supplier[0]
                 if supplier.open_po and supplier.open_po.order_type == 'VR':
                     order_type = 'Vendor Receipt'
+                if supplier.open_po and supplier.open_po.order_type == 'SP':
+                    order_type = 'Sample Order'
         elif result['rwpurchase__rwo__vendor__user']:
             supplier = PurchaseOrder.objects.filter(order_id=result['order_id'],
                                                 rwpurchase__rwo__vendor__user=result['rwpurchase__rwo__vendor__user'])[0]

@@ -3049,6 +3049,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         customer_sku_codes = CustomerSKU.objects.filter(sku__user=user.id).exclude(customer_sku_code='').values(
             'sku__sku_code',
             'customer__customer_id', 'customer_sku_code')
+    else:
+        customer_sku_codes = ''
     if order_ids:
         sor_id = ''
         order_ids = list(set(order_ids.split(',')))
@@ -5990,10 +5992,14 @@ def build_invoice(invoice_data, user, css=False):
             for imei_count in range(len(imei)+1):
                 imei_count
             count+=imei_count
-        no_of_sku_count = int(count/2)
-        if no_of_sku_count + data_length > 14:
-            data_value = 1
-            data_length = no_of_sku_count + data_length
+        if count == data_length:
+            pass
+        else:
+            no_of_sku_count = int(count/2)
+        if no_of_sku_count:
+            if no_of_sku_count + data_length > 14:
+                data_value = 1
+                data_length = no_of_sku_count + data_length
 
     '''
     if user.username in top_logo_users:
@@ -6007,7 +6013,6 @@ def build_invoice(invoice_data, user, css=False):
         needed_space = inv_footer + inv_footer + inv_total
         if (perm_hsn_summary == 'true'):
             needed_space = needed_space + inv_summary + hsn_summary_length
-
         temp_render_space = 0
         temp_render_space = inv_height - (inv_details + inv_header)
         temp_no_of_skus = int(temp_render_space / inv_product)

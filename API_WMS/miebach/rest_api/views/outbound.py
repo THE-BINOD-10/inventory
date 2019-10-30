@@ -5113,6 +5113,7 @@ def insert_order_data(request, user=''):
     dist_shipment_address = request.POST.get('manual_shipment_addr', '')
     vehicle_number = request.POST.get('vehicle_num', '')
     is_central_order = request.POST.get('is_central_order', '')
+    marketplace_value = request.POST.get('market_list', '')
     isprava_user = get_admin(user)
     if dist_shipment_address:
         ship_to = dist_shipment_address
@@ -5171,8 +5172,8 @@ def insert_order_data(request, user=''):
             # order_data['order_id'] = order_id
             order_data['status'] = order_status_key
             order_data['order_code'] = 'MN'
-            if order_data.get('marketplace','') :
-                order_data['marketplace'] = order_data['market_list']
+            if marketplace_value:
+                order_data['marketplace'] = marketplace_value
             else:
                 order_data['marketplace'] = 'Offline'
             if custom_order == 'true':

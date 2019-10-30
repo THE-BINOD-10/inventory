@@ -360,8 +360,6 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                 order_type = 'Vendor Receipt'
             if supplier.open_po and supplier.open_po.order_type == 'SP':
                 order_type = 'Sample Order'
-        if PurchaseOrder.objects.filter(order_id=result, rwpurchase__rwo__vendor__user=user.id).exists(): #supplier.rwpurchase_set.filter():
-            supplier = PurchaseOrder.objects.filter(order_id=result, rwpurchase__rwo__vendor__user=user.id)[0]
         if PurchaseOrder.objects.filter(order_id=result['order_id'], rwpurchase__rwo__vendor__user=result['open_po__sku__user']).exists(): #supplier.rwpurchase_set.filter():
             supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], rwpurchase__rwo__vendor__user=result['open_po__sku__user'])[0]
             order_type = 'Returnable Work Order'

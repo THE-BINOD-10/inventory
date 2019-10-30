@@ -1721,7 +1721,8 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                 dict_values['batch_detail'] = batch_obj
                 dest_batch = batch_obj
             if batch_obj:
-                batch_stock_filter = {'sku_id': sku_id, 'location_id': dest[0].id, 'batch_detail_id': batch_obj.id}
+                batch_stock_filter = {'sku_id': sku_id, 'location_id': dest[0].id, 'batch_detail_id': batch_obj.id,
+                                      'quantity__gt': 0}
                 if dest_seller_id:
                     batch_stock_filter['sellerstock__seller_id'] = dest_seller_id
                 dest_stock_objs = StockDetail.objects.filter(**batch_stock_filter)
@@ -1748,7 +1749,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
     return dest_batch
 
 def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp='',
-                        weight=''):
+                        weight='', receipt_number='', receipt_type=''):
     # sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
     sku = check_and_return_mapping_id(wms_code, "", user, False)
     if sku:
@@ -1824,10 +1825,11 @@ def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_i
     #         return 'Source Quantity reserved for Picklist'
 
     stock_dict['location_id'] = dest[0].id
+    stock_dict['quantity__gt'] = 0
     dest_stocks = StockDetail.objects.filter(**stock_dict).distinct()
 
     dest_batch = update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
-                       dest_seller_id=seller_id)
+                       dest_seller_id=seller_id, receipt_type=receipt_type, receipt_number=receipt_number)
     move_inventory_dict = {'sku_id': sku_id, 'source_location_id': source[0].id,
                            'dest_location_id': dest[0].id, 'quantity': move_quantity, }
     if seller_id:

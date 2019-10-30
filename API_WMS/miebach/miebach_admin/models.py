@@ -1251,7 +1251,8 @@ class SKURelation(models.Model):
     class Meta:
         db_table = 'SKU_RELATION'
         unique_together = ('parent_sku', 'member_sku', 'relation_type')
-        index_together = (('parent_sku', 'member_sku', 'relation_type'), ('parent_sku', 'member_sku'))
+        index_together = (('parent_sku', 'member_sku', 'relation_type'), ('parent_sku', 'member_sku'),
+                          ('parent_sku', 'relation_type'))
 
     def __unicode__(self):
         return '%s: %s || %s' % (self.relation_type, self.parent_sku, self.member_sku)
@@ -2032,7 +2033,8 @@ class SellerStock(models.Model):
     class Meta:
         db_table = 'SELLER_STOCK'
         unique_together = ('seller', 'stock', 'seller_po_summary')
-        index_together = (('seller', 'stock', 'seller_po_summary'), ('seller', 'stock'), ('seller', 'stock', 'quantity'))
+        index_together = (('seller', 'stock', 'seller_po_summary'), ('seller', 'stock'), ('seller', 'stock', 'quantity'),
+                            ('stock',))
 
 
 class SellerMarginMapping(models.Model):
@@ -2741,6 +2743,7 @@ class StockStats(models.Model):
     return_qty = models.FloatField(default=0)
     adjustment_qty = models.FloatField(default=0)
     consumed_qty = models.FloatField(default=0)
+    rtv_quantity = models.FloatField(default=0)
     closing_stock = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -2999,6 +3002,7 @@ class ReturnToVendor(models.Model):
     location = models.ForeignKey(LocationMaster, blank=True, null=True)
     quantity = models.FloatField(default=0)
     status = models.IntegerField(default=1)
+    return_reason = models.CharField(max_length=64, default='')
     return_type = models.CharField(max_length=32, default='Invoice')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

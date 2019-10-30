@@ -572,6 +572,10 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             quantity_check = get_cell_data(row_idx, order_mapping['quantity'], reader, file_type)
             if int(quantity_check) == 0:
                 index_status.setdefault(count, set()).add('Quantity is given zero')
+            if get_misc_value('float_switch', user.id) == 'false':
+                if not quantity_check.is_integer():
+                    index_status.setdefault(count, set()).add('Decimal Not Allowed In Qty')
+
         if type(cell_data) == float:
             sku_code = str(int(cell_data))
         #elif isinstance(cell_data, str) and '.' in cell_data:
@@ -1802,7 +1806,7 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
         excel_check_list.append('weight')
     if not set(excel_check_list).issubset(excel_mapping.keys()):
         return 'Invalid File', []
-    number_fields = ['quantity', 'mrp']
+    number_fields = ['quantity']
     optional_fields = ['mrp']
     mandatory_fields = ['receipt_date', 'location', 'quantity', 'receipt_type']
     fields_mapping = {'manufactured_date': 'Manufactured Date', 'expiry_date': 'Expiry Date'}
@@ -1871,8 +1875,17 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 data_dict['weight'] = cell_data
                 if user.username in MILKBASKET_USERS and not cell_data:
                     index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
+            elif key == 'mrp':
+                data_dict['mrp'] = cell_data
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
             elif key in number_fields:
                 try:
+                    if key == 'quantity':
+                        if isinstance(cell_data, float):
+                            if get_misc_value('float_switch', user.id) == 'false':
+                                if not cell_data.is_integer():
+                                    index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
                     data_dict[key] = float(cell_data)
                 except:
                     if key not in optional_fields:
@@ -2409,7 +2422,7 @@ def validate_supplier_sku_form(open_sheet, user_id):
                             index_status.setdefault(row_idx, set()).add('MarkDown Percentage is Mandatory For Margin Based')
                         elif not isinstance(cell_data_margin, (int, float)):
                             index_status.setdefault(row_idx, set()).add('MarkDown % Should be in integer or float')
-                        elif not float(cell_data_margin) in range(0, 100):
+                        elif  float(cell_data_margin) < 0  or float(cell_data_margin) >  100:
                             index_status.setdefault(row_idx, set()).add('MarkDown % Should be in between 0 and 100')
 
                     elif cell_data == 'Markup Based' :
@@ -2418,7 +2431,7 @@ def validate_supplier_sku_form(open_sheet, user_id):
                             index_status.setdefault(row_idx, set()).add('Markup Percentage is Mandatory For Markup Based')
                         elif not isinstance(cell_data_markup, (int, float)):
                             index_status.setdefault(row_idx, set()).add('Markup % Should be in integer or float')
-                        elif not float(cell_data_markup) in range(0, 100):
+                        elif  float(cell_data_markup) < 0 or float(cell_data_markup) > 100:
                             index_status.setdefault(row_idx, set()).add('Markup % Should be in between 0 and 100')
 
 
@@ -2734,6 +2747,11 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Quantity should be integer')
+                    elif isinstance(cell_data, float):
+                        if get_misc_value('float_switch', user.id) == 'false':
+                            if not cell_data.is_integer():
+                                index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
+                        data_dict[key] = float(cell_data)
                     else:
                         data_dict[key] = float(cell_data)
                 else:
@@ -2759,11 +2777,14 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     cell_data = str(int(cell_data))
                 data_dict[key] = cell_data
 
+            # elif key == 'mrp' and user.username in MILKBASKET_USERS :
+            #     if not cell_data :
+            #         index_status.setdefault(row_idx, set()).add('MRP is mandatory')
+            #     data_dict[key] = cell_data
             elif key in fields:
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
                 data_dict[key] = cell_data
-
             elif cell_data:
                 if key in number_fields:
                     try:
@@ -3213,7 +3234,7 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
     if not set(excel_check_list).issubset(excel_mapping.keys()):
         return 'Invalid File', None
     fields_mapping = {'quantity': 'Quantity', 'mrp': 'MRP'}
-    number_fields = ['quantity', 'mrp']
+    number_fields = ['quantity']
     for row_idx in range(1, no_of_rows):
         data_dict = {}
         for key, value in excel_mapping.iteritems():
@@ -3274,7 +3295,20 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                 if isinstance(cell_data, float):
                     cell_data = str(int(cell_data))
                 data_dict[key] = cell_data
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
+            elif key == 'mrp':
+                if not isinstance(cell_data, (int, float)):
+                   index_status.setdefault(row_idx, set()).add('Invalid Entry for MRP Value')
+                else:
+                    data_dict[key] = cell_data
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
             elif key in number_fields:
+                if isinstance(cell_data, float):
+                    if get_misc_value('float_switch', user.id) == 'false':
+                        if not cell_data.is_integer():
+                            index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
                 if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % fields_mapping[key])
                 else:
@@ -3525,6 +3559,10 @@ def validate_bom_form(open_sheet, user, bom_excel):
                         index_status.setdefault(row_idx, set()).add('Quantity Should be in integer or float')
                         # else:
                         #    index_status.setdefault(row_idx, set()).add('Quantity Should not be empty')
+                    if isinstance(cell_data, float):
+                        if get_misc_value('float_switch', user.id) == 'false':
+                            if not cell_data.is_integer():
+                                index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
             elif key == 'wastage_percent':
                 cell_data = open_sheet.cell(row_idx, bom_excel[key]).value
                 if cell_data:
@@ -3607,6 +3645,10 @@ def validate_combo_sku_form(open_sheet, user):
                 if not isinstance(cell_data, (int, float)):
                     message = 'Quantity must be Number'
                     index_status.setdefault(row_idx, set()).add(message)
+                if isinstance(cell_data, float):
+                    if get_misc_value('float_switch', user.id) == 'false':
+                        if not cell_data.is_integer():
+                            index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
             else:
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
@@ -3729,12 +3771,18 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                     index_status.setdefault(row_idx, set()).add('Invalid Seller')
             elif key == 'quantity':
                 try:
+                    if isinstance(cell_data, float):
+                        if get_misc_value('float_switch', user.id) == 'false':
+                            if not cell_data.is_integer():
+                                index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
                     data_dict['quantity'] = float(cell_data)
                     if data_dict['quantity'] < 0:
                         index_status.setdefault(row_idx, set()).add('Invalid Quantity')
                 except:
                     index_status.setdefault(row_idx, set()).add('Invalid Quantity')
             elif key == 'mrp':
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
                 if cell_data:
                     try:
                         data_dict['mrp'] = float(cell_data)
@@ -3742,6 +3790,10 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                             index_status.setdefault(row_idx, set()).add('Invalid MRP')
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid MRP')
+            elif key == 'weight' :
+                data_dict[key] = cell_data
+                #if user.username in MILKBASKET_USERS and not cell_data:
+                #    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
             else:
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
@@ -4107,6 +4159,10 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                 if cell_data and isinstance(cell_data, (int, float)):
                     if int(cell_data) < 0:
                         index_status.setdefault(row_idx, set()).add('Return Quantity should not be in negative')
+                if isinstance(cell_data, float):
+                    if get_misc_value('float_switch', user.id) == 'false':
+                        if not cell_data.is_integer():
+                            index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
 
             elif key == 'damaged_quantity':
                 if not isinstance(cell_data, (int, float)) and cell_data:
@@ -4116,6 +4172,10 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                 if cell_data and isinstance(cell_data, (int, float)):
                     if int(cell_data) < 0:
                         index_status.setdefault(row_idx, set()).add('Damaged Quantity should not be in negative')
+                if isinstance(cell_data, float):
+                    if get_misc_value('float_switch', user.id) == 'false':
+                        if not cell_data.is_integer():
+                            index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
 
             elif key == 'return_id':
                 sku_cod = get_cell_data(row_idx, order_mapping['sku_id'], reader, file_type)
@@ -4774,6 +4834,10 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
                     index_status.setdefault(count, set()).add('Quantity should Number')
                 elif not float(value) > 0:
                     index_status.setdefault(count, set()).add('Quantity should be greater than Zero')
+                elif isinstance(value, float):
+                    if get_misc_value('float_switch', user.id) == 'false':
+                        if not value.is_integer():
+                            index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
                 else:
                     order_details['quantity'] = value
                     seller_order_details['quantity'] = value
@@ -4894,6 +4958,7 @@ def validate_po_serial_mapping(request, reader, user, no_of_rows, fname, file_ty
         po_imei_details = {'creation_date': datetime.datetime.now(), 'status': 1}
         sku_code = ''
         supplier_id = ''
+        po_reference_no = ''
         for key, val in order_mapping.iteritems():
             value = get_cell_data(row_idx, order_mapping[key], reader, file_type)
 
@@ -4936,14 +5001,45 @@ def validate_po_serial_mapping(request, reader, user, no_of_rows, fname, file_ty
                         index_status.setdefault(count, set()).add('Invalid Location')
                 if location_master:
                     po_details['location_id'] = location_master[0].id
-
             elif key == 'unit_price':
                 try:
                     value = float(value)
                 except:
                     value = 0
                 po_details['unit_price'] = value
-
+            elif key == 'po_reference_no':
+                try:
+                    if isinstance(value, float):
+                        value = str(int(value))
+                    po_reference_no = value
+                except:
+                    value = ''
+                po_details['po_reference_no'] = value
+            elif key == 'invoice_num':
+                try:
+                    if isinstance(value, float):
+                        value = str(int(value))
+                except:
+                    value = ''
+                po_details['invoice_num'] = value
+            elif key == 'lr_number':
+                try:
+                    if isinstance(value, float):
+                        value = str(int(value))
+                except:
+                    value = ''
+                po_details['lr_number'] = value
+            elif key in ['cgst_tax', 'sgst_tax', 'igst_tax']:
+                try:
+                    po_details[key] = float(value)
+                except:
+                    po_details[key] = 0
+            elif key == 'process_date':
+                try:
+                    year, month, day, hour, minute, second = xldate_as_tuple(value, 0)
+                    po_details['process_date'] = datetime.datetime(year, month, day, hour, minute, second)
+                except:
+                    po_details['process_date'] = datetime.datetime.now()
             elif key == 'imei_number':
                 imei_number = ''
                 try:
@@ -4961,7 +5057,7 @@ def validate_po_serial_mapping(request, reader, user, no_of_rows, fname, file_ty
                     if c_status:
                         index_status.setdefault(count, set()).add(c_status)
 
-        group_key = str(supplier_id) + ':' + str(sku_code)
+        group_key = (str(supplier_id) + ':' + str(sku_code) + ':' + str(po_reference_no))
         final_data_dict = check_and_add_dict(group_key, 'po_details', po_details, final_data_dict=final_data_dict)
         final_data_dict = check_and_add_dict(group_key, 'imei_list', [imei_number], final_data_dict=final_data_dict,
                                              is_list=True)
@@ -4977,6 +5073,7 @@ def validate_po_serial_mapping(request, reader, user, no_of_rows, fname, file_ty
 
 def create_po_serial_mapping(final_data_dict, user):
     order_id_dict = {}
+    lr_number, invoice_num = '', ''
     receipt_number = get_stock_receipt_number(user)
     NOW = datetime.datetime.now()
     user_profile = UserProfile.objects.get(user_id=user.id)
@@ -4986,11 +5083,19 @@ def create_po_serial_mapping(final_data_dict, user):
     for key, value in final_data_dict.iteritems():
         quantity = len(value['imei_list'])
         po_details = value['po_details']
+        if po_details['process_date']:
+            NOW = po_details['process_date']
+        if po_details['invoice_num']:
+            invoice_num = po_details['invoice_num']
+        if po_details['lr_number']:
+            lr_number = po_details['lr_number']
         location_master = LocationMaster.objects.get(id=po_details['location_id'], zone__user=user.id)
         sku = SKUMaster.objects.get(id=po_details['sku_id'], user=user.id)
-        open_po_dict = {'creation_date': NOW, 'order_quantity': quantity,
+        open_po_dict = {'creation_date': NOW, 'order_quantity': quantity, 'po_name': po_details['po_reference_no'],
                         'price': po_details['unit_price'], 'status': 0, 'sku_id': po_details['sku_id'],
-                        'supplier_id': po_details['supplier_id'], 'measurement_unit': sku.measurement_type}
+                        'supplier_id': po_details['supplier_id'],'igst_tax': po_details['igst_tax'],
+                        'cgst_tax': po_details['cgst_tax'],'sgst_tax': po_details['sgst_tax'],
+                         'measurement_unit': sku.measurement_type}
         open_po_obj = OpenPO(**open_po_dict)
         open_po_obj.save()
         order_id = order_id_dict.get(po_details['supplier_id'], '')
@@ -5001,20 +5106,35 @@ def create_po_serial_mapping(final_data_dict, user):
             order_id_dict[po_details['supplier_id']] = order_id
         purchase_order_dict = {'open_po_id': open_po_obj.id, 'received_quantity': quantity, 'saved_quantity': 0,
                                'po_date': NOW, 'status': po_details['status'], 'prefix': user_profile.prefix,
-                               'order_id': order_id, 'creation_date': NOW}
+                               'order_id': order_id, 'creation_date': NOW,'updation_date':NOW}
         purchase_order = PurchaseOrder(**purchase_order_dict)
         purchase_order.save()
+        if lr_number:
+            lr_details = LRDetail(lr_number=lr_number, quantity=quantity,
+                                  creation_date=NOW, updation_date=NOW,
+                                  purchase_order_id=purchase_order.id)
+            lr_details.save()
+        if invoice_num:
+            seller_po_summary = SellerPOSummary.objects.create(quantity=quantity,
+                                                                invoice_number = invoice_num,
+                                                                invoice_date = NOW,
+                                                                receipt_number=receipt_number,
+                                                                putaway_quantity=quantity,
+                                                                location_id=None,
+                                                                purchase_order_id=purchase_order.id,
+                                                                creation_date=NOW)
+
         imei_nos = ','.join(value['imei_list'])
         insert_po_mapping(imei_nos, purchase_order, user.id)
 
         po_location_dict = {'creation_date': NOW, 'status': 0, 'quantity': 0, 'original_quantity': quantity,
-                            'location_id': po_details['location_id'], 'purchase_order_id': purchase_order.id}
+                            'location_id': po_details['location_id'], 'purchase_order_id': purchase_order.id, 'updation_date':NOW}
         po_location = POLocation(**po_location_dict)
         po_location.save()
         stock_dict = StockDetail.objects.create(receipt_number=receipt_number, receipt_date=NOW, quantity=quantity,
                                                 status=1, location_id=po_details['location_id'],
                                                 sku_id=po_details['sku_id'],
-                                                receipt_type='purchase order', creation_date=NOW)
+                                                receipt_type='purchase order', creation_date=NOW, updation_date=NOW)
         # SKU Stats
         save_sku_stats(user, stock_dict.sku_id, purchase_order.id, 'po', quantity, stock_dict)
         mod_locations.append(location_master.location)
@@ -5105,6 +5225,11 @@ def validate_job_order(request, reader, user, no_of_rows, fname, file_type='xls'
 
             elif key == 'product_quantity':
                 try:
+                    if value:
+                        if isinstance(value, float):
+                            if get_misc_value('float_switch', user.id) == 'false':
+                                if not value.is_integer():
+                                    index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
                     value = float(value)
                 except:
                     value = 0
@@ -5461,6 +5586,10 @@ def validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols,
                         index_status.setdefault(row_idx, set()).add('%s should be number' % exc_reverse[key])
             elif key == 'quantity':
                 try:
+                    if isinstance(cell_data, float):
+                        if get_misc_value('float_switch', user.id) == 'false':
+                            if not cell_data.is_integer():
+                                index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
                     data_dict[key] = float(cell_data)
                 except:
                     index_status.setdefault(row_idx, set()).add('%s should be number' % exc_reverse[key])
@@ -5572,7 +5701,8 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                                                  inv_mapping)
     if not set(['source_sku_code', 'source_location', 'source_quantity', 'dest_sku_code',
                 'dest_location', 'dest_quantity']).issubset(excel_mapping.keys()):
-        return 'Invalid File', None
+        return 'Invalid File'
+    number_fields = ['source_quantity','dest_quantity','source_mrp','dest_mrp']
     if user.userprofile.user_type == 'marketplace_user':
         if 'seller_id' not in excel_mapping.keys():
             return 'Invalid File', None
@@ -5645,11 +5775,16 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                     cell_data = str(int(cell_data))
                     data_dict[key] = cell_data
             elif key in ['source_weight','dest_weight'] :
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
                 if isinstance(cell_data, (int, float)):
                     data_dict[key] = str(int(cell_data))
                 else:
                     data_dict[key] = str(cell_data)
             elif key in number_fields:
+                if key in ['source_mrp','dest_mrp'] :
+                    if user.username in MILKBASKET_USERS and not cell_data:
+                        index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
                 if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
                 elif 'source' in key and prev_data_dict.get(key, ''):
@@ -5657,6 +5792,12 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                     data_dict['source_updated'] = True
                 else:
                     data_dict[key] = cell_data
+                if key in ['source_quantity', 'dest_quantity']:
+                    if cell_data:
+                        if isinstance(cell_data, float):
+                            if get_misc_value('float_switch', user.id) == 'false':
+                                if not cell_data.is_integer():
+                                    index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
         if row_idx not in index_status:
             prev_data_dict = copy.deepcopy(data_dict)
             stock_dict = {"sku_id": data_dict['source_sku_code_obj'].id,
@@ -6402,8 +6543,14 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(count, set()).add('Invalid %s' % number_fields[key])
+                    if key == 'quantity':
+                        if isinstance(cell_data, float):
+                            if get_misc_value('float_switch', user.id) == 'false':
+                                if not cell_data.is_integer():
+                                    index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
                 elif key == 'quantity':
                     index_status.setdefault(count, set()).add('Quantity is mandatory')
+
 
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
@@ -6658,8 +6805,12 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add("Quantity Missing")
                 else:
-                    if not isinstance(cell_data, (int, float)):
+                    if not isinstance(cell_data, (int, float)) and cell_data < 0:
                         index_status.setdefault(row_idx, set()).add('Invalid Quantity Amount')
+                    elif isinstance(cell_data, float):
+                        if get_misc_value('float_switch', user.id) == 'false':
+                            if not cell_data.is_integer():
+                                index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
                     else:
                         sku_code = get_cell_data(row_idx, blockstock_file_mapping['sku_code'], reader, file_type)
                         wh_name = get_cell_data(row_idx, blockstock_file_mapping['warehouse'], reader, file_type)
@@ -6667,12 +6818,12 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                         usr_obj = User.objects.filter(username=wh_name).values_list('id', flat=True)
                         ret_list = get_quantity_data(usr_obj, [sku_code], asn_true=False)
                         if ret_list:
-                            avail_stock = ret_list[0]['available']
+                            avail_stock = ret_list[0]['available'] - ret_list[0]['non_kitted'] - ret_list[0]['reserved'] - ret_list[0]['blocked']
                             if level == 1:
                                 if avail_stock < cell_data:
                                     index_status.setdefault(row_idx, set()).add('Stock Outage.Pls check stock in WH')
                             elif level == 3:
-                                asn_avail_stock = ret_list[0]['asn'] + ret_list[0]['non_kitted']
+                                asn_avail_stock = ret_list[0]['asn'] + ret_list[0]['non_kitted'] - ret_list[0]['asn_res'] - ret_list[0]['asn_blocked']
                                 if asn_avail_stock < cell_data:
                                     index_status.setdefault(row_idx, set()).add('Stock Outage.Pls check stock in WH')
             elif key == 'reseller_name':
@@ -6944,6 +7095,10 @@ def validate_custom_order_form(reader, user, no_of_rows, no_of_cols, fname, file
                 else:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Invalid Quantity Amount')
+                    if isinstance(cell_data, float):
+                        if get_misc_value('float_switch', user.id) == 'false':
+                            if not cell_data.is_integer():
+                                index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
             elif key == 'client_po_rate':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Client PO Rate is Missing')
@@ -7287,11 +7442,16 @@ def validate_combo_allocate_form(request, reader, user, no_of_rows, no_of_cols, 
                     cell_data = str(int(cell_data))
                     data_dict[key] = cell_data
             elif key in ['combo_weight','child_weight'] :
+                if user.username in MILKBASKET_USERS and not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
                 if isinstance(cell_data, (int, float)):
                     data_dict[key] = str(int(cell_data))
                 else:
                     data_dict[key] = str(cell_data)
             elif key in number_fields:
+                if key in ['combo_mrp','child_mrp'] :
+                    if user.username in MILKBASKET_USERS and not cell_data:
+                        index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
                 if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
                 elif 'child' in key and prev_data_dict.get(key, ''):
@@ -7299,6 +7459,15 @@ def validate_combo_allocate_form(request, reader, user, no_of_rows, no_of_cols, 
                     data_dict['source_updated'] = True
                 else:
                     data_dict[key] = cell_data
+                if key in ['combo_quantity','child_quantity']:
+                    if not cell_data:
+                        index_status.setdefault(row_idx, set()).add('Quantity should not be zero')
+                    if cell_data:
+                        if isinstance(cell_data, float):
+                            if get_misc_value('float_switch', user.id) == 'false':
+                                if not cell_data.is_integer():
+                                    index_status.setdefault(row_idx, set()).add('Decimal Not Allowed in Qty')
+                        data_dict[key] = float(cell_data)
 
         if row_idx not in index_status:
             prev_data_dict = copy.deepcopy(data_dict)

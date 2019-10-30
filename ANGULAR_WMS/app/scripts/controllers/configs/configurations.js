@@ -15,7 +15,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'pos_switch': false, 'auto_po_switch': false, 'no_stock_switch': false, 'online_percentage': 0,
                     'mail_alerts': 0, 'prefix': '', 'all_groups': '', 'mail_options': [{'id': 1,'name': 'Default'}],
                     'mail_inputs':[], 'report_freq':'0', 'float_switch': false, 'automate_invoice': false, 'all_stages': '','all_order_fields':'',
-                    'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,'grn_fields':'', 'po_fields':'',
+                    'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,'grn_fields':'', 'po_fields':'', 'rtv_reasons':'',
                     'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': '',
                     'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false,
                     'invoice_remarks': '','invoice_declaration':'', 'raisepo_terms_conditions':'', 'show_disc_invoice': false, 'serial_limit': '',
@@ -58,7 +58,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      79: 'generate_delivery_challan_before_pullConfiramation', 80: 'unique_mrp_putaway',
                      81: 'rtv_prefix_code',82:'pos_remarks', 83:'dispatch_qc_check', 84:'block_expired_batches_picklist', 85:'non_transacted_skus',
                      86:'sku_less_than_threshold', 87:'decimal_limit_price', 88: 'mandate_sku_supplier', 89: 'update_mrp_on_grn', 90: 'allow_rejected_serials',
-                     91: 'weight_integration_name',
+                     91: 'weight_integration_name', 92:'repeat_po'
                      }
 
   vm.check_box_data = [
@@ -74,6 +74,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       model_name: "auto_generate_picklist",
       param_no: 22,
       class_name: "fa fa-envelope-o",
+      display: true
+    },
+    {
+      name: "Repeat PO",
+      model_name: "repeat_po",
+      param_no: 92,
+      class_name: "fa fa-refresh",
       display: true
     },
     {
@@ -249,7 +256,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       model_name: "show_imei_invoice",
       param_no: 39,
       class_name: "fa fa-refresh",
-      display: vm.marketplace_user
+      display: true
     },
     {
       name: "Create Seller Order",
@@ -717,6 +724,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $(".order_fields").importTags(vm.model_data.all_order_fields);
       $(".grn_fields").importTags(vm.model_data.grn_fields);
       $(".po_fields").importTags(vm.model_data.po_fields);
+      $(".rtv_reasons").importTags(vm.model_data.rtv_reasons);
       vm.model_data.all_order_fields_list = vm.model_data.all_order_fields.split(",")
       $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
       $(".invoice_types").importTags(vm.model_data.invoice_types);
@@ -858,6 +866,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.update_po_fields = function() {
     var data = $(".po_fields").val();
     vm.service.apiCall("save_grn_fields/?po_fields="+data).then(function(data){
+      if(data.message) {
+        msg = data.data;
+        $scope.showNoty();
+        Auth.status();
+      }
+    });
+  }
+
+  vm.update_rtv_reasons = function() {
+    var data = $(".rtv_reasons").val();
+    vm.service.apiCall("save_grn_fields/?rtv_reasons="+data).then(function(data){
       if(data.message) {
         msg = data.data;
         $scope.showNoty();

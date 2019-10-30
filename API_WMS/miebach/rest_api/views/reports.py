@@ -275,7 +275,7 @@ def print_order_flow_report(request, user=''):
         html_data = create_reports_table(report_data[0].keys(), report_data)
     return HttpResponse(html_data)
 
-    
+
 @get_admin_user
 def print_stock_summary_report(request, user=''):
     search_parameters = {}
@@ -660,7 +660,7 @@ def print_sales_returns(request, user=''):
 
 
 def get_adjust_filter_data(search_params, user, sub_user):
-    from rest_api.views.common import get_sku_master
+    from rest_api.views.common import get_sku_master, get_utc_start_date
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
@@ -668,12 +668,14 @@ def get_adjust_filter_data(search_params, user, sub_user):
     temp_data['draw'] = search_params.get('draw')
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
         search_parameters['cycle__creation_date__gte'] = search_params['from_date']
     else:
         search_parameters['cycle__creation_date__gte'] = date.today()+relativedelta(months=-1)
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
         search_parameters['cycle__creation_date__lt'] = search_params['to_date']
     if 'sku_code' in search_params:
         search_parameters['cycle__sku__sku_code'] = search_params['sku_code'].upper()
@@ -766,9 +768,9 @@ def get_adjust_filter_data(search_params, user, sub_user):
                                                      ('Quantity', data['quantity']),
                                                      ('Average Cost', avg_cost),
                                                      ('Value', amount),
-                                                     ('Remarks', data['reason']),
+                                                     ('Reason', data['reason']),
                                                      ('User', updated_user_name),
-                                                     ('Date', data['creation_date']),
+                                                     ('Transaction Date', data['creation_date']),
 
                                                   )))
     else:
@@ -829,12 +831,15 @@ def get_aging_filter_data(search_params, user, sub_user):
     search_parameters['quantity__gt'] = 0
     search_parameters['sku_id__in'] = sku_master_ids
     filtered = StockDetail.objects.filter(**search_parameters). \
-        values('receipt_date', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'location__location', 'sku__user'). \
+        values('receipt_date', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'location__location', 'sku__user',
+               'receipt_type', 'receipt_number'). \
         annotate(total=Sum('quantity'))
 
     for stock in filtered:
+        stock_date = get_stock_starting_date(stock['receipt_number'], stock['receipt_type'], user.id, stock['receipt_date'])
+        age_days = (datetime.datetime.now().date() - stock_date.date()).days
         cond = (stock['sku__sku_code'], stock['sku__sku_desc'], stock['sku__sku_category'],
-                (datetime.datetime.now().date() - stock['receipt_date'].date()).days, stock['location__location'], stock['sku__user'])
+                age_days, stock['location__location'], stock['sku__user'])
         all_data.setdefault(cond, 0)
         all_data[cond] += stock['total']
     temp_data['recordsTotal'] = len(all_data)
@@ -899,6 +904,10 @@ def print_po_reports(request, user=''):
     overall_discount = 0
     for data in results:
         receipt_type = ''
+        lr_number = ''
+        lr_number_obj = LRDetail.objects.filter(purchase_order_id = data.id, purchase_order__open_po__sku__user = user.id)
+        if lr_number_obj.exists():
+            lr_number = lr_number_obj[0].lr_number
         if po_id:
             quantity = data.received_quantity
             bill_date = data.updation_date
@@ -1036,7 +1045,7 @@ def print_po_reports(request, user=''):
                    'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,'overall_discount':overall_discount,
                    'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': total_tax,'net_amount':net_amount,
-                   'company_address': company_address, 'sr_number': sr_number})
+                   'company_address': company_address, 'sr_number': sr_number, 'lr_number': lr_number})
 
 
 @csrf_exempt
@@ -1092,6 +1101,8 @@ def excel_reports(request, user=''):
             continue
         if len(temp) > 1 and temp[1]:
             if 'date' in dat:
+                if '%2F' in temp[1]:
+                    temp[1] = temp[1].replace('%2F', '/')
                 temp[1] = datetime.datetime.strptime(temp[1], '%m/%d/%Y')
             search_params[temp[0]] = temp[1]
     params = [search_params, user, request.user]

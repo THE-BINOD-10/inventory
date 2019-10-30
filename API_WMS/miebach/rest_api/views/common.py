@@ -545,6 +545,7 @@ data_datatable = {  # masters
     'POPaymentTrackerInvBased': 'get_inv_based_po_payment_data', \
     'ReturnToVendor': 'get_po_putaway_data', \
     'CreatedRTV': 'get_saved_rtvs', \
+    'PastPO':'get_past_po',\
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -858,6 +859,12 @@ def configurations(request, user=''):
     else:
         config_dict['po_fields'] = po_fields
 
+    rtv_reasons = get_misc_value('rtv_reasons', user.id)
+    if rtv_reasons == 'false' :
+        config_dict['rtv_reasons'] = ''
+    else:
+        config_dict['rtv_reasons'] = rtv_reasons
+
     if config_dict['mail_alerts'] == 'false':
         config_dict['mail_alerts'] = 0
     if config_dict['production_switch'] == 'false':
@@ -915,7 +922,7 @@ def configurations(request, user=''):
 
 
 @csrf_exempt
-def get_work_sheet(sheet_name, sheet_headers, f_name=''):
+def get_work_sheet(sheet_name, sheet_headers, f_name='', headers_index=0):
     if '.xlsx' in f_name:
         wb = xlsxwriter.Workbook(f_name)
         ws = wb.add_worksheet(sheet_name)
@@ -925,7 +932,7 @@ def get_work_sheet(sheet_name, sheet_headers, f_name=''):
         ws = wb.add_sheet(sheet_name)
         header_style = easyxf('font: bold on')
     for count, header in enumerate(sheet_headers):
-        ws.write(0, count, header, header_style)
+        ws.write(headers_index, count, header, header_style)
     return wb, ws
 
 
@@ -984,6 +991,8 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
         file_name = "%s.%s" % (user.id, excel_name.split('=')[-1])
     if not file_type:
         file_type = 'xls'
+    if len(temp_data['aaData']) > 65535:
+        file_type = 'csv'
     path = ('static/excel_files/%s.%s') % (file_name, file_type)
     if not os.path.exists('static/excel_files/'):
         os.makedirs('static/excel_files/')
@@ -1817,7 +1826,7 @@ def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_i
     #         return 'Source Quantity reserved for Picklist'
 
     stock_dict['location_id'] = dest[0].id
-    dest_stocks = StockDetail.objects.filter(**stock_dict)
+    dest_stocks = StockDetail.objects.filter(**stock_dict).distinct()
 
     dest_batch = update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
                        dest_seller_id=seller_id)
@@ -1927,7 +1936,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
 
     if quantity:
         #quantity = float(quantity)
-        stocks = StockDetail.objects.filter(**stock_dict).order_by('-creation_date').distinct()
+        stocks = StockDetail.objects.filter(**stock_dict).distinct().order_by('-id')
         if user.userprofile.user_type == 'marketplace_user':
             total_stock_quantity = SellerStock.objects.filter(seller_id=seller_master_id,
                                                               stock__id__in=stocks.values_list('id', flat=True)). \
@@ -1940,7 +1949,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
         for stock in stocks:
             if total_stock_quantity < quantity:
                 stock.quantity += abs(remaining_quantity)
-                stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', remaining_quantity, stock, stock_stats_objs, bulk_insert=True)
+                stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', abs(remaining_quantity), stock, stock_stats_objs, bulk_insert=True)
                 stock.save()
                 change_seller_stock(seller_master_id, stock, user, abs(remaining_quantity), 'inc')
                 adjustment_objs = create_invnetory_adjustment_record(user, dat, abs(remaining_quantity), reason, location, now, pallet_present,
@@ -1985,10 +1994,12 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                 del stock_dict["batch_detail__weight"]
             if 'sellerstock__seller_id' in stock_dict.keys():
                 del stock_dict['sellerstock__seller_id']
-            latest_stock = StockDetail.objects.filter(**stock_dict1).order_by('-creation_date')
+            latest_stock = StockDetail.objects.filter(**stock_dict1)
             if latest_stock.exists():
-                batch_obj = latest_stock[0].batch_detail
-                stock_dict["batch_detail_id"] = batch_obj.id
+                latest_stock_obj = latest_stock.latest('id')
+                batch_obj = latest_stock_obj.batch_detail
+                if batch_obj:
+                    stock_dict["batch_detail_id"] = batch_obj.id
             elif batch_dict.keys():
                 batch_obj = BatchDetail.objects.create(**batch_dict)
                 stock_dict["batch_detail_id"] = batch_obj.id
@@ -2388,12 +2399,16 @@ def save_order_extra_fields(request, user=''):
 def save_grn_fields(request, user=''):
     grn_fields = request.GET.get('grn_fields', '')
     po_fields = request.GET.get('po_fields', '')
+    rtv_reasons = request.GET.get('rtv_reasons', '')
     if grn_fields:
         misc_type = 'grn_fields'
         fields = grn_fields
     if po_fields:
         misc_type = 'po_fields'
         fields = po_fields
+    if rtv_reasons:
+        misc_type = 'rtv_reasons'
+        fields = rtv_reasons
     if len(fields.split(',')) <=  4 :
         misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=misc_type)
         try:
@@ -5866,6 +5881,23 @@ def build_invoice(invoice_data, user, css=False):
         render_space = inv_height - (inv_details + inv_footer + inv_totals + inv_header + inv_total)
     no_of_skus = int(render_space / inv_product)
     data_length = len(invoice_data['data'])
+    data_value = 0
+    no_of_sku_count = 0
+    if get_misc_value('show_imei_invoice', user.id) == 'false':
+        invoice_data['imei_data'] = []
+        for data in invoice_data['data']:
+            data['imeis'] = []
+    if invoice_data['imei_data']:
+        count = 0
+        for imei in invoice_data['imei_data']:
+            for imei_count in range(len(imei)+1):
+                imei_count
+            count+=imei_count
+        no_of_sku_count = int(count/2)
+        if no_of_sku_count + data_length > 14:
+            data_value = 1
+            data_length = no_of_sku_count + data_length
+
     '''
     if user.username in top_logo_users:
         no_of_skus -= 2
@@ -5882,7 +5914,10 @@ def build_invoice(invoice_data, user, css=False):
         temp_render_space = 0
         temp_render_space = inv_height - (inv_details + inv_header)
         temp_no_of_skus = int(temp_render_space / inv_product)
-        for i in range(int(math.ceil(float(data_length) / temp_no_of_skus))):
+        number_of_pages = int(math.ceil(float(data_length) / temp_no_of_skus))
+        if data_value :
+            number_of_pages = number_of_pages + 1
+        for i in range(number_of_pages):
             temp_page = {'data': []}
             temp_page['data'] = invoice_data['data'][i * temp_no_of_skus: (i + 1) * temp_no_of_skus]
             temp_page['empty_data'] = []
@@ -5909,6 +5944,8 @@ def build_invoice(invoice_data, user, css=False):
         temp = invoice_data['data']
         invoice_data['data'] = []
         #empty_data = [""] * (no_of_skus - data_length)
+        if no_of_sku_count > 0:
+            data_length = data_length+no_of_sku_count
         no_of_space = (13 - data_length)
         if no_of_space < 0:
             no_of_space = 0
@@ -6883,7 +6920,7 @@ def get_sku_stock(sku, sku_stocks, user, val_dict, sku_id_stocks='', add_mrp_fil
         order_by = 'location_id__pick_sequence'
     if add_mrp_filter and needed_mrp_filter:
         data_dict['batch_detail__mrp'] = needed_mrp_filter
-    stock_detail = sku_stocks.filter(**data_dict).order_by(order_by)
+    stock_detail = sku_stocks.filter(**data_dict).order_by(order_by).distinct()
     stock_count = 0
     if sku.id in val_dict['sku_ids']:
         indices = [i for i, x in enumerate(sku_id_stocks) if x['sku_id'] == sku.id]
@@ -6895,14 +6932,19 @@ def get_sku_stock(sku, sku_stocks, user, val_dict, sku_id_stocks='', add_mrp_fil
     return stock_detail, stock_count, sku.wms_code
 
 
-def get_stock_count(order, stock, stock_diff, user, order_quantity, prev_reserved=False):
+def get_stock_count(order, stock, stock_diff, user, order_quantity, prev_reserved=False, seller_master_id=''):
     reserved_quantity = \
     PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id).aggregate(
         Sum('reserved'))['reserved__sum']
     if not reserved_quantity:
         reserved_quantity = 0
 
-    stock_quantity = float(stock.quantity) - reserved_quantity
+    if seller_master_id:
+        stock_quantity = SellerStock.objects.filter(stock_id=stock.id, seller_id=seller_master_id).aggregate(Sum('quantity'))['quantity__sum']
+        if not stock_quantity:
+            stock_quantity = 0
+    else:
+        stock_quantity = float(stock.quantity) - reserved_quantity
     # if prev_reserved:
     #    if stock_quantity >= 0:
     #        #return order_quantity, 0
@@ -6987,8 +7029,20 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                 needed_mrp_filter = order.customerordersummary_set.filter()[0].mrp
                 sku_id_stock_filter['batch_detail__mrp'] = needed_mrp_filter
         if seller_master_id:
-            sku_id_stocks = sku_stocks.filter(sellerstock__seller_id=seller_master_id, **sku_id_stock_filter).values('id', 'sku_id').\
-                                        annotate(total=Sum('sellerstock__quantity')).order_by(order_by)
+            seller_filter_dict = {}
+            for stock_filter_key, stock_filter_val in sku_id_stock_filter.iteritems():
+                seller_filter_dict['%s__%s' % ('stock', str(stock_filter_key))] = stock_filter_val
+            seller_id_stocks = SellerStock.objects.filter(stock_id__in=sku_stocks.values_list('id', flat=True),
+                                                          seller_id=seller_master_id, **seller_filter_dict)
+            sku_id_stocks_dict = OrderedDict()
+            for seller_id_stock in seller_id_stocks:
+                sku_id_stocks_dict.setdefault(seller_id_stock.stock_id,
+                                              {'total': 0, 'sku_id': seller_id_stock.stock.sku_id,
+                                               'id': seller_id_stock.stock_id})
+                sku_id_stocks_dict[seller_id_stock.stock_id]['total'] += seller_id_stock.quantity
+            sku_id_stocks = sku_id_stocks_dict.values()
+            # sku_id_stocks = sku_stocks.filter(sellerstock__seller_id=seller_master_id, **sku_id_stock_filter).values('id', 'sku_id').\
+            #                             annotate(total=Sum('sellerstock__quantity')).order_by(order_by)
         else:
             sku_id_stocks = sku_stocks.filter(**sku_id_stock_filter).values('id', 'sku_id').\
                                         annotate(total=Sum('quantity')).order_by(order_by)
@@ -6996,11 +7050,14 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         val_dict['sku_ids'] = map(lambda d: d['sku_id'], sku_id_stocks)
         val_dict['stock_ids'] = map(lambda d: d['id'], sku_id_stocks)
         val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)
-        pc_loc_filter = {'status': 1}
-        if is_seller_order or add_mrp_filter:
-            pc_loc_filter['stock_id__in'] = val_dict['stock_ids']
-        pick_res_locat = PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(**pc_loc_filter). \
-            filter(picklist__order__user=user.id).values('stock__sku_id').annotate(total=Sum('reserved'))
+        pc_loc_filter = OrderedDict()
+        pc_loc_filter['picklist__order__user'] = user.id
+        #if is_seller_order or add_mrp_filter:
+        pc_loc_filter['stock_id__in'] = val_dict['stock_ids']
+        pc_loc_filter['status'] = 1
+        print pc_loc_filter
+        pick_res_locat = PicklistLocation.objects.filter(**pc_loc_filter).values('stock__sku_id').\
+                                                distinct().annotate(total=Sum('reserved'))
 
         val_dict['pic_res_ids'] = map(lambda d: d['stock__sku_id'], pick_res_locat)
         val_dict['pic_res_quans'] = map(lambda d: d['total'], pick_res_locat)
@@ -8102,7 +8159,9 @@ def update_order_batch_details(user, order):
                 group_key = '%s:%s:%s' % (str(batch_detail.mrp), str(batch_detail.manufactured_date),
                                           str(batch_detail.expiry_date))
                 batch_data.setdefault(group_key, {'mrp': batch_detail.mrp, 'manufactured_date': mfg_date,
-                                    'expiry_date': exp_date, 'quantity': 0})
+                                                   'expiry_date': exp_date, 'quantity': 0,
+                                                  'buy_price': batch_detail.buy_price,
+                                                  'tax_percent': batch_detail.tax_percent})
                 batch_data[group_key]['quantity'] += pick.quantity
     return batch_data.values()
 
@@ -9733,8 +9792,9 @@ def get_challan_number_for_dc(order , user):
         challan_sequence = ChallanSequence.objects.filter(user=user.id, marketplace='')
     if challan_sequence:
         challan_sequence = challan_sequence[0]
-        challan_num = int(challan_sequence.value)
-        challan_sequence.value = challan_num + 1
+        challan_val = int(challan_sequence.value)
+        challan_sequence.value = challan_val + 1
+        challan_num = challan_sequence.value
         challan_sequence.save()
     else:
         ChallanSequence.objects.create(marketplace='', prefix='CHN', value=1, status=1, user_id=user.id,
@@ -9823,4 +9883,29 @@ def get_zonal_admin_id(admin_user, reseller):
         import traceback
         log.info(traceback.format_exc())
         log.info('Users List exception raised')
+
+
+def get_utc_start_date(date_obj):
+    # Getting Time zone aware start time
+
+    ist_unaware = datetime.datetime.strptime(str(date_obj.date()), '%Y-%m-%d')
+    ist_aware = pytz.timezone("Asia/Calcutta").localize(ist_unaware)
+    converted_date = ist_aware.astimezone(pytz.UTC)
+    return converted_date
+
+
+def get_stock_starting_date(receipt_number, receipt_type, user_id, stock_date):
+    if receipt_type == 'purchase order':
+        st_purchase = PurchaseOrder.objects.filter(order_id=receipt_number,
+                                                   stpurchaseorder__open_st__sku__user=user_id)
+        if st_purchase.exists():
+            stock_receipt = st_purchase.\
+                values_list('stpurchaseorder__stocktransfer__storder__picklist__stock__receipt_date',
+                       'stpurchaseorder__stocktransfer__storder__picklist__stock__receipt_number',
+                       'stpurchaseorder__stocktransfer__storder__picklist__stock__receipt_type',
+                       'stpurchaseorder__stocktransfer__storder__picklist__stock__sku__user')[0]
+            user_id = stock_receipt[3]
+            stock_date = stock_receipt[0]
+            stock_date = get_stock_starting_date(stock_receipt[1], stock_receipt[2], user_id, stock_date)
+    return stock_date
 

@@ -440,7 +440,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
             if not prepare_str and picklist_obj[0].order:
                 order_id = picklist_obj[0].order.original_order_id
                 if admin_user.username == 'isprava_admin':
-                    project_details = IntermediateOrders.objects.filter(order__order_id = picklist_obj[0].order.order_id, user_id = admin_user.id).values('project_name')
+                    project_details = IntermediateOrders.objects.filter(order__order_id = picklist_obj[0].order.order_id, order_assigned_wh= user.id).values('project_name')
                     if project_details.exists():
                         project_name = project_details[0]['project_name']
                 if order_id:
@@ -894,6 +894,7 @@ def get_picklist_data(data_id, user_id):
             order_status = orders.status
     if not order_status:
         order_status = 'picked'
+    use_imei = get_misc_value('use_imei', user_id)
     if order_status == "batch_open":
         batch_data = {}
         for order in picklist_orders:
@@ -982,9 +983,10 @@ def get_picklist_data(data_id, user_id):
                     except:
                         expiry_date =''
             reserved_quantity = order.reserved_quantity
-            sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
-            for sku_code, imei_number in sku_filtered_imei_number:
-                sku_imeis_map.setdefault(sku_code, []).append(imei_number)
+            if use_imei == 'true':
+                sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
+                for sku_code, imei_number in sku_filtered_imei_number:
+                    sku_imeis_map.setdefault(sku_code, []).append(imei_number)
             match_condition = (location, batch_no, manufactured_date,pallet_detail, wms_code, sku_code, title)
             if match_condition not in batch_data:
                 if order.reserved_quantity == 0:
@@ -1130,9 +1132,10 @@ def get_picklist_data(data_id, user_id):
                                   order_by('-updation_date').values_list('location__location',
                                                                          flat=True).distinct()[:2]
                 last_picked_locs = ','.join(last_picked)
-            sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
-            for sku_code, imei_number in sku_filtered_imei_number:
-                sku_imeis_map.setdefault(sku_code, []).append(imei_number)
+            if use_imei == 'true':
+                sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
+                for sku_code, imei_number in sku_filtered_imei_number:
+                    sku_imeis_map.setdefault(sku_code, []).append(imei_number)
 
             if not original_order_id:
                 original_order_id = str(order_id) + str(order_code)
@@ -1229,9 +1232,10 @@ def get_picklist_data(data_id, user_id):
                                   order_by('-updation_date').values_list('location__location',
                                                                          flat=True).distinct()[:2]
                 last_picked_locs = ','.join(last_picked)
-            sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
-            for sku_code, imei_number in sku_filtered_imei_number:
-                sku_imeis_map.setdefault(sku_code, []).append(imei_number)
+            if use_imei == 'true':
+                sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
+                for sku_code, imei_number in sku_filtered_imei_number:
+                    sku_imeis_map.setdefault(sku_code, []).append(imei_number)
 
             if not original_order_id:
                 original_order_id = str(order_id) + str(order_code)
@@ -2208,19 +2212,19 @@ def picklist_confirmation(request, user=''):
                         update_order_labels(picklist, val)
                     order_id = picklist.order
                     if picklist.order and picklist.order.sku.wms_code in passed_serial_number.keys():
-                        send_imei_qc_details = dict(zip(passed_serial_number[picklist.order.sku.wms_code], [imei_qc_details[k] for k in passed_serial_number[picklist.order.sku.wms_code]]))
-                        save_status = "PASS"
+                        if val.get('passed_serial_number', ''):
+                            send_imei_qc_details = dict(zip(json.loads(val.get('passed_serial_number', '')), [imei_qc_details[k] for k in json.loads(val.get('passed_serial_number', ''))]))
+                            save_status = "PASS"
                         try:
                             dispatch_qc(user, send_imei_qc_details, order_id, save_status)
-                            val['imei'] = ','.join(passed_serial_number[picklist.order.sku.wms_code])
-                            insert_order_serial(picklist, val)
                         except Exception as e:
                             import traceback
                             picklist_qc_log.debug(traceback.format_exc())
                             picklist_qc_log.info("Error in Dispatch QC - On Pass - %s - %s" % (str(user.username),  str(e)))
                     if picklist.order and picklist.order.sku.wms_code in failed_serial_number.keys():
-                        send_imei_qc_details = dict(zip(failed_serial_number[picklist.order.sku.wms_code], [imei_qc_details[k] for k in failed_serial_number[picklist.order.sku.wms_code]]))
-                        save_status = "FAIL"
+                        if val.get('failed_serial_number', ''):
+                            send_imei_qc_details = dict(zip(json.loads(val.get('failed_serial_number', '')), [imei_qc_details[k] for k in json.loads(val.get('failed_serial_number', ''))]))
+                            save_status = "FAIL"
                         try:
                             dispatch_qc(user, send_imei_qc_details, order_id, save_status)
                         except Exception as e:
@@ -2249,16 +2253,25 @@ def picklist_confirmation(request, user=''):
                     for stock in total_stock:
 
                         update_picked = 0
-                        pre_stock = float(stock.quantity)
+                        if user.userprofile.user_type == 'marketplace_user' and picklist.order:
+                            seller_order = picklist.order.sellerorder_set.filter()
+                            if seller_order:
+                                stock_quantity = SellerStock.objects.filter(stock_id=stock.id, seller_id=seller_order[0].seller_id,
+                                                                        quantity__gt=0).aggregate(Sum('quantity'))['quantity__sum']
+                                if not stock_quantity:
+                                    stock_quantity = 0
+                        else:
+                            stock_quantity = stock.quantity
+                        pre_stock = float(stock_quantity)
                         if picking_count == 0:
                             break
 
-                        if picking_count > stock.quantity:
-                            update_picked = float(stock.quantity)
-                            picking_count -= stock.quantity
-                            picklist.reserved_quantity -= stock.quantity
+                        if picking_count > stock_quantity:
+                            update_picked = float(stock_quantity)
+                            picking_count -= stock_quantity
+                            picklist.reserved_quantity -= stock_quantity
 
-                            stock.quantity = 0
+                            stock.quantity = stock.quantity - stock_quantity
                         else:
                             update_picked = picking_count
                             stock.quantity -= picking_count
@@ -4406,7 +4419,7 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
         elif key == 'del_date':
             value = myDict[key][i]
             if value:
-                order_data[key] = datetime.datetime.strptime(value, '%d/%m/%Y')
+                order_data[key] = datetime.datetime.strptime(value, '%d/%m/%Y').date()
         elif key == 'payment_modes' :
             if not payment_mode :
                 payment_dict = myDict['payment_modes'][0]
@@ -4543,7 +4556,7 @@ def create_central_order(request, user):
         return HttpResponse('Failed')
     project_name = request.POST.get('client_name', '') #Corporates In SM is used as Projects for ISPRAVA
     ship_date = ship_date.split('/')
-    shipment_date = datetime.date(int(ship_date[2]), int(ship_date[0]), int(ship_date[1]))
+    shipment_date = datetime.date(int(ship_date[2]), int(ship_date[1]), int(ship_date[0]))
     cart_items = CustomerCartData.objects.filter(customer_user_id=customer_id)
     if not cart_items:
         return HttpResponse('No Data in Cart')
@@ -7190,7 +7203,7 @@ def generate_order_invoice(request, user=''):
     invoice_data = add_consignee_data(invoice_data, ord_ids, user)
     user_profile = UserProfile.objects.get(user_id=user.id)
     # invoice_data = build_invoice(invoice_data, user, False)
-    if get_misc_value('show_imei_invoice', user.id) == 'true':
+    if get_misc_value('show_imei_invoice', user.id) == 'true' and user.userprofile.user_type == 'marketplace_user':
         invoice_data = build_marketplace_invoice(invoice_data, user, False)
     else:
         invoice_data = build_invoice(invoice_data, user, False)
@@ -11639,7 +11652,7 @@ def generate_customer_invoice_tab(request, user=''):
             return render(request, 'templates/toggle/delivery_challan.html', invoice_data)
         elif return_data:
             invoice_data = json.dumps(invoice_data)
-        elif get_misc_value('show_imei_invoice', user.id) == 'true':
+        elif get_misc_value('show_imei_invoice', user.id) == 'true' and user.userprofile.user_type == 'marketplace_user':
             invoice_data = build_marketplace_invoice(invoice_data, user, False)
         else:
             invoice_data = build_invoice(invoice_data, user, False)
@@ -11868,7 +11881,7 @@ def generate_customer_invoice(request, user=''):
             return render(request, 'templates/toggle/delivery_challan.html', invoice_data)
         elif return_data:
             invoice_data = json.dumps(invoice_data)
-        elif get_misc_value('show_imei_invoice', user.id) == 'true':
+        elif get_misc_value('show_imei_invoice', user.id) == 'true' and user.userprofile.user_type == 'marketplace_user':
             invoice_data = build_marketplace_invoice(invoice_data, user, False)
         else:
             invoice_data = build_invoice(invoice_data, user, False)
@@ -15522,7 +15535,7 @@ def invoice_print_manifest(request, user=''):
         if central_order_reassigning:
             invoice_data['manifest_number']= manifest_number
         invoice_data = modify_invoice_data(invoice_data, user)
-        if get_misc_value('show_imei_invoice', user.id) == 'true':
+        if get_misc_value('show_imei_invoice', user.id) == 'true' and user.userprofile.user_type == 'marketplace_user':
             invoice_data = build_marketplace_invoice(invoice_data, user, False)
         else:
             invoice_data = build_invoice(invoice_data, user, False)

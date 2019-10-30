@@ -12,11 +12,12 @@ from dateutil.relativedelta import relativedelta
 from operator import itemgetter
 from itertools import chain
 from django.db.models import Sum, Count
-from rest_api.views.common import get_local_date
+from rest_api.views.common import get_local_date, folder_check
 from rest_api.views.miebach_utils import MILKBASKET_BULK_ZONE
 from rest_api.views.integrations import *
 import json
 import datetime
+import os
 from django.db.models import Q, F
 from django.core.serializers.json import DjangoJSONEncoder
 from rest_api.views.utils import *
@@ -413,7 +414,7 @@ def get_order_detail(request):
         supplier_code = SKUSupplier.objects.filter(supplier_id=supplier_id, sku_id=sku_id)
         if supplier_code:
             design_code = supplier_code[0].supplier_code
-        
+
         #img_url = "/".join([request.META['HTTP_HOST'], order.open_po.sku.image_url.lstrip("/")]) if order.open_po.sku.image_url.startswith("/static") else order.open_po.sku.image_url
         img_url = form_default_domain(request, order.open_po.sku.image_url)
         order_data.append(OrderedDict(( ('id', order.id), ('design_code', design_code), ('order_quantity', order.open_po.order_quantity), ('price', order.open_po.price), ('image_url', img_url), ('wms_code', order.open_po.sku.wms_code) )))
@@ -1032,13 +1033,14 @@ def update_customer(request):
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(customers))
     try:
-        status = update_customers(customers, user=request.user, company_name='mieone')
+        message = update_customers(customers, user=request.user, company_name='mieone')
+        status = {'status': 1, 'message': message}
         log.info(status)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Update Customers data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
-        status = {'message': 'Internal Server Error'}
+        status = {'status': 0,'message': 'Internal Server Error'}
     return HttpResponse(json.dumps(status))
 
 @csrf_exempt
@@ -1142,6 +1144,58 @@ def update_orders(request):
         status = {'messages': 'Internal Server Error', 'status': 0}
     return HttpResponse(json.dumps(status))
 
+@csrf_exempt
+@login_required
+def get_orders(request):
+    record = []
+    limit = request.POST.get('limit', '')
+    search_parameters = {}
+    headers, search_params, filter_params = get_search_params(request)
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'order_id' in search_params:
+        search_parameters['original_order_id'] = search_params['order_id']
+    search_parameters['user'] = request.user.id
+    order_records = OrderDetail.objects.filter(**search_parameters).values_list('original_order_id',flat= True).distinct()
+    page_info = scroll_data(request, order_records, limit=limit)
+    for order in page_info['data']:
+        data_dict = OrderDetail.objects.filter(user=request.user.id,original_order_id=order)
+        shipment = data_dict[0].shipment_date.strftime('%Y-%m-%d %H:%M:%S')
+        created = data_dict[0].creation_date.strftime('%Y-%m-%d %H:%M:%S')
+        items = []
+        charge_amount= 0
+        discount_amount = 0
+        item_dict = {}
+        for data in data_dict:
+            tax_data = CustomerOrderSummary.objects.filter(order_id=data.id)
+            charge = OrderCharges.objects.filter(order_id = data.original_order_id, user=request.user.id, charge_name = 'Shipping Charge').values('charge_amount')
+            if charge:
+                charge_amount = charge[0]
+            if tax_data.exists():
+                discount_amount = tax_data[0].discount
+                if tax_data[0].cgst_tax:
+                    item_dict['tax_percent'] = {'CGST': tax_data[0].cgst_tax, 'SGST': tax_data[0].sgst_tax}
+                elif tax_data[0].igst_tax:
+                    item_dict['tax_percent'] = {'IGST': tax_data[0].igst_tax}
+            item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'quantity':data.quantity, 'unit_price':data.unit_price, 'shipment_charge':charge_amount, 'discount_amount':discount_amount}
+            items.append(item_dict)       
+        billing_address = {"customer_id": data_dict[0].customer_id,
+               "name": data_dict[0].customer_name,
+               "email": data_dict[0].email_id,
+               "phone_number": data_dict[0].telephone,
+               "address": data_dict[0].address,
+               "city": data_dict[0].city,
+               "state": data_dict[0].state,
+               "pincode": data_dict[0].pin_code}
+        record.append(OrderedDict(( ('order_id',data_dict[0].original_order_id),('order_date',created),('shipment_date',shipment),('source',data_dict[0].marketplace),('billing_address',billing_address ),('items',items))))
+    page_info['data'] = record
+    page_info['message'] = 'success'
+    return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
 
 @csrf_exempt
 @login_required
@@ -1151,6 +1205,12 @@ def update_mp_orders(request):
     except:
         return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}), status=400)
     log.info('Request params for ' + request.user.username + ' is ' + str(orders))
+    order_file_path = 'static/order_files'
+    folder_check(order_file_path)
+    file_time_stamp = str(datetime.datetime.now()).replace(':', '_').replace('.', '_').replace(' ', '_')
+    load_file_path = '%s/%s' % (order_file_path, 'mp_orders_' + file_time_stamp + '.txt')
+    load_file = open(load_file_path, 'w')
+    load_file.write(json.dumps(orders))
     try:
         validation_dict, failed_status, final_data_dict = validate_seller_orders_format(orders, user=request.user, company_name='mieone')
         if validation_dict:
@@ -1169,8 +1229,8 @@ def update_mp_orders(request):
         log.info(status)
     except Exception as e:
         import traceback
-        log.debug(traceback.format_exc())
-        log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        log_err.debug(traceback.format_exc())
+        log_err.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'messages': 'Internal Server Error', 'status': 0}
     return HttpResponse(json.dumps(status))
 
@@ -1227,6 +1287,7 @@ def get_mp_inventory(request):
         page_info = scroll_data(request, sku_records, limit=limit, request_type='body')
         sku_records = page_info['data']
         bulk_zone = MILKBASKET_BULK_ZONE
+        combo_allocate_stock = get_misc_value('combo_allocate_stock', user.id)
         if industry_type == 'FMCG':
             sellable_zones = ZoneMaster.objects.filter(user=user.id, segregation='sellable').values_list('zone', flat=True)
             if sellable_zones:
@@ -1276,11 +1337,28 @@ def get_mp_inventory(request):
             sku_weight_dict = dict(SKUAttributes.objects.filter(sku__user=user.id, attribute_name='weight').\
                                    exclude(attribute_value='').values_list('sku__sku_code', 'attribute_value'))
 
+            combo_sku_list = list(SKUMaster.objects.filter(user=user.id, relation_type='combo').\
+                                  values_list('sku_code', flat=True))
             sku_open_orders_dict = {}
-            for open_order, open_order_qty in open_orders.iteritems():
+            open_orders1 = copy.deepcopy(open_orders)
+            for open_order, open_order_qty in open_orders1.iteritems():
                 temp_key = open_order.split('<<>>')
-                sku_open_orders_dict.setdefault(temp_key[0], [])
-                sku_open_orders_dict[temp_key[0]].append(open_order)
+                if temp_key[0] in combo_sku_list and combo_allocate_stock != 'true':
+                    sku_combos = SKURelation.objects.filter(parent_sku__user=user.id, parent_sku__sku_code=temp_key[0],
+                                               relation_type='combo').annotate(str_mrp=Cast('member_sku__mrp', CharField()))
+                    for sku_combo in sku_combos:
+                        member_sku_code = str(sku_combo.member_sku.sku_code)
+                        open_order_combo_key = '%s<<>>%s' % (member_sku_code, sku_combo.str_mrp)
+                        sku_open_orders_dict.setdefault(member_sku_code, [])
+                        if open_order_combo_key not in sku_open_orders_dict[member_sku_code]:
+                            sku_open_orders_dict[member_sku_code].append(open_order_combo_key)
+                        open_orders.setdefault(open_order_combo_key, 0)
+                        open_orders[open_order_combo_key] += (sku_combo.quantity * open_order_qty)
+                    del open_orders[open_order]
+                else:
+                    sku_open_orders_dict.setdefault(temp_key[0], [])
+                    if open_order not in sku_open_orders_dict[temp_key[0]]:
+                        sku_open_orders_dict[temp_key[0]].append(open_order)
 
             for sku in sku_records:
                 group_data = stocks.filter(stock__sku__sku_code=sku['sku_code']).values('group_key', 'stock_sum')
@@ -1699,7 +1777,7 @@ def order_edit_storehippo(store_hippo_data, user_obj):
 	cancel_order = order_cancel_functionality(ids_of_orders)
         order_edit_storehippo_log.info('Output Response' + str(cancel_order))
     return store_hippo_data
-    
+
 
 def store_hippo(request):
     a = datetime.datetime.now()
@@ -1723,4 +1801,3 @@ def store_hippo(request):
     time_taken = str(delta.total_seconds())
     storehippo_log.info('------------End Time Taken in Seconds --- ' + time_taken + '-----')
     return HttpResponse(json.dumps(status_resp.sku_code))
-

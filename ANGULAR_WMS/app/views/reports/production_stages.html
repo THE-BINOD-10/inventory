@@ -23,16 +23,13 @@
               </div>
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
-                  <label class="control-label">Brands</label>
-                  <select name="sku_category" class="form-control" ng-model="showCase.model_data.sku_category">
-                    <option value="" selected>All</option>
-                    <option ng-repeat="sku_category in showCase.data.sku_category" value="{{sku_category}}">{{sku_category}}</option>
-                  </select>
+                  <label class="control-label">Category</label>
+                  <input name="sku_category" class="form-control" type="text" ng-model="showCase.model_data.sku_category">
                 </div>
               </div>
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
-                  <label class="control-label">SKU Category</label>
+                  <label class="control-label">Brands</label>
                   <select name="brand" class="form-control" ng-model="showCase.model_data.brand">
                     <option value="" selected>All</option>
                     <option ng-repeat="brand in showCase.data.brands" value="{{brand}}">{{brand}}</option>

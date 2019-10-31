@@ -5062,7 +5062,8 @@ def create_po_serial_mapping(final_data_dict, user):
             order_id = get_purchase_order_id(user) + 1
             if po_sub_user_prefix == 'true':
                 order_id = update_po_order_prefix(user, order_id)
-            order_id_dict[po_details['supplier_id']] = order_id
+            group_key = (str(po_details['supplier_id']) + ':' + str(po_details['po_reference_no']))
+            order_id_dict[group_key] = order_id
         purchase_order_dict = {'open_po_id': open_po_obj.id, 'received_quantity': quantity, 'saved_quantity': 0,
                                'po_date': NOW, 'status': po_details['status'], 'prefix': user_profile.prefix,
                                'order_id': order_id, 'creation_date': NOW,'updation_date':NOW}

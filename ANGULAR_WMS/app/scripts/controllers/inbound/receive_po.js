@@ -190,13 +190,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.main_sr_number = ''
                 }
                 vm.warehouse = aData['Warehouse']
-                vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId'], warehouse: aData['Warehouse']}).then(function(data){
+                var dataDict = {
+                  'supplier_id': aData['DT_RowId'],
+                  'warehouse': aData['Warehouse'] ,
+                  'sample_order': (aData['Order Type'] == 'Sample Order') ? 1 : 0
+                }
+                vm.service.apiCall('get_supplier_data/', 'GET', dataDict).then(function(data){
                   if(data.message) {
                     vm.serial_numbers = [];
                     vm.skus_total_amount = 0;
                     angular.copy(data.data, vm.model_data);
                     vm.get_grn_extra_fields();
                     vm.send_for_approval_check(event, vm.model_data);
+                    vm.model_data['payment_received'] = aData['payment_received'];
                     vm.title = "Generate GRN";
                     if (vm.industry_type == 'FMCG') {
                       vm.extra_width = {

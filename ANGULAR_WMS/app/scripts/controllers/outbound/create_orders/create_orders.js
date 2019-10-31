@@ -113,6 +113,12 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
             }
           }
         }
+        if (vm.final_data.total_amount && vm.model_data.payment_received != ''){
+          if (!(Math.round(vm.final_data.total_amount) >= parseInt(vm.model_data.payment_received)) ? true : false) {
+            colFilters.showNoty("Advance Amount should not Exceed Total invoice Amount");
+            return false;
+          }
+        }
         vm.bt_disable = true;
         var elem = angular.element($('form'));
         elem = elem[0];

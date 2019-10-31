@@ -10912,7 +10912,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             lis = ['invoice_number', 'invoice_number', 'financial_year', 'order__customer_name', 'invoice_number', 'invoice_number',
                    'invoice_number', 'invoice_number', 'invoice_number']
             user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
-            result_values = ['invoice_number', 'financial_year', 'order__customer_name']
+            result_values = ['invoice_number', 'financial_year', 'order__customer_name', 'order__marketplace']
             field_mapping = {'order_quantity_field': 'order__quantity', 'date_only': 'order__creation_date'}
             is_marketplace = False
 
@@ -10990,7 +10990,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                 data['ordered_quantity'] = seller_orders.get(data['seller_order__sor_id'], 0)
             else:
                 seller_order_summaries = order_summaries.filter(invoice_number=data['invoice_number'],
-                                                                financial_year=data['financial_year'])
+                                                                financial_year=data['financial_year'], order__marketplace=data['order__marketplace'])
                 order_ids = seller_order_summaries.values_list('order__id', flat= True)
                 order = seller_order_summaries[0].order
                 invoice_date = CustomerOrderSummary.objects.filter(order_id__in=order_ids)\
@@ -11022,7 +11022,6 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
 
             order_date = get_local_date(user, order.creation_date)
             invoice_date = invoice_date.strftime("%d %b %Y") if invoice_date else order.creation_date.strftime("%d %b %Y")
-
             if is_marketplace:
                 data_dict = OrderedDict((("Invoice ID", data['invoice_number']), ('UOR ID', order_id), ('SOR ID', summary.seller_order.sor_id),
                                          ('Seller ID', summary.seller_order.seller.seller_id),
@@ -11040,7 +11039,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             data_dict.update(OrderedDict((('Financial Year', data['financial_year']), ('Customer Name', customer_name),
                                           ('Order Quantity', data['ordered_quantity']), ('Picked Quantity', data['total_quantity']),
                                           ('Total Amount', "%.2f" %picked_amount),
-                                          ('Order Date&Time', invoice_date), ('Invoice Number', '')
+                                          ('Order Date&Time', invoice_date), ('Invoice Number', ''), ('Marketplace', order.marketplace)
                                           )))
             temp_data['aaData'].append(data_dict)
         log.info('Customer Invoice filtered %s for %s ' % (str(temp_data['recordsTotal']), user.username))
@@ -11489,7 +11488,7 @@ def move_to_inv(request, user=''):
         #del sell_ids['pick_number__in']
     else:
         sell_ids = construct_sell_ids(request, user)
-        #del sell_ids['pick_number__in']
+        #del sell_ids['pick_number__in'
     seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
     if is_sample_option == 'true':
         for data in seller_summary:
@@ -11584,6 +11583,8 @@ def generate_customer_invoice_tab(request, user=''):
         all_data = OrderedDict()
         seller_order_ids = []
         pick_number = 1
+        if request.GET.get('Marketplace', ''):
+            sell_ids['order__marketplace'] = request.GET.get('Marketplace')
         for data_id in seller_summary_dat:
             splitted_data = data_id.split(':')
             sell_ids.setdefault(field_mapping['invoice_number_in'], [])

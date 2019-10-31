@@ -1768,6 +1768,7 @@ def get_supplier_data(request, user=''):
         user = User.objects.get(username=warehouse)
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     temp = get_misc_value('pallet_switch', user.id)
+    payment_received = 0
     order_ids = []
     uploaded_file_dict = {}
     returnable_serials = []
@@ -1781,6 +1782,7 @@ def get_supplier_data(request, user=''):
         headers.insert(-2, 'Serial Number')
     data = {}
     order_id = request.GET['supplier_id']
+    sample_order = int(request.GET.get('sample_order', ''))
     remainder_mail = 0
     invoice_value = 0
     qc_items_qs = UserAttributes.objects.filter(user_id=user.id, attribute_model='dispatch_qc', status=1).values_list('attribute_name', flat=True)
@@ -1789,11 +1791,16 @@ def get_supplier_data(request, user=''):
                                                    open_po__sku_id__in=sku_master_ids,
                                                    received_quantity__lt=F('open_po__order_quantity')).exclude(
         status='location-assigned')
+
     if purchase_orders:
         returnable_order_check = OrderMapping.objects.filter(mapping_id=purchase_orders[0].id, order__user=user.id)
         if returnable_order_check.exists():
             ord_det_id = returnable_order_check[0].order_id
             returnable_serials = list(OrderIMEIMapping.objects.filter(order_id=ord_det_id).values_list('imei_number', flat=True))
+        if bool(sample_order):
+            po_ids = list(purchase_orders.values_list('id',flat = True))
+            advance_payment = OrderMapping.objects.filter(mapping_id__in=po_ids, order__user=user.id).aggregate(Sum('order__payment_received'))
+            payment_received = advance_payment['order__payment_received__sum']
     if not purchase_orders:
         st_orders = STPurchaseOrder.objects.filter(po__order_id=order_id, open_st__sku__user=user.id,
                                                    open_st__sku_id__in=sku_master_ids). \
@@ -1939,7 +1946,7 @@ def get_supplier_data(request, user=''):
                                     'dc_date': dc_date, 'dc_grn': dc_level_grn,
                                     'uploaded_file_dict': uploaded_file_dict, 'overall_discount': overall_discount,
                                     'round_off_total': 0, 'invoice_value': invoice_value, 'qc_items': qc_items,
-                                    'returnable_serials': returnable_serials,'lr_number': lr_number}))
+                                    'returnable_serials': returnable_serials,'lr_number': lr_number, 'payment_received': payment_received}))
 
 
 @csrf_exempt

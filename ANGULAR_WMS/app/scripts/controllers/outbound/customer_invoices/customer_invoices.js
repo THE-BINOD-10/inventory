@@ -80,7 +80,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
       var po_number = '';
       var status = false;
-      var field_name = "";
+      var field_name = '';
+      var marketplace = '';
       var data = [];
       if (vm.user_type == 'distributor') {
         data = vm.checked_ids;
@@ -95,6 +96,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               console.log("true");
             }
             field_name = temp['check_field'];
+            marketplace = temp['Marketplace'];
             data.push(temp['id']);
           }
         });
@@ -114,6 +116,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           send['edit_invoice'] = true;
         }
         send['delivery_challan'] = DC;
+        send['Marketplace'] = marketplace;
         vm.delivery_challan = DC;
         vm.bt_disable = true;
         vm.service.apiCall("generate_customer_invoice_tab/", "GET", send).then(function(data){

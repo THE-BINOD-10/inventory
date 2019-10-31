@@ -449,8 +449,12 @@ ORDER_SUMMARY_DICT = {
                 {'label': 'SKU Size', 'name': 'sku_size', 'type': 'input'},
                 {'label': 'Status', 'name': 'order_report_status', 'type': 'select'},
                 {'label': 'Order ID', 'name': 'order_id', 'type': 'input'}],
-    'dt_headers': ['Order Date','Order ID', 'Customer Name', 'SKU Brand', 'SKU Category', 'SKU Class', 'SKU Size',
+    'dt_headers': ['Order Date','Order ID', 'Customer Name', 'SKU Brand', 'SKU Category', 'SKU Sub Category', 'SKU Class', 'SKU Size',
                    'SKU Description', 'SKU Code', 'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Tax', 'Taxable Amount', 'City',
+                   'State', 'Marketplace', 'Invoice Amount', 'Status', 'Order Status', 'Remarks','Customer GST Number','Payment Type','Reference Number'],
+    'mk_dt_headers': ['Order Date','Order ID', 'Customer Name', 'SKU Brand', 'SKU Category', 'SKU Sub Category', 'SKU Class', 'SKU Size',
+                   'SKU Description', 'SKU Code', 'Manufacturer', 'Searchable', 'Bundle',
+                    'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Tax', 'Taxable Amount', 'City',
                    'State', 'Marketplace', 'Invoice Amount', 'Status', 'Order Status', 'Remarks','Customer GST Number','Payment Type','Reference Number'],
     'dt_url': 'get_order_summary_filter', 'excel_name': 'order_summary_report',
     'print_url': 'print_order_summary_report',
@@ -464,20 +468,26 @@ OPEN_JO_REP_DICT = {
                                                                                   'name': 'brand', 'type': 'select'},
                 {'label': 'JO Code', 'name': 'job_code', 'type': 'input'},
                 {'label': 'Stages', 'name': 'stage', 'type': 'select'}],
-    'dt_headers': ['JO Code', 'Jo Creation Date', 'SKU Brand', 'SKU Category', 'SKU Class', 'SKU Code', 'Stage',
+    'dt_headers': ['JO Code', 'Jo Creation Date', 'SKU Brand', 'SKU Category', 'SKU Sub Category', 'SKU Class', 'SKU Code', 'Stage',
                    'Quantity'],
+    'mk_dt_headers': ['JO Code', 'Jo Creation Date', 'SKU Brand', 'SKU Category', 'SKU Sub Category', 'SKU Class', 'SKU Code', 'Stage',
+                   'Manufacturer', 'Searchable', 'Bundle', 'Quantity'],
     'dt_url': 'get_openjo_report_details', 'excel_name': 'open_jo_report', 'print_url': 'print_open_jo_report',
     }
 
 SKU_WISE_PO_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'},
                                 {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
                                 {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
-                                {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
+                                {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+                                {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
+                                {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
+                                {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
+                                ],
                     'dt_headers': ['PO Reference', 'PO Date', 'Supplier', 'SKU Code', 'Order Quantity', 'Received Quantity',
                                    'Receivable Quantity', 'Rejected Quantity', 'Receipt Date', 'Status'],
                     'mk_dt_headers': ['PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'SKU Code',
                                       'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
-                                      'Sub Category',
+                                      'Sub Category','Manufacturer','Searchable','Bundle',
                                       'PO Qty',  'Unit Price without tax', 'Unit Price with tax', 'MRP',
                                       'Pre-Tax PO Amount', 'Tax', 'After Tax PO Amount',
                                       'Qty received', 'Status', 'Warehouse Name', 'Report Generation Time'],
@@ -485,12 +495,13 @@ SKU_WISE_PO_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'typ
                     'print_url': 'print_sku_wise_purchase',
                     }
 
+
 GRN_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'},
                         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
                         {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
                         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
                         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
-                        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}],
+                        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
             'dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
             'mk_dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
             # 'mk_dt_headers': ['Received Date', 'PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'Recepient',
@@ -520,10 +531,13 @@ SKU_WISE_GRN_DICT = {'filters' : [
                         {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
                         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
                         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
-                        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}
+                        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+                        {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
+                        {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
+                        {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
 		    ],
 		'dt_headers': ["Received Date", "PO Date", "PO Number", "PO Reference Number", "Supplier ID", "Supplier Name", "Recepient",
-                       "SKU Code", "SKU Description", "HSN Code", "SKU Class", "SKU Style Name", "SKU Brand",
+                       "SKU Code", "SKU Description", "SKU Category","Sub Category","SKU Brand", "HSN Code", "SKU Class", "SKU Style Name", "SKU Brand",
                        "SKU Category", "Received Qty", "Unit Rate", "MRP", "Pre-Tax Received Value", "CGST(%)",
                        "SGST(%)", "IGST(%)", "UTGST(%)", "CESS(%)", "APMC(%)", "CGST",
                        "SGST", "IGST", "UTGST", "CESS", "APMC", "Post-Tax Received Value", "Invoiced Unit Rate",
@@ -531,7 +545,8 @@ SKU_WISE_GRN_DICT = {'filters' : [
                        "Invoiced Total Amount", "Invoice Number", "Invoice Date", "Challan Number",
                        "Challan Date", "Remarks", "Updated User", "GST NO","LR-NUMBER"],
 		'mk_dt_headers': [ "Received Date", "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Recepient",
-                           "SKU Code", "SKU Description", "HSN Code", "SKU Class", "SKU Style Name", "SKU Brand", "SKU Category",
+                           "SKU Code", "SKU Description", "HSN Code", "SKU Class", "SKU Style Name", "SKU Brand", "SKU Category", "Sub Category",
+                           "Manufacturer","Searchable","Bundle",
                            "Received Qty", "Unit Rate", "MRP", "Pre-Tax Received Value", "CGST(%)", "SGST(%)",
                            "IGST(%)", "UTGST(%)", "CESS(%)", "APMC(%)", "CGST",
                             "SGST", "IGST", "UTGST", "CESS", "APMC", "Post-Tax Received Value", "Margin %",
@@ -563,8 +578,16 @@ SKU_WISE_RTV_DICT = {'filters' : [
 SELLER_INVOICE_DETAILS_DICT = {
     'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'},
                 {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
-                {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}],
+                {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+                {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
+                {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
+                {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'}],
     'dt_headers': ['Date', 'Supplier', 'Seller ID', 'Seller Name', 'SKU Code', 'SKU Description', 'SKU Class',
+                    'SKU Category', 'Sub Category', 'SKU Brand',
+                   'SKU Style Name', 'SKU Brand', 'SKU Category', 'Accepted Qty', 'Rejected Qty', 'Total Qty', 'Amount',
+                   'Tax', 'Total Amount'],
+    'mk_dt_headers': ['Date', 'Supplier', 'Seller ID', 'Seller Name', 'SKU Code', 'SKU Description', 'SKU Class',
+                    'SKU Category', 'Sub Category', 'SKU Brand', 'Manufacturer', 'Searchable','Bundle',
                    'SKU Style Name', 'SKU Brand', 'SKU Category', 'Accepted Qty', 'Rejected Qty', 'Total Qty', 'Amount',
                    'Tax', 'Total Amount'],
     'dt_url': 'get_seller_invoices_filter', 'excel_name': 'seller_invoices_filter',
@@ -592,9 +615,16 @@ STOCK_LEDGER_REPORT_DICT = {
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
+        {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
+        {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
     ],
-    'dt_headers': ['Date', 'SKU Code', 'SKU Description', 'Style Name', 'Brand', 'Category',
+    'dt_headers': ['Date', 'SKU Code', 'SKU Description', 'Style Name', 'Brand', 'Category', 'Sub Category',
                    'Size', 'Opening Stock', 'Receipt Quantity', 'Produced Quantity', 'Dispatch Quantity','RTV Quantity',
+                   'Return Quantity', 'Adjustment Quantity', 'Consumed Quantity', 'Closing Stock'],
+    'mk_dt_headers': ['Date', 'SKU Code', 'SKU Description', 'Style Name', 'Brand', 'Category', 'Sub Category',
+                    'Manufacturer', 'Searchable', 'Bundle',
+                   'Size', 'Opening Stock', 'Receipt Quantity', 'Produced Quantity', 'Dispatch Quantity',
                    'Return Quantity', 'Adjustment Quantity', 'Consumed Quantity', 'Closing Stock'],
     'dt_url': 'get_stock_ledger_report', 'excel_name': 'stock_ledger_report',
     'print_url': 'print_stock_ledger_report',
@@ -606,9 +636,16 @@ SHIPMENT_REPORT_DICT = {
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'Order ID', 'name': 'order_id', 'type': 'input'},
+        {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
+        {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
+        {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
         {'label': 'Customer ID', 'name': 'order_id', 'type': 'customer_search'}
     ],
-    'dt_headers': ['Shipment Number' ,'Order ID', 'SKU Code', 'Title', 'Customer Name', 'Quantity', 'Shipped Quantity', 'Truck Number',
+    'dt_headers': ['Shipment Number' ,'Order ID', 'SKU Code', 'SKU Category', 'Sub Category', 'SKU Brand', 'Title', 'Customer Name', 'Quantity', 'Shipped Quantity', 'Truck Number',
+                   'Date', 'Shipment Status', 'Courier Name', 'Payment Status', 'Pack Reference'],
+    'mk_dt_headers': ['Shipment Number' ,'Order ID', 'SKU Code', 'SKU Category', 'Sub Category', 'SKU Brand',
+                    'Manufacturer','Searchable','Bundle',
+                    'Title', 'Customer Name', 'Quantity', 'Shipped Quantity', 'Truck Number',
                    'Date', 'Shipment Status', 'Courier Name', 'Payment Status', 'Pack Reference'],
     'dt_url': 'get_shipment_report', 'excel_name': 'get_shipment_report',
     'print_url': 'print_shipment_report',
@@ -620,8 +657,12 @@ PO_REPORT_DICT = {
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'Sister Warehouse', 'name': 'sister_warehouse', 'type': 'select'},
+        {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
+        {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
+        {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
     ],
-    'dt_headers': ['SKU Code','Sku Description', 'Quantity','PO No','Location'],
+    'dt_headers': ['SKU Code','Sku Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Quantity','PO No','Location'],
+    'mk_dt_headers': ['SKU Code','Sku Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Manufacturer', 'Searchable', 'Bundle', 'Quantity','PO No','Location'],
     'dt_url': 'get_po_report', 'excel_name': 'get_po_report',
     'print_url': 'print_po_report',
  }
@@ -668,8 +709,11 @@ STOCK_COVER_REPORT_DICT = {
            {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
            {'label': 'SKU Category', 'name': 'sku_category', 'type': 'select'},
            {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'},
-           {'label': 'SKU Type', 'name': 'sku_type', 'type': 'input'},],
-       'dt_headers': ['SKU', 'SKU Description','SKU Category', 'SKU Type', 'SKU class','Current Stock In Hand','PO Pending','Total Stock including PO','Avg Last 30days','Avg Last 7 days','Stock Cover Days (30-day)','Stock Cover Days including PO stock (30-day)','Stock Cover Days (7-day)','Stock Cover Days including PO stock (7-day)'],
+           {'label': 'SKU Type', 'name': 'sku_type', 'type': 'input'},
+           {'label': 'Sub category', 'name': 'sub_category', 'type': 'input'},
+           {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},],
+       'dt_headers': ['SKU', 'SKU Description','SKU Category','Sub Category','SKU Brand', 'SKU Type', 'SKU class','Current Stock In Hand','PO Pending','Total Stock including PO','Avg Last 30days','Avg Last 7 days','Stock Cover Days (30-day)','Stock Cover Days including PO stock (30-day)','Stock Cover Days (7-day)','Stock Cover Days including PO stock (7-day)'],
+       'mk_dt_headers': ['SKU', 'SKU Description','SKU Category','Sub Category','SKU Brand','Manufacturer', 'Searchable', 'Bundle', 'SKU Type', 'SKU class','Current Stock In Hand','PO Pending','Total Stock including PO','Avg Last 30days','Avg Last 7 days','Stock Cover Days (30-day)','Stock Cover Days including PO stock (30-day)','Stock Cover Days (7-day)','Stock Cover Days including PO stock (7-day)'],
        'dt_url': 'get_stock_cover_report', 'excel_name': 'get_stock_cover_report',
        'print_url': 'print_stock_cover_report',
     }
@@ -889,6 +933,7 @@ STOCK_TRANSFER_REPORT_DICT = {
         {'label': 'Sku Code', 'name': 'sku_code', 'type': 'input'},
     ],
     'dt_headers': ['Date', 'Invoice Number', 'Source Location', 'Destination', 'SKU Code', 'SKU Description','Quantity','Price','Net Value','CGST','SGST','IGST','Total Value','Status'],
+    'mk_dt_headers': ['Date', 'Invoice Number', 'Source Location', 'Destination', 'SKU Code', 'SKU Description', 'Manufacturer', 'Searchable', 'Bundle', 'Quantity','Price','Net Value','CGST','SGST','IGST','Total Value','Status'],
     'dt_url': 'get_stock_transfer_report', 'excel_name': 'get_stock_transfer_report',
     'print_url': 'print_stock_transfer_report',
 }
@@ -898,8 +943,14 @@ MARGIN_REPORT_DICT = {
       {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
       {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
       {'label': 'SKU Code', 'name': 'sku_code', 'type': 'input'},
+      {'label': 'SKU Sub Category', 'name': 'sub_category', 'type': 'input'},
+      {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
+      {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
+      {'label': 'Manufacturer', 'name': 'manufacturer', 'type': 'input'},
+      {'label': 'Searchable', 'name': 'searchable', 'type': 'input'},
+      {'label': 'Bundle', 'name': 'bundle', 'type': 'input'},
   ],
-  'dt_headers': ['Seller','SKU Code','SKU Desc','Weight','MRP','Manufacturer','Vendor Name','Sheet', 'Brand', 'Category', 'Sub Category','Customer','Marketplace', 'QTY', 'Weighted Avg Cost', 'Weighted Avg Selling Price','Total Cost','Total Sale','Margin Amount','Margin Percentage'],
+  'dt_headers': ['Seller','SKU Code','Searchable','Bundle','SKU Desc','Weight','MRP','Manufacturer','Vendor Name','Sheet', 'Brand', 'Category', 'Sub Category','Customer','Marketplace', 'QTY', 'Weighted Avg Cost', 'Weighted Avg Selling Price','Total Cost','Total Sale','Margin Amount','Margin Percentage'],
   'dt_url': 'get_margin_report', 'excel_name': 'get_margin_report',
   'print_url': 'print_margin_report',
 }
@@ -909,8 +960,11 @@ FINANCIAL_REPORT_DICT =  {
       {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
       {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
       {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+      {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
+      {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
+      {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
   ],
-  'dt_headers': ['SKU Code','SKU NAME','Category', 'Sub Category', 'City','Hub','Vendor Name','HSN Code','Weight', 'MRP', 'GST No',
+  'dt_headers': ['SKU Code','SKU NAME','Category', 'Sub Category', 'SKU Brand','Manufacturer','Searchable','Bundle', 'City','Hub','Vendor Name','HSN Code','Weight', 'MRP', 'GST No',
   'IGST Tax Rate','CESS Rate','Opening Qty','Opening Price Per Unit( Before Taxes)','Opening Value before Tax', 'Opening CGST', 'Opening SGST',
   'Opening IGST', 'Opening CESS', 'Opening Value after Tax', 'Purchase Qty', 'Purchase Price Per Unit(Before Taxes)','Purchase Value before Tax',
   'Purchase CGST', 'Purchase SGST','Purchase IGST', 'Purchase CESS', 'Purchase Value after Tax', 'Purchase Return Qty', 'Purchase Return Price Per Unit(Before Taxes)','Purchase Return Value before Tax',
@@ -931,8 +985,13 @@ BASA_REPORT_DICT = {
       {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
       {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
       {'label': 'SKU Code', 'name': 'sku_code', 'type': 'input'},
+      {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
+      {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
+      {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
   ],
-  'dt_headers': ['SKU Code','SKU Desc','Weight','MRP','Brand', 'Category', 'Sub Category','Sub Category Type','Sheet','Stock( Only BA and SA)','Avg CP','Latest GRN Qty','Latest GRN CP'],
+  'dt_headers': ['SKU Code','SKU Desc','Weight','MRP','Brand', 'Category', 'Sub Category','Sub Category Type',
+                 'Manufacturer', 'Searchable', 'Bundle',
+                 'Sheet','Stock( Only BA and SA)','Avg CP','Latest GRN Qty','Latest GRN CP'],
   'dt_url': 'get_basa_report', 'excel_name': 'get_basa_report',
   'print_url': 'print_basa_report',
 }
@@ -941,10 +1000,11 @@ CURRENT_STOCK_REPORT_DICT = {
     'filters': [
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
+        {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
         {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'},
         {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'}
     ],
-    'dt_headers': ['Seller ID', 'Seller Name', 'SKU Code', 'SKU Description','Manufacturer', 'Brand', 'Category',
+    'dt_headers': ['Seller ID', 'Seller Name', 'SKU Code', 'SKU Description','Manufacturer', 'Searchable', 'Bundle', 'Brand', 'Category',
     'Sub Category', 'Sub Category type','Sheet','Vendor','Location', 'Weight', 'MRP', 'Available Quantity',
     'Reserved Quantity', 'Total Quantity','Tax %','Avg CP with Tax','Amount with Tax','Cost Price W/O Tax',
     'Amount W/O tax','Warehouse Name','Report Generation Time'],
@@ -957,9 +1017,13 @@ STOCK_RECONCILIATION_REPORT_DICT = {
       {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
       {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
       {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+      {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
+      {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
+      {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'},
   ],
   'dt_headers': ['Created Date', 'SKU Code', 'SKU Desc', 'MRP', 'Weight', 'Vendor Name', 'Brand', 'Category',
-                 'Sub Category', 'Sub Category Type', 'Sheet', 'Opening Qty', 'Opening Avg Rate', 'Opening Amount After Tax',
+                 'Sub Category', 'Sub Category Type', 'Manufacturer', 'Searchable', 'Bundle', 'Sheet', 'Opening Qty',
+                  'Opening Avg Rate', 'Opening Amount After Tax',
                  'Purchases Qty', 'Purchases Avg Rate', 'Purchases Amount After Tax',
                  'RTV Qty', 'RTV Avg Rate', 'RTV Amount After Tax',
                  'Customer Sales Qty', 'Customer Sales Avg Rate', 'Customer Sales Amount After Tax',
@@ -977,10 +1041,11 @@ INVENTORY_VALUE_REPORT_DICT = {
     'filters': [
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
+        {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
         {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'},
         {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'}
     ],
-    'dt_headers': ['Seller ID', 'Seller Name','SKU Code', 'SKU Description', 'Category', 'Weight', 'MRP', 'Batch Number',
+    'dt_headers': ['Seller ID', 'Seller Name','SKU Code', 'SKU Description', 'Category', 'Sub Category', 'Brand', 'Manufacturer', 'Searchable', 'Bundle', 'Weight', 'MRP', 'Batch Number',
                    'Ean Number', 'Manufactured Date', 'Expiry Date', 'Quantity','Value','Average Cost Price','Warehouse Name','Report Generation Time'],
     'dt_url': 'get_inventory_value_report', 'excel_name': 'get_inventory_value_report',
     'print_url': 'print_inventory_value_report',
@@ -992,13 +1057,18 @@ BULK_TO_RETAIL_REPORT_DICT = {
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'Source SKU Code', 'name': 'source_sku_code', 'type': 'source_sku_search'},
         {'label': 'Source SKU Category', 'name': 'source_sku_category', 'type': 'input'},
+        {'label': 'Source SKU Sub Category', 'name': 'source_sku_sub_category', 'type': 'input'},
+        {'label': 'Source SKU Brand', 'name': 'source_sku_brand', 'type': 'input'},
         {'label': 'Destination SKU Code', 'name': 'destination_sku_code', 'type': 'destination_sku_search'},
         {'label': 'Destination SKU Category', 'name': 'destination_sku_category', 'type': 'input'},
+        {'label': 'Destination SKU Sub Category', 'name': 'destination_sku_sub_category', 'type': 'input'},
+        {'label': 'Destination SKU Brand', 'name': 'destination_sku_brand', 'type': 'input'},
     ],
     'dt_headers': ['Transaction ID', 'Date', 'Seller ID', 'Seller Name', 'Source SKU Code', 'Source SKU Description',
-                   'Source SKU Category', 'Source Location',
+                    'Source Sku Manufacturer', 'Source Sku Searchable', 'Source Sku Bundle',
+                   'Source SKU Category',  'Source SKU Sub Category',  'Source SKU Brand', 'Source Location',
                    'Source Weight', 'Source MRP', 'Source Quantity', 'Destination SKU Code',
-                   'Destination SKU Description', 'Destination SKU Category', 'Destination Location',
+                   'Destination SKU Description', 'Destination SKU Category', 'Destination SKU Sub Category',  'Destination SKU Brand', 'Destination Location',
                    'Destination Weight', 'Destination MRP', 'Destination Quantity', 'Warehouse Name',
                    'Report Generation Time'],
     'dt_url': 'get_bulk_to_retail_report', 'excel_name': 'get_bulk_to_retail_report',
@@ -1012,8 +1082,12 @@ MOVE_TO_INVENTORY_REPORT_DICT = {
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'Source Location', 'name': 'source_location', 'type': 'input'},
         {'label': 'Destination Location', 'name': 'destination_location', 'type': 'input'},
+        {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
+        {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
+        {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
     ],
-    'dt_headers': ['SKU Code', 'SKU Description','Source Location',
+    'dt_headers': ['SKU Code', 'SKU Description','Source Location', 'SKU Category',
+                   'Sub Category', 'SKU Brand', 'Manufacturer', 'Searchable', 'Bundle',
                    'Destination Location','Quantity','Transaction Date', 'Updated User'],
     'dt_url': 'get_move_inventory_report', 'excel_name': 'get_move_inventory_report',
     'print_url': 'print_move_inventory_report',
@@ -2419,10 +2493,17 @@ def get_sku_filter_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    cmp_data = ('sku_code', 'wms_code', 'sku_category', 'sku_type', 'sku_class')
+    cmp_data = ('sku_code', 'wms_code', 'sku_category', 'sku_type', 'sku_class','sub_category','sku_brand')
     for data in cmp_data:
         if data in search_params:
             search_parameters['%s__%s' % (data, 'iexact')] = search_params[data]
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['skuattributes__attribute_value'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['skuattributes__attribute_value'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['skuattributes__attribute_value'] = search_params['bundle']
 
     search_parameters['user'] = user.id
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
@@ -2435,15 +2516,33 @@ def get_sku_filter_data(search_params, user, sub_user):
         sku_master = sku_master[start_index:stop_index]
 
     zone = ''
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in sku_master:
+        manufacturer,searchable,bundle = '','',''
         if data.zone:
             zone = data.zone.zone
+        attributes_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name__in= attributes_list)
 
-        temp_data['aaData'].append(
-            OrderedDict((('SKU Code', data.sku_code), ('WMS Code', data.wms_code), ('SKU Group', data.sku_group),
-                         ('SKU Type', data.sku_type), ('SKU Category', data.sku_category),
-                         ('SKU Class', data.sku_class),
-                         ('Put Zone', zone), ('Threshold Quantity', data.threshold_quantity))))
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
+
+        ord_dict = OrderedDict((('SKU Code', data.sku_code), ('WMS Code', data.wms_code), ('SKU Group', data.sku_group),
+                     ('SKU Type', data.sku_type), ('SKU Category', data.sku_category),
+                     ('Sub Category', data.sub_category),('SKU Brand', data.sku_brand),
+                     ('SKU Class', data.sku_class),
+                     ('Put Zone', zone), ('Threshold Quantity', data.threshold_quantity)))
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            ord_dict['Manufacturer'] = manufacturer
+            ord_dict['Searchable'] = searchable
+            ord_dict['Bundle'] = bundle
+
+        temp_data['aaData'].append(ord_dict)
 
     return temp_data
 
@@ -2457,12 +2556,20 @@ def get_location_stock_data(search_params, user, sub_user):
     search_parameters = {}
     search_mapping = {'sku_code': 'sku__sku_code__iexact', 'sku_category': 'sku__sku_category__iexact',
                       'sku_type': 'sku__sku_type__iexact', 'sku_class': 'sku__sku_class__iexact',
+                      'sub_category': 'sku__sub_category__iexact', 'sku_brand': 'sku__sku_brand__iexact',
                       'zone': 'location__zone__zone__iexact',
                       'location': 'location__location__iexact', 'wms_code': 'sku__wms_code', 'ean': 'sku__ean_number__iexact'}
     results_data['draw'] = search_params.get('draw', 1)
     for key, value in search_mapping.iteritems():
         if key in search_params:
             search_parameters[value] = search_params[key]
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['sku__skuattributes__attribute_value'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['sku__skuattributes__attribute_value'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['sku__skuattributes__attribute_value'] = search_params['bundle']
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     stock_detail = []
@@ -2470,8 +2577,8 @@ def get_location_stock_data(search_params, user, sub_user):
     search_parameters['sku__user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
     distinct_list = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_brand']
-    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__ean_number', 'batch_detail__mrp', 'location__zone__zone', 'location__location',
-           'tsum', 'tsum', 'tsum']
+    lis = ['sku__wms_code', 'sku__sku_category', 'sku__sub_category', 'sku__sku_brand', 'sku__sku_desc', 'sku__ean_number', 'batch_detail__mrp', 'location__zone__zone', 'location__location',
+           'tsum', 'tsum', 'tsum','tsum', 'tsum', 'tsum']
     order_term = search_params.get('order_term', 0)
     col_num = search_params.get('order_index', 0)
     order_data = lis[col_num]
@@ -2535,7 +2642,22 @@ def get_location_stock_data(search_params, user, sub_user):
         ean_num = sku_master.ean_number
         if not ean_num:
             ean_num = ''
-        results_data['aaData'].append(OrderedDict((('SKU Code', sku_master.sku_code), ('WMS Code', sku_master.wms_code),
+        attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
+        manufacturer,searchable,bundle = '','',''
+        attributes_obj = SKUAttributes.objects.filter(sku_id=sku_master.id, attribute_name__in= attributes_list)
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
+
+        ord_dict = OrderedDict((('SKU Code', sku_master.sku_code), ('WMS Code', sku_master.wms_code),
+                                                   ('SKU Category', sku_master.sku_category),
+                                                   ('SKU Sub Category', sku_master.sub_category),
+                                                   ('SKU Brand', sku_master.sku_brand),
                                                    ('Product Description', sku_master.sku_desc),
                                                    ('EAN', str(ean_num)),
                                                    ('MRP', mrp),
@@ -2543,7 +2665,12 @@ def get_location_stock_data(search_params, user, sub_user):
                                                    ('Location', location_master.location), ('Total Quantity', total),
                                                    ('Available Quantity', quantity), ('Reserved Quantity', reserved),
                                                  ))
-                                     )
+
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            ord_dict['Manufacturer'] = manufacturer
+            ord_dict['Searchable'] = searchable
+            ord_dict['Bundle'] = bundle
+        results_data['aaData'].append(ord_dict)
     return results_data, total_quantity
 
 
@@ -2556,12 +2683,12 @@ def get_receipt_filter_data(search_params, user, sub_user):
     query_prefix = ''
     lis = ['open_po__supplier__name', 'order_id', 'open_po__sku__wms_code', 'open_po__sku__sku_desc',
            'received_quantity',
-           'updation_date', 'reason', 'order_id']
+           'updation_date', 'reason', 'order_id', 'order_id', 'order_id', 'order_id', 'order_id', 'order_id', 'order_id']
     model_obj = PurchaseOrder
     if use_imei == 'true':
         lis = ['purchase_order__open_po__supplier__name', 'purchase_order__order_id',
                'purchase_order__open_po__sku__wms_code',
-               'purchase_order__open_po__sku__sku_desc', 'imei_number', 'creation_date', 'purchase_order__reason']
+               'purchase_order__open_po__sku__sku_desc', 'imei_number', 'creation_date', 'purchase_order__reason', 'purchase_order__reason', 'purchase_order__reason', 'purchase_order__reason', 'purchase_order__reason']
         query_prefix = 'purchase_order__'
         model_obj = POIMEIMapping
         if 'from_date' in search_params:
@@ -2589,6 +2716,19 @@ def get_receipt_filter_data(search_params, user, sub_user):
         search_parameters[query_prefix + 'open_po__sku__wms_code__iexact'] = search_params['wms_code']
     if 'sku_code' in search_params:
         search_parameters[query_prefix + 'open_po__sku__sku_code__iexact'] = search_params['sku_code']
+    if 'sku_category' in search_params:
+        search_parameters[query_prefix + 'open_po__sku__sku_category__iexact'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters[query_prefix + 'open_po__sku__sub_category__iexact'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters[query_prefix + 'open_po__sku__sku_brand__iexact'] = search_params['sku_brand']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters[query_prefix + 'open_po__sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters[query_prefix + 'open_po__sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters[query_prefix + 'open_po__sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
     if 'order_id' in search_params:
         temp = re.findall('\d+', search_params['order_id'])
         if temp:
@@ -2629,14 +2769,34 @@ def get_receipt_filter_data(search_params, user, sub_user):
         version_obj = Version.objects.get_for_object(data)
         if version_obj.exists():
             updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
-        temp_data['aaData'].append(OrderedDict((('PO Reference', po_reference), ('WMS Code', data.open_po.sku.wms_code),
+        attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
+        manufacturer,searchable,bundle = '','',''
+        attributes_obj = SKUAttributes.objects.filter(sku_id=data.open_po.sku.id, attribute_name__in= attributes_list)
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
+        ord_dict = OrderedDict((('PO Reference', po_reference), ('WMS Code', data.open_po.sku.wms_code),
+                                                ('SKU Category', data.open_po.sku.sku_category),
+                                                ('SKU Sub Category', data.open_po.sku.sub_category),
+                                                ('Sku Brand', data.open_po.sku.sku_brand),
                                                 ('Description', data.open_po.sku.sku_desc),
                                                 ('Supplier',
                                                  '%s (%s)' % (data.open_po.supplier.name, data.open_po.supplier_id)),
                                                 ('Receipt Number', data.open_po_id),
                                                 ('Received Quantity', data.received_quantity),
                                                 ('Serial Number', serial_number), ('Received Date', received_date),
-                                                ('Closing Reason', reason), ('Updated User', updated_user_name))))
+                                                ('Closing Reason', reason), ('Updated User', updated_user_name)))
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            ord_dict['Manufacturer'] = manufacturer
+            ord_dict['Searchable'] = searchable
+            ord_dict['Bundle'] = bundle
+
+        temp_data['aaData'].append(ord_dict)
     return temp_data
 
 
@@ -2649,9 +2809,10 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
     warehouse_users = {}
     central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
     if customer_view:
-        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category', 'order__sku__user']#'order__quantity', 'picked_quantity']
+        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category', 'order__sku__sub_category','order__sku__sku_brand', 'order__sku__user',
+               'order__sku__sub_category','order__sku__sku_brand', 'order__sku__user']#'order__quantity', 'picked_quantity']
         model_obj = Picklist
-        param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
+        param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code','manufacturer':'order__sku__skuattributes__attribute_value__iexact'}
         search_parameters.update({'status__in': ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched'],
                                   #'picked_quantity__gt': 0,
                                   'stock__gt': 0,
@@ -2660,23 +2821,25 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                 })
     else:
         if serial_view:
-            lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category', 'order__customer_name',
-                   'po_imei__imei_number',
+            lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category', 'order__sku__sub_category','order__sku__sku_brand', 'order__customer_name',
+                   'po_imei__imei_number','updation_date', 'updation_date','updation_date', 'updation_date',
                    'updation_date', 'updation_date']
             model_obj = OrderIMEIMapping
-            param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
+            param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code','manufacturer':'order__sku__skuattributes__attribute_value__iexact'}
             search_parameters['status'] = 1
             # search_parameters['order__user'] = user.id
             # search_parameters['order__sku_id__in'] = sku_master_ids
         else:
             lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__wms_code',
-                   'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category',
+                   'order__sku__wms_code', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category','order__sku__sub_category','order__sku__sku_brand',
                    'stock__location__location', 'picked_quantity', 'picked_quantity', 'order__unit_price', 'order_id',
                    'stock__batch_detail__buy_price', 'stock__batch_detail__tax_percent', 'stock_id', 'updation_date', 'updation_date',
                    'order__customer_name', 'stock__batch_detail__batch_no', 'stock__batch_detail__mrp',
+                   'stock__batch_detail__manufactured_date', 'stock__batch_detail__expiry_date',
+                   'stock__batch_detail__manufactured_date', 'stock__batch_detail__expiry_date',
                    'stock__batch_detail__manufactured_date', 'stock__batch_detail__expiry_date']
             model_obj = Picklist
-            param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
+            param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code','manufacturer':'order__sku__skuattributes__attribute_value__iexact'}
             search_parameters['status__in'] = ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched']
             search_parameters['picked_quantity__gt'] = 0
             #search_parameters['stock__gt'] = 0
@@ -2702,6 +2865,20 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
         search_parameters['order__customer_id'] = search_params['customer_id']
     if 'imei_number' in search_params and serial_view:
         search_parameters['po_imei__imei_number'] = search_params['imei_number']
+    if 'sku_category' in search_params:
+        search_parameters['order__sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['order__sku__sub_category'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters['order__sku__sku_brand'] = search_params['sku_brand']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['order__sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['order__sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['order__sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
     if user.username == 'isprava_admin':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
@@ -2747,18 +2924,54 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
     if stop_index:
         model_data = model_data[start_index:stop_index]
 
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in model_data:
         if customer_view:
-            temp_data['aaData'].append(OrderedDict((('Customer ID', data['order__customer_id']),
+            manufacturer,searchable,bundle = '','',''
+            if data['order__sku__wms_code']:
+                sku_code_attr = data['order__sku__wms_code']
+            if sku_code_attr:
+                attributes_obj = SKUAttributes.objects.filter(sku__sku_code=sku_code_attr, attribute_name__in= attributes_list)
+                if attributes_obj.exists():
+                    for attribute in attributes_obj:
+                        if attribute.attribute_name == 'Manufacturer':
+                            manufacturer = attribute.attribute_value
+                        if attribute.attribute_name == 'Searchable':
+                            searchable = attribute.attribute_value
+                        if attribute.attribute_name == 'Bundle':
+                            bundle = attribute.attribute_value
+
+            ord_dict = OrderedDict((('Customer ID', data['order__customer_id']),
                                                     ('Customer Name', data['order__customer_name']),
                                                     ('WMS Code', data['order__sku__wms_code']),
                                                     ('Description', data['order__sku__sku_desc']),
                                                     ('SKU Category', data['order__sku__sku_category']),
+                                                    ('Sub Category', data['order__sku__sub_category']),
+                                                    ('SKU Brand', data['order__sku__sku_brand']),
                                                     ('Quantity', data['qty']),
                                                     ('Picked Quantity', data['qty'] - data['res_qty']),
                                                     ('Warehouse', warehouse_users.get(data['order__sku__user']))
-                                                  )))
+                                                  ))
+            if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                ord_dict['Manufacturer'] = manufacturer
+                ord_dict['Searchable'] = searchable
+                ord_dict['Bundle'] = bundle
+            temp_data['aaData'].append(ord_dict)
         else:
+            manufacturer,searchable,bundle = '','',''
+            if data.order.sku.sku_code:
+                sku_code_attr = data.order.sku.sku_code
+            if sku_code_attr:
+                attributes_obj = SKUAttributes.objects.filter(sku__sku_code=sku_code_attr, attribute_name__in= attributes_list)
+                if attributes_obj.exists():
+                    for attribute in attributes_obj:
+                        if attribute.attribute_name == 'Manufacturer':
+                            manufacturer = attribute.attribute_value
+                        if attribute.attribute_name == 'Searchable':
+                            searchable = attribute.attribute_value
+                        if attribute.attribute_name == 'Bundle':
+                            bundle = attribute.attribute_value
+
             if not serial_view:
                 child_sku_weight = ''
                 child_sku_code = ''
@@ -2793,11 +3006,13 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                     if data.order_type == 'combo':
                         child_sku_code = data.sku_code
                         child_sku_mrp = SKUMaster.objects.filter(user=user.id, sku_code = data.sku_code).values('mrp')[0]['mrp']
-                    temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
+                    ord_dict = OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
                                                             ('WMS MRP', wms_code_mrp),('Child SKU', child_sku_code),
                                                             ('Child SKU MRP', child_sku_mrp),('Child SKU Weight', child_sku_weight),
                                                             ('Description', data.order.sku.sku_desc),
                                                             ('SKU Category', data.order.sku.sku_category),
+                                                            ('Sub Category',data.order.sku.sub_category),
+                                                            ('SKU Brand', data.order.sku.sku_brand),
                                                             ('Location', 'NO STOCK'),
                                                             ('Quantity', data.order.quantity),
                                                             ('Picked Quantity', data.picked_quantity),
@@ -2806,7 +3021,12 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])), ('Customer Name', customer_name),
                                                             ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
                                                             ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate),
-                                                            ('Warehouse', warehouse_users.get(data.order.user)))))
+                                                            ('Warehouse', warehouse_users.get(data.order.user))))
+                    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                        ord_dict['Manufacturer'] = manufacturer
+                        ord_dict['Searchable'] = searchable
+                        ord_dict['Bundle'] = bundle
+                    temp_data['aaData'].append(ord_dict)
                 pick_locs = data.picklistlocation_set.exclude(reserved=0, quantity=0)
                 for pick_loc in pick_locs:
                     picked_quantity = float(pick_loc.quantity) - float(pick_loc.reserved)
@@ -2828,11 +3048,13 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                         cost_price = '%.2f' %(data.stock.batch_detail.buy_price)
                         cost_tax_percent = data.stock.batch_detail.tax_percent
                     wms_code_mrp = data.order.sku.mrp
-                    temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
+                    ord_dict = OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
                                                             ('WMS MRP', wms_code_mrp),('Child SKU', child_sku_code),
                                                             ('Child SKU MRP', child_sku_mrp),('Child SKU Weight', child_sku_weight),
                                                             ('Description', data.order.sku.sku_desc),
                                                             ('SKU Category', data.order.sku.sku_category),
+                                                            ('Sub Category',data.order.sku.sub_category),
+                                                            ('SKU Brand', data.order.sku.sku_brand),
                                                             ('Location', pick_loc.stock.location.location),
                                                             ('Quantity', data.order.quantity),
                                                             ('Picked Quantity', picked_quantity),
@@ -2842,7 +3064,12 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Customer Name', customer_name),
                                                             ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
                                                             ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate),
-                                                            ('Warehouse', warehouse_users.get(data.order.user)))))
+                                                            ('Warehouse', warehouse_users.get(data.order.user))))
+                    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                        ord_dict['Manufacturer'] = manufacturer
+                        ord_dict['Searchable'] = searchable
+                        ord_dict['Bundle'] = bundle
+                    temp_data['aaData'].append(ord_dict)
             else:
                 order_id = data.order.original_order_id
                 if not order_id:
@@ -2855,13 +3082,21 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                 if data.po_imei:
                     serial_number = data.po_imei.imei_number
                 date = get_local_date(user, data.updation_date).split(' ')
-                temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.wms_code),
+                ord_dict = OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.wms_code),
                                                         ('Description', data.order.sku.sku_desc),
                                                         ('SKU Category', data.order.sku.sku_category),
+                                                        ('Sub Category',data.order.sku.sub_category),
+                                                        ('SKU Brand', data.order.sku.sku_brand),
                                                         ('Customer Name', data.order.customer_name),
                                                         ('Serial Number', serial_number),
                                                         ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])),
-                                                        ('Warehouse', warehouse_users.get(data.order.user)))))
+                                                        ('Warehouse', warehouse_users.get(data.order.user))))
+                if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                    ord_dict['Manufacturer'] = manufacturer
+                    ord_dict['Searchable'] = searchable
+                    ord_dict['Bundle'] = bundle
+                temp_data['aaData'].append(ord_dict)
+
     return temp_data
 
 
@@ -2887,10 +3122,16 @@ def sku_wise_purchase_data(search_params, user, sub_user):
                'open_po__sku__style_name', 'open_po__sku__sku_brand', 'open_po__sku__sku_category',
                'open_po__sku__sub_category',
                'open_po__order_quantity', 'open_po__price', 'open_po__price', 'open_po__mrp', 'id', 'id', 'id',
-               'received_quantity', 'id', 'id', 'id']
+               'received_quantity', 'id', 'id', 'id', 'id', 'id', 'id']
         columns = SKU_WISE_PO_DICT['mk_dt_headers']
     if 'sku_code' in search_params:
         search_parameters['open_po__sku__sku_code'] = search_params['sku_code']
+    if 'sku_category' in search_params:
+        search_parameters['open_po__sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['open_po__sku__sub_category'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters['open_po__sku__sku_brand'] = search_params['sku_brand']
     if 'supplier' in search_params:
         supp_search = search_params['supplier'].split(':')
         search_parameters['open_po__supplier_id'] = supp_search[0]
@@ -2900,6 +3141,13 @@ def sku_wise_purchase_data(search_params, user, sub_user):
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
         search_parameters['creation_date__lte'] = search_params['to_date']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['open_po__sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['open_po__sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['open_po__sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
@@ -2929,6 +3177,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
         if stop_index:
             purchase_orders = purchase_orders[start_index:stop_index]
     time = get_local_date(user, datetime.datetime.now())
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in purchase_orders:
         total_quantity = 0
         receipt_date = ''
@@ -2944,6 +3193,16 @@ def sku_wise_purchase_data(search_params, user, sub_user):
         if data.status in ['confirmed-putaway', 'location-assigned'] and (data.received_quantity < data.open_po.order_quantity):
             status = 'Closed PO'
         order_data = get_purchase_order_data(data)
+        manufacturer,searchable,bundle = '','',''
+        attributes_obj = SKUAttributes.objects.filter(sku_id=order_data['sku'].id, attribute_name__in= attributes_list)
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
         if not user_profile.user_type == 'marketplace_user':
             po_reference = get_po_reference(data)
             receivable_quantity = int(order_data['order_quantity'] - data.received_quantity)
@@ -2980,6 +3239,9 @@ def sku_wise_purchase_data(search_params, user, sub_user):
                                 ('SKU Brand', order_data['sku'].sku_brand),
                                 ('SKU Category', order_data['sku'].sku_category),
                                 ('Sub Category', order_data['sku'].sub_category),
+                                ('Manufacturer', manufacturer),
+                                ('Searchable', searchable),
+                                ('Bundle', bundle),
                                 ('PO Qty', order_data['order_quantity']),
                                 ('Unit Price without tax', order_data['price']),
                                 ('Unit Price with tax', "%.2f" % aft_price),
@@ -2990,6 +3252,10 @@ def sku_wise_purchase_data(search_params, user, sub_user):
                                 ('Warehouse Name', user.username),
                                 ('Report Generation Time', time)
                                 ))
+            if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                temp['Manufacturer'] = manufacturer
+                temp['Searchable'] = searchable
+                temp['Bundle'] = bundle
             if status == 'Received':
                 received_list.append(temp)
             else:
@@ -3032,12 +3298,18 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                'purchase_order__open_po__igst_tax', 'purchase_order__open_po__utgst_tax',
                'purchase_order__open_po__cess_tax', 'purchase_order__open_po__apmc_tax', 'id',
                'seller_po__margin_percent', 'seller_po__margin_percent',
-               'id', 'overall_discount', 'id',
+               'id', 'overall_discount', 'id','id','id','id','id','id','id','id',
                'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'remarks', 'id','purchase_order__id', 'id']
         model_name = SellerPOSummary
         field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date',
                          'order_id': 'purchase_order__order_id',
                          'wms_code': 'purchase_order__open_po__sku__wms_code__iexact',
+                         'manufacturer':'purchase_order__open_po__sku__skuattributes__attribute_value__iexact',
+                         'searchable':'purchase_order__open_po__sku__skuattributes__attribute_value__iexact',
+                         'bundle':'purchase_order__open_po__sku__skuattributes__attribute_value__iexact',
+                         'sku_category': 'purchase_order__open_po__sku__sku_category__iexact',
+                         'sub_category': 'purchase_order__open_po__sku__sub_category__iexact',
+                         'sku_brand': 'purchase_order__open_po__sku__sku_brand__iexact',
                          'user': 'purchase_order__open_po__sku__user',
                          'sku_id__in': 'purchase_order__open_po__sku_id__in',
                          'prefix': 'purchase_order__prefix', 'supplier_id': 'purchase_order__open_po__supplier_id',
@@ -3045,8 +3317,8 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'receipt_type': 'seller_po__receipt_type', 'invoice_number': 'invoice_number', 'gst_num': 'purchase_order__open_po__supplier__tin_number'}
         result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier_id',
                          'purchase_order__open_po__supplier__name', 'purchase_order__open_po__supplier__tax_type',
-                         'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
-                         'purchase_order__open_po__sku__hsn_code', 'purchase_order__open_po__po_name',
+                         'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc','purchase_order__open_po__sku_id',
+                         'purchase_order__open_po__sku__hsn_code', 'purchase_order__open_po__po_name','purchase_order__open_po__sku__sub_category',
                          'purchase_order__open_po__sku__sku_class', 'purchase_order__open_po__sku__style_name',
                          'purchase_order__open_po__sku__sku_brand', 'purchase_order__open_po__sku__sku_category',
                          'purchase_order__received_quantity', 'purchase_order__open_po__price',
@@ -3077,23 +3349,26 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                'purchase_order__open_po__cgst_tax', 'purchase_order__open_po__sgst_tax',
                'purchase_order__open_po__igst_tax', 'purchase_order__open_po__utgst_tax',
                'purchase_order__open_po__cess_tax', 'purchase_order__open_po__apmc_tax',
-               'id', 'seller_po__margin_percent', 'overall_discount', 'id',
+               'id', 'seller_po__margin_percent', 'overall_discount', 'id','id','id','id','id','id','id','id','id',
                'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'remarks', 'id','purchase_order__id', 'id']
 
         field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date',
                          'order_id': 'purchase_order__order_id',
                          'wms_code': 'purchase_order__open_po__sku__wms_code__iexact',
+                         'sku_category': 'purchase_order__open_po__sku__sku_category__iexact',
+                         'sub_category': 'purchase_order__open_po__sku__sub_category__iexact',
+                         'sku_brand': 'purchase_order__open_po__sku__sku_brand__iexact',
                          'user': 'purchase_order__open_po__sku__user',
                          'sku_id__in': 'purchase_order__open_po__sku_id__in',
                          'prefix': 'purchase_order__prefix', 'supplier_id': 'purchase_order__open_po__supplier_id',
                          'supplier_name': 'purchase_order__open_po__supplier__name',
                          'receipt_type': 'seller_po__receipt_type', 'invoice_number': 'invoice_number', 'gst_num': 'purchase_order__open_po__supplier__tin_number'}
         result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier_id',
-                         'purchase_order__open_po__supplier__name',
+                         'purchase_order__open_po__supplier__name','purchase_order__open_po__sku_id',
                          'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
                          'purchase_order__open_po__sku__hsn_code', 'purchase_order__open_po__po_name',
                          'purchase_order__open_po__sku__sku_class', 'purchase_order__open_po__sku__style_name',
-                         'purchase_order__open_po__sku__sku_brand', 'purchase_order__open_po__sku__sku_category',
+                         'purchase_order__open_po__sku__sku_brand', 'purchase_order__open_po__sku__sku_category','purchase_order__open_po__sku__sub_category',
                          'purchase_order__received_quantity', 'purchase_order__open_po__price',
                          'purchase_order__open_po__mrp', 'purchase_order__open_po__cgst_tax',
                          'purchase_order__open_po__sgst_tax', 'purchase_order__open_po__igst_tax',
@@ -3128,6 +3403,20 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
             search_parameters[field_mapping['order_id']] = temp[-1]
     if 'sku_code' in search_params:
         search_parameters[field_mapping['wms_code']] = search_params['sku_code']
+    if 'sku_category' in search_params:
+        search_parameters[field_mapping['sku_category']] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters[field_mapping['sub_category']] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters[field_mapping['sku_brand']] = search_params['sku_brand']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters[field_mapping['manufacturer']] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters[field_mapping['searchable']] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters[field_mapping['bundle']] = search_params['bundle']
+
     if 'invoice_number' in search_params:
         search_parameters[field_mapping['invoice_number']] = search_params['invoice_number']
     if 'supplier' in search_params and ':' in search_params['supplier']:
@@ -3152,7 +3441,19 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
     if stop_index and not custom_search:
         model_data = model_data[start_index:stop_index]
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id)
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in model_data:
+        manufacturer,searchable,bundle = '','',''
+        if data['purchase_order__open_po__sku_id']:
+            attributes_obj = SKUAttributes.objects.filter(sku_id=data['purchase_order__open_po__sku_id'], attribute_name__in= attributes_list)
+            if attributes_obj.exists():
+                for attribute in attributes_obj:
+                    if attribute.attribute_name == 'Manufacturer':
+                        manufacturer = attribute.attribute_value
+                    if attribute.attribute_name == 'Searchable':
+                        searchable = attribute.attribute_value
+                    if attribute.attribute_name == 'Bundle':
+                        bundle = attribute.attribute_value
         result = purchase_orders.filter(order_id=data[field_mapping['order_id']], open_po__sku__user=user.id)[0]
         receipt_no = data['receipt_number']
         if not receipt_no:
@@ -3245,7 +3546,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
             remarks = ','.join(custom_remarks)
         if not remarks and result.remarks:
             remarks = result.remarks
-        temp_data['aaData'].append(OrderedDict((('Received Date', get_local_date(user, seller_po_summary.creation_date)),
+        ord_dict = OrderedDict((('Received Date', get_local_date(user, seller_po_summary.creation_date)),
                             ('PO Date', get_local_date(user, result.creation_date)),
                             ('PO Number', po_number),
                             ('PO Reference Number',data['purchase_order__open_po__po_name']),
@@ -3259,6 +3560,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                             ('SKU Style Name', data['purchase_order__open_po__sku__style_name']),
                             ('SKU Brand', data['purchase_order__open_po__sku__sku_brand']),
                             ('SKU Category', data['purchase_order__open_po__sku__sku_category']),
+                            ('Sub Category', data['purchase_order__open_po__sku__sub_category']),
                             ('Received Qty', data['total_received']),
                             ('Unit Rate', price), ('MRP', mrp),
                             ('Pre-Tax Received Value', amount),
@@ -3290,9 +3592,13 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                             ('Remarks', remarks),
                             ('Updated User', updated_user_name),
                             ('GST NO', data[field_mapping['gst_num']]),
-                            ('LR-NUMBER', lr_detail_no)
+                            ('LR-NUMBER', lr_detail_no)))
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            ord_dict['Manufacturer'] = manufacturer
+            ord_dict['Searchable'] = searchable
+            ord_dict['Bundle'] = bundle
+        temp_data['aaData'].append(ord_dict)
 
-	)))
     if stop_index and custom_search:
         if temp_data['aaData']:
             temp_data['aaData'] = apply_search_sort(temp_data['aaData'][0].keys(), temp_data['aaData'], order_term, '', col_num, exact=False)
@@ -3422,6 +3728,19 @@ def get_stock_summary_data(search_params, user, sub_user):
         if data in search_params:
             search_parameters['%s__%s__%s' % ('sku', data, 'iexact')] = search_params[data]
             job_filter['%s__%s__%s' % ('product_code', data, 'iexact')] = search_params[data]
+    if 'sku_category' in search_params:
+        search_parameters['sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['sku__sub_category'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters['sku__sku_brand'] = search_params['sku_brand']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
 
     if user.username == 'isprava_admin':
         if 'sister_warehouse' in search_params:
@@ -3448,7 +3767,9 @@ def get_stock_summary_data(search_params, user, sub_user):
                                                                                                     'product_code__sku_code',
                                                                                                     'product_code__sku_desc',
                                                                                                     'product_code__sku_brand',
-                                                                                                    'product_code__sku_category').distinct()
+                                                                                                    'product_code__sku_category',
+                                                                                                    'product_code__sub_category',
+                                                                                                    ).distinct()
     sku_master = list(chain(sku_master, sku_master1))
 
     purchase_orders = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(
@@ -3465,10 +3786,21 @@ def get_stock_summary_data(search_params, user, sub_user):
     intransit_ordered = map(lambda d: d['total_order'], purchase_orders)
     intransit_received = map(lambda d: d['total_received'], purchase_orders)
     sku_master_list = []
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for ind, sku in enumerate(sku_master):
         sku_stages_dict = {}
         total_stock_value = 0
         intransit_quantity = 0
+        manufacturer,searchable,bundle = '','',''
+        attributes_obj = SKUAttributes.objects.filter(sku_id=sku[0], attribute_name__in= attributes_list)
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
         if len(list(sku)) >= 6:
             sku_stages_dict['In Stock'] = sku[6]
         if sku[0] in intransit_skus:
@@ -3498,9 +3830,14 @@ def get_stock_summary_data(search_params, user, sub_user):
                 warehouse = warehouse_users.get(sku[5])
             if sku[7]:
                stock_value = sku[7]
-            sku_master_list.append(OrderedDict((('SKU Code', sku[1]), ('Description', sku[2]),
-                                                ('Brand', sku[3]), ('Category', sku[4]),
-                                                ('Stage', key), ('Stage Quantity', value), ('Stock Value', stock_value),  ('Warehouse', warehouse))))
+            ord_dict = OrderedDict((('SKU Code', sku[1]), ('Description', sku[2]),
+                                                ('Brand', sku[3]), ('Category', sku[4]),('SKU Sub Category', sku[5]),
+                                                ('Stage', key), ('Stage Quantity', value), ('Stock Value', stock_value),  ('Warehouse', warehouse)))
+            if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                ord_dict['Manufacturer'] = manufacturer
+                ord_dict['Searchable'] = searchable
+                ord_dict['Bundle'] = bundle
+            sku_master_list.append(ord_dict)
 
     temp_data['recordsTotal'] = len(sku_master_list)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -3537,11 +3874,19 @@ def get_daily_production_data(search_params, user, sub_user):
                             ('Stage', 'processed_stage')))
     order_term = search_params.get('order_term', '')
     order_index = search_params.get('order_index', '')
-    cmp_data = ('sku_code', 'sku_brand', 'sku_class', 'sku_category')
+    cmp_data = ('sku_code', 'sku_brand', 'sku_class', 'sku_category', 'sub_category')
     job_filter = {}
     for data in cmp_data:
         if data in search_params:
             search_parameters['%s__%s__%s' % ('product_code', data, 'iexact')] = search_params[data]
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['product_code__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['product_code__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['product_code__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
     search_stage = search_params.get('stage', '')
     stage_filter = {'user': user.id}
     if search_stage:
@@ -3590,6 +3935,7 @@ def get_daily_production_data(search_params, user, sub_user):
         if stop_index:
             status_summary = status_summary[start_index:stop_index]
     data = []
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for summary_dict in status_summary:
         temp_val = summary_dict['grouping_val'].split('<<>>')
         summary = StatusTrackingSummary.objects.filter(status_tracking__status_id=temp_val[0],
@@ -3603,16 +3949,32 @@ def get_daily_production_data(search_params, user, sub_user):
         #         job_order.product_code.sku_code,
         #         job_order.product_code.sku_brand, job_order.product_code.sku_category, job_order.product_quantity,
         #         summary.processed_stage)
-        data.append(OrderedDict((('Date', summary_date), ('Job Order', job_order.job_code),
+        manufacturer,searchable,bundle = '','',''
+        attributes_obj = SKUAttributes.objects.filter(sku_id=job_order.product_code.id, attribute_name__in= attributes_list)
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
+        ord_dict = OrderedDict((('Date', summary_date), ('Job Order', job_order.job_code),
                                                ('JO Creation Date', jo_creation_date),
                                                ('SKU Class', job_order.product_code.sku_class),
                                                ('SKU Code', job_order.product_code.sku_code),
                                                ('Brand', job_order.product_code.sku_brand),
                                                ('SKU Category', job_order.product_code.sku_category),
+                                               ('SKU Sub Category', job_order.product_code.sub_category),
                                                ('Total JO Quantity', job_order.product_quantity),
                                                ('Reduced Quantity', summary_dict['tsum']),
                                                ('Stage', summary.processed_stage)
-                         )))
+                         ))
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            ord_dict['Manufacturer'] = manufacturer
+            ord_dict['Searchable'] = searchable
+            ord_dict['Bundle'] = bundle
+        data.append(ord_dict)
         #all_data[cond]['Reduced Quantity'] += float(summary.processed_quantity)
         # job_code = filter(lambda job_code_ids: job_code_ids['id'] == summary.status_tracking.status_id, job_code_ids)
 
@@ -3645,11 +4007,10 @@ def get_openjo_details(search_params, user, sub_user):
     from rest_api.views.production import get_user_stages
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['jo_id', 'jo_creation_date', 'sku__brand', 'sku__sku_category', 'sku__sku_class', 'sku__sku_code', 'stage',
-           'quantity']
+           'quantity','sku__sub_category']
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     final_data = []
-
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
@@ -3660,8 +4021,18 @@ def get_openjo_details(search_params, user, sub_user):
         search_parameters['product_code__sku_class'] = search_params['sku_class']
     if 'sku_category' in search_params:
         search_parameters['product_code__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['product_code__sub_category'] = search_params['sub_category']
     if 'sku_brand' in search_params:
         search_parameters['product_code__sku_brand'] = search_params['sku_brand']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['product_code__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['product_code__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['product_code__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
     if 'job_code' in search_params:
         search_parameters['job_code'] = int(search_params['job_code'])
     if 'stage' in search_params:
@@ -3735,7 +4106,18 @@ def get_openjo_details(search_params, user, sub_user):
     order_index = search_params.get('order_index', '')
 
     last_data = []
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for one_data in final_data:
+        manufacturer,searchable,bundle = '','',''
+        attributes_obj = SKUAttributes.objects.filter(sku_id=one_data['data'].product_code.id, attribute_name__in= attributes_list)
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
         date = get_local_date(user, one_data['data'].creation_date).split(' ')
         last_data.append(OrderedDict((('JO Code', one_data['data'].job_code), ('Jo Creation Date', ' '.join(date[0:3])),
                                       ('SKU Brand', one_data['data'].product_code.sku_brand),
@@ -3743,6 +4125,10 @@ def get_openjo_details(search_params, user, sub_user):
                                       ('SKU Class', one_data['data'].product_code.sku_class),
                                       ('SKU Code', one_data['data'].product_code.sku_code),
                                       ('Stage', one_data['stage']), ('Quantity', one_data['quantity']))))
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            last_data['Manufacturer'] = manufacturer
+            last_data['Searchable'] = searchable
+            last_data['Bundle'] = bundle
 
     if order_term == 'asc' and order_index:
         last_data = sorted(last_data, key=itemgetter(last_data[0].keys()[order_index]))
@@ -3818,6 +4204,25 @@ def get_financial_report_data(search_params, user, sub_user):
     if 'sku_code' in search_params:
         search_parameters['sku__sku_code'] = search_params['sku_code']
         fields_parameters['stock_reconciliation__sku__sku_code'] = search_params['sku_code']
+    if 'sku_category' in search_params:
+        search_parameters['sku__sku_category'] = search_params['sku_category']
+        fields_parameters['stock_reconciliation__sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['sku__sub_category'] = search_params['sub_category']
+        fields_parameters['stock_reconciliation__sku__sub_category'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters['sku__sku_brand'] = search_params['sku_brand']
+        fields_parameters['stock_reconciliation__sku__sku_brand'] = search_params['sku_brand']
+    if 'manufacturer' in search_params:
+        search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        fields_parameters['stock_reconciliation__sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+    if 'searchable' in search_params:
+        search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        fields_parameters['stock_reconciliation__sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+    if 'bundle' in search_params:
+        search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+        fields_parameters['stock_reconciliation__sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
 
     search_parameters['sku__user'] = user.id
     fields_parameters['stock_reconciliation__sku__user'] = user.id
@@ -3840,8 +4245,9 @@ def get_financial_report_data(search_params, user, sub_user):
                 opening_stock_filter['stock_reconciliation__sku__sku_code'] = fields_parameters['stock_reconciliation__sku__sku_code']
             opening_stock_data = StockReconciliationFields.objects.\
                 filter(**opening_stock_filter).values('stock_reconciliation__sku__sku_code', 'stock_reconciliation__sku__sku_desc',
-                                                        'stock_reconciliation__sku__sku_category', 'stock_reconciliation__sku__sub_category',
                                                         'stock_reconciliation__sku_id',
+                                                        'stock_reconciliation__sku__sku_category', 'stock_reconciliation__sku__sub_category',
+                                                        'stock_reconciliation__sku_id','stock_reconciliation__sku__sku_brand',
                                                         'stock_reconciliation__sku__hsn_code', 'stock_reconciliation__mrp',
                                                         'stock_reconciliation__weight','cgst_tax', 'sgst_tax', 'igst_tax',
                                                         'cess_tax').distinct().annotate(Sum('value_before_tax'),
@@ -3855,8 +4261,20 @@ def get_financial_report_data(search_params, user, sub_user):
             closing_objs = StockReconciliationFields.objects.filter(stock_reconciliation__creation_date__regex=closing_stock_date,
                                                                     stock_reconciliation__sku__user=user.id,
                                                                     field_type='closing')
+            attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
             for opening_stock in opening_stock_data[start_index:stop_index]:
                 #Opening Stock Calculation
+
+                manufacturer,searchable,bundle = '','',''
+                attributes_obj = SKUAttributes.objects.filter(sku_id=data.sku.id, attribute_name__in= attributes_list)
+                if attributes_obj.exists():
+                    for attribute in attributes_obj:
+                        if attribute.attribute_name == 'Manufacturer':
+                            manufacturer = attribute.attribute_value
+                        if attribute.attribute_name == 'Searchable':
+                            searchable = attribute.attribute_value
+                        if attribute.attribute_name == 'Bundle':
+                            bundle = attribute.attribute_value
                 tax_rate = opening_stock['cgst_tax'] + opening_stock['sgst_tax'] + opening_stock['igst_tax']
                 sku_id = opening_stock['stock_reconciliation__sku_id']
                 cgst_amount = opening_stock['cgst_amount']
@@ -3928,6 +4346,10 @@ def get_financial_report_data(search_params, user, sub_user):
                                                         ('SKU NAME', opening_stock['stock_reconciliation__sku__sku_desc']),
                                                         ('Category', opening_stock['stock_reconciliation__sku__sku_category']),
                                                         ('Sub Category', opening_stock['stock_reconciliation__sku__sub_category']),
+                                                        ('SKU Brand', opening_stock['stock_reconciliation__sku__sku_brand']),
+                                                        ('Manufacturer',manufacturer ),
+                                                        ('Searchable',searchable ),
+                                                        ('Bundle', bundle),
                                                         ('City',''), ('Hub', hub),('Vendor Name', vendor),
                                                         ('HSN Code', str(opening_stock['stock_reconciliation__sku__hsn_code'])),
                                                         ('MRP', mrp), ('Weight', weight), ('GST No', ''),
@@ -4016,8 +4438,9 @@ def get_order_summary_data(search_params, user, sub_user):
         milkbasket_user = True
 
     lis = ['creation_date', 'order_id', 'customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
-           'sku__sku_size', 'sku__sku_desc', 'sku_code', 'quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
-           'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','invoice_number','quantity','creation_date'];
+           'sku__sku_size', 'sku__sku_desc', 'sku__sub_category' 'sku_code', 'quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
+           'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id','order_id',
+           'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','invoice_number','quantity','creation_date'];
     if milkbasket_user :
         lis.append('order_id')
     # lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
@@ -4038,6 +4461,8 @@ def get_order_summary_data(search_params, user, sub_user):
         search_parameters['marketplace'] = search_params['marketplace']
     if 'sku_category' in search_params:
         search_parameters['sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['sku__sub_category'] = search_params['sub_category']
     if 'sku_brand' in search_params:
         search_parameters['sku__sku_brand'] = search_params['sku_brand']
     if 'sku_size' in search_params:
@@ -4055,6 +4480,14 @@ def get_order_summary_data(search_params, user, sub_user):
         search_parameters['sellerordersummary__invoice_number'] = search_params['invoice_number']
     if 'invoice_date' in search_params:
         search_parameters['sellerordersummary__creation_date__icontains'] = search_params['invoice_date']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
 
 
     status_search = search_params.get('order_report_status', "")
@@ -4081,13 +4514,13 @@ def get_order_summary_data(search_params, user, sub_user):
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
                                                                     'sku__sku_desc','sku__price','sellerordersummary__invoice_number','address',
                                                                     'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
-                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace').exclude(status = 3).distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
+                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','sku_id','sku__sub_category').exclude(status = 3).distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
     else:
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size',
                                                                     'sku__sku_desc','sku__price','address','order_code','payment_mode',
                                                                     'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
-                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace').exclude(status = 3).distinct()
+                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','sku_id','sku__sub_category').exclude(status = 3).distinct()
     pick_filters = {}
     for key, value in search_parameters.iteritems():
         pick_filters['order__%s' % key] = value
@@ -4175,13 +4608,16 @@ def get_order_summary_data(search_params, user, sub_user):
 
     total_row = {}
     total_row = OrderedDict((('Order Date', ''), ('Order ID', ""),('Customer Name', ""),('Order Number' ,""),
-    ('SKU Brand', ""),('SKU Category', ''),('SKU Class', ''),('SKU Size', ''), ('SKU Description', ''),
+    ('SKU Brand', ""),('SKU Category', ''),('SKU Class', ''),('SKU Size', ''), ('SKU Description', ''),('SKU Sub Category', ''),
     ('SKU Code', 'TotalQuantity='), ('Order Qty',temp_data['totalOrderQuantity']),('MRP', ''), ('Unit Price',''),('Discount', ''),
     ('Serial Number',''),('Invoice Number',''),('Quantity',''),('Payment Type' ,''),('Reference Number',''),
     ('Taxable Amount',''), ('Tax', ''),('City', ''), ('State', ''), ('Marketplace', 'TotalInvoiceAmount='),('Invoice Amount', temp_data['totalSellingPrice']),
     ('Price', ''),('Status', ''), ('Order Status', ''),('Customer GST Number',''),('Remarks', ''), ('Order Taken By', ''),
     ('Invoice Date',''),('Billing Address',''),('Shipping Address',''),('Payment Cash', ''),('Payment Card', ''),('Payment PhonePe',''),('Payment GooglePay',''),('Payment Paytm','')))
-
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        total_row['Manufacturer'] = ''
+        total_row['Searchable'] = ''
+        total_row['Bundle'] = ''
     temp_data['aaData'].append(total_row)
     extra_order_fields = get_misc_value('extra_order_fields', user.id)
     if extra_order_fields == 'false' :
@@ -4197,7 +4633,7 @@ def get_order_summary_data(search_params, user, sub_user):
         temp_data['aaData'][0].update(OrderedDict(cost_price_dict))
     temp_data['aaData'][0].update(OrderedDict(order_extra_fields))
 
-
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in orders.iterator():
         count = count + 1
         is_gst_invoice = False
@@ -4210,6 +4646,17 @@ def get_order_summary_data(search_params, user, sub_user):
             order_id = data['original_order_id']
         payment_type = ''
         reference_number = ''
+
+        manufacturer,searchable,bundle = '','',''
+        attributes_obj = SKUAttributes.objects.filter(sku_id=data['sku_id'], attribute_name__in= attributes_list)
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
 
         if  'DC'  in data['order_code'] or 'PRE' in data['order_code']:
             payment_obj = OrderFields.objects.filter(original_order_id=data['original_order_id'], \
@@ -4384,6 +4831,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('Order Number' ,data['order_reference']),
                                                     ('SKU Brand', data['sku__sku_brand']),
                                                     ('SKU Category', data['sku__sku_category']),
+                                                    ('SKU Sub Category', data['sku__sub_category']),
                                                     ('SKU Class', data['sku__sku_class']),
                                                     ('SKU Size', data['sku__sku_size']), ('SKU Description', data['sku__sku_desc']),
                                                     ('SKU Code', data['sku__sku_code']), ('Order Qty', int(data['quantity'])),
@@ -4402,6 +4850,10 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('Invoice Date',invoice_date),("Billing Address",billing_address),("Shipping Address",shipping_address),
                                                     ('Payment Cash', payment_cash), ('Payment Card', payment_card),('Payment PhonePe', payment_PhonePe),
                                                     ('Payment Paytm', payment_Paytm),('Payment GooglePay', payment_GooglePay)))
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            aaData['Manufacturer'] = manufacturer
+            aaData['Searchable'] = searchable
+            aaData['Bundle'] = bundle
         aaData.update(OrderedDict(pos_extra))
         if milkbasket_user :
             aaData.update(OrderedDict(cost_price_dict))
@@ -4435,6 +4887,8 @@ def get_seller_invoices_filter_data(search_params, user, sub_user):
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['open_po__creation_date', 'open_po__supplier__name', 'seller__seller_id', 'seller__name',
            'open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__sku__sku_class',
+           'open_po__sku__sku_category','open_po__sku__sub_category','open_po__sku__sku_brand',
+           'open_po__sku__sku_category','open_po__sku__sub_category','open_po__sku__sku_brand',
            'open_po__sku__style_name', 'open_po__sku__sku_brand', 'open_po__sku__sku_category',
            'id', 'id', 'open_po__order_quantity', 'id', 'open_po__tax', 'id']
 
@@ -4456,6 +4910,20 @@ def get_seller_invoices_filter_data(search_params, user, sub_user):
 
     if 'sku_code' in search_params:
         search_parameters['open_po__sku__sku_code__iexact'] = search_params['sku_code']
+    if 'sku_category' in search_params:
+        search_parameters['open_po__sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['open_po__sku__sub_category'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters['open_po__sku__sku_brand'] = search_params['sku_brand']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['open_po__sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['open_po__sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['open_po__sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
 
     search_parameters['open_po__sku__user'] = user.id
     search_parameters['open_po__sku_id__in'] = sku_master_ids
@@ -4490,10 +4958,20 @@ def get_seller_invoices_filter_data(search_params, user, sub_user):
 
     if stop_index and not custom_search:
         seller_pos = seller_pos[start_index:stop_index]
-
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in seller_pos:
         accepted_quan = 0
         rejected_quan = 0
+        manufacturer,searchable,bundle = '','',''
+        attributes_obj = SKUAttributes.objects.filter(sku_id=data.open_po.sku.id, attribute_name__in= attributes_list)
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
         final_price = '%.2f' %(float(data.open_po.price))
         if data.unit_price:
             final_price = '%.2f' % (float(data.unit_price))
@@ -4507,16 +4985,21 @@ def get_seller_invoices_filter_data(search_params, user, sub_user):
             rejected_quan = qc_reject_sums[qc_po_ids.index(int(data.open_po_id))]
         if int(data.open_po_id) in qc_po_ids:
             accepted_quan = qc_accept_sums[qc_po_ids.index(int(data.open_po_id))]
-        temp_data['aaData'].append(
-            OrderedDict((('Date', get_local_date(user, data.creation_date)), ('Supplier', data.open_po.supplier.name),
-                         ('Seller ID', data.seller.seller_id), ('Seller Name', data.seller.name),
-                         ('SKU Code', data.open_po.sku.sku_code), ('SKU Description', data.open_po.sku.sku_desc),
-                         ('SKU Class', data.open_po.sku.sku_class), ('SKU Style Name', data.open_po.sku.style_name),
-                         ('SKU Brand', data.open_po.sku.sku_brand), ('SKU Category', data.open_po.sku.sku_category),
-                         ('Accepted Qty', accepted_quan), ('Rejected Qty', rejected_quan),
-                         ('Total Qty', data.open_po.order_quantity), ('Amount', '%.2f' % amount),
-                         ('Tax', data.open_po.tax), ('Total Amount', '%.2f' % total_amount),
-                         ('DT_RowClass', 'results'), ('DT_RowAttr', {'data-id': data.id}))))
+        ord_dict = OrderedDict((('Date', get_local_date(user, data.creation_date)), ('Supplier', data.open_po.supplier.name),
+                     ('Seller ID', data.seller.seller_id), ('Seller Name', data.seller.name),
+                     ('SKU Code', data.open_po.sku.sku_code), ('SKU Description', data.open_po.sku.sku_desc),
+                     ('SKU category', data.open_po.sku.sku_category),('Sub category', data.open_po.sku.sub_category),
+                     ('SKU Class', data.open_po.sku.sku_class), ('SKU Style Name', data.open_po.sku.style_name),
+                     ('SKU Brand', data.open_po.sku.sku_brand), ('SKU Category', data.open_po.sku.sku_category),
+                     ('Accepted Qty', accepted_quan), ('Rejected Qty', rejected_quan),
+                     ('Total Qty', data.open_po.order_quantity), ('Amount', '%.2f' % amount),
+                     ('Tax', data.open_po.tax), ('Total Amount', '%.2f' % total_amount),
+                     ('DT_RowClass', 'results'), ('DT_RowAttr', {'data-id': data.id})))
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            ord_dict['Manufacturer'] = manufacturer
+            ord_dict['Searchable'] = searchable
+            ord_dict['Bundle'] = bundle
+        temp_data['aaData'].append(ord_dict)
 
     if stop_index and custom_search:
         if temp_data['aaData']:
@@ -4834,10 +5317,24 @@ def get_stock_ledger_data(search_params, user, sub_user):
             search_params['to_date'] + datetime.timedelta(1), datetime.time())
     if 'sku_code' in search_params:
         status_filter['sku__sku_code__iexact'] = search_params['sku_code']
+    if 'sku_category' in search_params:
+        status_filter['sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        status_filter['sku__sub_category'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        status_filter['sku__sku_brand'] = search_params['sku_brand']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            status_filter['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            status_filter['sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            status_filter['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
     lis = [
-            'creation_date', 'sku__sku_code', 'sku__sku_desc', 'sku__style_name', 'sku__sku_brand', 'sku__sku_category',
+            'creation_date', 'sku__sku_code', 'sku__sku_desc', 'sku__style_name', 'sku__sku_brand', 'sku__sku_category','sku__sub_category',
             'sku__sku_size', 'opening_stock', 'receipt_qty', 'produced_qty', 'dispatch_qty', 'return_qty',
-            'adjustment_qty', 'closing_stock'
+            'adjustment_qty', 'closing_stock','adjustment_qty', 'closing_stock','creation_date'
           ]
     if len(status_filter):
         stock_stats = stock_stats.filter(**status_filter)
@@ -4853,19 +5350,36 @@ def get_stock_ledger_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
     if stop_index:
         stock_stats = stock_stats[start_index:stop_index]
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for obj in stock_stats:
+        manufacturer,searchable,bundle = '','',''
+        attributes_obj = SKUAttributes.objects.filter(sku_id=obj.sku.id, attribute_name__in= attributes_list)
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
         date = get_local_date(user, obj.creation_date, send_date=True).strftime('%d %b %Y')
-        data.append(OrderedDict((('Date', date),
+        ord_dict = OrderedDict((('Date', date),
                                  ('SKU Code', obj.sku.sku_code), ('SKU Description', obj.sku.sku_desc),
                                  ('Style Name', obj.sku.style_name),
                                  ('Brand', obj.sku.sku_brand), ('Category', obj.sku.sku_category),
+                                 ('Sub Category', obj.sku.sub_category),
                                  ('Size', obj.sku.sku_size), ('Opening Stock', obj.opening_stock),
                                  ('Receipt Quantity', obj.receipt_qty + obj.uploaded_qty),
                                  ('Produced Quantity', obj.produced_qty),
                                  ('Dispatch Quantity', obj.dispatch_qty), ('Return Quantity', obj.return_qty),
                                  ('Consumed Quantity', obj.consumed_qty),('RTV Quantity',obj.rtv_quantity),
                                  ('Adjustment Quantity', obj.adjustment_qty), ('Closing Stock', obj.closing_stock)
-                                 )))
+                                 ))
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            ord_dict['Manufacturer'] = manufacturer
+            ord_dict['Searchable'] = searchable
+            ord_dict['Bundle'] = bundle
+        data.append(ord_dict)
     temp_data['aaData'] = data
     return temp_data
 
@@ -6541,6 +7055,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
         firebase_response = {}
 
     lis = ['order_shipment__shipment_number', 'order__original_order_id', 'order__sku__sku_code', 'order__title',
+           'order__sku__sku_category', 'order__sku__sub_category','order__sku__sku_brand',
            'order__customer_name', 'order__quantity', 'shipping_quantity', 'order_shipment__truck_number', 'creation_date',
            'id', 'id', 'order__customerordersummary__payment_status', 'order_packaging__package_reference',
            'order__original_order_id', 'order__original_order_id']
@@ -6557,6 +7072,20 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
         search_parameters['creation_date__lt'] = search_params['to_date']
     if 'sku_code' in search_params:
         search_parameters['order__sku__sku_code'] = search_params['sku_code']
+    if 'sku_category' in search_params:
+        search_parameters['order__sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['order__sku__sub_category'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters['order__sku__sku_brand'] = search_params['sku_brand']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['order__sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['order__sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['order__sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
     if 'customer_id' in search_params:
         search_parameters['order__customer_id'] = search_params['customer_id']
     if 'order_id' in search_params:
@@ -6570,7 +7099,8 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
 
     model_data = ShipmentInfo.objects.filter(**search_parameters)\
                                     .values('order_shipment__shipment_number', 'order__order_id', 'id','order__status',
-                                           'order__original_order_id', 'order__id','order__order_code', 'order__sku__sku_code',
+                                           'order__original_order_id', 'order__id','order__order_code', 'order__sku__sku_code','order__sku_id',
+                                           'order__sku__sku_category','order__sku__sub_category','order__sku__sku_brand',
                                            'order__title', 'order__customer_name', 'order__quantity', 'shipping_quantity',
                                            'order_shipment__truck_number', 'creation_date',
                                            'order_shipment__courier_name',
@@ -6600,7 +7130,19 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
     ord_invoice_map = dict(SellerOrderSummary.objects.filter(order_id__in=ord_det_ids).values_list('order_id', 'invoice_number'))
     ord_serialnum_map = dict(OrderIMEIMapping.objects.filter(order_id__in=ord_det_ids).values_list('order_id', 'po_imei__imei_number'))
     ord_inv_dates_map = dict(OrderIMEIMapping.objects.filter(order_id__in=ord_det_ids).values_list('order_id', 'creation_date'))
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in model_data:
+        sku_id = data['order__sku_id']
+        manufacturer,searchable,bundle = '','',''
+        attributes_obj = SKUAttributes.objects.filter(sku_id=data.sku.id, attribute_name__in= attributes_list)
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
         order_id = data['order__original_order_id']
         result = firebase_response.get(order_id, '')
         if not order_id:
@@ -6700,8 +7242,11 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
 
         manifest_number = int(data['order_shipment__manifest_number'])
 
-        temp_data['aaData'].append(OrderedDict((('Shipment Number', data['order_shipment__shipment_number']),
+        ord_dict = OrderedDict((('Shipment Number', data['order_shipment__shipment_number']),
                                                 ('Order ID', order_id), ('SKU Code', data['order__sku__sku_code']),
+                                                ('SKU Category', data['order__sku__sku_category']),
+                                                ('Sub Category', data['order__sku__sub_category']),
+                                                ('SKU Brand', data['order__sku__sku_brand']),
                                                 ('Title', data['order__title']),
                                                 ('Customer Name', data['order__customer_name']),
                                                 ('Quantity', data['order__quantity']),
@@ -6722,7 +7267,12 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
                                                 ('Invoice Date', invoice_date),
                                                 ('Courier Name', data['order_shipment__courier_name']),
                                                 ('Payment Status', payment_status),
-                                                ('Pack Reference', data['order_packaging__package_reference']))))
+                                                ('Pack Reference', data['order_packaging__package_reference'])))
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            ord_dict['Manufacturer'] = manufacturer
+            ord_dict['Searchable'] = searchable
+            ord_dict['Bundle'] = bundle
+        temp_data['aaData'].append(ord_dict)
     return temp_data
 
 def get_po_report_data(search_params, user, sub_user, serial_view=False):
@@ -6731,7 +7281,10 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
     from common import get_admin
     from rest_api.views.common import  get_order_detail_objs,get_purchase_order_data
     oneassist_condition = get_misc_value('dispatch_qc_check', user.id)
-    lis = ['open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__order_quantity','open_po__sku__sku_code']
+    lis = ['open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__sku__sku_category', 'open_po__sku__sub_category',
+            'open_po__sku__sku_brand','open_po__order_quantity','open_po__sku__sku_code',
+            'open_po__sku__sku_brand','open_po__order_quantity','open_po__sku__sku_code',
+            'open_po__sku__sku_brand','open_po__order_quantity','open_po__sku__sku_code']
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
         if search_params['order_term'] == 'desc':
@@ -6748,6 +7301,20 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
         search_parameters['creation_date__lt'] = search_params['to_date']
     if 'sku_code' in search_params:
         search_parameters['open_po__sku__sku_code'] = search_params['sku_code']
+    if 'sku_category' in search_params:
+        search_parameters['open_po__sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['open_po__sku__sub_category'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters['open_po__sku__sku_brand'] = search_params['sku_brand']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['open_po__sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['open_po__sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['open_po__sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
@@ -6778,7 +7345,18 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
         purchase_orders = purchase_orders[start_index:stop_index]
     po_reference_no = ''
     admin_user = get_admin(user)
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for order in purchase_orders:
+        manufacturer,searchable,bundle = '','',''
+        attributes_obj = SKUAttributes.objects.filter(sku_id=data.sku.id, attribute_name__in= attributes_list)
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
         po_reference_no = '%s%s_%s' % (
         order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
         order_data = get_purchase_order_data(order)
@@ -6795,8 +7373,16 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
                         sr_number = courtesy_sr_number[0].value
         po_quantity = float(order_data['order_quantity']) - float(order.received_quantity)
         warehouse_location = warehouse_users[order.open_po.sku.user]
-        temp_data['aaData'].append(OrderedDict((('SKU Code',order_data['wms_code']),('PO No',po_reference_no),
-                                            ('Quantity',po_quantity ), ('Sku Description', order_data['sku_desc']),('Location',warehouse_location), ('Customer Name', customer_name), ('SR Number', sr_number))))
+        ord_dict = OrderedDict((('SKU Code',order_data['wms_code']),('PO No',po_reference_no),
+                                                ('SKU Category',order_data['sku_category']),('Sub Category',order_data['sub_category']),
+                                                ('SKU Brand',order_data['sku_brand']),
+                                            ('Quantity',po_quantity ), ('Sku Description', order_data['sku_desc']),('Location',warehouse_location), ('Customer Name', customer_name), ('SR Number', sr_number)))
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            ord_dict['Manufacturer'] = manufacturer
+            ord_dict['Searchable'] = searchable
+            ord_dict['Bundle'] = bundle
+        temp_data['aaData'].append(ord_dict)
+
     return temp_data
 
 
@@ -6910,7 +7496,8 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
     from miebach_admin.models import *
     from miebach_admin.views import *
     from common import get_decimal_limit
-    lis = ['sku_code', 'sku_desc', 'sku_category','sku_type','sku_class','sku_code','sku_code','sku_code','sku_code','sku_code','sku_code']
+    lis = ['sku_code', 'sku_desc', 'sku_category','sku_type','sku_class','sku_code','sku_code','sku_code','sku_code','sku_code','sku_code',
+            'sku_code','sku_code','sku_code','sub_category']
 
     try:
         temp_data = copy.deepcopy(AJAX_DATA)
@@ -6923,6 +7510,18 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
             search_parameters['sku_class'] = search_params['sku_class']
         if 'sku_type' in search_params :
             search_parameters['sku_type'] = search_params['sku_type']
+        if 'sub_category' in search_params:
+            search_parameters['sub_category'] = search_params['sub_category']
+        if 'sku_brand' in search_params:
+            search_parameters['sku_brand'] = search_params['sku_brand']
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            if 'manufacturer' in search_params:
+                search_parameters['skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+            if 'searchable' in search_params:
+                search_parameters['skuattributes__attribute_value__iexact'] = search_params['searchable']
+            if 'bundle' in search_params:
+                search_parameters['skuattributes__attribute_value__iexact'] = search_params['bundle']
+
 
         start_index = search_params.get('start', 0)
         stop_index = start_index + search_params.get('length', 0)
@@ -6938,7 +7537,18 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
         if stop_index:
             sku_masters = sku_masters[start_index:stop_index]
+        attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
         for sku in sku_masters:
+            manufacturer,searchable,bundle = '','',''
+            attributes_obj = SKUAttributes.objects.filter(sku_id=sku.id, attribute_name__in= attributes_list)
+            if attributes_obj.exists():
+                for attribute in attributes_obj:
+                    if attribute.attribute_name == 'Manufacturer':
+                        manufacturer = attribute.attribute_value
+                    if attribute.attribute_name == 'Searchable':
+                        searchable = attribute.attribute_value
+                    if attribute.attribute_name == 'Bundle':
+                        bundle = attribute.attribute_value
             wms_code = sku.wms_code
             stock_quantity = StockDetail.objects.filter(sku__wms_code = wms_code,sku__user = user.id).exclude(location__zone__zone = 'DAMAGED_ZONE').aggregate(Sum('quantity'))['quantity__sum']
             purchase_order = PurchaseOrder.objects.exclude(status__in=['confirmed-putaway', 'location-assigned']). \
@@ -6990,9 +7600,21 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
                 avg_seven = total_stock_available / picked_quantity_seven_days
                 avg_seven_po = total_with_po / picked_quantity_seven_days
 
-            temp_data['aaData'].append(OrderedDict((('SKU',wms_code ),('SKU Description',sku.sku_desc),('SKU Category',sku.sku_category),('SKU Type',sku.sku_type),('SKU class',sku.sku_class),
-                                                   ('Current Stock In Hand',total_stock_available),('PO Pending',po_quantity),('Total Stock including PO',total_with_po),('Avg Last 30days',"%.0f" % picked_quantity_thirty_days),
-                                                   ('Avg Last 7 days',"%.0f" %picked_quantity_seven_days),('Stock Cover Days (30-day)',"%.0f"%avg_thirty),('Stock Cover Days including PO stock (30-day)',"%.0f"%avg_thirty_po),('Stock Cover Days (7-day)',"%.0f"%avg_seven),('Stock Cover Days including PO stock (7-day)',"%.0f"%avg_seven_po))))
+            ord_dict = OrderedDict((('SKU',wms_code ),('SKU Description',sku.sku_desc),('SKU Category',sku.sku_category),
+                                                   ('Sub Category',sku.sub_category),('SKU Brand',sku.sku_brand),
+                                                   ('SKU Type',sku.sku_type),('SKU class',sku.sku_class),
+                                                   ('Current Stock In Hand',total_stock_available),('PO Pending',po_quantity),
+                                                   ('Total Stock including PO',total_with_po),('Avg Last 30days',"%.0f" % picked_quantity_thirty_days),
+                                                   ('Avg Last 7 days',"%.0f" %picked_quantity_seven_days),('Stock Cover Days (30-day)',"%.0f"%avg_thirty),
+                                                   ('Stock Cover Days including PO stock (30-day)',"%.0f"%avg_thirty_po),('Stock Cover Days (7-day)',"%.0f"%avg_seven),
+                                                   ('Stock Cover Days including PO stock (7-day)',"%.0f"%avg_seven_po)))
+
+            if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                ord_dict['Manufacturer'] = manufacturer
+                ord_dict['Searchable'] = searchable
+                ord_dict['Bundle'] = bundle
+            temp_data['aaData'].append(ord_dict)
+
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -7236,11 +7858,17 @@ def print_sku_wise_data(search_params, user, sub_user):
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
-    cmp_data = ('sku_code', 'wms_code', 'sku_category', 'sku_type', 'sku_class')
+    cmp_data = ('sku_code', 'wms_code', 'sku_category', 'sku_type', 'sku_class', 'sub_category', 'sku_brand')
     for data in cmp_data:
         if data in search_params:
             search_parameters['%s__%s' % (data, 'icontains')] = search_params[data]
-
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['skuattributes__attribute_value__iexact'] = search_params['bundle']
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     search_parameters['user'] = user.id
@@ -7254,16 +7882,33 @@ def print_sku_wise_data(search_params, user, sub_user):
 
     stock_dict = dict(StockDetail.objects.exclude(receipt_number=0).filter(sku__user=user.id).\
                       values_list('sku_id').distinct().annotate(tsum=Sum('quantity')))
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in sku_master:
         total_quantity = stock_dict.get(data.id, 0)
         # stock_data = StockDetail.objects.exclude(location__zone__zone='DEFAULT').filter(sku_id=data.id)
         # for stock in stock_data:
         #     total_quantity += int(stock.quantity)
-
-        temp_data['aaData'].append(OrderedDict((('SKU Code', data.sku_code), ('WMS Code', data.wms_code),
+        manufacturer,searchable,bundle = '','',''
+        attributes_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name__in= attributes_list)
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
+        ord_dict = OrderedDict((('SKU Code', data.sku_code), ('WMS Code', data.wms_code),
                                                 ('Product Description', data.sku_desc),
                                                 ('SKU Category', data.sku_category),
-                                                ('Total Quantity', total_quantity))))
+                                                ('SKU Sub Category', data.sub_category),
+                                                ('Sku Brand', data.sku_brand),
+                                                ('Total Quantity', total_quantity)))
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            ord_dict['Manufacturer'] = manufacturer
+            ord_dict['Searchable'] = searchable
+            ord_dict['Bundle'] = bundle
+        temp_data['aaData'].append(ord_dict)
     return temp_data
 
 
@@ -7272,7 +7917,8 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['creation_date','st_po__open_st__sku__user','st_po__open_st__sku__user','st_po__open_st__sku__user','sku__sku_code','sku__sku_desc',\
-           'quantity', 'st_po__open_st__price','st_po__open_st__sku__user','st_po__open_st__cgst_tax','st_po__open_st__sgst_tax','st_po__open_st__igst_tax','st_po__open_st__price','status']
+           'quantity', 'st_po__open_st__price','st_po__open_st__sku__user','st_po__open_st__cgst_tax','st_po__open_st__sgst_tax',
+           'st_po__open_st__igst_tax','st_po__open_st__price','status','st_po__open_st__igst_tax','st_po__open_st__price','status']
     status_map = ['Pick List Generated','Pending','Accepted']
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)
@@ -7292,6 +7938,14 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
     if 'sku_code' in search_params:
         if search_params['sku_code']:
             search_parameters['sku__sku_code'] = search_params['sku_code']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
     search_parameters['sku_id__in'] = sku_master_ids
     search_parameters['sku__user'] = user.id
     stock_transfer_data = StockTransfer.objects.filter(**search_parameters).\
@@ -7299,6 +7953,7 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
     temp_data['recordsTotal'] = stock_transfer_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     time = str(datetime.datetime.now())
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in  (stock_transfer_data[start_index:stop_index]):
         date = get_local_date(user, data.creation_date)
         destination = User.objects.get(id = data.st_po.open_st.sku.user)
@@ -7312,11 +7967,26 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
         net_value = quantity * price
         total = (quantity * price) +cgst+sgst+igst
 
+        manufacturer,searchable,bundle = '','',''
+        attributes_obj = SKUAttributes.objects.filter(sku_id=data.sku.id, attribute_name__in= attributes_list)
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
 
-        temp_data['aaData'].append(OrderedDict((('Date',date),('SKU Code', data.sku.sku_code), ('SKU Description',data.sku.sku_desc),('Invoice Number',data.order_id),\
-                                                ('Quantity',quantity ),('Status',status),('Net Value','%.2f' % net_value),\
-                                                ('CGST',cgst),('SGST',sgst),('IGST',igst),('Price',price),('Total Value','%.2f' %total),\
-                                                ('Source Location',user.username),('Destination',destination))))
+        ord_dict = OrderedDict((('Date',date),('SKU Code', data.sku.sku_code), ('SKU Description',data.sku.sku_desc),('Invoice Number',data.order_id),\
+                                                ('Quantity',quantity ),('Status',status),('Net Value',net_value),\
+                                                ('CGST',cgst),('SGST',sgst),('IGST',igst),('Price',price),('Total Value',total),\
+                                                ('Source Location',user.username),('Destination',destination)))
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            ord_dict['Manufacturer'] = manufacturer
+            ord_dict['Searchable'] = searchable
+            ord_dict['Bundle'] = bundle
+        temp_data['aaData'].append(ord_dict)
     return temp_data
 
 def get_orderflow_data(search_params, user, sub_user):
@@ -7450,7 +8120,10 @@ def get_current_stock_report_data(search_params, user, sub_user):
     lis = ['seller__seller_id', 'seller__name', 'stock__sku__sku_code','stock__sku__sku_desc',
            'stock__sku__sku_category', 'stock__location__location',
            'stock__batch_detail__weight', 'stock__batch_detail__mrp', 'total', 'total', 'total',
-           'seller__seller_id','seller__seller_id']
+           'seller__seller_id','seller__seller_id','seller__seller_id','seller__seller_id','seller__seller_id','seller__seller_id',
+           'seller__seller_id','seller__seller_id','seller__seller_id','seller__seller_id','seller__seller_id',
+           'seller__seller_id','seller__seller_id','seller__seller_id',
+           'seller__seller_id','seller__seller_id','seller__seller_id']
     sort_cols = ['Seller ID', 'Seller Name', 'SKU Code', 'SKU Description', 'Location', 'Weight', 'MRP', 'Available Quantity',
                    'Reserved Quantity', 'Total Quantity']
     col_num = search_params.get('order_index', 0)
@@ -7473,9 +8146,19 @@ def get_current_stock_report_data(search_params, user, sub_user):
     if 'sku_category' in search_params:
         if search_params['sku_category']:
             search_parameters['stock__sku__sku_category__icontains'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        if search_params['sub_category']:
+            search_parameters['stock__sku__sub_category__icontains'] = search_params['sub_category']
     if 'sku_class' in search_params:
         if search_params['sku_class']:
             search_parameters['stock__sku__sku_class__icontains'] = search_params['sku_class']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['stock__sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['stock__sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['stock__sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
     search_parameters['stock__sku_id__in'] = sku_master_ids
     search_parameters['stock__quantity__gt'] = 0
     master_data = SellerStock.objects.filter(stock__sku__user=user.id, **search_parameters).\
@@ -7543,6 +8226,8 @@ def get_current_stock_report_data(search_params, user, sub_user):
                                                 ('SKU Code', sku_data['stock__sku__wms_code']),
                                                 ('SKU Description', sku_data['stock__sku__sku_desc']),
                                                 ('Manufacturer',attributes_data.get('Manufacturer','')),
+                                                ('Searchable',attributes_data.get('Searchable','')),
+                                                ('Bundle',attributes_data.get('Bundle','')),
                                                 ('Brand',brand),
                                                 ('Category', sku_data['stock__sku__sku_category']),
                                                 ('Sub Category',sub_category),
@@ -7568,7 +8253,7 @@ def get_inventory_value_report_data(search_params, user, sub_user):
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['seller__seller_id', 'seller__name','stock__sku__sku_code','stock__sku__sku_desc','stock__sku__sku_category',
            'stock__batch_detail__weight', 'stock__batch_detail__mrp','stock__batch_detail__batch_no','stock__batch_detail__ean_number','stock__batch_detail__manufactured_date',
-           'stock__batch_detail__expiry_date','total', 'total','total', 'total', 'total']
+           'stock__batch_detail__expiry_date','total', 'total','total', 'total', 'total', 'total','total', 'total', 'total', 'total','total', 'total', 'total']
     sort_cols = ['Seller ID', 'Seller Name', 'SKU Code', 'SKU Description', 'Location', 'Weight', 'MRP', 'Available Quantity',
                    'Reserved Quantity', 'Total Quantity']
     col_num = search_params.get('order_index', 0)
@@ -7591,14 +8276,25 @@ def get_inventory_value_report_data(search_params, user, sub_user):
     if 'sku_category' in search_params:
         if search_params['sku_category']:
             search_parameters['stock__sku__sku_category__icontains'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        if search_params['sub_category']:
+            search_parameters['stock__sku__sub_category__icontains'] = search_params['sub_category']
     if 'sku_class' in search_params:
         if search_params['sku_class']:
             search_parameters['stock__sku__sku_class__icontains'] = search_params['sku_class']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['stock__sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['stock__sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['stock__sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
     search_parameters['stock__sku_id__in'] = sku_master_ids
     search_parameters['stock__quantity__gt'] = 0
     master_data = SellerStock.objects.filter(stock__sku__user=user.id, **search_parameters).\
                                         exclude(stock__receipt_number=0).\
-                                            values('seller__seller_id', 'seller__name', 'stock__sku__wms_code',
+                                            values('seller__seller_id', 'seller__name', 'stock__sku__wms_code','stock__sku__id',
                                                  'stock__batch_detail__weight', 'stock__batch_detail__batch_no',
                                                  'stock__batch_detail__ean_number',
                                                  'stock__batch_detail__manufactured_date',
@@ -7606,7 +8302,8 @@ def get_inventory_value_report_data(search_params, user, sub_user):
                                                  'stock__batch_detail__mrp',
                                                  'stock__batch_detail__buy_price',
                                                  'stock__sku__sku_desc',
-                                                 'stock__sku__sku_category').distinct().\
+                                                 'stock__sku__sku_category',
+                                                 'stock__sku__sub_category','stock__sku__sku_brand').distinct().\
                                             annotate(total=Sum('quantity')).\
                                             order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
@@ -7614,6 +8311,7 @@ def get_inventory_value_report_data(search_params, user, sub_user):
     if 'stock__quantity__gt' in search_parameters.keys():
         del search_parameters['stock__quantity__gt']
     time = get_local_date(user, datetime.datetime.now())
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for ind, sku_data in enumerate(master_data[start_index:stop_index]):
         quantity = sku_data['total']
         sku_data1 = copy.deepcopy(sku_data)
@@ -7636,6 +8334,17 @@ def get_inventory_value_report_data(search_params, user, sub_user):
         weight = ''
         mrp = 0
         ean_number = ''
+        if sku_data['stock__sku__id']:
+            manufacturer,searchable,bundle = '','',''
+            attributes_obj = SKUAttributes.objects.filter(sku_id=sku_data['stock__sku__id'], attribute_name__in= attributes_list)
+            if attributes_obj.exists():
+                for attribute in attributes_obj:
+                    if attribute.attribute_name == 'Manufacturer':
+                        manufacturer = attribute.attribute_value
+                    if attribute.attribute_name == 'Searchable':
+                        searchable = attribute.attribute_value
+                    if attribute.attribute_name == 'Bundle':
+                        bundle = attribute.attribute_value
         if sku_data['stock__batch_detail__manufactured_date']:
             manufactured_date = str(sku_data['stock__batch_detail__manufactured_date'])
         if sku_data['stock__batch_detail__expiry_date']:
@@ -7651,6 +8360,11 @@ def get_inventory_value_report_data(search_params, user, sub_user):
                                                 ('SKU Code', sku_data['stock__sku__wms_code']),
                                                 ('SKU Description', sku_data['stock__sku__sku_desc']),
                                                 ('Category', sku_data['stock__sku__sku_category']),
+                                                ('Sub Category', sku_data['stock__sku__sub_category']),
+                                                ('Brand', sku_data['stock__sku__sku_brand']),
+                                                ('Manufacturer', manufacturer),
+                                                ('Searchable', searchable),
+                                                ('Bundle', bundle),
                                                 ('Weight', weight), ('MRP', mrp),
                                                 ('Batch Number', sku_data['stock__batch_detail__batch_no']),
                                                 ('Ean Number', ean_number), ('Manufactured Date', manufactured_date),
@@ -7691,29 +8405,51 @@ def get_bulk_to_retail_report_data(search_params, user, sub_user):
         search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + \
                                                                            datetime.timedelta(1),
                                                              datetime.time())
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['source_sku_code__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['source_sku_code__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['source_sku_code__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
     if 'source_sku_code' in search_params:
         if search_params['source_sku_code']:
             search_parameters['source_sku_code__sku_code'] = search_params['source_sku_code']
     if 'source_sku_category' in search_params:
         if search_params['source_sku_category']:
             search_parameters['source_sku_code__sku_category__icontains'] = search_params['source_sku_category']
+    if 'source_sku_sub_category' in search_params:
+        if search_params['source_sku_sub_category']:
+            search_parameters['source_sku_code__sub_category__icontains'] = search_params['source_sku_sub_category']
+    if 'source_sku_brand' in search_params:
+        if search_params['source_sku_brand']:
+            search_parameters['source_sku_code__sku_brand__icontains'] = search_params['source_sku_brand']
     if 'destination_sku_code' in search_params:
         if search_params['destination_sku_code']:
             search_parameters['destination_sku_code__sku_code'] = search_params['destination_sku_code']
     if 'destination_sku_category' in search_params:
         if search_params['destination_sku_category']:
             search_parameters['destination_sku_code__sku_category__icontains'] = search_params['destination_sku_category']
+    if 'destination_sku_sub_category' in search_params:
+        if search_params['destination_sku_sub_category']:
+            search_parameters['destination_sku_code__sub_category__icontains'] = search_params['destination_sku_sub _category']
+    if 'destination_sku_brand' in search_params:
+        if search_params['destination_sku_brand']:
+            search_parameters['destination_sku_code__sku_brand__icontains'] = search_params['destination_sku_brand']
     search_parameters['source_sku_code__id__in'] = sku_master_ids
     search_parameters['seller__isnull'] = False
     search_parameters['source_sku_code__user'] = user.id
     search_parameters['summary_type'] = 'substitute'
     master_data = SubstitutionSummary.objects.filter(**search_parameters).\
-                                            values('seller__seller_id', 'seller__name', 'source_sku_code__sku_code',
+                                            values('seller__seller_id', 'seller__name', 'source_sku_code__sku_code','source_sku_code_id',
                                                    'source_sku_code__sku_desc', 'source_sku_code__sku_category',
+                                                   'source_sku_code__sub_category', 'source_sku_code__sku_brand',
                                                    'source_location', 'source_batch__weight', 'source_batch__mrp',
                                                    'source_quantity', 'destination_sku_code__sku_code',
                                                    'destination_sku_code__sku_desc',
                                                    'destination_sku_code__sku_category',
+                                                   'destination_sku_code__sub_category', 'destination_sku_code__sku_brand',
                                                    'destination_location', 'dest_batch__weight', 'dest_batch__mrp',
                                                    'destination_quantity', 'transact_number').\
                                             annotate(date_only=Cast('creation_date', DateField())).\
@@ -7721,9 +8457,20 @@ def get_bulk_to_retail_report_data(search_params, user, sub_user):
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     time = get_local_date(user, datetime.datetime.now())
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for ind, sku_data in enumerate(master_data[start_index:stop_index]):
         source_weight, dest_weight = '', ''
         source_mrp, dest_mrp = 0, 0
+        manufacturer,searchable,bundle = '','',''
+        attributes_obj = SKUAttributes.objects.filter(sku_id=sku_data['source_sku_code_id'], attribute_name__in= attributes_list)
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
         if sku_data['source_batch__weight']:
             source_weight = sku_data['source_batch__weight']
         if sku_data['source_batch__mrp']:
@@ -7738,13 +8485,20 @@ def get_bulk_to_retail_report_data(search_params, user, sub_user):
                                                 ('Seller Name', sku_data['seller__name']),
                                                 ('Source SKU Code', sku_data['source_sku_code__sku_code']),
                                                 ('Source SKU Description', sku_data['source_sku_code__sku_desc']),
+                                                ('Source Sku Searchable', searchable),
+                                                ('Source Sku Manufacturer', manufacturer),
+                                                ('Source Sku Bundle', bundle),
                                                 ('Source SKU Category', sku_data['source_sku_code__sku_category']),
+                                                ('Source SKU Sub Category', sku_data['source_sku_code__sub_category']),
+                                                ('Source SKU Brand', sku_data['source_sku_code__sku_brand']),
                                                 ('Source Location', sku_data['source_location']),
                                                 ('Source Weight', source_weight), ('Source MRP', source_mrp),
                                                 ('Source Quantity', sku_data['source_quantity']),
                                                 ('Destination SKU Code', sku_data['destination_sku_code__sku_code']),
                                                 ('Destination SKU Description', sku_data['destination_sku_code__sku_desc']),
                                                 ('Destination SKU Category', sku_data['destination_sku_code__sku_category']),
+                                                ('Destination SKU Sub Category', sku_data['destination_sku_code__sub_category']),
+                                                ('Destination SKU Brand', sku_data['destination_sku_code__sku_brand']),
                                                 ('Destination Location', sku_data['destination_location']),
                                                 ('Destination Weight', dest_weight), ('Destination MRP', dest_mrp),
                                                 ('Destination Quantity', sku_data['destination_quantity']),
@@ -7758,7 +8512,8 @@ def get_margin_report_data(search_params, user, sub_user):
     from django.db.models import Count
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
-    lis = ['order__sellerorder__seller__name','order__sku__sku_code','order__sku__sku_code','stock__batch_detail__weight','stock__batch_detail__mrp','vendor_name', 'order__sku__sku_brand', 'order__sku__sku_category', 'order__sku__sub_category', 'quantity',]
+    lis = ['order__sellerorder__seller__name','order__sku__sku_code','order__sku__sku_code','stock__batch_detail__weight',
+            'stock__batch_detail__mrp','vendor_name', 'order__sku__sku_brand', 'order__sku__sku_category', 'order__sku__sub_category', 'quantity','order__sku__sub_category','quantity','quantity']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)
@@ -7779,6 +8534,20 @@ def get_margin_report_data(search_params, user, sub_user):
         search_parameters['order__creation_date__gt'] = search_params['from_date']
     if 'to_date' in search_params:
         search_parameters['order__creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
+    if 'sku_category' in search_params:
+        search_parameters['order__sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['order__sku__sub_category'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters['order__sku__sku_brand'] = search_params['sku_brand']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['order__sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['order__sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['order__sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
     search_parameters['status__in'] = ['picked', 'batch_picked', 'dispatched']
     search_parameters['order__user'] = user.id
     order_data = Picklist.objects.filter(**search_parameters).exclude(order__sellerorder__seller__name =None).values('order__sku__sku_code','order__sku__sku_desc','stock__batch_detail__mrp',\
@@ -7822,7 +8591,7 @@ def get_margin_report_data(search_params, user, sub_user):
         consolidated_margin = 0
         quantity = data['quantity']
         sku_attribute_dict = {}
-        sku_attribute_dict = dict(SKUAttributes.objects.filter(sku__id=data['sku_id'],attribute_name__in=['Manufacturer', 'Sub Category Type','Sheet', 'Vendor']).values_list('attribute_name','attribute_value'))
+        sku_attribute_dict = dict(SKUAttributes.objects.filter(sku__id=data['sku_id'],attribute_name__in=['Manufacturer', 'Sub Category Type','Sheet', 'Vendor','Searchable','Bundle']).values_list('attribute_name','attribute_value'))
         total_cost = 0
         total_sale = 0
         margin_amount = 0
@@ -7838,6 +8607,7 @@ def get_margin_report_data(search_params, user, sub_user):
 
         temp_data['aaData'].append(OrderedDict((
                                                  ('SKU Code', data['wms_code']),('SKU Desc',data['sku_desc']), ('Vendor Name',sku_attribute_dict.get('Vendor','')),('Seller',data['seller']),
+                                                 ('Searchable',sku_attribute_dict.get('Searchable','')),('Bundle',sku_attribute_dict.get('Bundle','')),
                                                  ('Brand',data['brand']), ('Category',data['category']),('Manufacturer',sku_attribute_dict.get('Manufacturer','')),('Sheet',sku_attribute_dict.get('Sheet','')),('Sub Category Type',sku_attribute_dict.get('Sub Category Type','')),
                                                  ('Sub Category', data['sub_category']), ('QTY', quantity),('Weight',data['weight']),('MRP',data['mrp']),('Customer',data['customer']),('Marketplace',data['marketplace']),
                                                  ('Weighted Avg Cost', "%.2f" % weighted_avg_cost_value), ('Weighted Avg Selling Price', "%.2f" % weighted_avg_selling_price_value),('Total Cost',"%.2f" %total_cost),('Total Sale',"%.2f" %total_sale),
@@ -7852,7 +8622,8 @@ def get_basa_report_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['sku__sku_code','sku__sku_desc','batch_detail__weight','batch_detail__mrp','sku__sku_brand', 'sku__sku_category',
-           'sku__sub_category', 'sku__sub_category', 'sku__sku_code', 'quantity', 'sku__sku_code', 'sku__sku_code', 'sku__sku_code']
+           'sku__sub_category', 'sku__sub_category', 'sku__sku_code', 'quantity', 'sku__sku_code', 'sku__sku_code', 'sku__sku_code',
+           'sku__sku_code', 'sku__sku_code', 'sku__sku_code']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)
@@ -7862,6 +8633,7 @@ def get_basa_report_data(search_params, user, sub_user):
     else:
         stop_index = None
     search_parameters = {}
+    search_parameters_sku = {}
     sort_data = lis[col_num]
     zones  = get_all_sellable_zones(user)
     locations = []
@@ -7872,6 +8644,27 @@ def get_basa_report_data(search_params, user, sub_user):
     if 'sku_code' in search_params:
         if search_params['sku_code']:
             search_parameters['sku__sku_code'] = search_params['sku_code']
+            search_parameters_sku['sku_code'] = search_params['sku_code']
+    if 'sku_category' in search_params:
+        search_parameters['sku__sku_category'] = search_params['sku_category']
+        search_parameters_sku['sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['sku__sub_category'] = search_params['sub_category']
+        search_parameters_sku['sub_category'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters['sku__sku_brand'] = search_params['sku_brand']
+        search_parameters_sku['sku_brand'] = search_params['sku_brand']
+    if 'manufacturer' in search_params:
+        search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        search_parameters_sku['skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+    if 'searchable' in search_params:
+        search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        search_parameters_sku['skuattributes__attribute_value__iexact'] = search_params['searchable']
+    if 'bundle' in search_params:
+        search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+        search_parameters_sku['skuattributes__attribute_value__iexact'] = search_params['bundle']
+
+
     search_parameters['sku_id__in'] = sku_master_ids
     search_params['location__location__in'] = locations
     search_parameters['quantity__gt'] = 0
@@ -7894,11 +8687,12 @@ def get_basa_report_data(search_params, user, sub_user):
         grn_data = SellerPOSummary.objects.prefetch_related('purchase_order__open_po__sku').filter(batch_detail__isnull=False, purchase_order__open_po__sku_id__in=stock_sku_ids)
         sku_grn_price = OrderedDict(grn_data.values_list('purchase_order__open_po__sku__sku_code', 'batch_detail__buy_price').order_by('id'))
         sku_grn_quantity = OrderedDict(grn_data.values_list('purchase_order__open_po__sku__sku_code', 'quantity').order_by('id'))
-    skumaster_data = SKUMaster.objects.filter(user=user.id).exclude(id__in=list(stock_data.values_list('sku_id', flat=True))).values('sku_code','sku_desc','sku_category','sku_brand','mrp','id','sub_category')
+    skumaster_data = SKUMaster.objects.filter(user=user.id,**search_parameters_sku).exclude(id__in=list(stock_data.values_list('sku_id', flat=True))).values('sku_code','sku_desc','sku_category','sku_brand','mrp','id','sub_category')
     chaining = list(chain(stock_data, skumaster_data))
     temp_data['recordsTotal'] = len(chaining)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     chaining = chaining[start_index:stop_index]
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in chaining:
         if data.get('sku__sku_code',''):
             sku_code = data['sku__sku_code']
@@ -7935,12 +8729,13 @@ def get_basa_report_data(search_params, user, sub_user):
             average_cost_price = data['average_cp']/quantity
         else:
             average_cost_price = 0
-        sku_attribute_dict = dict(SKUAttributes.objects.filter(sku__id=sku_id,attribute_name__in=['Manufacturer', 'Sub Category Type','Sheet', 'Vendor','Weight']).values_list('attribute_name','attribute_value'))
+        sku_attribute_dict = dict(SKUAttributes.objects.filter(sku__id=sku_id,attribute_name__in=['Manufacturer', 'Sub Category Type','Sheet', 'Vendor','Weight', 'Searchable', 'Bundle']).values_list('attribute_name','attribute_value'))
         sheet = sku_attribute_dict.get('Sheet','')
         sub_category_type = sku_attribute_dict.get('Sub Category Type','')
         if not data.get('sku__sku_code',''):
            weight = sku_attribute_dict.get('Weight','')
         temp_data['aaData'].append(OrderedDict(( ('SKU Code', sku_code),('SKU Desc',sku_desc),
+                                                 ('Manufacturer',sku_attribute_dict.get('Manufacturer','')),('Searchable',sku_attribute_dict.get('Searchable','')),('Bundle',sku_attribute_dict.get('Bundle','')),
                                                  ('Brand',sku_brand), ('Category',sku_category),('Sheet',sheet),('Sub Category Type',sub_category_type),
                                                  ('Sub Category', sub_category), ('Stock( Only BA and SA)', quantity),('Weight',weight),('MRP',mrp),('Avg CP',"%.2f" %average_cost_price),('Latest GRN Qty',grn_quantity),('Latest GRN CP', "%.2f" % grn_price))))
     return temp_data
@@ -7959,7 +8754,7 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
            'stock_transfer_quantity', 'stock_transfer_avg_rate', 'stock_transfer_amount',
            'returns_quantity', 'returns_avg_rate', 'returns_amount',
            'adjustment_quantity', 'adjustment_avg_rate', 'adjustment_amount',
-           'closing_quantity', 'closing_avg_rate', 'closing_amount', 'id', 'id']
+           'closing_quantity', 'closing_avg_rate', 'closing_amount', 'id', 'id', 'id', 'id', 'id', 'id']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
     order_data = lis[col_num]
@@ -7975,10 +8770,27 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
         if search_params['sku_code']:
             search_parameters['sku__sku_code'] = search_params['sku_code']
     search_parameters['sku_id__in'] = sku_master_ids
+    if 'sku_category' in search_params:
+        if search_params['sku_category']:
+            search_parameters['sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        if search_params['sub_category']:
+            search_parameters['sku__sub_category'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        if search_params['sku_brand']:
+            search_parameters['sku__sku_brand'] = search_params['sku_brand']
     if 'from_date' in search_params:
         search_parameters['creation_date__gt'] = search_params['from_date']
     if 'to_date' in search_params:
         search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
     search_parameters['sku__user'] = user.id
     stock_rec_objs = StockReconciliation.objects.filter(**search_parameters).order_by(order_data)
     temp_data['recordsTotal'] = stock_rec_objs.count()
@@ -7992,7 +8804,7 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
         creation_date = get_local_date(user, creation_date, send_date=True).strftime('%d %b %Y')
         sku = stock_rec_obj.sku
         sku_attr_data = dict(sku.skuattributes_set.filter(attribute_name__in=['Manufacturer', 'Sub Category Type',
-                                                                              'Sheet', 'Vendor']).\
+                                                                              'Sheet', 'Vendor', 'Searchable', 'Bundle']).\
                                                 values_list('attribute_name', 'attribute_value'))
         temp_data['aaData'].append(OrderedDict(( ('Created Date', creation_date),
                                                  ('SKU Code', sku.sku_code), ('SKU Desc', sku.sku_desc),
@@ -8002,6 +8814,9 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
                                                  ('Category', sku.sku_category),
                                                  ('Sub Category', sku.sub_category),
                                                  ('Sub Category Type', sku_attr_data.get('Sub Category Type', '')),
+                                                 ('Manufacturer', sku_attr_data.get('Manufacturer', '')),
+                                                 ('Searchable', sku_attr_data.get('Searchable', '')),
+                                                 ('Bundle', sku_attr_data.get('Bundle', '')),
                                                  ('Sheet', sku_attr_data.get('Sheet', '')),
                                                  ('Opening Qty',  stock_rec_obj.opening_quantity),
                                                  ('Opening Avg Rate', "%.2f" % stock_rec_obj.opening_avg_rate),
@@ -8129,6 +8944,7 @@ def get_move_inventory_report_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['sku__sku_code','sku__sku_desc','source_location__location','dest_location__location','quantity',
+            'sku__sku_category','sku__sub_category','sku__sku_brand','sku__sku_category','sku__sub_category','sku__sku_brand',
            'creation_date', 'sku__sku_code', 'batch_detail__weight','batch_detail__mrp', 'seller__name']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
@@ -8150,18 +8966,43 @@ def get_move_inventory_report_data(search_params, user, sub_user):
                                                              datetime.time())
     if 'sku_code' in search_params:
         search_parameters['sku__wms_code'] = search_params['sku_code']
+    if 'sku_category' in search_params:
+        search_parameters['sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['sku__sub_category'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters['sku__sku_brand'] = search_params['sku_brand']
     if 'source_location' in search_params :
         search_parameters['source_location__location'] = search_params['source_location']
     if 'destination_location' in search_params :
         search_parameters['dest_location__location'] = search_params['destination_location']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
 
     search_parameters['sku__id__in'] = sku_master_ids
     master_data = MoveInventory.objects.filter(**search_parameters).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for ind, sku_data in enumerate(master_data[start_index:stop_index]):
         weight = ''
         mrp = 0
+        manufacturer,searchable,bundle = '','',''
+        attributes_obj = SKUAttributes.objects.filter(sku_id=sku_data.sku.id, attribute_name__in= attributes_list)
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
         date = get_local_date(user, sku_data.creation_date)
         if sku_data.batch_detail:
             mrp = sku_data.batch_detail.mrp
@@ -8175,6 +9016,12 @@ def get_move_inventory_report_data(search_params, user, sub_user):
             updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
         temp_data['aaData'].append(OrderedDict((('SKU Code', sku_data.sku.wms_code),
                                                 ('SKU Description', sku_data.sku.sku_desc),
+                                                ('SKU Category', sku_data.sku.sku_category),
+                                                ('Sub Category', sku_data.sku.sub_category),
+                                                ('SKU Brand', sku_data.sku.sku_brand),
+                                                ('Manufacturer', manufacturer),
+                                                ('Searchable', searchable),
+                                                ('Bundle', bundle),
                                                 ('Source Location',sku_data.source_location.location),
                                                 ('Destination Location',sku_data.dest_location.location),
                                                 ('Quantity',sku_data.quantity),('Weight',weight),('MRP',mrp),

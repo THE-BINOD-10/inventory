@@ -3397,20 +3397,32 @@ def move_inventory_upload(request, user=''):
     # else:
     #     cycle_id = cycle_count[0].cycle + 1
     mod_locations = []
+    seller_receipt_dict = {}
+    receipt_number = get_stock_receipt_number(user)
     for data_dict in data_list:
         extra_dict = OrderedDict()
         wms_code = data_dict['wms_code']
         source_loc = data_dict['source']
         dest_loc = data_dict['destination']
         quantity = data_dict['quantity']
+        seller_id = ''
         if data_dict.get('seller_id', ''):
             extra_dict['seller_id'] = data_dict['seller_id']
+            seller_id = data_dict['seller_id']
         if data_dict.get('batch_no', ''):
             extra_dict['batch_no'] = data_dict['batch_no']
         if data_dict.get('mrp', ''):
             extra_dict['mrp'] = data_dict['mrp']
         if data_dict.get('weight', ''):
             extra_dict['weight'] = data_dict['weight']
+        if user.userprofile.user_type == 'marketplace_user':
+            if str(seller_id) in seller_receipt_dict.keys():
+                receipt_number = seller_receipt_dict[str(seller_id)]
+            else:
+                receipt_number = get_stock_receipt_number(user)
+                seller_receipt_dict[str(seller_id)] = receipt_number
+        extra_dict['receipt_type'] = 'move-inventory'
+        extra_dict['receipt_number'] = receipt_number
         move_stock_location(wms_code, source_loc, dest_loc, quantity, user, **extra_dict)
         mod_locations.append(source_loc)
         mod_locations.append(dest_loc)

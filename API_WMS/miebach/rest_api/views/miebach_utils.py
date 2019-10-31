@@ -3045,7 +3045,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                             child_sku_mrp = SKUMaster.objects.filter(user=user.id, sku_code = data.order.sku.sku_code).values('mrp')[0]['mrp']
                     cost_price = 0
                     if data.stock and data.stock.batch_detail:
-                        cost_price = data.stock.batch_detail.buy_price
+                        cost_price = '%.2f' %(data.stock.batch_detail.buy_price)
                         cost_tax_percent = data.stock.batch_detail.tax_percent
                     wms_code_mrp = data.order.sku.mrp
                     ord_dict = OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
@@ -3495,13 +3495,13 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
             data['purchase_order__open_po__cess_tax'] = 0
         if data['cess_tax']:
             data['purchase_order__open_po__cess_tax'] = data['cess_tax']
-        amount = float(data['total_received'] * price)
+        amount = '%.2f'% (float(data['total_received'] * price))
         if data['discount_percent']:
-            amount = amount - (amount * float(data['discount_percent'])/100)
+            amount = '%.2f'%  (amount - (amount * float(data['discount_percent'])/100))
         tot_tax = float(data['purchase_order__open_po__cgst_tax']) + float(data['purchase_order__open_po__sgst_tax']) +\
                   float(data['purchase_order__open_po__igst_tax']) + float(data['purchase_order__open_po__utgst_tax'])\
                     + float(data['purchase_order__open_po__cess_tax'])
-        aft_unit_price = float(price) + (float(price / 100) * tot_tax)
+        aft_unit_price = '%.2f'% (float(price) + (float(price / 100) * tot_tax))
         if data['discount_percent']:
             aft_unit_price = aft_unit_price - (aft_unit_price * float(data['discount_percent'])/100)
         post_amount = aft_unit_price * float(data['total_received'])
@@ -3514,7 +3514,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         # if margin_price < 0:
         #     margin_price = 0
         # margin_price = "%.2f" % (margin_price * float(data['total_received']))
-        final_price = aft_unit_price
+        final_price = '%.2f'% (aft_unit_price)
         invoice_total_amount = float(final_price) * float(data['total_received'])
         #invoice_total_amount = truncate_float(invoice_total_amount, 2)
         hsn_code = ''
@@ -4682,7 +4682,7 @@ def get_order_summary_data(search_params, user, sub_user):
                 if sku_quantity > 0 and qty_price > 0 :
                     cost_price = float(qty_price / sku_quantity)
 
-            cost_price_dict['Cost Price']  = cost_price
+            cost_price_dict['Cost Price']  = '%.2f'% cost_price
 
 
         # ['Open', 'Picklist generated', 'Partial Picklist generated', 'Picked', 'Partially picked']
@@ -4746,7 +4746,7 @@ def get_order_summary_data(search_params, user, sub_user):
         if order_charges_obj.exists():
             total_charge_amount = order_charges_obj.aggregate(Sum('charge_amount'))['charge_amount__sum']
             total_charge_tax = order_charges_obj.aggregate(Sum('charge_tax_value'))['charge_tax_value__sum']
-            invoice_amount = float(invoice_amount)+float(total_charge_amount)+float(total_charge_tax)
+            invoice_amount = '%.2f' %(float(invoice_amount)+float(total_charge_amount)+float(total_charge_tax))
         #payment mode
         payment_obj = OrderFields.objects.filter(user=user.id, name__icontains="payment_",\
                                       original_order_id=data['original_order_id']).values_list('name', 'value')
@@ -4972,9 +4972,9 @@ def get_seller_invoices_filter_data(search_params, user, sub_user):
                     searchable = attribute.attribute_value
                 if attribute.attribute_name == 'Bundle':
                     bundle = attribute.attribute_value
-        final_price = float(data.open_po.price)
+        final_price = '%.2f' %(float(data.open_po.price))
         if data.unit_price:
-            final_price = float(data.unit_price)
+            final_price = '%.2f' % (float(data.unit_price))
         if data.open_po.tax:
             final_price = float('%.2f' % ((final_price * 100) / (100 + float(data.open_po.tax))))
         amount = final_price * float(data.open_po.order_quantity)
@@ -8239,8 +8239,8 @@ def get_current_stock_report_data(search_params, user, sub_user):
                                                 ('Available Quantity', quantity),
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total_quantity),
                                                 ('Tax %',tax),('Avg CP with Tax',avg_cp_w_tax),
-                                                ('Amount with Tax',total_amt),
-                                                ('Cost Price W/O Tax',avg_cp_wo_tax),('Amount W/O tax',avg_buy_price),
+                                                ('Amount with Tax', '%.2f' % total_amt),
+                                                ('Cost Price W/O Tax', '%.2f' % avg_cp_wo_tax),('Amount W/O tax', '%.2f' % avg_buy_price),
                                                 ('Warehouse Name',user.username), ('Report Generation Time', time))))
     return temp_data
 
@@ -8737,7 +8737,7 @@ def get_basa_report_data(search_params, user, sub_user):
         temp_data['aaData'].append(OrderedDict(( ('SKU Code', sku_code),('SKU Desc',sku_desc),
                                                  ('Manufacturer',sku_attribute_dict.get('Manufacturer','')),('Searchable',sku_attribute_dict.get('Searchable','')),('Bundle',sku_attribute_dict.get('Bundle','')),
                                                  ('Brand',sku_brand), ('Category',sku_category),('Sheet',sheet),('Sub Category Type',sub_category_type),
-                                                 ('Sub Category', sub_category), ('Stock( Only BA and SA)', quantity),('Weight',weight),('MRP',mrp),('Avg CP',"%.2f" %average_cost_price),('Latest GRN Qty',grn_quantity),('Latest GRN CP',grn_price))))
+                                                 ('Sub Category', sub_category), ('Stock( Only BA and SA)', quantity),('Weight',weight),('MRP',mrp),('Avg CP',"%.2f" %average_cost_price),('Latest GRN Qty',grn_quantity),('Latest GRN CP', "%.2f" % grn_price))))
     return temp_data
 
 

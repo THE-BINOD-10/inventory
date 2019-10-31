@@ -186,7 +186,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                                 ('Available Quantity', quantity),
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total),
 						 ('Open Order Quantity', open_order_qty),
-                                                ('Unit of Measurement', sku.measurement_type), ('Stock Value', total_stock_value ),
+                                                ('Unit of Measurement', sku.measurement_type), ('Stock Value', '%.2f'% total_stock_value ),
                                                 ('DT_RowId', data[0]) )))
 
 
@@ -977,7 +977,7 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
                                                     ('Location', data.location.location),
                                                     ('Quantity', stock_quantity),
                                                     ('Pallet Code', pallet_code), ('Receipt Type', data.receipt_type),
-                                                    ('Stock Value', taken_unit_price * stock_quantity)
+                                                    ('Stock Value','%.2f'% (taken_unit_price * stock_quantity))
                                                     )))
         else:
             temp_data['aaData'].append(OrderedDict((('Receipt ID', data.receipt_number), ('DT_RowClass', 'results'),
@@ -988,7 +988,7 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
                                                     ('Location', data.location.location),
                                                     ('Quantity', stock_quantity),
                                                     ('Receipt Type', data.receipt_type),
-                                                    ('Stock Value', taken_unit_price * stock_quantity)
+                                                    ('Stock Value','%.2f'% (taken_unit_price * stock_quantity))
                                                     )))
 
 
@@ -3090,9 +3090,9 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
                          ('rack', rack),
                          ('shelf', shelf),
                          ('combo_flag', combo_flag),
-                         ('avg_sales_day', data['avg_sales_day']),
-                         ('avg_sales_day_value', data['avg_sales_day_value']),
-                         ('cumulative_contribution', data['cumulative_contribution']),
+                         ('avg_sales_day', '%.2f' % (data['avg_sales_day'])),
+                         ('avg_sales_day_value', '%.2f' % (data['avg_sales_day_value'])),
+                         ('cumulative_contribution', '%.2f' % (data['cumulative_contribution'])),
                          ('classification', data['classification']), ('mrp', mrp),
                          ('weight', weight),
                          ('replenushment_qty', data['replenushment_qty']),

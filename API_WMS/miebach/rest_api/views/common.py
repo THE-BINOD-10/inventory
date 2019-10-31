@@ -9863,3 +9863,8 @@ def get_stock_starting_date(receipt_number, receipt_type, user_id, stock_date):
             stock_date = get_stock_starting_date(stock_receipt[1], stock_receipt[2], user_id, stock_date)
     return stock_date
 
+def get_decimal_data(cell_data, index_status, count, user):
+    if get_misc_value('float_switch', user.id) == 'false':
+        if not cell_data.is_integer():
+            index_status.setdefault(count, set()).add('Decimal Not Allowed In Qty')
+    return index_status

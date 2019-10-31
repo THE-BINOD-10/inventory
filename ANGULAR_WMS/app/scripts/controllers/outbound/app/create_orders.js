@@ -1542,6 +1542,14 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                   "Wooden box":"Wooden box.jpg"
                };
 
+  vm.agri_demo_imgs = {
+                     'Crop_growth_regulator': 'Crop_growth_regulator.jpg',
+                     'Crop_nutrition': 'Crop_nutrition.jpg',
+                     'Industrial_chemicals': 'Industrial_chemicals.jpg',
+                     'Wood_Finishes': 'Wood_Finishes.jpg',
+                     'Wood_Preservatives': 'Wood_Preservatives.jpg',
+                     'Woodworking_Adhesives': 'Woodworking_Adhesives.jpg'
+  }
   vm.get_category_image = function(category) {
 
     if (Session.parent.userName == 'shailesh_mehta') {
@@ -1556,6 +1564,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       return '/images/categories/'+vm.category_image_map[category];
     } else if(Session.parent.userName == 'isprava_admin' && vm.isprava_imgs[category]) {
       return '/images/categories/'+vm.isprava_imgs[category];
+    } else if(Session.parent.userName == 'agri_demo' && vm.agri_demo_imgs[category]) {
+      return '/images/categories/'+vm.agri_demo_imgs[category];
     } else {
       return '/images/categories/default.png';
     }

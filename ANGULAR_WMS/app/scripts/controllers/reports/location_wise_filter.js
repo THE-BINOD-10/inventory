@@ -28,6 +28,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
     vm.dtColumns = [
         DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
+        DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
+        DTColumnBuilder.newColumn('SKU Sub Category').withTitle('SKU Sub Category'),
+        DTColumnBuilder.newColumn('SKU Brand').withTitle('SKU Brand'),
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
         DTColumnBuilder.newColumn('EAN').withTitle('EAN'),
         DTColumnBuilder.newColumn('Zone').withTitle('Zone'),
@@ -38,6 +41,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     ];
     if (vm.industry_type == "FMCG" && vm.user_type == "marketplace_user") {
     	vm.dtColumns.splice(3, 0, DTColumnBuilder.newColumn('MRP').withTitle('MRP'))
+      vm.dtColumns.splice(4, 0, DTColumnBuilder.newColumn('Manufacturer').withTitle('Manufacturer'))
+      vm.dtColumns.splice(5, 0, DTColumnBuilder.newColumn('Searchable').withTitle('Searchable'))
+      vm.dtColumns.splice(6, 0, DTColumnBuilder.newColumn('Bundle').withTitle('Bundle'))
+
     }
 
   vm.dtInstance = {};
@@ -45,11 +52,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.empty_data = {
                     'sku_code': '',
                     'sku_category': '',
+                    'sub_category': '',
+                    'sku_brand': '',
                     'sku_type': '',
                     'sku_class': '',
                     'location': '',
                     'zone_id': '',
-                    'wms_code': ''
+                    'wms_code': '',
+                    'manufacturer':'',
+                    'searchable':'',
+                    'bundle':'',
                     };
 
   vm.sku_groups = [];
@@ -64,4 +76,3 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     })
 
   }
-

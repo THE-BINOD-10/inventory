@@ -2212,19 +2212,19 @@ def picklist_confirmation(request, user=''):
                         update_order_labels(picklist, val)
                     order_id = picklist.order
                     if picklist.order and picklist.order.sku.wms_code in passed_serial_number.keys():
-                        send_imei_qc_details = dict(zip(passed_serial_number[picklist.order.sku.wms_code], [imei_qc_details[k] for k in passed_serial_number[picklist.order.sku.wms_code]]))
-                        save_status = "PASS"
+                        if val.get('passed_serial_number', ''):
+                            send_imei_qc_details = dict(zip(json.loads(val.get('passed_serial_number', '')), [imei_qc_details[k] for k in json.loads(val.get('passed_serial_number', ''))]))
+                            save_status = "PASS"
                         try:
                             dispatch_qc(user, send_imei_qc_details, order_id, save_status)
-                            val['imei'] = ','.join(passed_serial_number[picklist.order.sku.wms_code])
-                            insert_order_serial(picklist, val)
                         except Exception as e:
                             import traceback
                             picklist_qc_log.debug(traceback.format_exc())
                             picklist_qc_log.info("Error in Dispatch QC - On Pass - %s - %s" % (str(user.username),  str(e)))
                     if picklist.order and picklist.order.sku.wms_code in failed_serial_number.keys():
-                        send_imei_qc_details = dict(zip(failed_serial_number[picklist.order.sku.wms_code], [imei_qc_details[k] for k in failed_serial_number[picklist.order.sku.wms_code]]))
-                        save_status = "FAIL"
+                        if val.get('failed_serial_number', ''):
+                            send_imei_qc_details = dict(zip(json.loads(val.get('failed_serial_number', '')), [imei_qc_details[k] for k in json.loads(val.get('failed_serial_number', ''))]))
+                            save_status = "FAIL"
                         try:
                             dispatch_qc(user, send_imei_qc_details, order_id, save_status)
                         except Exception as e:

@@ -39,6 +39,8 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
                                                          orig_location: vm.model_data.data[i].location,
                                                          picked_quantity: value, scan: "", pallet_code:  vm.model_data.data[i].pallet_code,
                                                          capacity: vm.model_data.data[i].picked_quantity,
+                                                         passed_serial_number: [],
+                                                         failed_serial_number:[],
                                                          labels: [], last_pallet_code:vm.model_data.data[i].pallet_code,
                                                          last_location: vm.model_data.data[i].location});
          }
@@ -175,6 +177,7 @@ function view_orders() {
 
     vm.getrecordSerialnumber = function(rowdata) {
       var record_serial_data = []
+      vm.temp_imei_list = []
       for(var i=0; i < vm.model_data.data.length; i++) {
         if(vm.model_data.data[i].wms_code == rowdata.wms_code) {
           if(!vm.model_data.data[i].hasOwnProperty('sku_imeis_map')) {
@@ -183,12 +186,21 @@ function view_orders() {
           if(vm.model_data.data[i]['sku_imeis_map'].hasOwnProperty(vm.model_data.data[i].wms_code)) {
             angular.copy(vm.model_data.data[i]['sku_imeis_map'][vm.model_data.data[i].wms_code].sort(), record_serial_data);
             record_serial_data = [...new Set(record_serial_data)]
-            vm.record_serial_dict[vm.model_data.data[i].wms_code] = record_serial_data
+            vm.temp_imei_list = vm.remove_duplicate_imei_numbers(vm.model_data.data[i], record_serial_data)
+            if(vm.temp_imei_list.length != 0){
+              record_serial_data = vm.get_array_difference(record_serial_data, vm.temp_imei_list)
+              vm.record_serial_dict[vm.model_data.data[i].wms_code] = record_serial_data
+            } else {
+              vm.record_serial_dict[vm.model_data.data[i].wms_code] = record_serial_data
+            }
           }
-        }
-        if(!vm.record_serial_dict.hasOwnProperty(vm.model_data.data[i].wms_code)) {
-          vm.service.showNoty("No Serial Number Present");
-          return false;
+          if(!vm.record_serial_dict.hasOwnProperty(vm.model_data.data[i].wms_code)) {
+            vm.service.showNoty("No Serial Number Present");
+            return false;
+          }
+          if(vm.model_data.data.length == i+1){
+            vm.temp_imei_list = []
+          }
         }
       }
       return true;
@@ -196,21 +208,47 @@ function view_orders() {
 
     vm.myFunction = function(rowdata, record) {
       var record_serial_data = []
+      vm.temp_imei_list = []
       for(var i=0; i < vm.model_data.data.length; i++) {
         if(vm.model_data.data[i].wms_code == rowdata.wms_code) {
           if(angular.copy(vm.model_data.data[i]['sku_imeis_map']).hasOwnProperty(vm.model_data.data[i].wms_code)) {
             angular.copy(vm.model_data.data[i]['sku_imeis_map'][vm.model_data.data[i].wms_code].sort(), record_serial_data);
             record_serial_data = [...new Set(record_serial_data)]
-            vm.record_serial_dict[vm.model_data.data[i].wms_code] = record_serial_data
-            vm.record_serial_data = $.map(vm.record_serial_data, function(n,i){return n.toUpperCase();});
+            vm.temp_imei_list = vm.remove_duplicate_imei_numbers(vm.model_data.data[i], record_serial_data)
+            if(vm.temp_imei_list.length != 0){
+              record_serial_data = vm.get_array_difference(record_serial_data, vm.temp_imei_list)
+              vm.record_serial_dict[vm.model_data.data[i].wms_code] = record_serial_data
+              vm.record_serial_data = $.map(vm.record_serial_data, function(n,i){return n.toUpperCase();});
+            }else {
+              vm.record_serial_dict[vm.model_data.data[i].wms_code] = record_serial_data
+              vm.record_serial_data = $.map(vm.record_serial_data, function(n,i){return n.toUpperCase();});
+            }
           }
-        }
-        if(!vm.record_serial_dict.hasOwnProperty(vm.model_data.data[i].wms_code)) {
-          vm.service.showNoty("No Serial Number Present");
+          if(!vm.record_serial_dict.hasOwnProperty(vm.model_data.data[i].wms_code)) {
+            vm.service.showNoty("No Serial Number Present");
+            return false;
+          }
+          if(vm.model_data.data.length == i+1){
+            vm.temp_imei_list = []
+          }
         }
       }
     }
-
+  vm.remove_duplicate_imei_numbers = function(rowdata, imei_list){
+    if(rowdata.sub_data[0].passed_serial_number.length != 0){
+      vm.temp_imei_list = (vm.temp_imei_list).concat(rowdata.sub_data[0].passed_serial_number)
+    }
+    if(rowdata.sub_data[0].failed_serial_number.length != 0){
+      vm.temp_imei_list = (vm.temp_imei_list).concat(rowdata.sub_data[0].failed_serial_number)
+    }
+    return vm.temp_imei_list
+  }
+  vm.get_array_difference =function(arr1, arr2){
+    return arr1.concat(arr2).filter(function (val) {
+      if (!(arr1.includes(val) && arr2.includes(val)))
+        return val;
+    })
+  }
   vm.serial_scan = function(event, scan, data, record) {
       if (event.keyCode == 13) {
         scan = scan.toUpperCase();
@@ -331,9 +369,11 @@ function view_orders() {
         if (vm.passed_serial_number.hasOwnProperty(record.wms_code)) {
           if(!vm.passed_serial_number[record.wms_code].includes(record.wms_code)) {
             vm.passed_serial_number[record.wms_code].push(record.scan)
+            record.passed_serial_number.push(record.scan)
           }
         } else {
           vm.passed_serial_number[record.wms_code] = [record.scan]
+          record.passed_serial_number.push(record.scan)
         }
         record.scan = '';
       } else {
@@ -354,9 +394,11 @@ function view_orders() {
         if (vm.failed_serial_number.hasOwnProperty(record.wms_code)) {
           if(!vm.failed_serial_number[record.wms_code].includes(record.wms_code)) {
             vm.failed_serial_number[record.wms_code].push(record.scan)
+            record.failed_serial_number.push(record.scan)
           }
         } else {
           vm.failed_serial_number[record.wms_code] = [record.scan]
+          record.failed_serial_number.push(record.scan)
         }
         record.scan = '';
       }
@@ -955,6 +997,7 @@ function pull_confirmation() {
                     var temp = {zone: vm.model_data.data[i].zone,
                                 location: vm.model_data.data[i].location,
                                 orig_location: vm.model_data.data[i].location,
+                                passed_serial_number: [],failed_serial_number:[],
                                 picked_quantity: value, new: false}
                     if(Session.user_profile.user_type == "marketplace_user") {
                       temp["picked_quantity"] = vm.model_data.data[i].picked_quantity;

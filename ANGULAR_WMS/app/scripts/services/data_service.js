@@ -7,6 +7,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
   var self = this;
   self.industry_type = Session.user_profile.industry_type;
+  self.user_type = Session.user_profile.user_type;
 
   /*** Receive PO  ***/
   self.receive_po = {
@@ -149,23 +150,36 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
     }
 
     //Dispatch Summary Report
-    if (self.industry_type == 'FMCG') {
+    if (self.industry_type == "FMCG" && self.user_type == "marketplace_user") {
+
       self.dispatch_summary_report = {
 
                               alternate_view: false,
                               view: 'normalView',
-                              tb_headers: {'normalView': ['Order ID', 'WMS Code', 'WMS MRP', 'Child SKU', 'Child SKU MRP', 'Child SKU Weight', 'Description', 'Location', 'Quantity', 'Picked Quantity', 'Date', 'Time'],
-                                           'serialView': ['Order ID', 'WMS Code', 'Description', 'Customer Name', 'Serial Number', 'Date', 'Time'],
-                                           'customerView': ['Customer ID', 'Customer Name', 'WMS Code', 'Description', 'Quantity', 'Picked Quantity']}
+                              tb_headers: {'normalView': ['Order ID', 'WMS Code', 'WMS MRP', 'Child SKU', 'Child SKU MRP', 'Child SKU Weight', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand','Manufacturer', 'Searchable', 'Bundle', 'Location', 'Quantity', 'Picked Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
+                                           'serialView': ['Order ID', 'WMS Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand','Manufacturer', 'Searchable', 'Bundle', 'Customer Name', 'Serial Number', 'Date', 'Time'],
+                                           'customerView': ['Customer ID', 'Customer Name', 'WMS Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand','Manufacturer', 'Searchable', 'Bundle', 'Quantity', 'Picked Quantity']}
+                           }
+
+
+    }
+    else if (self.industry_type == 'FMCG') {
+      self.dispatch_summary_report = {
+
+                              alternate_view: false,
+                              view: 'normalView',
+                              tb_headers: {'normalView': ['Order ID', 'WMS Code', 'WMS MRP', 'Child SKU', 'Child SKU MRP', 'Child SKU Weight', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Location', 'Quantity', 'Picked Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
+                                           'serialView': ['Order ID', 'WMS Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Customer Name', 'Serial Number', 'Date', 'Time'],
+                                           'customerView': ['Customer ID', 'Customer Name', 'WMS Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Quantity', 'Picked Quantity']}
                            }
     } else {
       self.dispatch_summary_report = {
 
                               alternate_view: false,
                               view: 'normalView',
-                              tb_headers: {'normalView': ['Order ID', 'WMS Code', 'WMS MRP', 'Child SKU', 'Description', 'Location', 'Quantity', 'Picked Quantity', 'Date', 'Time'],
-                                           'serialView': ['Order ID', 'WMS Code', 'Description', 'Customer Name', 'Serial Number', 'Date', 'Time'],
-                                           'customerView': ['Customer ID', 'Customer Name', 'WMS Code', 'Description', 'Quantity', 'Picked Quantity']}
+                              tb_headers: {'normalView': ['Order ID', 'WMS Code', 'WMS MRP', 'Child SKU', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Location', 'Quantity', 'Picked Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
+                                           'serialView': ['Order ID', 'WMS Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Customer Name', 'Serial Number', 'Date', 'Time'],
+                                           'customerView': ['Customer ID', 'Customer Name', 'WMS Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Quantity', 'Picked Quantity']}
                            }
     }
 

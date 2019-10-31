@@ -58,7 +58,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      79: 'generate_delivery_challan_before_pullConfiramation', 80: 'unique_mrp_putaway',
                      81: 'rtv_prefix_code',82:'pos_remarks', 83:'dispatch_qc_check', 84:'block_expired_batches_picklist', 85:'non_transacted_skus',
                      86:'sku_less_than_threshold', 87:'decimal_limit_price', 88: 'mandate_sku_supplier', 89: 'update_mrp_on_grn', 90: 'allow_rejected_serials',
-                     91: 'weight_integration_name', 92: 'loc_serial_mapping_switch',
+                     91: 'weight_integration_name', 92: 'loc_serial_mapping_switch',  93:'repeat_po',
                      }
 
   vm.check_box_data = [
@@ -74,6 +74,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       model_name: "auto_generate_picklist",
       param_no: 22,
       class_name: "fa fa-envelope-o",
+      display: true
+    },
+    {
+      name: "Repeat PO",
+      model_name: "repeat_po",
+      param_no: 93,
+      class_name: "fa fa-refresh",
       display: true
     },
     {

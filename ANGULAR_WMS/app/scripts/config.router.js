@@ -718,6 +718,10 @@ var app = angular.module('urbanApp')
                   return $ocLazyLoad.load([
                     'scripts/controllers/inbound/raise_po/raise_intransit_orders.js'
                   ])
+                }).then( function() {
+                    return $ocLazyLoad.load([
+                      'scripts/controllers/inbound/raise_po/repeat_purchase_order.js'
+                  ])
                 });
               }]
           },

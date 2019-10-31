@@ -460,8 +460,9 @@ def get_search_params(request, user=''):
     data_mapping = {'start': 'start', 'length': 'length', 'draw': 'draw', 'search[value]': 'search_term',
                     'order[0][dir]': 'order_term',
                     'order[0][column]': 'order_index', 'from_date': 'from_date', 'to_date': 'to_date',
-                    'wms_code': 'wms_code','status':'status',
-                    'supplier': 'supplier', 'sku_code': 'sku_code', 'category': 'sku_category',
+                    'wms_code': 'wms_code','status':'status', 'sku_brand':'sku_brand', 'manufacturer':'manufacturer',
+                    'searchable':'searchable','bundle':'bundle',
+                    'supplier': 'supplier', 'sku_code': 'sku_code', 'category': 'sku_category', 'sub_category': 'sub_category',
                     'sku_category': 'sku_category', 'sku_type': 'sku_type','sister_warehouse':'sister_warehouse',
                     'class': 'sku_class', 'zone_id': 'zone', 'location': 'location', 'open_po': 'open_po',
                     'marketplace': 'marketplace','central_order_id':'central_order_id',
@@ -545,6 +546,7 @@ data_datatable = {  # masters
     'POPaymentTrackerInvBased': 'get_inv_based_po_payment_data', \
     'ReturnToVendor': 'get_po_putaway_data', \
     'CreatedRTV': 'get_saved_rtvs', \
+    'PastPO':'get_past_po',\
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -919,7 +921,7 @@ def configurations(request, user=''):
 
 
 @csrf_exempt
-def get_work_sheet(sheet_name, sheet_headers, f_name=''):
+def get_work_sheet(sheet_name, sheet_headers, f_name='', headers_index=0):
     if '.xlsx' in f_name:
         wb = xlsxwriter.Workbook(f_name)
         ws = wb.add_worksheet(sheet_name)
@@ -929,7 +931,7 @@ def get_work_sheet(sheet_name, sheet_headers, f_name=''):
         ws = wb.add_sheet(sheet_name)
         header_style = easyxf('font: bold on')
     for count, header in enumerate(sheet_headers):
-        ws.write(0, count, header, header_style)
+        ws.write(headers_index, count, header, header_style)
     return wb, ws
 
 
@@ -988,6 +990,8 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
         file_name = "%s.%s" % (user.id, excel_name.split('=')[-1])
     if not file_type:
         file_type = 'xls'
+    if len(temp_data['aaData']) > 65535:
+        file_type = 'csv'
     path = ('static/excel_files/%s.%s') % (file_name, file_type)
     if not os.path.exists('static/excel_files/'):
         os.makedirs('static/excel_files/')
@@ -1718,7 +1722,8 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                 dict_values['batch_detail'] = batch_obj
                 dest_batch = batch_obj
             if batch_obj:
-                batch_stock_filter = {'sku_id': sku_id, 'location_id': dest[0].id, 'batch_detail_id': batch_obj.id}
+                batch_stock_filter = {'sku_id': sku_id, 'location_id': dest[0].id, 'batch_detail_id': batch_obj.id,
+                                      'quantity__gt': 0}
                 if dest_seller_id:
                     batch_stock_filter['sellerstock__seller_id'] = dest_seller_id
                 dest_stock_objs = StockDetail.objects.filter(**batch_stock_filter)
@@ -1745,7 +1750,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
     return dest_batch
 
 def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp='',
-                        weight=''):
+                        weight='', receipt_number='', receipt_type=''):
     # sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
     sku = check_and_return_mapping_id(wms_code, "", user, False)
     if sku:
@@ -1821,10 +1826,11 @@ def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_i
     #         return 'Source Quantity reserved for Picklist'
 
     stock_dict['location_id'] = dest[0].id
+    stock_dict['quantity__gt'] = 0
     dest_stocks = StockDetail.objects.filter(**stock_dict).distinct()
 
     dest_batch = update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
-                       dest_seller_id=seller_id)
+                       dest_seller_id=seller_id, receipt_type=receipt_type, receipt_number=receipt_number)
     move_inventory_dict = {'sku_id': sku_id, 'source_location_id': source[0].id,
                            'dest_location_id': dest[0].id, 'quantity': move_quantity, }
     if seller_id:
@@ -1931,7 +1937,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
 
     if quantity:
         #quantity = float(quantity)
-        stocks = StockDetail.objects.filter(**stock_dict).distinct()
+        stocks = StockDetail.objects.filter(**stock_dict).distinct().order_by('-id')
         if user.userprofile.user_type == 'marketplace_user':
             total_stock_quantity = SellerStock.objects.filter(seller_id=seller_master_id,
                                                               stock__id__in=stocks.values_list('id', flat=True)). \
@@ -1944,7 +1950,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
         for stock in stocks:
             if total_stock_quantity < quantity:
                 stock.quantity += abs(remaining_quantity)
-                stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', remaining_quantity, stock, stock_stats_objs, bulk_insert=True)
+                stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', abs(remaining_quantity), stock, stock_stats_objs, bulk_insert=True)
                 stock.save()
                 change_seller_stock(seller_master_id, stock, user, abs(remaining_quantity), 'inc')
                 adjustment_objs = create_invnetory_adjustment_record(user, dat, abs(remaining_quantity), reason, location, now, pallet_present,
@@ -8224,7 +8230,9 @@ def update_order_batch_details(user, order):
                 group_key = '%s:%s:%s' % (str(batch_detail.mrp), str(batch_detail.manufactured_date),
                                           str(batch_detail.expiry_date))
                 batch_data.setdefault(group_key, {'mrp': batch_detail.mrp, 'manufactured_date': mfg_date,
-                                    'expiry_date': exp_date, 'quantity': 0})
+                                                   'expiry_date': exp_date, 'quantity': 0,
+                                                  'buy_price': batch_detail.buy_price,
+                                                  'tax_percent': batch_detail.tax_percent})
                 batch_data[group_key]['quantity'] += pick.quantity
     return batch_data.values()
 
@@ -9946,3 +9954,29 @@ def get_zonal_admin_id(admin_user, reseller):
         import traceback
         log.info(traceback.format_exc())
         log.info('Users List exception raised')
+
+
+def get_utc_start_date(date_obj):
+    # Getting Time zone aware start time
+
+    ist_unaware = datetime.datetime.strptime(str(date_obj.date()), '%Y-%m-%d')
+    ist_aware = pytz.timezone("Asia/Calcutta").localize(ist_unaware)
+    converted_date = ist_aware.astimezone(pytz.UTC)
+    return converted_date
+
+
+def get_stock_starting_date(receipt_number, receipt_type, user_id, stock_date):
+    if receipt_type == 'purchase order':
+        st_purchase = PurchaseOrder.objects.filter(order_id=receipt_number,
+                                                   stpurchaseorder__open_st__sku__user=user_id)
+        if st_purchase.exists():
+            stock_receipt = st_purchase.\
+                values_list('stpurchaseorder__stocktransfer__storder__picklist__stock__receipt_date',
+                       'stpurchaseorder__stocktransfer__storder__picklist__stock__receipt_number',
+                       'stpurchaseorder__stocktransfer__storder__picklist__stock__receipt_type',
+                       'stpurchaseorder__stocktransfer__storder__picklist__stock__sku__user')[0]
+            user_id = stock_receipt[3]
+            stock_date = stock_receipt[0]
+            stock_date = get_stock_starting_date(stock_receipt[1], stock_receipt[2], user_id, stock_date)
+    return stock_date
+

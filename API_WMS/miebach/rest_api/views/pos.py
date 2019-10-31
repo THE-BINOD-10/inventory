@@ -126,11 +126,12 @@ def search_product_data(request, user=''):
                       if style else []
     else:
         try:
+            ean_skus = list(EANNumbers.objects.filter(sku__user=user.id, ean_number=search_key).values_list('sku_id', flat=True))
             master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
-                                                                          Q(sku_desc__icontains=search_key) |
-                                                                          Q(ean_number=int(search_key)) |
-                                                                          Q(eannumbers__ean_number=int(search_key)),
-                                                                          status = 1, user=user.id)
+                                                                              Q(sku_desc__icontains=search_key) |
+                                                                              Q(ean_number=search_key) |
+                                                                              Q(id__in=ean_skus),
+                                                                              status = 1, user=user.id)
         except:
             master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
                                                                       Q(sku_desc__icontains=search_key),status = 1,user=user.id)
@@ -291,6 +292,7 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
         needed_order_quantity -= stock_count
         picks_all.append(picklist.id)
         quantity = picklist.picked_quantity
+        save_sku_stats(user, stock.sku_id, picklist.id, 'picklist',quantity, stock)
         if picklist.order.order_id in picklists_send_mail.keys():
             if picklist.order.sku.sku_code in picklists_send_mail[picklist.order.order_id].keys():
                 qty = float(picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code])
@@ -304,6 +306,7 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
                 {picklist.order.order_id: {picklist.order.sku.sku_code: float(quantity)}})
         if not stock_diff:
             break
+
     if needed_order_quantity > 0:
         picklist = Picklist.objects.create(picklist_number=picklist_number, \
                                            reserved_quantity=0, \
@@ -543,6 +546,7 @@ def customer_order(request):
                         status=0)
                     order_return.return_id = "MN" + str(order_return.id)
                     order_return.save()
+                    save_sku_stats(user, sku_stocks_.sku_id, order_return.id, 'return',item['quantity'], sku_stocks_)
                     log.info("OrderReturns object created with id: %s" %(str(order_return.id)))
                     return_location = ReturnsLocation.objects.create( \
                         quantity=0, \

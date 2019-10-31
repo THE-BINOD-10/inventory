@@ -1791,7 +1791,6 @@ def get_supplier_data(request, user=''):
                                                    open_po__sku_id__in=sku_master_ids,
                                                    received_quantity__lt=F('open_po__order_quantity')).exclude(
         status='location-assigned')
-
     if purchase_orders:
         returnable_order_check = OrderMapping.objects.filter(mapping_id=purchase_orders[0].id, order__user=user.id)
         if returnable_order_check.exists():

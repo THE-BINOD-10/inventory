@@ -11488,7 +11488,7 @@ def move_to_inv(request, user=''):
         #del sell_ids['pick_number__in']
     else:
         sell_ids = construct_sell_ids(request, user)
-        #del sell_ids['pick_number__in'
+        #del sell_ids['pick_number__in']
     seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
     if is_sample_option == 'true':
         for data in seller_summary:

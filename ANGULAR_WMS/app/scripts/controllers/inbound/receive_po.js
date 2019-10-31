@@ -202,7 +202,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     angular.copy(data.data, vm.model_data);
                     vm.get_grn_extra_fields();
                     vm.send_for_approval_check(event, vm.model_data);
-                    vm.model_data['payment_received'] = aData['payment_received'];
                     vm.title = "Generate GRN";
                     if (vm.industry_type == 'FMCG') {
                       vm.extra_width = {

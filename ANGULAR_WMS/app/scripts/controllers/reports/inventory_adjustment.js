@@ -76,6 +76,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                     'wms_code': '',
                     'location': ''
                     };
+  vm.sku_groups = [0, 123, 23, 1234]
   vm.model_data = {};
   angular.copy(vm.empty_data, vm.model_data);
+
+  vm.service.apiCall('sku_category_list/').then(function(data){
+     if(data.message) {
+       vm.sku_groups = data.data.categories;
+     }
+   })
 }

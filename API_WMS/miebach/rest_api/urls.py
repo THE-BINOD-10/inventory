@@ -645,6 +645,7 @@ urlpatterns += [
     url(r'^save_order_extra_fields/$', save_order_extra_fields),
     url(r'^get_sku_mrp/$', get_sku_mrp),
     url(r'^get_current_weight/$', get_current_weight),
+    url(r'^get_decimal_data/$', get_decimal_data),
 
 
     # Retailone

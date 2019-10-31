@@ -50,12 +50,44 @@
                   </select>
                 </div>
               </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">SKU Sub Category</label>
+                  <input name="sub_category" class="form-control" type="text" ng-model="showCase.model_data.sub_category">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">Sku Brand</label>
+                  <input name="sku_brand" class="form-control" type="text" ng-model="showCase.model_data.sku_brand">
+                </div>
+              </div>
+
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
+                <div class="form-group">
+                  <label class="control-label"> Manufacturer </label>
+                  <input name="manufacturer" class="form-control" type="text" ng-model="showCase.model_data.manufacturer">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
+                <div class="form-group">
+                  <label class="control-label"> Searchable </label>
+                  <input name="searchable" class="form-control" type="text" ng-model="showCase.model_data.searchable">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
+                <div class="form-group">
+                  <label class="control-label"> Bundle </label>
+                  <input name="bundle" class="form-control" type="text" ng-model="showCase.model_data.bundle">
+                </div>
+              </div>
+
             </div>
             <div class="col-md-12">
               <div class="filter-controls">
                 <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.service.reset_data(showCase.empty_data, showCase.model_data);showCase.service.generate_report(showCase.dtInstance, showCase.model_data)"> Reset </button>
                 <button type="button" class="btn btn-success" id="add-shippment-btn" data-toggle="modal" data-target="#myModal" ng-click="showCase.service.generate_report(showCase.dtInstance, showCase.model_data)"> Generate </button>
-              </div> 
+              </div>
             </div>
           </div>
         </form>

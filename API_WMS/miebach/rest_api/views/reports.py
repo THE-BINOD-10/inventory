@@ -573,8 +573,22 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
         search_parameters['order__order_id'] = value
     if 'customer_id' in search_params:
         search_parameters['order__customer_id'] = search_params['customer_id']
+    if 'sku_category' in search_params:
+        search_parameters['sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['sku__sub_category'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters['sku__sku_brand'] = search_params['sku_brand']
     if 'marketplace' in search_params:
         marketplace = search_params['marketplace']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     search_parameters['sku__user'] = user.id
@@ -586,11 +600,22 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
     temp_data['recordsFiltered'] = len(sales_return)
     if stop_index:
         sales_return = sales_return[start_index:stop_index]
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in sales_return:
         order_id = ''
         customer_id = ''
         marketplace = ''
         customer_name = ''
+        manufacturer,searchable,bundle = '','',''
+        attributes_obj = SKUAttributes.objects.filter(sku_id=data.sku.id, attribute_name__in= attributes_list)
+        if attributes_obj.exists():
+            for attribute in attributes_obj:
+                if attribute.attribute_name == 'Manufacturer':
+                    manufacturer = attribute.attribute_value
+                if attribute.attribute_name == 'Searchable':
+                    searchable = attribute.attribute_value
+                if attribute.attribute_name == 'Bundle':
+                    bundle = attribute.attribute_value
         if data.order:
             order_id = str(data.order.order_code) + str(data.order.order_id)
             customer_id = data.order.customer_id
@@ -608,7 +633,11 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
         if is_excel:
             if reasons:
                 for reason in reasons:
-                    temp_data['aaData'].append(OrderedDict((('SKU Code', data.sku.sku_code), ('Order ID', order_id),
+                    temp_data['aaData'].append(OrderedDict((('SKU Code', data.sku.sku_code),
+                                                            ('SKU Category', data.sku.sku_category),
+                                                            ('SKU Sub Category', data.sku.sub_category),
+                                                            ('SKU Brand', data.sku.sku_brand),
+                                                            ('Order ID', order_id),
                                                             ('Customer ID', customer_id),
                                                             ('Return Date', return_date),
                                                             ('Market Place', marketplace),
@@ -616,7 +645,11 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
                                                             ('Status', reason.status)
                                                             )))
             else:
-                temp_data['aaData'].append(OrderedDict((('SKU Code', data.sku.sku_code), ('Order ID', order_id),
+                temp_data['aaData'].append(OrderedDict((('SKU Code', data.sku.sku_code),
+                                                        ('SKU Category', data.sku.sku_category),
+                                                        ('SKU Sub Category', data.sku.sub_category),
+                                                        ('SKU Brand', data.sku.sku_brand),
+                                                        ('Order ID', order_id),
                                                         ('Customer ID', customer_id),
                                                         ('Return Date', return_date),
                                                         ('Market Place', marketplace), ('Quantity', data.quantity),
@@ -630,13 +663,22 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
             else:
                 reasons_data.append({'quantity': data.quantity, 'reason': data.reason, 'status': data.status})
 
-            temp_data['aaData'].append(
-                OrderedDict((('sku_code', data.sku.sku_code), ('order_id', order_id), ('id', data.id),
-                             ('customer_id', customer_id), ('return_date', return_date),
-                             ('status', status_dict[str(data.status)]), ('marketplace', marketplace),
-                             ('quantity', data.quantity), ('reasons_data', reasons_data),
-                             ('customer_name', customer_name),
-                             ('description', data.sku.sku_desc))))
+            temp = OrderedDict((('sku_code', data.sku.sku_code),
+                         ('sku_category', data.sku.sku_category),
+                         ('sub_category', data.sku.sub_category),
+                         ('sku_brand', data.sku.sku_brand),
+                         ('order_id', order_id), ('id', data.id),
+                         ('customer_id', customer_id), ('return_date', return_date),
+                         ('status', status_dict[str(data.status)]), ('marketplace', marketplace),
+                         ('quantity', data.quantity), ('reasons_data', reasons_data),
+                         ('customer_name', customer_name),
+                         ('description', data.sku.sku_desc)))
+            if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                temp['Manufacturer'] = manufacturer
+                temp['Searchable'] = searchable
+                temp['Bundle'] = bundle
+            temp_data['aaData'].append(temp)
+
     return temp_data
 
 
@@ -683,6 +725,23 @@ def get_adjust_filter_data(search_params, user, sub_user):
         search_parameters['cycle__sku__wms_code'] = search_params['wms_code'].upper()
     if 'location' in search_params:
         search_parameters['cycle__location__location'] = search_params['location'].upper()
+    if 'sku_brand' in search_params:
+        if search_params['sku_brand']:
+            search_parameters['cycle__sku__sku_brand__icontains'] = search_params['sku_brand']
+    if 'sku_category' in search_params:
+        if search_params['sku_category']:
+            search_parameters['cycle__sku__sku_category__icontains'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        if search_params['sku_category']:
+            search_parameters['cycle__sku__sub_category__icontains'] = search_params['sub_category']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['cycle__sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['cycle__sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['cycle__sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     order_term = search_params.get('order_term', 'asc')
@@ -700,7 +759,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
                'cycle__sku__sku_brand', 'cycle__sku__sku_category', 'cycle__sku__sub_category',
                'cycle__sku__sku_code', 'cycle__location__location',
                'adjusted_quantity', 'cycle__sku__sku_code', 'cycle__sku__sku_code', 'reason', 'cycle__sku__sku_code',
-               'cycle__sku__sku_code']
+               'cycle__sku__sku_code','cycle__sku__sku_code','cycle__sku__sku_code','cycle__sku__sku_code']
         order_data = lis[order_index]
         if order_term == 'desc':
             order_data = '-%s' % order_data
@@ -739,12 +798,13 @@ def get_adjust_filter_data(search_params, user, sub_user):
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
         if stop_index:
             adjustments = adjustments[start_index:stop_index]
+        attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
         for data in adjustments:
             sku = data['sku']
             attributes_data = dict(sku.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
             mrp = data['mrp']
             weight = data['weight']
-            amount = data['amount']
+            amount = '%.2f' % (data['amount'])
             qty = data['quantity']
             updated_user_name = user.username
             avg_cost = 0
@@ -752,7 +812,17 @@ def get_adjust_filter_data(search_params, user, sub_user):
             if version_obj.exists():
                 updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
             if amount and qty:
-                avg_cost = amount/qty
+                avg_cost = '%.2f' %(amount/qty)
+            manufacturer,searchable,bundle = '','',''
+            attributes_obj = SKUAttributes.objects.filter(sku_id= sku.id, attribute_name__in= attributes_list)
+            if attributes_obj.exists():
+                for attribute in attributes_obj:
+                    if attribute.attribute_name == 'Manufacturer':
+                        manufacturer = attribute.attribute_value
+                    if attribute.attribute_name == 'Searchable':
+                        searchable = attribute.attribute_value
+                    if attribute.attribute_name == 'Bundle':
+                        bundle = attribute.attribute_value
             temp_data['aaData'].append(OrderedDict(( ('SKU Code', sku.sku_code),
                                                      ('Name', sku.sku_desc),
                                                      ('Weight', weight),
@@ -763,6 +833,9 @@ def get_adjust_filter_data(search_params, user, sub_user):
                                                      ('Brand', sku.sku_brand),
                                                      ('Category', sku.sku_category),
                                                      ('Sub Category', sku.sub_category),
+                                                     ('Manufacturer', manufacturer),
+                                                     ('Searchable', searchable),
+                                                     ('Bundle', bundle),
                                                      ('Sub Category type', attributes_data.get('Sub Category type','')),
                                                      ('Location', data['location']),
                                                      ('Quantity', data['quantity']),
@@ -781,6 +854,9 @@ def get_adjust_filter_data(search_params, user, sub_user):
         for data in adjustments:
             quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
             temp_data['aaData'].append(OrderedDict(( ('SKU Code', data.cycle.sku.sku_code),
+                                                     ('Brand', data.cycle.sku.sku_brand),
+                                                     ('Category', data.cycle.sku.sku_category),
+                                                     ('Sub Category', data.cycle.sku.sub_category),
                                                      ('Location', data.cycle.location.location),
                                                      ('Quantity', quantity),
                                                      ('Pallet Code', data.pallet_detail.pallet_code if data.pallet_detail else ''),
@@ -814,6 +890,20 @@ def get_aging_filter_data(search_params, user, sub_user):
         search_parameters['sku__sku_code'] = search_params['sku_code'].upper()
     if 'sku_category' in search_params:
         search_parameters['sku__sku_category'] = search_params['sku_category']
+    if 'sku_brand' in search_params:
+        if search_params['sku_brand']:
+            search_parameters['sku__sku_brand__icontains'] = search_params['sku_brand']
+    if 'sub_category' in search_params:
+        if search_params['sub_category']:
+            search_parameters['sku__sub_category__icontains'] = search_params['sub_category']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     if user.username == 'isprava_admin':
@@ -831,15 +921,15 @@ def get_aging_filter_data(search_params, user, sub_user):
     search_parameters['quantity__gt'] = 0
     search_parameters['sku_id__in'] = sku_master_ids
     filtered = StockDetail.objects.filter(**search_parameters). \
-        values('receipt_date', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'location__location', 'sku__user',
-               'receipt_type', 'receipt_number'). \
-        annotate(total=Sum('quantity'))
+        values('receipt_date', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'location__location', 'sku__user', 'sku__sub_category', 'sku__sku_brand', 'sku_id',
+                                'receipt_type', 'receipt_number').annotate(total=Sum('quantity'))
 
     for stock in filtered:
         stock_date = get_stock_starting_date(stock['receipt_number'], stock['receipt_type'], stock['sku__user'], stock['receipt_date'])
         age_days = (datetime.datetime.now().date() - stock_date.date()).days
         cond = (stock['sku__sku_code'], stock['sku__sku_desc'], stock['sku__sku_category'],
-                age_days, stock['location__location'], stock['sku__user'])
+                (datetime.datetime.now().date() - stock['receipt_date'].date()).days, stock['location__location'], stock['sku__user'],age_days,
+                 stock['sku__sub_category'],stock['sku__sku_brand'],stock['sku_id'])
         all_data.setdefault(cond, 0)
         all_data[cond] += stock['total']
     temp_data['recordsTotal'] = len(all_data)
@@ -848,10 +938,27 @@ def get_aging_filter_data(search_params, user, sub_user):
     all_data = all_data.keys()
     if stop_index:
         all_data = all_data[start_index:stop_index]
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in all_data:
-        temp_data['aaData'].append(
-            OrderedDict((('SKU Code', data[0]), ('SKU Description', data[1]), ('SKU Category', data[2]),
-                         ('Location', data[4]), ('Quantity', temp[data]), ('As on Date(Days)', data[3]), ('Warehouse', warehouse_users.get(data[5])))))
+        if data[8]:
+            manufacturer,searchable,bundle = '','',''
+            attributes_obj = SKUAttributes.objects.filter(sku_id=data[8], attribute_name__in= attributes_list)
+            if attributes_obj.exists():
+                for attribute in attributes_obj:
+                    if attribute.attribute_name == 'Manufacturer':
+                        manufacturer = attribute.attribute_value
+                    if attribute.attribute_name == 'Searchable':
+                        searchable = attribute.attribute_value
+                    if attribute.attribute_name == 'Bundle':
+                        bundle = attribute.attribute_value
+        ord_dict = OrderedDict((('SKU Code', data[0]), ('SKU Description', data[1]), ('SKU Category', data[2]),
+                     ('SKU Sub Category', data[6]),('Sku Brand', data[7]),
+                     ('Location', data[4]), ('Quantity', temp[data]), ('As on Date(Days)', data[3]), ('Warehouse', warehouse_users.get(data[5]))))
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            ord_dict['Manufacturer'] = manufacturer
+            ord_dict['Searchable'] = searchable
+            ord_dict['Bundle'] = bundle
+        temp_data['aaData'].append(ord_dict)
     return temp_data
 
 
@@ -1100,6 +1207,7 @@ def excel_reports(request, user=''):
             func_name = eval(EXCEL_REPORT_MAPPING[temp[1]])
             continue
         if len(temp) > 1 and temp[1]:
+            temp[1] = str(temp[1]).replace('%26', '&')
             if 'date' in dat:
                 if '%2F' in temp[1]:
                     temp[1] = temp[1].replace('%2F', '/')

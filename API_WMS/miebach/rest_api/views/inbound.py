@@ -1073,7 +1073,8 @@ def switches(request, user=''):
                        'update_mrp_on_grn': 'update_mrp_on_grn',
                        'mandate_sku_supplier':'mandate_sku_supplier',
                        'weight_integration_name': 'weight_integration_name',
-                       'repeat_po':'repeat_po'
+                       'loc_serial_mapping_switch':'loc_serial_mapping_switch',
+                        'repeat_po':'repeat_po',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

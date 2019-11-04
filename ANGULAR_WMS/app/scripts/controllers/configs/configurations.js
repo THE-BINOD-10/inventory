@@ -32,7 +32,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'rtv_prefix_code': false, 'dispatch_qc_check':false,'sku_less_than_threshold':false,'decimal_limit_price':2,
                     'non_transacted_skus':false,'all_order_field_options':{}, 'weight_integration_name': '',
                     'update_mrp_on_grn': false,
-                    'allow_rejected_serials':false,
+                    'allow_rejected_serials':false, 'loc_serial_mapping_switch':false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -58,7 +58,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      79: 'generate_delivery_challan_before_pullConfiramation', 80: 'unique_mrp_putaway',
                      81: 'rtv_prefix_code',82:'pos_remarks', 83:'dispatch_qc_check', 84:'block_expired_batches_picklist', 85:'non_transacted_skus',
                      86:'sku_less_than_threshold', 87:'decimal_limit_price', 88: 'mandate_sku_supplier', 89: 'update_mrp_on_grn', 90: 'allow_rejected_serials',
-                     91: 'weight_integration_name', 92:'repeat_po'
+                     91: 'weight_integration_name', 92: 'loc_serial_mapping_switch',  93:'repeat_po',
                      }
 
   vm.check_box_data = [
@@ -79,7 +79,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     {
       name: "Repeat PO",
       model_name: "repeat_po",
-      param_no: 92,
+      param_no: 93,
       class_name: "fa fa-refresh",
       display: true
     },
@@ -94,6 +94,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       name: "First In First Out Required",
       model_name: "fifo_switch",
       param_no: 3,
+      class_name: "glyphicon glyphicon-sort",
+      display: true
+    },
+    {
+      name: "Location Serial Mapping",
+      model_name: "loc_serial_mapping_switch",
+      param_no: 92,
       class_name: "glyphicon glyphicon-sort",
       display: true
     },

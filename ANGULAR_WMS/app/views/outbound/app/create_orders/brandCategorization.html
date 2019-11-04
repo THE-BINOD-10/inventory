@@ -41,15 +41,6 @@
     </div>
   </div>
   <div class="app_body brand_cat" scrolly="showCase.scroll(e)" style="position: relative; padding-top: 35px;">
-  	<!-- <div class="row search-items search-box pd_bottom">
-    	<div class="col-lg-2 col-md-2"></div>
-    	<div class="col-lg-8 col-md-8 col-sm-12 col-xs-12">
-        <div class="input-group">
-          <span class="input-group-addon" style="background: #ed1c24;color: white;"><i style="background: #ed1c24;width: 15px;font-size: 15px;" class="fa fa-search"></i></span>
-          <input type="text" class="form-control" placeholder="Search for Products" ng-model="showCase.style" ng-change="showCase.catlog_data.index='';showCase.get_category(true, true);" ng-debounce>
-        </div>
-    	</div>
-    </div> -->
     <div class="row" ng-if="!showCase.catDisplay" style="text-align: center;">
       <div class="col-md-2 col-sm-3 col-xs-6 class-item" ng-repeat="item in showCase.catlog_data.data" ng-click="$state.go('user.App.Style', {styleId: item.sku_class})" style="position: relative;">
         <div class="item_styles">

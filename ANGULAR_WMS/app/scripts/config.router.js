@@ -2852,6 +2852,10 @@ var app = angular.module('urbanApp')
             url: '/Products',
             templateUrl: 'views/outbound/app/create_orders/catlog.html'
           })
+          .state('user.App.BrandCategorization', {
+            url: '/BrandCategorization',
+            templateUrl: 'views/outbound/app/create_orders/brandCategorization.html'
+          })
           .state('user.App.PendingOrder', {
             url: '/PendingOrder',
             templateUrl: 'views/outbound/app/create_orders/pending_order.html',

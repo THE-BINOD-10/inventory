@@ -14,6 +14,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.user_type = vm.permissions.user_type;
   vm.central_order_mgmt = vm.permissions.central_order_mgmt;
   vm.order_exceed_stock = vm.permissions.order_exceed_stock;
+  vm.view_type_login = vm.permissions.customer_portal_prefered_view
   vm.deliver_address = ['Distributor Address'];
   vm.checked_address = vm.deliver_address[0];
   vm.shipment_addr = 'default';
@@ -295,7 +296,15 @@ vm.update_cartdata_for_approval = function() {
                   closeOnConfirm: true
                   },
                   function(isConfirm){
-                    $state.go("user.App.Brands");
+                    if(vm.view_type_login == 'Category View') {
+                      $state.go('user.App.Categories');  
+                    } else if (vm.view_type_login == 'Brand View') {
+                      $state.go('user.App.Brands');
+                    } else if (vm.view_type_login == 'Product View') {
+                      $state.go('user.App.Products');
+                    } else {
+                      $state.go('user.App.Brands');
+                    }
                   }
                 )
               } else {

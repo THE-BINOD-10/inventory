@@ -249,7 +249,7 @@
       <img ng-src="images/default_loader.gif" style="margin: auto;display: block;width: 80px;">
     </div>
     <div class="row animate-bottom" ng-repeat="brand in showCase.carouselData">
-      <div class="header_background" ng-click="$state.go('user.App.BrandCategorization');showCase.brand_categorization_values(showCase.temp_request['category'], brand[0].sku_brand)"><strong class="padding_header">{{brand[0].sku_brand}}</strong></div>
+      <div class="header_background" ng-click="showCase.view_type_login == 'Category View' && $state.go('user.App.BrandCategorization');showCase.brand_categorization_values(showCase.temp_request['category'], brand[0].sku_brand)"><strong class="padding_header">{{brand[0].sku_brand}}</strong></div>
       <div class="row">
         <div ng-include="'views/outbound/app/create_orders/filters.html'"></div>
         <div class="container-fluid testimonial-group div_controller">

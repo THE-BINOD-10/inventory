@@ -9487,6 +9487,8 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
             generic_orders = GenericOrderDetailMapping.objects.filter(Q(orderdetail__status__icontains= '1'), **filter_dict).order_by(order_data)
         elif search_term == 'closed':
             generic_orders = GenericOrderDetailMapping.objects.filter(Q(orderdetail__status__icontains= '0'), **filter_dict).order_by(order_data)
+        elif search_term == 'cancel':
+            generic_orders = GenericOrderDetailMapping.objects.filter(Q(orderdetail__status__icontains= '3'), **filter_dict).order_by(order_data)
         elif search_term in corporatae_name:
             em_qs = EnquiryMaster.objects.filter(Q(corporate_name__icontains= search_term), **filter_dict).order_by(order_data)
         elif search_term:
@@ -9518,6 +9520,8 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
         data_status = data.filter(status=1)
         if data_status:
             status = 'open'
+        elif data.filter(status=3):
+            status = 'cancel'
         else:
             status = 'closed'
             pick_status = picklist.filter(order_id__in=order_detail_ids,
@@ -15919,7 +15923,7 @@ def sm_cancel_distributor_order(request):
         if not is_emiza_order_failed:
             order_det_ids = gen_qs.values_list('orderdetail_id', flat=True)
             order_cancel_functionality(order_det_ids)
-            gen_qs.delete()
+            # gen_qs.delete()
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

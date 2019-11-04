@@ -3,17 +3,13 @@
   <div class="row style-menu" style="height: 40px;position: absolute;top:0px;width:100%;z-index:100">
     <div class="col-md-4 col-sm-4 col-xs-4">
       <div ng-if="!showCase.disable_brands && showCase.disable_categories" class="menu-left" style="line-height: 40px">
-        <span ng-click="$state.go('user.App.Brands');showCase.showFilter = false;"><i class="fa fa-arrow-left" style="color:#fff;" title="Go to Brand Page"></i></span>
-        <!-- <span ng-click="showCase.change_brand(showCase.brand)" title="Go to Brand Page">Back</span> -->
-        <span ng-click="$state.go('user.App.Brands');showCase.showFilter = false;" title="Go to Brand Page">Back</span>
+        <span ng-click="$state.go('user.App.Brands');showCase.showFilter = false;"><i class="fa fa-arrow-left" style="color:#fff;" title="Go to Brand Page"></i> Back</span>
       </div>
       <div ng-if="showCase.disable_brands && !showCase.disable_categories" class="menu-left" style="line-height: 40px">
-        <span ng-click="showCase.change_brand(showCase.brand, 'brand_value')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
-        <span ng-click="showCase.change_brand(showCase.brand, 'brand_value')" title="Go to Brand Page">Back</span>
+        <span ng-click="showCase.change_brand(showCase.brand, 'brand_value')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i> Back</span>
       </div>
       <div ng-if="!showCase.disable_brands && !showCase.disable_categories" class="menu-left" style="line-height: 40px">
-        <span ng-click="showCase.change_brand(showCase.brand, 'category_value')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
-        <span ng-click="showCase.change_brand(showCase.brand, 'category_value')" title="Go to Brand Page">Back</span>
+        <span ng-click="showCase.change_brand(showCase.brand, 'category_value')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i> Back</span>
       </div>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-4 brand-title">
@@ -43,173 +39,234 @@
     </div>
   </div>
 
-<div class="app_body" scrolly="showCase.scroll(e)" style="position: relative">
-  <div class="row search-items mt15 search-box">
-    <div class="row">
-      <div class="col-md-1 col-sm-1 col-xs-12"></div>
-      <div ng-class="showCase.search_box_cls">
-        <div class="input-group mb10">
-          <span class="input-group-addon" style="background: #ed1c24;color: white;"><i style="background: #ed1c24;width: 15px;font-size: 15px;" class="fa fa-search"></i></span>
-          <input type="text" class="form-control" placeholder="Search for Products" auto-focus focus-on="focusSKU" ng-model="showCase.style" ng-change="showCase.catlog_data.index='';showCase.get_category(true, true);" ng-debounce>
+  <div class="app_body" scrolly="showCase.scroll(e)" style="position: relative" ng-if="!showCase.brand_categorization">
+    <div class="row search-items mt15 search-box">
+      <div class="row">
+        <div class="col-md-1 col-sm-1 col-xs-12"></div>
+        <div ng-class="showCase.search_box_cls">
+          <div class="input-group mb10">
+            <span class="input-group-addon" style="background: #ed1c24;color: white;"><i style="background: #ed1c24;width: 15px;font-size: 15px;" class="fa fa-search"></i></span>
+            <input type="text" class="form-control" placeholder="Search for Products" ng-model="showCase.style" ng-change="showCase.catlog_data.index='';showCase.get_category(true, true);" ng-debounce>
+          </div>
         </div>
-      </div>
-      <div ng-class="showCase.buttons_cls" ng-style="showCase.margin_style" style="text-align: center;">
-        <div class="hidden-xs" style="left: 25px;"></div>
-        <div class="text-center">
-          <button class="btn btn-icon-icon" style="background: white;float:left;">
-            <i class="fa fa-filter" style="font-size: 15px;border-radius: 18px;color:white" title="Show Filters" ng-click="showCase.showFilters()"></i>
-          </button>
-          <button class="btn btn-icon-icon ml10" style="background: white;float:left">
-            <i class="fa fa-download" style="font-size: 15px;border-radius: 18px;color:white" title="Download PDF" ng-click="showCase.downloadPDF()"></i>
-          </button>
-          <button class="btn btn-icon-icon ml10" style="background: white;float:left">
-            <i class="fa fa-plus" style="font-size: 15px;border-radius: 18px;color:white" title="Add Margin" ng-click="showCase.addMargin()"></i>
-          </button>
-          <div class="col-md-5 col-sm-6 col-xs-5" ng-if="showCase.user_type=='reseller'">
-            <span align="right">Buy Price</span>
-            <label class="switch switch-sm square" style="margin-bottom:-2px; margin-top:5px">
-              <div>
-                <input type="checkbox" ng-model="showCase.buy_price" ng-change="showCase.add_height()">
-                <span>
-                  <i class="handle"></i>
-                </span>
-              </div>
-            </label>
+        <div ng-class="showCase.buttons_cls" ng-style="showCase.margin_style" style="text-align: center;">
+          <div class="hidden-xs" style="left: 25px;"></div>
+          <div class="text-center">
+            <button class="btn btn-icon-icon" style="background: white;float:left;">
+              <i class="fa fa-filter" style="font-size: 15px;border-radius: 18px;color:white" title="Show Filters" ng-click="showCase.showFilters()"></i>
+            </button>
+            <button class="btn btn-icon-icon ml10" style="background: white;float:left">
+              <i class="fa fa-download" style="font-size: 15px;border-radius: 18px;color:white" title="Download PDF" ng-click="showCase.downloadPDF()"></i>
+            </button>
+            <button class="btn btn-icon-icon ml10" style="background: white;float:left">
+              <i class="fa fa-plus" style="font-size: 15px;border-radius: 18px;color:white" title="Add Margin" ng-click="showCase.addMargin()"></i>
+            </button>
+            <div class="col-md-5 col-sm-6 col-xs-5" ng-if="showCase.user_type=='reseller'">
+              <span align="right">Buy Price</span>
+              <label class="switch switch-sm square" style="margin-bottom:-2px; margin-top:5px">
+                <div>
+                  <input type="checkbox" ng-model="showCase.buy_price" ng-change="showCase.add_height()">
+                  <span>
+                    <i class="handle"></i>
+                  </span>
+                </div>
+              </label>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-  <div class="item-display row" ng-if="!showCase.catDisplay">
-  <!-- <div class="item-display row"> -->
-    <div ng-include="'views/outbound/app/create_orders/filters.html'"></div>
-    <div class="col-md-2 col-sm-3 col-xs-6 class-item" ng-repeat="item in showCase.catlog_data.data" ng-click="$state.go('user.App.Style', {styleId: item.sku_class})" style="position: relative;">
-      <div>
-        <div class="checkbox pick_item" ng-if="permissions.user_type != 'customer'">
-          <label>
-            <input type="checkbox" name="pick_item_{{$index}}" ng-model="showCase.picked_items_obj[item.sku_class]" ng-change="showCase.picked_item_info(item)" ng-click="$event.stopPropagation()">
-          </label>
-        </div>
-        <img ng-src="{{ showCase.service.check_image_url(item.image_url) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail">
-        <br>
-        <div ng-style="showCase.buyStyle">
-          <img ng-if="item.loading" ng-src="https://m.popkey.co/fe4ba7/DYALX.gif" style="border:0px !important;z-index: 12;position:absolute;top:5px;left:5px;height:97%;opacity:0.6;width:95%;" class="img-thumbnail ng-scope" src="https://m.popkey.co/fe4ba7/DYALX.gif" ng-click="$event.stopPropagation();">
-          <div style="height: 130px" ng-if="permissions.user_type != 'customer'">
-            <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.variants[0].style_name }}</p>
-            <div class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;">
-              <span class="pull-left">Stock: <b>{{ item.style_quantity }}</b></span>
-              <span class="pull-right">Blocked Qty: {{ item.blocked_qty }}</b></span></br>
-              <span style="float: center;">Intransit: <b>{{ item.asn_quantity }}</b></span></br>
-              <span style="float: left;">MRP: <b style="color: #1515f5">{{ item.variants[0].mrp }}
-                <span ng-if="item.variants[0].taxes.length">({{item.variants[0].taxes[0].cgst_tax + item.variants[0].taxes[0].sgst_tax + item.variants[0].taxes[0].igst_tax}}%)</span>
-                <span ng-if="!item.variants[0].taxes.length">(0%)</span></b>
-              </span>
-              <span class="pull-right">MSP: <b>{{ item.variants[0].your_price }}</b></span></br>
-            </div>
-            <div ng-if="item.variants[0].price_ranges.length > 0">
-              <table class="table table-bordered mb0 mt5" style="font-size:10px;">
-                <tbody>
-                  <tr>
-                    <td><b>Qty</b></td>
-                    <td style="padding:2px;" ng-repeat="td in item.variants[0].price_ranges"><center>
-                      <span>{{item.variants[0].price_ranges[$index]['min_unit_range']}}</span><br>
-                      <div style="height: 1px;width: 5px;background: black;margin-bottom: 2px;"></div>
-                      {{item.variants[0].price_ranges[$index]['max_unit_range']}}
-                      </center></td>
-                  </tr>
-                  <tr>
-                    <td style="padding:2px;width: 46px;" ><b>Price</b></td>
-                    <td style="padding:2px;" ng-repeat="td in item.variants[0].price_ranges"><center><b style="color: #ed1c24">{{item.variants[0].price_ranges[$index]['price']}}</b></center></td>
-                  </tr>
-                  <tr ng-if="showCase.buy_price">
-                    <td style="padding:2px;width: 46px;" ><b>Buy&nbsp;Price</b></td>
-                    <td style="padding:2px;" ng-repeat="td in item.variants[0].price_ranges"><center><b style="color: #ed1c24">{{item.variants[0].price_ranges[$index]['buy_price']}}</b></center></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="tooltip" style="border:none;font-size: 11px;float: left;z-index: 1;font-weight: 600;color: #090001;margin-top: 2px;text-decoration: underline;" ng-click="$event.stopPropagation();">
-            <span style="margin-top: 8px"><a href="">Modify Margin</a></span>
-            <div class="tooltiptext" style="width: 175px;background-color: black;text-align: center;
-              border-radius: 6px;padding: 5px 0;padding: 3px;position: absolute;z-index: 1;top: -340%;
-              right: -130%;">
-              <table>
-                <tbody>
-                  <tr>
-                    <th style="font-size: 11px;">{{(showCase.marginData.is_margin_percentage)?'Modify Margin Percentage': 'Modify Margin Value';}}</th>
-                    <th></th>
-                  </tr>
-                  <tr>
-                    <td>
-                      <input class="form-control ng-pristine ng-invalid-required ng-invalid" decimal-number="" ng-model="item.variants[0].margin" ng-required="true" required="required" style="padding: 3px;height: 24px;margin-top: 3px;border-radius: 0px;">
-                    </td>
-                    <td>
-                      <button class="btn btn-icon-icon" style="background: #ee4734;padding: 0px;width: 25px;height: 25px;border-width: 1px;position: relative;overflow: hidden;padding-top: 0;padding-bottom: 0px;padding-left: 0px;border-width: 0;margin-top: 3px;color: black;transition: none;" ng-disabled="item.loading">
-                        <i ng-if="!item.loading" class="fa fa-check" style="font-size: 13px;border-radius: 0px;color:white;line-height: 25px;" title="Show Filters" ng-click="showCase.modifyMarginEachSKU(item.variants[0], $index)"></i>
-                        <i ng-if="item.loading" class="glyphicon glyphicon-refresh glyphicon-refresh-animate" ng-class="(loadingData)?'glyphicon-refresh-animate': '';" style="margin-left: -4px;left: 4px;margin-top: -4px;top: -2px;"></i>
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-                </table>
+    <div class="item-display row" ng-if="!showCase.catDisplay">
+      <div ng-include="'views/outbound/app/create_orders/filters.html'"></div>
+      <div class="col-md-2 col-sm-3 col-xs-6 class-item" ng-repeat="item in showCase.catlog_data.data" ng-click="$state.go('user.App.Style', {styleId: item.sku_class})" style="position: relative;">
+        <div>
+          <div class="checkbox pick_item" ng-if="permissions.user_type != 'customer'">
+            <label>
+              <input type="checkbox" name="pick_item_{{$index}}" ng-model="showCase.picked_items_obj[item.sku_class]" ng-change="showCase.picked_item_info(item)" ng-click="$event.stopPropagation()">
+            </label>
+          </div>
+          <img ng-src="{{ showCase.service.check_image_url(item.image_url) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail">
+          <br>
+          <div ng-style="showCase.buyStyle">
+            <img ng-if="item.loading" ng-src="https://m.popkey.co/fe4ba7/DYALX.gif" style="border:0px !important;z-index: 12;position:absolute;top:5px;left:5px;height:97%;opacity:0.6;width:95%;" class="img-thumbnail ng-scope" src="https://m.popkey.co/fe4ba7/DYALX.gif" ng-click="$event.stopPropagation();">
+            <div style="height: 130px" ng-if="permissions.user_type != 'customer'">
+              <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.variants[0].style_name }}</p>
+              <div class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;">
+                <span class="pull-left">Stock: <b>{{ item.style_quantity }}</b></span>
+                <span class="pull-right">Blocked Qty: {{ item.blocked_qty }}</b></span></br>
+                <span style="float: center;">Intransit: <b>{{ item.asn_quantity }}</b></span></br>
+                <span style="float: left;">MRP: <b style="color: #1515f5">{{ item.variants[0].mrp }}
+                  <span ng-if="item.variants[0].taxes.length">({{item.variants[0].taxes[0].cgst_tax + item.variants[0].taxes[0].sgst_tax + item.variants[0].taxes[0].igst_tax}}%)</span>
+                  <span ng-if="!item.variants[0].taxes.length">(0%)</span></b>
+                </span>
+                <span class="pull-right">MSP: <b>{{ item.variants[0].your_price }}</b></span></br>
               </div>
-            </div>
-            <div class="tooltip pull-right" style="border:none;font-size: 11px;float: left;z-index: 1;font-weight: 600;color: #090001;margin-top: 2px;text-decoration: underline;" ng-click="$event.stopPropagation();">
-              <span style="margin-top: 8px"><a href="">Quantity</a></span>
-              <div class="tooltiptext" style="width: 100px;background-color: black;text-align: center;
-                border-radius: 6px;padding: 5px 0;padding: 3px;position: absolute;z-index: 1;top: -50px;
-                right: 0px">
-                <table>
+              <div ng-if="item.variants[0].price_ranges.length > 0">
+                <table class="table table-bordered mb0 mt5" style="font-size:10px;">
                   <tbody>
                     <tr>
-                     <th style="font-size: 11px;">Quantity</th>
+                      <td><b>Qty</b></td>
+                      <td style="padding:2px;" ng-repeat="td in item.variants[0].price_ranges"><center>
+                        <span>{{item.variants[0].price_ranges[$index]['min_unit_range']}}</span><br>
+                        <div style="height: 1px;width: 5px;background: black;margin-bottom: 2px;"></div>
+                        {{item.variants[0].price_ranges[$index]['max_unit_range']}}
+                        </center></td>
                     </tr>
                     <tr>
-                      <td>
-                        <input class="form-control" decimal-number="" ng-model="showCase.required_quantity[item.variants[0].style_name]" style="padding: 3px;height: 24px;margin-top: 3px;border-radius: 0px;">
-                      </td>
+                      <td style="padding:2px;width: 46px;" ><b>Price</b></td>
+                      <td style="padding:2px;" ng-repeat="td in item.variants[0].price_ranges"><center><b style="color: #ed1c24">{{item.variants[0].price_ranges[$index]['price']}}</b></center></td>
+                    </tr>
+                    <tr ng-if="showCase.buy_price">
+                      <td style="padding:2px;width: 46px;" ><b>Buy&nbsp;Price</b></td>
+                      <td style="padding:2px;" ng-repeat="td in item.variants[0].price_ranges"><center><b style="color: #ed1c24">{{item.variants[0].price_ranges[$index]['buy_price']}}</b></center></td>
                     </tr>
                   </tbody>
                 </table>
               </div>
+
+              <div class="tooltip" style="border:none;font-size: 11px;float: left;z-index: 1;font-weight: 600;color: #090001;margin-top: 2px;text-decoration: underline;" ng-click="$event.stopPropagation();">
+              <span style="margin-top: 8px"><a href="">Modify Margin</a></span>
+              <div class="tooltiptext" style="width: 175px;background-color: black;text-align: center;
+                border-radius: 6px;padding: 5px 0;padding: 3px;position: absolute;z-index: 1;top: -340%;
+                right: -130%;">
+                <table>
+                  <tbody>
+                    <tr>
+                      <th style="font-size: 11px;">{{(showCase.marginData.is_margin_percentage)?'Modify Margin Percentage': 'Modify Margin Value';}}</th>
+                      <th></th>
+                    </tr>
+                    <tr>
+                      <td>
+                        <input class="form-control ng-pristine ng-invalid-required ng-invalid" decimal-number="" ng-model="item.variants[0].margin" ng-required="true" required="required" style="padding: 3px;height: 24px;margin-top: 3px;border-radius: 0px;">
+                      </td>
+                      <td>
+                        <button class="btn btn-icon-icon" style="background: #ee4734;padding: 0px;width: 25px;height: 25px;border-width: 1px;position: relative;overflow: hidden;padding-top: 0;padding-bottom: 0px;padding-left: 0px;border-width: 0;margin-top: 3px;color: black;transition: none;" ng-disabled="item.loading">
+                          <i ng-if="!item.loading" class="fa fa-check" style="font-size: 13px;border-radius: 0px;color:white;line-height: 25px;" title="Show Filters" ng-click="showCase.modifyMarginEachSKU(item.variants[0], $index)"></i>
+                          <i ng-if="item.loading" class="glyphicon glyphicon-refresh glyphicon-refresh-animate" ng-class="(loadingData)?'glyphicon-refresh-animate': '';" style="margin-left: -4px;left: 4px;margin-top: -4px;top: -2px;"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="tooltip pull-right" style="border:none;font-size: 11px;float: left;z-index: 1;font-weight: 600;color: #090001;margin-top: 2px;text-decoration: underline;" ng-click="$event.stopPropagation();">
+                <span style="margin-top: 8px"><a href="">Quantity</a></span>
+                <div class="tooltiptext" style="width: 100px;background-color: black;text-align: center;
+                  border-radius: 6px;padding: 5px 0;padding: 3px;position: absolute;z-index: 1;top: -50px;
+                  right: 0px">
+                  <table>
+                    <tbody>
+                      <tr>
+                       <th style="font-size: 11px;">Quantity</th>
+                      </tr>
+                      <tr>
+                        <td>
+                          <input class="form-control" decimal-number="" ng-model="showCase.required_quantity[item.variants[0].style_name]" style="padding: 3px;height: 24px;margin-top: 3px;border-radius: 0px;">
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div style="height: 110px" ng-if="permissions.user_type == 'customer'">
+              <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.sku_class }}</p>
+              <span class="style_name" style="font-size: 14px" ng-if="item.variants[0].pricing_price">{{ showCase.service.price_format(item.variants[0].pricing_price) }}</span>
+              <span class="style_name" style="font-size: 14px" ng-if="!(item.variants[0].pricing_price) && item.variants[0].price && !(showCase.central_order_mgmt)">{{ showCase.service.price_format(item.variants[0].price)  }}</span>
+              <p class="style_name" style="font-size: 14px" style="font-size: 12px;" title="{{ item.variants[0].style_name }}">{{ item.variants[0].style_name }}</p>
+              <p class="style_name" style="font-size: 14px" ng-if="showCase.central_order_mgmt" style="font-size: 12px;"> {{ item.variants[0].sku_desc }}</p>
+              <p class="style_name" style="font-size: 12px" ng-if="showCase.central_order_mgmt && (item.variants[0].height || item.variants[0].length || item.variants[0].breadth)" style="font-size: 12px;">
+                Ext Dim(in): {{ item.variants[0].height }} X {{ item.variants[0].length }} X {{ item.variants[0].breadth }}</p>
+              <p class="style_name" style="font-size: 12px" ng-if="showCase.central_order_mgmt && (item.variants[0]['Internal Height'] || item.variants[0]['Internal Length'] || item.variants[0]['Internal Breadth'])" style="font-size: 12px;">
+                Int Dim(in): {{ item.variants[0]['Internal Height']}} X {{ item.variants[0]['Internal Length']}} X {{ item.variants[0]['Internal Breadth']}}</p>
+              <p class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;">Stock: {{ item.style_quantity }}</p>
+              <p class="style_name" style="font-size: 14px" ng-if="showCase.central_order_mgmt" style="font-size: 12px;">
+                  <span ng-if="item.variants[0]['Vendor Code']"> Vendor code: {{item.variants[0]['Vendor Code']}}</span>
+              </p>
+              <div ng-if="!(permissions.display_styles_price) && !(showCase.central_order_mgmt)">
+                <span style="font-size: 14px">&#8377; {{ item.variants[0].mrp }}</span><br/>
+              </div>
+              <div ng-if="permissions.display_styles_price && !(showCase.central_order_mgmt)">
+                <span style="font-size: 14px">MRP: &#8377; {{ item.variants[0].mrp }}</span><br/>
+                <span style="font-size: 14px">Price: &#8377; {{ item.variants[0].price }}</span>
+              </div>
             </div>
           </div>
-          <div style="height: 110px" ng-if="permissions.user_type == 'customer'">
-            <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.sku_class }}</p>
-            <span class="style_name" style="font-size: 14px" ng-if="item.variants[0].pricing_price">{{ showCase.service.price_format(item.variants[0].pricing_price) }}</span>
-            <span class="style_name" style="font-size: 14px" ng-if="!(item.variants[0].pricing_price) && item.variants[0].price && !(showCase.central_order_mgmt)">{{ showCase.service.price_format(item.variants[0].price)  }}</span>
-            <p class="style_name" style="font-size: 14px" style="font-size: 12px;" title="{{ item.variants[0].style_name }}">{{ item.variants[0].style_name }}</p>
-            <p class="style_name" style="font-size: 14px" ng-if="showCase.central_order_mgmt" style="font-size: 12px;"> {{ item.variants[0].sku_desc }}</p>
-            <p class="style_name" style="font-size: 12px" ng-if="showCase.central_order_mgmt && (item.variants[0].height || item.variants[0].length || item.variants[0].breadth)" style="font-size: 12px;">
-              Ext Dim(in): {{ item.variants[0].height }} X {{ item.variants[0].length }} X {{ item.variants[0].breadth }}</p>
-            <p class="style_name" style="font-size: 12px" ng-if="showCase.central_order_mgmt && (item.variants[0]['Internal Height'] || item.variants[0]['Internal Length'] || item.variants[0]['Internal Breadth'])" style="font-size: 12px;">
-              Int Dim(in): {{ item.variants[0]['Internal Height']}} X {{ item.variants[0]['Internal Length']}} X {{ item.variants[0]['Internal Breadth']}}</p>
-            <p class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;">Stock: {{ item.style_quantity }}</p>
-            <p class="style_name" style="font-size: 14px" ng-if="showCase.central_order_mgmt" style="font-size: 12px;">
-                <span ng-if="item.variants[0]['Vendor Code']"> Vendor code: {{item.variants[0]['Vendor Code']}}</span>
-            </p>
-            <div ng-if="!(permissions.display_styles_price) && !(showCase.central_order_mgmt)">
-              <span style="font-size: 14px">&#8377; {{ item.variants[0].mrp }}</span><br/>
-            </div>
-            <div ng-if="permissions.display_styles_price && !(showCase.central_order_mgmt)">
-              <span style="font-size: 14px">MRP: &#8377; {{ item.variants[0].mrp }}</span><br/>
-              <span style="font-size: 14px">Price: &#8377; {{ item.variants[0].price }}</span>
+        </div>
+      </div>
+      <input type="hidden" name="index" value="{{showCase.catlog_data.index}}">
+
+      <div class="row col-md-12 col-sm-12 col-xs-12" ng-if="showCase.data_loading">
+        <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
+      </div>
+
+      <div class="row col-md-12 col-sm-12 col-xs-12" ng-if="showCase.show_no_data" style="color:white">
+          <h5>------ END OF DATA ------</h5>
+      </div>
+    </div>
+
+   </div>
+  </div>
+  <div ng-if="showCase.brand_categorization">
+    <div class="row search-items mt15 search-box pd_bottom">
+      <div class="row">
+        <div class="col-md-1 col-sm-1 col-xs-12"></div>
+        <div ng-class="showCase.search_box_cls">
+          <div class="input-group mb10">
+            <span class="input-group-addon" style="background: #ed1c24;color: white;"><i style="background: #ed1c24;width: 15px;font-size: 15px;" class="fa fa-search"></i></span>
+            <input type="text" class="form-control" placeholder="Search for Products" ng-model="showCase.style" ng-change="showCase.catlog_data.index='';showCase.get_category(true, true);" ng-debounce>
+          </div>
+        </div>
+        <div ng-class="showCase.buttons_cls" ng-style="showCase.margin_style" style="text-align: center;">
+          <div class="hidden-xs" style="left: 25px;"></div>
+          <div class="text-center">
+            <button class="btn btn-icon-icon" style="background: white;float:left;">
+              <i class="fa fa-filter" style="font-size: 15px;border-radius: 18px;color:white" title="Show Filters" ng-click="showCase.showFilters()"></i>
+            </button>
+            <button class="btn btn-icon-icon ml10" style="background: white;float:left">
+              <i class="fa fa-download" style="font-size: 15px;border-radius: 18px;color:white" title="Download PDF" ng-click="showCase.downloadPDF()"></i>
+            </button>
+            <button class="btn btn-icon-icon ml10" style="background: white;float:left">
+              <i class="fa fa-plus" style="font-size: 15px;border-radius: 18px;color:white" title="Add Margin" ng-click="showCase.addMargin()"></i>
+            </button>
+            <div class="col-md-5 col-sm-6 col-xs-5" ng-if="showCase.user_type=='reseller'">
+              <span align="right">Buy Price</span>
+              <label class="switch switch-sm square" style="margin-bottom:-2px; margin-top:5px">
+                <div>
+                  <input type="checkbox" ng-model="showCase.buy_price" ng-change="showCase.add_height()">
+                  <span>
+                    <i class="handle"></i>
+                  </span>
+                </div>
+              </label>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <input type="hidden" name="index" value="{{showCase.catlog_data.index}}">
-
-    <div class="row col-md-12 col-sm-12 col-xs-12" ng-if="showCase.data_loading">
-      <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
+    <div class="row col-md-12 col-sm-12 col-xs-12" ng-if="showCase.brand_categorization && showCase.circular_loader">
+      <img ng-src="images/default_loader.gif" style="margin: auto;display: block;width: 80px;">
     </div>
-
-    <div class="row col-md-12 col-sm-12 col-xs-12" ng-if="showCase.show_no_data" style="color:white">
-        <h5>------ END OF DATA ------</h5>
+    <div class="row animate-bottom" ng-repeat="brand in showCase.carouselData">
+      <div class="header_background" ng-click="showCase.view_type_login == 'Category View' && $state.go('user.App.BrandCategorization');showCase.brand_categorization_values(showCase.temp_request['category'], brand[0].sku_brand)"><strong class="padding_header">{{brand[0].sku_brand}}</strong></div>
+      <div class="row">
+        <div ng-include="'views/outbound/app/create_orders/filters.html'"></div>
+        <div class="container-fluid testimonial-group div_controller">
+          <div class="row scrolley">
+            <div class="data class-item di_item div_width" ng-repeat="item in brand" ng-click="$state.go('user.App.Style',{styleId: item.sku_class})">
+              <img class="img_height" ng-src="{{ showCase.service.check_image_url(item.image_url) }}" onerror="this.onerror=null; this.src='https://i.ibb.co/0MM34nf/error-img.png'"style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail">
+              <p class="style_name text-center" style="font-size: 12px; padding:2px; font-weight: 600; background: #0a5973a3;color: #fff;">{{ item.sku_class }} / {{ showCase.service.price_format(item.variants[0].price)  }}</p>
+              <p class="style_name text-center" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #cccccc2e">STOCK - {{ item.style_quantity }}</p>
+              <p class="style_name text-center" ng-if="!(permissions.display_styles_price) && !(showCase.central_order_mgmt)" style="font-size: 14px"><strong>&#8377; {{ item.variants[0].mrp }}</strong></p>
+            </div>
+            <div class="data class-item" ng-model="showCase.showmore_button[brand[0].sku_brand]" ng-click="showCase.get_brand_category_data(showCase.temp_request, brand[0].sku_brand, showCase.index[brand[0].sku_brand])" style="padding: 3px;background: white;margin-bottom: 150px;" ng-if="showCase.showmore_button[brand[0].sku_brand]">
+              <button ng-if="showCase.show_more_loading && showCase.current_brand == brand[0].sku_brand" type="button" class="btn btn-xs background_c">Loading ..</button>
+              <button ng-if="!showCase.show_more_loading" type="button" class="btn btn-xs background_c"><i class="glyphicon fa fa-arrow-right"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-
- </div>
 </div>

@@ -1382,6 +1382,12 @@ var app = angular.module('urbanApp')
              url: '/customer',
              templateUrl: 'views/outbound/toggle/customer.html'
            })
+
+           .state('app.outbound.CreateOrders.DispatchSerialNumbers', {
+              url: '/DispatchSerialNumbers',
+              templateUrl: 'views/outbound/toggle/dispatch_serial_numbers.html'
+            })
+
         .state('app.outbound.CreateCustomOrder', {
           url: '/CreateCustomOrder',
           permission: 'add_orderdetail',
@@ -2845,6 +2851,10 @@ var app = angular.module('urbanApp')
           .state('user.App.Products', {
             url: '/Products',
             templateUrl: 'views/outbound/app/create_orders/catlog.html'
+          })
+          .state('user.App.BrandCategorization', {
+            url: '/BrandCategorization',
+            templateUrl: 'views/outbound/app/create_orders/brandCategorization.html'
           })
           .state('user.App.PendingOrder', {
             url: '/PendingOrder',

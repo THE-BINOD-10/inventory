@@ -1112,6 +1112,7 @@ class SubstitutionSummary(models.Model):
 
 class POIMEIMapping(models.Model):
     id = BigAutoField(primary_key=True)
+    stock = models.ForeignKey(StockDetail, blank=True, null=True)
     sku = models.ForeignKey(SKUMaster, blank=True, null=True)
     seller = models.ForeignKey(SellerMaster, blank=True, null=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)

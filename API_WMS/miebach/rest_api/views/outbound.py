@@ -3308,16 +3308,19 @@ def check_imei(request, user=''):
     sku_code = ''
     quantity = 0
     shipped_orders_dict = {}
+    dispatch_summary_imei_details = {}
     is_shipment = request.GET.get('is_shipment', False)
     is_rm_picklist = request.GET.get('is_rm_picklist', False)
     order_id = request.GET.get('order_id', '')
     groupby = request.GET.get('groupby', '')
+    cost_check = request.GET.get('cost_check', False)
     log.info('Request params for Check IMEI ' + user.username + ' is ' + str(request.GET.dict()))
     shipping_quantity = 0
+    cost_price = 0
     try:
         for key, value in request.GET.iteritems():
             picklist = ''
-            if key in ['is_shipment', 'order_id', 'groupby', 'is_rm_picklist']:
+            if key in ['is_shipment', 'order_id', 'groupby', 'is_rm_picklist', 'cost_check']:
                 continue
             sku_code = ''
             order = None
@@ -3340,6 +3343,17 @@ def check_imei(request, user=''):
                         order = picklist.order
             po_mapping, status, imei_data = check_get_imei_details(value, sku_code, user.id, check_type='order_mapping',
                                                                    order=order, job_order=job_order)
+
+            if po_mapping.exists():
+                if po_mapping[0].stock_id:
+                    dispatch_summary_imei_details['serial_number'] = value
+                    dispatch_summary_imei_details['sku_code'] = po_mapping[0].sku.sku_code
+                    dispatch_summary_imei_details['cost_price'] = po_mapping[0].stock.unit_price
+                    dispatch_summary_imei_details['location'] = po_mapping[0].stock.location.location
+
+            if cost_check and po_mapping[0].purchase_order:
+                cost_price = po_mapping[0].purchase_order.open_po.price
+
             if imei_data.get('wms_code', ''):
                 sku_code = imei_data['wms_code']
 
@@ -3409,8 +3423,8 @@ def check_imei(request, user=''):
         import traceback
         log.debug(traceback.format_exc())
         log.info('Check IMEI failed for params ' + str(request.POST.dict()) + ' error statement is ' + str(e))
-    return HttpResponse(json.dumps({'status': status, 'data': {'sku_code': sku_code, 'quantity': quantity,
-                                                               'shipping_quantity': shipping_quantity}}))
+    return HttpResponse(json.dumps({'status': status, 'dispatch_summary_imei_details':dispatch_summary_imei_details , 'data': {'sku_code': sku_code, 'quantity': quantity,
+                                                               'shipping_quantity': shipping_quantity,'cost_price':cost_price}}))
 
 
 @get_admin_user
@@ -5099,6 +5113,7 @@ def insert_order_data(request, user=''):
     dist_shipment_address = request.POST.get('manual_shipment_addr', '')
     vehicle_number = request.POST.get('vehicle_num', '')
     is_central_order = request.POST.get('is_central_order', '')
+    marketplace_value = request.POST.get('market_list', '')
     isprava_user = get_admin(user)
     if dist_shipment_address:
         ship_to = dist_shipment_address
@@ -5157,15 +5172,17 @@ def insert_order_data(request, user=''):
             # order_data['order_id'] = order_id
             order_data['status'] = order_status_key
             order_data['order_code'] = 'MN'
-            order_data['marketplace'] = 'Offline'
+            if marketplace_value:
+                order_data['marketplace'] = marketplace_value
+            else:
+                order_data['marketplace'] = 'Offline'
             if custom_order == 'true':
                 order_data['order_code'] = 'CO'
             order_data['user'] = user.id
             order_data['unit_price'] = 0
             order_data['sku_code'] = myDict['sku_id'][i]
             vendor_items = ['printing_vendor', 'embroidery_vendor', 'production_unit']
-            exclude_order_items = ['warehouse_level', 'margin_data', 'el_price', 'del_date', 'vehicle_num']
-
+            exclude_order_items = ['warehouse_level', 'margin_data', 'el_price', 'del_date', 'vehicle_num', 'cost_price','marginal_flag','market_list']
             # Written a separate function to make the code simpler
             order_data, order_summary_dict, sku_master, extra_order_fields = construct_order_data_dict(
                 request, i, order_data, myDict, all_sku_codes, custom_order)
@@ -5205,6 +5222,7 @@ def insert_order_data(request, user=''):
                     if not order_obj:
                         el_price = order_data['el_price']
                         del_date = order_data['del_date']
+
                         for item in exclude_order_items:
                             if item in order_data:
                                 order_data.pop(item)
@@ -5327,6 +5345,7 @@ def insert_order_data(request, user=''):
                     for item in exclude_order_items:
                         if item in order_data:
                             order_data.pop(item)
+
                     order_detail = OrderDetail(**order_data)
                     order_detail.save()
                     created_order_objs.append(order_detail)
@@ -5482,11 +5501,20 @@ def direct_dispatch_orders(user, dispatch_orders, creation_date=datetime.datetim
         filter(sku__user=user.id, quantity__gt=0)
     picklist_number = int(get_picklist_number(user)) + 1
     mod_locations = []
-
+    loc_serial_mapping_switch = get_misc_value('loc_serial_mapping_switch', user.id)
+    serial_nums = ''
     for order_id, orders in dispatch_orders.iteritems():
         order = orders['order_instance']
         for data in orders.get('data', []):
-            order_stocks = sku_stocks.filter(sku_id=order.sku_id, location__location=data['location'], quantity__gt=0)
+            if loc_serial_mapping_switch == 'true':
+                if data['serials']:
+                    serial_nums = data['serials'].split(',')
+                po_imei_mapping = POIMEIMapping.objects.filter(sku__user=user.id,
+                                                               imei_number__in=serial_nums)
+                po_mapping_ids = list(po_imei_mapping.values_list('stock_id', flat=True))
+                order_stocks = sku_stocks.filter(id__in = po_mapping_ids, sku_id=order.sku_id, location__location=data['location'], quantity__gt=0)
+            else:
+                order_stocks = sku_stocks.filter(sku_id=order.sku_id, location__location=data['location'], quantity__gt=0)
             needed_quantity = float(data['quantity'])
             val = {}
             val['wms_code'] = order.sku.wms_code
@@ -8347,6 +8375,42 @@ def create_orders_data(request, user=''):
     mode_of_transport = get_mode_of_transport(user)
     return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_types,
                                     'invoice_types': invoice_types, 'mode_of_transport': mode_of_transport }))
+
+
+@csrf_exempt
+@get_admin_user
+def dispatch_serial_numbers(request, user=''):
+    myDict = dict(request.POST.iterlists())
+    if myDict['dispatch_Serial_data'][0]:
+        data = json.loads(myDict['dispatch_Serial_data'][0])
+    else:
+        return HttpResponse("Enter Dispatch Data")
+    final_data = OrderedDict()
+    data_dict = OrderedDict()
+    sku_code,sku_id,sku_desc,location = '','','',''
+    for i in range(0, len(data)):
+        sku_code = data[i]['sku_code']
+        serial_number = data[i]['serial_number']
+        if serial_number:
+            check_params = {'imei_number': serial_number, 'sku__user': user.id}
+            po_mapping = POIMEIMapping.objects.filter(**check_params)
+            if po_mapping.exists():
+                location = po_mapping[0].stock.location.location
+        if sku_code:
+            sku = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+            if sku.exists():
+                sku_id = sku[0].id
+                sku_desc = sku[0].sku_desc
+        cost_price = float(data[i]['cost_price'])
+        selling_price = float(data[i]['selling_price'])
+        group_key = sku_code
+        final_data.setdefault(group_key, {'sku_code': sku_code, 'location':location, 'sku_id': sku_id,'sku_desc': sku_desc, 'serial_number': [], 'cost_price':0, 'selling_price':0})
+        final_data[group_key]['selling_price'] += selling_price
+        final_data[group_key]['cost_price'] += cost_price
+        final_data[group_key]['serial_number'].append(serial_number)
+    final_data = final_data.values()
+
+    return HttpResponse(json.dumps({'serial_data': final_data}))
 
 
 @csrf_exempt
@@ -11763,6 +11827,20 @@ def generate_customer_invoice(request, user=''):
     log.info('Request params for ' + user.username + ' is ' + str(request.GET.dict()))
     admin_user = get_priceband_admin_user(user)
     try:
+        pick_number_list = []
+        if data_dict['seller_summary_id']:
+            value = data_dict['seller_summary_id'][0]
+            if '<<>>' in value:
+                ids_list = value.split('<<>>')
+                for id_value in ids_list:
+                    if ':' in id_value:
+                        pic_num = id_value.split(':')
+                        pick_number_list.append(pic_num[1])
+            elif ':' in value:
+                pic_num = value.split(':')
+                pick_number_list.append(pic_num[1])
+            else:
+                pick_number_list.append(1)
         seller_summary_dat = data_dict.get('seller_summary_id', '')
         delivery_challan_pickid = data_dict.get('picklist_id', '')
         seller_summary_dat = seller_summary_dat[0]
@@ -11821,7 +11899,7 @@ def generate_customer_invoice(request, user=''):
                     merge_data[detail[field_mapping['sku_code']]] = detail['total_quantity']
                 else:
                     merge_data[detail[field_mapping['sku_code']]] += detail['total_quantity']
-        invoice_data = get_invoice_data(order_ids, user, merge_data=merge_data, is_seller_order=True, sell_ids=sell_ids)
+        invoice_data = get_invoice_data(order_ids, user, merge_data=merge_data, pick_num = pick_number_list, is_seller_order=True, sell_ids=sell_ids)
         edit_invoice = request.GET.get('edit_invoice', '')
         edit_dc = request.GET.get('edit_dc', '')
         if edit_invoice != 'true' or edit_dc != 'true':

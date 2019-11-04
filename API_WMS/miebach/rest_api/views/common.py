@@ -460,8 +460,9 @@ def get_search_params(request, user=''):
     data_mapping = {'start': 'start', 'length': 'length', 'draw': 'draw', 'search[value]': 'search_term',
                     'order[0][dir]': 'order_term',
                     'order[0][column]': 'order_index', 'from_date': 'from_date', 'to_date': 'to_date',
-                    'wms_code': 'wms_code','status':'status',
-                    'supplier': 'supplier', 'sku_code': 'sku_code', 'category': 'sku_category',
+                    'wms_code': 'wms_code','status':'status', 'sku_brand':'sku_brand', 'manufacturer':'manufacturer',
+                    'searchable':'searchable','bundle':'bundle',
+                    'supplier': 'supplier', 'sku_code': 'sku_code', 'category': 'sku_category', 'sub_category': 'sub_category',
                     'sku_category': 'sku_category', 'sku_type': 'sku_type','sister_warehouse':'sister_warehouse',
                     'class': 'sku_class', 'zone_id': 'zone', 'location': 'location', 'open_po': 'open_po',
                     'marketplace': 'marketplace','central_order_id':'central_order_id',
@@ -1721,7 +1722,8 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                 dict_values['batch_detail'] = batch_obj
                 dest_batch = batch_obj
             if batch_obj:
-                batch_stock_filter = {'sku_id': sku_id, 'location_id': dest[0].id, 'batch_detail_id': batch_obj.id}
+                batch_stock_filter = {'sku_id': sku_id, 'location_id': dest[0].id, 'batch_detail_id': batch_obj.id,
+                                      'quantity__gt': 0}
                 if dest_seller_id:
                     batch_stock_filter['sellerstock__seller_id'] = dest_seller_id
                 dest_stock_objs = StockDetail.objects.filter(**batch_stock_filter)
@@ -1748,7 +1750,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
     return dest_batch
 
 def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp='',
-                        weight=''):
+                        weight='', receipt_number='', receipt_type=''):
     # sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
     sku = check_and_return_mapping_id(wms_code, "", user, False)
     if sku:
@@ -1824,10 +1826,11 @@ def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_i
     #         return 'Source Quantity reserved for Picklist'
 
     stock_dict['location_id'] = dest[0].id
+    stock_dict['quantity__gt'] = 0
     dest_stocks = StockDetail.objects.filter(**stock_dict).distinct()
 
     dest_batch = update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
-                       dest_seller_id=seller_id)
+                       dest_seller_id=seller_id, receipt_type=receipt_type, receipt_number=receipt_number)
     move_inventory_dict = {'sku_id': sku_id, 'source_location_id': source[0].id,
                            'dest_location_id': dest[0].id, 'quantity': move_quantity, }
     if seller_id:
@@ -3005,7 +3008,7 @@ def get_mapping_imeis(user, dat, seller_summary, sor_id='', sell_ids=''):
     return imeis
 
 
-def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell_ids='', from_pos=False):
+def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell_ids='', pick_num = '', from_pos=False):
     """ Build Invoice Json Data"""
     # Initializing Default Values
     data, imei_data, customer_details = [], [], []
@@ -3013,6 +3016,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     tax_type, seller_company, order_reference, order_reference_date = '', '', '', ''
     invoice_header = ''
     total_quantity, total_amt, total_taxable_amt, total_invoice, total_tax, total_mrp, _total_tax = 0, 0, 0, 0, 0, 0, 0
+    taxable_cal = 0.0
     total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'utgst_amt': 0, 'cess_amt': 0}
     hsn_summary = {}
     partial_order_quantity_price = 0
@@ -3051,6 +3055,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         customer_sku_codes = CustomerSKU.objects.filter(sku__user=user.id).exclude(customer_sku_code='').values(
             'sku__sku_code',
             'customer__customer_id', 'customer_sku_code')
+    else:
+        customer_sku_codes = ''
     if order_ids:
         sor_id = ''
         order_ids = list(set(order_ids.split(',')))
@@ -3113,6 +3119,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             is_gst_invoice = True
 
         for dat in order_data:
+            profit_price,marginal_flag = 0, 0
             order_id = dat.original_order_id
             gen_ord_num = GenericOrderDetailMapping.objects.filter(orderdetail_id=order_data[0].id)
             if gen_ord_num and user.userprofile.warehouse_type == 'DIST':
@@ -3159,7 +3166,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             taxes_dict = {}
             tax_type, invoice_header, vehicle_number, mode_of_transport = '', '', 0, ''
             order_summary = CustomerOrderSummary.objects.filter(order_id=dat.id)
-
             if order_summary:
                 tax = order_summary[0].tax_value
                 vat = order_summary[0].vat
@@ -3178,7 +3184,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     invoice_date = order_summary[0].invoice_date
             total_tax += float(tax)
             total_mrp += float(mrp_price)
-
             picklist = Picklist.objects.exclude(order_type='combo').filter(order_id=dat.id). \
                 aggregate(Sum('picked_quantity'))['picked_quantity__sum']
             quantity = picklist
@@ -3205,87 +3210,46 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 unit_price = ((float(dat.invoice_amount) / float(dat.quantity))) - (tax / float(dat.quantity))
             if el_price:
                 unit_price = el_price
-            amt = (unit_price * quantity) - discount
-            base_price = "%.2f" % (unit_price * quantity)
+            if dat.sku.sku_code:
+                sku_attr_obj = SKUAttributes.objects.filter(sku_id=dat.sku_id,
+                                        attribute_name='MARGINAL GST').only('attribute_value')
+                imei_data_sku_wise = []
+                if sku_attr_obj.exists():
+                    if sku_attr_obj[0].attribute_value.upper() == 'YES':
+                        marginal_flag = 1
+                        if pick_num:
+                            cost_price_obj = seller_summary.filter(order_id = dat.id, pick_number__in = pick_num).values('picklist__stock__unit_price', 'quantity')
+                        else:
+                            cost_price_obj = seller_summary.filter(order_id = dat.id).values('picklist__stock__unit_price', 'quantity')
+                        for index,margin_cost_price_obj in enumerate(cost_price_obj):
+                            cost_price = cost_price = margin_cost_price_obj['picklist__stock__unit_price']
+                            quantity = margin_cost_price_obj['quantity']
+                            profit_price = (unit_price * quantity) - (cost_price * quantity)
+                            seller_summary_obj_sku_wise = seller_summary.filter(order__sku_id = dat.sku_id)
+                            seller_id_value = seller_summary_obj_sku_wise[index].id
+                            # seller_id_value = seller_summary[index].id
+                            if pick_num:
+                                seller_summary_imei = seller_summary.filter(order_id = dat.id, pick_number__in = pick_num, id= seller_id_value)
+                            else:
+                                seller_summary_imei = seller_summary.filter(order_id = dat.id, id= seller_id_value)
+                            if profit_price < 1:
+                                cgst_tax,sgst_tax,igst_tax,utgst_tax = 0, 0 ,0, 0
+                            arg_data = {'unit_price':unit_price,'quantity':quantity,'discount':discount,'dat':dat,'is_gst_invoice':is_gst_invoice,'marginal_flag':marginal_flag,
+                                        'cgst_tax':cgst_tax,'sgst_tax':sgst_tax,'igst_tax':igst_tax,'utgst_tax':utgst_tax,'cess_tax':cess_tax,'profit_price':profit_price,'hsn_summary':hsn_summary,
+                                        'total_quantity':total_quantity,'partial_order_quantity_price':partial_order_quantity_price,'_total_tax':_total_tax,
+                                        'total_invoice':total_invoice,'total_taxable_amt':total_taxable_amt,'display_customer_sku':display_customer_sku,'customer_sku_codes':customer_sku_codes,
+                                        'user':user,'sor_id':sor_id,'sell_ids':sell_ids,'seller_summary':seller_summary,'data':data,'order_id':order_id,'title':title,'tax_type':tax_type,'vat':vat,'mrp_price':mrp_price,
+                                        'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal, 'taxes_dict':taxes_dict, 'seller_summary_imei':seller_summary_imei, 'imei_data_sku_wise':imei_data_sku_wise}
+                            data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity = common_calculations(arg_data)
 
-            hsn_code = ''
-            if dat.sku.hsn_code:
-                hsn_code = str(dat.sku.hsn_code)
-
-            if is_gst_invoice:
-                cgst_amt = float(cgst_tax) * (float(amt) / 100)
-                sgst_amt = float(sgst_tax) * (float(amt) / 100)
-                igst_amt = float(igst_tax) * (float(amt) / 100)
-                utgst_amt = float(utgst_tax) * (float(amt) / 100)
-                cess_amt = float(cess_tax) * (float(amt) / 100)
-                taxes_dict = {'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax, 'utgst_tax': utgst_tax,
-                              'cess_tax': cess_tax, 'cgst_amt': '%.2f' % cgst_amt, 'sgst_amt': '%.2f' % sgst_amt,
-                              'igst_amt': '%.2f' % igst_amt,
-                              'utgst_amt': '%.2f' % utgst_amt, 'cess_amt': '%.2f' % cess_amt}
-                total_taxes['cgst_amt'] += float(taxes_dict['cgst_amt'])
-                total_taxes['sgst_amt'] += float(taxes_dict['sgst_amt'])
-                total_taxes['igst_amt'] += float(taxes_dict['igst_amt'])
-                total_taxes['utgst_amt'] += float(taxes_dict['utgst_amt'])
-                total_taxes['cess_amt'] += float(taxes_dict['cess_amt'])
-                _tax = float(taxes_dict['cgst_amt']) + float(taxes_dict['sgst_amt']) + float(taxes_dict['igst_amt']) + \
-                       float(taxes_dict['utgst_amt']) + float(taxes_dict['cess_amt'])
-                summary_key = str(hsn_code) + "@" + str(cgst_tax + sgst_tax + igst_tax + utgst_tax+cess_tax)
-                if hsn_summary.get(summary_key, ''):
-                    hsn_summary[summary_key]['taxable'] += float("%.2f" % float(amt))
-                    hsn_summary[summary_key]['sgst_amt'] += float("%.2f" % float(sgst_amt))
-                    hsn_summary[summary_key]['cgst_amt'] += float("%.2f" % float(cgst_amt))
-                    hsn_summary[summary_key]['igst_amt'] += float("%.2f" % float(igst_amt))
-                    hsn_summary[summary_key]['utgst_amt'] += float("%.2f" % float(utgst_amt))
-                    hsn_summary[summary_key]['cess_amt'] += float("%.2f" % float(cess_amt))
                 else:
-                    hsn_summary[summary_key] = {}
-                    hsn_summary[summary_key]['taxable'] = float("%.2f" % float(amt))
-                    hsn_summary[summary_key]['sgst_amt'] = float("%.2f" % float(sgst_amt))
-                    hsn_summary[summary_key]['cgst_amt'] = float("%.2f" % float(cgst_amt))
-                    hsn_summary[summary_key]['igst_amt'] = float("%.2f" % float(igst_amt))
-                    hsn_summary[summary_key]['utgst_amt'] = float("%.2f" % float(utgst_amt))
-                    hsn_summary[summary_key]['cess_amt'] = float("%.2f" % float(cess_amt))
-            else:
-                _tax = (amt * (vat / 100))
-
-            discount_percentage = 0
-            if (quantity * unit_price):
-                discount_percentage = "%.1f" % (float((discount * 100) / (quantity * unit_price)))
-            unit_price = "%.2f" % unit_price
-            total_quantity += quantity
-            partial_order_quantity_price += (float(unit_price) * float(quantity))
-            _total_tax += _tax
-            invoice_amount = _tax + amt
-            total_invoice += _tax + amt
-            total_taxable_amt += amt
-            sku_code = dat.sku.sku_code
-            sku_desc = dat.sku.sku_desc
-            measurement_type = dat.sku.measurement_type
-            if display_customer_sku == 'true':
-                customer_sku_code_ins = customer_sku_codes.filter(customer__customer_id=dat.customer_id,
-                                                                  sku__sku_code=sku_code)
-                if customer_sku_code_ins:
-                    sku_code = customer_sku_code_ins[0]['customer_sku_code']
-
-            temp_imeis = []
-            temp_imeis = get_mapping_imeis(user, dat, seller_summary, sor_id, sell_ids=sell_ids)
-            imei_data.append(temp_imeis)
-            if sku_code in [x['sku_code'] for x in data]:
-                continue
-            if math.ceil(quantity) == quantity:
-                quantity = int(quantity)
-            quantity = get_decimal_limit(user.id ,quantity)
-            invoice_amount = get_decimal_limit(user.id ,invoice_amount ,'price')
-            count = count +1
-            data.append(
-                {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
-                 'title': title, 'invoice_amount': str(invoice_amount),
-                 'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price, 'tax_type': tax_type,
-                 'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
-                 'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
-                 'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
-                 'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date,'sno':count,
-                 'measurement_type': measurement_type})
+                    arg_data = {'unit_price':unit_price,'quantity':quantity,'discount':discount,'dat':dat,'is_gst_invoice':is_gst_invoice,'marginal_flag':marginal_flag,
+                                'cgst_tax':cgst_tax,'sgst_tax':sgst_tax,'igst_tax':igst_tax,'utgst_tax':utgst_tax,'cess_tax':cess_tax,'profit_price':profit_price,'hsn_summary':hsn_summary,
+                                'total_quantity':total_quantity,'partial_order_quantity_price':partial_order_quantity_price,'_total_tax':_total_tax,
+                                'total_invoice':total_invoice,'total_taxable_amt':total_taxable_amt,'display_customer_sku':display_customer_sku,'customer_sku_codes':customer_sku_codes,
+                                'user':user,'sor_id':sor_id,'sell_ids':sell_ids,'seller_summary':seller_summary,'data':data,'order_id':order_id,'title':title,'tax_type':tax_type,'vat':vat,'mrp_price':mrp_price,
+                                'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal,'taxes_dict':taxes_dict, 'seller_summary_imei':'','imei_data_sku_wise':imei_data_sku_wise}
+                    data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity = common_calculations(arg_data)
 
     is_cess_tax_flag = 'true'
     for ord_dict in data:
@@ -3390,7 +3354,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         gstin_no = seller.tin_number
         company_address = company_address.replace("\n", " ")
         company_name = seller.name #'SHPROC Procurement Pvt. Ltd.'
-
     if math.ceil(total_quantity) == total_quantity:
         total_quantity = int(total_quantity)
     invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name,'company_pan_number':pan_number,
@@ -3423,6 +3386,132 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'show_mrp': show_mrp, 'mode_of_transport' : mode_of_transport, 'vehicle_number' : vehicle_number,
                     'is_cess_tax_flag': is_cess_tax_flag, 'is_igst_tax_flag': is_igst_tax_flag}
     return invoice_data
+
+def common_calculations(arg_data):
+    for key,val in arg_data.items():
+        exec(key + '=val')
+    amt = (unit_price * quantity) - discount
+    base_price = "%.2f" % (unit_price * quantity)
+    hsn_code = ''
+    if dat.sku.hsn_code:
+        hsn_code = str(dat.sku.hsn_code)
+
+    if is_gst_invoice:
+        if marginal_flag:
+            cess_amt = 0
+            marginal_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax
+            tax_amount = (profit_price * marginal_tax)/(100 + marginal_tax)
+            taxable_amt = profit_price - tax_amount
+            if cgst_tax:
+                cgst_amt = tax_amount/2
+                sgst_amt = tax_amount/2
+                igst_amt, utgst_amt = 0, 0
+            elif igst_tax:
+                igst_amt = tax_amount
+                cgst_amt, sgst_amt, utgst_amt = 0, 0, 0
+            elif utgst_tax:
+                utgst_amt = tax_amount
+                cgst_amt, sgst_amt, igst_amt = 0, 0, 0
+            else :
+                cgst_amt,sgst_amt,igst_amt,utgst_amt = 0, 0 ,0, 0
+
+        else:
+            cgst_amt = float(cgst_tax) * (float(amt) / 100)
+            sgst_amt = float(sgst_tax) * (float(amt) / 100)
+            igst_amt = float(igst_tax) * (float(amt) / 100)
+            utgst_amt = float(utgst_tax) * (float(amt) / 100)
+            cess_amt = float(cess_tax) * (float(amt) / 100)
+        taxes_dict = {'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax, 'utgst_tax': utgst_tax,
+                      'cess_tax': cess_tax, 'cgst_amt': '%.2f' % cgst_amt, 'sgst_amt': '%.2f' % sgst_amt,
+                      'igst_amt': '%.2f' % igst_amt,
+                      'utgst_amt': '%.2f' % utgst_amt, 'cess_amt': '%.2f' % cess_amt}
+        total_taxes['cgst_amt'] += float(taxes_dict['cgst_amt'])
+        total_taxes['sgst_amt'] += float(taxes_dict['sgst_amt'])
+        total_taxes['igst_amt'] += float(taxes_dict['igst_amt'])
+        total_taxes['utgst_amt'] += float(taxes_dict['utgst_amt'])
+        total_taxes['cess_amt'] += float(taxes_dict['cess_amt'])
+        _tax = float(taxes_dict['cgst_amt']) + float(taxes_dict['sgst_amt']) + float(taxes_dict['igst_amt']) + \
+               float(taxes_dict['utgst_amt']) + float(taxes_dict['cess_amt'])
+        summary_key = str(hsn_code) + "@" + str(cgst_tax + sgst_tax + igst_tax + utgst_tax+cess_tax)
+        if hsn_summary.get(summary_key, ''):
+            hsn_summary[summary_key]['taxable'] += float("%.2f" % float(amt))
+            hsn_summary[summary_key]['sgst_amt'] += float("%.2f" % float(sgst_amt))
+            hsn_summary[summary_key]['cgst_amt'] += float("%.2f" % float(cgst_amt))
+            hsn_summary[summary_key]['igst_amt'] += float("%.2f" % float(igst_amt))
+            hsn_summary[summary_key]['utgst_amt'] += float("%.2f" % float(utgst_amt))
+            hsn_summary[summary_key]['cess_amt'] += float("%.2f" % float(cess_amt))
+        else:
+            hsn_summary[summary_key] = {}
+            hsn_summary[summary_key]['taxable'] = float("%.2f" % float(amt))
+            hsn_summary[summary_key]['sgst_amt'] = float("%.2f" % float(sgst_amt))
+            hsn_summary[summary_key]['cgst_amt'] = float("%.2f" % float(cgst_amt))
+            hsn_summary[summary_key]['igst_amt'] = float("%.2f" % float(igst_amt))
+            hsn_summary[summary_key]['utgst_amt'] = float("%.2f" % float(utgst_amt))
+            hsn_summary[summary_key]['cess_amt'] = float("%.2f" % float(cess_amt))
+    else:
+        _tax = (amt * (vat / 100))
+
+    discount_percentage = 0
+    if (quantity * unit_price):
+        discount_percentage = "%.1f" % (float((discount * 100) / (quantity * unit_price)))
+    unit_price = "%.2f" % unit_price
+    total_quantity += quantity
+    partial_order_quantity_price += (float(unit_price) * float(quantity))
+    _total_tax += _tax
+    invoice_amount = _tax + amt
+    total_invoice += _tax + amt
+    total_taxable_amt += amt
+    if marginal_flag:
+        total_invoice = total_invoice - tax_amount
+        amt  = '%.2f'% taxable_amt if taxable_amt >= 0 else 0
+        invoice_amount = invoice_amount - tax_amount
+        taxable_cal = taxable_cal + float(amt)
+        total_taxable_amt = taxable_cal
+    sku_code = dat.sku.sku_code
+    sku_desc = dat.sku.sku_desc
+    measurement_type = dat.sku.measurement_type
+    if display_customer_sku == 'true':
+        customer_sku_code_ins = customer_sku_codes.filter(customer__customer_id=dat.customer_id,
+                                                          sku__sku_code=sku_code)
+        if customer_sku_code_ins:
+            sku_code = customer_sku_code_ins[0]['customer_sku_code']
+
+    temp_imeis = []
+    if seller_summary_imei:
+        # temp_imeis = get_mapping_imeis(user, dat, seller_summary_imei, sor_id, sell_ids=sell_ids)
+        imeis = list(
+            OrderIMEIMapping.objects.filter(sku__user=user.id, order_id=dat.id).order_by('creation_date'). \
+            values_list('po_imei__imei_number', flat=True))
+        if seller_summary_imei[0].quantity == len(imeis):
+            temp_imeis.extend(imeis)
+        else:
+            stop_index = int(seller_summary_imei[0].quantity)
+            for del_item in imei_data_sku_wise:
+                if del_item in imeis:
+                    imeis.remove(del_item)
+            imei_details = imeis[0 : stop_index]
+            temp_imeis.extend(imei_details)
+    else:
+        temp_imeis = get_mapping_imeis(user, dat, seller_summary, sor_id, sell_ids=sell_ids)
+    imei_data.append(temp_imeis)
+    imei_data_sku_wise.extend(temp_imeis)
+    # if sku_code in [x['sku_code'] for x in data]:
+    #     continue
+    if math.ceil(quantity) == quantity:
+        quantity = int(quantity)
+    quantity = get_decimal_limit(user.id ,quantity)
+    invoice_amount = get_decimal_limit(user.id ,invoice_amount ,'price')
+    count = count +1
+    data.append(
+        {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
+         'title': title, 'invoice_amount': str(invoice_amount),
+         'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price, 'tax_type': tax_type,
+         'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
+         'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt':amt, 'taxes': taxes_dict,
+         'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
+         'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date,'sno':count,
+         'measurement_type': measurement_type})
+    return data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity
 
 
 def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
@@ -3598,6 +3687,8 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     quantity = request_data.get('quantity', 0)
     delivery_date = request_data.get('delivery_date', '')
     dimensions = request_data.get('dimensions', {})
+    brand_categorization_exclude = request_data.get('brand_categorization', '')
+    brand_categorization = get_misc_value('brand_categorization', user.id)
     customer_master = None
     if not quantity:
         quantity = 0
@@ -3616,7 +3707,6 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     customer_data_id = request_data.get('customer_data_id', '')
     price_type = ''
     customer_id = ''
-
     disp_sku_map = get_misc_value('display_sku_cust_mapping', user.id)
     if disp_sku_map == 'true':
         cust_mapped_skus = CustomerSKU.objects.filter(sku__user=user.id).values_list('sku_id', flat=True)
@@ -3667,7 +3757,20 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                                                     field_value='1').values_list('sku_id', flat=True)
         filter_params['id__in'] = hot_release_data
         filter_params1['id__in'] = hot_release_data
-
+    start, stop = indexes.split(':')
+    start, stop = int(start), int(stop)
+    if brand_categorization == 'true' and brand_categorization_exclude != 'true':
+        sku_brand_list, sku_class_list = [], []
+        sku_brands = SKUMaster.objects.filter(user=user.id, sku_category=sku_category, status = 1).values_list('sku_brand', flat=True).distinct()
+        for sku_brand in sku_brands:
+            sku_class_list.extend(list(SKUMaster.objects.filter(user=user.id, sku_category=sku_category, sku_brand=sku_brand, status = 1).distinct().values_list('sku_class', flat=True)[:5]))
+        sku_brand_list.extend(list(SKUMaster.objects.filter(user=user.id, sku_category=sku_category, sku_class__in=sku_class_list, status = 1).values_list('id', flat=True)))
+        if sku_brand_list:
+            filter_params.setdefault('id__in',[])
+            filter_params1.setdefault('id__in',[])
+            filter_params['id__in'] = list(chain(filter_params['id__in'], sku_brand_list))
+            filter_params1['id__in'] = list(chain(filter_params1['id__in'], sku_brand_list))
+            start, stop = 0, len(sku_brand_list)
     skumaster_qs = SKUMaster.objects.exclude(sku_class='')
     if admin_user:
         filter_params1['sku__user'] = admin_user.id
@@ -3677,8 +3780,6 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         cluster_sku_list = list(ClusterSkuMapping.objects.filter(cluster_name = cluster, sku__user = filter_params1['sku__user']).values_list('sku__sku_code', flat=True))
         filter_params['sku_code__in'] = cluster_sku_list
         filter_params1['sku__sku_code__in'] = cluster_sku_list
-    start, stop = indexes.split(':')
-    start, stop = int(start), int(stop)
     if sku_class:
         filter_params['sku_class__icontains'] = sku_class
         filter_params1['sku__sku_class__icontains'] = sku_class
@@ -3757,7 +3858,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                     filter(Q(skuattributes__attribute_name='Internal Breadth') &
                            Q(skuattributes__attribute_value__lte=Value(intto_Breadth)))
     all_pricing_ids = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type).values_list('sku_id',
-                                                                                                       flat=True)
+                                                                                                    flat=True)
     if is_margin_percentage == 'true':
         pricemaster = PriceMaster.objects.prefetch_related('sku').filter(price_type=price_type).annotate(
             new_price=F('price') + ((F('price') / Value(100)) * Value(custom_margin))).filter(**filter_params1)
@@ -4059,6 +4160,7 @@ def get_customer_sku_prices(request, user=""):
     sgst_tax = ''
     cgst_tax = ''
     product_type = ''
+    marginal_flag = 0
     log.info('Get Customer SKU Prices data for ' + user.username + ' is ' + str(request.POST.dict()))
 
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
@@ -4088,6 +4190,11 @@ def get_customer_sku_prices(request, user=""):
             data = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
             if data:
                 data = data[0]
+                sku_attr_obj = SKUAttributes.objects.filter(sku_id=data.id,
+                                        attribute_name='MARGINAL GST').only('attribute_value')
+                if sku_attr_obj:
+                    if sku_attr_obj[0].attribute_value.upper() == 'YES':
+                        marginal_flag = 1
             else:
                 return "sku_doesn't exist"
             tax_masters = TaxMaster.objects.filter(user_id=user.id, product_type=data.product_type,
@@ -4123,7 +4230,7 @@ def get_customer_sku_prices(request, user=""):
                     discount = price_master_objs[0].discount
             result_data.append(
                 {'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': price, 'discount': discount,
-                 'taxes': taxes_data, 'price_bands_map': price_bands_list, 'mrp': data.mrp, 'product_type': product_type, 'igst_tax': igst_tax, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax})
+                 'taxes': taxes_data, 'price_bands_map': price_bands_list, 'mrp': data.mrp, 'product_type': product_type, 'igst_tax': igst_tax, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'marginal_flag':marginal_flag})
 
     except Exception as e:
         import traceback
@@ -4923,7 +5030,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
     for product in product_styles_filtered[start: stop]:
         prd_sku_codes = sku_master.filter(sku_class=product).only('sku_code').values_list('sku_code', flat=True)
         sku_object = sku_master.filter(user=user.id, sku_class=product)
-        sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id'). \
+        sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id', 'sku_brand'). \
             order_by('-image_url')
         if central_order_mgmt == 'true':
             sku_id = sku_object[0].id
@@ -5257,6 +5364,15 @@ def get_imei_data(request, user=''):
                                                                                            flat=True).distinct()
     sku_details = {}
     log.info('Get IMEI Tracker History data for ' + user.username + ' is ' + str(request.GET.dict()))
+    format_types = {}
+    for i in BarcodeSettings.objects.filter(user=request.user).order_by('-format_type'):
+        if i.size:
+            try:
+                size = "%sX%s" % eval(i.size)
+            except:
+                size = i.size
+            format_t = "_".join([i.format_type, size])
+            format_types.update({format_t: i.format_type})
     try:
         for index, po_mapping in enumerate(po_imei_mapping):
             imei_data = {}
@@ -5364,7 +5480,7 @@ def get_imei_data(request, user=''):
         result_data = []
         log.info('Get IMEI Tracker History Data failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(request.GET.dict()), str(e)))
-    status = {'imei': imei, 'sku_details': sku_details, 'imei_status': imei_status, 'data': data, 'message': 'Success'}
+    status = {'imei': imei, 'sku_details': sku_details, 'imei_status': imei_status, 'data': data, 'format_types': format_types, 'message': 'Success'}
     return HttpResponse(json.dumps(status))
 
 
@@ -5482,6 +5598,13 @@ def generate_barcode_dict(pdf_format, myDicts, user):
 
                 barcodes_list.append(single)
 
+        elif myDict.has_key('imei'):
+            single = myDict
+            single['SKUPrintQty'] = "1"
+            single['Label'] = myDict['imei']
+            if single['wms_code']:
+                single.pop('wms_code')
+            barcodes_list.append(single)
 
         else:
         #for ind in range(0, len(myDict['wms_code'])):
@@ -5598,6 +5721,9 @@ def make_data_dict(barcodes_list, user_prf, pdf_format):
             return data_dict
     data_dict = {'customer': user_prf.user.username, 'info': barcodes_list}
     data_dict.update(settings.BARCODE_DEFAULT)
+    if data_dict['info']:
+        if data_dict['info'][0].has_key('imei'):
+            data_dict['show_fields'] = []
     return data_dict
 
 
@@ -5883,10 +6009,14 @@ def build_invoice(invoice_data, user, css=False):
             for imei_count in range(len(imei)+1):
                 imei_count
             count+=imei_count
-        no_of_sku_count = int(count/2)
-        if no_of_sku_count + data_length > 14:
-            data_value = 1
-            data_length = no_of_sku_count + data_length
+        if count == data_length:
+            pass
+        else:
+            no_of_sku_count = int(count/2)
+        if no_of_sku_count:
+            if no_of_sku_count + data_length > 14:
+                data_value = 1
+                data_length = no_of_sku_count + data_length
 
     '''
     if user.username in top_logo_users:
@@ -5900,7 +6030,6 @@ def build_invoice(invoice_data, user, css=False):
         needed_space = inv_footer + inv_footer + inv_total
         if (perm_hsn_summary == 'true'):
             needed_space = needed_space + inv_summary + hsn_summary_length
-
         temp_render_space = 0
         temp_render_space = inv_height - (inv_details + inv_header)
         temp_no_of_skus = int(temp_render_space / inv_product)
@@ -6563,7 +6692,7 @@ def get_stock_receipt_number(user):
 
 
 @csrf_exempt
-def insert_po_mapping(imei_nos, data, user_id):
+def insert_po_mapping(imei_nos, data, user_id, stock=''):
     ''' Inserting IMEI Mapping throught PO'''
     imei_list = []
     imei_nos = list(set(imei_nos.split(',')))
@@ -6571,6 +6700,8 @@ def insert_po_mapping(imei_nos, data, user_id):
     all_po_labels = []
     all_st_purchases = STPurchaseOrder.objects.filter(open_st__sku__user=user_id)
     all_po_labels = POLabels.objects.filter(sku__user=user_id, status=1)
+    if stock:
+        stock = stock.id
     for imei in imei_nos:
         if not imei:
             continue
@@ -6582,7 +6713,8 @@ def insert_po_mapping(imei_nos, data, user_id):
                 OrderIMEIMapping.objects.filter(po_imei_id__in=po_mapping_ids, status=1).update(status=0)
                 ReturnsIMEIMapping.objects.filter(order_imei__po_imei_id__in=po_mapping_ids, imei_status=1).update(
                     imei_status=0)
-            imei_mapping = {'purchase_order_id': data.id, 'imei_number': imei, 'status': 1,
+            imei_mapping = {'purchase_order_id': data.id, 'imei_number': imei,
+                            'status': 1,'stock_id':stock,
                             'sku_id': order_data['sku'].id,
                             'creation_date': datetime.datetime.now(),
                             'updation_date': datetime.datetime.now()}
@@ -9860,3 +9992,8 @@ def get_stock_starting_date(receipt_number, receipt_type, user_id, stock_date):
             stock_date = get_stock_starting_date(stock_receipt[1], stock_receipt[2], user_id, stock_date)
     return stock_date
 
+def get_decimal_data(cell_data, index_status, count, user):
+    if get_misc_value('float_switch', user.id) == 'false':
+        if not cell_data.is_integer():
+            index_status.setdefault(count, set()).add('Decimal Not Allowed In Qty')
+    return index_status

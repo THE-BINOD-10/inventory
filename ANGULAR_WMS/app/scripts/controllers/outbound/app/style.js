@@ -13,6 +13,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
   vm.central_order_mgmt = Session.roles.permissions.central_order_mgmt;
   vm.order_exceed_stock = Boolean(Session.roles.permissions.order_exceed_stock);
   vm.user_type = Session.roles.permissions.user_type;
+  vm.previous_path = (localStorage.getItem('previous_path') ? localStorage.getItem('previous_path') : '');
   vm.service = Service;
   vm.dis_video = false;
   vm.y_video_flag = false;

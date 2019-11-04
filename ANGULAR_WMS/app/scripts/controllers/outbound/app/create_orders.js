@@ -453,6 +453,11 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       if(response.message && response.data.search_key == vm.style || !vm.style) {
         vm.gotData = response.data;
         if(vm.brand_categorization){
+          if(vm.single_brand_category) {
+            vm.set_previous_path('user.App.BrandCategorization')
+          } else {
+            vm.set_previous_path('user.App.Products')
+          }
           vm.carouselData={};
           vm.checkCarouselDataPush={};
           vm.index={};
@@ -470,6 +475,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       canceller.resolve("cancelled");
     };
     return canceller.promise;
+  }
+  vm.set_previous_path = function(data) {
+    localStorage.setItem('previous_path', data)
   }
   vm.get_brand_category_data = function(request, brand, index) {
     vm.current_brand = brand
@@ -727,7 +735,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.change_category(category) 
     } else {
       vm.single_brand_category = true;
-      vm.brand = brand
+      vm.brand = brand;
       vm.change_category(category)
     }
   }

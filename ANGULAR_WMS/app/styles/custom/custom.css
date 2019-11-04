@@ -1557,9 +1557,9 @@ pre {
   display: inline-block;
   float: none;
 }
-.scrolley::-webkit-scrollbar {
+/*.scrolley::-webkit-scrollbar {
   display: none;
-}
+}*/
 .header_background {
   cursor: pointer;
   background: -webkit-linear-gradient(left, #e8e8e8, transparent);

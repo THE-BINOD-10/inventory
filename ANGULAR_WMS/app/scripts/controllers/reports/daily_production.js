@@ -7,6 +7,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     var vm = this;
     vm.service = Service;
     vm.service.print_enable = false;
+    vm.industry_type = Session.user_profile.industry_type;
+    vm.user_type = Session.user_profile.user_type;
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -31,10 +33,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('Brand').withTitle('Brand'),
         DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
+        DTColumnBuilder.newColumn('SKU Sub Category').withTitle('SKU Sub Category'),
         DTColumnBuilder.newColumn('Total JO Quantity').withTitle('Total JO Quantity'),
         DTColumnBuilder.newColumn('Reduced Quantity').withTitle('Reduced Quantity'),
         DTColumnBuilder.newColumn('Stage').withTitle('Stage')
     ];
+
+    if (vm.industry_type == "FMCG" && vm.user_type == "marketplace_user") {
+      vm.dtColumns.splice(8, 0, DTColumnBuilder.newColumn('Manufacturer').withTitle('Manufacturer'))
+      vm.dtColumns.splice(9, 0, DTColumnBuilder.newColumn('Searchable').withTitle('Searchable'))
+      vm.dtColumns.splice(10, 0, DTColumnBuilder.newColumn('Bundle').withTitle('Bundle'))
+
+    }
 
     vm.dtInstance = {};
 
@@ -60,4 +70,3 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       }
     })
   }
-

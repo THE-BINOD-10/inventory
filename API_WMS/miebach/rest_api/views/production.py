@@ -683,8 +683,7 @@ def close_jo(request, user=''):
             job_order = JobOrder.objects.filter(job_code=job_code, order_type=status_dict[key],
                                                 product_code__user=user.id)
             job_order_object = {}
-            if job_order:
-                job_order_object = job_order[0]
+            for job_order_object in job_order:
                 job_order_object.status = 'cancelled'
                 job_order_object.cancel_reason = remarks
                 job_order_object.save()

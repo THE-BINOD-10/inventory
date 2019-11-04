@@ -19,7 +19,9 @@ angular.module('urbanApp', ['datatables'])
 
     vm.size_types = [];
     vm.warehouse_names = [];
-    vm.warehouse_value = ''
+    vm.warehouse_value = '';
+    vm.milkbasket_user = false;
+    vm.zones = []
 
     function getOS() {
       var userAgent = window.navigator.userAgent,
@@ -64,7 +66,7 @@ angular.module('urbanApp', ['datatables'])
         vm.date = datearray[0] + '/' + datearray[1] + '/' + datearray[2];
         return datearray[0] + '/' + datearray[1] + '/' + datearray[2];
       } else {
-        
+
         vm.date = datearray[1] + '/' + datearray[0] + '/' + datearray[2];
         return datearray[1] + '/' + datearray[0] + '/' + datearray[2];
       }
@@ -89,7 +91,8 @@ angular.module('urbanApp', ['datatables'])
     vm.service.apiCall('warehouse_headers/?level='+vm.g_data.level+'&alternate_view='+Data.warehouse_toggle_value+'&warehouse_name='+vm.warehouse_value+'&size_type_value='+vm.size_type_value+ '&marketplace='+vm.marketplace_value, 'GET').then(function(data){
       vm.size_types = data.data.size_types;
       vm.warehouse_names = data.data.warehouse_names;
-
+      vm.milkbasket_user = data.data.milkbasket_user
+      vm.zones = data.data.zones
       vm.warehouse_value = vm.warehouse_names[0]
       vm.size_type_value = vm.size_types[0];
       vm.marketplaces = data.data.market_places;
@@ -114,10 +117,10 @@ angular.module('urbanApp', ['datatables'])
       }
 
       if (Data.warehouse_toggle_value) {
-          vm.filters = {'datatable': 'WarehouseStockAlternative', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
+          vm.filters = {'datatable': 'WarehouseStockAlternative', 'search0':'', 'search1':'', 'search2': '', 'search3': '',
         'from_date' : vm.from_date, 'to_date' : vm.to_date, 'size_type_value' : vm.size_type_value, 'warehouse_name' : vm.warehouse_value, 'view_type' : vm.g_data.view }
         } else {
-          vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
+          vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'search3': '',
         'from_date' : vm.from_date, 'to_date' : vm.to_date, 'size_type_value' : vm.size_type_value, 'warehouse_name' : vm.warehouse_value}
         }
 
@@ -155,10 +158,10 @@ angular.module('urbanApp', ['datatables'])
 
       vm.build_datatable = function (data, flag) {
         if (Data.warehouse_toggle_value) {
-          vm.filters = {'datatable': 'WarehouseStockAlternative', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
+          vm.filters = {'datatable': 'WarehouseStockAlternative', 'search0':'', 'search1':'', 'search2': '', 'search3': '',
         'from_date' : vm.from_date, 'to_date' : vm.to_date, 'size_type_value' : vm.size_type_value, 'warehouse_name' : vm.warehouse_value,  'marketplace': vm.marketplace_value,'view_type' : vm.g_data.view }
         } else {
-          vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
+          vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'search3': '',
         'from_date' : vm.from_date, 'to_date' : vm.to_date, 'size_type_value' : vm.size_type_value, 'warehouse_name' : vm.warehouse_value}
         }
         var columns = data.data.table_headers;
@@ -241,8 +244,18 @@ angular.module('urbanApp', ['datatables'])
           vm.service.apiCall('warehouse_headers/?level='+vm.g_data.level+'&alternate_view='+Data.warehouse_toggle_value+'&warehouse_name='+vm.warehouse_value+'&size_type_value='+vm.size_type_value + '&marketplace='+vm.marketplace_value, 'GET').then(function(data){
             vm.dtInstance.DataTable.context[0].ajax.data = {'from_date': vm.from_date, 'to_date': vm.to_date, 'view_type': vm.g_data.view, 'alternate_view': vm.alternate_view_value, 'warehouse_name' : vm.warehouse_value, 'size_type_value' : vm.size_type_value, 'datatable' : 'WarehouseStockAlternative' }
             vm.build_datatable(data, true);
+            vm.milkbasket_user = data.data.milkbasket_user
           })
         }
+      }
+      vm.apply_filters = function() {
+        Object.assign(vm.dtInstance.DataTable.context[0].ajax.data,vm.model_data)
+        vm.dtInstance.reloadData()
+      }
+      vm.reset_filters = function() {
+        vm.model_data = {}
+        Object.assign(vm.dtInstance.DataTable.context[0].ajax.data,vm.model_data)
+        vm.dtInstance.reloadData()
       }
 
       vm.get_sizetypes_for_warehouses = function() {
@@ -250,6 +263,7 @@ angular.module('urbanApp', ['datatables'])
           vm.service.apiCall('warehouse_headers/?level='+vm.g_data.level+'&alternate_view='+Data.warehouse_toggle_value+'&warehouse_name='+vm.warehouse_value+'&size_type_value='+vm.size_type_value+ '&marketplace='+vm.marketplace_value, 'GET').then(function(data) {
             //var columns = data.data.table_headers;
             vm.size_types = data.data.size_types;
+            vm.milkbasket_user = data.data.milkbasket_user
             vm.size_type_value = vm.size_types[0];
             vm.marketplaces = data.data.market_places;
           })

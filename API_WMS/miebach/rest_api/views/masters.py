@@ -4307,12 +4307,16 @@ def get_zone_details(start_index, stop_index, temp_data, search_term, order_term
             loc = LocationMaster.objects.prefetch_related('zone').filter(**filter_params).filter(Q(zone__zone__icontains=search_term)| Q(location__icontains=search_term)).order_by(order_data)
         else:
             loc = LocationMaster.objects.prefetch_related('zone').filter(**filter_params).order_by(order_data)
-        sub_zone = ''
         temp_data['recordsTotal'] = loc.count()
         temp_data['recordsFiltered'] = loc.count()
         for loc_location in loc[start_index:stop_index]:
+            sub_zone = ''
+            zone = loc_location.zone.zone
             if loc_location.zone.level == 1:
-                sub_zone = loc_location.zone.zone
+                sub_zone_obj = SubZoneMapping.objects.filter(zone__user=user.id, sub_zone_id=loc_location.zone_id)
+                if sub_zone_obj.exists():
+                    zone = sub_zone_obj[0].zone.zone
+                    sub_zone = loc_location.zone.zone
             loc_groups = list(loc_location.locationgroups_set.filter().values_list('group', flat=True))
             button = ''
             if not request.POST.get('excel'):
@@ -4320,7 +4324,7 @@ def get_zone_details(start_index, stop_index, temp_data, search_term, order_term
 
 
             temp_data['aaData'].append(
-                OrderedDict((('zone',loc_location.zone.zone),('location', loc_location.location), ('max_capacity', loc_location.max_capacity),('lock_status',loc_location.lock_status),
+                OrderedDict((('zone', zone),('location', loc_location.location), ('max_capacity', loc_location.max_capacity),('lock_status',loc_location.lock_status),
                              ('fill_sequence', loc_location.fill_sequence),('pick_sequence',loc_location.pick_sequence),('status',loc_location.status),
                              ('all_groups',all_groups),('location_group',loc_groups),('pallet_capacity',loc_location.pallet_capacity),('sub_zone',sub_zone),
                               (' ',button ))))

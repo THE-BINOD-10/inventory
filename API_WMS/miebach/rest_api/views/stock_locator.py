@@ -1222,6 +1222,7 @@ def insert_move_inventory(request, user=''):
                                  receipt_number=receipt_number, receipt_type='move-inventory')
     if 'success' in status.lower():
         update_filled_capacity([source_loc, dest_loc], user.id)
+        if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(sku_codes, user)
 
     return HttpResponse(status)
 
@@ -1439,6 +1440,7 @@ def confirm_move_inventory(request, user=''):
 @get_admin_user
 def confirm_inventory_adjustment(request, user=''):
     mod_locations = []
+    sku_codes = []
     for key, value in request.GET.iteritems():
         data = CycleCount.objects.get(id=key, sku__user=user.id)
         data.status = 'completed'
@@ -1446,6 +1448,7 @@ def confirm_inventory_adjustment(request, user=''):
         dat = InventoryAdjustment.objects.get(cycle_id=key, cycle__sku__user=user.id)
         dat.reason = value
         dat.save()
+        sku_codes.append(dat.cycle.sku.sku_code)
         location_count = StockDetail.objects.filter(location_id=dat.cycle.location_id, sku_id=dat.cycle.sku_id,
                                                     quantity__gt=0,
                                                     sku__user=user.id)
@@ -1468,9 +1471,9 @@ def confirm_inventory_adjustment(request, user=''):
 
                 if difference == 0:
                     break
-
     if mod_locations:
         update_filled_capacity(mod_locations, user.id)
+    if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(sku_codes, user)
     return HttpResponse('Updated Successfully')
 
 

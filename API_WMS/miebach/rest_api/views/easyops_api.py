@@ -204,6 +204,20 @@ class EasyopsAPI:
                 run_iterator = 0
         return json_response
 
+    def update_stock_count(self, sku_tupl, user=''):
+        """API to Update Milkbasket stock change"""
+        data = {}
+        if user:
+            self.user = user
+            self.get_user_token(user)
+
+        if self.is_full_link:
+            url = LOAD_CONFIG.get(self.company_name, 'url', '')
+        data = eval(LOAD_CONFIG.get(self.company_name, 'sku_body_dict', '') % sku_tupl)
+        json_response = self.get_response(url, data, put=True)
+        log.info("Response for the Milkbasket stock change"+str(json_response.get('message', '')))
+        return json_response
+
     def confirm_picklist(self, order_id, token='', user=''):
         """ API to confirm the picklist status """
         data = {}

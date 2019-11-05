@@ -10,6 +10,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   vm.company_name = Session.user_profile.company_name;
   vm.order_exceed_stock = Boolean(Session.roles.permissions.order_exceed_stock);
   vm.permissions = Session.roles.permissions;
+  vm.brand_categorization = Session.roles.permissions.brand_categorization;
   vm.model_data = {}
   vm.dispatch_data = []
   vm.auto_shipment = false;
@@ -254,6 +255,9 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 
     vm.loading = true;
     var canceller = $q.defer();
+    if (vm.brand_categorization) {
+      data['brand_categorization'] = true;
+    }
     vm.service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
       if(response.message) {
         vm.gotData = response.data;

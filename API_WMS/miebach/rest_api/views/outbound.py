@@ -9765,6 +9765,8 @@ def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
     data_status = order.filter(status=1)
     if data_status:
         status = 'open'
+    elif order.filter(status=3):
+        status = 'cancel'
     else:
         status = 'closed'
         pick_status = Picklist.objects.filter(order_id__in=order_ids, status__icontains='open')
@@ -9951,7 +9953,6 @@ def get_intermediate_order_detail(request, user=""):
 @get_admin_user
 def get_customer_order_detail(request, user=""):
     """ Return customer order detail """
-
     log.info('Request params for ' + user.username + ' is ' + str(request.GET.dict()))
     response_data = {'data': []}
     order_id = request.GET['order_id']

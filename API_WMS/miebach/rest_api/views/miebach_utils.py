@@ -5598,9 +5598,9 @@ def get_dist_sales_report_data(search_params, user, sub_user):
     temp_data['recordsTotal'] = model_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
-    status = ""
     totals_map = {}
     for data in model_data:
+        status = ""
         order_id = data['order_id']
         org_order_id = data['original_order_id']
         if not org_order_id:

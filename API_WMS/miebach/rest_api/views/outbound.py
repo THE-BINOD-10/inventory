@@ -9551,6 +9551,8 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
             generic_orders = GenericOrderDetailMapping.objects.filter(Q(orderdetail__status__icontains= '1'), **filter_dict).order_by(order_data)
         elif search_term == 'closed':
             generic_orders = GenericOrderDetailMapping.objects.filter(Q(orderdetail__status__icontains= '0'), **filter_dict).order_by(order_data)
+        elif search_term == 'cancel':
+            generic_orders = GenericOrderDetailMapping.objects.filter(Q(orderdetail__status__icontains= '3'), **filter_dict).order_by(order_data)
         elif search_term in corporatae_name:
             em_qs = EnquiryMaster.objects.filter(Q(corporate_name__icontains= search_term), **filter_dict).order_by(order_data)
         elif search_term:
@@ -9582,6 +9584,8 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
         data_status = data.filter(status=1)
         if data_status:
             status = 'open'
+        elif data.filter(status=3):
+            status = 'cancel'
         else:
             status = 'closed'
             pick_status = picklist.filter(order_id__in=order_detail_ids,
@@ -9825,6 +9829,8 @@ def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
     data_status = order.filter(status=1)
     if data_status:
         status = 'open'
+    elif order.filter(status=3):
+        status = 'cancel'
     else:
         status = 'closed'
         pick_status = Picklist.objects.filter(order_id__in=order_ids, status__icontains='open')
@@ -10011,7 +10017,6 @@ def get_intermediate_order_detail(request, user=""):
 @get_admin_user
 def get_customer_order_detail(request, user=""):
     """ Return customer order detail """
-
     log.info('Request params for ' + user.username + ' is ' + str(request.GET.dict()))
     response_data = {'data': []}
     order_id = request.GET['order_id']
@@ -15997,7 +16002,7 @@ def sm_cancel_distributor_order(request):
         if not is_emiza_order_failed:
             order_det_ids = gen_qs.values_list('orderdetail_id', flat=True)
             order_cancel_functionality(order_det_ids)
-            gen_qs.delete()
+            # gen_qs.delete()
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

@@ -940,9 +940,9 @@ def get_aging_filter_data(search_params, user, sub_user):
         all_data = all_data[start_index:stop_index]
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in all_data:
-        if data[8]:
+        if data[9]:
             manufacturer,searchable,bundle = '','',''
-            attributes_obj = SKUAttributes.objects.filter(sku_id=data[8], attribute_name__in= attributes_list)
+            attributes_obj = SKUAttributes.objects.filter(sku_id=data[9], attribute_name__in= attributes_list)
             if attributes_obj.exists():
                 for attribute in attributes_obj:
                     if attribute.attribute_name == 'Manufacturer':

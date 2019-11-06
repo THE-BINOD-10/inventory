@@ -16,6 +16,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   vm.auto_shipment = false;
   vm.date = new Date();
   vm.payment_status = ['To Pay', 'VPP', 'Paid'];
+  vm.market_filter = 'Offline';
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: "",
                             location: "", serials: [], serial: "", capacity: 0, discount: ""
                           }],

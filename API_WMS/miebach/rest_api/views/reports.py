@@ -812,7 +812,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
             if version_obj.exists():
                 updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
             if amount and qty:
-                avg_cost = '%.2f' %(amount/qty)
+                avg_cost = '%.2f' %(float(amount)/qty)
             manufacturer,searchable,bundle = '','',''
             attributes_obj = SKUAttributes.objects.filter(sku_id= sku.id, attribute_name__in= attributes_list)
             if attributes_obj.exists():

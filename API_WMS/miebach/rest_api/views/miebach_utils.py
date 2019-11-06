@@ -3497,15 +3497,16 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
             data['purchase_order__open_po__cess_tax'] = 0
         if data['cess_tax']:
             data['purchase_order__open_po__cess_tax'] = data['cess_tax']
-        amount = '%.2f'% (float(data['total_received'] * price))
+        amount = float('%.2f' % (float(data['total_received'] * price)))
         if data['discount_percent']:
-            amount = '%.2f'%  (amount - (amount * float(data['discount_percent'])/100))
+            amount = float('%.2f' % (amount - (amount * float(data['discount_percent']) / 100)))
         tot_tax = float(data['purchase_order__open_po__cgst_tax']) + float(data['purchase_order__open_po__sgst_tax']) +\
                   float(data['purchase_order__open_po__igst_tax']) + float(data['purchase_order__open_po__utgst_tax'])\
                     + float(data['purchase_order__open_po__cess_tax'])
         aft_unit_price = '%.2f'% (float(price) + (float(price / 100) * tot_tax))
         if data['discount_percent']:
             aft_unit_price = aft_unit_price - (aft_unit_price * float(data['discount_percent'])/100)
+        aft_unit_price = float('%.2f' % aft_unit_price)
         post_amount = aft_unit_price * float(data['total_received'])
         #seller_po_unit_price = data['seller_po__unit_price']
         #if not data['seller_po__unit_price']:
@@ -4176,8 +4177,6 @@ def get_financial_group_dict(fields_parameters1, data_objs=None):
 def get_financial_report_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
-    from common import get_misc_value
-    from rest_api.views.common import get_sku_master, get_order_detail_objs, get_local_date
     milkbasket_user = False
     milkbasket_users = copy.deepcopy(MILKBASKET_USERS)
     if user.username in milkbasket_users :
@@ -4268,7 +4267,8 @@ def get_financial_report_data(search_params, user, sub_user):
                 #Opening Stock Calculation
 
                 manufacturer,searchable,bundle = '','',''
-                attributes_obj = SKUAttributes.objects.filter(sku_id=data.sku.id, attribute_name__in= attributes_list)
+                sku_id = opening_stock['stock_reconciliation__sku_id']
+                attributes_obj = SKUAttributes.objects.filter(sku_id=sku_id, attribute_name__in= attributes_list)
                 if attributes_obj.exists():
                     for attribute in attributes_obj:
                         if attribute.attribute_name == 'Manufacturer':
@@ -4278,7 +4278,6 @@ def get_financial_report_data(search_params, user, sub_user):
                         if attribute.attribute_name == 'Bundle':
                             bundle = attribute.attribute_value
                 tax_rate = opening_stock['cgst_tax'] + opening_stock['sgst_tax'] + opening_stock['igst_tax']
-                sku_id = opening_stock['stock_reconciliation__sku_id']
                 cgst_amount = opening_stock['cgst_amount']
                 sgst_amount = opening_stock['sgst_amount']
                 igst_amount = opening_stock['igst_amount']

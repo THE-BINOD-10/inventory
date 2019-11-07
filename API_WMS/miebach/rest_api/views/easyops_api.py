@@ -77,7 +77,9 @@ class EasyopsAPI:
             response = requests.post(url, headers=self.headers, data=json.dumps(data), verify=False)
         else:
             response = requests.get(url, headers=self.headers, verify=False)
-
+        if self.company_name == 'milkbasket':
+            log.info("Response code for milkbasket stock sync change is %s"
+                         % (str(response.status_code)))
         try:
             if not isinstance(response, dict):
                 response = response.json()

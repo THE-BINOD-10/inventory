@@ -7133,7 +7133,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
     for data in model_data:
         sku_id = data['order__sku_id']
         manufacturer,searchable,bundle = '','',''
-        attributes_obj = SKUAttributes.objects.filter(sku_id=data.sku.id, attribute_name__in= attributes_list)
+        attributes_obj = SKUAttributes.objects.filter(sku_id=sku_id, attribute_name__in= attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:
                 if attribute.attribute_name == 'Manufacturer':

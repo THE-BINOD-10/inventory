@@ -88,7 +88,7 @@ LABEL_KEYS = ["NOTIFICATION_LABEL", "MASTERS_LABEL", "INBOUND_LABEL", "PRODUCTIO
 
 SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'sku_desc': '', 'sku_group': '', 'sku_type': '', 'mix_sku': '',
-            'sku_category': '', 'sku_class': '', 'threshold_quantity': 0, 'color': '', 'mrp': 0,
+            'sku_category': '', 'sku_class': '', 'threshold_quantity': 0, 'max_norm_quantity': 0, 'color': '', 'mrp': 0,
             'status': 1, 'online_percentage': 0, 'qc_check': 0, 'sku_brand': '', 'sku_size': '', 'style_name': '',
             'price': 0,
             'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': 0, 'product_type': '',
@@ -1146,7 +1146,7 @@ SKU_HEADERS = ['WMS Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU 
                'Primary Category',
                'SKU Class', 'SKU Brand', 'Style Name', 'SKU Size', 'Size Type', 'Put Zone', 'Cost Price', 'Selling Price',
                'MRP Price', 'Sequence', 'Image Url',
-               'Threshold Quantity', 'Measurment Type', 'Sale Through', 'Color', 'EAN Number',
+               'Threshold Quantity', 'Max Norm Quantity', 'Measurment Type', 'Sale Through', 'Color', 'EAN Number',
                'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Hot Release',
                'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Combo Flag', 'Block For PO', 'Status']
 
@@ -1474,6 +1474,7 @@ SKU_COMMON_MAPPING = OrderedDict((('WMS Code', 'wms_code'), ('SKU Description', 
                                   ('Cost Price', 'cost_price'), ('Selling Price', 'price'), ('MRP Price', 'mrp'),
                                   ('Sequence', 'sequence'), ('Image Url', 'image_url'),
                                   ('Threshold Quantity', 'threshold_quantity'),
+                                  ('Max Norm Quantity', 'max_norm_quantity'),
                                   ('Measurment Type', 'measurement_type'), ('Sale Through', 'sale_through'),
                                   ('Color', 'color'), ('EAN Number', 'ean_number'),
                                   ('Load Unit Handling(Options: Enable, Disable)', 'load_unit_handle'),

@@ -103,6 +103,7 @@ class SKUMaster(models.Model):
     product_type = models.CharField(max_length=64, default='')
     zone = models.ForeignKey(ZoneMaster, null=True, blank=True, default=None)
     threshold_quantity = models.FloatField(default=0)
+    max_norm_quantity = models.FloatField(default=0)
     online_percentage = models.PositiveIntegerField(default=0)
     discount_percentage = models.PositiveIntegerField(default=0)
     price = models.FloatField(default=0)

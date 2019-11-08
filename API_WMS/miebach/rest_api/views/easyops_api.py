@@ -82,7 +82,10 @@ class EasyopsAPI:
                          % (str(response.status_code)))
         try:
             if not isinstance(response, dict):
-                response = response.json()
+                if response.status_code == 204:
+                    response = {}
+                else:
+                    response = response.json()
             else:
                 log.info("Response Object came as Dict Obj for url is %s headers is %s request is %s"
                          % (url, str(self.headers), str(data)))

@@ -7932,6 +7932,7 @@ def create_order_pos(user, order_objs, admin_user=None):
             if cust_order_summary:
                 taxes = cust_order_summary.values('cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax')[0]
             supplier_id = cust_supp_mapping[str(customer_id)]
+            po_reference = order_obj.original_order_id
             purchase_data = copy.deepcopy(PO_DATA)
             po_sku_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
             sku = order_obj.sku
@@ -7943,6 +7944,7 @@ def create_order_pos(user, order_objs, admin_user=None):
             po_sku_data['measurement_unit'] = sku.measurement_type
             po_sku_data['order_type'] = 'SP'
             po_sku_data['status'] = 0
+            po_sku_data['po_name'] = po_reference
             po_sku_data.update(taxes)
             create_po = OpenPO(**po_sku_data)
             create_po.save()

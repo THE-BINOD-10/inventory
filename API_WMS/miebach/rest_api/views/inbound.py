@@ -2987,6 +2987,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             purchase_data['price'] = float(sku_row_buy_price)
         purchase_data['cess_tax'] = sku_row_cess_percent
         purchase_data['apmc_tax'] = sku_row_apmc_percent
+        purchase_data['remarks'] = remarks
         if 'discount_percentage' in myDict and myDict['discount_percentage'][i]:
             sku_row_discount_percent = float(myDict['discount_percentage'][i])
         if sku_row_tax_percent:
@@ -3259,6 +3260,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             name = purchase_data['supplier_name']
             supplier_email = purchase_data['email_id']
             gstin_number = purchase_data['gstin_number']
+            remarks = purchase_data['remarks']
             order_id = data.order_id
             order_date = get_local_date(request.user, data.creation_date)
             order_date = datetime.datetime.strftime(datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
@@ -3312,7 +3314,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'company_name': profile.company_name, 'company_address': profile.address,
                                 'po_number': po_number, 'bill_no': bill_no,
                                 'order_date': order_date, 'order_id': order_id,
-                                'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number }
+                                'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number, 'remarks':remarks}
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')

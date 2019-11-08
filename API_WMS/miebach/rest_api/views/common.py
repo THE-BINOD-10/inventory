@@ -1343,8 +1343,9 @@ def get_auto_po_quantity(sku, stock_quantity=''):
     raise_quantity = int(sku.threshold_quantity) - total_quantity
     if raise_quantity < 0:
         raise_quantity = 0
-
-    return int(raise_quantity), int(total_quantity)
+    
+    max_norm_qty = int(sku.max_norm_quantity)
+    return int(raise_quantity), int(total_quantity), max_norm_qty
 
 
 def auto_po_warehouses(sku, qty):
@@ -1431,7 +1432,7 @@ def auto_po(wms_codes, user):
         price_band_flag = get_misc_value('priceband_sync', user)
         for sku in sku_codes:
             taxes = {}
-            qty, total_qty = get_auto_po_quantity(sku)
+            qty, total_qty, max_norm_qty = get_auto_po_quantity(sku)
             if total_qty >= int(sku.threshold_quantity):
                 continue
             if price_band_flag == 'true':
@@ -1483,7 +1484,7 @@ def auto_po(wms_codes, user):
             suggestions_data = OpenPO.objects.filter(sku_id=sku.id, sku__user=user,
                                                      status__in=['Automated', 1, 'Manual'])
             if not suggestions_data.exists():
-                order_quantity = max(qty,moq)
+                order_quantity = max(qty,moq,max_norm_qty)
             else:
                 order_quantity = qty
             automated_po = OpenPO.objects.filter(sku_id=sku.id, sku__user=user,

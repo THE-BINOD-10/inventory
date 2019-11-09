@@ -2905,12 +2905,12 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                                 exclude(invoice_number='')
             else:
                 invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
-            invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
             if invoice_ins:
                 order_no = invoice_ins[0].invoice_number
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
                 inv_no = order_no
-            elif invoice_no_gen[0].misc_value == 'true':
+            elif invoice_no_gen[0].misc_value == 'true' and order.marketplace != 'Sample':
+                invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
                 if invoice_sequence:
                     invoice_seq = invoice_sequence[0]
                     inv_no = int(invoice_seq.value)

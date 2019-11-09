@@ -5315,12 +5315,9 @@ def insert_order_data(request, user=''):
                         order_data = get_order_customer_details(order_data, request)
                     if payment_received:
                         order_payment = 0
-                        if float(order_data['invoice_amount']) < float(payment_received):
-                            payment_received = float(payment_received) - float(order_data['invoice_amount'])
-                            order_payment = float(order_data['invoice_amount'])
-                        else:
-                            payment_received = float(payment_received)
-                            order_payment = float(payment_received)
+                        total_invoice_amount = sum([int(i) for i in myDict['invoice_amount'] if type(i)== int or i.isdigit()])
+                        temp_invoice_amnt = float(order_data['invoice_amount']) /float(total_invoice_amount)
+                        order_payment =  round(float(payment_received) * float(temp_invoice_amnt))
                         order_data['payment_received'] = order_payment
                     creation_date = datetime.datetime.now()
                     order_data['creation_date'] = creation_date

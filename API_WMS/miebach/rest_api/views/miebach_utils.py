@@ -4016,8 +4016,8 @@ def get_order_summary_data(search_params, user, sub_user):
         milkbasket_user = True
 
     lis = ['creation_date', 'order_id', 'customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
-           'sku__sku_size', 'sku__sku_desc', 'sku_code', 'quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
-           'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id','order_id','order_id','order_id', 'order_id','order_id','order_id','order_id','invoice_number','quantity','creation_date'];
+           'sku__sku_size', 'sku__sku_desc', 'sku_code', 'sku_code','quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
+           'sku__discount_percentage', 'sku__mrp', 'sku__mrp','city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id','order_id','order_id','order_id', 'order_id','order_id','order_id','order_id','invoice_number','challan_number','quantity','creation_date'];
     if milkbasket_user :
         lis.append('order_id')
     # lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
@@ -4079,7 +4079,7 @@ def get_order_summary_data(search_params, user, sub_user):
     if search_params.get('invoice','') == 'true':
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
-                                                                    'sku__sku_desc','sku__price','sellerordersummary__invoice_number','address',
+                                                                    'sku__sku_desc','sku__price','sellerordersummary__invoice_number','sellerordersummary__challan_number','address',
                                                                     'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
                                                                     'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received').exclude(status = 3).distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
     else:
@@ -4177,7 +4177,7 @@ def get_order_summary_data(search_params, user, sub_user):
     total_row = OrderedDict((('Order Date', ''), ('Order ID', ""),('Customer Name', ""),('Order Number' ,""),
     ('SKU Brand', ""),('SKU Category', ''),('SKU Class', ''),('SKU Size', ''), ('SKU Description', ''),
     ('SKU Code', 'TotalQuantity='), ('Vehicle Number', ''), ('Order Qty',temp_data['totalOrderQuantity']),('MRP', ''), ('Unit Price',''),('Discount', ''),
-    ('Serial Number',''),('Invoice Number',''),('Quantity',''),('Payment Type' ,''),('Reference Number',''),
+    ('Serial Number',''),('Invoice Number',''),('Challan Number', ''),('Quantity',''),('Payment Type' ,''),('Reference Number',''),
     ('Taxable Amount',''), ('Tax', ''),('City', ''), ('State', ''), ('Marketplace', 'TotalInvoiceAmount='),('Invoice Amount', temp_data['totalSellingPrice']),
     ('Price', ''),('Status', ''), ('Order Status', ''),('Customer GST Number',''),('Remarks', ''), ('Order Taken By', ''),
     ('Invoice Date',''),('Billing Address',''),('Shipping Address',''),('Payment Cash', ''),('Payment Card', ''),('Payment PhonePe',''),('Payment GooglePay',''),('Payment Paytm',''), ('Advance Amount', '')))
@@ -4210,7 +4210,6 @@ def get_order_summary_data(search_params, user, sub_user):
             order_id = data['original_order_id']
         payment_type = ''
         reference_number = ''
-
         if  'DC'  in data['order_code'] or 'PRE' in data['order_code']:
             payment_obj = OrderFields.objects.filter(original_order_id=data['original_order_id'], \
                                    name__contains='payment', user=user.id)
@@ -4319,13 +4318,15 @@ def get_order_summary_data(search_params, user, sub_user):
             for val in extra_vals:
                 if field == val['name']:
                     pos_extra[str(val['name'])] = str(val['value'])
-        invoice_number,invoice_date,quantity= '','',''
+        invoice_number,invoice_date,quantity,challan_number= '','','',''
         if search_params.get('invoice','') == 'true':
             invoice_number = data['sellerordersummary__invoice_number']
+            challan_number = data['sellerordersummary__challan_number']
             if not invoice_number :
                 invoice_number_obj = SellerOrderSummary.objects.filter(order_id = data['id'])
                 if invoice_number_obj.exists() :
                     invoice_number = invoice_number_obj[0].invoice_number
+                    challan_number = invoice_number_obj[0].challan_number
                     if not invoice_no_gen.exists() or (invoice_no_gen and invoice_no_gen[0].creation_date >= invoice_number_obj[0].creation_date):
                         if invoice_number_obj[0].order:
                             invoice_number = str(invoice_number_obj[0].order.order_id)
@@ -4391,6 +4392,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('Discount', discount),
                                                     ('Serial Number',serial_number),
                                                     ('Invoice Number',invoice_number),
+                                                    ('Challan Number', challan_number),
                                                     ('Quantity',quantity),
                                                     ('Payment Type' ,payment_type),
                                                     ('Reference Number',reference_number),

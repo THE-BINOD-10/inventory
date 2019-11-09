@@ -11614,6 +11614,7 @@ def generate_customer_invoice_tab(request, user=''):
         ord_ids = order_ids.split(",")
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         invoice_data['sequence_number'] = sequence_number
+        invoice_data['challan_number'] = seller_summary[0].challan_number if seller_summary else ''
         invoice_date = datetime.datetime.now()
         if seller_summary:
             if seller_summary[0].seller_order:

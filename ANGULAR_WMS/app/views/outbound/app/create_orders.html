@@ -22,7 +22,7 @@
             </span>
           </div>
         </div>
-        <div class="col-md-4 col-sm-4 col-xs-6" ng-if="($state.current.name != 'user.App.Categories')">
+        <div class="col-md-4 col-sm-4 col-xs-6" ng-if="($state.current.name != 'user.App.Categories') && ($state.current.name != 'user.App.BrandCategorization') ">
           <div ng-include="'views/App/create_orders/company_name.html'"></div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6" ng-if="!(showCase.is_portal_lite)">

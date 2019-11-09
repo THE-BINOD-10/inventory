@@ -45,10 +45,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   window.onhashchange = function() {
     if ($location.$$path == '/App/Brands'){
       if(localStorage.brand_value != '' || localStorage.category_value != ''){
-        localStorage.removeItem('brand_value')
-        localStorage.removeItem('category_value')
+        localStorage.removeItem('brand_value');
+        localStorage.removeItem('category_value');
         change_filter_data('removefilter');
       }
+    } else if($location.$$path == '/App/Products' && vm.brand_categorization) {
+      vm.brand_categorization_values(vm.temp_request['category'], 'backcheck')
     }
   }
   vm.test = [{wms_code: '101', sku_desc: 'Description-1'}, {wms_code: '102', sku_desc: 'Description-2'},
@@ -1824,6 +1826,7 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
   vm.pdfData.bank_details = true;
   vm.pdfData.address_details = true;
   vm.pdfData.remarks = '';
+  vm.brand_categorization = Session.roles.permissions.brand_categorization;
   if (Session.roles.permissions.customer_pdf_remarks) {
     vm.pdfData.remarks = Session.roles.permissions.customer_pdf_remarks;
   }
@@ -1853,6 +1856,9 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
     data['display_stock'] = vm.pdfData.display_stock;
     data['bank_details'] = vm.pdfData.bank_details;
     data['address_details'] = vm.pdfData.address_details;
+    if(vm.brand_categorization){
+      data['brand_categorization'] = true;
+    }
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
       if(response.message) {
         window.open(Session.host + response.data, '_blank');

@@ -20,7 +20,7 @@ function settingsForm($scope, $http, $q, Session, colFilters, Service, $state, $
     }else if (vm.permissions.customer_portal_prefered_view == '') {
       vm.viewType = 'None'
     }
-    vm.settingsType = ['None', 'Brand View', 'Category View', 'Product View']
+    vm.settingsType = ['None', 'Brand View', 'Category View']
   }
   vm.base();
   vm.change_config = function(switch_value, switch_name) {

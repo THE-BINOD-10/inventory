@@ -1819,7 +1819,7 @@ def check_req_min_order_val(user, skus):
     sku_qty_map = {}
     sku_objs = SKUMaster.objects.filter(wms_code__in=skus, user=user.id, threshold_quantity__gt=0)
     for sku in sku_objs:
-        qty, total_qty = get_auto_po_quantity(sku)
+        qty, total_qty,max_norm_qty = get_auto_po_quantity(sku)
         supplier_id, price, taxes = auto_po_warehouses(sku, qty)
         sku_qty_map[sku.sku_code] = (qty, price)
         if price:
@@ -5172,10 +5172,11 @@ def insert_order_data(request, user=''):
             # order_data['order_id'] = order_id
             order_data['status'] = order_status_key
             order_data['order_code'] = 'MN'
+            order_data['marketplace'] = 'Offline'
+            if is_sample == 'true':
+                order_data['marketplace'] = 'Sample'
             if marketplace_value:
                 order_data['marketplace'] = marketplace_value
-            else:
-                order_data['marketplace'] = 'Offline'
             if custom_order == 'true':
                 order_data['order_code'] = 'CO'
             order_data['user'] = user.id
@@ -5331,12 +5332,9 @@ def insert_order_data(request, user=''):
                         order_data = get_order_customer_details(order_data, request)
                     if payment_received:
                         order_payment = 0
-                        if float(order_data['invoice_amount']) < float(payment_received):
-                            payment_received = float(payment_received) - float(order_data['invoice_amount'])
-                            order_payment = float(order_data['invoice_amount'])
-                        else:
-                            payment_received = float(payment_received)
-                            order_payment = float(payment_received)
+                        total_invoice_amount = sum([int(i) for i in myDict['invoice_amount'] if type(i)== int or i.isdigit()])
+                        temp_invoice_amnt = float(order_data['invoice_amount']) /float(total_invoice_amount)
+                        order_payment =  round(float(payment_received) * float(temp_invoice_amnt))
                         order_data['payment_received'] = order_payment
                     creation_date = datetime.datetime.now()
                     order_data['creation_date'] = creation_date
@@ -9551,6 +9549,8 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
             generic_orders = GenericOrderDetailMapping.objects.filter(Q(orderdetail__status__icontains= '1'), **filter_dict).order_by(order_data)
         elif search_term == 'closed':
             generic_orders = GenericOrderDetailMapping.objects.filter(Q(orderdetail__status__icontains= '0'), **filter_dict).order_by(order_data)
+        elif search_term == 'cancel':
+            generic_orders = GenericOrderDetailMapping.objects.filter(Q(orderdetail__status__icontains= '3'), **filter_dict).order_by(order_data)
         elif search_term in corporatae_name:
             em_qs = EnquiryMaster.objects.filter(Q(corporate_name__icontains= search_term), **filter_dict).order_by(order_data)
         elif search_term:
@@ -9582,6 +9582,8 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
         data_status = data.filter(status=1)
         if data_status:
             status = 'open'
+        elif data.filter(status=3):
+            status = 'cancel'
         else:
             status = 'closed'
             pick_status = picklist.filter(order_id__in=order_detail_ids,
@@ -9825,6 +9827,8 @@ def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
     data_status = order.filter(status=1)
     if data_status:
         status = 'open'
+    elif order.filter(status=3):
+        status = 'cancel'
     else:
         status = 'closed'
         pick_status = Picklist.objects.filter(order_id__in=order_ids, status__icontains='open')
@@ -10011,7 +10015,6 @@ def get_intermediate_order_detail(request, user=""):
 @get_admin_user
 def get_customer_order_detail(request, user=""):
     """ Return customer order detail """
-
     log.info('Request params for ' + user.username + ' is ' + str(request.GET.dict()))
     response_data = {'data': []}
     order_id = request.GET['order_id']
@@ -10974,7 +10977,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             lis = ['invoice_number', 'invoice_number', 'financial_year', 'order__customer_name', 'invoice_number', 'invoice_number',
                    'invoice_number', 'invoice_number', 'invoice_number']
             user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
-            result_values = ['invoice_number', 'financial_year', 'order__customer_name']
+            result_values = ['invoice_number', 'financial_year', 'order__customer_name', 'order__marketplace']
             field_mapping = {'order_quantity_field': 'order__quantity', 'date_only': 'order__creation_date'}
             is_marketplace = False
 
@@ -11052,11 +11055,12 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                 data['ordered_quantity'] = seller_orders.get(data['seller_order__sor_id'], 0)
             else:
                 seller_order_summaries = order_summaries.filter(invoice_number=data['invoice_number'],
-                                                                financial_year=data['financial_year'])
+                                                                financial_year=data['financial_year'], order__marketplace=data['order__marketplace'])
                 order_ids = seller_order_summaries.values_list('order__id', flat= True)
                 order = seller_order_summaries[0].order
-                invoice_date = CustomerOrderSummary.objects.filter(order_id__in=order_ids)\
-                                                   .order_by('-invoice_date').values_list('invoice_date', flat=True)[0]
+                invoice_date = order.customerordersummary_set.filter()[0].invoice_date
+                #invoice_date = CustomerOrderSummary.objects.filter(order_id__in=order_ids)\
+                #                                   .order_by('-invoice_date').values_list('invoice_date', flat=True)[0]
                 if not invoice_date:
                     invoice_date = seller_order_summaries.order_by('-updation_date')[0].updation_date
                 data['ordered_quantity'] = OrderDetail.objects.filter(id__in=order_ids).only('quantity').aggregate(Sum('quantity'))['quantity__sum']
@@ -11084,7 +11088,6 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
 
             order_date = get_local_date(user, order.creation_date)
             invoice_date = invoice_date.strftime("%d %b %Y") if invoice_date else order.creation_date.strftime("%d %b %Y")
-
             if is_marketplace:
                 data_dict = OrderedDict((("Invoice ID", data['invoice_number']), ('UOR ID', order_id), ('SOR ID', summary.seller_order.sor_id),
                                          ('Seller ID', summary.seller_order.seller.seller_id),
@@ -11102,7 +11105,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             data_dict.update(OrderedDict((('Financial Year', data['financial_year']), ('Customer Name', customer_name),
                                           ('Order Quantity', data['ordered_quantity']), ('Picked Quantity', data['total_quantity']),
                                           ('Total Amount', "%.2f" %picked_amount),
-                                          ('Order Date&Time', invoice_date), ('Invoice Number', '')
+                                          ('Order Date&Time', invoice_date), ('Invoice Number', ''), ('Marketplace', order.marketplace)
                                           )))
             temp_data['aaData'].append(data_dict)
         log.info('Customer Invoice filtered %s for %s ' % (str(temp_data['recordsTotal']), user.username))
@@ -11147,6 +11150,7 @@ def get_processed_orders_data(start_index, stop_index, temp_data, search_term, o
                 master_data = SellerOrderSummary.objects.filter(Q(order__order_id__icontains=order_id_search,
                                                                   order__order_code__icontains=order_code_search) |
                                                                 Q(order__original_order_id__icontains=search_term) |
+                                                                Q(order__marketplace__icontains=search_term) |
                                                                 search_query, **user_filter). \
                     values(*result_values).distinct(). \
                     annotate(total_quantity=Sum('quantity'),
@@ -11234,7 +11238,7 @@ def get_processed_orders_data(start_index, stop_index, temp_data, search_term, o
             data_dict.update(OrderedDict((('Customer Name', order.customer_name),
                                           ('Order Quantity', ordered_quantity), ('Total Amount', round(picked_amount, 2)),
                                           ('Picked Quantity', data['total_quantity']),
-                                          ('Order Date&Time', order_date), ('Invoice Number', '')
+                                          ('Order Date&Time', order_date), ('Invoice Number', ''), ('Marketplace', order.marketplace)
                                           )))
             temp_data['aaData'].append(data_dict)
         log.info('Customer Invoice filtered %s for %s ' % (str(temp_data['recordsTotal']), user.username))
@@ -11544,6 +11548,7 @@ def move_to_dc(request, user=''):
 def move_to_inv(request, user=''):
     log.info('Move To Invoice: Request params for ' + user.username + ' are ' + str(request.GET.dict()))
     cancel_flag = request.GET.get('cancel', '')
+    is_sample_option =  get_misc_value('create_order_po', user.id)
     if cancel_flag == 'true':
         sell_ids = construct_sell_ids(request, user, cancel_inv=True)
         #del sell_ids['pick_number__in']
@@ -11551,6 +11556,15 @@ def move_to_inv(request, user=''):
         sell_ids = construct_sell_ids(request, user)
         #del sell_ids['pick_number__in']
     seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
+    if is_sample_option == 'true':
+        for data in seller_summary:
+            mappingData = list(OrderMapping.objects.filter(mapping_type='PO', order_id=data.order_id).values_list('mapping_id', flat=True))
+            if mappingData:
+                purchase_order_data = PurchaseOrder.objects.filter(id=mappingData[0]).values('received_quantity')
+                if purchase_order_data:
+                    received_quantity = purchase_order_data[0].get('received_quantity', 0)
+                    if received_quantity != 0:
+                        data.quantity = data.quantity - received_quantity
     if cancel_flag != 'true':
         if user.userprofile.user_type == 'marketplace_user':
             marketplace = seller_summary[0].seller_order.order.marketplace
@@ -11635,6 +11649,8 @@ def generate_customer_invoice_tab(request, user=''):
         all_data = OrderedDict()
         seller_order_ids = []
         pick_number = 1
+        if request.GET.get('Marketplace', ''):
+            sell_ids['order__marketplace'] = request.GET.get('Marketplace')
         for data_id in seller_summary_dat:
             splitted_data = data_id.split(':')
             sell_ids.setdefault(field_mapping['invoice_number_in'], [])
@@ -11666,6 +11682,7 @@ def generate_customer_invoice_tab(request, user=''):
         ord_ids = order_ids.split(",")
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         invoice_data['sequence_number'] = sequence_number
+        invoice_data['challan_number'] = seller_summary[0].challan_number if seller_summary else ''
         invoice_date = datetime.datetime.now()
         if seller_summary:
             if seller_summary[0].seller_order:
@@ -15997,7 +16014,7 @@ def sm_cancel_distributor_order(request):
         if not is_emiza_order_failed:
             order_det_ids = gen_qs.values_list('orderdetail_id', flat=True)
             order_cancel_functionality(order_det_ids)
-            gen_qs.delete()
+            # gen_qs.delete()
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

@@ -103,6 +103,7 @@ class SKUMaster(models.Model):
     product_type = models.CharField(max_length=64, default='')
     zone = models.ForeignKey(ZoneMaster, null=True, blank=True, default=None)
     threshold_quantity = models.FloatField(default=0)
+    max_norm_quantity = models.FloatField(default=0)
     online_percentage = models.PositiveIntegerField(default=0)
     discount_percentage = models.PositiveIntegerField(default=0)
     price = models.FloatField(default=0)
@@ -2157,7 +2158,7 @@ class SellerOrderSummary(models.Model):
         index_together = (('pick_number', 'seller_order'), ('pick_number', 'order'), ('pick_number', 'seller_order', 'picklist'),
                             ('pick_number', 'order', 'picklist'), ('order', 'order_status_flag'),
                           ('seller_order', 'order_status_flag'), ('picklist', 'seller_order'),
-                          ('picklist', 'order'))
+                          ('picklist', 'order'), ('invoice_number', 'financial_year', 'order'))
 
     def __unicode__(self):
         return str(self.id)

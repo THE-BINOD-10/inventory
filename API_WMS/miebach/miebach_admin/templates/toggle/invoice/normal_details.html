@@ -78,6 +78,11 @@
                            <strong>Vehicle Number:</strong>
                              {{ vehicle_number }}
                            <br>
+                           {% if challan_number %}
+                           <strong>DC Number: </strong>
+                             {{ challan_number }}
+                           <br>
+                           {% endif %}
                           {% if purchase_type %}
                           <span ng-if="showCase.pdf_data.purchase_type"><strong>Purchase Type:</strong>{{purchase_type}}</span>
                           {% endif %}

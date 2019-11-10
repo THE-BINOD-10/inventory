@@ -118,8 +118,8 @@
 
           <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group">
-              <label class="control-label">MARKETPLACES</label>
-              <select class="form-control" name="market_list" ng-model="showCase.market_filter" title="Select MarketPlace" required>
+              <label class="control-label">Marketplace</label>
+              <select class="form-control" name="market_list" ng-model="showCase.market_filter" title="Select MarketPlace" ng-init="showCase.market_filter" required>
                 <option value="Offline">Offline</option>
                 <option ng-repeat="market in showCase.market_list" value="{{market}}" ng-selected="market == showCase.market_filter">{{market}}</option>
               </select>

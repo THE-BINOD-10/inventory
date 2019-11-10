@@ -10,11 +10,13 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   vm.company_name = Session.user_profile.company_name;
   vm.order_exceed_stock = Boolean(Session.roles.permissions.order_exceed_stock);
   vm.permissions = Session.roles.permissions;
+  vm.brand_categorization = Session.roles.permissions.brand_categorization;
   vm.model_data = {}
   vm.dispatch_data = []
   vm.auto_shipment = false;
   vm.date = new Date();
   vm.payment_status = ['To Pay', 'VPP', 'Paid'];
+  vm.market_filter = 'Offline';
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: "",
                             location: "", serials: [], serial: "", capacity: 0, discount: ""
                           }],
@@ -118,6 +120,12 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
               return false;
               break;
             }
+          }
+        }
+        if (vm.final_data.total_amount && vm.model_data.payment_received != ''){
+          if (!(Math.round(vm.final_data.total_amount) <= parseInt(vm.model_data.payment_received)) ? true : false) {
+            colFilters.showNoty("Advance amount should not be less than total invoice amount");
+            return false;
           }
         }
         vm.bt_disable = true;
@@ -254,6 +262,9 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 
     vm.loading = true;
     var canceller = $q.defer();
+    if (vm.brand_categorization) {
+      data['brand_categorization'] = true;
+    }
     vm.service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
       if(response.message) {
         vm.gotData = response.data;

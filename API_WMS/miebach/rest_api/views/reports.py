@@ -812,7 +812,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
             if version_obj.exists():
                 updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
             if amount and qty:
-                avg_cost = '%.2f' %(amount/qty)
+                avg_cost = '%.2f' %(float(amount)/qty)
             manufacturer,searchable,bundle = '','',''
             attributes_obj = SKUAttributes.objects.filter(sku_id= sku.id, attribute_name__in= attributes_list)
             if attributes_obj.exists():
@@ -928,7 +928,7 @@ def get_aging_filter_data(search_params, user, sub_user):
         stock_date = get_stock_starting_date(stock['receipt_number'], stock['receipt_type'], stock['sku__user'], stock['receipt_date'])
         age_days = (datetime.datetime.now().date() - stock_date.date()).days
         cond = (stock['sku__sku_code'], stock['sku__sku_desc'], stock['sku__sku_category'],
-                (datetime.datetime.now().date() - stock['receipt_date'].date()).days, stock['location__location'], stock['sku__user'],age_days,
+                age_days, stock['location__location'], stock['sku__user'], stock['sku__sub_category'],
                  stock['sku__sub_category'],stock['sku__sku_brand'],stock['sku_id'])
         all_data.setdefault(cond, 0)
         all_data[cond] += stock['total']
@@ -940,9 +940,9 @@ def get_aging_filter_data(search_params, user, sub_user):
         all_data = all_data[start_index:stop_index]
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in all_data:
-        if data[8]:
+        if data[9]:
             manufacturer,searchable,bundle = '','',''
-            attributes_obj = SKUAttributes.objects.filter(sku_id=data[8], attribute_name__in= attributes_list)
+            attributes_obj = SKUAttributes.objects.filter(sku_id=data[9], attribute_name__in= attributes_list)
             if attributes_obj.exists():
                 for attribute in attributes_obj:
                     if attribute.attribute_name == 'Manufacturer':
@@ -1108,6 +1108,7 @@ def print_po_reports(request, user=''):
             purchase_order = results[0].purchase_order
         address = purchase_order.open_po.supplier.address
         address = '\n'.join(address.split(','))
+        remarks = purchase_order.remarks
         telephone = purchase_order.open_po.supplier.phone_number
         name = purchase_order.open_po.supplier.name
         supplier_id = purchase_order.open_po.supplier.id
@@ -1152,7 +1153,7 @@ def print_po_reports(request, user=''):
                    'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,'overall_discount':overall_discount,
                    'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': total_tax,'net_amount':net_amount,
-                   'company_address': company_address, 'sr_number': sr_number, 'lr_number': lr_number})
+                   'company_address': company_address, 'sr_number': sr_number, 'lr_number': lr_number, 'remarks': remarks})
 
 
 @csrf_exempt

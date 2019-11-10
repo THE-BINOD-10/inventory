@@ -605,6 +605,7 @@ urlpatterns += [
     url(r'^delete_tally_data/$', delete_tally_data),
     url(r'^delete_tax/$', delete_tax),
     url(r'^update_invoice_sequence/$', update_invoice_sequence),
+    url(r'^update_dc_sequence/$', update_dc_sequence),
     url(r'^update_mail_alerts/$', update_mail_alerts),
     url(r'^pos_extra_fields/$',pos_extra_fields),
     url(r'^save_grn_fields/$',save_grn_fields),

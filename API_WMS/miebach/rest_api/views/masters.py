@@ -821,6 +821,7 @@ def get_sku_data(request, user=''):
     sku_data['product_type'] = data.product_type
     sku_data['zone'] = zone_name
     sku_data['threshold_quantity'] = data.threshold_quantity
+    sku_data['max_norm_quantity'] = data.max_norm_quantity
     sku_data['online_percentage'] = data.online_percentage
     sku_data['image_url'] = data.image_url
     sku_data['qc_check'] = data.qc_check
@@ -1042,7 +1043,7 @@ def update_sku(request, user=''):
     today = datetime.datetime.now().strftime("%Y%m%d")
     storehippo_fulfillments_log = init_logger('logs/storehippo_fulfillments_log_' + today + '.log')
     try:
-        number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'ean_number',
+        number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'max_norm_quantity',
                          'hsn_code', 'shelf_life']
         wms = request.POST['wms_code']
         description = request.POST['sku_desc']
@@ -1068,9 +1069,6 @@ def update_sku(request, user=''):
                 if value == 'Enable':
                     value = 1
                 else:
-                    value = 0
-            elif key == 'threshold_quantity':
-                if not value:
                     value = 0
             elif key == 'zone_id' and value:
                 zone = get_or_none(ZoneMaster, {'zone': value, 'user': user.id})

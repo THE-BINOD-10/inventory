@@ -1636,6 +1636,13 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     sku_data.threshold_quantity = cell_data
                 data_dict[key] = cell_data
 
+            elif key == 'max_norm_quantity':
+                if not cell_data:
+                    cell_data = 0
+                if sku_data and cell_data:
+                    sku_data.max_norm_quantity = cell_data
+                data_dict[key] = cell_data
+
             elif key == 'price':
                 if not cell_data:
                     cell_data = 0

@@ -1486,11 +1486,11 @@ def get_mp_inventory(request):
                 mrp_list = mrp_dict.values()
                 if not mrp_list:
                     sku_obj = SKUMaster.objects.get(id=sku['id'])
-                    mrp_list = OrderedDict(( ('mrp', sku_obj.mrp), ('weight', get_sku_weight(sku_obj)),
+                    mrp_list = [OrderedDict(( ('mrp', sku_obj.mrp), ('weight', get_sku_weight(sku_obj)),
                                                                      ('inventory', OrderedDict((('sellable', 0),
                                                                                                 ('on_hold', 0),
                                                                                                 ('un_sellable', 0),
-                                                                                                ('bulk_area', 0))))))
+                                                                                                ('bulk_area', 0))))))]
                 data.append(OrderedDict(( ('sku', sku['sku_code']), ('data', mrp_list))))
         else:
             stocks = dict(SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone').\

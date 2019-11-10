@@ -1075,7 +1075,9 @@ def switches(request, user=''):
                        'update_mrp_on_grn': 'update_mrp_on_grn',
                        'mandate_sku_supplier':'mandate_sku_supplier',
                        'weight_integration_name': 'weight_integration_name',
-                       'repeat_po':'repeat_po'
+                       'repeat_po':'repeat_po',
+                       'loc_serial_mapping_switch':'loc_serial_mapping_switch',
+                       'brand_categorization':'brand_categorization',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -3465,11 +3467,11 @@ def check_returns(request, user=''):
                     continue
                 else:
                     remaining_return = int(value) - int(order_track_quantity)
-                    data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2],
+                    data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'order_detail_id': key[3],
                                  'ship_quantity': remaining_return, 'return_quantity': remaining_return,
                                  'damaged_quantity': 0})
             else:
-                data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2],
+                data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'order_detail_id': key[3],
                              'ship_quantity': value, 'return_quantity': value, 'damaged_quantity': 0})
         if not data:
             status = str(key[0]) + ' Order ID Already Returned'
@@ -3616,7 +3618,10 @@ def create_return_order(data, user):
         if seller_id:
             return_details['seller_id'] = seller_id
         if data.get('order_id', ''):
-            order_detail = get_order_detail_objs(data['order_id'], user_obj,
+            if data.get('order_detail_id', ''):
+                order_detail = OrderDetail.objects.filter(user=user, id=data['order_detail_id'])
+            else:
+                order_detail = get_order_detail_objs(data['order_id'], user_obj,
                                                  search_params={'sku_id': sku_id[0].id, 'user': user})
             if order_detail:
                 return_details['order_id'] = order_detail[0].id

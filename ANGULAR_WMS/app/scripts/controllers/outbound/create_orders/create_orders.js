@@ -10,10 +10,13 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   vm.company_name = Session.user_profile.company_name;
   vm.order_exceed_stock = Boolean(Session.roles.permissions.order_exceed_stock);
   vm.permissions = Session.roles.permissions;
+  vm.brand_categorization = Session.roles.permissions.brand_categorization;
   vm.model_data = {}
+  vm.dispatch_data = []
   vm.auto_shipment = false;
   vm.date = new Date();
   vm.payment_status = ['To Pay', 'VPP', 'Paid'];
+  vm.market_filter = 'Offline';
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: "",
                             location: "", serials: [], serial: "", capacity: 0, discount: ""
                           }],
@@ -57,6 +60,10 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     }
   }
 
+  vm.market_list = ["Flipkart","Snapdeal","Paytm","Amazon","Shopclues","HomeShop18","Jabong","Indiatimes","Myntra",
+                "Voonik","Mr Voonik","Vilara", "Limeroad"];
+
+
   vm.selected = {}
   vm.get_customer_data = function(item, model, label, event) {
     vm.model_data["customer_id"] = item.customer_id;
@@ -74,7 +81,9 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     }
     vm.add_customer = false;
     angular.copy(item, vm.selected)
-    vm.change_sku_prices();
+    if (!vm.model_data.blind_order){
+      vm.change_sku_prices();
+    }
     vm.change_tax_type();
   }
 
@@ -253,6 +262,9 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 
     vm.loading = true;
     var canceller = $q.defer();
+    if (vm.brand_categorization) {
+      data['brand_categorization'] = true;
+    }
     vm.service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
       if(response.message) {
         vm.gotData = response.data;
@@ -693,7 +705,15 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     vm.discountPercentageChange(data, false);
     vm.get_tax_value(data);
     var per = Number(data.tax);
-    data.total_amount = ((Number(data.invoice_amount - Number(data.discount))/100)*per)+(Number(data.invoice_amount)-Number(data.discount));
+    vm.marginal_flag = data.marginal_flag;
+    if (vm.marginal_flag){
+      data.total_amount = Number(data.invoice_amount)
+
+    }else{
+      data.total_amount = ((Number(data.invoice_amount - Number(data.discount))/100)*per)+(Number(data.invoice_amount)-Number(data.discount));
+
+    }
+
 
     if(!no_total) {
       vm.cal_total();
@@ -793,6 +813,94 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     });
     $state.go("app.outbound.CreateOrders.customer");
   }
+
+
+  vm.title = "Dispatch Serial Numbers";
+  vm.dispatch_data = []
+  vm.dispatch_serial_numbers_pop = function() {
+    $state.go("app.outbound.CreateOrders.DispatchSerialNumbers");
+  }
+
+  vm.update_data_serial = update_data_serial;
+  function update_data_serial(index, data, last) {
+    console.log(data);
+    if (last && (!vm.dispatch_data[index].serial_number)) {
+      return false;
+    }
+    if (last) {
+      vm.dispatch_data.push({serial_number: "", sku_code: "", location: "", cost_price: "", selling_price: ""});
+    } else {
+      vm.dispatch_data.splice(index,1);
+    }
+  }
+
+  vm.SerialcheckAndAdd = function(scan) {
+
+    var status = false;
+    for(var i = 0; i < vm.scan_codes.length; i++) {
+
+      if(vm.scan_codes.indexOf(scan) > -1){
+        status = true;
+        break;
+      }
+    }
+    return status;
+  }
+
+  vm.elem = []
+  vm.scan_codes = []
+  vm.scan_imei = function(event, field) {
+      if ( event.keyCode == 13 && field) {
+        field = field.toUpperCase();
+        var elem = {serial: field, cost_check:vm.model_data.blind_order};
+        vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
+        if(data.message) {
+          if(data.data.status == "Success") {
+            if(vm.SerialcheckAndAdd(field)) {
+              vm.service.showNoty("Already Scanned")
+            }
+            else {
+              vm.dispatch_data.push(data.data['dispatch_summary_imei_details'])
+              vm.scan_codes.push(field)
+            }
+          } else {
+            vm.service.showNoty(data.data.status);
+          }
+        }
+      });
+        vm.imei="";
+      }
+    }
+
+    vm.submit_dispatch_data = function(event, form) {
+      if (form.$valid){
+        var elem = [];
+        var send = vm.dispatch_data;
+        elem.push({'name':'dispatch_Serial_data','value':JSON.stringify(vm.dispatch_data)})
+        vm.service.apiCall('dispatch_serial_numbers/', 'POST', elem).then(function(data){
+         if(data.message) {
+           if(data.data.serial_data){
+             vm.serial_data = data.data.serial_data;
+             vm.model_data.blind_order = true;
+             vm.model_data.data = []
+             angular.forEach(data.data.serial_data, function(serial_data){
+               vm.qty = serial_data.serial_number;
+               vm.unit_price = serial_data.selling_price/vm.qty.length;
+               // vm.marginal_flag = serial_data.marginal_flag
+               vm.model_data.data.push({sku_id: serial_data.sku_code, quantity: vm.qty.length, description: serial_data.sku_desc,
+                                        invoice_amount:serial_data.selling_price, price: vm.unit_price , tax: "", total_amount:'', unit_price: "",location: serial_data.location,
+                                        serials: serial_data.serial_number, serial: "", capacity: 0, extra: '', discount: ""})
+             })
+           }
+           vm.model_data.blind_order = true;
+           $state.go('app.outbound.CreateOrders');
+           vm.change_tax_type();
+         }
+       });
+      }
+    }
+
+
   vm.submit = function(data){
     if (data.$valid) {
       vm.service.apiCall('insert_customer/', 'POST', vm.customer_data, true).then(function(data){
@@ -915,6 +1023,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
           vm.get_customer_sku_prices(record.sku_id).then(function(data){
             if(data.length > 0) {
               console.log(data);
+              record.marginal_flag = data[0]['marginal_flag']
               record.taxes = data[0].taxes;
               vm.cal_percentage(record, false);
             }
@@ -1373,7 +1482,6 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   }
 
   vm.change_quantity = function(data) {
-
     var flag = false;
     if(vm.model_data.blind_order) {
 
@@ -1421,7 +1529,6 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     }
     return status;
   }
-
   vm.serial_scan = function(event, scan, sku_data) {
     if ( event.keyCode == 13 && scan) {
       event.preventDefault();
@@ -1431,10 +1538,10 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
       } else if(!sku_data.location) {
         vm.service.showNoty("Please Select Location First");
       } else {
-        var elem = {serial: scan};
+        var elem = {serial: scan, cost_check:vm.model_data.blind_order};
         vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
           if(data.message) {
-            if(data.data.status == "") {
+            if(data.data.status == "Success") {
               if (data.data.data.sku_code != sku_data.sku_id) {
                 vm.service.showNoty("IMEI Code not matching with SKU code");
               } else if(vm.checkAndAdd(scan)) {
@@ -1444,6 +1551,11 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
                 sku_data.quantity = sku_data.serials.length;
                 sku_data.invoice_amount = vm.service.multi(sku_data.quantity, sku_data.price);
                 vm.cal_percentage(sku_data);
+                for(var i = 0; i < vm.model_data.data.length ; i++) {
+                  if (vm.model_data.data[i]["sku_id"] == data.data.data.sku_code) {
+                    vm.model_data.data[i]['cost_price'] = data.data.data.cost_price;
+                  }
+                }
               }
             } else {
               vm.service.showNoty(data.data.status);

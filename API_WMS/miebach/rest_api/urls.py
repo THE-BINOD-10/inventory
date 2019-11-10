@@ -409,6 +409,7 @@ urlpatterns = [
     url(r'^remove_customer_profile_image/$', remove_customer_profile_image),
     url(r'^print_pdf_my_orders_swiss/$', print_pdf_my_orders_swiss),
     url(r'^sm_custom_order_cancel/$', sm_custom_order_cancel),
+    url(r'^dispatch_serial_numbers/$', dispatch_serial_numbers),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),
@@ -646,6 +647,7 @@ urlpatterns += [
     url(r'^save_order_extra_fields/$', save_order_extra_fields),
     url(r'^get_sku_mrp/$', get_sku_mrp),
     url(r'^get_current_weight/$', get_current_weight),
+    url(r'^get_decimal_data/$', get_decimal_data),
 
 
     # Retailone

@@ -837,6 +837,8 @@ def configurations(request, user=''):
     config_dict['marketplaces'] = get_marketplace_names(user, 'all_marketplaces')
     config_dict['prefix_data'] = list(InvoiceSequence.objects.filter(user=user.id, status=1).exclude(marketplace=''). \
                                       values('marketplace', 'prefix', 'interfix', 'date_type'))
+    config_dict['prefix_dc_data'] = list(ChallanSequence.objects.filter(user=user.id, status=1).exclude(marketplace=''). \
+                                      values('marketplace', 'prefix'))
 
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
     config_dict['all_stages'] = str(','.join(all_stages))
@@ -2907,12 +2909,12 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                                 exclude(invoice_number='')
             else:
                 invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
-            invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
             if invoice_ins:
                 order_no = invoice_ins[0].invoice_number
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
                 inv_no = order_no
-            elif invoice_no_gen[0].misc_value == 'true':
+            elif invoice_no_gen[0].misc_value == 'true' and order.marketplace != 'Sample':
+                invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
                 if invoice_sequence:
                     invoice_seq = invoice_sequence[0]
                     inv_no = int(invoice_seq.value)
@@ -3042,6 +3044,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     show_disc_invoice = get_misc_value('show_disc_invoice', user.id)
     show_mrp = get_misc_value('show_mrp', user.id)
     show_sno = get_misc_value('sno_in_invoice',user.id)
+    is_sample_option =  get_misc_value('create_order_po', user.id)
     count = 0
 
     if len(invoice_remarks.split("<<>>")) > 1:
@@ -3244,13 +3247,70 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                             data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity = common_calculations(arg_data)
 
                 else:
-                    arg_data = {'unit_price':unit_price,'quantity':quantity,'discount':discount,'dat':dat,'is_gst_invoice':is_gst_invoice,'marginal_flag':marginal_flag,
+                    hsn_summary[summary_key] = {}
+                    hsn_summary[summary_key]['taxable'] = float("%.2f" % float(amt))
+                    hsn_summary[summary_key]['sgst_amt'] = float("%.2f" % float(sgst_amt))
+                    hsn_summary[summary_key]['cgst_amt'] = float("%.2f" % float(cgst_amt))
+                    hsn_summary[summary_key]['igst_amt'] = float("%.2f" % float(igst_amt))
+                    hsn_summary[summary_key]['utgst_amt'] = float("%.2f" % float(utgst_amt))
+                    hsn_summary[summary_key]['cess_amt'] = float("%.2f" % float(cess_amt))
+            else:
+                _tax = (amt * (vat / 100))
+
+            discount_percentage = 0
+            if (quantity * unit_price):
+                discount_percentage = "%.1f" % (float((discount * 100) / (quantity * unit_price)))
+            unit_price = "%.2f" % unit_price
+            total_quantity += quantity
+            partial_order_quantity_price += (float(unit_price) * float(quantity))
+            _total_tax += _tax
+            invoice_amount = _tax + amt
+            total_invoice += _tax + amt
+            total_taxable_amt += amt
+            sku_code = dat.sku.sku_code
+            sku_desc = dat.sku.sku_desc
+            measurement_type = dat.sku.measurement_type
+            if display_customer_sku == 'true':
+                customer_sku_code_ins = customer_sku_codes.filter(customer__customer_id=dat.customer_id,
+                                                                  sku__sku_code=sku_code)
+                if customer_sku_code_ins:
+                    sku_code = customer_sku_code_ins[0]['customer_sku_code']
+
+            temp_imeis = []
+            temp_imeis = get_mapping_imeis(user, dat, seller_summary, sor_id, sell_ids=sell_ids)
+            imei_data.append(temp_imeis)
+            if sku_code in [x['sku_code'] for x in data]:
+                continue
+            if math.ceil(quantity) == quantity:
+                quantity = int(quantity)
+            quantity = get_decimal_limit(user.id ,quantity)
+            invoice_amount = get_decimal_limit(user.id ,invoice_amount ,'price')
+            count = count +1
+            received_quantity, invoice_qty = '', ''
+            if is_sample_option == 'true':
+                order_quantity = SellerOrderSummary.objects.filter(order_id=dat.id).aggregate(Sum('quantity'))
+                mappingData = list(OrderMapping.objects.filter(mapping_type='PO', order_id=dat.id).values_list('mapping_id', flat=True))
+                if mappingData:
+                    purchase_order_data = PurchaseOrder.objects.filter(id=mappingData[0]).values('received_quantity')
+                    if purchase_order_data:
+                        received_quantity = purchase_order_data[0].get('received_quantity', 0)
+                        invoice_qty = order_quantity['quantity__sum'] - received_quantity
+            data.append(
+                {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
+                 'title': title, 'invoice_amount': str(invoice_amount),
+                 'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price, 'tax_type': tax_type,
+                 'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
+                 'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
+                 'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
+                 'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date,'sno':count,
+                 'measurement_type': measurement_type, 'received_quantity': received_quantity, 'invoice_qty': invoice_qty})
+            arg_data = {'unit_price':unit_price,'quantity':quantity,'discount':discount,'dat':dat,'is_gst_invoice':is_gst_invoice,'marginal_flag':marginal_flag,
                                 'cgst_tax':cgst_tax,'sgst_tax':sgst_tax,'igst_tax':igst_tax,'utgst_tax':utgst_tax,'cess_tax':cess_tax,'profit_price':profit_price,'hsn_summary':hsn_summary,
                                 'total_quantity':total_quantity,'partial_order_quantity_price':partial_order_quantity_price,'_total_tax':_total_tax,
                                 'total_invoice':total_invoice,'total_taxable_amt':total_taxable_amt,'display_customer_sku':display_customer_sku,'customer_sku_codes':customer_sku_codes,
                                 'user':user,'sor_id':sor_id,'sell_ids':sell_ids,'seller_summary':seller_summary,'data':data,'order_id':order_id,'title':title,'tax_type':tax_type,'vat':vat,'mrp_price':mrp_price,
                                 'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal,'taxes_dict':taxes_dict, 'seller_summary_imei':'','imei_data_sku_wise':imei_data_sku_wise}
-                    data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity = common_calculations(arg_data)
+            data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity = common_calculations(arg_data)
 
     is_cess_tax_flag = 'true'
     for ord_dict in data:
@@ -3279,7 +3339,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 ord_dict.pop('igst_tax')
             if 'igst_amt' in ord_dict:
                 ord_dict.pop('igst_amt')
-
     _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos, order_obj=dat)
     challan_no, challan_sequence = get_challan_number(user, seller_summary)
     inv_date = invoice_date.strftime("%m/%d/%Y")
@@ -3383,7 +3442,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference,
                     'order_reference_date_field': order_reference_date_field,
                     'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
-                    'cin_no': cin_no, 'challan_no': challan_no, 'customer_id': customer_id,
+                    'cin_no': cin_no, 'challan_no': challan_no, 'customer_id': customer_id,'challan_sequence':challan_sequence,
                     'show_mrp': show_mrp, 'mode_of_transport' : mode_of_transport, 'vehicle_number' : vehicle_number,
                     'is_cess_tax_flag': is_cess_tax_flag, 'is_igst_tax_flag': is_igst_tax_flag}
     return invoice_data
@@ -6967,6 +7026,45 @@ def update_invoice_sequence(request, user=''):
         status = 'Update Invoice Number Sequence Failed'
     return HttpResponse(json.dumps({'status': status}))
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_dc_sequence(request, user=''):
+
+    log.info('Request Params for Update Dc Invoice Sequences for %s is %s' % (user.username, str(request.GET.dict())))
+    status = ''
+    try:
+        marketplace_name = request.GET.get('marketplace_name', '')
+        if not marketplace_name:
+            status = 'Marketplace Name Should not be empty'
+        marketplace_prefix = request.GET.get('marketplace_prefix', '')
+        marketplace_interfix = request.GET.get('marketplace_interfix', '')
+        marketplace_date_type = request.GET.get('marketplace_date_type', '')
+        delete_status = request.GET.get('delete', '')
+        if not status:
+            challan_sequence = ChallanSequence.objects.filter(user_id=user.id, marketplace=marketplace_name)
+            if challan_sequence:
+                challan_sequence = invoice_sequence[0]
+                challan_sequence.prefix = marketplace_prefix
+                challan_sequence.interfix = marketplace_interfix
+                challan_sequence.date_type = marketplace_date_type
+                if delete_status:
+                    challan_sequence.status = 0
+                else:
+                    challan_sequence.status = 1
+                challan_sequence.save()
+            else:
+                ChallanSequence.objects.create(marketplace=marketplace_name, prefix=marketplace_prefix, value=1,
+                                               status=1,user_id=user.id, creation_date=datetime.datetime.now())
+            status = 'Success'
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update DC Invoice Sequence failed for %s and params are %s and error statement is %s' %
+                 (str(user.username), str(request.GET.dict()), str(e)))
+        status = 'Update DC Invoice Number Sequence Failed'
+    return HttpResponse(json.dumps({'status': status}))
 
 def get_warehouse_admin(user):
     """ Check and Return Admin user of current """
@@ -8016,6 +8114,7 @@ def create_order_pos(user, order_objs, admin_user=None):
             if cust_order_summary:
                 taxes = cust_order_summary.values('cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax')[0]
             supplier_id = cust_supp_mapping[str(customer_id)]
+            po_reference = order_obj.original_order_id
             purchase_data = copy.deepcopy(PO_DATA)
             po_sku_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
             sku = order_obj.sku
@@ -8027,6 +8126,7 @@ def create_order_pos(user, order_objs, admin_user=None):
             po_sku_data['measurement_unit'] = sku.measurement_type
             po_sku_data['order_type'] = 'SP'
             po_sku_data['status'] = 0
+            po_sku_data['po_name'] = po_reference
             po_sku_data.update(taxes)
             create_po = OpenPO(**po_sku_data)
             create_po.save()

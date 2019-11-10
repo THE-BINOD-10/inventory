@@ -190,7 +190,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.main_sr_number = ''
                 }
                 vm.warehouse = aData['Warehouse']
-                vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId'], warehouse: aData['Warehouse']}).then(function(data){
+                var dataDict = {
+                  'supplier_id': aData['DT_RowId'],
+                  'warehouse': aData['Warehouse'] ,
+                  'sample_order': (aData['Order Type'] == 'Sample Order') ? 1 : 0
+                }
+                vm.service.apiCall('get_supplier_data/', 'GET', dataDict).then(function(data){
                   if(data.message) {
                     vm.serial_numbers = [];
                     vm.skus_total_amount = 0;

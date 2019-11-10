@@ -1,21 +1,19 @@
-<div>
-  <div class="page-layout">
-    <div class='layout-header'>
-      <div class="pull-left" ng-include="'views/common/title.html'"></div>
-      <div ng-include="'views/common/excel.html'"></div>
-    </div>
-    <div class="layout-body">
-      <tabset class="box-tab">
-        <tab heading="Processed Orders">
-          <div ng-include="'views/outbound/customer_invoices/processed_orders.html'"></div>
-        </tab>
-        <tab heading="Delivery Challans">
-          <div ng-include="'views/outbound/customer_invoices/delivery_challan.html'"></div>
-        </tab>
-        <tab heading="Customer Invoices">
-          <div ng-include="'views/outbound/customer_invoices/customer_invoices.html'"></div>
-        </tab>
-      </tabset>
-    </div>
+<div class="page-layout">
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+    <div ng-include="'views/common/excel.html'"></div>
+  </div>
+  <div class="layout-body">
+    <tabset class="box-tab">
+      <tab heading="Processed Orders">
+        <div ng-include="'views/outbound/customer_invoices/processed_orders.html'"></div>
+      </tab>
+      <tab heading="Delivery Challans" ng-controller="DeliveryChallanCtrl as showCase" ng-click="showCase.loadjs()">
+        <div ng-if= "showCase.DeliveryChallanCtrl_enable" ng-include="'views/outbound/customer_invoices/delivery_challan.html'"></div>
+      </tab>
+      <tab heading="Customer Invoices"  ng-controller="CustomerInvoicesTabCtrl as showCase" ng-click="showCase.loadjs()">
+        <div ng-if="showCase.CustomerInvoicesTabCtrl_enable" ng-include="'views/outbound/customer_invoices/customer_invoices.html'"></div>
+      </tab>
+    </tabset>
   </div>
 </div>

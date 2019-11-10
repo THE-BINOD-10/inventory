@@ -363,6 +363,8 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                 supplier = supplier[0]
                 if supplier.open_po and supplier.open_po.order_type == 'VR':
                     order_type = 'Vendor Receipt'
+                if supplier.open_po and supplier.open_po.order_type == 'SP':
+                    order_type = 'Sample Order'
         elif result['rwpurchase__rwo__vendor__user']:
             supplier = PurchaseOrder.objects.filter(order_id=result['order_id'],
                                                 rwpurchase__rwo__vendor__user=result['rwpurchase__rwo__vendor__user'])[0]
@@ -1096,6 +1098,14 @@ def switches(request, user=''):
             else:
                 setattr(data[0], 'misc_value', selection)
                 data[0].save()
+        elif toggle_field == 'raisepo_terms_conditions':
+            data = UserTextFields(user=request.user, field_type = 'terms_conditions')
+            if not data:
+                terms_condition = UserTextFields(user=request.user.id, field_type = 'terms_conditions', text_field= selection,
+                                                 creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
+                terms_condition.save()
+            else:
+                UserTextFields.objects.update(user=request.user, field_type = 'terms_conditions', text_field = selection)
         else:
             if toggle_field == 'tax_details':
                 tax_name = eval(selection)
@@ -1768,6 +1778,7 @@ def get_supplier_data(request, user=''):
         user = User.objects.get(username=warehouse)
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     temp = get_misc_value('pallet_switch', user.id)
+    payment_received = 0
     order_ids = []
     uploaded_file_dict = {}
     returnable_serials = []
@@ -1781,6 +1792,7 @@ def get_supplier_data(request, user=''):
         headers.insert(-2, 'Serial Number')
     data = {}
     order_id = request.GET['supplier_id']
+    sample_order = int(request.GET.get('sample_order', ''))
     remainder_mail = 0
     invoice_value = 0
     qc_items_qs = UserAttributes.objects.filter(user_id=user.id, attribute_model='dispatch_qc', status=1).values_list('attribute_name', flat=True)
@@ -1794,6 +1806,10 @@ def get_supplier_data(request, user=''):
         if returnable_order_check.exists():
             ord_det_id = returnable_order_check[0].order_id
             returnable_serials = list(OrderIMEIMapping.objects.filter(order_id=ord_det_id).values_list('imei_number', flat=True))
+        if bool(sample_order):
+            po_ids = list(purchase_orders.values_list('id',flat = True))
+            advance_payment = OrderMapping.objects.filter(mapping_id__in=po_ids, order__user=user.id).aggregate(Sum('order__payment_received'))
+            payment_received = advance_payment['order__payment_received__sum']
     if not purchase_orders:
         st_orders = STPurchaseOrder.objects.filter(po__order_id=order_id, open_st__sku__user=user.id,
                                                    open_st__sku_id__in=sku_master_ids). \
@@ -1939,7 +1955,7 @@ def get_supplier_data(request, user=''):
                                     'dc_date': dc_date, 'dc_grn': dc_level_grn,
                                     'uploaded_file_dict': uploaded_file_dict, 'overall_discount': overall_discount,
                                     'round_off_total': 0, 'invoice_value': invoice_value, 'qc_items': qc_items,
-                                    'returnable_serials': returnable_serials,'lr_number': lr_number}))
+                                    'returnable_serials': returnable_serials,'lr_number': lr_number, 'payment_received': payment_received}))
 
 
 @csrf_exempt
@@ -2981,6 +2997,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             purchase_data['price'] = float(sku_row_buy_price)
         purchase_data['cess_tax'] = sku_row_cess_percent
         purchase_data['apmc_tax'] = sku_row_apmc_percent
+        purchase_data['remarks'] = remarks
         if 'discount_percentage' in myDict and myDict['discount_percentage'][i]:
             sku_row_discount_percent = float(myDict['discount_percentage'][i])
         if sku_row_tax_percent:
@@ -3253,6 +3270,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             name = purchase_data['supplier_name']
             supplier_email = purchase_data['email_id']
             gstin_number = purchase_data['gstin_number']
+            remarks = purchase_data['remarks']
             order_id = data.order_id
             order_date = get_local_date(request.user, data.creation_date)
             order_date = datetime.datetime.strftime(datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
@@ -3306,7 +3324,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'company_name': profile.company_name, 'company_address': profile.address,
                                 'po_number': po_number, 'bill_no': bill_no,
                                 'order_date': order_date, 'order_id': order_id,
-                                'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number }
+                                'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number, 'remarks':remarks}
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')

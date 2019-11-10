@@ -1108,6 +1108,7 @@ def print_po_reports(request, user=''):
             purchase_order = results[0].purchase_order
         address = purchase_order.open_po.supplier.address
         address = '\n'.join(address.split(','))
+        remarks = purchase_order.remarks
         telephone = purchase_order.open_po.supplier.phone_number
         name = purchase_order.open_po.supplier.name
         supplier_id = purchase_order.open_po.supplier.id
@@ -1152,7 +1153,7 @@ def print_po_reports(request, user=''):
                    'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,'overall_discount':overall_discount,
                    'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': total_tax,'net_amount':net_amount,
-                   'company_address': company_address, 'sr_number': sr_number, 'lr_number': lr_number})
+                   'company_address': company_address, 'sr_number': sr_number, 'lr_number': lr_number, 'remarks': remarks})
 
 
 @csrf_exempt

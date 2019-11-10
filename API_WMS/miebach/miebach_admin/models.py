@@ -2158,7 +2158,7 @@ class SellerOrderSummary(models.Model):
         index_together = (('pick_number', 'seller_order'), ('pick_number', 'order'), ('pick_number', 'seller_order', 'picklist'),
                             ('pick_number', 'order', 'picklist'), ('order', 'order_status_flag'),
                           ('seller_order', 'order_status_flag'), ('picklist', 'seller_order'),
-                          ('picklist', 'order'))
+                          ('picklist', 'order'), ('invoice_number', 'financial_year', 'order'))
 
     def __unicode__(self):
         return str(self.id)

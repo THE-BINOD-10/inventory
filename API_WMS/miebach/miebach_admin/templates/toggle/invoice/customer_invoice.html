@@ -48,11 +48,11 @@
                       <div>{{record.sku_code}}
                         <!-- this is for 72networks -->
                         {% if record.imeis   %}
-                         {% if record.quantity == record.imeis|length %}
+                         <!-- {% if record.quantity == record.imeis|length %} -->
                          {% for imei in record.imeis %}
                         <br><span class="tax-percentage">({{ imei }})</span>
                           {% endfor %}
-                          {% endif %}
+                          <!-- {% endif %} -->
                        {% endif %}
                       </td>
                     <td class="text-left">{{record.hsn_code}}</td>

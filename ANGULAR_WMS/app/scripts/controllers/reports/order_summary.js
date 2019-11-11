@@ -10,6 +10,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.service = Service;
   vm.permissions = Session.roles.permissions;
   vm.datatable = false;
+  vm.industry_type = Session.user_profile.industry_type;
+  vm.user_type = Session.user_profile.user_type;
 
   vm.empty_data = {}
   vm.model_data = {};
@@ -46,12 +48,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
      if(vm.invoice_number_show)
      {
       vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Number').withTitle('Invoice Number'))
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Challan Number').withTitle('Challan Number'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Date').withTitle('Invoice Date'))
       vm.model_data.invoice = "true"
      }
      else{
        vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Number').withTitle('Invoice Number'))
+       vm.dtColumns.push(DTColumnBuilder.newColumn('Challan Number').withTitle('Challan Number'))
        vm.dtColumns.pop(DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'))
        vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Date').withTitle('Invoice Date'))
        vm.model_data.invoice = "false"

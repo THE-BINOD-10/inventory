@@ -33,6 +33,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'non_transacted_skus':false,'all_order_field_options':{}, 'weight_integration_name': '',
                     'update_mrp_on_grn': false,
                     'allow_rejected_serials':false,
+                    'loc_serial_mapping_switch':false,
+                    'brand_categorization':false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -58,7 +60,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      79: 'generate_delivery_challan_before_pullConfiramation', 80: 'unique_mrp_putaway',
                      81: 'rtv_prefix_code',82:'pos_remarks', 83:'dispatch_qc_check', 84:'block_expired_batches_picklist', 85:'non_transacted_skus',
                      86:'sku_less_than_threshold', 87:'decimal_limit_price', 88: 'mandate_sku_supplier', 89: 'update_mrp_on_grn', 90: 'allow_rejected_serials',
-                     91: 'weight_integration_name', 92:'repeat_po'
+                     91: 'weight_integration_name', 92:'repeat_po', 93:'brand_categorization', 94:'loc_serial_mapping_switch',
                      }
 
   vm.check_box_data = [
@@ -79,7 +81,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     {
       name: "Repeat PO",
       model_name: "repeat_po",
-      param_no: 92,
+      param_no: 93,
       class_name: "fa fa-refresh",
       display: true
     },
@@ -94,6 +96,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       name: "First In First Out Required",
       model_name: "fifo_switch",
       param_no: 3,
+      class_name: "glyphicon glyphicon-sort",
+      display: true
+    },
+    {
+      name: "Location Serial Mapping",
+      model_name: "loc_serial_mapping_switch",
+      param_no: 92,
       class_name: "glyphicon glyphicon-sort",
       display: true
     },
@@ -516,6 +525,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    param_no: 90,
    class_name: "fa fa-server",
    display: true
+  },
+  {
+   name: "Enable Brand Categorization",
+   model_name: "brand_categorization",
+   param_no: 93,
+   class_name: "fa fa-server",
+   display: true
   }
 ]
 
@@ -661,9 +677,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       angular.copy(data.data, vm.model_data);
       vm.model_data["tax_details"] = {'CST': {}};
       vm.model_data['prefix_data'] = [];
+      vm.model_data['prefix_dc_data'] = [];
       angular.forEach(data.data.prefix_data, function(data){
         vm.model_data.prefix_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix,
                                         marketplace_interfix: data.interfix, marketplace_date_type: data.date_type});
+      })
+      angular.forEach(data.data.prefix_dc_data, function(data){
+        vm.model_data.prefix_dc_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix});
       })
       angular.forEach(vm.model_data, function(value, key) {
         if (value == "true") {
@@ -1114,6 +1134,113 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.filterMarkeplaces = function() {
     vm.saved_marketplaces = [];
     angular.forEach(vm.model_data.prefix_data, function(data){
+      vm.saved_marketplaces.push(data.marketplace_name);
+    })
+    for(var i=0; i < vm.model_data.marketplaces.length; i++) {
+      if (vm.saved_marketplaces.indexOf(vm.model_data.marketplaces[i]) == -1) {
+        vm.model_data.marketplace_name = vm.model_data.marketplaces[i];
+        break;
+      }
+    }
+  }
+
+  vm.marketplace_add_show_dc = false;
+  vm.saveMarketplaceDc = function(name, value) {
+
+    if(!name) {
+
+      Service.showNoty("Please Enter Name");
+      return false;
+    } else {
+      vm.updateMarketplaceDc(name, value, 'save')
+      //vm.switches("{'tax_"+name+"':'"+value+"'}", 31);
+      var found = false;
+      for(var i = 0; i < vm.model_data.prefix_dc_data.length; i++) {
+
+        if(vm.model_data.prefix_dc_data[i].marketplace_name == vm.model_data.marketplace_name) {
+
+          vm.model_data.prefix_dc_data[i].marketplace_name = vm.model_data.marketplace_name;
+          vm.model_data.prefix_dc_data[i].marketplace_prefix = vm.model_data.marketplace_prefix;
+          vm.model_data.prefix_dc_data[i].marketplace_interfix = vm.model_data.marketplace_interfix;
+          vm.model_data.prefix_dc_data[i].marketplace_date_type = vm.model_data.marketplace_date_type;
+          found = true;
+          break;
+        }
+      }
+      if(!found) {
+
+        vm.model_data.prefix_dc_data.push({marketplace_name: vm.model_data.marketplace_name,
+                                        marketplace_prefix: vm.model_data.marketplace_prefix,
+                                        marketplace_interfix: vm.model_data.marketplace_interfix,
+                                        marketplace_date_type: vm.model_data.marketplace_date_type});
+      }
+      vm.marketplace_add_show_dc = false;
+      vm.marketplace_selected_dc = "";
+      vm.model_data.marketplace_name = "";
+      vm.model_data.marketplace_prefix = "";
+      vm.model_data.marketplace_interfix = "";
+      vm.model_data.marketplace_date_type = "";
+      vm.model_data.marketplace_new = true;
+    }
+  }
+
+   vm.marketplaceSelectedDc = function(name) {
+
+    if (name) {
+
+      for(var i = 0; i < vm.model_data.prefix_dc_data.length; i++) {
+
+        if(vm.model_data.prefix_dc_data[i].marketplace_name == name) {
+
+          vm.model_data.marketplace_name = vm.model_data.prefix_dc_data[i].marketplace_name;
+          vm.model_data.marketplace_prefix = vm.model_data.prefix_dc_data[i].marketplace_prefix;
+          vm.model_data.marketplace_interfix = vm.model_data.prefix_dc_data[i].marketplace_interfix;
+          vm.model_data.marketplace_date_type = vm.model_data.prefix_dc_data[i].marketplace_date_type;
+          vm.model_data["marketplace_new"] = false;
+          vm.marketplace_add_show_dc = true;
+          break;
+        }
+      }
+    } else {
+
+      vm.model_data["marketplace_new"] = true;
+      vm.marketplace_add_show = false;
+      vm.model_data.marketplace_name = "";
+      vm.model_data.marketplace_prefix = "";
+    }
+  }
+
+  vm.updateMarketplaceDc = function(name, value, type) {
+
+      var send = {marketplace_name : name, marketplace_prefix: value,
+                  marketplace_interfix: vm.model_data.marketplace_interfix,
+                  marketplace_date_type: vm.model_data.marketplace_date_type}
+      if (type != 'save') {
+        send['delete'] = true;
+
+        for(var i = 0; i < vm.model_data.prefix_dc_data.length; i++) {
+
+          if(vm.model_data.prefix_dc_data[i].marketplace_name == vm.model_data.marketplace_name) {
+
+            vm.model_data.prefix_dc_data.splice(i, 1);
+            break;
+          }
+        }
+        vm.marketplace_add_show_dc = false;
+        vm.marketplace_selected_dc = "";
+        vm.model_data.marketplace_name = "";
+        vm.model_data.marketplace_prefix = "";
+        vm.model_data.marketplace_new = true;
+      }
+      vm.service.apiCall("update_dc_sequence/", "GET", send).then(function(data) {
+
+        console.log(data);
+      })
+  }
+  vm.saved_marketplaces = [];
+  vm.filterMarkeplacesDc = function() {
+    vm.saved_marketplaces = [];
+    angular.forEach(vm.model_data.prefix_dc_data, function(data){
       vm.saved_marketplaces.push(data.marketplace_name);
     })
     for(var i=0; i < vm.model_data.marketplaces.length; i++) {

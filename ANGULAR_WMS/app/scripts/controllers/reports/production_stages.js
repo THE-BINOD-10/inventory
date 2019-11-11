@@ -9,6 +9,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.service.print_enable = false;
     vm.central_order_mgmt = Session.roles.permissions.central_order_mgmt
      vm.parent_username = Session.parent.userName
+     vm.industry_type = Session.user_profile.industry_type;
+     vm.user_type = Session.user_profile.user_type;
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -30,13 +32,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('Description').withTitle('Description'),
         DTColumnBuilder.newColumn('Brand').withTitle('Brand'),
         DTColumnBuilder.newColumn('Category').withTitle('Category'),
+        DTColumnBuilder.newColumn('SKU Sub Category').withTitle('SKU Sub Category'),
         DTColumnBuilder.newColumn('Stage').withTitle('Stage'),
         DTColumnBuilder.newColumn('Stage Quantity').withTitle('Stage Quantity')
-        
+
     ];
     if(vm.parent_username == 'isprava_admin'){
       vm.dtColumns.push(DTColumnBuilder.newColumn('Stock Value').withTitle('Stock Value'),
         DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse Name'))
+    }
+
+    if (vm.industry_type == "FMCG" && vm.user_type == "marketplace_user") {
+      vm.dtColumns.splice(5, 0, DTColumnBuilder.newColumn('Manufacturer').withTitle('Manufacturer'))
+      vm.dtColumns.splice(6, 0, DTColumnBuilder.newColumn('Searchable').withTitle('Searchable'))
+      vm.dtColumns.splice(7, 0, DTColumnBuilder.newColumn('Bundle').withTitle('Bundle'))
+
     }
 
     vm.dtInstance = {};
@@ -48,7 +58,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                     'sister_warehouse': ''
                     };
 
-   vm.data = {brands: [], stages_list: [], warehouse_groups: []}
+   vm.data = {brands: [], stages_list: [], warehouse_groups: [], sku_category:[]}
 
    vm.model_data = {};
    angular.copy(vm.empty_data, vm.model_data);
@@ -59,5 +69,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
      }
    })
 
-  }
+   vm.service.apiCall('sku_category_list/').then(function(data){
+      if(data.message) {
+        vm.sku_groups = data.data.categories;
+      }
+    })
 
+  }

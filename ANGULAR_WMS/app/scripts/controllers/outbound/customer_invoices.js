@@ -10,7 +10,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
     vm.user_type = Session.roles.permissions.user_type;
-
     vm.selected = {};
     vm.checked_items = {};
     vm.selectAll = false;
@@ -112,7 +111,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             });
 
           var columns = data.data.headers;
-          var not_sort = ['Order Quantity', 'Picked Quantity']
+          columns.push('Marketplace')
+          var not_sort = ['Order Quantity', 'Picked Quantity', 'Marketplace']
           vm.dtColumns = vm.service.build_colums(columns, not_sort);
           vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle('').notSortable().withOption('width', '20px')
                  .renderWith(function(data, type, full, meta) {

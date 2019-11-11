@@ -3035,6 +3035,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     customer_id = ''
     mode_of_transport = ''
     vehicle_number = ''
+    advance_amount = 0
     # Getting the values from database
     user_profile = UserProfile.objects.get(user_id=user.id)
     gstin_no = user_profile.gst_number
@@ -3362,6 +3363,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         company_name = seller.name #'SHPROC Procurement Pvt. Ltd.'
     if math.ceil(total_quantity) == total_quantity:
         total_quantity = int(total_quantity)
+    advance_amount += data[0]['payment_received']
     invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name,'company_pan_number':pan_number,
                     'company_address': company_address, 'company_number': company_number,
                     'order_date': order_date, 'email': email, 'marketplace': marketplace, 'total_amt': total_amt,
@@ -3390,7 +3392,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
                     'cin_no': cin_no, 'challan_no': challan_no, 'customer_id': customer_id,'challan_sequence':challan_sequence,
                     'show_mrp': show_mrp, 'mode_of_transport' : mode_of_transport, 'vehicle_number' : vehicle_number,
-                    'is_cess_tax_flag': is_cess_tax_flag, 'is_igst_tax_flag': is_igst_tax_flag}
+                    'is_cess_tax_flag': is_cess_tax_flag, 'is_igst_tax_flag': is_igst_tax_flag, 'advance_amount':str(advance_amount)}
     return invoice_data
 
 def common_calculations(arg_data):
@@ -3511,7 +3513,7 @@ def common_calculations(arg_data):
     count = count +1
     data.append(
         {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
-         'title': title, 'invoice_amount': str(invoice_amount),'payment_received':str(payment_received),
+         'title': title, 'invoice_amount': str(invoice_amount),'payment_received': payment_received,
          'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price, 'tax_type': tax_type,
          'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
          'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt':amt, 'taxes': taxes_dict,

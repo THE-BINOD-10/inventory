@@ -1099,13 +1099,7 @@ def switches(request, user=''):
                 setattr(data[0], 'misc_value', selection)
                 data[0].save()
         elif toggle_field == 'raisepo_terms_conditions':
-            data = UserTextFields(user=request.user, field_type = 'terms_conditions')
-            if not data:
-                terms_condition = UserTextFields(user=request.user.id, field_type = 'terms_conditions', text_field= selection,
-                                                 creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
-                terms_condition.save()
-            else:
-                UserTextFields.objects.update(user=request.user, field_type = 'terms_conditions', text_field = selection)
+            data = UserTextFields.objects.update_or_create(user_id=user_id, field_type = 'terms_conditions', defaults = {'text_field':selection})
         else:
             if toggle_field == 'tax_details':
                 tax_name = eval(selection)

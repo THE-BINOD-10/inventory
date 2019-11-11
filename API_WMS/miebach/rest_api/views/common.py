@@ -909,6 +909,9 @@ def configurations(request, user=''):
     mandatory_receive_po = get_misc_value('receive_po_mandatory_fields', user.id)
     if mandatory_receive_po != 'false':
         config_dict['selected_receive_po_mandatory'] = mandatory_receive_po.split(',')
+    terms_condition = UserTextFields.objects.filter(user=user.id, field_type = 'terms_conditions')
+    if terms_condition.exists():
+        config_dict['raisepo_terms_conditions'] = terms_condition[0].text_field
     config_dict['all_order_field_options'] = {}
     misc_options = MiscDetailOptions.objects.filter(misc_detail__user=user.id).values('misc_key','misc_value')
     for misc in misc_options :
@@ -4596,6 +4599,7 @@ def get_sellers_list(request, user=''):
     terms_condition = UserTextFields.objects.filter(user=user.id, field_type = 'terms_conditions')
     if terms_condition.exists():
         raise_po_terms_conditions = terms_condition[0].text_field
+        raise_po_terms_conditions = raise_po_terms_conditions.replace('<<>>', '\n')
     else:
         raise_po_terms_conditions = get_misc_value('raisepo_terms_conditions', user.id)
     ship_address_details = []

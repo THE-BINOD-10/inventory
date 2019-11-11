@@ -2,9 +2,9 @@
   <!--<div ng-if="showCase.pdfDownloading" style="position: fixed;z-index: 101;width: 100%;height: 100%;top: 0px;background: rgba(0, 0, 0, 0.1);padding-top: 125px;"><img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;"></div>-->
   <div class="row style-menu" style="height: 40px;position: absolute;top:0px;width:100%;z-index:100">
     <div class="col-md-4 col-sm-4 col-xs-4">
-      <div class="menu-left" style="line-height: 40px" ng-if="!showCase.disable_brands">
-        <span ng-click="showCase.back_brands_button('brand_value');"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
-        <span ng-click="showCase.back_brands_button('brand_value');" title="Go to Brand Page">Back</span>
+      <div class="menu-left" style="line-height: 40px">
+        <span ng-if="!showCase.disable_brands " ng-click="showCase.back_brands_button('brand_value');"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i> Back</span>
+        <!-- <span ng-if="showCase.brand_categorization" ng-click="showCase.change_config('Brand View', 'customer_portal_prefered_view');"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i> Backs</span> -->
       </div>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-4 brand-title">

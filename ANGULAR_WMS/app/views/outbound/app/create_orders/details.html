@@ -41,7 +41,22 @@
 </div>
 <div class="row app_body" style="padding: 15px 5px;position: relative">
   <div style="margin-top:1px;" ng-include="'views/outbound/app/create_orders/filters.html'"></div>
-  <div style="margin-top:1px;" ng-include="'views/outbound/app/create_orders/settings.html'"></div>
+  <div class="row mb20">
+    <div class="col-lg-4 col-md-4"></div>
+    <div class="col-lg-4 col-md-4">
+      <label class="col-lg-6 col-md-6 col-sm-6 col-xs-6 control-label">Select Your Prefered View *</label>
+      <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+        <select ng-model="showCase.viewType"
+              class="form-control"
+              name="viewType"
+              ng-click="showCase.change_config(showCase.viewType, 'customer_portal_prefered_view')"
+              ng-required="true">
+          <option ng-repeat="type in showCase.settingsType" ng-selected="showCase.viewType == type" value={{type}}>{{type}}</option>
+        </select>
+      </div>
+    </div>
+    <div class="col-lg-4 col-md-4"></div>
+  </div>
   <div class="pull-left col-md-2 col-sm-3 col-xs-6" ng-repeat="brand in showCase.brands" ng-if="brand != 'All'">
     <div style="box-shadow: 1px 1px 15px #333;position: relative;padding:0px;margin-bottom: 15px">
       <img ng-src="/images/brand-logos/{{(showCase.brands_images[brand])? showCase.brands_images[brand]: 'sagar_fab_default_log.jpg'}}" ng-click="showCase.change_brand(brand);" style="width:100%;cursor:pointer;">

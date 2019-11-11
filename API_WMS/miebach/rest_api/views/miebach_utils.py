@@ -4613,7 +4613,7 @@ def get_order_summary_data(search_params, user, sub_user):
     total_row = {}
     total_row = OrderedDict((('Order Date', ''), ('Order ID', ""),('Customer Name', ""),('Order Number' ,""),
     ('SKU Brand', ""),('SKU Category', ''),('SKU Class', ''),('SKU Size', ''), ('SKU Description', ''),('SKU Sub Category', ''),
-    ('SKU Code', 'TotalQuantity='), ('Order Qty',temp_data['totalOrderQuantity']),('MRP', ''), ('Unit Price',''),('Discount', ''),
+    ('SKU Code', 'TotalQuantity='), ('Vehicle Number', ''),('Order Qty',temp_data['totalOrderQuantity']),('MRP', ''), ('Unit Price',''),('Discount', ''),
     ('Serial Number',''),('Invoice Number',''),('Challan Number', ''),('Quantity',''),('Payment Type' ,''),('Reference Number',''),
     ('Taxable Amount',''), ('Tax', ''),('City', ''), ('State', ''), ('Marketplace', 'TotalInvoiceAmount='),('Invoice Amount', temp_data['totalSellingPrice']),
     ('Price', ''),('Status', ''), ('Order Status', ''),('Customer GST Number',''),('Remarks', ''), ('Order Taken By', ''),

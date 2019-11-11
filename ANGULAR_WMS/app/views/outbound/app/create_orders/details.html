@@ -49,7 +49,7 @@
         <select ng-model="showCase.viewType"
               class="form-control"
               name="viewType"
-              ng-click="showCase.change_config(showCase.viewType, 'customer_portal_prefered_view')"
+              ng-change="showCase.change_config(showCase.viewType, 'customer_portal_prefered_view')"
               ng-required="true">
           <option ng-repeat="type in showCase.settingsType" ng-selected="showCase.viewType == type" value={{type}}>{{type}}</option>
         </select>

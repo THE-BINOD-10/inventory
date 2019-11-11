@@ -5332,7 +5332,7 @@ def insert_order_data(request, user=''):
                         order_data = get_order_customer_details(order_data, request)
                     if payment_received:
                         order_payment = 0
-                        total_invoice_amount = sum([int(i) for i in myDict['invoice_amount'] if type(i)== int or i.isdigit()])
+                        total_invoice_amount = sum([int(i) for i in myDict['total_amount'] if type(i)== int or i.isdigit()])
                         temp_invoice_amnt = float(order_data['invoice_amount']) /float(total_invoice_amount)
                         order_payment =  round(float(payment_received) * float(temp_invoice_amnt))
                         order_data['payment_received'] = order_payment

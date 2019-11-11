@@ -3475,6 +3475,7 @@ def common_calculations(arg_data):
         total_taxable_amt = taxable_cal
     sku_code = dat.sku.sku_code
     sku_desc = dat.sku.sku_desc
+    payment_received = dat.payment_received
     measurement_type = dat.sku.measurement_type
     if display_customer_sku == 'true':
         customer_sku_code_ins = customer_sku_codes.filter(customer__customer_id=dat.customer_id,
@@ -3510,7 +3511,7 @@ def common_calculations(arg_data):
     count = count +1
     data.append(
         {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
-         'title': title, 'invoice_amount': str(invoice_amount),
+         'title': title, 'invoice_amount': str(invoice_amount),'payment_received':str(payment_received),
          'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price, 'tax_type': tax_type,
          'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
          'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt':amt, 'taxes': taxes_dict,

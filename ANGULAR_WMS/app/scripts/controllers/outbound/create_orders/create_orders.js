@@ -62,7 +62,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 
   vm.market_list = [];
 
-  vm.service.apiCall("get_marketplaces_list/").then(function(data){
+  vm.service.apiCall("get_marketplaces_list/?status=all_marketplaces").then(function(data){
 
     if(data.message) {
 

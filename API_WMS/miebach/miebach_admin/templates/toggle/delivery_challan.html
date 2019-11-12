@@ -86,6 +86,9 @@
                 <div class="col-xs-6 text-left">
                  <strong>DC Number :</strong> {{challan_sequence}}
                 </div>
+                <div class="col-xs-6 text-left">
+                 <strong>Advance Amount :</strong> {{advance_amount}}
+                </div>
               </div>
               <div class="row m0">
                 <div class="col-xs-6 text-left">
@@ -121,12 +124,11 @@
                   <strong>Rep.:</strong>
                 </div>
               </div>
-
             </td>
           </tr>
         </tbody>
       </table>
-      <table class="table table-bordered bl br cal-table m0">
+      <table class="table-bordered bl br cal-table m0 table-custom" width="960">
         <thead>
           <tr class="fs14">
             <th class="w5"><center>SL NO</center></th>
@@ -150,27 +152,22 @@
           <tr style="border-top: 1px solid black;">
             <td></td>
             <td class="fs14" colspan="2">
-              <span class=>Tot Items: {{total_items}}</span>
+              <span class=>Total Items: {{total_items}}</span>
             </td>
             <td class="fs14" colspan="2">
-              <span class="pull-right">Tot Qty: {{total_quantity}}</span>
+              <span class="pull-right">Total Quantity: {{total_quantity}}</span>
             </td>
           </tr>
           <tr>
             <td class="fs14" colspan="2">
               <div class="row m0">
                 <div class="col-xs-12 text-left">
-                  <br><br>
-                  <span>Wish You A Happy Day..</span>
+                  <span>Wish You A Happy Day..</span><br>
                 </div>
               </div>
             </td>
             <td class="fs14 text-center" colspan="3">
-              {% if username|lower == 'bluestar' %}
-                <h5 class="m0">For BLUE STAR TRADING CORPORATION 2018</h5></br></br>
-              {% else %}
                 <h5 class="m0">{{company_name}}</h5></br></br>
-              {% endif %}
               <p class="m0" align="center">Signature of Receiver</p>
             </td>
           </tr>

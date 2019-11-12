@@ -1099,13 +1099,7 @@ def switches(request, user=''):
                 setattr(data[0], 'misc_value', selection)
                 data[0].save()
         elif toggle_field == 'raisepo_terms_conditions':
-            data = UserTextFields(user=request.user, field_type = 'terms_conditions')
-            if not data:
-                terms_condition = UserTextFields(user=request.user.id, field_type = 'terms_conditions', text_field= selection,
-                                                 creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
-                terms_condition.save()
-            else:
-                UserTextFields.objects.update(user=request.user, field_type = 'terms_conditions', text_field = selection)
+            data = UserTextFields.objects.update_or_create(user_id=user_id, field_type = 'terms_conditions', defaults = {'text_field':selection})
         else:
             if toggle_field == 'tax_details':
                 tax_name = eval(selection)
@@ -2106,9 +2100,11 @@ def close_po(request, user=''):
     return HttpResponse('Updated Successfully')
 
 
-def get_stock_locations(wms_code, exc_dict, user, exclude_zones_list, sku=''):
-    all_stocks = StockDetail.objects.filter(sku__user=user, quantity__gt=0,
-                                            location__max_capacity__gt=F('location__filled_capacity'))
+def get_stock_locations(wms_code, exc_dict, user, exclude_zones_list, sku='', put_zones=''):
+    all_stock_filter = {'sku__user': user, 'quantity__gt': 0, 'location__max_capacity__gt': F('location__filled_capacity')}
+    if put_zones:
+        all_stock_filter['location__zone__zone__in'] = put_zones
+    all_stocks = StockDetail.objects.filter(**all_stock_filter)
     only_sku_locs = list(all_stocks.exclude(location__zone__zone='DEFAULT').exclude(sku__wms_code=wms_code).
                          values_list('location_id', flat=True))
     stock_detail1 = all_stocks.exclude(location__zone__zone='DEFAULT').exclude(location_id__in=only_sku_locs).filter(
@@ -2144,9 +2140,9 @@ def get_purchaseorder_locations(put_zone, temp_dict):
     seller_id = temp_dict.get('seller_id', '')
     location_masters = LocationMaster.objects.filter(zone__user=user).exclude(
         lock_status__in=['Inbound', 'Inbound and Outbound'])
-    exclude_zones_list = get_exclude_zones(User.objects.get(id=user))
+    exclude_zones_list = get_exclude_zones(User.objects.get(id=user), is_putaway=True)
     exclude_zones_list.append('RTO_ZONE')
-    # exclude_zones_list = ['QC_ZONE', 'DAMAGED_ZONE', 'RTO_ZONE', 'Non Sellable Zone']
+    put_zones_lis = get_all_zones(User.objects.get(id=user), zones=[put_zone])
     if put_zone in exclude_zones_list:
         location = location_masters.filter(zone__zone=put_zone, zone__user=user)
         if location:
@@ -2162,7 +2158,7 @@ def get_purchaseorder_locations(put_zone, temp_dict):
 
     locations = ''
     exc_group_dict = {}
-    filter_params = {'zone__zone': put_zone, 'zone__user': user}
+    filter_params = {'zone__zone__in': put_zones_lis, 'zone__user': user}
     exclude_dict = {'location__exact': '', 'lock_status__in': ['Inbound', 'Inbound and Outbound']}
     stock_detail = StockDetail.objects.filter(sku__user=user)
     po_locations = POLocation.objects.filter(location__zone__user=user, status=1)
@@ -2236,7 +2232,7 @@ def get_purchaseorder_locations(put_zone, temp_dict):
     cond2.update(filter_params)
 
     stock_locations, location_ids, min_max = get_stock_locations(order_data['wms_code'], exclude_dict, user,
-                                                                 exclude_zones_list, sku=order_data['sku'])
+                                                                 exclude_zones_list, sku=order_data['sku'], put_zones=put_zones_lis)
     if 'id__in' in exclude_dict.keys():
         location_ids = list(chain(location_ids, exclude_dict['id__in']))
     exclude_dict['id__in'] = location_ids
@@ -2257,9 +2253,9 @@ def get_purchaseorder_locations(put_zone, temp_dict):
 
     location3 = location_masters.exclude(get_dictionary_query(exclude_dict)).filter(**cond2)
     del exclude_dict['location__exact']
-    del filter_params['zone__zone']
+    del filter_params['zone__zone__in']
     location4 = location_masters.exclude(
-        Q(location__exact='') | Q(zone__zone=put_zone) | get_dictionary_query(exclude_dict)). \
+        Q(location__exact='') | Q(zone__zone__in=put_zones_lis) | get_dictionary_query(exclude_dict)). \
         exclude(zone__zone__in=exclude_zones_list).filter(**filter_params).order_by('fill_sequence')
     if sku_group:
         if 'id__in' in filter_params.keys():
@@ -2268,7 +2264,7 @@ def get_purchaseorder_locations(put_zone, temp_dict):
             LocationGroups.objects.filter(location__zone__user=user).values_list('location_id', flat=True).distinct())
         exclude_dict['id__in'] = group_locs
         location5 = location_masters.exclude(
-            Q(location__exact='') | Q(zone__zone=put_zone) | get_dictionary_query(exclude_dict)). \
+            Q(location__exact='') | Q(zone__zone__in=put_zones_lis) | get_dictionary_query(exclude_dict)). \
             exclude(zone__zone__in=exclude_zones_list).filter(**filter_params).order_by('fill_sequence')
         location4 = list(chain(location4, location5))
     location = list(chain(location2, location3, location4))

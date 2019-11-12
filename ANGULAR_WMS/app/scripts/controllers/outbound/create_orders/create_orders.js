@@ -60,8 +60,15 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     }
   }
 
-  vm.market_list = ["Flipkart","Snapdeal","Paytm","Amazon","Shopclues","HomeShop18","Jabong","Indiatimes","Myntra",
-                "Voonik","Mr Voonik","Vilara", "Limeroad"];
+  vm.market_list = [];
+
+  vm.service.apiCall("get_marketplaces_list/?status=all_marketplaces").then(function(data){
+
+    if(data.message) {
+
+      vm.market_list = data.data.marketplaces;
+    }
+  })
 
 
   vm.selected = {}

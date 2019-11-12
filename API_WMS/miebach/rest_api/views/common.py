@@ -909,6 +909,9 @@ def configurations(request, user=''):
     mandatory_receive_po = get_misc_value('receive_po_mandatory_fields', user.id)
     if mandatory_receive_po != 'false':
         config_dict['selected_receive_po_mandatory'] = mandatory_receive_po.split(',')
+    terms_condition = UserTextFields.objects.filter(user=user.id, field_type = 'terms_conditions')
+    if terms_condition.exists():
+        config_dict['raisepo_terms_conditions'] = terms_condition[0].text_field
     config_dict['all_order_field_options'] = {}
     misc_options = MiscDetailOptions.objects.filter(misc_detail__user=user.id).values('misc_key','misc_value')
     for misc in misc_options :
@@ -1019,13 +1022,19 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
         except:
             wb, ws = get_work_sheet('skus', excel_headers)
         data_count = 0
-        for data in temp_data['aaData']:
-            data_count += 1
-            column_count = 0
-            for key, value in data.iteritems():
-                if key in excel_headers:
-                    ws.write(data_count, column_count, value)
-                    column_count += 1
+        data = temp_data['aaData']
+        for i in range(0, len(data)):
+            index = i + 1
+            for ind, header_name in enumerate(excel_headers):
+                ws.write(index, excel_headers.index(header_name), data[i][header_name])
+
+        # for data in temp_data['aaData']:
+        #     data_count += 1
+        #     column_count = 0
+        #     for key, value in data.iteritems():
+        #         if key in excel_headers:
+        #             ws.write(data_count, column_count, value)
+        #             column_count += 1
         wb.save(path)
     return HttpResponse(path_to_file)
 
@@ -2909,12 +2918,12 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                                 exclude(invoice_number='')
             else:
                 invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
+            invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
             if invoice_ins:
                 order_no = invoice_ins[0].invoice_number
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
                 inv_no = order_no
-            elif invoice_no_gen[0].misc_value == 'true' and order.marketplace != 'Sample':
-                invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
+            elif invoice_no_gen[0].misc_value == 'true':
                 if invoice_sequence:
                     invoice_seq = invoice_sequence[0]
                     inv_no = int(invoice_seq.value)
@@ -3011,7 +3020,7 @@ def get_mapping_imeis(user, dat, seller_summary, sor_id='', sell_ids=''):
     return imeis
 
 
-def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell_ids='', pick_num = '', from_pos=False):
+def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell_ids='', pick_num = '', from_pos=False, delivery_challan='false'):
     """ Build Invoice Json Data"""
     # Initializing Default Values
     data, imei_data, customer_details = [], [], []
@@ -3032,6 +3041,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     customer_id = ''
     mode_of_transport = ''
     vehicle_number = ''
+    advance_amount = 0
     # Getting the values from database
     user_profile = UserProfile.objects.get(user_id=user.id)
     gstin_no = user_profile.gst_number
@@ -3125,6 +3135,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         for dat in order_data:
             profit_price,marginal_flag = 0, 0
             order_id = dat.original_order_id
+            advance_amount += dat.payment_received
             gen_ord_num = GenericOrderDetailMapping.objects.filter(orderdetail_id=order_data[0].id)
             if gen_ord_num and user.userprofile.warehouse_type == 'DIST':
                 order_no = str(gen_ord_num[0].generic_order_id)
@@ -3247,70 +3258,13 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                             data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity = common_calculations(arg_data)
 
                 else:
-                    hsn_summary[summary_key] = {}
-                    hsn_summary[summary_key]['taxable'] = float("%.2f" % float(amt))
-                    hsn_summary[summary_key]['sgst_amt'] = float("%.2f" % float(sgst_amt))
-                    hsn_summary[summary_key]['cgst_amt'] = float("%.2f" % float(cgst_amt))
-                    hsn_summary[summary_key]['igst_amt'] = float("%.2f" % float(igst_amt))
-                    hsn_summary[summary_key]['utgst_amt'] = float("%.2f" % float(utgst_amt))
-                    hsn_summary[summary_key]['cess_amt'] = float("%.2f" % float(cess_amt))
-            else:
-                _tax = (amt * (vat / 100))
-
-            discount_percentage = 0
-            if (quantity * unit_price):
-                discount_percentage = "%.1f" % (float((discount * 100) / (quantity * unit_price)))
-            unit_price = "%.2f" % unit_price
-            total_quantity += quantity
-            partial_order_quantity_price += (float(unit_price) * float(quantity))
-            _total_tax += _tax
-            invoice_amount = _tax + amt
-            total_invoice += _tax + amt
-            total_taxable_amt += amt
-            sku_code = dat.sku.sku_code
-            sku_desc = dat.sku.sku_desc
-            measurement_type = dat.sku.measurement_type
-            if display_customer_sku == 'true':
-                customer_sku_code_ins = customer_sku_codes.filter(customer__customer_id=dat.customer_id,
-                                                                  sku__sku_code=sku_code)
-                if customer_sku_code_ins:
-                    sku_code = customer_sku_code_ins[0]['customer_sku_code']
-
-            temp_imeis = []
-            temp_imeis = get_mapping_imeis(user, dat, seller_summary, sor_id, sell_ids=sell_ids)
-            imei_data.append(temp_imeis)
-            if sku_code in [x['sku_code'] for x in data]:
-                continue
-            if math.ceil(quantity) == quantity:
-                quantity = int(quantity)
-            quantity = get_decimal_limit(user.id ,quantity)
-            invoice_amount = get_decimal_limit(user.id ,invoice_amount ,'price')
-            count = count +1
-            received_quantity, invoice_qty = '', ''
-            if is_sample_option == 'true':
-                order_quantity = SellerOrderSummary.objects.filter(order_id=dat.id).aggregate(Sum('quantity'))
-                mappingData = list(OrderMapping.objects.filter(mapping_type='PO', order_id=dat.id).values_list('mapping_id', flat=True))
-                if mappingData:
-                    purchase_order_data = PurchaseOrder.objects.filter(id=mappingData[0]).values('received_quantity')
-                    if purchase_order_data:
-                        received_quantity = purchase_order_data[0].get('received_quantity', 0)
-                        invoice_qty = order_quantity['quantity__sum'] - received_quantity
-            data.append(
-                {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
-                 'title': title, 'invoice_amount': str(invoice_amount),
-                 'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price, 'tax_type': tax_type,
-                 'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
-                 'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
-                 'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
-                 'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date,'sno':count,
-                 'measurement_type': measurement_type, 'received_quantity': received_quantity, 'invoice_qty': invoice_qty})
-            arg_data = {'unit_price':unit_price,'quantity':quantity,'discount':discount,'dat':dat,'is_gst_invoice':is_gst_invoice,'marginal_flag':marginal_flag,
-                                'cgst_tax':cgst_tax,'sgst_tax':sgst_tax,'igst_tax':igst_tax,'utgst_tax':utgst_tax,'cess_tax':cess_tax,'profit_price':profit_price,'hsn_summary':hsn_summary,
-                                'total_quantity':total_quantity,'partial_order_quantity_price':partial_order_quantity_price,'_total_tax':_total_tax,
-                                'total_invoice':total_invoice,'total_taxable_amt':total_taxable_amt,'display_customer_sku':display_customer_sku,'customer_sku_codes':customer_sku_codes,
-                                'user':user,'sor_id':sor_id,'sell_ids':sell_ids,'seller_summary':seller_summary,'data':data,'order_id':order_id,'title':title,'tax_type':tax_type,'vat':vat,'mrp_price':mrp_price,
-                                'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal,'taxes_dict':taxes_dict, 'seller_summary_imei':'','imei_data_sku_wise':imei_data_sku_wise}
-            data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity = common_calculations(arg_data)
+                    arg_data = {'unit_price':unit_price,'quantity':quantity,'discount':discount,'dat':dat,'is_gst_invoice':is_gst_invoice,'marginal_flag':marginal_flag,
+                                        'cgst_tax':cgst_tax,'sgst_tax':sgst_tax,'igst_tax':igst_tax,'utgst_tax':utgst_tax,'cess_tax':cess_tax,'profit_price':profit_price,'hsn_summary':hsn_summary,
+                                        'total_quantity':total_quantity,'partial_order_quantity_price':partial_order_quantity_price,'_total_tax':_total_tax,
+                                        'total_invoice':total_invoice,'total_taxable_amt':total_taxable_amt,'display_customer_sku':display_customer_sku,'customer_sku_codes':customer_sku_codes,
+                                        'user':user,'sor_id':sor_id,'sell_ids':sell_ids,'seller_summary':seller_summary,'data':data,'order_id':order_id,'title':title,'tax_type':tax_type,'vat':vat,'mrp_price':mrp_price,
+                                        'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal,'taxes_dict':taxes_dict, 'seller_summary_imei':'','imei_data_sku_wise':imei_data_sku_wise}
+                    data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity = common_calculations(arg_data)
 
     is_cess_tax_flag = 'true'
     for ord_dict in data:
@@ -3339,7 +3293,10 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 ord_dict.pop('igst_tax')
             if 'igst_amt' in ord_dict:
                 ord_dict.pop('igst_amt')
-    _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos, order_obj=dat)
+    _invoice_no = ''
+    _sequence = ''
+    if delivery_challan != 'true':
+        _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos, order_obj=dat)
     challan_no, challan_sequence = get_challan_number(user, seller_summary)
     inv_date = invoice_date.strftime("%m/%d/%Y")
     invoice_date = invoice_date.strftime("%d %b %Y")
@@ -3444,7 +3401,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
                     'cin_no': cin_no, 'challan_no': challan_no, 'customer_id': customer_id,'challan_sequence':challan_sequence,
                     'show_mrp': show_mrp, 'mode_of_transport' : mode_of_transport, 'vehicle_number' : vehicle_number,
-                    'is_cess_tax_flag': is_cess_tax_flag, 'is_igst_tax_flag': is_igst_tax_flag}
+                    'is_cess_tax_flag': is_cess_tax_flag, 'is_igst_tax_flag': is_igst_tax_flag, 'advance_amount':str(advance_amount)}
     return invoice_data
 
 def common_calculations(arg_data):
@@ -4653,6 +4610,7 @@ def get_sellers_list(request, user=''):
     terms_condition = UserTextFields.objects.filter(user=user.id, field_type = 'terms_conditions')
     if terms_condition.exists():
         raise_po_terms_conditions = terms_condition[0].text_field
+        raise_po_terms_conditions = raise_po_terms_conditions.replace('<<>>', '\n')
     else:
         raise_po_terms_conditions = get_misc_value('raisepo_terms_conditions', user.id)
     ship_address_details = []
@@ -9119,9 +9077,9 @@ def get_sku_ean_list(sku, order_by_val=''):
     return eans_list
 
 
-def get_exclude_zones(user):
+def get_exclude_zones(user, is_putaway=False):
     exclude_zones = ['DAMAGED_ZONE', 'QC_ZONE']
-    if user.userprofile.industry_type == 'FMCG':
+    if user.userprofile.industry_type == 'FMCG' and not is_putaway:
         non_sellable_zones = list(ZoneMaster.objects.filter(user=user.id, segregation='non_sellable').values_list('zone',
                                                                                                              flat=True))
         exclude_zones.extend(non_sellable_zones)

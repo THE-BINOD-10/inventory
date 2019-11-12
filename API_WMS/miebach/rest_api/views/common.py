@@ -1022,13 +1022,19 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
         except:
             wb, ws = get_work_sheet('skus', excel_headers)
         data_count = 0
-        for data in temp_data['aaData']:
-            data_count += 1
-            column_count = 0
-            for key, value in data.iteritems():
-                if key in excel_headers:
-                    ws.write(data_count, column_count, value)
-                    column_count += 1
+        data = temp_data['aaData']
+        for i in range(0, len(data)):
+            index = i + 1
+            for ind, header_name in enumerate(excel_headers):
+                ws.write(index, excel_headers.index(header_name), data[i][header_name])
+
+        # for data in temp_data['aaData']:
+        #     data_count += 1
+        #     column_count = 0
+        #     for key, value in data.iteritems():
+        #         if key in excel_headers:
+        #             ws.write(data_count, column_count, value)
+        #             column_count += 1
         wb.save(path)
     return HttpResponse(path_to_file)
 
@@ -2912,12 +2918,12 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                                 exclude(invoice_number='')
             else:
                 invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
+            invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
             if invoice_ins:
                 order_no = invoice_ins[0].invoice_number
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
                 inv_no = order_no
-            elif invoice_no_gen[0].misc_value == 'true' and order.marketplace != 'Sample':
-                invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
+            elif invoice_no_gen[0].misc_value == 'true':
                 if invoice_sequence:
                     invoice_seq = invoice_sequence[0]
                     inv_no = int(invoice_seq.value)
@@ -3014,7 +3020,7 @@ def get_mapping_imeis(user, dat, seller_summary, sor_id='', sell_ids=''):
     return imeis
 
 
-def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell_ids='', pick_num = '', from_pos=False):
+def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell_ids='', pick_num = '', from_pos=False, delivery_challan='false'):
     """ Build Invoice Json Data"""
     # Initializing Default Values
     data, imei_data, customer_details = [], [], []
@@ -3035,6 +3041,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     customer_id = ''
     mode_of_transport = ''
     vehicle_number = ''
+    advance_amount = 0
     # Getting the values from database
     user_profile = UserProfile.objects.get(user_id=user.id)
     gstin_no = user_profile.gst_number
@@ -3285,7 +3292,10 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 ord_dict.pop('igst_tax')
             if 'igst_amt' in ord_dict:
                 ord_dict.pop('igst_amt')
-    _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos, order_obj=dat)
+    _invoice_no = ''
+    _sequence = ''
+    if delivery_challan != 'true':
+        _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos, order_obj=dat)
     challan_no, challan_sequence = get_challan_number(user, seller_summary)
     inv_date = invoice_date.strftime("%m/%d/%Y")
     invoice_date = invoice_date.strftime("%d %b %Y")
@@ -3362,6 +3372,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         company_name = seller.name #'SHPROC Procurement Pvt. Ltd.'
     if math.ceil(total_quantity) == total_quantity:
         total_quantity = int(total_quantity)
+    advance_amount += data[0]['payment_received']
     invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name,'company_pan_number':pan_number,
                     'company_address': company_address, 'company_number': company_number,
                     'order_date': order_date, 'email': email, 'marketplace': marketplace, 'total_amt': total_amt,
@@ -3390,7 +3401,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
                     'cin_no': cin_no, 'challan_no': challan_no, 'customer_id': customer_id,'challan_sequence':challan_sequence,
                     'show_mrp': show_mrp, 'mode_of_transport' : mode_of_transport, 'vehicle_number' : vehicle_number,
-                    'is_cess_tax_flag': is_cess_tax_flag, 'is_igst_tax_flag': is_igst_tax_flag}
+                    'is_cess_tax_flag': is_cess_tax_flag, 'is_igst_tax_flag': is_igst_tax_flag, 'advance_amount':str(advance_amount)}
     return invoice_data
 
 def common_calculations(arg_data):
@@ -3475,6 +3486,7 @@ def common_calculations(arg_data):
         total_taxable_amt = taxable_cal
     sku_code = dat.sku.sku_code
     sku_desc = dat.sku.sku_desc
+    payment_received = dat.payment_received
     measurement_type = dat.sku.measurement_type
     if display_customer_sku == 'true':
         customer_sku_code_ins = customer_sku_codes.filter(customer__customer_id=dat.customer_id,
@@ -3510,7 +3522,7 @@ def common_calculations(arg_data):
     count = count +1
     data.append(
         {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
-         'title': title, 'invoice_amount': str(invoice_amount),
+         'title': title, 'invoice_amount': str(invoice_amount),'payment_received': payment_received,
          'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price, 'tax_type': tax_type,
          'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
          'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt':amt, 'taxes': taxes_dict,

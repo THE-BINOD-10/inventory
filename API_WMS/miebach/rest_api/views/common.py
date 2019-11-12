@@ -9066,9 +9066,9 @@ def get_sku_ean_list(sku, order_by_val=''):
     return eans_list
 
 
-def get_exclude_zones(user):
+def get_exclude_zones(user, is_putaway=False):
     exclude_zones = ['DAMAGED_ZONE', 'QC_ZONE']
-    if user.userprofile.industry_type == 'FMCG':
+    if user.userprofile.industry_type == 'FMCG' and not is_putaway:
         non_sellable_zones = list(ZoneMaster.objects.filter(user=user.id, segregation='non_sellable').values_list('zone',
                                                                                                              flat=True))
         exclude_zones.extend(non_sellable_zones)

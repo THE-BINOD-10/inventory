@@ -3135,6 +3135,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         for dat in order_data:
             profit_price,marginal_flag = 0, 0
             order_id = dat.original_order_id
+            advance_amount += dat.payment_received
             gen_ord_num = GenericOrderDetailMapping.objects.filter(orderdetail_id=order_data[0].id)
             if gen_ord_num and user.userprofile.warehouse_type == 'DIST':
                 order_no = str(gen_ord_num[0].generic_order_id)
@@ -3372,7 +3373,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         company_name = seller.name #'SHPROC Procurement Pvt. Ltd.'
     if math.ceil(total_quantity) == total_quantity:
         total_quantity = int(total_quantity)
-    advance_amount += data[0]['payment_received']
     invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name,'company_pan_number':pan_number,
                     'company_address': company_address, 'company_number': company_number,
                     'order_date': order_date, 'email': email, 'marketplace': marketplace, 'total_amt': total_amt,
@@ -3486,7 +3486,6 @@ def common_calculations(arg_data):
         total_taxable_amt = taxable_cal
     sku_code = dat.sku.sku_code
     sku_desc = dat.sku.sku_desc
-    payment_received = dat.payment_received
     measurement_type = dat.sku.measurement_type
     if display_customer_sku == 'true':
         customer_sku_code_ins = customer_sku_codes.filter(customer__customer_id=dat.customer_id,
@@ -3522,7 +3521,7 @@ def common_calculations(arg_data):
     count = count +1
     data.append(
         {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
-         'title': title, 'invoice_amount': str(invoice_amount),'payment_received': payment_received,
+         'title': title, 'invoice_amount': str(invoice_amount),
          'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price, 'tax_type': tax_type,
          'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
          'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt':amt, 'taxes': taxes_dict,

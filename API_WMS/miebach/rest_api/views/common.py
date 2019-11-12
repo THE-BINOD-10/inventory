@@ -3014,7 +3014,7 @@ def get_mapping_imeis(user, dat, seller_summary, sor_id='', sell_ids=''):
     return imeis
 
 
-def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell_ids='', pick_num = '', from_pos=False):
+def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell_ids='', pick_num = '', from_pos=False, delivery_challan='false'):
     """ Build Invoice Json Data"""
     # Initializing Default Values
     data, imei_data, customer_details = [], [], []
@@ -3285,7 +3285,10 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 ord_dict.pop('igst_tax')
             if 'igst_amt' in ord_dict:
                 ord_dict.pop('igst_amt')
-    _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos, order_obj=dat)
+    _invoice_no = ''
+    _sequence = ''
+    if delivery_challan != 'true':
+        _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos, order_obj=dat)
     challan_no, challan_sequence = get_challan_number(user, seller_summary)
     inv_date = invoice_date.strftime("%m/%d/%Y")
     invoice_date = invoice_date.strftime("%d %b %Y")

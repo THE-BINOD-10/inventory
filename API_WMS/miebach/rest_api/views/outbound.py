@@ -11840,6 +11840,7 @@ def generate_customer_invoice(request, user=''):
     total_mrp = 0
     order_no = ''
     merge_data = {}
+    delivery_challan = request.GET.get('delivery_challan', 'false')
     data_dict = dict(request.GET.iterlists())
     log.info('Request params for ' + user.username + ' is ' + str(request.GET.dict()))
     admin_user = get_priceband_admin_user(user)
@@ -11916,7 +11917,8 @@ def generate_customer_invoice(request, user=''):
                     merge_data[detail[field_mapping['sku_code']]] = detail['total_quantity']
                 else:
                     merge_data[detail[field_mapping['sku_code']]] += detail['total_quantity']
-        invoice_data = get_invoice_data(order_ids, user, merge_data=merge_data, pick_num = pick_number_list, is_seller_order=True, sell_ids=sell_ids)
+        invoice_data = get_invoice_data(order_ids, user, merge_data=merge_data, pick_num = pick_number_list, is_seller_order=True,
+                                        sell_ids=sell_ids, delivery_challan=delivery_challan)
         edit_invoice = request.GET.get('edit_invoice', '')
         edit_dc = request.GET.get('edit_dc', '')
         if edit_invoice != 'true' or edit_dc != 'true':

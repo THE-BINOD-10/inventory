@@ -421,7 +421,7 @@ var app = angular.module('urbanApp')
               })
 
               .state('app.masters.Replenushment', {
-                url: '/Replenushment',
+                url: '/Replenishment',
                 // permission: 'sku_pack_config',
                 templateUrl: 'views/masters/replenushment_datatable.html',
                 resolve: {
@@ -430,7 +430,7 @@ var app = angular.module('urbanApp')
                           }]
                 },
                 data: {
-                  title: 'Replenushment Master',
+                  title: 'Replenishment Master',
                 }
               })
                 .state('app.masters.Replenushment.update', {

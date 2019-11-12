@@ -30,7 +30,7 @@
         </a>
       </div>
     </div>
-    <div class="col-md-12 col-lg-12 col-xs-12 col-sm-12 search-items search-box pd_bottom">
+    <!-- <div class="col-md-12 col-lg-12 col-xs-12 col-sm-12 search-items search-box pd_bottom">
       <div class="col-lg-2 col-md-2"></div>
       <div class="col-lg-8 col-md-8 col-sm-12 col-xs-12">
         <div class="input-group">
@@ -38,9 +38,34 @@
           <input type="text" class="form-control" placeholder="Search for Products" ng-model="showCase.style" ng-change="showCase.catlog_data.index='';showCase.get_category(true, true);" ng-debounce>
         </div>
       </div>
-    </div>
+    </div> -->
   </div>
-  <div class="app_body brand_cat" scrolly="showCase.scroll(e)" style="position: relative; padding-top: 35px;">
+  <div class="app_body brand_cat" scrolly="showCase.scroll(e)" style="position: relative;">
+    <div class="row search-items mt15 search-box">
+      <div class="row">
+        <div class="col-md-1 col-sm-1 col-xs-12"></div>
+        <div ng-class="showCase.search_box_cls">
+          <div class="input-group mb10">
+            <span class="input-group-addon" style="background: #ed1c24;color: white;"><i style="background: #ed1c24;width: 15px;font-size: 15px;" class="fa fa-search"></i></span>
+              <input type="text" class="form-control" placeholder="Search for Products" ng-model="showCase.style" ng-focus="$state.go('user.App.Products'); showCase.get_category(true, false);" ng-debounce>
+          </div>
+        </div>
+        <div ng-style="showCase.margin_style" style="text-align: center;" align="center">
+          <div class="hidden-xs" style="left: 25px;"></div>
+          <div class="text-center">
+            <button class="btn btn-icon-icon" style="background: white;float:center;">
+              <i class="fa fa-filter" style="font-size: 15px;border-radius: 18px;color:white" title="Show Filters" ng-click="showCase.showFilters()"></i>
+            </button>
+            <button class="btn btn-icon-icon ml10" style="background: white;float:center">
+              <i class="fa fa-download" style="font-size: 15px;border-radius: 18px;color:white" title="Download PDF" ng-click="showCase.downloadPDF()"></i>
+            </button>
+            <button class="btn btn-icon-icon ml10" style="background: white;float:center">
+              <i class="fa fa-plus" style="font-size: 15px;border-radius: 18px;color:white" title="Add Margin" ng-click="showCase.addMargin()"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="row" ng-if="!showCase.catDisplay" style="text-align: center;">
       <div class="col-md-2 col-sm-3 col-xs-6 class-item" ng-repeat="item in showCase.catlog_data.data" ng-click="$state.go('user.App.Style', {styleId: item.sku_class})" style="position: relative;">
         <div class="item_styles">

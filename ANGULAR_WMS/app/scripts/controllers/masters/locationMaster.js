@@ -166,6 +166,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.add_location = function() {
     angular.copy({}, vm.model_data);
+    vm.update = false
     vm.model_data['status'] = "Active";
     vm.model_data['location_group'] = [];
     vm.model_data['lock_status'] = 'none';

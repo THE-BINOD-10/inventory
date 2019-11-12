@@ -40,7 +40,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.dtColumns = [
         DTColumnBuilder.newColumn('WMS SKU Code').withTitle('WMS SKU Code').renderWith(function(data, type, full, meta) {
                         full.image_url = vm.service.check_image_url(full.image_url);
-                        return '<img style="width: 35px;height: 40px;display: inline-block;margin-right: 10px;" src='+full.image_url+'>'+'<p style=";display: inline-block;">'+ full['WMS SKU Code'] +'</p>';
+                        return '<img style="width: 35px;height: 40px;display: inline-block;margin-right: 10px;" src='+encodeURI(full.image_url)+'>'+'<p style=";display: inline-block;">'+ full['WMS SKU Code'] +'</p>';
                         }),
         DTColumnBuilder.newColumn('EAN Number').withTitle('EAN Number'),
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),

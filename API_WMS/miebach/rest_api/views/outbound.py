@@ -5332,9 +5332,13 @@ def insert_order_data(request, user=''):
                         order_data = get_order_customer_details(order_data, request)
                     if payment_received:
                         order_payment = 0
-                        total_invoice_amount = sum([int(i) for i in myDict['invoice_amount'] if type(i)== int or i.isdigit()])
-                        temp_invoice_amnt = float(order_data['invoice_amount']) /float(total_invoice_amount)
-                        order_payment =  round(float(payment_received) * float(temp_invoice_amnt))
+                        if i != (len(myDict['sku_id']) - 1):
+                            if float(order_data['invoice_amount']) < float(payment_received):
+                                payment_received = float(payment_received) - float(order_data['invoice_amount'])
+                                order_payment = float(order_data['invoice_amount'])
+                        else:
+                            payment_received = float(payment_received)
+                            order_payment = float(payment_received)
                         order_data['payment_received'] = order_payment
                     creation_date = datetime.datetime.now()
                     order_data['creation_date'] = creation_date
@@ -11840,6 +11844,7 @@ def generate_customer_invoice(request, user=''):
     total_mrp = 0
     order_no = ''
     merge_data = {}
+    delivery_challan = request.GET.get('delivery_challan', 'false')
     data_dict = dict(request.GET.iterlists())
     log.info('Request params for ' + user.username + ' is ' + str(request.GET.dict()))
     admin_user = get_priceband_admin_user(user)
@@ -11916,7 +11921,8 @@ def generate_customer_invoice(request, user=''):
                     merge_data[detail[field_mapping['sku_code']]] = detail['total_quantity']
                 else:
                     merge_data[detail[field_mapping['sku_code']]] += detail['total_quantity']
-        invoice_data = get_invoice_data(order_ids, user, merge_data=merge_data, pick_num = pick_number_list, is_seller_order=True, sell_ids=sell_ids)
+        invoice_data = get_invoice_data(order_ids, user, merge_data=merge_data, pick_num = pick_number_list, is_seller_order=True,
+                                        sell_ids=sell_ids, delivery_challan=delivery_challan)
         edit_invoice = request.GET.get('edit_invoice', '')
         edit_dc = request.GET.get('edit_dc', '')
         if edit_invoice != 'true' or edit_dc != 'true':

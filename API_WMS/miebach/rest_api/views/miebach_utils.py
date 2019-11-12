@@ -422,7 +422,7 @@ SUPPLIER_WISE_POS = {
 
 GOODS_RECEIPT_NOTE = {
     ('receipt_note_form', 'receiptTable', 'Goods Receipt Filter', 'receipt-note', 11, 12, 'po-report'): (
-    ['PO Number', 'Supplier ID', 'Supplier Name', 'Total Quantity'],
+    ['PO Number', 'PO Reference','Supplier ID', 'Supplier Name', 'Total Quantity'],
     ((('From Date', 'from_date'), ('To Date', 'to_date')), (('PO Number', 'open_po'), ('WMS Code', 'wms_code')),)), }
 
 RECEIPT_SUMMARY = {
@@ -502,7 +502,7 @@ GRN_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'dat
                         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
                         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
-            'dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
+            'dt_headers': ['PO Number', 'PO Reference','Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
             'mk_dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
             # 'mk_dt_headers': ['Received Date', 'PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'Recepient',
             #                   'SKU Code',
@@ -3621,7 +3621,7 @@ def get_po_filter_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     user_profile = UserProfile.objects.get(user_id=user.id)
-    lis = ['order_id', 'open_po__supplier_id', 'open_po__supplier__name', 'ordered_qty']
+    lis = ['order_id', 'open_po__po_name','open_po__supplier_id', 'open_po__supplier__name', 'ordered_qty', 'received_quantity']
     unsorted_dict = {}
     model_name = PurchaseOrder
     field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date', 'order_id': 'order_id', 'wms_code': 'open_po__sku__wms_code__iexact', 'user': 'open_po__sku__user', 'sku_id__in': 'open_po__sku_id__in', 'prefix': 'prefix', 'supplier_id': 'open_po__supplier_id', 'supplier_name': 'open_po__supplier__name'}
@@ -3679,6 +3679,7 @@ def get_po_filter_data(search_params, user, sub_user):
         po_result = purchase_orders.filter(order_id=data[field_mapping['order_id']], open_po__sku__user=user.id)
         result = po_result[0]
         total_ordered = po_result.aggregate(Sum('open_po__order_quantity'))['open_po__order_quantity__sum']
+        po_reference_name = result.open_po.po_name
         if not total_ordered:
             total_ordered = 0
         po_number = '%s%s_%s' % (data[field_mapping['prefix']], str(result.creation_date).split(' ')[0].replace('-', ''),
@@ -3698,6 +3699,7 @@ def get_po_filter_data(search_params, user, sub_user):
         #    received_qty = data['grn_rec']
         temp_data['aaData'].append(OrderedDict((('PO Number', po_number),
                                                 ('Supplier ID', data[field_mapping['supplier_id']]),
+                                                ('PO Reference', po_reference_name),
                                                 ('Supplier Name', data[field_mapping['supplier_name']]),
                                                 ('Order Quantity', total_ordered),
                                                 ('Received Quantity', received_qty),
@@ -4446,7 +4448,7 @@ def get_order_summary_data(search_params, user, sub_user):
         milkbasket_user = True
 
     lis = ['creation_date', 'order_id', 'customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
-           'sku__sku_size', 'sku__sku_desc', 'sku__sub_category' 'sku_code', 'sku_code', 'quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
+           'sku__sku_size', 'sku__sku_desc', 'sku__sub_category', 'sku_code', 'sku_code', 'quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
            'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id','order_id',
            'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','invoice_number', 'challan_number', 'quantity','creation_date'];
     if milkbasket_user :
@@ -4617,7 +4619,7 @@ def get_order_summary_data(search_params, user, sub_user):
     total_row = {}
     total_row = OrderedDict((('Order Date', ''), ('Order ID', ""),('Customer Name', ""),('Order Number' ,""),
     ('SKU Brand', ""),('SKU Category', ''),('SKU Class', ''),('SKU Size', ''), ('SKU Description', ''),('SKU Sub Category', ''),
-    ('SKU Code', 'TotalQuantity='), ('Order Qty',temp_data['totalOrderQuantity']),('MRP', ''), ('Unit Price',''),('Discount', ''),
+    ('SKU Code', 'TotalQuantity='), ('Vehicle Number', ''),('Order Qty',temp_data['totalOrderQuantity']),('MRP', ''), ('Unit Price',''),('Discount', ''),
     ('Serial Number',''),('Invoice Number',''),('Challan Number', ''),('Quantity',''),('Payment Type' ,''),('Reference Number',''),
     ('Taxable Amount',''), ('Tax', ''),('City', ''), ('State', ''), ('Marketplace', 'TotalInvoiceAmount='),('Invoice Amount', temp_data['totalSellingPrice']),
     ('Price', ''),('Status', ''), ('Order Status', ''),('Customer GST Number',''),('Remarks', ''), ('Order Taken By', ''),

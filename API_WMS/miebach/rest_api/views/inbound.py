@@ -7223,7 +7223,7 @@ def get_po_segregation_data(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=True)
 def confirm_primary_segregation(request, user=''):
     reversion.set_user(request.user)
     data_dict = dict(request.POST.iterlists())
@@ -7238,7 +7238,8 @@ def confirm_primary_segregation(request, user=''):
                 non_sellable = 0
             sellable = float(sellable)
             non_sellable = float(non_sellable)
-            segregation_obj = PrimarySegregation.objects.select_related('batch_detail', 'purchase_order').\
+
+            segregation_obj = PrimarySegregation.objects.select_for_update().select_related('batch_detail', 'purchase_order').\
                                                             filter(id=data_dict['segregation_id'][ind],
                                                                    status=1)
             if not segregation_obj:

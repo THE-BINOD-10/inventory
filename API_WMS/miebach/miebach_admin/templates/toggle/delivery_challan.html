@@ -140,6 +140,7 @@
         </thead>
         <tbody>
           {% for record in page %}
+          {% if record.sku_code %}
           <tr class="fs14 rm-border">
             <td class="text-left">{{record.index}}</td>
             <td class="text-left">{{record.sku_code}}</td>
@@ -147,6 +148,7 @@
             <td class="text-right"></td>
             <td class="text-right"> {{record.quantity}} </td>
           </tr>
+          {% endif %}
           {% endfor %}
           {% if forloop.last %}
           <tr style="border-top: 1px solid black;">

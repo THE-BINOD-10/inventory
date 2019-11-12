@@ -471,6 +471,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             data.ean_number = resp.data.ean_number;
             data.buy_price = resp.data.price;
             data.weight = resp.data.weight;
+            data.unit = resp.data.measurement_unit;
 
             data.row_price = (Number(data.value) * Number(data.price));
             vm.getTotals();

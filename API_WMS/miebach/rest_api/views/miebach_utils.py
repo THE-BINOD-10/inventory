@@ -4442,7 +4442,7 @@ def get_order_summary_data(search_params, user, sub_user):
         milkbasket_user = True
 
     lis = ['creation_date', 'order_id', 'customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
-           'sku__sku_size', 'sku__sku_desc', 'sku__sub_category' 'sku_code', 'sku_code', 'quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
+           'sku__sku_size', 'sku__sku_desc', 'sku__sub_category', 'sku_code', 'sku_code', 'quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
            'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id','order_id',
            'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','invoice_number', 'challan_number', 'quantity','creation_date'];
     if milkbasket_user :

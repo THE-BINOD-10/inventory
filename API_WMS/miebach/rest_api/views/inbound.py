@@ -1078,6 +1078,7 @@ def switches(request, user=''):
                        'repeat_po':'repeat_po',
                        'loc_serial_mapping_switch':'loc_serial_mapping_switch',
                        'brand_categorization':'brand_categorization',
+                       'purchase_order_preview':'purchase_order_preview',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

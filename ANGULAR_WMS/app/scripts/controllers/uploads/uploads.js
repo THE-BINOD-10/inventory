@@ -373,16 +373,52 @@ function uploads($scope, Session, $http, $rootScope, Service) {
       headers: {'Content-Type': undefined}
     })
     .success(function(data){
-      if ((data == "Success") || (data.search("Invalid") > -1) || (data.search("not") > -1) || (data.search("Fail") > -1)) {
-        var type = "";
-        type = (data == "Success")? "": "error";
-        vm.service.showNotyNotHide(data, type);
-        $scope.disable = false;
-        $(".preloader").removeClass("ng-show").addClass("ng-hide");
-        $scope.files = [];
-        $("input").val('')
+      if (!Object.keys(data).includes('data_list')) {
+        if ((data == "Success") || (data.search("Invalid") > -1) || (data.search("not") > -1) || (data.search("Fail") > -1)) {
+          var type = "";
+          type = (data == "Success")? "": "error";
+          vm.service.showNotyNotHide(data, type);
+          $scope.disable = false;
+          $(".preloader").removeClass("ng-show").addClass("ng-hide");
+          $scope.files = [];
+          $("input").val('')
+        } else {
+          upload_status(data, index);
+        }
       } else {
-        upload_status(data, index);
+        $scope.disable = false;
+        swal({
+          title: "Will upload Purchase order Data",
+          text: "Are you sure?",
+          type: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#DD6B55",
+          confirmButtonText: "Yes",
+          cancelButtonText: "No",
+          closeOnConfirm: false,
+          closeOnCancel: true
+       },
+       function(isConfirm){
+          if (isConfirm) {
+            uploadUrl = Session.url+'purchase_order_upload_preview/'
+            fd.append('data_list', JSON.stringify(data['data_list']))
+            $http.post(uploadUrl, fd, {
+              transformRequest: angular.identity,
+              headers: {'Content-Type': undefined}
+            }).success(function(data){
+              swal.close()
+              $(".preloader").removeClass("ng-show").addClass("ng-hide");
+              $scope.files = [];
+              $("input").val('');
+              vm.service.showNotyNotHide('Success');
+            })
+          } else {
+            $(".preloader").removeClass("ng-show").addClass("ng-hide");
+            $scope.files = [];
+            $("input").val('');
+            vm.service.showNotyNotHide("Upload Cancelled !");
+         }
+       })
       }
     })
     .error(function(){
@@ -393,7 +429,6 @@ function uploads($scope, Session, $http, $rootScope, Service) {
   };
 
   function upload_status(msg, index) {
-
     if (msg != "Success" && msg != "Upload Fail" && msg.indexOf("Orders exceeded") === -1) {
       $scope.uploads[parseInt(index)].download = "Download Error Form";
       $scope.uploads[parseInt(index)].value = msg;

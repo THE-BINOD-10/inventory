@@ -2698,8 +2698,8 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     if not supplier:
                         index_status.setdefault(row_idx, set()).add("Supplier ID doesn't exist")
                     else:
-                        data_dict['supplier'] = supplier[0]
-                        ep_supplier = int(data_dict['supplier'].ep_supplier)
+                        data_dict['supplier'] = supplier[0].id
+                        ep_supplier = int(supplier[0].ep_supplier)
                 else:
                     index_status.setdefault(row_idx, set()).add('Missing Supplier ID')
             elif key in ['po_date', 'po_delivery_date']:
@@ -2707,9 +2707,9 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     try:
                         if isinstance(cell_data, float):
                             year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
-                            data_dict[key] = datetime.datetime(year, month, day, hour, minute, second)
+                            data_dict[key] = str(datetime.datetime(year, month, day, hour, minute, second))
                         elif '-' in cell_data:
-                            data_dict[key] = datetime.datetime.strptime(cell_data, "%m-%d-%Y")
+                            data_dict[key] = str(datetime.datetime.strptime(cell_data, "%m-%d-%Y"))
                         else:
                             index_status.setdefault(row_idx, set()).add('Check the date format for %s' %
                                                                         mapping_fields[key])
@@ -2732,7 +2732,8 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                         if not ep_supplier:
                             if sku_master[0].block_options == 'PO':
                                 index_status.setdefault(row_idx, set()).add("WMS Code is blocked for PO")
-                        data_dict['sku'] = sku_master[0]
+                        data_dict['sku'] = sku_master[0].id
+                        data_dict['wms_code'] = sku_master[0].wms_code
             elif key == 'seller_id':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Missing Seller ID')
@@ -2833,7 +2834,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     show_cess_tax = False
     show_apmc_tax = False
     ean_flag = False
-    wms_codes_list = list(set(map(lambda d: d['sku'].wms_code, data_list)))
+    wms_codes_list = list(set(map(lambda d: d['wms_code'], data_list)))
     ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
                                         wms_code__in=wms_codes_list, user=user.id)
     if ean_data.exists():
@@ -2864,6 +2865,10 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     ids_dict = {}
     send_mail_data = OrderedDict()
     for final_dict in data_list:
+        final_dict['sku'] = SKUMaster.objects.get(id=final_dict['sku'], user=user.id)
+        final_dict['supplier'] = SupplierMaster.objects.get(id=final_dict['supplier'], user=user.id)
+        final_dict['po_date'] = datetime.datetime.strptime(final_dict.get('po_date', ''), '%Y-%m-%d %H:%M:%S')
+        final_dict['po_delivery_date'] = datetime.datetime.strptime(final_dict.get('po_delivery_date', ''), '%Y-%m-%d %H:%M:%S')
         total_qty = 0
         total = 0
         order_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
@@ -3202,6 +3207,7 @@ def purchase_upload_mail(request, data_to_send, user):
 @reversion.create_revision(atomic=False)
 def purchase_order_upload(request, user=''):
     reversion.set_user(request.user)
+    purchase_order_view = get_misc_value('purchase_order_preview', user.id)
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
@@ -3212,9 +3218,20 @@ def purchase_order_upload(request, user=''):
     status, data_list = validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname, file_type)
     if status != 'Success':
         return HttpResponse(status)
-    purchase_order_excel_upload(request, user, data_list)
+    if purchase_order_view == 'true':
+        content = {'data_list': data_list}
+        return HttpResponse(json.dumps(content))
+    else:
+        purchase_order_excel_upload(request, user, data_list)
     return HttpResponse('Success')
 
+@login_required
+@get_admin_user
+@csrf_exempt
+def purchase_order_upload_preview(request, user=''):
+    data_list = json.loads(request.POST.get('data_list', ''))
+    purchase_order_excel_upload(request, user, data_list)
+    return HttpResponse('Success')
 
 @csrf_exempt
 def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):

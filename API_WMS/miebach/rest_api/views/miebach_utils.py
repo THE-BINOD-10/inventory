@@ -1489,11 +1489,11 @@ SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 
                              ('sku_category', 5), ('primary_category', 6), ('sku_class', 7), ('sku_brand', 8),
                              ('style_name', 9),
                              ('sku_size', 10), ('size_type', 11), ('zone_id', 12), ('cost_price', 13), ('price', 14),
-                             ('mrp', 15), ('sequence', 16), ('image_url', 17), ('threshold_quantity', 18),
-                             ('measurement_type', 19),
-                             ('sale_through', 20), ('color', 21), ('ean_number', 22), ('load_unit_handle', 23),
-                             ('hsn_code', 24),
-                             ('sub_category', 25), ('hot_release', 26), ('mix_sku', 27), ('combo_flag', 28), ('block_options', 29), ('status', 30)
+                             ('mrp', 15), ('sequence', 16), ('image_url', 17), ('threshold_quantity', 18),('max_norm_quantity', 19),
+                             ('measurement_type', 20),
+                             ('sale_through', 21), ('color', 22), ('ean_number', 23), ('load_unit_handle', 24),
+                             ('hsn_code', 25),
+                             ('sub_category', 26), ('hot_release', 27), ('mix_sku', 28), ('combo_flag', 29), ('block_options', 30), ('status', 31)
                              ))
 
 MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(

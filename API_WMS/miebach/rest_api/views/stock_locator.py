@@ -3253,7 +3253,7 @@ def ba_to_sa_calculate_now(request, user=''):
             ba_sku_avail_qty[ba_stock['sku_id']]['total_quantity'] += ba_stock['sellerstock__quantity']
             ba_sku_avail_qty[ba_stock['sku_id']]['stock'][ba_stock['id']] = ba_stock['sellerstock__quantity']
         all_ba_reserved = PicklistLocation.objects.filter(stock__sku__user=user.id, stock__sku__status=1,
-                                                       stock__location__zone__zone='Bulk Zone',
+                                                       stock__location__zone__zone__in=bulk_zones,
                                                        stock__sellerstock__seller__seller_id=1 ,status=1).\
                                                 only('stock__sku_id', 'stock_id', 'reserved')
         for ba_reserved in all_ba_reserved:
@@ -3352,9 +3352,6 @@ def ba_to_sa_calculate_now(request, user=''):
                 needed_qty = 0
             else:
                 replenishment_qty = max_stock - sku_avail_qty
-                #ba_stock_objs = StockDetail.objects.filter(location__zone__zone='Bulk Zone', sku_id=data.id,
-                #                                      sellerstock__seller__seller_id=1, quantity__gt=0,
-                #                                      sellerstock__quantity__gt=0)
                 replenishment_qty = int(replenishment_qty)
                 needed_qty = replenishment_qty
             sku_classification_dict1['replenushment_qty'] = replenishment_qty
@@ -3366,10 +3363,6 @@ def ba_to_sa_calculate_now(request, user=''):
                                                                 remarks_sku_ids)
                 continue
             ba_stock_dict = ba_sku_avail_qty.get(data.id, {})
-            # ba_stock_objs = StockDetail.objects.filter(location__zone__zone='Bulk Zone', sku_id=data.id,
-            #                                             sellerstock__seller__seller_id=1, quantity__gt=0,
-            #                                             sellerstock__quantity__gt=0)
-            #if ba_stock_objs.exists():
             if replenishment_qty < 20 :
                 replenishment_qty = 20
 

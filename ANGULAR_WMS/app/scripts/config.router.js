@@ -421,7 +421,7 @@ var app = angular.module('urbanApp')
               })
 
               .state('app.masters.Replenushment', {
-                url: '/Replenushment',
+                url: '/Replenishment',
                 // permission: 'sku_pack_config',
                 templateUrl: 'views/masters/replenushment_datatable.html',
                 resolve: {
@@ -430,7 +430,7 @@ var app = angular.module('urbanApp')
                           }]
                 },
                 data: {
-                  title: 'Replenushment Master',
+                  title: 'Replenishment Master',
                 }
               })
                 .state('app.masters.Replenushment.update', {
@@ -2841,12 +2841,7 @@ var app = angular.module('urbanApp')
         })
           .state('user.App.Brands', {
             url: '/Brands',
-            templateUrl: 'views/outbound/app/create_orders/details.html',
-            resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/outbound/app/settings.js');
-              }]
-            }
+            templateUrl: 'views/outbound/app/create_orders/details.html'
           })
           .state('user.App.Products', {
             url: '/Products',

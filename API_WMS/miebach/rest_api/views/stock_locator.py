@@ -3217,6 +3217,8 @@ def ba_to_sa_calculate_now(request, user=''):
     ba_sku_res_qty = OrderedDict()
     zones = get_all_sellable_zones(user)
     remarks = ''
+    bulk_zone_name = MILKBASKET_BULK_ZONE
+    bulk_zones = get_all_zones(user, zones=[bulk_zone_name])
     locations = LocationMaster.objects.filter(zone__user=user.id, zone__zone__in=zones)
     if not locations:
         return HttpResponse("Sellable Locations not found")
@@ -3240,9 +3242,9 @@ def ba_to_sa_calculate_now(request, user=''):
         for all_res in all_reserved:
             sku_res_qty.setdefault(all_res.stock.sku_id, 0)
             sku_res_qty[all_res.stock.sku_id] += all_res.reserved
-        all_ba_stocks = StockDetail.objects.exclude(receipt_number=0,location__location = 'BA').\
+        all_ba_stocks = StockDetail.objects.exclude(receipt_number=0).\
                                             filter(sku__user=user.id, sku__status=1, quantity__gt=0,
-                                            location__zone__zone='Bulk Zone',
+                                            location__zone__zone__in=bulk_zones,
                                                    sellerstock__seller__seller_id=1,
                                             sellerstock__quantity__gt=0).\
                                             values('sku_id', 'id','sellerstock__quantity').order_by('receipt_number')

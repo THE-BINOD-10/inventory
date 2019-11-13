@@ -8623,7 +8623,7 @@ def get_margin_report_data(search_params, user, sub_user):
 
 
 def get_basa_report_data(search_params, user, sub_user):
-    from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date,get_all_sellable_zones
+    from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date,get_all_sellable_zones, get_all_zones
     from django.db.models import Count
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
@@ -8643,8 +8643,10 @@ def get_basa_report_data(search_params, user, sub_user):
     sort_data = lis[col_num]
     zones  = get_all_sellable_zones(user)
     locations = []
+    bulk_zone_name = MILKBASKET_BULK_ZONE
+    bulk_zones = get_all_zones(user, zones=[bulk_zone_name])
+    zones = list(chain(zones, bulk_zones))
     locations = list(LocationMaster.objects.filter(zone__zone__in = zones,zone__user =user.id).values_list('location',flat=True))
-    locations.append('BA')
     if order_term == 'desc':
         sort_data = '-%s' % sort_data
     if 'sku_code' in search_params:

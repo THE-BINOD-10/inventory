@@ -483,7 +483,7 @@ SKU_WISE_PO_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'typ
                                 {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
                                 {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
                                 ],
-                    'dt_headers': ['PO Reference', 'PO Date', 'Supplier', 'SKU Code', 'Order Quantity', 'Received Quantity',
+                    'dt_headers': ['PO Number', 'PO Date', 'Supplier', 'SKU Code', 'Order Quantity', 'Received Quantity',
                                    'Receivable Quantity', 'Rejected Quantity', 'Receipt Date', 'Status'],
                     'mk_dt_headers': ['PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'SKU Code',
                                       'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
@@ -1489,11 +1489,11 @@ SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 
                              ('sku_category', 5), ('primary_category', 6), ('sku_class', 7), ('sku_brand', 8),
                              ('style_name', 9),
                              ('sku_size', 10), ('size_type', 11), ('zone_id', 12), ('cost_price', 13), ('price', 14),
-                             ('mrp', 15), ('sequence', 16), ('image_url', 17), ('threshold_quantity', 18),
-                             ('measurement_type', 19),
-                             ('sale_through', 20), ('color', 21), ('ean_number', 22), ('load_unit_handle', 23),
-                             ('hsn_code', 24),
-                             ('sub_category', 25), ('hot_release', 26), ('mix_sku', 27), ('combo_flag', 28), ('block_options', 29), ('status', 30)
+                             ('mrp', 15), ('sequence', 16), ('image_url', 17), ('threshold_quantity', 18),('max_norm_quantity', 19),
+                             ('measurement_type', 20),
+                             ('sale_through', 21), ('color', 22), ('ean_number', 23), ('load_unit_handle', 24),
+                             ('hsn_code', 25),
+                             ('sub_category', 26), ('hot_release', 27), ('mix_sku', 28), ('combo_flag', 29), ('block_options', 30), ('status', 31)
                              ))
 
 MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(
@@ -3215,7 +3215,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
             receivable_quantity = int(order_data['order_quantity'] - data.received_quantity)
             if receivable_quantity < 0 or status == 'Closed PO':
                 receivable_quantity = 0
-            temp = OrderedDict((('PO Reference', po_reference), ('PO Date', get_local_date(user, data.po_date)), ('Supplier', order_data['supplier_name']),
+            temp = OrderedDict((('PO Number', po_reference), ('PO Date', get_local_date(user, data.po_date)), ('Supplier', order_data['supplier_name']),
                                 ('SKU Code', order_data['wms_code']), ('Order Quantity', order_data['order_quantity']),
                                 ('Received Quantity', data.received_quantity), ('Receivable Quantity', receivable_quantity), ('Receipt Date', receipt_date),
                                 ('Status', status)))
@@ -8629,7 +8629,7 @@ def get_margin_report_data(search_params, user, sub_user):
 
 
 def get_basa_report_data(search_params, user, sub_user):
-    from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date,get_all_sellable_zones
+    from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date,get_all_sellable_zones, get_all_zones
     from django.db.models import Count
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
@@ -8649,8 +8649,10 @@ def get_basa_report_data(search_params, user, sub_user):
     sort_data = lis[col_num]
     zones  = get_all_sellable_zones(user)
     locations = []
+    bulk_zone_name = MILKBASKET_BULK_ZONE
+    bulk_zones = get_all_zones(user, zones=[bulk_zone_name])
+    zones = list(chain(zones, bulk_zones))
     locations = list(LocationMaster.objects.filter(zone__zone__in = zones,zone__user =user.id).values_list('location',flat=True))
-    locations.append('BA')
     if order_term == 'desc':
         sort_data = '-%s' % sort_data
     if 'sku_code' in search_params:

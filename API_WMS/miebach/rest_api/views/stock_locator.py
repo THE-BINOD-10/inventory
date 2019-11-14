@@ -1222,7 +1222,8 @@ def insert_move_inventory(request, user=''):
                                  receipt_number=receipt_number, receipt_type='move-inventory')
     if 'success' in status.lower():
         update_filled_capacity([source_loc, dest_loc], user.id)
-        if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(sku_codes, user)
+        sku_code = [wms_code]
+        if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(sku_code, user)
 
     return HttpResponse(status)
 

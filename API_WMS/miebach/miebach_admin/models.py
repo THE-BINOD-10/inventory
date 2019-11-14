@@ -3405,3 +3405,14 @@ class UserTextFields(models.Model):
     class Meta:
         db_table = 'USER_TEXT_FIELD'
         unique_together = ('user', 'field_type')
+
+
+class ProccessRunning(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = user = models.PositiveIntegerField(default=0)
+    running = models.BooleanField(default=False)
+    process_name = models.CharField(max_length=64, default='')
+
+    class Meta:
+        db_table = 'PROCESS_RUNNING'
+        unique_together = ('user', 'process_name')

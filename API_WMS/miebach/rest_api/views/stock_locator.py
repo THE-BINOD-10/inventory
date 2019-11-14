@@ -3206,6 +3206,7 @@ def save_ba_to_sa_remarks(sku_classification_dict1, sku_classification_objs, rem
 @csrf_exempt
 @login_required
 @get_admin_user
+@check_process_status
 def ba_to_sa_calculate_now(request, user=''):
     master_data = SKUMaster.objects.filter(user = user.id, status=1).order_by('id').only('id', 'sku_code')
     sellable_zones = get_all_sellable_zones(user)

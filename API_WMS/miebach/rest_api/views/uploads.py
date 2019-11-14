@@ -3219,7 +3219,7 @@ def purchase_order_upload(request, user=''):
     if status != 'Success':
         return HttpResponse(status)
     if purchase_order_view == 'true':
-        content = {'data_list': data_list}
+        content = purchase_order_preview_generation(request, user, data_list)
         return HttpResponse(json.dumps(content))
     else:
         purchase_order_excel_upload(request, user, data_list)
@@ -3232,6 +3232,96 @@ def purchase_order_upload_preview(request, user=''):
     data_list = json.loads(request.POST.get('data_list', ''))
     purchase_order_excel_upload(request, user, data_list)
     return HttpResponse('Success')
+
+def purchase_order_preview_generation(request, user, data_list):
+    profile = UserProfile.objects.get(user_id=user.id)
+    if profile.industry_type == 'FMCG':
+        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'Unit Price', 'MRP', 'Amt',
+                             'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+    if user.username in MILKBASKET_USERS:
+        table_headers.insert(4, 'Weight')
+    else:
+        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'Unit Price', 'MRP', 'Amt',
+                             'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+    data_dict = []
+    po_data = []
+    data_preview = {}
+    for data in data_list:
+        sku = SKUMaster.objects.get(id=data['sku'], user=user.id)
+        supplier = SupplierMaster.objects.get(id=data['supplier'], user=user.id)
+        import pdb; pdb.set_trace()
+        total, amount, company_address = tax_calculation_master(data, user)
+        po_temp_data = [sku.sku_code, data['supplier'], sku.sku_desc, data['quantity'], data['price'],
+                        data['mrp'], amount, data['sgst_tax'], data['cgst_tax'], data['igst_tax'],
+                        data['utgst_tax'], total
+                       ]
+        po_data.append(po_temp_data)
+    data_dict = {'table_headers': table_headers,
+                    'data':po_data,
+                    'address': supplier.address,
+                    'order_id': '',
+                    'telephone': supplier.phone_number,
+                    'ship_to_address': '',
+                    'name': supplier.name,
+                    'order_date': get_local_date(request.user, datetime.datetime.now()),
+                    'total': '',
+                    'po_reference': '',
+                    'user_name': '',
+                    'total_amt_in_words': '',
+                    'total_qty': '',
+                    'location': '',
+                    'w_address': '',
+                    'vendor_name': '',
+                    'vendor_address': '',
+                    'vendor_telephone': '',
+                    'receipt_type': '',
+                    'title': '',
+                    'gstin_no': supplier.tin_number,
+                    'industry_type': '',
+                    'expiry_date': '',
+                    'wh_telephone': '',
+                    'wh_gstin': profile.gst_number,
+                    'wh_pan': profile.pan_number,
+                    'terms_condition': '',
+                    'supplier_pan':supplier.pan_number,
+                    'company_name': profile.company_name,
+                    'company_address': company_address
+                }
+    t = loader.get_template('templates/toggle/upload_po_preview.html')
+    data = t.render(data_dict)
+    data_preview['data_preview'] = data
+    data_preview['data_list'] = data_list
+    return data_preview
+
+@csrf_exempt
+def tax_calculation_master(data, user):
+    try:
+        total, amount, company_address = 0, 0, ''
+        unit_price = data.get('price', 0)
+        quantity = data.get('quantity', 0)
+        cgst = data.get('cgst_tax', 0)
+        sgst = data.get('sgst_tax', 0)
+        igst = data.get('igst_tax', 0)
+        utgst = data.get('utgst_tax', 0)
+        apmc = data.get('apmc_tax', 0)
+        cess = data.get('cess_tax', 0)
+        tax = cgst + sgst + igst + utgst + cess + apmc
+        amount = unit_price * quantity
+        total += amount + ((amount / 100) * float(tax))
+        if user.userprofile.wh_address:
+            company_address = user.userprofile.wh_address
+            if user.username in MILKBASKET_USERS:
+                if user.userprofile.user.email:
+                    company_address = ("%s, Email:%s") % (company_address, user.userprofile.user.email)
+                if user.userprofile.phone_number:
+                    company_address = ("%s, Phone:%s") % (company_address, user.userprofile.phone_number)
+                if user.userprofile.gst_number:
+                    company_address = ("%s, GSTINo:%s") % (company_address, user.userprofile.gst_number)
+        else:
+            company_address = user.userprofile.address
+        return total, amount, company_address
+    except:
+        return 'parameters are Missing'
 
 @csrf_exempt
 def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):

@@ -1,6 +1,6 @@
 'use strict';
 
-function uploads($scope, Session, $http, $rootScope, Service) {
+function uploads($scope, Session, $http, $rootScope, Service, $modal) {
 
   $scope.url = Session.url;
   var vm = this;
@@ -387,38 +387,55 @@ function uploads($scope, Session, $http, $rootScope, Service) {
         }
       } else {
         $scope.disable = false;
-        swal({
-          title: "Will upload Purchase order Data",
-          text: "Are you sure?",
-          type: "warning",
-          showCancelButton: true,
-          confirmButtonColor: "#DD6B55",
-          confirmButtonText: "Yes",
-          cancelButtonText: "No",
-          closeOnConfirm: false,
-          closeOnCancel: true
-       },
-       function(isConfirm){
-          if (isConfirm) {
-            uploadUrl = Session.url+'purchase_order_upload_preview/'
-            fd.append('data_list', JSON.stringify(data['data_list']))
-            $http.post(uploadUrl, fd, {
-              transformRequest: angular.identity,
-              headers: {'Content-Type': undefined}
-            }).success(function(data){
-              swal.close()
-              $(".preloader").removeClass("ng-show").addClass("ng-hide");
-              $scope.files = [];
-              $("input").val('');
-              vm.service.showNotyNotHide('Success');
-            })
-          } else {
-            $(".preloader").removeClass("ng-show").addClass("ng-hide");
-            $scope.files = [];
-            $("input").val('');
-            vm.service.showNotyNotHide("Upload Cancelled !");
-         }
-       })
+        vm.title = "View Preview";
+        var mod_data = data;
+        var modalInstance = $modal.open({
+          templateUrl: 'views/uploads/purchase_preview_popup.html',
+          controller: 'purchaseOrderPreview',
+          controllerAs: 'pop',
+          size: 'lg',
+          backdrop: 'static',
+          keyboard: false,
+          resolve: {
+            items: function () {
+              return mod_data;
+            }
+          }
+        });
+        modalInstance.result.then(function (selectedItem) {
+        });
+       //  swal({
+       //    title: "Will upload Purchase order Data",
+       //    text: "Are you sure?",
+       //    type: "warning",
+       //    showCancelButton: true,
+       //    confirmButtonColor: "#DD6B55",
+       //    confirmButtonText: "Yes",
+       //    cancelButtonText: "No",
+       //    closeOnConfirm: false,
+       //    closeOnCancel: true
+       // },
+       // function(isConfirm){
+       //    if (isConfirm) {
+       //      uploadUrl = Session.url+'purchase_order_upload_preview/'
+       //      fd.append('data_list', JSON.stringify(data['data_list']))
+       //      $http.post(uploadUrl, fd, {
+       //        transformRequest: angular.identity,
+       //        headers: {'Content-Type': undefined}
+       //      }).success(function(data){
+       //        swal.close()
+       //        $(".preloader").removeClass("ng-show").addClass("ng-hide");
+       //        $scope.files = [];
+       //        $("input").val('');
+       //        vm.service.showNotyNotHide('Success');
+       //      })
+       //    } else {
+       //      $(".preloader").removeClass("ng-show").addClass("ng-hide");
+       //      $scope.files = [];
+       //      $("input").val('');
+       //      vm.service.showNotyNotHide("Upload Cancelled !");
+       //   }
+       // })
       }
     })
     .error(function(){
@@ -445,7 +462,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
 }
 
 var app = angular.module('urbanApp')
-  .controller('Uploads', ['$scope', 'Session', '$http', '$rootScope', 'Service', uploads]);
+  .controller('Uploads', ['$scope', 'Session', '$http', '$rootScope', 'Service', '$modal', uploads]);
 
 app.directive('excelUpload', function () {
     return {
@@ -462,3 +479,21 @@ app.directive('excelUpload', function () {
         }
     };
 });
+
+function purchaseOrderPreview($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items, Data) {
+  var vm = this;
+  vm.service = Service;
+  vm.permissions = Session.roles.permissions;
+  console.log(items)
+  debugger
+  setTimeout(function(){
+    $(".modal-dialog").addClass("print-width");
+    angular.element(".modal-body").html($(items['data_preview']));
+  }, 1000);
+  vm.ok = function () {
+    $modalInstance.close("close");
+  };
+  }
+angular
+  .module('urbanApp')
+  .controller('purchaseOrderPreview', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', purchaseOrderPreview]);

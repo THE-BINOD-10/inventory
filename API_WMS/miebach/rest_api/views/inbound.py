@@ -413,7 +413,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
             warehouse = wh_details.get(result['open_po__sku__user'])
         data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference),
-                                      ('PO Reference', po_reference_no), ('Order Date', _date),
+                                      ('PO Number', po_reference_no), ('Order Date', _date),
                                       ('Supplier ID/Name', supplier_id_name), ('Total Qty', total_order_qty),
                                       ('Receivable Qty', total_receivable_qty),
                                       ('Received Qty', total_received_qty), ('Expected Date', expected_date),
@@ -5379,13 +5379,14 @@ def confirm_add_po(request, sales_data='', user=''):
         phone_no = purchase_order.supplier.phone_number
         gstin_no = purchase_order.supplier.tin_number
         supplier_pan = purchase_order.supplier.pan_number
+        po_reference = purchase_order.po_name
         po_exp_duration = purchase_order.supplier.po_exp_duration
         order_date = get_local_date(request.user, order.creation_date)
         if po_exp_duration:
             expiry_date = order.creation_date + datetime.timedelta(days=po_exp_duration)
         else:
             expiry_date = ''
-        po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+        po_number = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
         profile = UserProfile.objects.get(user=user.id)
         company_name = profile.company_name
         title = 'Purchase Order'
@@ -5407,7 +5408,8 @@ def confirm_add_po(request, sales_data='', user=''):
             terms_condition= terms_condition.replace("%^PO_DATE^%", '')
         data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address.encode('ascii', 'ignore'), 'order_id': order_id,
                      'telephone': str(telephone), 'ship_to_address': ship_to_address.encode('ascii', 'ignore'),
-                     'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,
+                     'name': name, 'order_date': order_date, 'total': round(total), 'po_number': po_number ,
+                     'po_reference':po_reference,
                      'user_name': request.user.username, 'total_amt_in_words': total_amt_in_words,
                      'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
                      'w_address': ship_to_address.encode('ascii', 'ignore'),

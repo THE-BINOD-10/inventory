@@ -483,7 +483,7 @@ SKU_WISE_PO_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'typ
                                 {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
                                 {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
                                 ],
-                    'dt_headers': ['PO Reference', 'PO Date', 'Supplier', 'SKU Code', 'Order Quantity', 'Received Quantity',
+                    'dt_headers': ['PO Number', 'PO Date', 'Supplier', 'SKU Code', 'Order Quantity', 'Received Quantity',
                                    'Receivable Quantity', 'Rejected Quantity', 'Receipt Date', 'Status'],
                     'mk_dt_headers': ['PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'SKU Code',
                                       'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
@@ -3211,7 +3211,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
             receivable_quantity = int(order_data['order_quantity'] - data.received_quantity)
             if receivable_quantity < 0 or status == 'Closed PO':
                 receivable_quantity = 0
-            temp = OrderedDict((('PO Reference', po_reference), ('PO Date', get_local_date(user, data.po_date)), ('Supplier', order_data['supplier_name']),
+            temp = OrderedDict((('PO Number', po_reference), ('PO Date', get_local_date(user, data.po_date)), ('Supplier', order_data['supplier_name']),
                                 ('SKU Code', order_data['wms_code']), ('Order Quantity', order_data['order_quantity']),
                                 ('Received Quantity', data.received_quantity), ('Receivable Quantity', receivable_quantity), ('Receipt Date', receipt_date),
                                 ('Status', status)))

@@ -2150,6 +2150,7 @@ class SellerOrderSummary(models.Model):
     order_status_flag = models.CharField(max_length=64, default='processed_orders')
     delivered_flag = models.IntegerField(default=0)
     financial_year = models.CharField(max_length=16, default='')
+    invoice_reference = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -3404,3 +3405,14 @@ class UserTextFields(models.Model):
     class Meta:
         db_table = 'USER_TEXT_FIELD'
         unique_together = ('user', 'field_type')
+
+
+class ProccessRunning(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = user = models.PositiveIntegerField(default=0)
+    running = models.BooleanField(default=False)
+    process_name = models.CharField(max_length=64, default='')
+
+    class Meta:
+        db_table = 'PROCESS_RUNNING'
+        unique_together = ('user', 'process_name')

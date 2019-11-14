@@ -96,6 +96,8 @@ class Command(BaseCommand):
             sku_stats_dict[sku_detail.sku_id][group_val][group_name]['unit_price_list'].append(amount)
             sku_stats_dict[sku_detail.sku_id][group_val][group_name]['amount'] += amount
             extra_data_key = (field_type, 0)
+            taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'cess_tax': 0}
+            prices = {'value_before_tax': 0, 'price_before_tax_values': 0, 'price_before_tax_qtys': 0, 'quantity': 0, 'value_after_tax': 0}
             if sku_detail.stock_detail and sku_detail.stock_detail.batch_detail:
                 prices, taxes = get_extra_data_info(sku_detail.stock_detail.batch_detail, sku_detail.sku, sku_detail.quantity,
                                     tax_type_dict)
@@ -358,7 +360,7 @@ class Command(BaseCommand):
             stock_reconciliation_dict[key]['transact_data'] = \
                 list(chain(stock_reconciliation_dict[key]['transact_data'], data_dict['transact_data'].values()))
         #users = User.objects.filter(username__in=MILKBASKET_USERS)
-        users = User.objects.filter(username='NOIDA02')
+        users = User.objects.filter(username='NOIDA01')
         today = datetime.now()
         print today
         #stock_rec_field_objs = []
@@ -432,8 +434,6 @@ class Command(BaseCommand):
                             stock_reconciliation_dict[key]['transact_data'] = \
                                 list(chain(stock_reconciliation_dict[key]['transact_data'], value['transact_data']))
 
-                    import pdb;
-                    pdb.set_trace()
                     for key, stock_reconciliation_data1 in stock_reconciliation_dict.iteritems():
                         stock_reconciliation_data = copy.deepcopy(stock_reconciliation_data1)
                         stock_rec_fields = []

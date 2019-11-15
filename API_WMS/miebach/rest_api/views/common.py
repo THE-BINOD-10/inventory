@@ -5,7 +5,7 @@ from django.views.decorators.cache import never_cache
 from django.http import HttpResponse
 import json
 from django.contrib.auth import authenticate, login, logout as wms_logout
-from miebach_admin.custom_decorators import login_required, get_admin_user
+from miebach_admin.custom_decorators import login_required, get_admin_user, check_process_status
 from django.utils.encoding import smart_str
 from django.contrib.auth.models import User
 from miebach_admin.models import *
@@ -3041,6 +3041,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     customer_id = ''
     mode_of_transport = ''
     vehicle_number = ''
+    invoice_reference = ''
     advance_amount = 0
     # Getting the values from database
     user_profile = UserProfile.objects.get(user_id=user.id)
@@ -3079,7 +3080,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             seller_summary = SellerOrderSummary.objects.filter(seller_order__order_id__in=order_ids)
         else:
             seller_summary = SellerOrderSummary.objects.filter(order_id__in=order_ids)
-        if seller_summary:
+        if seller_summary.exists():
+            invoice_reference = seller_summary[0].invoice_reference
             if seller_summary[0].seller_order:
                 seller = seller_summary[0].seller_order.seller
                 sor_id = seller_summary[0].seller_order.sor_id
@@ -3383,6 +3385,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'price_in_words': number_in_words(_total_invoice),
                     'order_charges': order_charges, 'total_invoice_amount': "%.2f" % total_invoice_amount,
                     'consignee': consignee,
+                    'invoice_reference': invoice_reference,
                     'dispatch_through': dispatch_through, 'inv_date': inv_date, 'tax_type': tax_type,
                     'rounded_invoice_amount': _total_invoice, 'purchase_type': purchase_type,
                     'is_gst_invoice': is_gst_invoice,

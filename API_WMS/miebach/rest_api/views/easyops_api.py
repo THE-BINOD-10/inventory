@@ -77,10 +77,15 @@ class EasyopsAPI:
             response = requests.post(url, headers=self.headers, data=json.dumps(data), verify=False)
         else:
             response = requests.get(url, headers=self.headers, verify=False)
-
+        if self.company_name == 'milkbasket':
+            log.info("Response code for milkbasket stock sync change is %s"
+                         % (str(response.status_code)))
         try:
             if not isinstance(response, dict):
-                response = response.json()
+                if response.status_code == 204:
+                    response = {}
+                else:
+                    response = response.json()
             else:
                 log.info("Response Object came as Dict Obj for url is %s headers is %s request is %s"
                          % (url, str(self.headers), str(data)))
@@ -202,6 +207,20 @@ class EasyopsAPI:
             offset += run_limit
             if offset >= len(data):
                 run_iterator = 0
+        return json_response
+
+    def update_stock_count(self, sku_tupl, user=''):
+        """API to Update Milkbasket stock change"""
+        data = {}
+        if user:
+            self.user = user
+            self.get_user_token(user)
+
+        if self.is_full_link:
+            url = LOAD_CONFIG.get(self.company_name, 'url', '')
+        data = eval(LOAD_CONFIG.get(self.company_name, 'sku_body_dict', '') % sku_tupl)
+        json_response = self.get_response(url, data, put=True)
+        log.info("Response for the Milkbasket stock change"+str(json_response.get('message', '')))
         return json_response
 
     def confirm_picklist(self, order_id, token='', user=''):

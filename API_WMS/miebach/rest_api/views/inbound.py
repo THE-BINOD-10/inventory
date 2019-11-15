@@ -1737,6 +1737,7 @@ def insert_inventory_adjust(request, user=''):
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)
     update_filled_capacity([loc], user.id)
+    if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock([wmscode], user)
     check_and_update_stock([wmscode], user)
 
     return HttpResponse(status)
@@ -4445,10 +4446,7 @@ def putaway_data(request, user=''):
                     data.purchase_order.status = 'confirmed-putaway'
 
                 data.purchase_order.save()
-        if user.userprofile.user_type == 'marketplace_user':
-            check_and_update_marketplace_stock(marketplace_data, user)
-        else:
-            check_and_update_stock(sku_codes, user)
+        if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(sku_codes, user)
 
         update_filled_capacity(list(set(mod_locations)), user.id)
 

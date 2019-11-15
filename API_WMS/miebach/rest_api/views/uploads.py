@@ -3405,10 +3405,12 @@ def move_inventory_upload(request, user=''):
     #     cycle_id = cycle_count[0].cycle + 1
     mod_locations = []
     seller_receipt_dict = {}
+    sku_codes = []
     receipt_number = get_stock_receipt_number(user)
     for data_dict in data_list:
         extra_dict = OrderedDict()
         wms_code = data_dict['wms_code']
+        sku_codes.append(wms_code)
         source_loc = data_dict['source']
         dest_loc = data_dict['destination']
         quantity = data_dict['quantity']
@@ -3434,6 +3436,7 @@ def move_inventory_upload(request, user=''):
         mod_locations.append(source_loc)
         mod_locations.append(dest_loc)
     update_filled_capacity(list(set(mod_locations)), user.id)
+    if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(sku_codes, user)
     return HttpResponse('Success')
 
 
@@ -3887,6 +3890,7 @@ def inventory_adjust_upload(request, user=''):
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)
     check_and_update_stock(sku_codes, user)
+    if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(sku_codes, user)
     return HttpResponse('Success')
 
 
@@ -5099,12 +5103,13 @@ def create_po_serial_mapping(final_data_dict, user):
                          'measurement_unit': sku.measurement_type}
         open_po_obj = OpenPO(**open_po_dict)
         open_po_obj.save()
-        order_id = order_id_dict.get(po_details['supplier_id'], '')
-        if not order_id:
+        group_key = (str(po_details['supplier_id']) + ':' + str(po_details['po_reference_no']))
+        if group_key in order_id_dict:
+            order_id = order_id_dict[group_key]
+        else:
             order_id = get_purchase_order_id(user) + 1
             if po_sub_user_prefix == 'true':
                 order_id = update_po_order_prefix(user, order_id)
-            group_key = (str(po_details['supplier_id']) + ':' + str(po_details['po_reference_no']))
             order_id_dict[group_key] = order_id
         purchase_order_dict = {'open_po_id': open_po_obj.id, 'received_quantity': quantity, 'saved_quantity': 0,
                                'po_date': NOW, 'status': po_details['status'], 'prefix': user_profile.prefix,
@@ -5120,7 +5125,7 @@ def create_po_serial_mapping(final_data_dict, user):
             seller_po_summary = SellerPOSummary.objects.create(quantity=quantity,
                                                                 invoice_number = invoice_num,
                                                                 invoice_date = NOW,
-                                                                receipt_number=receipt_number,
+                                                                receipt_number=1,
                                                                 putaway_quantity=quantity,
                                                                 location_id=None,
                                                                 purchase_order_id=purchase_order.id,

@@ -360,32 +360,17 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
     vm.service.showNoty("Started Uploading");
     $(".preloader").removeClass("ng-hide").addClass("ng-show");
     var file = $scope.files[0];
-
     console.log('file is ' );
     console.dir(file);
     var uploadUrl = Session.url+data;
-
     var fd = new FormData();
     fd.append('files', file);
-
     $http.post(uploadUrl, fd, {
       transformRequest: angular.identity,
       headers: {'Content-Type': undefined}
     })
     .success(function(data){
-      if (!Object.keys(data).includes('data_list')) {
-        if ((data == "Success") || (data.search("Invalid") > -1) || (data.search("not") > -1) || (data.search("Fail") > -1)) {
-          var type = "";
-          type = (data == "Success")? "": "error";
-          vm.service.showNotyNotHide(data, type);
-          $scope.disable = false;
-          $(".preloader").removeClass("ng-show").addClass("ng-hide");
-          $scope.files = [];
-          $("input").val('')
-        } else {
-          upload_status(data, index);
-        }
-      } else {
+      if (Object.keys(data).includes('data_list')) {
         $scope.disable = false;
         vm.title = "View Preview";
         var mod_data = data;
@@ -403,43 +388,40 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
           }
         });
         modalInstance.result.then(function (selectedItem) {
+          if(selectedItem['input'] == 'confirm'){
+            var uploadUrl = Session.url+'purchase_order_upload_preview/'
+            var fd = new FormData();
+            fd.append('data_list', JSON.stringify(selectedItem['datum']))
+            $http.post(uploadUrl, fd, {
+              transformRequest: angular.identity,
+              headers: {'Content-Type': undefined}
+            }).success(function(data){
+              $(".preloader").removeClass("ng-show").addClass("ng-hide");
+              $("input").val('');
+              vm.service.showNoty('Success');
+            })
+          } else {
+            $(".preloader").removeClass("ng-show").addClass("ng-hide");
+            $("input").val('');
+            vm.service.showNoty('Upload Cancelled !');
+          }
         });
-       //  swal({
-       //    title: "Will upload Purchase order Data",
-       //    text: "Are you sure?",
-       //    type: "warning",
-       //    showCancelButton: true,
-       //    confirmButtonColor: "#DD6B55",
-       //    confirmButtonText: "Yes",
-       //    cancelButtonText: "No",
-       //    closeOnConfirm: false,
-       //    closeOnCancel: true
-       // },
-       // function(isConfirm){
-       //    if (isConfirm) {
-       //      uploadUrl = Session.url+'purchase_order_upload_preview/'
-       //      fd.append('data_list', JSON.stringify(data['data_list']))
-       //      $http.post(uploadUrl, fd, {
-       //        transformRequest: angular.identity,
-       //        headers: {'Content-Type': undefined}
-       //      }).success(function(data){
-       //        swal.close()
-       //        $(".preloader").removeClass("ng-show").addClass("ng-hide");
-       //        $scope.files = [];
-       //        $("input").val('');
-       //        vm.service.showNotyNotHide('Success');
-       //      })
-       //    } else {
-       //      $(".preloader").removeClass("ng-show").addClass("ng-hide");
-       //      $scope.files = [];
-       //      $("input").val('');
-       //      vm.service.showNotyNotHide("Upload Cancelled !");
-       //   }
-       // })
+      } else {
+        if ((data == "Success") || (data.search("Invalid") > -1) || (data.search("not") > -1) || (data.search("Fail") > -1)) {
+          var type = "";
+          type = (data == "Success")? "": "error";
+          vm.service.showNotyNotHide(data, type);
+          $scope.disable = false;
+          $(".preloader").removeClass("ng-show").addClass("ng-hide");
+          $scope.files = [];
+          $("input").val('')
+        } else {
+          upload_status(data, index);
+        }
       }
     })
     .error(function(){
-      vm.service.showNotyNotHide("Upload Fail");
+      vm.service.showNoty("Upload Fail");
       $("input").val('');
       $scope.disable = false;
     });
@@ -484,16 +466,19 @@ function purchaseOrderPreview($scope, $http, $state, $timeout, Session, colFilte
   var vm = this;
   vm.service = Service;
   vm.permissions = Session.roles.permissions;
-  console.log(items)
-  debugger
   setTimeout(function(){
     $(".modal-dialog").addClass("print-width");
+    $(".print-invoice2").addClass("print-height")
     angular.element(".modal-body").html($(items['data_preview']));
   }, 1000);
-  vm.ok = function () {
-    $modalInstance.close("close");
+  vm.ok = function (input) {
+    var data = {
+      'input': input,
+      'datum': items['data_list']
+    }
+    $modalInstance.close(data);
   };
-  }
+}
 angular
   .module('urbanApp')
   .controller('purchaseOrderPreview', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', purchaseOrderPreview]);

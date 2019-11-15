@@ -2746,7 +2746,7 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                         if not seller_master:
                             index_status.setdefault(row_idx, set()).add("Seller doesn't exist")
                         else:
-                            data_dict['seller'] = seller_master[0]
+                            data_dict['seller'] = seller_master[0].id
             elif key == 'quantity':
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
@@ -2867,6 +2867,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     for final_dict in data_list:
         final_dict['sku'] = SKUMaster.objects.get(id=final_dict['sku'], user=user.id)
         final_dict['supplier'] = SupplierMaster.objects.get(id=final_dict['supplier'], user=user.id)
+        final_dict['seller'] = SellerMaster.objects.get(id=final_dict['seller'], user=user.id)
         final_dict['po_date'] = datetime.datetime.strptime(final_dict.get('po_date', ''), '%Y-%m-%d %H:%M:%S')
         final_dict['po_delivery_date'] = datetime.datetime.strptime(final_dict.get('po_delivery_date', ''), '%Y-%m-%d %H:%M:%S')
         total_qty = 0
@@ -3235,66 +3236,72 @@ def purchase_order_upload_preview(request, user=''):
 
 def purchase_order_preview_generation(request, user, data_list):
     profile = UserProfile.objects.get(user_id=user.id)
-    if profile.industry_type == 'FMCG':
-        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'Unit Price', 'MRP', 'Amt',
+    table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'Unit Price', 'MRP', 'Amt',
                              'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
     if user.username in MILKBASKET_USERS:
         table_headers.insert(4, 'Weight')
-    else:
-        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'Unit Price', 'MRP', 'Amt',
-                             'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+    data_preview, templete_data = {}, {}
+    supplier_list = [data['supplier'] for data in data_list]
+    unique_sippliers = list(set(supplier_list))
     data_dict = []
-    po_data = []
-    data_preview = {}
-    for data in data_list:
-        sku = SKUMaster.objects.get(id=data['sku'], user=user.id)
-        supplier = SupplierMaster.objects.get(id=data['supplier'], user=user.id)
-        import pdb; pdb.set_trace()
-        total, amount, company_address = tax_calculation_master(data, user)
-        po_temp_data = [sku.sku_code, data['supplier'], sku.sku_desc, data['quantity'], data['price'],
-                        data['mrp'], amount, data['sgst_tax'], data['cgst_tax'], data['igst_tax'],
-                        data['utgst_tax'], total
-                       ]
-        po_data.append(po_temp_data)
-    data_dict = {'table_headers': table_headers,
-                    'data':po_data,
-                    'address': supplier.address,
-                    'order_id': '',
-                    'telephone': supplier.phone_number,
-                    'ship_to_address': '',
-                    'name': supplier.name,
-                    'order_date': get_local_date(request.user, datetime.datetime.now()),
-                    'total': '',
-                    'po_reference': '',
-                    'user_name': '',
-                    'total_amt_in_words': '',
-                    'total_qty': '',
-                    'location': '',
-                    'w_address': '',
-                    'vendor_name': '',
-                    'vendor_address': '',
-                    'vendor_telephone': '',
-                    'receipt_type': '',
-                    'title': '',
-                    'gstin_no': supplier.tin_number,
-                    'industry_type': '',
-                    'expiry_date': '',
-                    'wh_telephone': '',
-                    'wh_gstin': profile.gst_number,
-                    'wh_pan': profile.pan_number,
-                    'terms_condition': '',
-                    'supplier_pan':supplier.pan_number,
-                    'company_name': profile.company_name,
-                    'company_address': company_address
-                }
+    for sup_id in unique_sippliers:
+        po_data, total_amt, total_qty =[], 0, 0
+        for data in data_list:
+            if sup_id == data['supplier']:
+                sku = SKUMaster.objects.get(id=data['sku'], user=user.id)
+                supplier = SupplierMaster.objects.get(id=data['supplier'], user=user.id)
+                total, amount, company_address, ship_to_address = tax_calculation_master(data, user, profile)
+                total_amt += total
+                total_qty += data['quantity']
+                po_temp_data = [sku.sku_code, data['supplier'], sku.sku_desc, data['quantity'], data['price'],
+                                data['mrp'], amount, data['sgst_tax'], data['cgst_tax'], data['igst_tax'],
+                                data['utgst_tax'], total
+                               ]
+                if user.username in MILKBASKET_USERS:
+                    weight = get_sku_weight(sku)
+                    po_temp_data.insert(4, weight)
+                po_data.append(po_temp_data)
+        data_dict.append({'table_headers': table_headers,
+                        'data':po_data,
+                        'address': supplier.address,
+                        'order_id': '',
+                        'telephone': supplier.phone_number,
+                        'ship_to_address': ship_to_address,
+                        'name': supplier.name,
+                        'order_date': get_local_date(request.user, datetime.datetime.now()),
+                        'total': round(total_amt),
+                        'po_reference': '',
+                        'user_name': '',
+                        'total_amt_in_words': number_in_words(round(total_amt)) + ' ONLY',
+                        'total_qty': total_qty,
+                        'location': '',
+                        'w_address': ship_to_address,
+                        'vendor_name': '',
+                        'vendor_address': '',
+                        'vendor_telephone': '',
+                        'receipt_type': '',
+                        'title': '',
+                        'gstin_no': supplier.tin_number,
+                        'industry_type': '',
+                        'expiry_date': '',
+                        'wh_telephone': user.userprofile.wh_phone_number,
+                        'wh_gstin': profile.gst_number,
+                        'wh_pan': profile.pan_number,
+                        'terms_condition': '',
+                        'supplier_pan':supplier.pan_number,
+                        'company_name': profile.company_name,
+                        'company_address': company_address
+                    })
+
+    templete_data['data'] = data_dict
     t = loader.get_template('templates/toggle/upload_po_preview.html')
-    data = t.render(data_dict)
+    data = t.render(templete_data)
     data_preview['data_preview'] = data
     data_preview['data_list'] = data_list
     return data_preview
 
 @csrf_exempt
-def tax_calculation_master(data, user):
+def tax_calculation_master(data, user, profile):
     try:
         total, amount, company_address = 0, 0, ''
         unit_price = data.get('price', 0)
@@ -3319,7 +3326,15 @@ def tax_calculation_master(data, user):
                     company_address = ("%s, GSTINo:%s") % (company_address, user.userprofile.gst_number)
         else:
             company_address = user.userprofile.address
-        return total, amount, company_address
+        if profile.wh_address:
+            address = profile.wh_address
+        else:
+            address = profile.address
+        if not (address and company_address):
+            company_address, address = '', ''
+        if profile.user.email:
+            address = ("%s, Email:%s") % (address, profile.user.email)
+        return total, amount, company_address, address
     except:
         return 'parameters are Missing'
 

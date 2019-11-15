@@ -149,3 +149,6 @@
 .print-width {
   width: fit-content !important;
 }
+.print-height {
+  height: fit-content !important;
+}

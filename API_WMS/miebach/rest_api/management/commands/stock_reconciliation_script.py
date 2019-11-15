@@ -85,8 +85,7 @@ class Command(BaseCommand):
                             field_type, tax_type_dict, discount=0):
             if sku_detail.stock_detail.location.zone.zone in ['DAMAGED_ZONE']:
                 sku_stats_dict[sku_detail.sku_id][group_val][group_name]['damaged'] += sku_detail.quantity
-            else:
-                sku_stats_dict[sku_detail.sku_id][group_val][group_name]['quantity'] += sku_detail.quantity
+            sku_stats_dict[sku_detail.sku_id][group_val][group_name]['quantity'] += sku_detail.quantity
             qty_price = (sku_detail.quantity * unit_price) - discount
             amount = qty_price
             tax_rate = 0
@@ -261,9 +260,7 @@ class Command(BaseCommand):
                                                                     'damaged': 0})
                 if stock.location.zone.zone in ['DAMAGED_ZONE']:
                     sku_stock_dict[stock.sku_id][group_val]['damaged'] += stock.quantity
-                    continue
-                else:
-                    sku_stock_dict[stock.sku_id][group_val]['quantity'] += stock.quantity
+                sku_stock_dict[stock.sku_id][group_val]['quantity'] += stock.quantity
                 qty_price = stock.quantity * unit_price
                 amount = qty_price
                 if tax:
@@ -359,8 +356,8 @@ class Command(BaseCommand):
             stock_reconciliation_dict[key]['%s_amount' % prefix] = data_dict['amount']
             stock_reconciliation_dict[key]['transact_data'] = \
                 list(chain(stock_reconciliation_dict[key]['transact_data'], data_dict['transact_data'].values()))
-        #users = User.objects.filter(username__in=MILKBASKET_USERS)
-        users = User.objects.filter(username='NOIDA01')
+        users = User.objects.filter(username__in=MILKBASKET_USERS)
+        #users = User.objects.filter(username='NOIDA02')
         today = datetime.now()
         print today
         #stock_rec_field_objs = []
@@ -423,6 +420,7 @@ class Command(BaseCommand):
                         stock_reconciliation_dict.setdefault(key, {'sku_id': sku_id, 'mrp': mrp, 'weight': weight,
                                                                    'transact_data': []})
                         stock_reconciliation_dict[key]['opening_quantity'] = value['quantity']
+                        stock_reconciliation_dict[key]['opening_qty_damaged'] = value['damaged']
                         if stock_reconciliation_dict[key].get('qty_price_sum', 0):
                             stock_reconciliation_dict[key]['opening_avg_rate'] = value['qty_price_sum']/value['quantity']
                         else:

@@ -413,7 +413,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
             warehouse = wh_details.get(result['open_po__sku__user'])
         data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference),
-                                      ('PO Number', po_reference_no), ('Order Date', _date),
+                                      ('PO Reference', po_reference_no), ('Order Date', _date),
                                       ('Supplier ID/Name', supplier_id_name), ('Total Qty', total_order_qty),
                                       ('Receivable Qty', total_receivable_qty),
                                       ('Received Qty', total_received_qty), ('Expected Date', expected_date),

@@ -5121,7 +5121,7 @@ def create_po_serial_mapping(final_data_dict, user):
             seller_po_summary = SellerPOSummary.objects.create(quantity=quantity,
                                                                 invoice_number = invoice_num,
                                                                 invoice_date = NOW,
-                                                                receipt_number=receipt_number,
+                                                                receipt_number=1,
                                                                 putaway_quantity=quantity,
                                                                 location_id=None,
                                                                 purchase_order_id=purchase_order.id,

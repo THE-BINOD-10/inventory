@@ -5099,12 +5099,13 @@ def create_po_serial_mapping(final_data_dict, user):
                          'measurement_unit': sku.measurement_type}
         open_po_obj = OpenPO(**open_po_dict)
         open_po_obj.save()
-        order_id = order_id_dict.get(po_details['supplier_id'], '')
-        if not order_id:
+        group_key = (str(po_details['supplier_id']) + ':' + str(po_details['po_reference_no']))
+        if group_key in order_id_dict:
+            order_id = order_id_dict[group_key]
+        else:
             order_id = get_purchase_order_id(user) + 1
             if po_sub_user_prefix == 'true':
                 order_id = update_po_order_prefix(user, order_id)
-            group_key = (str(po_details['supplier_id']) + ':' + str(po_details['po_reference_no']))
             order_id_dict[group_key] = order_id
         purchase_order_dict = {'open_po_id': open_po_obj.id, 'received_quantity': quantity, 'saved_quantity': 0,
                                'po_date': NOW, 'status': po_details['status'], 'prefix': user_profile.prefix,

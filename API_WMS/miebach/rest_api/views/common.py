@@ -3237,7 +3237,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                         else:
                             cost_price_obj = seller_summary.filter(order_id = dat.id).values('picklist__stock__unit_price', 'quantity')
                         for index,margin_cost_price_obj in enumerate(cost_price_obj):
-                            cost_price = cost_price = margin_cost_price_obj['picklist__stock__unit_price']
+                            cost_price = margin_cost_price_obj['picklist__stock__unit_price']
                             quantity = margin_cost_price_obj['quantity']
                             profit_price = (unit_price * quantity) - (cost_price * quantity)
                             seller_summary_obj_sku_wise = seller_summary.filter(order__sku_id = dat.sku_id)

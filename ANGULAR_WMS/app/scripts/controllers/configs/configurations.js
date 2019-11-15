@@ -102,7 +102,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     {
       name: "Location Serial Mapping",
       model_name: "loc_serial_mapping_switch",
-      param_no: 92,
+      param_no: 94,
       class_name: "glyphicon glyphicon-sort",
       display: true
     },

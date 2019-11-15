@@ -1287,16 +1287,16 @@ def get_mp_inventory(request):
         page_info = scroll_data(request, sku_records, limit=limit, request_type='body')
         sku_records = page_info['data']
         bulk_zone = MILKBASKET_BULK_ZONE
+        bulk_zones = get_all_zones(user, zones=[bulk_zone])
         combo_allocate_stock = get_misc_value('combo_allocate_stock', user.id)
         if industry_type == 'FMCG':
             sellable_zones = ZoneMaster.objects.filter(user=user.id, segregation='sellable').values_list('zone', flat=True)
             if sellable_zones:
                 sellable_zones = get_all_zones(user, zones=sellable_zones)
             non_sellable_zones = ZoneMaster.objects.filter(user=user.id, segregation='non_sellable').\
-                exclude(zone=bulk_zone).values_list('zone', flat=True)
+                exclude(zone__in=bulk_zones).values_list('zone', flat=True)
             if non_sellable_zones:
                 non_sellable_zones = get_all_zones(user, zones=non_sellable_zones)
-            bulk_zones = get_all_zones(user, zones=[bulk_zone])
 
             stocks = SellerStock.objects.prefetch_related('seller', 'stock', 'stock__location__zone').\
                           filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0, stock__location__zone__zone__in=sellable_zones).\

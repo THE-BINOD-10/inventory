@@ -2435,6 +2435,7 @@ def picklist_confirmation(request, user=''):
 
                 invoice_data['order_id'] = invoice_data['order_id']
                 user_profile = UserProfile.objects.get(user_id=user.id)
+                if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(auto_skus, user)
                 if not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']:
                     invoice_data = build_invoice(invoice_data, user, False)
                     #return HttpResponse(json.dumps({'data': invoice_data, 'message': '',

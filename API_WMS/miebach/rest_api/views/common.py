@@ -2719,24 +2719,18 @@ def check_and_update_stock(wms_codes, user):
             continue
 
 
-def check_and_update_marketplace_stock(stock_updates, user):
-    stock_sync = get_misc_value('stock_sync', user.id)
-    if not stock_sync == 'true':
-        return
+def check_and_update_marketplace_stock(sku_codes, user):
     from rest_api.views.easyops_api import *
     integrations = Integrations.objects.filter(user=user.id, status=1)
     for integrate in integrations:
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
-        for update in stock_updates:
-            try:
-                init_log.info('Stock Sync API request data for the user ' + str(user.username) + ' is ' + str(update))
-                response = obj.update_sku_count(
-                    data=[update], user=user, method_put=False, individual_update=True)
-                init_log.info('Stock Sync API response for the user ' + str(user.username) + ' is ' + str(response))
-            except:
-                init_log.info('Stock Sync API failed for the user ' + str(user.username) + ' is ' + str(response))
-                continue
-
+        try:
+            sku_tupl = (user.username, sku_codes)
+            log.info('Update for stock change of'+str(sku_tupl))
+            response = obj.update_stock_count(sku_tupl, user=user)
+        except:
+            log.info('Stock change failed for '+str(user.username)+'and skus are'+str(sku_codes))
+            continue
 
 def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_ids=[]):
     extra_data = []

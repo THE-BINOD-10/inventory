@@ -2150,6 +2150,7 @@ class SellerOrderSummary(models.Model):
     order_status_flag = models.CharField(max_length=64, default='processed_orders')
     delivered_flag = models.IntegerField(default=0)
     financial_year = models.CharField(max_length=16, default='')
+    invoice_reference = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -3213,30 +3214,39 @@ class StockReconciliation(models.Model):
     opening_quantity = models.FloatField(default=0)
     opening_avg_rate = models.FloatField(default=0)
     opening_amount = models.FloatField(default=0)
+    opening_qty_damaged = models.FloatField(default=0)
     purchase_quantity = models.FloatField(default=0)
     purchase_avg_rate = models.FloatField(default=0)
     purchase_amount = models.FloatField(default=0)
+    purchase_qty_damaged = models.FloatField(default=0)
     customer_sales_quantity = models.FloatField(default=0)
     customer_sales_avg_rate = models.FloatField(default=0)
     customer_sales_amount = models.FloatField(default=0)
+    customer_sales_qty_damaged = models.FloatField(default=0)
     internal_sales_quantity = models.FloatField(default=0)
     internal_sales_avg_rate = models.FloatField(default=0)
     internal_sales_amount = models.FloatField(default=0)
+    internal_sales_qty_damaged = models.FloatField(default=0)
     stock_transfer_quantity = models.FloatField(default=0)
     stock_transfer_avg_rate = models.FloatField(default=0)
     stock_transfer_amount = models.FloatField(default=0)
+    stock_transfer_qty_damaged = models.FloatField(default=0)
     rtv_quantity = models.FloatField(default=0)
     rtv_avg_rate = models.FloatField(default=0)
     rtv_amount = models.FloatField(default=0)
+    rtv_qty_damaged = models.FloatField(default=0)
     returns_quantity = models.FloatField(default=0)
     returns_avg_rate = models.FloatField(default=0)
     returns_amount = models.FloatField(default=0)
+    returns_qty_damaged = models.FloatField(default=0)
     adjustment_quantity = models.FloatField(default=0)
     adjustment_avg_rate = models.FloatField(default=0)
     adjustment_amount = models.FloatField(default=0)
+    adjustment_qty_damaged = models.FloatField(default=0)
     closing_quantity = models.FloatField(default=0)
     closing_avg_rate = models.FloatField(default=0)
     closing_amount = models.FloatField(default=0)
+    closing_qty_damaged = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -3404,3 +3414,14 @@ class UserTextFields(models.Model):
     class Meta:
         db_table = 'USER_TEXT_FIELD'
         unique_together = ('user', 'field_type')
+
+
+class ProccessRunning(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = user = models.PositiveIntegerField(default=0)
+    running = models.BooleanField(default=False)
+    process_name = models.CharField(max_length=64, default='')
+
+    class Meta:
+        db_table = 'PROCESS_RUNNING'
+        unique_together = ('user', 'process_name')

@@ -1222,6 +1222,8 @@ def insert_move_inventory(request, user=''):
                                  receipt_number=receipt_number, receipt_type='move-inventory')
     if 'success' in status.lower():
         update_filled_capacity([source_loc, dest_loc], user.id)
+        sku_code = [wms_code]
+        if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(sku_code, user)
 
     return HttpResponse(status)
 
@@ -1374,7 +1376,14 @@ def get_id_cycle(request, user=''):
 @get_admin_user
 def stock_summary_data(request, user=''):
     wms_code = request.GET['wms_code']
-    stock_data = StockDetail.objects.exclude(receipt_number=0).filter(sku_id__wms_code=wms_code, sku__user=user.id)
+    stock_ids = StockDetail.objects.exclude(receipt_number=0).filter(sku_id__wms_code=wms_code,
+                                            sku__user=user.id, quantity__gt=0).values_list('id', flat=True)
+    pick_stock_ids = PicklistLocation.objects.filter(picklist__order__user=user.id,
+                                    stock__sku__wms_code=wms_code, status=1).values_list('stock_id', flat=True)
+    rm_stock_ids = RMLocation.objects.filter(material_picklist__jo_material__material_code__user=user.id,
+                              stock__sku__wms_code=wms_code, status=1).values_list('stock_id', flat=True)
+    stock_ids = list(chain(stock_ids, pick_stock_ids, rm_stock_ids))
+    stock_data = StockDetail.objects.filter(id__in=stock_ids)
     production_stages = []
     load_unit_handle = ""
     if stock_data:
@@ -1439,6 +1448,7 @@ def confirm_move_inventory(request, user=''):
 @get_admin_user
 def confirm_inventory_adjustment(request, user=''):
     mod_locations = []
+    sku_codes = []
     for key, value in request.GET.iteritems():
         data = CycleCount.objects.get(id=key, sku__user=user.id)
         data.status = 'completed'
@@ -1446,6 +1456,7 @@ def confirm_inventory_adjustment(request, user=''):
         dat = InventoryAdjustment.objects.get(cycle_id=key, cycle__sku__user=user.id)
         dat.reason = value
         dat.save()
+        sku_codes.append(dat.cycle.sku.sku_code)
         location_count = StockDetail.objects.filter(location_id=dat.cycle.location_id, sku_id=dat.cycle.sku_id,
                                                     quantity__gt=0,
                                                     sku__user=user.id)
@@ -1468,9 +1479,9 @@ def confirm_inventory_adjustment(request, user=''):
 
                 if difference == 0:
                     break
-
     if mod_locations:
         update_filled_capacity(mod_locations, user.id)
+    if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(sku_codes, user)
     return HttpResponse('Updated Successfully')
 
 
@@ -3206,6 +3217,7 @@ def save_ba_to_sa_remarks(sku_classification_dict1, sku_classification_objs, rem
 @csrf_exempt
 @login_required
 @get_admin_user
+@check_process_status
 def ba_to_sa_calculate_now(request, user=''):
     master_data = SKUMaster.objects.filter(user = user.id, status=1).order_by('id').only('id', 'sku_code')
     sellable_zones = get_all_sellable_zones(user)
@@ -3217,6 +3229,8 @@ def ba_to_sa_calculate_now(request, user=''):
     ba_sku_res_qty = OrderedDict()
     zones = get_all_sellable_zones(user)
     remarks = ''
+    bulk_zone_name = MILKBASKET_BULK_ZONE
+    bulk_zones = get_all_zones(user, zones=[bulk_zone_name])
     locations = LocationMaster.objects.filter(zone__user=user.id, zone__zone__in=zones)
     if not locations:
         return HttpResponse("Sellable Locations not found")
@@ -3240,9 +3254,9 @@ def ba_to_sa_calculate_now(request, user=''):
         for all_res in all_reserved:
             sku_res_qty.setdefault(all_res.stock.sku_id, 0)
             sku_res_qty[all_res.stock.sku_id] += all_res.reserved
-        all_ba_stocks = StockDetail.objects.exclude(receipt_number=0,location__location = 'BA').\
+        all_ba_stocks = StockDetail.objects.exclude(receipt_number=0).\
                                             filter(sku__user=user.id, sku__status=1, quantity__gt=0,
-                                            location__zone__zone='Bulk Zone',
+                                            location__zone__zone__in=bulk_zones,
                                                    sellerstock__seller__seller_id=1,
                                             sellerstock__quantity__gt=0).\
                                             values('sku_id', 'id','sellerstock__quantity').order_by('receipt_number')
@@ -3251,7 +3265,7 @@ def ba_to_sa_calculate_now(request, user=''):
             ba_sku_avail_qty[ba_stock['sku_id']]['total_quantity'] += ba_stock['sellerstock__quantity']
             ba_sku_avail_qty[ba_stock['sku_id']]['stock'][ba_stock['id']] = ba_stock['sellerstock__quantity']
         all_ba_reserved = PicklistLocation.objects.filter(stock__sku__user=user.id, stock__sku__status=1,
-                                                       stock__location__zone__zone='Bulk Zone',
+                                                       stock__location__zone__zone__in=bulk_zones,
                                                        stock__sellerstock__seller__seller_id=1 ,status=1).\
                                                 only('stock__sku_id', 'stock_id', 'reserved')
         for ba_reserved in all_ba_reserved:
@@ -3350,9 +3364,6 @@ def ba_to_sa_calculate_now(request, user=''):
                 needed_qty = 0
             else:
                 replenishment_qty = max_stock - sku_avail_qty
-                #ba_stock_objs = StockDetail.objects.filter(location__zone__zone='Bulk Zone', sku_id=data.id,
-                #                                      sellerstock__seller__seller_id=1, quantity__gt=0,
-                #                                      sellerstock__quantity__gt=0)
                 replenishment_qty = int(replenishment_qty)
                 needed_qty = replenishment_qty
             sku_classification_dict1['replenushment_qty'] = replenishment_qty
@@ -3364,10 +3375,6 @@ def ba_to_sa_calculate_now(request, user=''):
                                                                 remarks_sku_ids)
                 continue
             ba_stock_dict = ba_sku_avail_qty.get(data.id, {})
-            # ba_stock_objs = StockDetail.objects.filter(location__zone__zone='Bulk Zone', sku_id=data.id,
-            #                                             sellerstock__seller__seller_id=1, quantity__gt=0,
-            #                                             sellerstock__quantity__gt=0)
-            #if ba_stock_objs.exists():
             if replenishment_qty < 20 :
                 replenishment_qty = 20
 

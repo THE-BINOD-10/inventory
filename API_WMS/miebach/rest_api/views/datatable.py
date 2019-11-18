@@ -137,6 +137,7 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
         ws = write_excel(ws, data_count, excel_mapping['sequence'], data.sequence, file_type)
         ws = write_excel(ws, data_count, excel_mapping['image_url'], data.image_url, file_type)
         ws = write_excel(ws, data_count, excel_mapping['threshold_quantity'], data.threshold_quantity, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['max_norm_quantity'], data.max_norm_quantity, file_type)
         ws = write_excel(ws, data_count, excel_mapping['measurement_type'], data.measurement_type, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sale_through'], data.sale_through, file_type)
         ws = write_excel(ws, data_count, excel_mapping['color'], data.color, file_type)

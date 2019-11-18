@@ -7,6 +7,15 @@
   box-sizing: border-box;
   color: black !important;
 }
+.print-custom-invoice {
+  height: fit-content !important;
+  width: 960px;
+  page-break-before: always;
+  background-color: #ffffff;
+  position: relative;
+  box-sizing: border-box;
+  color: black !important;
+}
 .print-invoice2 p {
   color: black !important;
 }
@@ -118,4 +127,7 @@
 .print-invoice2 .table {
   padding: 3px 3px;
   border: 1px solid black !important;
+}
+.linear-gradient{
+  background-image: linear-gradient(to right, rgb(123, 121, 121), rgba(255,0,0,0));
 }

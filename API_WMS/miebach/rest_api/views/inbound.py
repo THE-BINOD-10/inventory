@@ -1078,6 +1078,7 @@ def switches(request, user=''):
                        'repeat_po':'repeat_po',
                        'loc_serial_mapping_switch':'loc_serial_mapping_switch',
                        'brand_categorization':'brand_categorization',
+                       'purchase_order_preview':'purchase_order_preview',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -1737,6 +1738,7 @@ def insert_inventory_adjust(request, user=''):
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)
     update_filled_capacity([loc], user.id)
+    if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock([wmscode], user)
     check_and_update_stock([wmscode], user)
 
     return HttpResponse(status)
@@ -2102,7 +2104,9 @@ def close_po(request, user=''):
 
 def get_stock_locations(wms_code, exc_dict, user, exclude_zones_list, sku='', put_zones=''):
     all_stock_filter = {'sku__user': user, 'quantity__gt': 0, 'location__max_capacity__gt': F('location__filled_capacity')}
-    if put_zones:
+    user_obj = User.objects.get(id=user)
+    user_profile_obj = user_obj.userprofile
+    if put_zones and user_profile_obj.user_type == 'marketplace_user' and user_profile_obj.industry_type == 'FMCG':
         all_stock_filter['location__zone__zone__in'] = put_zones
     all_stocks = StockDetail.objects.filter(**all_stock_filter)
     only_sku_locs = list(all_stocks.exclude(location__zone__zone='DEFAULT').exclude(sku__wms_code=wms_code).
@@ -4445,10 +4449,7 @@ def putaway_data(request, user=''):
                     data.purchase_order.status = 'confirmed-putaway'
 
                 data.purchase_order.save()
-        if user.userprofile.user_type == 'marketplace_user':
-            check_and_update_marketplace_stock(marketplace_data, user)
-        else:
-            check_and_update_stock(sku_codes, user)
+        if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(sku_codes, user)
 
         update_filled_capacity(list(set(mod_locations)), user.id)
 
@@ -5379,13 +5380,14 @@ def confirm_add_po(request, sales_data='', user=''):
         phone_no = purchase_order.supplier.phone_number
         gstin_no = purchase_order.supplier.tin_number
         supplier_pan = purchase_order.supplier.pan_number
+        po_reference = purchase_order.po_name
         po_exp_duration = purchase_order.supplier.po_exp_duration
         order_date = get_local_date(request.user, order.creation_date)
         if po_exp_duration:
             expiry_date = order.creation_date + datetime.timedelta(days=po_exp_duration)
         else:
             expiry_date = ''
-        po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+        po_number = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
         profile = UserProfile.objects.get(user=user.id)
         company_name = profile.company_name
         title = 'Purchase Order'
@@ -5407,7 +5409,8 @@ def confirm_add_po(request, sales_data='', user=''):
             terms_condition= terms_condition.replace("%^PO_DATE^%", '')
         data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address.encode('ascii', 'ignore'), 'order_id': order_id,
                      'telephone': str(telephone), 'ship_to_address': ship_to_address.encode('ascii', 'ignore'),
-                     'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,
+                     'name': name, 'order_date': order_date, 'total': round(total), 'po_number': po_number ,
+                     'po_reference':po_reference,
                      'user_name': request.user.username, 'total_amt_in_words': total_amt_in_words,
                      'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
                      'w_address': ship_to_address.encode('ascii', 'ignore'),
@@ -7219,7 +7222,7 @@ def get_po_segregation_data(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=True)
 def confirm_primary_segregation(request, user=''):
     reversion.set_user(request.user)
     data_dict = dict(request.POST.iterlists())
@@ -7234,7 +7237,8 @@ def confirm_primary_segregation(request, user=''):
                 non_sellable = 0
             sellable = float(sellable)
             non_sellable = float(non_sellable)
-            segregation_obj = PrimarySegregation.objects.select_related('batch_detail', 'purchase_order').\
+
+            segregation_obj = PrimarySegregation.objects.select_for_update().select_related('batch_detail', 'purchase_order').\
                                                             filter(id=data_dict['segregation_id'][ind],
                                                                    status=1)
             if not segregation_obj:
@@ -8437,7 +8441,7 @@ def get_past_po(start_index, stop_index, temp_data, search_term, order_term, col
         result = PurchaseOrder.objects.filter(Q(order_id__icontains=search_term) |Q(open_po__supplier__id__icontains=search_term) |Q(open_po__supplier__name__icontains=search_term)| Q(creation_date__regex=search_term), open_po__sku__user=user.id, **search_params).\
                                                             values('open_po__supplier__id',
                                                                    'order_id', 'open_po__supplier__name',
-                                                                   'creation_date','open_po__order_type').order_by(order_data)
+                                                                   'creation_date','open_po__order_type').order_by(order_data).distinct()
     else:
         result = PurchaseOrder.objects.filter(open_po__sku__user=user.id, **search_params).distinct().values('open_po__supplier__id',
                                                                    'order_id', 'open_po__supplier__name',

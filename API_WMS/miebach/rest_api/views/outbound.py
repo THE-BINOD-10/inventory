@@ -2435,6 +2435,7 @@ def picklist_confirmation(request, user=''):
 
                 invoice_data['order_id'] = invoice_data['order_id']
                 user_profile = UserProfile.objects.get(user_id=user.id)
+                if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(auto_skus, user)
                 if not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']:
                     invoice_data = build_invoice(invoice_data, user, False)
                     #return HttpResponse(json.dumps({'data': invoice_data, 'message': '',
@@ -2569,6 +2570,7 @@ def update_invoice(request, user=''):
         consignee = request.POST.get("ship_to", "")
         invoice_date = request.POST.get("invoice_date", "")
         invoice_number = request.POST.get("invoice_number", "")
+        invoice_reference = request.POST.get("invoice_reference", "")
         increment_invoice = get_misc_value('increment_invoice', user.id)
         marketplace = request.POST.get("marketplace", "")
         partial_quantity = False
@@ -2698,6 +2700,8 @@ def update_invoice(request, user=''):
                 continue
 
             discount_percentage = 0
+            sos_obj = SellerOrderSummary.objects.filter(order_id=order_id)
+            sos_obj.update(invoice_reference=invoice_reference)
             unit_price_index = myDict['id'].index(str(order_id.id))
             # if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
             if float(myDict['quantity'][unit_price_index]) == 0:
@@ -2705,7 +2709,6 @@ def update_invoice(request, user=''):
                 if cust_objs:
                     cust_obj = cust_objs[0]
                     cust_obj.delete()
-                sos_obj = SellerOrderSummary.objects.filter(order_id=order_id)
                 if sos_obj:
                     sos_obj = sos_obj[0]
                     sos_obj.delete()

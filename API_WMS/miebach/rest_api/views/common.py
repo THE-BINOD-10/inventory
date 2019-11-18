@@ -5,7 +5,7 @@ from django.views.decorators.cache import never_cache
 from django.http import HttpResponse
 import json
 from django.contrib.auth import authenticate, login, logout as wms_logout
-from miebach_admin.custom_decorators import login_required, get_admin_user
+from miebach_admin.custom_decorators import login_required, get_admin_user, check_process_status
 from django.utils.encoding import smart_str
 from django.contrib.auth.models import User
 from miebach_admin.models import *
@@ -178,7 +178,7 @@ def get_label_permissions(request, user, role_perms, user_type):
         else:
             labels[label] = False
 
-    extra_labels = ['DASHBOARD', 'CONFIGURATIONS']
+    extra_labels = ['DASHBOARD']
     for label in extra_labels:
         labels[label] = True if user_type != 'supplier' else False
     return labels
@@ -2719,24 +2719,18 @@ def check_and_update_stock(wms_codes, user):
             continue
 
 
-def check_and_update_marketplace_stock(stock_updates, user):
-    stock_sync = get_misc_value('stock_sync', user.id)
-    if not stock_sync == 'true':
-        return
+def check_and_update_marketplace_stock(sku_codes, user):
     from rest_api.views.easyops_api import *
     integrations = Integrations.objects.filter(user=user.id, status=1)
     for integrate in integrations:
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
-        for update in stock_updates:
-            try:
-                init_log.info('Stock Sync API request data for the user ' + str(user.username) + ' is ' + str(update))
-                response = obj.update_sku_count(
-                    data=[update], user=user, method_put=False, individual_update=True)
-                init_log.info('Stock Sync API response for the user ' + str(user.username) + ' is ' + str(response))
-            except:
-                init_log.info('Stock Sync API failed for the user ' + str(user.username) + ' is ' + str(response))
-                continue
-
+        try:
+            sku_tupl = (user.username, sku_codes)
+            log.info('Update for stock change of'+str(sku_tupl))
+            response = obj.update_stock_count(sku_tupl, user=user)
+        except:
+            log.info('Stock change failed for '+str(user.username)+'and skus are'+str(sku_codes))
+            continue
 
 def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_ids=[]):
     extra_data = []
@@ -3041,6 +3035,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     customer_id = ''
     mode_of_transport = ''
     vehicle_number = ''
+    invoice_reference = ''
     advance_amount = 0
     # Getting the values from database
     user_profile = UserProfile.objects.get(user_id=user.id)
@@ -3079,7 +3074,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             seller_summary = SellerOrderSummary.objects.filter(seller_order__order_id__in=order_ids)
         else:
             seller_summary = SellerOrderSummary.objects.filter(order_id__in=order_ids)
-        if seller_summary:
+        if seller_summary.exists():
+            invoice_reference = seller_summary[0].invoice_reference
             if seller_summary[0].seller_order:
                 seller = seller_summary[0].seller_order.seller
                 sor_id = seller_summary[0].seller_order.sor_id
@@ -3237,7 +3233,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                         else:
                             cost_price_obj = seller_summary.filter(order_id = dat.id).values('picklist__stock__unit_price', 'quantity')
                         for index,margin_cost_price_obj in enumerate(cost_price_obj):
-                            cost_price = cost_price = margin_cost_price_obj['picklist__stock__unit_price']
+                            cost_price = margin_cost_price_obj['picklist__stock__unit_price']
                             quantity = margin_cost_price_obj['quantity']
                             profit_price = (unit_price * quantity) - (cost_price * quantity)
                             seller_summary_obj_sku_wise = seller_summary.filter(order__sku_id = dat.sku_id)
@@ -3383,6 +3379,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'price_in_words': number_in_words(_total_invoice),
                     'order_charges': order_charges, 'total_invoice_amount': "%.2f" % total_invoice_amount,
                     'consignee': consignee,
+                    'invoice_reference': invoice_reference,
                     'dispatch_through': dispatch_through, 'inv_date': inv_date, 'tax_type': tax_type,
                     'rounded_invoice_amount': _total_invoice, 'purchase_type': purchase_type,
                     'is_gst_invoice': is_gst_invoice,
@@ -5197,6 +5194,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
             res_qty = 0
         if raw_reserved:
             res_qty = float(res_qty) + float(raw_reserved)
+
         location = stock.location.location
         zone = stock.location.zone.zone
         pallet_number, batch, mrp, ean, weight = ['']*5

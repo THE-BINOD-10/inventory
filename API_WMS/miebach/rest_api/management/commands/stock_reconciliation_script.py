@@ -229,6 +229,7 @@ class Command(BaseCommand):
             sku_stock_dict = {}
             search_params['sku__user'] = user.id
             search_params['quantity__gt'] = 0
+
             stock_data = StockDetail.objects.exclude(Q(receipt_number=0) |
                                                      Q(location__zone__zone__in=['QC_ZONE'])).\
                                             filter(**search_params)
@@ -313,7 +314,8 @@ class Command(BaseCommand):
                     opening_stock_dict.setdefault(sku_id, {})
                     for key, sku_stocks in sku_stocks_data.iteritems():
                         opening_stock_dict[sku_id].setdefault(key, {'quantity': 0, 'avg_rate': 0, 'amount': 0,
-                                                                    'qty_price_sum': 0, 'transact_data': []})
+                                                                    'qty_price_sum': 0, 'transact_data': [],
+                                                                    'damaged': 0})
                         opening_stock_dict[sku_id][key]['quantity'] = sku_stocks.get('quantity', 0)
                         opening_stock_dict[sku_id][key]['amount'] = sku_stocks.get('amount', 0)
                         stock_unit_price_list = sku_stocks.get('unit_price_list', [])
@@ -328,10 +330,13 @@ class Command(BaseCommand):
                 for sku_id, sku_stats in sku_stats_dict.iteritems():
                     opening_stock_dict.setdefault(sku_id, {})
                     for key, sku_stat in sku_stats.iteritems():
-                        opening_stock_dict[sku_id].setdefault(key, {'quantity': 0, 'avg_rate': 0, 'amount': 0, 'qty_price_sum': 0})
+                        opening_stock_dict[sku_id].setdefault(key, {'quantity': 0, 'avg_rate': 0,
+                                                                    'amount': 0, 'qty_price_sum': 0,
+                                                                    'damaged': 0})
                         for stat_name, stat_value in sku_stat.iteritems():
                             if stat_name in ['customer_sales', 'internal_sales', 'rtv', 'stock_transfer']:
                                 opening_stock_dict[sku_id][key]['quantity'] += stat_value['quantity']
+                                opening_stock_dict[sku_id][key]['quantity'] += stat_value['damaged']
                                 opening_stock_dict[sku_id][key]['amount'] += stat_value['amount']
                                 stat_unit_price_list = stat_value.get('unit_price_list', [])
                                 if stat_unit_price_list and stat_value['quantity']:
@@ -339,6 +344,7 @@ class Command(BaseCommand):
                             elif stat_name in ['PO', 'return', 'inventory-adjustment']:
                                 opening_stock_dict[sku_id][key]['quantity'] -= stat_value['quantity']
                                 opening_stock_dict[sku_id][key]['amount'] -= stat_value['amount']
+                                opening_stock_dict[sku_id][key]['damaged'] -= stat_value['damaged']
                                 stat_unit_price_list = stat_value.get('unit_price_list', [])
                                 if stat_unit_price_list and stat_value['quantity']:
                                     opening_stock_dict[sku_id][key]['qty_price_sum'] -= sum(stat_unit_price_list)

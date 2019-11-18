@@ -9,6 +9,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.service = Service;
     vm.service.print_enable = false;
     vm.permissions = Session.roles.permissions;
+    vm.industry_type = Session.user_profile.industry_type;
+    vm.user_type = Session.user_profile.user_type;
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -27,11 +29,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Supplier').withTitle('Supplier'),
-        DTColumnBuilder.newColumn('PO Reference').withTitle('PO Reference'),
+        DTColumnBuilder.newColumn('PO Reference').withTitle('PO Number'),
         DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
+        DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
+        DTColumnBuilder.newColumn('SKU Sub Category').withTitle('SKU Sub Category'),
+        DTColumnBuilder.newColumn('Sku Brand').withTitle('Sku Brand'),
         DTColumnBuilder.newColumn('Description').withTitle('Description'),
         //DTColumnBuilder.newColumn('Received Quantity').withTitle('Received Quantity')
     ];
+
+    if (vm.industry_type == "FMCG" && vm.user_type == "marketplace_user") {
+      vm.dtColumns.splice(6, 0, DTColumnBuilder.newColumn('Manufacturer').withTitle('Manufacturer'))
+      vm.dtColumns.splice(7, 0, DTColumnBuilder.newColumn('Searchable').withTitle('Searchable'))
+      vm.dtColumns.splice(8, 0, DTColumnBuilder.newColumn('Bundle').withTitle('Bundle'))
+
+    }
 
   if(vm.permissions.use_imei){
     vm.dtColumns.push(DTColumnBuilder.newColumn('Serial Number').withTitle('Serial Number'));
@@ -51,7 +63,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                     'to_date': '',
                     'wms_code': '',
                     'supplier': '',
-                    'sku_code': ''
+                    'sku_code': '',
+                    'sku_category':'',
+                    'sub_category':'',
+                    'sku_brand':'',
+                    'manufacturer':'',
+                    'searchable':'',
+                    'bundle':'',
                     };
 
   vm.model_data = {};
@@ -65,4 +83,3 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       }
    })
 }
-

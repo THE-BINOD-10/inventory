@@ -103,6 +103,7 @@ class SKUMaster(models.Model):
     product_type = models.CharField(max_length=64, default='')
     zone = models.ForeignKey(ZoneMaster, null=True, blank=True, default=None)
     threshold_quantity = models.FloatField(default=0)
+    max_norm_quantity = models.FloatField(default=0)
     online_percentage = models.PositiveIntegerField(default=0)
     discount_percentage = models.PositiveIntegerField(default=0)
     price = models.FloatField(default=0)
@@ -1112,6 +1113,7 @@ class SubstitutionSummary(models.Model):
 
 class POIMEIMapping(models.Model):
     id = BigAutoField(primary_key=True)
+    stock = models.ForeignKey(StockDetail, blank=True, null=True)
     sku = models.ForeignKey(SKUMaster, blank=True, null=True)
     seller = models.ForeignKey(SellerMaster, blank=True, null=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
@@ -2148,6 +2150,7 @@ class SellerOrderSummary(models.Model):
     order_status_flag = models.CharField(max_length=64, default='processed_orders')
     delivered_flag = models.IntegerField(default=0)
     financial_year = models.CharField(max_length=16, default='')
+    invoice_reference = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2156,7 +2159,7 @@ class SellerOrderSummary(models.Model):
         index_together = (('pick_number', 'seller_order'), ('pick_number', 'order'), ('pick_number', 'seller_order', 'picklist'),
                             ('pick_number', 'order', 'picklist'), ('order', 'order_status_flag'),
                           ('seller_order', 'order_status_flag'), ('picklist', 'seller_order'),
-                          ('picklist', 'order'))
+                          ('picklist', 'order'), ('invoice_number', 'financial_year', 'order'))
 
     def __unicode__(self):
         return str(self.id)
@@ -3411,3 +3414,14 @@ class UserTextFields(models.Model):
     class Meta:
         db_table = 'USER_TEXT_FIELD'
         unique_together = ('user', 'field_type')
+
+
+class ProccessRunning(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = user = models.PositiveIntegerField(default=0)
+    running = models.BooleanField(default=False)
+    process_name = models.CharField(max_length=64, default='')
+
+    class Meta:
+        db_table = 'PROCESS_RUNNING'
+        unique_together = ('user', 'process_name')

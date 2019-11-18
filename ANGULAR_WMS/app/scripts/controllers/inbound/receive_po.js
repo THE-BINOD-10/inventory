@@ -190,7 +190,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.main_sr_number = ''
                 }
                 vm.warehouse = aData['Warehouse']
-                vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId'], warehouse: aData['Warehouse']}).then(function(data){
+                var dataDict = {
+                  'supplier_id': aData['DT_RowId'],
+                  'warehouse': aData['Warehouse'] ,
+                  'sample_order': (aData['Order Type'] == 'Sample Order') ? 1 : 0
+                }
+                vm.service.apiCall('get_supplier_data/', 'GET', dataDict).then(function(data){
                   if(data.message) {
                     vm.serial_numbers = [];
                     vm.skus_total_amount = 0;
@@ -466,6 +471,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             data.ean_number = resp.data.ean_number;
             data.buy_price = resp.data.price;
             data.weight = resp.data.weight;
+            data.unit = resp.data.measurement_unit;
 
             data.row_price = (Number(data.value) * Number(data.price));
             vm.getTotals();
@@ -2472,7 +2478,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
   vm.get_current_weight = function(event, data, index, parent_index) {
-    if(vm.permissions.weight_integration_name.length > 0) {
+    if(vm.permissions.weight_integration_name.length > 0 && ['KGS','GRAMS'].includes(vm.model_data.data[parent_index][index].unit)) {
       var sku_row_data = {};
       angular.copy(data.data[parent_index][index], sku_row_data);
       vm.service.apiCall('get_current_weight/', 'GET',{}).then(function(res_data){

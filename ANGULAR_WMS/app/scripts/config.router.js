@@ -421,7 +421,7 @@ var app = angular.module('urbanApp')
               })
 
               .state('app.masters.Replenushment', {
-                url: '/Replenushment',
+                url: '/Replenishment',
                 // permission: 'sku_pack_config',
                 templateUrl: 'views/masters/replenushment_datatable.html',
                 resolve: {
@@ -430,7 +430,7 @@ var app = angular.module('urbanApp')
                           }]
                 },
                 data: {
-                  title: 'Replenushment Master',
+                  title: 'Replenishment Master',
                 }
               })
                 .state('app.masters.Replenushment.update', {
@@ -1382,6 +1382,12 @@ var app = angular.module('urbanApp')
              url: '/customer',
              templateUrl: 'views/outbound/toggle/customer.html'
            })
+
+           .state('app.outbound.CreateOrders.DispatchSerialNumbers', {
+              url: '/DispatchSerialNumbers',
+              templateUrl: 'views/outbound/toggle/dispatch_serial_numbers.html'
+            })
+
         .state('app.outbound.CreateCustomOrder', {
           url: '/CreateCustomOrder',
           permission: 'add_orderdetail',
@@ -2835,16 +2841,15 @@ var app = angular.module('urbanApp')
         })
           .state('user.App.Brands', {
             url: '/Brands',
-            templateUrl: 'views/outbound/app/create_orders/details.html',
-            resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/outbound/app/settings.js');
-              }]
-            }
+            templateUrl: 'views/outbound/app/create_orders/details.html'
           })
           .state('user.App.Products', {
             url: '/Products',
             templateUrl: 'views/outbound/app/create_orders/catlog.html'
+          })
+          .state('user.App.BrandCategorization', {
+            url: '/BrandCategorization',
+            templateUrl: 'views/outbound/app/create_orders/brandCategorization.html'
           })
           .state('user.App.PendingOrder', {
             url: '/PendingOrder',

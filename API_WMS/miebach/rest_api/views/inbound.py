@@ -363,6 +363,8 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                 supplier = supplier[0]
                 if supplier.open_po and supplier.open_po.order_type == 'VR':
                     order_type = 'Vendor Receipt'
+                if supplier.open_po and supplier.open_po.order_type == 'SP':
+                    order_type = 'Sample Order'
         elif result['rwpurchase__rwo__vendor__user']:
             supplier = PurchaseOrder.objects.filter(order_id=result['order_id'],
                                                 rwpurchase__rwo__vendor__user=result['rwpurchase__rwo__vendor__user'])[0]
@@ -1073,7 +1075,9 @@ def switches(request, user=''):
                        'update_mrp_on_grn': 'update_mrp_on_grn',
                        'mandate_sku_supplier':'mandate_sku_supplier',
                        'weight_integration_name': 'weight_integration_name',
-                       'repeat_po':'repeat_po'
+                       'repeat_po':'repeat_po',
+                       'loc_serial_mapping_switch':'loc_serial_mapping_switch',
+                       'brand_categorization':'brand_categorization',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -1094,6 +1098,8 @@ def switches(request, user=''):
             else:
                 setattr(data[0], 'misc_value', selection)
                 data[0].save()
+        elif toggle_field == 'raisepo_terms_conditions':
+            data = UserTextFields.objects.update_or_create(user_id=user_id, field_type = 'terms_conditions', defaults = {'text_field':selection})
         else:
             if toggle_field == 'tax_details':
                 tax_name = eval(selection)
@@ -1731,6 +1737,7 @@ def insert_inventory_adjust(request, user=''):
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)
     update_filled_capacity([loc], user.id)
+    if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock([wmscode], user)
     check_and_update_stock([wmscode], user)
 
     return HttpResponse(status)
@@ -1766,6 +1773,7 @@ def get_supplier_data(request, user=''):
         user = User.objects.get(username=warehouse)
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     temp = get_misc_value('pallet_switch', user.id)
+    payment_received = 0
     order_ids = []
     uploaded_file_dict = {}
     returnable_serials = []
@@ -1779,6 +1787,7 @@ def get_supplier_data(request, user=''):
         headers.insert(-2, 'Serial Number')
     data = {}
     order_id = request.GET['supplier_id']
+    sample_order = int(request.GET.get('sample_order', ''))
     remainder_mail = 0
     invoice_value = 0
     qc_items_qs = UserAttributes.objects.filter(user_id=user.id, attribute_model='dispatch_qc', status=1).values_list('attribute_name', flat=True)
@@ -1792,6 +1801,10 @@ def get_supplier_data(request, user=''):
         if returnable_order_check.exists():
             ord_det_id = returnable_order_check[0].order_id
             returnable_serials = list(OrderIMEIMapping.objects.filter(order_id=ord_det_id).values_list('imei_number', flat=True))
+        if bool(sample_order):
+            po_ids = list(purchase_orders.values_list('id',flat = True))
+            advance_payment = OrderMapping.objects.filter(mapping_id__in=po_ids, order__user=user.id).aggregate(Sum('order__payment_received'))
+            payment_received = advance_payment['order__payment_received__sum']
     if not purchase_orders:
         st_orders = STPurchaseOrder.objects.filter(po__order_id=order_id, open_st__sku__user=user.id,
                                                    open_st__sku_id__in=sku_master_ids). \
@@ -1937,7 +1950,7 @@ def get_supplier_data(request, user=''):
                                     'dc_date': dc_date, 'dc_grn': dc_level_grn,
                                     'uploaded_file_dict': uploaded_file_dict, 'overall_discount': overall_discount,
                                     'round_off_total': 0, 'invoice_value': invoice_value, 'qc_items': qc_items,
-                                    'returnable_serials': returnable_serials,'lr_number': lr_number}))
+                                    'returnable_serials': returnable_serials,'lr_number': lr_number, 'payment_received': payment_received}))
 
 
 @csrf_exempt
@@ -2088,9 +2101,11 @@ def close_po(request, user=''):
     return HttpResponse('Updated Successfully')
 
 
-def get_stock_locations(wms_code, exc_dict, user, exclude_zones_list, sku=''):
-    all_stocks = StockDetail.objects.filter(sku__user=user, quantity__gt=0,
-                                            location__max_capacity__gt=F('location__filled_capacity'))
+def get_stock_locations(wms_code, exc_dict, user, exclude_zones_list, sku='', put_zones=''):
+    all_stock_filter = {'sku__user': user, 'quantity__gt': 0, 'location__max_capacity__gt': F('location__filled_capacity')}
+    if put_zones:
+        all_stock_filter['location__zone__zone__in'] = put_zones
+    all_stocks = StockDetail.objects.filter(**all_stock_filter)
     only_sku_locs = list(all_stocks.exclude(location__zone__zone='DEFAULT').exclude(sku__wms_code=wms_code).
                          values_list('location_id', flat=True))
     stock_detail1 = all_stocks.exclude(location__zone__zone='DEFAULT').exclude(location_id__in=only_sku_locs).filter(
@@ -2126,9 +2141,9 @@ def get_purchaseorder_locations(put_zone, temp_dict):
     seller_id = temp_dict.get('seller_id', '')
     location_masters = LocationMaster.objects.filter(zone__user=user).exclude(
         lock_status__in=['Inbound', 'Inbound and Outbound'])
-    exclude_zones_list = get_exclude_zones(User.objects.get(id=user))
+    exclude_zones_list = get_exclude_zones(User.objects.get(id=user), is_putaway=True)
     exclude_zones_list.append('RTO_ZONE')
-    # exclude_zones_list = ['QC_ZONE', 'DAMAGED_ZONE', 'RTO_ZONE', 'Non Sellable Zone']
+    put_zones_lis = get_all_zones(User.objects.get(id=user), zones=[put_zone])
     if put_zone in exclude_zones_list:
         location = location_masters.filter(zone__zone=put_zone, zone__user=user)
         if location:
@@ -2144,7 +2159,7 @@ def get_purchaseorder_locations(put_zone, temp_dict):
 
     locations = ''
     exc_group_dict = {}
-    filter_params = {'zone__zone': put_zone, 'zone__user': user}
+    filter_params = {'zone__zone__in': put_zones_lis, 'zone__user': user}
     exclude_dict = {'location__exact': '', 'lock_status__in': ['Inbound', 'Inbound and Outbound']}
     stock_detail = StockDetail.objects.filter(sku__user=user)
     po_locations = POLocation.objects.filter(location__zone__user=user, status=1)
@@ -2218,7 +2233,7 @@ def get_purchaseorder_locations(put_zone, temp_dict):
     cond2.update(filter_params)
 
     stock_locations, location_ids, min_max = get_stock_locations(order_data['wms_code'], exclude_dict, user,
-                                                                 exclude_zones_list, sku=order_data['sku'])
+                                                                 exclude_zones_list, sku=order_data['sku'], put_zones=put_zones_lis)
     if 'id__in' in exclude_dict.keys():
         location_ids = list(chain(location_ids, exclude_dict['id__in']))
     exclude_dict['id__in'] = location_ids
@@ -2239,9 +2254,9 @@ def get_purchaseorder_locations(put_zone, temp_dict):
 
     location3 = location_masters.exclude(get_dictionary_query(exclude_dict)).filter(**cond2)
     del exclude_dict['location__exact']
-    del filter_params['zone__zone']
+    del filter_params['zone__zone__in']
     location4 = location_masters.exclude(
-        Q(location__exact='') | Q(zone__zone=put_zone) | get_dictionary_query(exclude_dict)). \
+        Q(location__exact='') | Q(zone__zone__in=put_zones_lis) | get_dictionary_query(exclude_dict)). \
         exclude(zone__zone__in=exclude_zones_list).filter(**filter_params).order_by('fill_sequence')
     if sku_group:
         if 'id__in' in filter_params.keys():
@@ -2250,7 +2265,7 @@ def get_purchaseorder_locations(put_zone, temp_dict):
             LocationGroups.objects.filter(location__zone__user=user).values_list('location_id', flat=True).distinct())
         exclude_dict['id__in'] = group_locs
         location5 = location_masters.exclude(
-            Q(location__exact='') | Q(zone__zone=put_zone) | get_dictionary_query(exclude_dict)). \
+            Q(location__exact='') | Q(zone__zone__in=put_zones_lis) | get_dictionary_query(exclude_dict)). \
             exclude(zone__zone__in=exclude_zones_list).filter(**filter_params).order_by('fill_sequence')
         location4 = list(chain(location4, location5))
     location = list(chain(location2, location3, location4))
@@ -2979,6 +2994,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             purchase_data['price'] = float(sku_row_buy_price)
         purchase_data['cess_tax'] = sku_row_cess_percent
         purchase_data['apmc_tax'] = sku_row_apmc_percent
+        purchase_data['remarks'] = remarks
         if 'discount_percentage' in myDict and myDict['discount_percentage'][i]:
             sku_row_discount_percent = float(myDict['discount_percentage'][i])
         if sku_row_tax_percent:
@@ -3251,6 +3267,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             name = purchase_data['supplier_name']
             supplier_email = purchase_data['email_id']
             gstin_number = purchase_data['gstin_number']
+            remarks = purchase_data['remarks']
             order_id = data.order_id
             order_date = get_local_date(request.user, data.creation_date)
             order_date = datetime.datetime.strftime(datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
@@ -3304,7 +3321,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'company_name': profile.company_name, 'company_address': profile.address,
                                 'po_number': po_number, 'bill_no': bill_no,
                                 'order_date': order_date, 'order_id': order_id,
-                                'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number }
+                                'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number, 'remarks':remarks}
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')
@@ -3447,11 +3464,11 @@ def check_returns(request, user=''):
                     continue
                 else:
                     remaining_return = int(value) - int(order_track_quantity)
-                    data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2],
+                    data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'order_detail_id': key[3],
                                  'ship_quantity': remaining_return, 'return_quantity': remaining_return,
                                  'damaged_quantity': 0})
             else:
-                data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2],
+                data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'order_detail_id': key[3],
                              'ship_quantity': value, 'return_quantity': value, 'damaged_quantity': 0})
         if not data:
             status = str(key[0]) + ' Order ID Already Returned'
@@ -3598,7 +3615,10 @@ def create_return_order(data, user):
         if seller_id:
             return_details['seller_id'] = seller_id
         if data.get('order_id', ''):
-            order_detail = get_order_detail_objs(data['order_id'], user_obj,
+            if data.get('order_detail_id', ''):
+                order_detail = OrderDetail.objects.filter(user=user, id=data['order_detail_id'])
+            else:
+                order_detail = get_order_detail_objs(data['order_id'], user_obj,
                                                  search_params={'sku_id': sku_id[0].id, 'user': user})
             if order_detail:
                 return_details['order_id'] = order_detail[0].id
@@ -4426,10 +4446,7 @@ def putaway_data(request, user=''):
                     data.purchase_order.status = 'confirmed-putaway'
 
                 data.purchase_order.save()
-        if user.userprofile.user_type == 'marketplace_user':
-            check_and_update_marketplace_stock(marketplace_data, user)
-        else:
-            check_and_update_stock(sku_codes, user)
+        if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(sku_codes, user)
 
         update_filled_capacity(list(set(mod_locations)), user.id)
 
@@ -5360,13 +5377,14 @@ def confirm_add_po(request, sales_data='', user=''):
         phone_no = purchase_order.supplier.phone_number
         gstin_no = purchase_order.supplier.tin_number
         supplier_pan = purchase_order.supplier.pan_number
+        po_reference = purchase_order.po_name
         po_exp_duration = purchase_order.supplier.po_exp_duration
         order_date = get_local_date(request.user, order.creation_date)
         if po_exp_duration:
             expiry_date = order.creation_date + datetime.timedelta(days=po_exp_duration)
         else:
             expiry_date = ''
-        po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+        po_number = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
         profile = UserProfile.objects.get(user=user.id)
         company_name = profile.company_name
         title = 'Purchase Order'
@@ -5388,7 +5406,8 @@ def confirm_add_po(request, sales_data='', user=''):
             terms_condition= terms_condition.replace("%^PO_DATE^%", '')
         data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address.encode('ascii', 'ignore'), 'order_id': order_id,
                      'telephone': str(telephone), 'ship_to_address': ship_to_address.encode('ascii', 'ignore'),
-                     'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,
+                     'name': name, 'order_date': order_date, 'total': round(total), 'po_number': po_number ,
+                     'po_reference':po_reference,
                      'user_name': request.user.username, 'total_amt_in_words': total_amt_in_words,
                      'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
                      'w_address': ship_to_address.encode('ascii', 'ignore'),
@@ -8418,7 +8437,7 @@ def get_past_po(start_index, stop_index, temp_data, search_term, order_term, col
         result = PurchaseOrder.objects.filter(Q(order_id__icontains=search_term) |Q(open_po__supplier__id__icontains=search_term) |Q(open_po__supplier__name__icontains=search_term)| Q(creation_date__regex=search_term), open_po__sku__user=user.id, **search_params).\
                                                             values('open_po__supplier__id',
                                                                    'order_id', 'open_po__supplier__name',
-                                                                   'creation_date','open_po__order_type').order_by(order_data)
+                                                                   'creation_date','open_po__order_type').order_by(order_data).distinct()
     else:
         result = PurchaseOrder.objects.filter(open_po__sku__user=user.id, **search_params).distinct().values('open_po__supplier__id',
                                                                    'order_id', 'open_po__supplier__name',

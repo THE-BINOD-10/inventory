@@ -53,6 +53,12 @@
           </div>
           <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group">
+              <label class="control-label">Invoice Reference</label>
+              <input name="invoice_reference" ng-model="pop.model_data.invoice_reference" class="form-control" type="text">
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
               <label class="control-label">Address</label>
               <textarea rows="4" class="form-control" cols="27" name="address" ng-model="pop.model_data.supplier_details.address"></textarea>
               <input type="hidden" name="order_id" ng-model="pop.model_data.order_id" value="{{pop.model_data.order_id}}">

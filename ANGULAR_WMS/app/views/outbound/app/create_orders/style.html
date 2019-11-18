@@ -6,8 +6,9 @@
   <div class="row style-menu" style="line-height: 40px;">
     <div class="col-md-4 col-sm-4 col-xs-8">
       <div class="menu-left">
-        <span ng-click="$state.go('user.App.Products'); showCase.redirect_from_orders(false, false)"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i>&nbsp; Back</span>
-        <!-- <span ng-click="$state.go('user.App.Products')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i>&nbsp; Back</span> -->
+        <span ng-if="!showCase.brand_categorization" ng-click="$state.go('user.App.Products'); showCase.redirect_from_orders(false, false)"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i>&nbsp; Back</span>
+        <span ng-if="showCase.brand_categorization && Style.previous_path == 'user.App.BrandCategorization'" ng-click="$state.go('user.App.BrandCategorization')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i>&nbsp; Back</span>
+        <span ng-if="showCase.brand_categorization && Style.previous_path == 'user.App.Products'" ng-click="$state.go('user.App.Products')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i>&nbsp; Back</span>
       </div>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-7 hidden-xs" align="center">

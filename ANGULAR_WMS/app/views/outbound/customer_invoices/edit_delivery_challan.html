@@ -90,6 +90,8 @@
                 	<th>PARTICULARS</th>
                 	<th>PKNG</th>
                 	<th>QTY</th>
+                  <th ng-if="pop.permissions.create_order_po">Received Qty</th>
+                  <th ng-if="pop.permissions.create_order_po">Invoice Qty</th>
                   <th>Unit Price</th>
                   <th>CGST (%)</th>
                   <th>SGST (%)</th>
@@ -97,7 +99,6 @@
                   <th>Taxable Amt</th>
                   <th>Tax</th>
                   <th>Invoice Amt</th>
-
                 	<th class="plus"></th>
                 </tr>
               </thead>
@@ -117,9 +118,14 @@
                   <td>
                     <input ng-model="product.quantity" style="width: 50px" ng-keyup="pop.getTotals(); pop.changeUnitPrice(product)" title="{{ product.quantity }}" type="text" class="form-control">
                   </td>
-
                   <td>
-                    <input ng-model="product.unit_price" ng-keyup="pop.changeUnitPrice(product)"
+                    <input ng-if="pop.permissions.create_order_po" ng-model="product.received_quantity" title="{{ product.received_quantity }}" type="text" class="form-control" readonly>
+                  </td>
+                  <td>
+                    <input ng-if="pop.permissions.create_order_po" ng-model="product.invoice_qty" title="{{ product.invoice_qty }}" type="text" class="form-control" readonly>
+                  </td>
+                  <td>
+                    <input ng-model="product.unit_price" ng-keyup="pop.changeUnitPrice(product)" style="width: 60px"
                     title="{{ product.unit_price }}" type="text" class="form-control">
                   </td>
                   <td>

@@ -46,6 +46,14 @@
               <input name="custom_order" type="hidden" value="{{showCase.custom_order}}">
             </div>
           </div>
+
+          <div class="col-md-2 col-sm-3 col-xs-12 mt10" ng-if = "showCase.model_data.blind_order">
+            <button type="button" class="btn btn-primary visible-md visible-lg pull-left" ng-click="showCase.dispatch_serial_numbers_pop()">Dispatch Serials</button>
+            <button type="button" class="btn btn-primary visible-xs" style="width: 100%" ng-click="showCase.dispatch_serial_numbers_pop()">Dispatch Serials</button>
+          </div>
+
+
+
           <div class="col-md-4 col-sm-12 mt10">
             <div class="col-md-3 pull-right">
               <label class="switch switch-sm square pull-right ml10">
@@ -107,6 +115,17 @@
             </select>
           </div>
         </div>
+
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label">Marketplace</label>
+              <select class="form-control" name="market_list" ng-model="showCase.market_filter" title="Select MarketPlace" ng-init="showCase.market_filter" required>
+                <option value="Offline">Offline</option>
+                <option ng-repeat="market in showCase.market_list" value="{{market}}" ng-selected="market == showCase.market_filter">{{market}}</option>
+              </select>
+            </div>
+          </div>
+
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
             <label class="control-label">Email</label>
@@ -272,6 +291,7 @@
               <th ng-if="showCase.model_data.blind_order && showCase.permissions.use_imei">Serial Scan</th>
               <!--<th class="w10_">Selected Quantity</th>-->
               <th class="w10_">Quantity</th>
+              <th ng-if="showCase.model_data.blind_order">Cost Price</th>
               <th>MRP</th>
               <th ng-show="showCase.fields.indexOf('Unit Price') == -1">Unit Price</th>
               <th ng-show="showCase.fields.indexOf('Amount') == -1">Amount</th>
@@ -308,6 +328,9 @@
               </td>
               <td>
                 <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-change="showCase.change_quantity(data)" size="12" ng-readonly="showCase.model_data.blind_order && showCase.permissions.use_imei" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Quantity', $index, data)"></div>
+              </td>
+              <td ng-if="showCase.model_data.blind_order">
+                <input type="text" name="cost_price" class="form-control" size="12" ng-model="data.cost_price" ng-class="service.get_decimal_perm()">
               </td>
               <td>
                 <input type="text" name="mrp" class="form-control" size="12" ng-model="data.mrp" ng-class="service.get_decimal_perm()">
@@ -354,6 +377,7 @@
                         <td>{{range.max_unit_range}}</td>
                         <td>{{range.price}}</td>
                       </tr>
+                      <input type="hidden" name="marginal_flag" value="{{data.marginal_flag}}">
                     </tbody>
                   </table>
                 </div>

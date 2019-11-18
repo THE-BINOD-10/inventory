@@ -1819,7 +1819,7 @@ def check_req_min_order_val(user, skus):
     sku_qty_map = {}
     sku_objs = SKUMaster.objects.filter(wms_code__in=skus, user=user.id, threshold_quantity__gt=0)
     for sku in sku_objs:
-        qty, total_qty = get_auto_po_quantity(sku)
+        qty, total_qty,max_norm_qty = get_auto_po_quantity(sku)
         supplier_id, price, taxes = auto_po_warehouses(sku, qty)
         sku_qty_map[sku.sku_code] = (qty, price)
         if price:
@@ -2435,6 +2435,7 @@ def picklist_confirmation(request, user=''):
 
                 invoice_data['order_id'] = invoice_data['order_id']
                 user_profile = UserProfile.objects.get(user_id=user.id)
+                if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(auto_skus, user)
                 if not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']:
                     invoice_data = build_invoice(invoice_data, user, False)
                     #return HttpResponse(json.dumps({'data': invoice_data, 'message': '',
@@ -2569,6 +2570,7 @@ def update_invoice(request, user=''):
         consignee = request.POST.get("ship_to", "")
         invoice_date = request.POST.get("invoice_date", "")
         invoice_number = request.POST.get("invoice_number", "")
+        invoice_reference = request.POST.get("invoice_reference", "")
         increment_invoice = get_misc_value('increment_invoice', user.id)
         marketplace = request.POST.get("marketplace", "")
         partial_quantity = False
@@ -2698,6 +2700,8 @@ def update_invoice(request, user=''):
                 continue
 
             discount_percentage = 0
+            sos_obj = SellerOrderSummary.objects.filter(order_id=order_id)
+            sos_obj.update(invoice_reference=invoice_reference)
             unit_price_index = myDict['id'].index(str(order_id.id))
             # if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
             if float(myDict['quantity'][unit_price_index]) == 0:
@@ -2705,7 +2709,6 @@ def update_invoice(request, user=''):
                 if cust_objs:
                     cust_obj = cust_objs[0]
                     cust_obj.delete()
-                sos_obj = SellerOrderSummary.objects.filter(order_id=order_id)
                 if sos_obj:
                     sos_obj = sos_obj[0]
                     sos_obj.delete()
@@ -3308,16 +3311,19 @@ def check_imei(request, user=''):
     sku_code = ''
     quantity = 0
     shipped_orders_dict = {}
+    dispatch_summary_imei_details = {}
     is_shipment = request.GET.get('is_shipment', False)
     is_rm_picklist = request.GET.get('is_rm_picklist', False)
     order_id = request.GET.get('order_id', '')
     groupby = request.GET.get('groupby', '')
+    cost_check = request.GET.get('cost_check', False)
     log.info('Request params for Check IMEI ' + user.username + ' is ' + str(request.GET.dict()))
     shipping_quantity = 0
+    cost_price = 0
     try:
         for key, value in request.GET.iteritems():
             picklist = ''
-            if key in ['is_shipment', 'order_id', 'groupby', 'is_rm_picklist']:
+            if key in ['is_shipment', 'order_id', 'groupby', 'is_rm_picklist', 'cost_check']:
                 continue
             sku_code = ''
             order = None
@@ -3340,6 +3346,17 @@ def check_imei(request, user=''):
                         order = picklist.order
             po_mapping, status, imei_data = check_get_imei_details(value, sku_code, user.id, check_type='order_mapping',
                                                                    order=order, job_order=job_order)
+
+            if po_mapping.exists():
+                if po_mapping[0].stock_id:
+                    dispatch_summary_imei_details['serial_number'] = value
+                    dispatch_summary_imei_details['sku_code'] = po_mapping[0].sku.sku_code
+                    dispatch_summary_imei_details['cost_price'] = po_mapping[0].stock.unit_price
+                    dispatch_summary_imei_details['location'] = po_mapping[0].stock.location.location
+
+            if cost_check and po_mapping[0].purchase_order:
+                cost_price = po_mapping[0].purchase_order.open_po.price
+
             if imei_data.get('wms_code', ''):
                 sku_code = imei_data['wms_code']
 
@@ -3409,8 +3426,8 @@ def check_imei(request, user=''):
         import traceback
         log.debug(traceback.format_exc())
         log.info('Check IMEI failed for params ' + str(request.POST.dict()) + ' error statement is ' + str(e))
-    return HttpResponse(json.dumps({'status': status, 'data': {'sku_code': sku_code, 'quantity': quantity,
-                                                               'shipping_quantity': shipping_quantity}}))
+    return HttpResponse(json.dumps({'status': status, 'dispatch_summary_imei_details':dispatch_summary_imei_details , 'data': {'sku_code': sku_code, 'quantity': quantity,
+                                                               'shipping_quantity': shipping_quantity,'cost_price':cost_price}}))
 
 
 @get_admin_user
@@ -5099,6 +5116,7 @@ def insert_order_data(request, user=''):
     dist_shipment_address = request.POST.get('manual_shipment_addr', '')
     vehicle_number = request.POST.get('vehicle_num', '')
     is_central_order = request.POST.get('is_central_order', '')
+    marketplace_value = request.POST.get('market_list', '')
     isprava_user = get_admin(user)
     if dist_shipment_address:
         ship_to = dist_shipment_address
@@ -5158,14 +5176,17 @@ def insert_order_data(request, user=''):
             order_data['status'] = order_status_key
             order_data['order_code'] = 'MN'
             order_data['marketplace'] = 'Offline'
+            if is_sample == 'true':
+                order_data['marketplace'] = 'Sample'
+            if marketplace_value:
+                order_data['marketplace'] = marketplace_value
             if custom_order == 'true':
                 order_data['order_code'] = 'CO'
             order_data['user'] = user.id
             order_data['unit_price'] = 0
             order_data['sku_code'] = myDict['sku_id'][i]
             vendor_items = ['printing_vendor', 'embroidery_vendor', 'production_unit']
-            exclude_order_items = ['warehouse_level', 'margin_data', 'el_price', 'del_date', 'vehicle_num']
-
+            exclude_order_items = ['warehouse_level', 'margin_data', 'el_price', 'del_date', 'vehicle_num', 'cost_price','marginal_flag','market_list']
             # Written a separate function to make the code simpler
             order_data, order_summary_dict, sku_master, extra_order_fields = construct_order_data_dict(
                 request, i, order_data, myDict, all_sku_codes, custom_order)
@@ -5205,6 +5226,7 @@ def insert_order_data(request, user=''):
                     if not order_obj:
                         el_price = order_data['el_price']
                         del_date = order_data['del_date']
+
                         for item in exclude_order_items:
                             if item in order_data:
                                 order_data.pop(item)
@@ -5313,9 +5335,10 @@ def insert_order_data(request, user=''):
                         order_data = get_order_customer_details(order_data, request)
                     if payment_received:
                         order_payment = 0
-                        if float(order_data['invoice_amount']) < float(payment_received):
-                            payment_received = float(payment_received) - float(order_data['invoice_amount'])
-                            order_payment = float(order_data['invoice_amount'])
+                        if i != (len(myDict['sku_id']) - 1):
+                            if float(order_data['invoice_amount']) < float(payment_received):
+                                payment_received = float(payment_received) - float(order_data['invoice_amount'])
+                                order_payment = float(order_data['invoice_amount'])
                         else:
                             payment_received = float(payment_received)
                             order_payment = float(payment_received)
@@ -5327,6 +5350,7 @@ def insert_order_data(request, user=''):
                     for item in exclude_order_items:
                         if item in order_data:
                             order_data.pop(item)
+
                     order_detail = OrderDetail(**order_data)
                     order_detail.save()
                     created_order_objs.append(order_detail)
@@ -5482,11 +5506,20 @@ def direct_dispatch_orders(user, dispatch_orders, creation_date=datetime.datetim
         filter(sku__user=user.id, quantity__gt=0)
     picklist_number = int(get_picklist_number(user)) + 1
     mod_locations = []
-
+    loc_serial_mapping_switch = get_misc_value('loc_serial_mapping_switch', user.id)
+    serial_nums = ''
     for order_id, orders in dispatch_orders.iteritems():
         order = orders['order_instance']
         for data in orders.get('data', []):
-            order_stocks = sku_stocks.filter(sku_id=order.sku_id, location__location=data['location'], quantity__gt=0)
+            if loc_serial_mapping_switch == 'true':
+                if data['serials']:
+                    serial_nums = data['serials'].split(',')
+                po_imei_mapping = POIMEIMapping.objects.filter(sku__user=user.id,
+                                                               imei_number__in=serial_nums)
+                po_mapping_ids = list(po_imei_mapping.values_list('stock_id', flat=True))
+                order_stocks = sku_stocks.filter(id__in = po_mapping_ids, sku_id=order.sku_id, location__location=data['location'], quantity__gt=0)
+            else:
+                order_stocks = sku_stocks.filter(sku_id=order.sku_id, location__location=data['location'], quantity__gt=0)
             needed_quantity = float(data['quantity'])
             val = {}
             val['wms_code'] = order.sku.wms_code
@@ -8350,6 +8383,42 @@ def create_orders_data(request, user=''):
 
 
 @csrf_exempt
+@get_admin_user
+def dispatch_serial_numbers(request, user=''):
+    myDict = dict(request.POST.iterlists())
+    if myDict['dispatch_Serial_data'][0]:
+        data = json.loads(myDict['dispatch_Serial_data'][0])
+    else:
+        return HttpResponse("Enter Dispatch Data")
+    final_data = OrderedDict()
+    data_dict = OrderedDict()
+    sku_code,sku_id,sku_desc,location = '','','',''
+    for i in range(0, len(data)):
+        sku_code = data[i]['sku_code']
+        serial_number = data[i]['serial_number']
+        if serial_number:
+            check_params = {'imei_number': serial_number, 'sku__user': user.id}
+            po_mapping = POIMEIMapping.objects.filter(**check_params)
+            if po_mapping.exists():
+                location = po_mapping[0].stock.location.location
+        if sku_code:
+            sku = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+            if sku.exists():
+                sku_id = sku[0].id
+                sku_desc = sku[0].sku_desc
+        cost_price = float(data[i]['cost_price'])
+        selling_price = float(data[i]['selling_price'])
+        group_key = sku_code
+        final_data.setdefault(group_key, {'sku_code': sku_code, 'location':location, 'sku_id': sku_id,'sku_desc': sku_desc, 'serial_number': [], 'cost_price':0, 'selling_price':0})
+        final_data[group_key]['selling_price'] += selling_price
+        final_data[group_key]['cost_price'] += cost_price
+        final_data[group_key]['serial_number'].append(serial_number)
+    final_data = final_data.values()
+
+    return HttpResponse(json.dumps({'serial_data': final_data}))
+
+
+@csrf_exempt
 def get_order_category_view_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                                  filters={}, user_dict={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
@@ -9487,6 +9556,8 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
             generic_orders = GenericOrderDetailMapping.objects.filter(Q(orderdetail__status__icontains= '1'), **filter_dict).order_by(order_data)
         elif search_term == 'closed':
             generic_orders = GenericOrderDetailMapping.objects.filter(Q(orderdetail__status__icontains= '0'), **filter_dict).order_by(order_data)
+        elif search_term == 'cancel':
+            generic_orders = GenericOrderDetailMapping.objects.filter(Q(orderdetail__status__icontains= '3'), **filter_dict).order_by(order_data)
         elif search_term in corporatae_name:
             em_qs = EnquiryMaster.objects.filter(Q(corporate_name__icontains= search_term), **filter_dict).order_by(order_data)
         elif search_term:
@@ -9518,6 +9589,8 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
         data_status = data.filter(status=1)
         if data_status:
             status = 'open'
+        elif data.filter(status=3):
+            status = 'cancel'
         else:
             status = 'closed'
             pick_status = picklist.filter(order_id__in=order_detail_ids,
@@ -9761,6 +9834,8 @@ def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
     data_status = order.filter(status=1)
     if data_status:
         status = 'open'
+    elif order.filter(status=3):
+        status = 'cancel'
     else:
         status = 'closed'
         pick_status = Picklist.objects.filter(order_id__in=order_ids, status__icontains='open')
@@ -9947,7 +10022,6 @@ def get_intermediate_order_detail(request, user=""):
 @get_admin_user
 def get_customer_order_detail(request, user=""):
     """ Return customer order detail """
-
     log.info('Request params for ' + user.username + ' is ' + str(request.GET.dict()))
     response_data = {'data': []}
     order_id = request.GET['order_id']
@@ -10910,7 +10984,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             lis = ['invoice_number', 'invoice_number', 'financial_year', 'order__customer_name', 'invoice_number', 'invoice_number',
                    'invoice_number', 'invoice_number', 'invoice_number']
             user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
-            result_values = ['invoice_number', 'financial_year', 'order__customer_name']
+            result_values = ['invoice_number', 'financial_year', 'order__customer_name', 'order__marketplace']
             field_mapping = {'order_quantity_field': 'order__quantity', 'date_only': 'order__creation_date'}
             is_marketplace = False
 
@@ -10988,11 +11062,12 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                 data['ordered_quantity'] = seller_orders.get(data['seller_order__sor_id'], 0)
             else:
                 seller_order_summaries = order_summaries.filter(invoice_number=data['invoice_number'],
-                                                                financial_year=data['financial_year'])
+                                                                financial_year=data['financial_year'], order__marketplace=data['order__marketplace'])
                 order_ids = seller_order_summaries.values_list('order__id', flat= True)
                 order = seller_order_summaries[0].order
-                invoice_date = CustomerOrderSummary.objects.filter(order_id__in=order_ids)\
-                                                   .order_by('-invoice_date').values_list('invoice_date', flat=True)[0]
+                invoice_date = order.customerordersummary_set.filter()[0].invoice_date
+                #invoice_date = CustomerOrderSummary.objects.filter(order_id__in=order_ids)\
+                #                                   .order_by('-invoice_date').values_list('invoice_date', flat=True)[0]
                 if not invoice_date:
                     invoice_date = seller_order_summaries.order_by('-updation_date')[0].updation_date
                 data['ordered_quantity'] = OrderDetail.objects.filter(id__in=order_ids).only('quantity').aggregate(Sum('quantity'))['quantity__sum']
@@ -11020,7 +11095,6 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
 
             order_date = get_local_date(user, order.creation_date)
             invoice_date = invoice_date.strftime("%d %b %Y") if invoice_date else order.creation_date.strftime("%d %b %Y")
-
             if is_marketplace:
                 data_dict = OrderedDict((("Invoice ID", data['invoice_number']), ('UOR ID', order_id), ('SOR ID', summary.seller_order.sor_id),
                                          ('Seller ID', summary.seller_order.seller.seller_id),
@@ -11038,7 +11112,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             data_dict.update(OrderedDict((('Financial Year', data['financial_year']), ('Customer Name', customer_name),
                                           ('Order Quantity', data['ordered_quantity']), ('Picked Quantity', data['total_quantity']),
                                           ('Total Amount', "%.2f" %picked_amount),
-                                          ('Order Date&Time', invoice_date), ('Invoice Number', '')
+                                          ('Order Date&Time', invoice_date), ('Invoice Number', ''), ('Marketplace', order.marketplace)
                                           )))
             temp_data['aaData'].append(data_dict)
         log.info('Customer Invoice filtered %s for %s ' % (str(temp_data['recordsTotal']), user.username))
@@ -11083,6 +11157,7 @@ def get_processed_orders_data(start_index, stop_index, temp_data, search_term, o
                 master_data = SellerOrderSummary.objects.filter(Q(order__order_id__icontains=order_id_search,
                                                                   order__order_code__icontains=order_code_search) |
                                                                 Q(order__original_order_id__icontains=search_term) |
+                                                                Q(order__marketplace__icontains=search_term) |
                                                                 search_query, **user_filter). \
                     values(*result_values).distinct(). \
                     annotate(total_quantity=Sum('quantity'),
@@ -11170,7 +11245,7 @@ def get_processed_orders_data(start_index, stop_index, temp_data, search_term, o
             data_dict.update(OrderedDict((('Customer Name', order.customer_name),
                                           ('Order Quantity', ordered_quantity), ('Total Amount', round(picked_amount, 2)),
                                           ('Picked Quantity', data['total_quantity']),
-                                          ('Order Date&Time', order_date), ('Invoice Number', '')
+                                          ('Order Date&Time', order_date), ('Invoice Number', ''), ('Marketplace', order.marketplace)
                                           )))
             temp_data['aaData'].append(data_dict)
         log.info('Customer Invoice filtered %s for %s ' % (str(temp_data['recordsTotal']), user.username))
@@ -11480,6 +11555,7 @@ def move_to_dc(request, user=''):
 def move_to_inv(request, user=''):
     log.info('Move To Invoice: Request params for ' + user.username + ' are ' + str(request.GET.dict()))
     cancel_flag = request.GET.get('cancel', '')
+    is_sample_option =  get_misc_value('create_order_po', user.id)
     if cancel_flag == 'true':
         sell_ids = construct_sell_ids(request, user, cancel_inv=True)
         #del sell_ids['pick_number__in']
@@ -11487,6 +11563,15 @@ def move_to_inv(request, user=''):
         sell_ids = construct_sell_ids(request, user)
         #del sell_ids['pick_number__in']
     seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
+    if is_sample_option == 'true':
+        for data in seller_summary:
+            mappingData = list(OrderMapping.objects.filter(mapping_type='PO', order_id=data.order_id).values_list('mapping_id', flat=True))
+            if mappingData:
+                purchase_order_data = PurchaseOrder.objects.filter(id=mappingData[0]).values('received_quantity')
+                if purchase_order_data:
+                    received_quantity = purchase_order_data[0].get('received_quantity', 0)
+                    if received_quantity != 0:
+                        data.quantity = data.quantity - received_quantity
     if cancel_flag != 'true':
         if user.userprofile.user_type == 'marketplace_user':
             marketplace = seller_summary[0].seller_order.order.marketplace
@@ -11571,6 +11656,8 @@ def generate_customer_invoice_tab(request, user=''):
         all_data = OrderedDict()
         seller_order_ids = []
         pick_number = 1
+        if request.GET.get('Marketplace', ''):
+            sell_ids['order__marketplace'] = request.GET.get('Marketplace')
         for data_id in seller_summary_dat:
             splitted_data = data_id.split(':')
             sell_ids.setdefault(field_mapping['invoice_number_in'], [])
@@ -11602,6 +11689,7 @@ def generate_customer_invoice_tab(request, user=''):
         ord_ids = order_ids.split(",")
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         invoice_data['sequence_number'] = sequence_number
+        invoice_data['challan_number'] = seller_summary[0].challan_number if seller_summary else ''
         invoice_date = datetime.datetime.now()
         if seller_summary:
             if seller_summary[0].seller_order:
@@ -11759,10 +11847,25 @@ def generate_customer_invoice(request, user=''):
     total_mrp = 0
     order_no = ''
     merge_data = {}
+    delivery_challan = request.GET.get('delivery_challan', 'false')
     data_dict = dict(request.GET.iterlists())
     log.info('Request params for ' + user.username + ' is ' + str(request.GET.dict()))
     admin_user = get_priceband_admin_user(user)
     try:
+        pick_number_list = []
+        if data_dict['seller_summary_id']:
+            value = data_dict['seller_summary_id'][0]
+            if '<<>>' in value:
+                ids_list = value.split('<<>>')
+                for id_value in ids_list:
+                    if ':' in id_value:
+                        pic_num = id_value.split(':')
+                        pick_number_list.append(pic_num[1])
+            elif ':' in value:
+                pic_num = value.split(':')
+                pick_number_list.append(pic_num[1])
+            else:
+                pick_number_list.append(1)
         seller_summary_dat = data_dict.get('seller_summary_id', '')
         delivery_challan_pickid = data_dict.get('picklist_id', '')
         seller_summary_dat = seller_summary_dat[0]
@@ -11821,7 +11924,8 @@ def generate_customer_invoice(request, user=''):
                     merge_data[detail[field_mapping['sku_code']]] = detail['total_quantity']
                 else:
                     merge_data[detail[field_mapping['sku_code']]] += detail['total_quantity']
-        invoice_data = get_invoice_data(order_ids, user, merge_data=merge_data, is_seller_order=True, sell_ids=sell_ids)
+        invoice_data = get_invoice_data(order_ids, user, merge_data=merge_data, pick_num = pick_number_list, is_seller_order=True,
+                                        sell_ids=sell_ids, delivery_challan=delivery_challan)
         edit_invoice = request.GET.get('edit_invoice', '')
         edit_dc = request.GET.get('edit_dc', '')
         if edit_invoice != 'true' or edit_dc != 'true':
@@ -15919,7 +16023,7 @@ def sm_cancel_distributor_order(request):
         if not is_emiza_order_failed:
             order_det_ids = gen_qs.values_list('orderdetail_id', flat=True)
             order_cancel_functionality(order_det_ids)
-            gen_qs.delete()
+            # gen_qs.delete()
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

@@ -1,0 +1,21 @@
+<div id="page-pop">
+  <form name="purchaseOrderPreview" role="form" ui-jq="validate" ui-options="validationOpt">
+    <div class="model-custom">
+      <div class="mw60">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="pop.ok('close')"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title"><i class="fa fa-file" style="font-size: 22px;"></i> Purchase Order Preview</h4>
+        </div>
+      </div>
+      <div class="modal-body" style="padding: 15px;" align="center">
+        <img ng-src="images/default_loader.gif" style="margin: auto;display: block;width: 120px;">
+      </div>
+      <div class="modal-footer">
+        <div class="form-group" style="margin-bottom:0px;">
+          <button type="button" class="btn pop pop-red pull-left" ng-click="pop.ok('close')">Cancel</button>
+          <button type="button" class="btn pop pop-green pull-right" ng-click="pop.ok('confirm')">Confirm</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

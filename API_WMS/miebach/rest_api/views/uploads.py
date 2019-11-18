@@ -2692,14 +2692,15 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     cell_data = str(int(cell_data))
                 if demo_data:
                     cell_data = user_profile.prefix + '_' + cell_data
-                ep_supplier = ''
+                ep_supplier = 0
                 if cell_data:
                     supplier = SupplierMaster.objects.filter(user=user.id, id=cell_data.upper())
                     if not supplier:
                         index_status.setdefault(row_idx, set()).add("Supplier ID doesn't exist")
                     else:
-                        data_dict['supplier'] = supplier[0]
-                        ep_supplier = int(data_dict['supplier'].ep_supplier)
+                        data_dict['supplier_id'] = supplier[0].id
+                        ep_supplier = int(supplier[0].ep_supplier)
+                        data_dict['supplier_tax_type'] = supplier[0].tax_type
                 else:
                     index_status.setdefault(row_idx, set()).add('Missing Supplier ID')
             elif key in ['po_date', 'po_delivery_date']:
@@ -2707,9 +2708,9 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     try:
                         if isinstance(cell_data, float):
                             year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
-                            data_dict[key] = datetime.datetime(year, month, day, hour, minute, second)
+                            data_dict[key] = str(datetime.datetime(year, month, day, hour, minute, second))
                         elif '-' in cell_data:
-                            data_dict[key] = datetime.datetime.strptime(cell_data, "%m-%d-%Y")
+                            data_dict[key] = str(datetime.datetime.strptime(cell_data, "%m-%d-%Y"))
                         else:
                             index_status.setdefault(row_idx, set()).add('Check the date format for %s' %
                                                                         mapping_fields[key])
@@ -2732,7 +2733,9 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                         if not ep_supplier:
                             if sku_master[0].block_options == 'PO':
                                 index_status.setdefault(row_idx, set()).add("WMS Code is blocked for PO")
-                        data_dict['sku'] = sku_master[0]
+                        data_dict['sku_id'] = sku_master[0].id
+                        data_dict['wms_code'] = sku_master[0].wms_code
+                        data_dict['sku_product_type'] = sku_master[0].product_type
             elif key == 'seller_id':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Missing Seller ID')
@@ -2745,7 +2748,7 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                         if not seller_master:
                             index_status.setdefault(row_idx, set()).add("Seller doesn't exist")
                         else:
-                            data_dict['seller'] = seller_master[0]
+                            data_dict['seller_id'] = seller_master[0].id
             elif key == 'quantity':
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
@@ -2767,10 +2770,10 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                 else:
                     data_dict[key] = ''
                     if data_dict.get('sku', '') and data_dict.get('supplier', ''):
-                        sku_supplier = SKUSupplier.objects.filter(sku__wms_code=data_dict['sku'].wms_code, supplier_id=data_dict['supplier'].id, sku__user=user.id)
+                        sku_supplier = SKUSupplier.objects.filter(sku_id=data_dict['sku_id'], supplier_id=data_dict['supplier_id'], sku__user=user.id)
                         if not sku_supplier.exists() :
                             mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
-                            if mandate_supplier == 'true' and not int(data_dict['supplier'].ep_supplier):
+                            if mandate_supplier == 'true' and not ep_supplier:
                                 index_status.setdefault(row_idx, set()).add('Please Create Sku Supplier Mapping')
 
             elif key in ['po_name', 'ship_to']:
@@ -2800,7 +2803,7 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     data_dict[key] = cell_data
         if not index_status:
             for data in data_list:
-                if data['sku']== data_dict['sku'] and data['supplier'] == data_dict['supplier']:
+                if data['sku_id']== data_dict['sku_id'] and data['supplier_id'] == data_dict['supplier_id']:
                     index_status.setdefault(row_idx, set()).add('SKU added in multiple rows for same supplier')
 
         data_list.append(data_dict)
@@ -2833,7 +2836,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     show_cess_tax = False
     show_apmc_tax = False
     ean_flag = False
-    wms_codes_list = list(set(map(lambda d: d['sku'].wms_code, data_list)))
+    wms_codes_list = list(set(map(lambda d: d['wms_code'], data_list)))
     ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
                                         wms_code__in=wms_codes_list, user=user.id)
     if ean_data.exists():
@@ -2864,6 +2867,12 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     ids_dict = {}
     send_mail_data = OrderedDict()
     for final_dict in data_list:
+        final_dict['sku'] = SKUMaster.objects.get(id=final_dict['sku_id'], user=user.id)
+        final_dict['supplier'] = SupplierMaster.objects.get(id=final_dict['supplier_id'], user=user.id)
+        final_dict['seller'] = SellerMaster.objects.get(id=final_dict['seller_id'], user=user.id)
+        final_dict['po_date'] = datetime.datetime.strptime(final_dict.get('po_date', ''), '%Y-%m-%d %H:%M:%S')
+        if final_dict.get('po_delivery_date', '') != '':
+            final_dict['po_delivery_date'] = datetime.datetime.strptime(final_dict.get('po_delivery_date', ''), '%Y-%m-%d %H:%M:%S')
         total_qty = 0
         total = 0
         order_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
@@ -3202,6 +3211,7 @@ def purchase_upload_mail(request, data_to_send, user):
 @reversion.create_revision(atomic=False)
 def purchase_order_upload(request, user=''):
     reversion.set_user(request.user)
+    purchase_order_view = get_misc_value('purchase_order_preview', user.id)
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
@@ -3212,9 +3222,149 @@ def purchase_order_upload(request, user=''):
     status, data_list = validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname, file_type)
     if status != 'Success':
         return HttpResponse(status)
+    if purchase_order_view == 'true':
+        content = purchase_order_preview_generation(request, user, data_list)
+        return HttpResponse(json.dumps(content))
+    else:
+        purchase_order_excel_upload(request, user, data_list)
+    return HttpResponse('Success')
+
+@login_required
+@get_admin_user
+@csrf_exempt
+def purchase_order_upload_preview(request, user=''):
+    data_list = json.loads(request.POST.get('data_list', ''))
     purchase_order_excel_upload(request, user, data_list)
     return HttpResponse('Success')
 
+def purchase_order_preview_generation(request, user, data_list):
+    profile = UserProfile.objects.get(user_id=user.id)
+    if profile.industry_type == 'FMCG':
+        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'Unit Price', 'MRP', 'Amt',
+                                                  'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'CESS (%)', 'APMC (%)', 'Total']
+    else:
+        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'Unit Price', 'MRP', 'Amt',
+                             'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+    if user.username in MILKBASKET_USERS:
+        table_headers.insert(4, 'Weight')
+    data_preview, templete_data = {}, {}
+    supplier_list = [data['supplier_id'] for data in data_list]
+    unique_sippliers = list(set(supplier_list))
+    data_dict = []
+    for sup_id in unique_sippliers:
+        po_data, total_amt, total_qty =[], 0, 0
+        for data in data_list:
+            if sup_id == data['supplier_id']:
+                sku = SKUMaster.objects.get(id=data['sku_id'], user=user.id)
+                supplier = SupplierMaster.objects.get(id=data['supplier_id'], user=user.id)
+                if data['price'] == '':
+                    mapping_data = get_mapping_values_po(data['wms_code'], data['supplier_id'] ,user)
+                    data['price'] = mapping_data.get('price',0)
+                unit_price = data['price']
+                taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0 ,'cess_tax':0,'apmc_tax':0}
+                if data.get('cgst_tax', 0) == data.get('sgst_tax', 0) == data.get('igst_tax', 0) == data.get('utgst_tax', 0) =='':
+                    inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
+                    inter_state = inter_state_dict.get(data['supplier_tax_type'], 2)
+                    tax_master = TaxMaster.objects.filter(user_id=user, inter_state=inter_state,product_type=data['sku_product_type'],
+                                                            min_amt__lte=unit_price, max_amt__gte=unit_price).\
+                                                            values('cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax','cess_tax','apmc_tax')
+                    if tax_master.exists():
+                        taxes = copy.deepcopy(tax_master[0])
+                else:
+                    for tax_name in taxes.keys():
+                        try:
+                            taxes[tax] = float(data.get('%s_tax' % tax_name, 0))
+                        except:
+                            taxes[tax] = 0
+                if data.get('cess_tax', 0) != '':
+                    taxes['cess_tax'] = data.get('cess_tax', 0)
+                if data.get('apmc_tax', 0) != '':
+                    taxes['apmc_tax'] = data.get('apmc_tax', 0)
+                total, amount, company_address, ship_to_address = tax_calculation_master(data, user, profile, taxes)
+                total_amt += total
+                total_qty += data['quantity']
+                if data['mrp'] == '':
+                    data['mrp'] = sku.mrp
+                if profile.industry_type == 'FMCG':
+                    po_temp_data = [sku.sku_code, data['supplier_id'], sku.sku_desc, data['quantity'], data['price'],
+                                data['mrp'], amount, taxes['sgst_tax'], taxes['cgst_tax'], taxes['igst_tax'],
+                                taxes['utgst_tax'], taxes['cess_tax'], taxes['apmc_tax'], total
+                               ]
+                else:
+                    po_temp_data = [sku.sku_code, data['supplier_id'], sku.sku_desc, data['quantity'], data['price'],
+                                 data['mrp'], amount, taxes['sgst_tax'], taxes['cgst_tax'], taxes['igst_tax'],
+                                 taxes['utgst_tax'], total
+                                ]
+                if user.username in MILKBASKET_USERS:
+                    weight = get_sku_weight(sku)
+                    po_temp_data.insert(4, weight)
+                po_data.append(po_temp_data)
+        data_dict.append({'table_headers': table_headers,
+                        'data':po_data,
+                        'address': supplier.address,
+                        'order_id': '',
+                        'telephone': supplier.phone_number,
+                        'ship_to_address': ship_to_address,
+                        'name': supplier.name,
+                        'order_date': get_local_date(request.user, datetime.datetime.now()),
+                        'total': round(total_amt),
+                        'po_reference': '',
+                        'user_name': '',
+                        'total_amt_in_words': number_in_words(round(total_amt)) + ' ONLY',
+                        'total_qty': total_qty,
+                        'location': '',
+                        'w_address': ship_to_address,
+                        'vendor_name': '',
+                        'vendor_address': '',
+                        'vendor_telephone': '',
+                        'receipt_type': '',
+                        'title': '',
+                        'gstin_no': supplier.tin_number,
+                        'industry_type': '',
+                        'expiry_date': '',
+                        'wh_telephone': user.userprofile.wh_phone_number,
+                        'wh_gstin': profile.gst_number,
+                        'wh_pan': profile.pan_number,
+                        'terms_condition': '',
+                        'supplier_pan':supplier.pan_number,
+                        'company_name': profile.company_name,
+                        'company_address': company_address
+                    })
+    templete_data['data'] = data_dict
+    t = loader.get_template('templates/toggle/upload_po_preview.html')
+    data = t.render(templete_data)
+    data_preview['data_preview'] = data
+    data_preview['data_list'] = data_list
+    return data_preview
+
+@csrf_exempt
+def tax_calculation_master(data, user, profile, taxes):
+    total, amount, company_address = 0, 0, ''
+    unit_price = data.get('price', 0)
+    quantity = data.get('quantity', 0)
+    tax = sum(taxes.values())
+    amount = unit_price * quantity
+    total += amount + ((amount / 100) * float(tax))
+    if user.userprofile.wh_address:
+        company_address = user.userprofile.wh_address
+        if user.username in MILKBASKET_USERS:
+            if user.userprofile.user.email:
+                company_address = ("%s, Email:%s") % (company_address, user.userprofile.user.email)
+            if user.userprofile.phone_number:
+                company_address = ("%s, Phone:%s") % (company_address, user.userprofile.phone_number)
+            if user.userprofile.gst_number:
+                company_address = ("%s, GSTINo:%s") % (company_address, user.userprofile.gst_number)
+    else:
+        company_address = user.userprofile.address
+    if profile.wh_address:
+        address = profile.wh_address
+    else:
+        address = profile.address
+    if not (address and company_address):
+        company_address, address = '', ''
+    if profile.user.email:
+        address = ("%s, Email:%s") % (address, profile.user.email)
+    return total, amount, company_address, address
 
 @csrf_exempt
 def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):

@@ -539,6 +539,7 @@ urlpatterns += [
     url(r'^location_upload/$', location_upload),
     url(r'^purchase_order_form/$', purchase_order_form),
     url(r'^purchase_order_upload/$', purchase_order_upload),
+    url(r'^purchase_order_upload_preview/$', purchase_order_upload_preview),
     url(r'^move_inventory_form/$', move_inventory_form),
     url(r'^move_inventory_upload/$', move_inventory_upload),
     url(r'^marketplace_sku_form/$', marketplace_sku_form),

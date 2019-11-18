@@ -146,3 +146,9 @@
 .menu-height {
   line-height: 35px;
 }
+.print-width {
+  width: fit-content !important;
+}
+.print-height {
+  height: fit-content !important;
+}

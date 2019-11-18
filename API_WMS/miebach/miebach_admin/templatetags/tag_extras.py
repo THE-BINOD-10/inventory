@@ -163,6 +163,13 @@ def get_size_wise_stock(data):
     return ", ".join(quantity_list)
 
 @register.filter
+def get_variant_total_stock(data):
+    sum = 0
+    for size in data:
+        sum += int(size['physical_stock'])
+    return sum
+
+@register.filter
 def get_page_break(count):
     if (count+1)%10 == 0:
         return True

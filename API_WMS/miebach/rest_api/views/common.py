@@ -178,7 +178,7 @@ def get_label_permissions(request, user, role_perms, user_type):
         else:
             labels[label] = False
 
-    extra_labels = ['DASHBOARD', 'CONFIGURATIONS']
+    extra_labels = ['DASHBOARD']
     for label in extra_labels:
         labels[label] = True if user_type != 'supplier' else False
     return labels
@@ -5194,6 +5194,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
             res_qty = 0
         if raw_reserved:
             res_qty = float(res_qty) + float(raw_reserved)
+
         location = stock.location.location
         zone = stock.location.zone.zone
         pallet_number, batch, mrp, ean, weight = ['']*5

@@ -46,7 +46,7 @@
           <span class="style_name" style="font-size: 12px" title="{{ obj.sku_class }}"><b>Category:</b> {{ obj.variants.0.sku_category }}</span><br>
           {% if display_stock == 'true' %}
           <span style="font-size: 12px;" class="ng-binding"><b>Stock: </b>{{ obj.variants| get_size_wise_stock }}</span><br>
-          <span style="font-size: 12px;color: #ed1c24 !important;"><b style="color: #ed1c24 !important;">Quantity: &#8377;{{obj.variants.0.style_quantity| floatformat:0}}</b></span><br>
+          <span style="font-size: 12px;color: #ed1c24 !important;"><b style="color: #ed1c24 !important;">Quantity:{{obj.variants| get_variant_total_stock }}</b></span><br>
           {% endif %}
           <span style="font-size: 12px;"><b>MRP:</b> &#8377;{{ obj.variants.0.mrp| floatformat:0 }}&nbsp;&nbsp;</span>
           <span style="font-size: 12px;color: #ed1c24 !important;"><b style="color: #ed1c24 !important;">Your Price: &#8377;{{ obj.variants.0.your_price| floatformat:0 }}</b></span>

@@ -44,6 +44,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       vm.dtColumns.splice(4, 0, DTColumnBuilder.newColumn('Manufacturer').withTitle('Manufacturer'))
       vm.dtColumns.splice(5, 0, DTColumnBuilder.newColumn('Searchable').withTitle('Searchable'))
       vm.dtColumns.splice(6, 0, DTColumnBuilder.newColumn('Bundle').withTitle('Bundle'))
+      vm.dtColumns.splice(7, 0, DTColumnBuilder.newColumn('Weight').withTitle('Weight'))
 
     }
 

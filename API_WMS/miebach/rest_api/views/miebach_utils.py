@@ -83,8 +83,7 @@ PERMISSION_KEYS = ['add_qualitycheck', 'add_skustock', 'add_shipmentinfo', 'add_
                    'add_inventoryadjustment',
                    'add_orderdetail', 'add_picklist']
 LABEL_KEYS = ["NOTIFICATION_LABEL", "MASTERS_LABEL", "INBOUND_LABEL", "PRODUCTION_LABEL", "STOCK_LABEL", "OUTBOUND_LABEL", "SHIPMENT_LABEL",
-              "OTHERS_LABEL", "UPLOADS", "REPORTS",
-              "PAYMENT_LABEL"]
+              "OTHERS_LABEL", "UPLOADS", "REPORTS", "CONFIGURATIONS", "PAYMENT_LABEL"]
 
 SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'sku_desc': '', 'sku_group': '', 'sku_type': '', 'mix_sku': '',
@@ -547,7 +546,7 @@ SKU_WISE_GRN_DICT = {'filters' : [
 		'mk_dt_headers': [ "Received Date", "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Recepient",
                            "SKU Code", "SKU Description", "HSN Code", "SKU Class", "SKU Style Name", "SKU Brand", "SKU Category", "Sub Category",
                            "Manufacturer","Searchable","Bundle",
-                           "Received Qty", "Unit Rate", "MRP", "Pre-Tax Received Value", "CGST(%)", "SGST(%)",
+                           "Received Qty", "Unit Rate", "MRP","Weight", "Pre-Tax Received Value", "CGST(%)", "SGST(%)",
                            "IGST(%)", "UTGST(%)", "CESS(%)", "APMC(%)", "CGST",
                             "SGST", "IGST", "UTGST", "CESS", "APMC", "Post-Tax Received Value", "Margin %",
                            "Margin", "Invoiced Unit Rate","Overall Discount", "Invoiced Total Amount", "Invoice Number", "Invoice Date",
@@ -1022,16 +1021,15 @@ STOCK_RECONCILIATION_REPORT_DICT = {
       {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'},
   ],
   'dt_headers': ['Created Date', 'SKU Code', 'SKU Desc', 'MRP', 'Weight', 'Vendor Name', 'Brand', 'Category',
-                 'Sub Category', 'Sub Category Type', 'Manufacturer', 'Searchable', 'Bundle', 'Sheet', 'Opening Qty',
-                  'Opening Avg Rate', 'Opening Amount After Tax',
-                 'Purchases Qty', 'Purchases Avg Rate', 'Purchases Amount After Tax',
-                 'RTV Qty', 'RTV Avg Rate', 'RTV Amount After Tax',
-                 'Customer Sales Qty', 'Customer Sales Avg Rate', 'Customer Sales Amount After Tax',
-                 'Internal Sales Qty', 'Internal Sales Avg Rate', 'Internal Sales Amount After Tax',
-                 'Stock Transfer Qty', 'Stock Transfer Avg Rate', 'Stock Transfer Amount After Tax',
-                 'Returns Qty', 'Returns Avg Rate', 'Returns Amount After Tax',
-                 'Adjustment Qty', 'Adjustment Avg Rate', 'Adjustment Amount After Tax',
-                 'Closing Qty', 'Closing Avg Rate', 'Closing Amount After Tax', 'Warehouse Name',
+                 'Sub Category', 'Sub Category Type', 'Sheet', 'Opening Qty', 'Opening Avg Rate', 'Opening Amount After Tax', 'Opening Qty Damaged',
+                 'Purchases Qty', 'Purchases Avg Rate', 'Purchases Amount After Tax', 'Purchase Qty Damaged',
+                 'RTV Qty', 'RTV Avg Rate', 'RTV Amount After Tax', 'Rtv Qty Damaged',
+                 'Customer Sales Qty', 'Customer Sales Avg Rate', 'Customer Sales Amount After Tax', 'Customer Sales Qty Damaged',
+                 'Internal Sales Qty', 'Internal Sales Avg Rate', 'Internal Sales Amount After Tax', 'Internal Sales Qty Damaged',
+                 'Stock Transfer Qty', 'Stock Transfer Avg Rate', 'Stock Transfer Amount After Tax', 'Stock Transfer Qty Damaged',
+                 'Returns Qty', 'Returns Avg Rate', 'Returns Amount After Tax', 'Returns Qty Damaged',
+                 'Adjustment Qty', 'Adjustment Avg Rate', 'Adjustment Amount After Tax', 'Adjustment Qty Damaged',
+                 'Closing Qty', 'Closing Avg Rate', 'Closing Amount After Tax', 'Closing Qty Damaged', 'Warehouse Name',
                  'Report Generation Time'],
   'dt_url': 'get_stock_reconciliation_report', 'excel_name': 'get_stock_reconciliation_report',
   'print_url': 'print_stock_reconciliation_report',
@@ -1810,6 +1808,8 @@ PERMISSION_DICT = OrderedDict((
 
     # Uploaded POs
     ("UPLOADPO_LABEL", (("uploadedPOs", "add_orderuploads"),)),
+     #Configurations
+    ("CONFIGURATIONS", (("Configutaions", "add_miscdetail"),)),
 
 ))
 
@@ -2280,6 +2280,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'update_mrp_on_grn': 'update_mrp_on_grn',
                         'mandate_sku_supplier':'mandate_sku_supplier',
                         'brand_categorization':'brand_categorization',
+                        'purchase_order_preview':'purchase_order_preview',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -2598,7 +2599,7 @@ def get_location_stock_data(search_params, user, sub_user):
         stock_detail = stock_detail.order_by(order_data)
 
     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-	stock_detail = OrderedDict(stock_detail.annotate(grouped_val=Concat('sku__sku_code', Value('<<>>'), 'location__location', Value('<<>>'), 'batch_detail__mrp' ,output_field=CharField())).values_list('grouped_val').distinct().annotate(tsum=Sum('quantity')))
+	stock_detail = OrderedDict(stock_detail.annotate(grouped_val=Concat('sku__sku_code', Value('<<>>'), 'location__location', Value('<<>>'), 'batch_detail__mrp', Value('<<>>'),'batch_detail__weight', output_field=CharField())).values_list('grouped_val').distinct().annotate(tsum=Sum('quantity')))
     else:
         stock_detail = OrderedDict(stock_detail.annotate(grouped_val=Concat('sku__sku_code', Value('<<>>'), 'location__location', output_field=CharField())).values_list('grouped_val').distinct().annotate(tsum=Sum('quantity')))
 
@@ -2631,9 +2632,10 @@ def get_location_stock_data(search_params, user, sub_user):
         total_stock_value = 0
         reserved = 0
 	mrp = 0
+        weight = 0
         total = stock_detail[stock_detail_key]
 	if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-	    sku_code, location, mrp = stock_detail_key.split('<<>>')
+	    sku_code, location, mrp, weight = stock_detail_key.split('<<>>')
 	else:
 	    sku_code, location = stock_detail_key.split('<<>>')
         sku_master = SKUMaster.objects.get(sku_code=sku_code, user=user.id)
@@ -2668,6 +2670,7 @@ def get_location_stock_data(search_params, user, sub_user):
                                                    ('Product Description', sku_master.sku_desc),
                                                    ('EAN', str(ean_num)),
                                                    ('MRP', mrp),
+                                                   ('Weight', weight),
                                                    ('Zone', location_master.zone.zone),
                                                    ('Location', location_master.location), ('Total Quantity', total),
                                                    ('Available Quantity', quantity), ('Reserved Quantity', reserved),
@@ -3332,7 +3335,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'purchase_order__open_po__mrp', 'purchase_order__open_po__cgst_tax',
                          'purchase_order__open_po__sgst_tax', 'purchase_order__open_po__igst_tax',
                          'purchase_order__open_po__utgst_tax', 'purchase_order__open_po__cess_tax',
-                         'purchase_order__open_po__apmc_tax',
+                         'purchase_order__open_po__apmc_tax','batch_detail__weight',
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price',
                          'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number','overall_discount',
@@ -3380,7 +3383,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'purchase_order__open_po__mrp', 'purchase_order__open_po__cgst_tax',
                          'purchase_order__open_po__sgst_tax', 'purchase_order__open_po__igst_tax',
                          'purchase_order__open_po__utgst_tax', 'purchase_order__open_po__cess_tax',
-                         'purchase_order__open_po__apmc_tax',
+                         'purchase_order__open_po__apmc_tax','batch_detail__weight',
                          'seller_po__margin_percent', 'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price','overall_discount',
                          'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number',
@@ -3600,6 +3603,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                             ('receipt_type', data['seller_po__receipt_type']),
                             ('receipt_no', 'receipt_no'),
                             ('Remarks', remarks),
+                            ('Weight', data['batch_detail__weight']),
                             ('Updated User', updated_user_name),
                             ('GST NO', data[field_mapping['gst_num']]),
                             ('LR-NUMBER', lr_detail_no)))
@@ -8762,6 +8766,15 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     lis = ['creation_date', 'sku__sku_code', 'sku__sku_desc', 'mrp', 'weight', 'sku__sku_code',
            'sku__sku_brand', 'sku__sku_category', 'sku__sub_category', 'sku__sku_code', 'sku__sku_code',
            'opening_quantity', 'opening_avg_rate',
+<<<<<<< HEAD
+           'opening_amount', 'opening_qty_damaged', 'purchase_quantity', 'purchase_avg_rate', 'purchase_amount', 'purchase_qty_damaged',
+           'rtv_quantity', 'rtv_avg_rate', 'rtv_amount', 'rtv_qty_damaged', 'customer_sales_quantity', 'customer_sales_avg_rate',
+           'customer_sales_amount', 'customer_sales_qty_damaged', 'internal_sales_quantity', 'internal_sales_avg_rate', 'internal_sales_amount', 'internal_sales_qty_damaged',
+           'stock_transfer_quantity', 'stock_transfer_avg_rate', 'stock_transfer_amount', 'stock_transfer_qty_damaged',
+           'returns_quantity', 'returns_avg_rate', 'returns_amount', 'returns_qty_damaged',
+           'adjustment_quantity', 'adjustment_avg_rate', 'adjustment_amount', 'adjustment_qty_damaged',
+           'closing_quantity', 'closing_avg_rate', 'closing_amount', 'closing_qty_damaged', 'id', 'id']
+=======
            'opening_amount', 'purchase_quantity', 'purchase_avg_rate', 'purchase_amount',
            'rtv_quantity', 'rtv_avg_rate', 'rtv_amount', 'customer_sales_quantity', 'customer_sales_avg_rate',
            'customer_sales_amount', 'internal_sales_quantity', 'internal_sales_avg_rate', 'internal_sales_amount',
@@ -8769,6 +8782,7 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
            'returns_quantity', 'returns_avg_rate', 'returns_amount',
            'adjustment_quantity', 'adjustment_avg_rate', 'adjustment_amount',
            'closing_quantity', 'closing_avg_rate', 'closing_amount', 'id', 'id', 'id', 'id', 'id', 'id']
+>>>>>>> 16af356e557afd77a30c813b23d09c8919779161
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
     order_data = lis[col_num]
@@ -8835,37 +8849,46 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
                                                  ('Opening Qty',  stock_rec_obj.opening_quantity),
                                                  ('Opening Avg Rate', "%.2f" % stock_rec_obj.opening_avg_rate),
                                                  ('Opening Amount After Tax', "%.2f" % stock_rec_obj.opening_amount),
+                                                 ('Opening Qty Damaged', stock_rec_obj.opening_qty_damaged),
                                                  ('Purchases Qty',  stock_rec_obj.purchase_quantity),
                                                  ('Purchases Avg Rate', "%.2f" % stock_rec_obj.purchase_avg_rate),
                                                  ('Purchases Amount After Tax', "%.2f" % stock_rec_obj.purchase_amount),
+                                                 ('Purchase Qty Damaged', stock_rec_obj.purchase_qty_damaged),
                                                  ('RTV Qty', stock_rec_obj.rtv_quantity),
                                                  ('RTV Avg Rate', "%.2f" % stock_rec_obj.rtv_avg_rate),
                                                  ('RTV Amount After Tax', "%.2f" % stock_rec_obj.rtv_amount),
+                                                 ('Rtv Qty Damaged', stock_rec_obj.rtv_qty_damaged),
                                                  ('Customer Sales Qty', stock_rec_obj.customer_sales_quantity),
                                                  ('Customer Sales Avg Rate', "%.2f" % stock_rec_obj.customer_sales_avg_rate),
                                                  ('Customer Sales Amount After Tax',
                                                   "%.2f" % stock_rec_obj.customer_sales_amount),
+                                                 ('Customer Sales Qty Damaged', stock_rec_obj.customer_sales_qty_damaged),
                                                  ('Internal Sales Qty',  stock_rec_obj.internal_sales_quantity),
                                                  ('Internal Sales Avg Rate', "%.2f" % stock_rec_obj.internal_sales_avg_rate),
                                                  ('Internal Sales Amount After Tax', "%.2f" % stock_rec_obj.internal_sales_amount),
+                                                 ('Internal Sales Qty Damaged', stock_rec_obj.internal_sales_qty_damaged),
                                                  ('Stock Transfer Qty', stock_rec_obj.stock_transfer_quantity),
                                                  ('Stock Transfer Avg Rate',
                                                   "%.2f" % stock_rec_obj.stock_transfer_avg_rate),
                                                  ('Stock Transfer Amount After Tax',
                                                   "%.2f" % stock_rec_obj.stock_transfer_amount),
+                                                 ('Stock Transfer Qty Damaged', stock_rec_obj.stock_transfer_qty_damaged),
                                                  ('Returns Qty', stock_rec_obj.returns_quantity),
                                                  ('Returns Avg Rate',
                                                   "%.2f" % stock_rec_obj.returns_avg_rate),
                                                  ('Returns Amount After Tax',
                                                   "%.2f" % stock_rec_obj.returns_amount),
+                                                 ('Returns Qty Damaged', stock_rec_obj.returns_qty_damaged),
                                                  ('Adjustment Qty', stock_rec_obj.adjustment_quantity),
                                                  ('Adjustment Avg Rate',
                                                   "%.2f" % stock_rec_obj.adjustment_avg_rate),
                                                  ('Adjustment Amount After Tax',
                                                   "%.2f" % stock_rec_obj.adjustment_amount),
+                                                 ('Adjustment Qty Damaged', stock_rec_obj.adjustment_qty_damaged),
                                                  ('Closing Qty',  stock_rec_obj.closing_quantity),
                                                  ('Closing Avg Rate', "%.2f" % stock_rec_obj.closing_avg_rate),
                                                  ('Closing Amount After Tax', "%.2f" % stock_rec_obj.closing_amount),
+                                                 ('Closing Qty Damaged', stock_rec_obj.closing_qty_damaged),
                                                  ('Warehouse Name', user.username),
                                                  ('Report Generation Time', str(datetime.datetime.now()))
                                               )))

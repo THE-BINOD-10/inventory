@@ -15786,7 +15786,7 @@ def generate_picklist_dc(request, user=''):
                                          'sku_class': sku_class,
                                          'sku_category': sku_category, 'sku_size': sku_size,
                                          'amt': amt, 'taxes': taxes_dict,
-                                         'base_price': base_price, 'hsn_code': float(sku.hsn_code),
+                                         'base_price': base_price, 'hsn_code': sku.hsn_code,
                                          'imeis': [],
                                          'discount_percentage': 0, 'id': order.id,
                                          'shipment_date': '', 'sno': 0,

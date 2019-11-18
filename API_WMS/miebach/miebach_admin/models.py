@@ -120,7 +120,7 @@ class SKUMaster(models.Model):
     color = models.CharField(max_length=64, default='')
     ean_number = models.CharField(max_length=64, default='')
     load_unit_handle = models.CharField(max_length=32, default='unit', db_index=True)
-    hsn_code = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default=0)
+    hsn_code = models.CharField(max_length=20, db_index=True, default='')
     sub_category = models.CharField(max_length=64, default='')
     primary_category = models.CharField(max_length=64, default='')
     shelf_life = models.IntegerField(default=0)

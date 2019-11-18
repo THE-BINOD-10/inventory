@@ -3414,7 +3414,7 @@ def common_calculations(arg_data):
     base_price = "%.2f" % (unit_price * quantity)
     hsn_code = ''
     if dat.sku.hsn_code:
-        hsn_code = str(dat.sku.hsn_code)
+        hsn_code = dat.sku.hsn_code
 
     if is_gst_invoice:
         if marginal_flag:
@@ -5072,7 +5072,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
         if sku_styles:
             sku_variants = list(sku_object.values(*get_values))
             for index, i in enumerate(sku_variants):
-                sku_variants[index]['hsn_code'] = int(i['hsn_code'])
+                sku_variants[index]['hsn_code'] = i['hsn_code']
             sku_variants = get_style_variants(sku_variants, user, customer_id, total_quantity=total_quantity,
                                               customer_data_id=customer_data_id, prices_dict=prices_dict,
                                               levels_config=levels_config, price_type=price_type,
@@ -6356,7 +6356,7 @@ def check_and_update_order_status(shipped_orders_dict, user):
                     for imei in order_data.get('imeis', []):
                         hsn_code = ''
                         if order.sku.hsn_code:
-                            hsn_code = str(order.sku.hsn_code)
+                            hsn_code = order.sku.hsn_code
                         seller_item_obj = line_items_ids.filter(local_id=seller_order.id, app_host='shotang',
                                                                 swx_type='seller_item_id',
                                                                 imei='')
@@ -6460,7 +6460,7 @@ def check_and_update_order_status_data(shipped_orders_dict, user, status=''):
                 order_status_dict[order_detail_id]['subOrders'][index].setdefault('lineItems', [])
                 hsn_code = ''
                 if order.sku.hsn_code:
-                    hsn_code = str(order.sku.hsn_code)
+                    hsn_code = order.sku.hsn_code
                 if order_data.get('quantity', 0):
                     order_data['imeis'] = ['None'] * int(order_data['quantity'])
 

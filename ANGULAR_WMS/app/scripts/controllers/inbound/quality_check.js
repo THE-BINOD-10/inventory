@@ -123,7 +123,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.get_current_weight = function(event, data, index) {
-      if(vm.permissions.weight_integration_name.length > 0) {
+      if(vm.permissions.weight_integration_name.length > 0 && ['KGS','GRAMS'].includes(vm.model_data.data[index].unit)) {
         vm.service.apiCall('get_current_weight/', 'GET',{}).then(function(res_data){
           if(res_data.message){
             if(res_data.data.status && res_data.data.is_updated){

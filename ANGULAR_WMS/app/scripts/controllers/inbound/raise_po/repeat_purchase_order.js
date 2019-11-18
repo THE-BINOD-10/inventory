@@ -415,7 +415,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.confirm_add_po = function() {
 
       var elem = angular.element($('form'));
-      elem = elem[1];
+      elem = elem[2];
       elem = $(elem).serializeArray();
       vm.common_confirm('confirm_add_po/', elem);
     }

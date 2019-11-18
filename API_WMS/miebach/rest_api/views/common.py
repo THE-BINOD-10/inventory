@@ -178,7 +178,7 @@ def get_label_permissions(request, user, role_perms, user_type):
         else:
             labels[label] = False
 
-    extra_labels = ['DASHBOARD', 'CONFIGURATIONS']
+    extra_labels = ['DASHBOARD']
     for label in extra_labels:
         labels[label] = True if user_type != 'supplier' else False
     return labels

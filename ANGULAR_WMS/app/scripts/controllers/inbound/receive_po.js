@@ -107,7 +107,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ['PO No', 'PO Number', 'Customer Name', 'Order Date', 'Expected Date', 'Total Qty', 'Receivable Qty', 'Received Qty',
+    var columns = ['PO No', 'PO Reference', 'Customer Name', 'Order Date', 'Expected Date', 'Total Qty', 'Receivable Qty', 'Received Qty',
                    'Remarks', 'Warehouse','Supplier ID/Name', 'Order Type', 'Receive Status'];
     vm.dtColumns = vm.service.build_colums(columns);
 
@@ -471,6 +471,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             data.ean_number = resp.data.ean_number;
             data.buy_price = resp.data.price;
             data.weight = resp.data.weight;
+            data.unit = resp.data.measurement_unit;
 
             data.row_price = (Number(data.value) * Number(data.price));
             vm.getTotals();
@@ -2267,7 +2268,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
   //GRN Pop Data
-  vm.grn_details = {po_reference: 'PO Number', supplier_id: 'Supplier ID', supplier_name: 'Supplier Name',
+  vm.grn_details = {po_reference: 'PO Reference', supplier_id: 'Supplier ID', supplier_name: 'Supplier Name',
                     order_date: 'Order Date'}
   vm.grn_details_keys = Object.keys(vm.grn_details);
 
@@ -2477,7 +2478,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
   vm.get_current_weight = function(event, data, index, parent_index) {
-    if(vm.permissions.weight_integration_name.length > 0) {
+    if(vm.permissions.weight_integration_name.length > 0 && ['KGS','GRAMS'].includes(vm.model_data.data[parent_index][index].unit)) {
       var sku_row_data = {};
       angular.copy(data.data[parent_index][index], sku_row_data);
       vm.service.apiCall('get_current_weight/', 'GET',{}).then(function(res_data){

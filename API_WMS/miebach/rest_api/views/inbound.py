@@ -413,7 +413,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
             warehouse = wh_details.get(result['open_po__sku__user'])
         data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference),
-                                      ('PO Number', po_reference_no), ('Order Date', _date),
+                                      ('PO Reference', po_reference_no), ('Order Date', _date),
                                       ('Supplier ID/Name', supplier_id_name), ('Total Qty', total_order_qty),
                                       ('Receivable Qty', total_receivable_qty),
                                       ('Received Qty', total_received_qty), ('Expected Date', expected_date),
@@ -8437,7 +8437,7 @@ def get_past_po(start_index, stop_index, temp_data, search_term, order_term, col
         result = PurchaseOrder.objects.filter(Q(order_id__icontains=search_term) |Q(open_po__supplier__id__icontains=search_term) |Q(open_po__supplier__name__icontains=search_term)| Q(creation_date__regex=search_term), open_po__sku__user=user.id, **search_params).\
                                                             values('open_po__supplier__id',
                                                                    'order_id', 'open_po__supplier__name',
-                                                                   'creation_date','open_po__order_type').order_by(order_data)
+                                                                   'creation_date','open_po__order_type').order_by(order_data).distinct()
     else:
         result = PurchaseOrder.objects.filter(open_po__sku__user=user.id, **search_params).distinct().values('open_po__supplier__id',
                                                                    'order_id', 'open_po__supplier__name',

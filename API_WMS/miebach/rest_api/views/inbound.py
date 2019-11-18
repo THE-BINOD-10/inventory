@@ -2104,7 +2104,9 @@ def close_po(request, user=''):
 
 def get_stock_locations(wms_code, exc_dict, user, exclude_zones_list, sku='', put_zones=''):
     all_stock_filter = {'sku__user': user, 'quantity__gt': 0, 'location__max_capacity__gt': F('location__filled_capacity')}
-    if put_zones:
+    user_obj = User.objects.get(id=user)
+    user_profile_obj = user_obj.userprofile
+    if put_zones and user_profile_obj.user_type == 'marketplace_user' and user_profile_obj.industry_type == 'FMCG':
         all_stock_filter['location__zone__zone__in'] = put_zones
     all_stocks = StockDetail.objects.filter(**all_stock_filter)
     only_sku_locs = list(all_stocks.exclude(location__zone__zone='DEFAULT').exclude(sku__wms_code=wms_code).

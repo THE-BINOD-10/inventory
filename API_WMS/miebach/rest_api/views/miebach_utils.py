@@ -8762,7 +8762,6 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     lis = ['creation_date', 'sku__sku_code', 'sku__sku_desc', 'mrp', 'weight', 'sku__sku_code',
            'sku__sku_brand', 'sku__sku_category', 'sku__sub_category', 'sku__sku_code', 'sku__sku_code',
            'opening_quantity', 'opening_avg_rate',
-<<<<<<< HEAD
            'opening_amount', 'opening_qty_damaged', 'purchase_quantity', 'purchase_avg_rate', 'purchase_amount', 'purchase_qty_damaged',
            'rtv_quantity', 'rtv_avg_rate', 'rtv_amount', 'rtv_qty_damaged', 'customer_sales_quantity', 'customer_sales_avg_rate',
            'customer_sales_amount', 'customer_sales_qty_damaged', 'internal_sales_quantity', 'internal_sales_avg_rate', 'internal_sales_amount', 'internal_sales_qty_damaged',
@@ -8770,15 +8769,6 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
            'returns_quantity', 'returns_avg_rate', 'returns_amount', 'returns_qty_damaged',
            'adjustment_quantity', 'adjustment_avg_rate', 'adjustment_amount', 'adjustment_qty_damaged',
            'closing_quantity', 'closing_avg_rate', 'closing_amount', 'closing_qty_damaged', 'id', 'id']
-=======
-           'opening_amount', 'purchase_quantity', 'purchase_avg_rate', 'purchase_amount',
-           'rtv_quantity', 'rtv_avg_rate', 'rtv_amount', 'customer_sales_quantity', 'customer_sales_avg_rate',
-           'customer_sales_amount', 'internal_sales_quantity', 'internal_sales_avg_rate', 'internal_sales_amount',
-           'stock_transfer_quantity', 'stock_transfer_avg_rate', 'stock_transfer_amount',
-           'returns_quantity', 'returns_avg_rate', 'returns_amount',
-           'adjustment_quantity', 'adjustment_avg_rate', 'adjustment_amount',
-           'closing_quantity', 'closing_avg_rate', 'closing_amount', 'id', 'id', 'id', 'id', 'id', 'id']
->>>>>>> 16af356e557afd77a30c813b23d09c8919779161
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
     order_data = lis[col_num]

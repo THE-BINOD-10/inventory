@@ -546,7 +546,7 @@ SKU_WISE_GRN_DICT = {'filters' : [
 		'mk_dt_headers': [ "Received Date", "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Recepient",
                            "SKU Code", "SKU Description", "HSN Code", "SKU Class", "SKU Style Name", "SKU Brand", "SKU Category", "Sub Category",
                            "Manufacturer","Searchable","Bundle",
-                           "Received Qty", "Unit Rate", "MRP", "Pre-Tax Received Value", "CGST(%)", "SGST(%)",
+                           "Received Qty", "Unit Rate", "MRP","Weight", "Pre-Tax Received Value", "CGST(%)", "SGST(%)",
                            "IGST(%)", "UTGST(%)", "CESS(%)", "APMC(%)", "CGST",
                             "SGST", "IGST", "UTGST", "CESS", "APMC", "Post-Tax Received Value", "Margin %",
                            "Margin", "Invoiced Unit Rate","Overall Discount", "Invoiced Total Amount", "Invoice Number", "Invoice Date",
@@ -2594,7 +2594,7 @@ def get_location_stock_data(search_params, user, sub_user):
         stock_detail = stock_detail.order_by(order_data)
 
     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-	stock_detail = OrderedDict(stock_detail.annotate(grouped_val=Concat('sku__sku_code', Value('<<>>'), 'location__location', Value('<<>>'), 'batch_detail__mrp' ,output_field=CharField())).values_list('grouped_val').distinct().annotate(tsum=Sum('quantity')))
+	stock_detail = OrderedDict(stock_detail.annotate(grouped_val=Concat('sku__sku_code', Value('<<>>'), 'location__location', Value('<<>>'), 'batch_detail__mrp', Value('<<>>'),'batch_detail__weight', output_field=CharField())).values_list('grouped_val').distinct().annotate(tsum=Sum('quantity')))
     else:
         stock_detail = OrderedDict(stock_detail.annotate(grouped_val=Concat('sku__sku_code', Value('<<>>'), 'location__location', output_field=CharField())).values_list('grouped_val').distinct().annotate(tsum=Sum('quantity')))
 
@@ -2627,9 +2627,10 @@ def get_location_stock_data(search_params, user, sub_user):
         total_stock_value = 0
         reserved = 0
 	mrp = 0
+        weight = 0
         total = stock_detail[stock_detail_key]
 	if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-	    sku_code, location, mrp = stock_detail_key.split('<<>>')
+	    sku_code, location, mrp, weight = stock_detail_key.split('<<>>')
 	else:
 	    sku_code, location = stock_detail_key.split('<<>>')
         sku_master = SKUMaster.objects.get(sku_code=sku_code, user=user.id)
@@ -2664,6 +2665,7 @@ def get_location_stock_data(search_params, user, sub_user):
                                                    ('Product Description', sku_master.sku_desc),
                                                    ('EAN', str(ean_num)),
                                                    ('MRP', mrp),
+                                                   ('Weight', weight),
                                                    ('Zone', location_master.zone.zone),
                                                    ('Location', location_master.location), ('Total Quantity', total),
                                                    ('Available Quantity', quantity), ('Reserved Quantity', reserved),
@@ -3328,7 +3330,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'purchase_order__open_po__mrp', 'purchase_order__open_po__cgst_tax',
                          'purchase_order__open_po__sgst_tax', 'purchase_order__open_po__igst_tax',
                          'purchase_order__open_po__utgst_tax', 'purchase_order__open_po__cess_tax',
-                         'purchase_order__open_po__apmc_tax',
+                         'purchase_order__open_po__apmc_tax','batch_detail__weight',
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price',
                          'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number','overall_discount',
@@ -3376,7 +3378,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'purchase_order__open_po__mrp', 'purchase_order__open_po__cgst_tax',
                          'purchase_order__open_po__sgst_tax', 'purchase_order__open_po__igst_tax',
                          'purchase_order__open_po__utgst_tax', 'purchase_order__open_po__cess_tax',
-                         'purchase_order__open_po__apmc_tax',
+                         'purchase_order__open_po__apmc_tax','batch_detail__weight',
                          'seller_po__margin_percent', 'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price','overall_discount',
                          'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number',
@@ -3596,6 +3598,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                             ('receipt_type', data['seller_po__receipt_type']),
                             ('receipt_no', 'receipt_no'),
                             ('Remarks', remarks),
+                            ('Weight', data['batch_detail__weight']),
                             ('Updated User', updated_user_name),
                             ('GST NO', data[field_mapping['gst_num']]),
                             ('LR-NUMBER', lr_detail_no)))

@@ -3262,7 +3262,7 @@ def purchase_order_preview_generation(request, user, data_list):
                     data['price'] = mapping_data.get('price',0)
                 unit_price = data['price']
                 taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0 ,'cess_tax':0,'apmc_tax':0}
-                if data.get('cgst_tax', 0) == data.get('sgst_tax', 0) == data.get('igst_tax', 0) == '':
+                if data.get('cgst_tax', 0) == data.get('sgst_tax', 0) == data.get('igst_tax', 0) == data.get('utgst_tax', 0) =='':
                     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
                     inter_state = inter_state_dict.get(data['supplier_tax_type'], 2)
                     tax_master = TaxMaster.objects.filter(user_id=user, inter_state=inter_state,product_type=data['sku_product_type'],
@@ -3276,6 +3276,10 @@ def purchase_order_preview_generation(request, user, data_list):
                             taxes[tax] = float(data.get('%s_tax' % tax_name, 0))
                         except:
                             taxes[tax] = 0
+                if data.get('cess_tax', 0) != '':
+                    taxes['cess_tax'] = data.get('cess_tax', 0)
+                if data.get('apmc_tax', 0) != '':
+                    taxes['apmc_tax'] = data.get('apmc_tax', 0)
                 total, amount, company_address, ship_to_address = tax_calculation_master(data, user, profile, taxes)
                 total_amt += total
                 total_qty += data['quantity']
@@ -3326,7 +3330,6 @@ def purchase_order_preview_generation(request, user, data_list):
                         'company_name': profile.company_name,
                         'company_address': company_address
                     })
-
     templete_data['data'] = data_dict
     t = loader.get_template('templates/toggle/upload_po_preview.html')
     data = t.render(templete_data)

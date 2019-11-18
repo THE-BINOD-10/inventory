@@ -1376,7 +1376,14 @@ def get_id_cycle(request, user=''):
 @get_admin_user
 def stock_summary_data(request, user=''):
     wms_code = request.GET['wms_code']
-    stock_data = StockDetail.objects.exclude(receipt_number=0).filter(sku_id__wms_code=wms_code, sku__user=user.id)
+    stock_ids = StockDetail.objects.exclude(receipt_number=0).filter(sku_id__wms_code=wms_code,
+                                            sku__user=user.id, quantity__gt=0).values_list('id', flat=True)
+    pick_stock_ids = PicklistLocation.objects.filter(picklist__order__user=user.id,
+                                    stock__sku__wms_code=wms_code, status=1).values_list('stock_id', flat=True)
+    rm_stock_ids = RMLocation.objects.filter(material_picklist__jo_material__material_code__user=user.id,
+                              stock__sku__wms_code=wms_code, status=1).values_list('stock_id', flat=True)
+    stock_ids = list(chain(stock_ids, pick_stock_ids, rm_stock_ids))
+    stock_data = StockDetail.objects.filter(id__in=stock_ids)
     production_stages = []
     load_unit_handle = ""
     if stock_data:

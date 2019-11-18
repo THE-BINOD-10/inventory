@@ -83,6 +83,8 @@ class Command(BaseCommand):
 
         def sku_stats_group(group_val, group_name, sku_stats_dict, sku_detail, tax, unit_price,
                             field_type, tax_type_dict, discount=0):
+            if sku_detail.stock_detail.location.zone.zone in ['DAMAGED_ZONE']:
+                sku_stats_dict[sku_detail.sku_id][group_val][group_name]['damaged'] += sku_detail.quantity
             sku_stats_dict[sku_detail.sku_id][group_val][group_name]['quantity'] += sku_detail.quantity
             qty_price = (sku_detail.quantity * unit_price) - discount
             amount = qty_price
@@ -93,6 +95,8 @@ class Command(BaseCommand):
             sku_stats_dict[sku_detail.sku_id][group_val][group_name]['unit_price_list'].append(amount)
             sku_stats_dict[sku_detail.sku_id][group_val][group_name]['amount'] += amount
             extra_data_key = (field_type, 0)
+            taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'cess_tax': 0}
+            prices = {'value_before_tax': 0, 'price_before_tax_values': 0, 'price_before_tax_qtys': 0, 'quantity': 0, 'value_after_tax': 0}
             if sku_detail.stock_detail and sku_detail.stock_detail.batch_detail:
                 prices, taxes = get_extra_data_info(sku_detail.stock_detail.batch_detail, sku_detail.sku, sku_detail.quantity,
                                     tax_type_dict)
@@ -175,19 +179,19 @@ class Command(BaseCommand):
                 sku_stats_dict.setdefault(sku_detail.sku_id, {})
                 sku_stats_dict[sku_detail.sku_id].setdefault(group_val,
                                           {'PO': {'quantity': 0, 'unit_price_list': [], 'amount': 0,
-                                                  'transact_data': {}},
+                                                  'transact_data': {}, 'damaged': 0},
                                            'customer_sales': {'quantity': 0, 'unit_price_list': [], 'amount': 0,
-                                                              'transact_data': {}},
+                                                              'transact_data': {}, 'damaged': 0},
                                            'internal_sales': {'quantity': 0, 'unit_price_list': [], 'amount': 0,
-                                                              'transact_data': {}},
+                                                              'transact_data': {}, 'damaged': 0},
                                            'stock_transfer': {'quantity': 0, 'unit_price_list': [], 'amount': 0,
-                                                              'transact_data': {}},
+                                                              'transact_data': {}, 'damaged': 0},
                                            'inventory-adjustment': {'quantity': 0, 'unit_price_list': [], 'amount': 0,
-                                                                    'transact_data': {}},
+                                                                    'transact_data': {}, 'damaged': 0},
                                            'rtv': {'quantity': 0, 'unit_price_list': [], 'amount': 0,
-                                                   'transact_data': {}},
+                                                   'transact_data': {}, 'damaged': 0},
                                            'return': {'quantity': 0, 'unit_price_list': [], 'amount': 0,
-                                                      'transact_data': {}},
+                                                      'transact_data': {}, 'damaged': 0},
                                            })
                 if sku_detail.transact_type in ['PO', 'inventory-upload', 'po']:
                     field_type = 'purchase'
@@ -225,7 +229,10 @@ class Command(BaseCommand):
             sku_stock_dict = {}
             search_params['sku__user'] = user.id
             search_params['quantity__gt'] = 0
-            stock_data = StockDetail.objects.exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).filter(**search_params)
+
+            stock_data = StockDetail.objects.exclude(Q(receipt_number=0) |
+                                                     Q(location__zone__zone__in=['QC_ZONE'])).\
+                                            filter(**search_params)
             counter = 1
             for stock in stock_data:
                 print counter
@@ -250,7 +257,10 @@ class Command(BaseCommand):
                 group_val = (stock.sku_id, mrp, weight)
                 sku_stock_dict.setdefault(stock.sku_id, {})
                 sku_stock_dict[stock.sku_id].setdefault(group_val, {'quantity': 0, 'unit_price_list': [],
-                                                                    'amount': 0, 'transact_data': {}})
+                                                                    'amount': 0, 'transact_data': {},
+                                                                    'damaged': 0})
+                if stock.location.zone.zone in ['DAMAGED_ZONE']:
+                    sku_stock_dict[stock.sku_id][group_val]['damaged'] += stock.quantity
                 sku_stock_dict[stock.sku_id][group_val]['quantity'] += stock.quantity
                 qty_price = stock.quantity * unit_price
                 amount = qty_price
@@ -287,7 +297,8 @@ class Command(BaseCommand):
                         opening_stock_dict[stock_rec_obj.sku_id][group_val] =  {'quantity': stock_rec_obj.closing_quantity,
                                                           'avg_rate': stock_rec_obj.closing_avg_rate,
                                                           'amount': stock_rec_obj.closing_amount,
-                                                                                'transact_data': []}
+                                                                                'transact_data': [],
+                                                            'damaged': stock_rec_obj.closing_qty_damaged}
                         exist_rec_fields = StockReconciliationFields.objects.filter(
                                                 stock_reconciliation_id=stock_rec_obj.id, field_type='closing').\
                                                     values('cgst_tax', 'sgst_tax', 'igst_tax', 'cess_tax',
@@ -303,7 +314,8 @@ class Command(BaseCommand):
                     opening_stock_dict.setdefault(sku_id, {})
                     for key, sku_stocks in sku_stocks_data.iteritems():
                         opening_stock_dict[sku_id].setdefault(key, {'quantity': 0, 'avg_rate': 0, 'amount': 0,
-                                                                    'qty_price_sum': 0, 'transact_data': []})
+                                                                    'qty_price_sum': 0, 'transact_data': [],
+                                                                    'damaged': 0})
                         opening_stock_dict[sku_id][key]['quantity'] = sku_stocks.get('quantity', 0)
                         opening_stock_dict[sku_id][key]['amount'] = sku_stocks.get('amount', 0)
                         stock_unit_price_list = sku_stocks.get('unit_price_list', [])
@@ -318,10 +330,13 @@ class Command(BaseCommand):
                 for sku_id, sku_stats in sku_stats_dict.iteritems():
                     opening_stock_dict.setdefault(sku_id, {})
                     for key, sku_stat in sku_stats.iteritems():
-                        opening_stock_dict[sku_id].setdefault(key, {'quantity': 0, 'avg_rate': 0, 'amount': 0, 'qty_price_sum': 0})
+                        opening_stock_dict[sku_id].setdefault(key, {'quantity': 0, 'avg_rate': 0,
+                                                                    'amount': 0, 'qty_price_sum': 0,
+                                                                    'damaged': 0})
                         for stat_name, stat_value in sku_stat.iteritems():
                             if stat_name in ['customer_sales', 'internal_sales', 'rtv', 'stock_transfer']:
                                 opening_stock_dict[sku_id][key]['quantity'] += stat_value['quantity']
+                                opening_stock_dict[sku_id][key]['quantity'] += stat_value['damaged']
                                 opening_stock_dict[sku_id][key]['amount'] += stat_value['amount']
                                 stat_unit_price_list = stat_value.get('unit_price_list', [])
                                 if stat_unit_price_list and stat_value['quantity']:
@@ -329,6 +344,7 @@ class Command(BaseCommand):
                             elif stat_name in ['PO', 'return', 'inventory-adjustment']:
                                 opening_stock_dict[sku_id][key]['quantity'] -= stat_value['quantity']
                                 opening_stock_dict[sku_id][key]['amount'] -= stat_value['amount']
+                                opening_stock_dict[sku_id][key]['damaged'] -= stat_value['damaged']
                                 stat_unit_price_list = stat_value.get('unit_price_list', [])
                                 if stat_unit_price_list and stat_value['quantity']:
                                     opening_stock_dict[sku_id][key]['qty_price_sum'] -= sum(stat_unit_price_list)
@@ -338,6 +354,7 @@ class Command(BaseCommand):
 
         def stock_reconciliation_group(prefix, data_dict, stock_reconciliation_dict):
             stock_reconciliation_dict[key]['%s_quantity' % prefix] = data_dict['quantity']
+            stock_reconciliation_dict[key]['%s_qty_damaged' % prefix] = data_dict['damaged']
             avg_rate = 0
             if data_dict['unit_price_list'] and data_dict['quantity']:
                 avg_rate = sum(data_dict['unit_price_list']) / data_dict['quantity']
@@ -396,6 +413,7 @@ class Command(BaseCommand):
                         stock_reconciliation_dict.setdefault(key, {'sku_id': sku_id, 'mrp': mrp, 'weight': weight,
                                                                    'transact_data': []})
                         stock_reconciliation_dict[key]['closing_quantity'] = value['quantity']
+                        stock_reconciliation_dict[key]['closing_qty_damaged'] = value['damaged']
                         avg_rate = 0
                         if value['unit_price_list'] and value['quantity']:
                             avg_rate = sum(value['unit_price_list'])/value['quantity']
@@ -408,6 +426,7 @@ class Command(BaseCommand):
                         stock_reconciliation_dict.setdefault(key, {'sku_id': sku_id, 'mrp': mrp, 'weight': weight,
                                                                    'transact_data': []})
                         stock_reconciliation_dict[key]['opening_quantity'] = value['quantity']
+                        stock_reconciliation_dict[key]['opening_qty_damaged'] = value['damaged']
                         if stock_reconciliation_dict[key].get('qty_price_sum', 0):
                             stock_reconciliation_dict[key]['opening_avg_rate'] = value['qty_price_sum']/value['quantity']
                         else:

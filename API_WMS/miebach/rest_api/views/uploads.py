@@ -3273,9 +3273,9 @@ def purchase_order_preview_generation(request, user, data_list):
                 else:
                     for tax_name in taxes.keys():
                         try:
-                            taxes[tax] = float(data.get('%s_tax' % tax_name, 0))
+                            taxes[tax_name] = float(data.get(tax_name, 0))
                         except:
-                            taxes[tax] = 0
+                            taxes[tax_name] = 0
                 if data.get('cess_tax', 0) != '':
                     taxes['cess_tax'] = data.get('cess_tax', 0)
                 if data.get('apmc_tax', 0) != '':

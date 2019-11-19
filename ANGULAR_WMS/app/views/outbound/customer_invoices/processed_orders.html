@@ -6,8 +6,8 @@
 	  </div>
 	</div>
 	<div class="panel-footer">
-		<button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.move_to('move_to_dc')">Move to DC</button>
-		<button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-primary pull-right mr20" ng-disabled="showCase.bt_disable" ng-click="showCase.move_to('move_to_inv')">Move to Invoice</button>
+		<button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-primary pull-right" ng-disabled="showCase.bt_dc ? showCase.bt_dc : showCase.bt_disable" ng-click="showCase.move_to('move_to_dc')">Move to DC</button>
+		<button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-primary pull-right mr20" ng-disabled="showCase.bt_invoice ? showCase.bt_invoice : showCase.bt_disable" ng-click="showCase.move_to('move_to_inv')">Move to Invoice</button>
 		<!-- <button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_invoice('generate')" ng-disabled="showCase.bt_disable">Generate Invoice</button>
 		<button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-warning pull-right mr20" ng-click="showCase.generate_invoice('edit')" ng-disabled="showCase.bt_disable">Edit Invoice</button>
 		<button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-info pull-right mr20" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_invoice('generate', true)" ng-disabled="showCase.bt_disable">Delivery Challan</button> -->

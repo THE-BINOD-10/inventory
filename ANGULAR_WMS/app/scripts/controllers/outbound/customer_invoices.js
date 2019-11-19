@@ -120,7 +120,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                      vm.selected = {};
                    }
                    vm.selected[meta.row] = vm.selectAll;
-                   return vm.service.frontHtml + meta.row + vm.service.endHtml;
+                   return vm.service.frontHtml + meta.row + vm.service.processOrderHtml;
                  }))
 
           vm.dtInstance = {};
@@ -136,9 +136,39 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       });
     }
 
+    vm.invoideSampleCheck = function(data){
+      var multiple_check = []
+      angular.forEach(data, function(key, val){
+        if (key){
+          if (multiple_check.length == 0){
+            multiple_check.push(vm.dtInstance.DataTable.context[0].aoData[parseInt(val)]['_aData']['Marketplace'])
+            if (vm.dtInstance.DataTable.context[0].aoData[parseInt(val)]['_aData']['Marketplace'] == 'Sample') {
+              vm.bt_dc = false
+              vm.bt_invoice = true
+            } else {
+              vm.bt_invoice = false
+              vm.bt_dc = true
+            }
+          } else {
+            if (multiple_check.includes(vm.dtInstance.DataTable.context[0].aoData[parseInt(val)]['_aData']['Marketplace'])){
+              multiple_check.push(vm.dtInstance.DataTable.context[0].aoData[parseInt(val)]['_aData']['Marketplace'])
+              if (vm.dtInstance.DataTable.context[0].aoData[parseInt(val)]['_aData']['Marketplace'] == 'Sample') {
+                vm.bt_dc = false
+                vm.bt_invoice = true
+              } else {
+                vm.bt_invoice = false
+                vm.bt_dc = true
+              }
+            } else {
+              vm.service.showNoty("Different market places are not allowed");
+            }
+          }
+        }
+      });
+    }
+
     vm.checked_ids = [];
     vm.checkedItem = function(data, index){
-
       if (vm.checked_items[index]) {
 
         delete vm.checked_items[index];
@@ -309,7 +339,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       if(status) {
         vm.service.showNoty("Please select same "+field_name+"'s");
       } else {
-
         var ids = data.join("<<>>");
         var url = click_type === 'move_to_dc' ? 'move_to_dc/' : 'move_to_inv/';
         var send = {seller_summary_id: ids};
@@ -330,7 +359,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     };
 
     vm.generate_invoice = function(click_type, DC=false){
-
       var po_number = '';
       var status = false;
       var field_name = "";
@@ -355,7 +383,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       if(status) {
         vm.service.showNoty("Please select same "+field_name+"'s");
       } else {
-
         var ids = data.join(",");
         var send = {seller_summary_id: ids};
         if(po_number && field_name == 'SOR ID') {

@@ -2803,7 +2803,8 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     data_dict[key] = cell_data
         if not index_status:
             for data in data_list:
-                if data['sku_id']== data_dict['sku_id'] and data['supplier_id'] == data_dict['supplier_id']:
+                if data['sku_id']== data_dict['sku_id'] and data['supplier_id'] == data_dict['supplier_id'] and \
+                    data.get('po_name', '') == data_dict.get('po_name', ''):
                     index_status.setdefault(row_idx, set()).add('SKU added in multiple rows for same supplier')
 
         data_list.append(data_dict)
@@ -2869,7 +2870,8 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     for final_dict in data_list:
         final_dict['sku'] = SKUMaster.objects.get(id=final_dict['sku_id'], user=user.id)
         final_dict['supplier'] = SupplierMaster.objects.get(id=final_dict['supplier_id'], user=user.id)
-        final_dict['seller'] = SellerMaster.objects.get(id=final_dict['seller_id'], user=user.id)
+        if final_dict.get('seller_id', ''):
+            final_dict['seller'] = SellerMaster.objects.get(id=final_dict['seller_id'], user=user.id)
         final_dict['po_date'] = datetime.datetime.strptime(final_dict.get('po_date', ''), '%Y-%m-%d %H:%M:%S')
         if final_dict.get('po_delivery_date', '') != '':
             final_dict['po_delivery_date'] = datetime.datetime.strptime(final_dict.get('po_delivery_date', ''), '%Y-%m-%d %H:%M:%S')

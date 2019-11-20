@@ -2381,8 +2381,10 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
     lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'sku__sku_category', 'batch_detail__batch_no',
            'batch_detail__mrp', 'batch_detail__weight', 'batch_detail__buy_price', 'batch_detail__tax_percent',
            'batch_detail__manufactured_date', 'batch_detail__expiry_date',
-           'location__zone__zone', 'location__location', 'pallet_detail__pallet_code',
+           'location__zone__zone', 'location__zone__zone', 'location__location',
+           'pallet_detail__pallet_code',
            'quantity', 'receipt_type']
+    sub_zone_perm = get_permission(user, 'add_subzonemapping')
     pallet_switch = get_misc_value('pallet_switch', user.id)
     if pallet_switch == 'false' and 'pallet_detail__pallet_code' in lis:
         del lis[lis.index('pallet_detail__pallet_code')]
@@ -2432,38 +2434,50 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
             tax = data.batch_detail.tax_percent
             manufactured_date = data.batch_detail.manufactured_date.strftime("%d %b %Y") if data.batch_detail.manufactured_date else ''
             expiry_date = data.batch_detail.expiry_date.strftime("%d %b %Y") if data.batch_detail.expiry_date else ''
-        if pallet_switch == 'true':
-            pallet_code = ''
-            if data.pallet_detail:
-                pallet_code = data.pallet_detail.pallet_code
-            temp_data['aaData'].append(OrderedDict((('Receipt Number', data.receipt_number), ('DT_RowClass', 'results'),
-                                                    ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
-                                                    ('WMS Code', data.sku.wms_code),
-                                                    ('Product Description', data.sku.sku_desc),
-                                                    ('SKU Category', data.sku.sku_category),
-                                                    ('Batch Number', batch_no),
-                                                    ('MRP', mrp), ('Weight', weight),
-                                                    ('Price', price), ('Tax Percent', tax),
-                                                    ('Manufactured Date', manufactured_date), ('Expiry Date', expiry_date),
-                                                    ('Zone', data.location.zone.zone),
-                                                    ('Location', data.location.location),
-                                                    ('Quantity', get_decimal_limit(user.id, data.quantity)),
-                                                    ('Pallet', pallet_code), ('Receipt Type', data.receipt_type))))
-        else:
-            temp_data['aaData'].append(OrderedDict((('Receipt Number', data.receipt_number), ('DT_RowClass', 'results'),
-                                                    ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
-                                                    ('WMS Code', data.sku.wms_code),
-                                                    ('Product Description', data.sku.sku_desc),
-                                                    ('SKU Category', data.sku.sku_category),
-                                                    ('Batch Number', batch_no),
-                                                    ('MRP', mrp), ('Weight', weight),
-                                                    ('Price', price), ('Tax Percent', tax),
-                                                    ('Manufactured Date', manufactured_date),
-                                                    ('Expiry Date', expiry_date),
-                                                    ('Zone', data.location.zone.zone),
-                                                    ('Location', data.location.location),
-                                                    ('Quantity', get_decimal_limit(user.id, data.quantity)),
-                                                    ('Receipt Type', data.receipt_type))))
+        pallet_code, sub_zone = '', ''
+        zone = data.location.zone.zone
+        if data.pallet_detail:
+            pallet_code = data.pallet_detail.pallet_code
+        if sub_zone_perm and data.location.zone.level == 1:
+            sub_zone_obj = SubZoneMapping.objects.filter(sub_zone_id=data.location.zone_id)
+            if sub_zone_obj.exists():
+                sub_zone_obj = sub_zone_obj[0]
+                sub_zone = zone
+                zone = sub_zone_obj.zone.zone
+        row_data = OrderedDict((('Receipt Number', data.receipt_number), ('DT_RowClass', 'results'),
+                                                ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
+                                                ('WMS Code', data.sku.wms_code),
+                                                ('Product Description', data.sku.sku_desc),
+                                                ('SKU Category', data.sku.sku_category),
+                                                ('Batch Number', batch_no),
+                                                ('MRP', mrp), ('Weight', weight),
+                                                ('Price', price), ('Tax Percent', tax),
+                                                ('Manufactured Date', manufactured_date), ('Expiry Date', expiry_date),
+                                                ('Zone', zone), ('Sub Zone', sub_zone),
+                                                ('Location', data.location.location),
+                                                ('Quantity', get_decimal_limit(user.id, data.quantity)),
+                                                ('Pallet', pallet_code), ('Receipt Type', data.receipt_type)))
+        if pallet_switch != 'true' and row_data.get('Pallet'):
+            del row_data['Pallet']
+        if not sub_zone_perm and row_data.get('Sub Zone'):
+            del row_data['Sub Zone']
+        temp_data['aaData'].append(row_data)
+
+        # else:
+        #     temp_data['aaData'].append(OrderedDict((('Receipt Number', data.receipt_number), ('DT_RowClass', 'results'),
+        #                                             ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
+        #                                             ('WMS Code', data.sku.wms_code),
+        #                                             ('Product Description', data.sku.sku_desc),
+        #                                             ('SKU Category', data.sku.sku_category),
+        #                                             ('Batch Number', batch_no),
+        #                                             ('MRP', mrp), ('Weight', weight),
+        #                                             ('Price', price), ('Tax Percent', tax),
+        #                                             ('Manufactured Date', manufactured_date),
+        #                                             ('Expiry Date', expiry_date),
+        #                                             ('Zone', data.location.zone.zone),
+        #                                             ('Location', data.location.location),
+        #                                             ('Quantity', get_decimal_limit(user.id, data.quantity)),
+        #                                             ('Receipt Type', data.receipt_type))))
 
 
 @login_required

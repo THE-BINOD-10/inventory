@@ -53,6 +53,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         DTColumnBuilder.newColumn('Receipt Type').withTitle('Receipt Type')
     ];
 
+    if(vm.permissions.add_subzonemapping) {
+      vm.dtColumns.splice(13, 0, DTColumnBuilder.newColumn('Sub Zone').withTitle('Sub Zone'))
+    }
+
     vm.excel = excel;
     function excel() {
       angular.copy(vm.dtColumns,colFilters.headers);

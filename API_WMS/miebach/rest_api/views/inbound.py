@@ -6460,7 +6460,7 @@ def generate_seller_invoice(request, user=''):
 
         hsn_code = ''
         if open_po.sku.hsn_code:
-            hsn_code = str(open_po.sku.hsn_code)
+            hsn_code = open_po.sku.hsn_code
         all_data.setdefault(cond,
                             {'order_id': po_number, 'sku_code': open_po.sku.sku_code, 'title': open_po.sku.sku_desc,
                              'invoice_amount': 0, 'quantity': 0, 'tax': 0, 'unit_price': unit_price, 'amt': 0,
@@ -8701,7 +8701,7 @@ def get_debit_note_data(rtv_number, user):
         data_dict_item = {}
         data_dict_item['sku_code'] = get_po.sku.sku_code
         data_dict_item['sku_desc'] = get_po.sku.sku_desc
-        data_dict_item['hsn_code'] = str(get_po.sku.hsn_code)
+        data_dict_item['hsn_code'] = get_po.sku.hsn_code
         data_dict_item['order_qty'] = obj.quantity
         if user.username in MILKBASKET_USERS:
             data_dict_item['price'] = 0
@@ -9214,7 +9214,7 @@ def get_sales_return_print_json(return_id, user):
         data_dict_item = {}
         data_dict_item['sku_code'] = obj.sku.sku_code
         data_dict_item['sku_desc'] = obj.sku.sku_desc
-        data_dict_item['hsn_code'] = str(obj.sku.hsn_code)
+        data_dict_item['hsn_code'] = obj.sku.hsn_code
         data_dict_item['order_qty'] = obj.quantity
         #data_dict_item['price'] = get_po.price
         data_dict_item['price'] = obj.order.unit_price

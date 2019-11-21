@@ -1695,7 +1695,7 @@ def create_update_sku_storehippo(store_hippo_data, user_obj):
             stockone_data['color'] = ''
             stockone_data['mix_sku'] = ''
             stockone_data['load_unit_handle'] = ''
-            stockone_data['hsn_code'] = 0
+            stockone_data['hsn_code'] = ''
             stockone_data['sub_category'] = ''
             stockone_data['primary_category'] = ''
             stockone_data['cost_price'] = var_obj.get('price', 0)
@@ -1741,7 +1741,7 @@ def create_update_sku_storehippo(store_hippo_data, user_obj):
             stockone_data['color'] = ''
             stockone_data['mix_sku'] = ''
             stockone_data['load_unit_handle'] = ''
-            stockone_data['hsn_code'] = 0
+            stockone_data['hsn_code'] = ''
             stockone_data['sub_category'] = ''
             stockone_data['primary_category'] = ''
             stockone_data['cost_price'] = store_hippo_data.get('price', 0)

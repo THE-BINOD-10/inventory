@@ -90,7 +90,7 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'sku_category': '', 'sku_class': '', 'threshold_quantity': 0, 'max_norm_quantity': 0, 'color': '', 'mrp': 0,
             'status': 1, 'online_percentage': 0, 'qc_check': 0, 'sku_brand': '', 'sku_size': '', 'style_name': '',
             'price': 0,
-            'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': 0, 'product_type': '',
+            'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': '', 'product_type': '',
             'sub_category': '', 'primary_category': '', 'cost_price': 0, 'sequence': 0, 'image_url': '',
             'measurement_type': '', 'sale_through': '', 'shelf_life': 0, 'enable_serial_based': 0, 'block_options': ''}
 
@@ -3528,7 +3528,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         #invoice_total_amount = truncate_float(invoice_total_amount, 2)
         hsn_code = ''
         if data['purchase_order__open_po__sku__hsn_code']:
-            hsn_code = str(data['purchase_order__open_po__sku__hsn_code'])
+            hsn_code = data['purchase_order__open_po__sku__hsn_code']
         invoice_date, challan_date = '', ''
         if data['invoice_date']:
             invoice_date = data['invoice_date'].strftime("%d %b, %Y")
@@ -4361,7 +4361,7 @@ def get_financial_report_data(search_params, user, sub_user):
                                                         ('Searchable',searchable ),
                                                         ('Bundle', bundle),
                                                         ('City',''), ('Hub', hub),('Vendor Name', vendor),
-                                                        ('HSN Code', str(opening_stock['stock_reconciliation__sku__hsn_code'])),
+                                                        ('HSN Code', opening_stock['stock_reconciliation__sku__hsn_code']),
                                                         ('MRP', mrp), ('Weight', weight), ('GST No', ''),
                                                         ('IGST Tax Rate', tax_rate),
                                                         ('CESS Rate', opening_stock['cess_tax']),
@@ -7743,7 +7743,7 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
         invoice_total_amount = truncate_float(invoice_total_amount, 2)
         hsn_code = ''
         if open_po.sku.hsn_code:
-            hsn_code = str(open_po.sku.hsn_code)
+            hsn_code = open_po.sku.hsn_code
         invoice_date = ''
         data['invoice_date'] = seller_po_summary.invoice_date
         if data['invoice_date']:

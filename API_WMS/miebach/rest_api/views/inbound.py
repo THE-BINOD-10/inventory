@@ -5941,8 +5941,7 @@ def returns_putaway_data(request, user=''):
             status = 'Updated Successfully'
     return_wms_codes = list(set(return_wms_codes))
     if user_profile.user_type == 'marketplace_user':
-        if marketplace_data:
-            check_and_update_marketplace_stock(marketplace_data, user)
+        check_and_update_marketplace_stock(return_wms_codes, user)
     else:
         check_and_update_stock(return_wms_codes, user)
     update_filled_capacity(mod_locations, user.id)

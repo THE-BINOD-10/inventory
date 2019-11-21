@@ -141,8 +141,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       angular.forEach(data, function(key, val){
         if (key){
           if (multiple_check.length == 0){
-            multiple_check.push(vm.dtInstance.DataTable.context[0].aoData[parseInt(val)]['_aData']['Marketplace'])
-            if (vm.dtInstance.DataTable.context[0].aoData[parseInt(val)]['_aData']['Marketplace'] == 'Sample') {
+            multiple_check.push(vm.dtInstance.DataTable.context[0].aoData[parseInt(val)]['_aData']['Marketplace'].toLowerCase())
+            if (vm.dtInstance.DataTable.context[0].aoData[parseInt(val)]['_aData']['Marketplace'].toLowerCase() == 'sample') {
               vm.bt_dc = false
               vm.bt_invoice = true
             } else {
@@ -150,9 +150,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               vm.bt_dc = true
             }
           } else {
-            if (multiple_check.includes(vm.dtInstance.DataTable.context[0].aoData[parseInt(val)]['_aData']['Marketplace'])){
-              multiple_check.push(vm.dtInstance.DataTable.context[0].aoData[parseInt(val)]['_aData']['Marketplace'])
-              if (vm.dtInstance.DataTable.context[0].aoData[parseInt(val)]['_aData']['Marketplace'] == 'Sample') {
+            if (multiple_check.includes(vm.dtInstance.DataTable.context[0].aoData[parseInt(val)]['_aData']['Marketplace'].toLowerCase())){
+              multiple_check.push(vm.dtInstance.DataTable.context[0].aoData[parseInt(val)]['_aData']['Marketplace'].toLowerCase())
+              if (vm.dtInstance.DataTable.context[0].aoData[parseInt(val)]['_aData']['Marketplace'].toLowerCase() == 'sample') {
                 vm.bt_dc = false
                 vm.bt_invoice = true
               } else {

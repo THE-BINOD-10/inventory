@@ -3860,6 +3860,7 @@ def inventory_adjust_upload(request, user=''):
     for final_dict in data_list:
         # location_data = ''
         wms_code = final_dict['sku_master'].wms_code
+        sku_codes.append(wms_code)
         loc = final_dict['location_master'].location
         quantity = final_dict['quantity']
         reason = final_dict['reason']

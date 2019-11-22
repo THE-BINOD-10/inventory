@@ -2706,6 +2706,13 @@ def check_and_update_stock(wms_codes, user):
         except:
             continue
 
+def mb_stock_sycn_log(data, user):
+    today = datetime.datetime.now()
+    today_date = get_local_date(user,today,1)
+    file_name = 'logs/mb_stock_sync_'+today_date.strftime("%Y%m%d")+'.txt'
+    file = open(file_name, 'a')
+    file.write(today_date.strftime("%d-%m-%Y %H:%M:%S")+': '+data+'\n')
+    file.close()
 
 def check_and_update_marketplace_stock(sku_codes, user):
     from rest_api.views.easyops_api import *
@@ -2714,10 +2721,18 @@ def check_and_update_marketplace_stock(sku_codes, user):
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
         try:
             sku_tupl = (user.username, sku_codes)
-            log.info('Update for stock change of'+str(sku_tupl))
+            log.info('Update for stock sync of'+str(sku_tupl))
             response = obj.update_stock_count(sku_tupl, user=user)
-        except:
-            log.info('Stock change failed for '+str(user.username)+'and skus are'+str(sku_codes))
+            log_mb_sync = ('Updating for stock sync of skus %s from the user %s ' %
+                                        (str(sku_codes), str(user.username)))
+            mb_stock_sycn_log(log_mb_sync, user)
+        except Exception as e:
+            log.info('Stock sync failed for %s and skus are %s and error statement is %s'%
+                        (str(user.username),str(sku_codes), str(e)))
+            log_mb_sync = ('Stock sync failed for %s and skus are %s and error statement is %s'%
+                           (str(user.username),str(sku_codes), str(e)))
+            mb_stock_sycn_log(log_mb_sync, user)
+
             continue
 
 def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_ids=[]):

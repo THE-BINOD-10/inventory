@@ -8897,6 +8897,7 @@ def save_rtv(request, user=''):
 def create_rtv(request, user=''):
     reversion.set_user(request.user)
     request_data = dict(request.POST.iterlists())
+    sku_codes = request_data['sku_code']
     enable_dc_returns = request.POST.get('enable_dc_returns', '')
     rtv_prefix_code = get_misc_value('rtv_prefix_code', user.id)
     if not rtv_prefix_code or rtv_prefix_code == 'false':
@@ -8930,6 +8931,8 @@ def create_rtv(request, user=''):
                 rtv_obj.save()
             report_data_dict = {}
             show_data_invoice = get_debit_note_data(rtv_number, user)
+            if user.username in MILKBASKET_USERS:
+                check_and_update_marketplace_stock(sku_codes, user)
             return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback

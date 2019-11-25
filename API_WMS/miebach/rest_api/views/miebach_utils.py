@@ -1043,8 +1043,11 @@ INVENTORY_VALUE_REPORT_DICT = {
         {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'},
         {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'}
     ],
-    'dt_headers': ['Seller ID', 'Seller Name','SKU Code', 'SKU Description', 'Category', 'Sub Category', 'Brand', 'Manufacturer', 'Searchable', 'Bundle', 'Weight', 'MRP', 'Batch Number',
-                   'Ean Number', 'Manufactured Date', 'Expiry Date', 'Quantity','Value','Average Cost Price','Warehouse Name','Report Generation Time'],
+    'dt_headers': ['Seller ID', 'Seller Name','SKU Code', 'SKU Description', 'Category', 'Sub Category', 'Brand', 'Manufacturer',
+                    'Searchable', 'Bundle', 'Weight', 'MRP', 'Batch Number', 'Ean Number', 'Manufactured Date', 'Expiry Date',
+                    'Quantity with Damaged', 'Value with Damaged(with Tax)', 'Average Cost Price with Damaged',
+                    'Quantity without Damaged', 'Value without Damaged(with Tax)', 'Average Cost Price without Damaged',
+                    'Warehouse Name','Report Generation Time'],
     'dt_url': 'get_inventory_value_report', 'excel_name': 'get_inventory_value_report',
     'print_url': 'print_inventory_value_report',
 }
@@ -8264,8 +8267,9 @@ def get_inventory_value_report_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['seller__seller_id', 'seller__name','stock__sku__sku_code','stock__sku__sku_desc','stock__sku__sku_category',
-           'stock__batch_detail__weight', 'stock__batch_detail__mrp','stock__batch_detail__batch_no','stock__batch_detail__ean_number','stock__batch_detail__manufactured_date',
-           'stock__batch_detail__expiry_date','total', 'total','total', 'total', 'total', 'total','total', 'total', 'total', 'total','total', 'total', 'total']
+           'stock__batch_detail__weight', 'stock__batch_detail__mrp','stock__batch_detail__batch_no','stock__batch_detail__ean_number',
+           'stock__batch_detail__manufactured_date', 'stock__batch_detail__expiry_date','total', 'total','total',
+           'total', 'total', 'total','total', 'total', 'total', 'total','total', 'total', 'total']
     sort_cols = ['Seller ID', 'Seller Name', 'SKU Code', 'SKU Description', 'Location', 'Weight', 'MRP', 'Available Quantity',
                    'Reserved Quantity', 'Total Quantity']
     col_num = search_params.get('order_index', 0)
@@ -8326,21 +8330,27 @@ def get_inventory_value_report_data(search_params, user, sub_user):
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for ind, sku_data in enumerate(master_data[start_index:stop_index]):
         quantity = sku_data['total']
+        quantity_wod, average_cost_price, average_cost_price_wod, total_stock_value, total_stock_value_wod = 0, 0, 0, 0, 0
         sku_data1 = copy.deepcopy(sku_data)
         del sku_data1['total']
-        total_stock_value = 0
         seller_stocks = SellerStock.objects.filter(**sku_data1)
-        total_qty = 0
         for seller_stock in seller_stocks:
             price = seller_stock.stock.unit_price
+            tax = 0
             if seller_stock.stock.batch_detail:
                 price = seller_stock.stock.batch_detail.buy_price
-            total_stock_value += float("%.2f" % (seller_stock.quantity * price))
-            total_qty += seller_stock.quantity
+                tax = seller_stock.stock.batch_detail.tax_percent
+            amount = seller_stock.quantity * price
+            total_amount = amount + ((amount/100) * tax)
+            total_stock_value += float("%.2f" % total_amount)
+            if seller_stock.stock.location.zone.zone not in ['DAMAGED_ZONE']:
+                quantity_wod += seller_stock.quantity
+                total_stock_value_wod += float("%.2f" % total_amount)
 
-        average_cost_price = 0
         if total_stock_value and quantity:
             average_cost_price = "%.2f" % (total_stock_value/quantity)
+        if total_stock_value_wod and quantity_wod:
+            average_cost_price_wod = "%.2f" % (total_stock_value_wod/quantity_wod)
         manufactured_date = ''
         expiry_date = ''
         weight = ''
@@ -8380,9 +8390,12 @@ def get_inventory_value_report_data(search_params, user, sub_user):
                                                 ('Weight', weight), ('MRP', mrp),
                                                 ('Batch Number', sku_data['stock__batch_detail__batch_no']),
                                                 ('Ean Number', ean_number), ('Manufactured Date', manufactured_date),
-                                                ('Expiry Date',expiry_date), ('Quantity', quantity),
-                                                ('Value', total_stock_value),
-                                                ('Average Cost Price', average_cost_price),
+                                                ('Expiry Date',expiry_date), ('Quantity with Damaged', quantity),
+                                                ('Value with Damaged(with Tax)', total_stock_value),
+                                                ('Average Cost Price with Damaged', average_cost_price),
+                                                ('Quantity without Damaged', quantity_wod),
+                                                ('Value without Damaged(with Tax)', total_stock_value_wod),
+                                                ('Average Cost Price without Damaged', average_cost_price_wod),
                                                 ('Warehouse Name',user.username),
                                                 ('Report Generation Time', time))))
     return temp_data

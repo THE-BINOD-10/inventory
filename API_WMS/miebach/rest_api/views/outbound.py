@@ -2393,6 +2393,7 @@ def picklist_confirmation(request, user=''):
                     auto_skus.append(val['wms_code'])
         if auto_skus:
             auto_skus = list(set(auto_skus))
+            if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(auto_skus, user)
             price_band_flag = get_misc_value('priceband_sync', user.id)
             if price_band_flag == 'true':
                 reaches_order_val, sku_qty_map = check_req_min_order_val(user, auto_skus)
@@ -2404,7 +2405,6 @@ def picklist_confirmation(request, user=''):
             else:
                 auto_po(auto_skus, user.id)
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
-
     	#Check DM Rista User
     	int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
     	if int_obj and rista_order_id_list:
@@ -2435,7 +2435,6 @@ def picklist_confirmation(request, user=''):
 
                 invoice_data['order_id'] = invoice_data['order_id']
                 user_profile = UserProfile.objects.get(user_id=user.id)
-                if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(auto_skus, user)
                 if not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']:
                     invoice_data = build_invoice(invoice_data, user, False)
                     #return HttpResponse(json.dumps({'data': invoice_data, 'message': '',
@@ -15787,7 +15786,7 @@ def generate_picklist_dc(request, user=''):
                                          'sku_class': sku_class,
                                          'sku_category': sku_category, 'sku_size': sku_size,
                                          'amt': amt, 'taxes': taxes_dict,
-                                         'base_price': base_price, 'hsn_code': float(sku.hsn_code),
+                                         'base_price': base_price, 'hsn_code': sku.hsn_code,
                                          'imeis': [],
                                          'discount_percentage': 0, 'id': order.id,
                                          'shipment_date': '', 'sno': 0,

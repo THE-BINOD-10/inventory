@@ -2705,9 +2705,9 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                     exclude(Q(location__zone__zone__in=get_exclude_zones(user)) |
                               Q(batch_detail__mrp=mrp))
                 if other_mrp_stock.exists():
-                    mrp_change_check = ZoneMaster.objects.filter(zone='MRP Change', user=user.id)
-                    if mrp_change_check.exists():
-                        remarks_list.append("mrp_change")
+                    #mrp_change_check = ZoneMaster.objects.filter(zone='MRP Change', user=user.id)
+                    #if mrp_change_check.exists():
+                    remarks_list.append("mrp_change")
     if 'offer_applicable' in myDict.keys() :
         offer_applicable = myDict['offer_applicable'][i]
         if offer_applicable == 'true':
@@ -5431,10 +5431,10 @@ def confirm_add_po(request, sales_data='', user=''):
                             'billing_address': profile.address, 'shipping_address': ship_to_address,
                             'table_headers': table_headers}
             if get_misc_value('allow_secondary_emails', user.id) == 'true':
-                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
+                write_and_mail_pdf(po_number, rendered, request, user, supplier_email_id, phone_no, po_data,
                                    str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
             if get_misc_value('raise_po', user.id) == 'true' and get_misc_value('allow_secondary_emails', user.id) != 'true':
-                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
+                write_and_mail_pdf(po_number, rendered, request, user, supplier_email, phone_no, po_data,
                                    str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
         check_purchase_order_created(user, po_id)
     except Exception as e:
@@ -5941,8 +5941,7 @@ def returns_putaway_data(request, user=''):
             status = 'Updated Successfully'
     return_wms_codes = list(set(return_wms_codes))
     if user_profile.user_type == 'marketplace_user':
-        if marketplace_data:
-            check_and_update_marketplace_stock(marketplace_data, user)
+        check_and_update_marketplace_stock(return_wms_codes, user)
     else:
         check_and_update_stock(return_wms_codes, user)
     update_filled_capacity(mod_locations, user.id)
@@ -6461,7 +6460,7 @@ def generate_seller_invoice(request, user=''):
 
         hsn_code = ''
         if open_po.sku.hsn_code:
-            hsn_code = str(open_po.sku.hsn_code)
+            hsn_code = open_po.sku.hsn_code
         all_data.setdefault(cond,
                             {'order_id': po_number, 'sku_code': open_po.sku.sku_code, 'title': open_po.sku.sku_desc,
                              'invoice_amount': 0, 'quantity': 0, 'tax': 0, 'unit_price': unit_price, 'amt': 0,
@@ -8702,7 +8701,7 @@ def get_debit_note_data(rtv_number, user):
         data_dict_item = {}
         data_dict_item['sku_code'] = get_po.sku.sku_code
         data_dict_item['sku_desc'] = get_po.sku.sku_desc
-        data_dict_item['hsn_code'] = str(get_po.sku.hsn_code)
+        data_dict_item['hsn_code'] = get_po.sku.hsn_code
         data_dict_item['order_qty'] = obj.quantity
         if user.username in MILKBASKET_USERS:
             data_dict_item['price'] = 0
@@ -8898,6 +8897,7 @@ def save_rtv(request, user=''):
 def create_rtv(request, user=''):
     reversion.set_user(request.user)
     request_data = dict(request.POST.iterlists())
+    sku_codes = request_data['sku_code']
     enable_dc_returns = request.POST.get('enable_dc_returns', '')
     rtv_prefix_code = get_misc_value('rtv_prefix_code', user.id)
     if not rtv_prefix_code or rtv_prefix_code == 'false':
@@ -8931,6 +8931,8 @@ def create_rtv(request, user=''):
                 rtv_obj.save()
             report_data_dict = {}
             show_data_invoice = get_debit_note_data(rtv_number, user)
+            if user.username in MILKBASKET_USERS:
+                check_and_update_marketplace_stock(sku_codes, user)
             return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback
@@ -9215,7 +9217,7 @@ def get_sales_return_print_json(return_id, user):
         data_dict_item = {}
         data_dict_item['sku_code'] = obj.sku.sku_code
         data_dict_item['sku_desc'] = obj.sku.sku_desc
-        data_dict_item['hsn_code'] = str(obj.sku.hsn_code)
+        data_dict_item['hsn_code'] = obj.sku.hsn_code
         data_dict_item['order_qty'] = obj.quantity
         #data_dict_item['price'] = get_po.price
         data_dict_item['price'] = obj.order.unit_price

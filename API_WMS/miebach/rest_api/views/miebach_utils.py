@@ -4165,9 +4165,11 @@ def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=F
     if not data_objs:
         purchase_data = []
         if not send_last_day:
+            fields_parameters2 = copy.deepcopy(fields_parameters1)
+            fields_parameters2['stock_reconciliation__%s_quantity__gt' % fields_parameters1['field_type']] = 0
             purchase_data = StockReconciliationFields.objects.\
                                             annotate(tax_sum=Sum(F('cgst_tax')+F('sgst_tax')+F('igst_tax')+F('cess_tax'))).\
-                                            filter(**fields_parameters1)
+                                            filter(**fields_parameters2)
             if purchase_data.exists() and send_first_day:
                 first_date = purchase_data.first().stock_reconciliation.creation_date.date()
                 purchase_data = purchase_data.filter(stock_reconciliation__creation_date__regex=first_date)
@@ -4343,7 +4345,11 @@ def get_financial_report_data(search_params, user, sub_user):
                                           'stock_reconciliation__weight': weight,
                                           }
                     if row_data['table'] == 'stock_rec_field':
-                        closing_obj_filter['tax_sum'] = tax_sum
+                        #closing_obj_filter['tax_sum'] = tax_sum
+                        closing_obj_filter['cgst_tax'] = opening_stock['cgst_tax']
+                        closing_obj_filter['sgst_tax'] = opening_stock['sgst_tax']
+                        closing_obj_filter['igst_tax'] = opening_stock['igst_tax']
+                        closing_obj_filter['cess_tax'] = opening_stock['cess_tax']
                     #fields_parameters1 = copy.deepcopy(fields_parameters)
                     fields_parameters1.update(closing_obj_filter)
                     closing_stock_objs = closing_objs.filter(**closing_obj_filter)

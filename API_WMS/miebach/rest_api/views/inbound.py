@@ -2705,9 +2705,9 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                     exclude(Q(location__zone__zone__in=get_exclude_zones(user)) |
                               Q(batch_detail__mrp=mrp))
                 if other_mrp_stock.exists():
-                    mrp_change_check = ZoneMaster.objects.filter(zone='MRP Change', user=user.id)
-                    if mrp_change_check.exists():
-                        remarks_list.append("mrp_change")
+                    #mrp_change_check = ZoneMaster.objects.filter(zone='MRP Change', user=user.id)
+                    #if mrp_change_check.exists():
+                    remarks_list.append("mrp_change")
     if 'offer_applicable' in myDict.keys() :
         offer_applicable = myDict['offer_applicable'][i]
         if offer_applicable == 'true':

@@ -1523,7 +1523,7 @@ def get_mp_inventory(request):
         if error_status:
             output_status = 207
         if user.username in MILKBASKET_USERS:
-            log_mb_sync = ('Get inventory is %s' %(str(data)))
+            log_mb_sync = ('Get inventory for user %s is %s ' %(str(request.user.username), str(data)))
             mb_stock_sycn_log(log_mb_sync, user)
         return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder), status=output_status)
     except Exception as e:

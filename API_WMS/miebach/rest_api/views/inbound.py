@@ -2154,9 +2154,8 @@ def get_purchaseorder_locations(put_zone, temp_dict):
     if data:
         order_data = get_purchase_order_data(data)
     else:
-:
-order_data = {'sku_group': temp_dict['sku_group'], 'wms_code': temp_dict['wms_code'],
-                      'sku': temp_dict.get('sku', '')}
+        order_data = {'sku_group': temp_dict['sku_group'], 'wms_code': temp_dict['wms_code'],
+                              'sku': temp_dict.get('sku', '')}
     sku_group = order_data['sku_group']
     if sku_group == 'undefined':
         sku_group = ''
@@ -4115,11 +4114,16 @@ def validate_putaway(all_data, user):
             collect_sku_mrp_map = []
             collect_dict_form = {}
             collect_all_sellable_location = list(LocationMaster.objects.filter(zone__segregation='sellable',  zone__user=user.id, status=1).values_list('location', flat=True))
-            if key[1] in collect_all_sellable_location:
+            bulk_zones= get_all_zones(user ,zones=[MILKBASKET_BULK_ZONE])
+            bulk_locations=list(LocationMaster.objects.filter(zone__zone__in=bulk_zones, zone__user=user.id, status=1).values_list('location', flat=True))
+            sellable_bulk_locations=list(chain(collect_all_sellable_location ,bulk_locations))
+
+            if key[1] in sellable_bulk_locations:
                 sku_mrp_map = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku__wms_code=key[4],
-                                                         location__location__in=collect_all_sellable_location).\
+                                                         location__location__in=sellable_bulk_locations).\
                                                     filter(sellerstock__seller_id=validate_seller_id).\
                     exclude(batch_detail__mrp=None).values_list('sku__wms_code', 'batch_detail__mrp').distinct()
+
                 if sku_mrp_map:
                     collect_sku_mrp_map = ['<#>'.join([str(one), str(two)]) for one, two in sku_mrp_map]
                     for one, two in sku_mrp_map:

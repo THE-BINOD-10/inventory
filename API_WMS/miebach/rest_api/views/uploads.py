@@ -3559,6 +3559,7 @@ def move_inventory_upload(request, user=''):
     seller_receipt_dict = {}
     sku_codes = []
     receipt_number = get_stock_receipt_number(user)
+    count=0
     for data_dict in data_list:
         extra_dict = OrderedDict()
         wms_code = data_dict['wms_code']
@@ -3584,12 +3585,14 @@ def move_inventory_upload(request, user=''):
                 seller_receipt_dict[str(seller_id)] = receipt_number
         extra_dict['receipt_type'] = 'move-inventory'
         extra_dict['receipt_number'] = receipt_number
-        move_stock_location(wms_code, source_loc, dest_loc, quantity, user, **extra_dict)
+        response=move_stock_location(wms_code, source_loc, dest_loc, quantity, user, **extra_dict)
+        if response == 'Added Successfully':
+            count+=1
         mod_locations.append(source_loc)
         mod_locations.append(dest_loc)
     update_filled_capacity(list(set(mod_locations)), user.id)
     if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(sku_codes, user)
-    return HttpResponse('Success')
+    return HttpResponse('Successfully moved {} items'.format(count))
 
 
 def get_marketplace_headers(row_idx, open_sheet):

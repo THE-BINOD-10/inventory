@@ -1764,95 +1764,102 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
 def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp='',
                         weight='', receipt_number='', receipt_type=''):
     # sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
-    sku = check_and_return_mapping_id(wms_code, "", user, False)
-    if sku:
-        sku_id = sku
-    else:
-        return 'Invalid WMS Code'
-    source = LocationMaster.objects.filter(location=source_loc, zone__user=user.id)
-    if not source:
-        return 'Invalid Source'
-    dest = LocationMaster.objects.filter(location=dest_loc, zone__user=user.id)
-    if not dest:
-        return 'Invalid Destination'
+    try:
+        sku = check_and_return_mapping_id(wms_code, "", user, False)
+        if sku:
+            sku_id = sku
+        else:
+            return 'Invalid WMS Code'
+        source = LocationMaster.objects.filter(location=source_loc, zone__user=user.id)
+        if not source:
+            return 'Invalid Source'
+        dest = LocationMaster.objects.filter(location=dest_loc, zone__user=user.id)
+        if not dest:
+            return 'Invalid Destination'
 
-    if quantity:
-        move_quantity = float(quantity)
-    else:
-        return 'Quantity should not be empty'
+        if quantity:
+            move_quantity = float(quantity)
+        else:
+            return 'Quantity should not be empty'
 
-    if seller_id:
-        seller_id = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
-        if not seller_id:
-            return 'Seller Not Found'
-        seller_id = seller_id[0].id
+        if seller_id:
+            seller_id = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
+            if not seller_id:
+                return 'Seller Not Found'
+            seller_id = seller_id[0].id
 
-    stock_dict = {"sku_id": sku_id,
-                  "location_id": source[0].id,
-                  "sku__user": user.id}
-    reserved_dict = {'stock__sku_id': sku_id, 'stock__sku__user': user.id, 'status': 1,
-                     'stock__location_id': source[0].id}
-    raw_reserved_dict = {'stock__sku_id': sku_id, 'stock__sku__user': user.id, 'status': 1,
+        stock_dict = {"sku_id": sku_id,
+                      "location_id": source[0].id,
+                      "sku__user": user.id}
+        reserved_dict = {'stock__sku_id': sku_id, 'stock__sku__user': user.id, 'status': 1,
                          'stock__location_id': source[0].id}
-    if batch_no:
-        stock_dict["batch_detail__batch_no"] =  batch_no
-        reserved_dict["stock__batch_detail__batch_no"] =  batch_no
-        raw_reserved_dict["stock__batch_detail__batch_no"] = batch_no
-    if mrp:
-        stock_dict["batch_detail__mrp"] = mrp
-        reserved_dict["stock__batch_detail__mrp"] = mrp
-        raw_reserved_dict["stock__batch_detail__mrp"] = mrp
-    if weight:
-        stock_dict["batch_detail__weight"] =  weight
-        reserved_dict["stock__batch_detail__weight"] =  weight
-        raw_reserved_dict["stock__batch_detail__weight"] = weight
-    if seller_id:
-        stock_dict['sellerstock__seller_id'] = seller_id
-        reserved_dict["stock__sellerstock__seller_id"] = seller_id
-        raw_reserved_dict["stock__sellerstock__seller_id"] = seller_id
-    stocks = StockDetail.objects.filter(**stock_dict).distinct()
-    if not stocks:
-        return 'No Stocks Found'
-    stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
-    #stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=source[0].id, sku__user=user.id)
-    # stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
-    # if seller_id:
-    #     stock_filter_ids = stocks.filter(quantity__gt=0).values_list('id', flat=True)
-    #     seller_stock = SellerStock.objects.filter(stock_id__in=stock_filter_ids, seller_id=seller_id)
-    #     if not seller_stock:
-    #         return 'Seller Stock Not Found'
-    reserved_quantity = \
-    PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).aggregate(Sum('reserved'))[
-        'reserved__sum']
-    raw_reserved_quantity = RMLocation.objects.exclude(stock=None).filter(**raw_reserved_dict). \
-        aggregate(Sum('reserved'))['reserved__sum']
-    if not reserved_quantity:
-        reserved_quantity = 0
-    if not raw_reserved_quantity:
-        raw_reserved_quantity = 0
-    avail_stock = stock_count - reserved_quantity - raw_reserved_quantity
-    if avail_stock < float(quantity):
-        return 'Quantity Exceeding available quantity'
-    # if reserved_quantity:
-    #     if (stock_count - reserved_quantity) < float(quantity):
-    #         return 'Source Quantity reserved for Picklist'
+        raw_reserved_dict = {'stock__sku_id': sku_id, 'stock__sku__user': user.id, 'status': 1,
+                             'stock__location_id': source[0].id}
+        if batch_no:
+            stock_dict["batch_detail__batch_no"] =  batch_no
+            reserved_dict["stock__batch_detail__batch_no"] =  batch_no
+            raw_reserved_dict["stock__batch_detail__batch_no"] = batch_no
+        if mrp:
+            stock_dict["batch_detail__mrp"] = mrp
+            reserved_dict["stock__batch_detail__mrp"] = mrp
+            raw_reserved_dict["stock__batch_detail__mrp"] = mrp
+        if weight:
+            stock_dict["batch_detail__weight"] =  weight
+            reserved_dict["stock__batch_detail__weight"] =  weight
+            raw_reserved_dict["stock__batch_detail__weight"] = weight
+        if seller_id:
+            stock_dict['sellerstock__seller_id'] = seller_id
+            reserved_dict["stock__sellerstock__seller_id"] = seller_id
+            raw_reserved_dict["stock__sellerstock__seller_id"] = seller_id
+        stocks = StockDetail.objects.filter(**stock_dict).distinct()
+        if not stocks:
+            return 'No Stocks Found'
+        stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
+        #stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=source[0].id, sku__user=user.id)
+        # stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
+        # if seller_id:
+        #     stock_filter_ids = stocks.filter(quantity__gt=0).values_list('id', flat=True)
+        #     seller_stock = SellerStock.objects.filter(stock_id__in=stock_filter_ids, seller_id=seller_id)
+        #     if not seller_stock:
+        #         return 'Seller Stock Not Found'
+        reserved_quantity = \
+        PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).aggregate(Sum('reserved'))[
+            'reserved__sum']
+        raw_reserved_quantity = RMLocation.objects.exclude(stock=None).filter(**raw_reserved_dict). \
+            aggregate(Sum('reserved'))['reserved__sum']
+        if not reserved_quantity:
+            reserved_quantity = 0
+        if not raw_reserved_quantity:
+            raw_reserved_quantity = 0
+        avail_stock = stock_count - reserved_quantity - raw_reserved_quantity
+        if avail_stock < float(quantity):
+            return 'Quantity Exceeding available quantity'
+        # if reserved_quantity:
+        #     if (stock_count - reserved_quantity) < float(quantity):
+        #         return 'Source Quantity reserved for Picklist'
 
-    stock_dict['location_id'] = dest[0].id
-    stock_dict['quantity__gt'] = 0
-    dest_stocks = StockDetail.objects.filter(**stock_dict).distinct()
+        stock_dict['location_id'] = dest[0].id
+        stock_dict['quantity__gt'] = 0
+        dest_stocks = StockDetail.objects.filter(**stock_dict).distinct()
 
-    dest_batch = update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
-                       dest_seller_id=seller_id, receipt_type=receipt_type, receipt_number=receipt_number)
-    move_inventory_dict = {'sku_id': sku_id, 'source_location_id': source[0].id,
-                           'dest_location_id': dest[0].id, 'quantity': move_quantity, }
-    if seller_id:
-        move_inventory_dict['seller_id'] = seller_id
-    if dest_batch:
-        move_inventory_dict['batch_detail_id'] = dest_batch.id
+        dest_batch = update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
+                           dest_seller_id=seller_id, receipt_type=receipt_type, receipt_number=receipt_number)
+        move_inventory_dict = {'sku_id': sku_id, 'source_location_id': source[0].id,
+                               'dest_location_id': dest[0].id, 'quantity': move_quantity, }
+        if seller_id:
+            move_inventory_dict['seller_id'] = seller_id
+        if dest_batch:
+            move_inventory_dict['batch_detail_id'] = dest_batch.id
 
-    MoveInventory.objects.create(**move_inventory_dict)
+        MoveInventory.objects.create(**move_inventory_dict)
 
-    return 'Added Successfully'
+        return 'Added Successfully'
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        result_data = []
+        log.info('move stock location failed  for {} source location {} destination location {} quantity {}'
+                 .format(wms_code, source_loc, dest_loc, quantity))
 
 
 def create_invnetory_adjustment_record(user, dat, quantity, reason, location, now, pallet_present, stock='', seller_id='',

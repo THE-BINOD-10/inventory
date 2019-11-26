@@ -2373,7 +2373,7 @@ def update_seller_summary_locs(data, location , quantity, po_received):
                                                                                receipt_number=seller_summary.receipt_number,
                                                                                quantity=quantity,
                                                                                putaway_quantity=quantity,
-                                                                               batch_detial=seller_summary.batch_detail,
+                                                                               batch_detail=seller_summary.batch_detail,
                                                                                location_id=location.id,
                                                                                purchase_order_id=data.id,
                                                                                creation_date=datetime.datetime.now())

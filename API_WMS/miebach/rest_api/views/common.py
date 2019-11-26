@@ -2718,6 +2718,13 @@ def check_and_update_stock(wms_codes, user):
         except:
             continue
 
+def mb_stock_sycn_log(data, user):
+    today = datetime.datetime.now()
+    today_date = get_local_date(user,today,1)
+    file_name = 'logs/mb_stock_sync_'+today_date.strftime("%Y%m%d")+'.txt'
+    file = open(file_name, 'a')
+    file.write(today_date.strftime("%d-%m-%Y %H:%M:%S")+': '+data+'\n')
+    file.close()
 
 def check_and_update_marketplace_stock(sku_codes, user):
     from rest_api.views.easyops_api import *
@@ -2726,10 +2733,18 @@ def check_and_update_marketplace_stock(sku_codes, user):
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
         try:
             sku_tupl = (user.username, sku_codes)
-            log.info('Update for stock change of'+str(sku_tupl))
+            log.info('Update for stock sync of'+str(sku_tupl))
             response = obj.update_stock_count(sku_tupl, user=user)
-        except:
-            log.info('Stock change failed for '+str(user.username)+'and skus are'+str(sku_codes))
+            log_mb_sync = ('Updating for stock sync of skus %s from the user %s ' %
+                                        (str(sku_codes), str(user.username)))
+            mb_stock_sycn_log(log_mb_sync, user)
+        except Exception as e:
+            log.info('Stock sync failed for %s and skus are %s and error statement is %s'%
+                        (str(user.username),str(sku_codes), str(e)))
+            log_mb_sync = ('Stock sync failed for %s and skus are %s and error statement is %s'%
+                           (str(user.username),str(sku_codes), str(e)))
+            mb_stock_sycn_log(log_mb_sync, user)
+
             continue
 
 def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_ids=[]):
@@ -3408,7 +3423,7 @@ def common_calculations(arg_data):
     base_price = "%.2f" % (unit_price * quantity)
     hsn_code = ''
     if dat.sku.hsn_code:
-        hsn_code = str(dat.sku.hsn_code)
+        hsn_code = dat.sku.hsn_code
 
     if is_gst_invoice:
         if marginal_flag:
@@ -5066,7 +5081,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
         if sku_styles:
             sku_variants = list(sku_object.values(*get_values))
             for index, i in enumerate(sku_variants):
-                sku_variants[index]['hsn_code'] = int(i['hsn_code'])
+                sku_variants[index]['hsn_code'] = i['hsn_code']
             sku_variants = get_style_variants(sku_variants, user, customer_id, total_quantity=total_quantity,
                                               customer_data_id=customer_data_id, prices_dict=prices_dict,
                                               levels_config=levels_config, price_type=price_type,
@@ -6351,7 +6366,7 @@ def check_and_update_order_status(shipped_orders_dict, user):
                     for imei in order_data.get('imeis', []):
                         hsn_code = ''
                         if order.sku.hsn_code:
-                            hsn_code = str(order.sku.hsn_code)
+                            hsn_code = order.sku.hsn_code
                         seller_item_obj = line_items_ids.filter(local_id=seller_order.id, app_host='shotang',
                                                                 swx_type='seller_item_id',
                                                                 imei='')
@@ -6455,7 +6470,7 @@ def check_and_update_order_status_data(shipped_orders_dict, user, status=''):
                 order_status_dict[order_detail_id]['subOrders'][index].setdefault('lineItems', [])
                 hsn_code = ''
                 if order.sku.hsn_code:
-                    hsn_code = str(order.sku.hsn_code)
+                    hsn_code = order.sku.hsn_code
                 if order_data.get('quantity', 0):
                     order_data['imeis'] = ['None'] * int(order_data['quantity'])
 

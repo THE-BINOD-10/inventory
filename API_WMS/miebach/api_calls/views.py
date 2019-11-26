@@ -13,7 +13,7 @@ from operator import itemgetter
 from itertools import chain
 from django.db.models import Sum, Count
 from rest_api.views.common import get_local_date, folder_check
-from rest_api.views.miebach_utils import MILKBASKET_BULK_ZONE
+from rest_api.views.miebach_utils import MILKBASKET_BULK_ZONE, MILKBASKET_USERS
 from rest_api.views.integrations import *
 import json
 import datetime
@@ -1522,6 +1522,9 @@ def get_mp_inventory(request):
         output_status = 200
         if error_status:
             output_status = 207
+        if user.username in MILKBASKET_USERS:
+            log_mb_sync = ('Get inventory for user %s is %s ' %(str(request.user.username), str(data)))
+            mb_stock_sycn_log(log_mb_sync, user)
         return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder), status=output_status)
     except Exception as e:
         import traceback
@@ -1695,7 +1698,7 @@ def create_update_sku_storehippo(store_hippo_data, user_obj):
             stockone_data['color'] = ''
             stockone_data['mix_sku'] = ''
             stockone_data['load_unit_handle'] = ''
-            stockone_data['hsn_code'] = 0
+            stockone_data['hsn_code'] = ''
             stockone_data['sub_category'] = ''
             stockone_data['primary_category'] = ''
             stockone_data['cost_price'] = var_obj.get('price', 0)
@@ -1741,7 +1744,7 @@ def create_update_sku_storehippo(store_hippo_data, user_obj):
             stockone_data['color'] = ''
             stockone_data['mix_sku'] = ''
             stockone_data['load_unit_handle'] = ''
-            stockone_data['hsn_code'] = 0
+            stockone_data['hsn_code'] = ''
             stockone_data['sub_category'] = ''
             stockone_data['primary_category'] = ''
             stockone_data['cost_price'] = store_hippo_data.get('price', 0)

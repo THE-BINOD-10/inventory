@@ -120,7 +120,7 @@ class SKUMaster(models.Model):
     color = models.CharField(max_length=64, default='')
     ean_number = models.CharField(max_length=64, default='')
     load_unit_handle = models.CharField(max_length=32, default='unit', db_index=True)
-    hsn_code = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default=0)
+    hsn_code = models.CharField(max_length=20, db_index=True, default='')
     sub_category = models.CharField(max_length=64, default='')
     primary_category = models.CharField(max_length=64, default='')
     shelf_life = models.IntegerField(default=0)
@@ -3253,7 +3253,7 @@ class StockReconciliation(models.Model):
     class Meta:
         db_table = 'STOCK_RECONCILIATION'
         unique_together = ('sku', 'mrp', 'weight', 'creation_date')
-        index_together = (('sku', 'mrp', 'weight', 'creation_date'),)
+        index_together = (('sku', 'mrp', 'weight', 'creation_date'), ('sku', 'creation_date'))
 
 
 class StockReconciliationFields(models.Model):
@@ -3273,7 +3273,7 @@ class StockReconciliationFields(models.Model):
 
     class Meta:
         db_table = 'STOCK_RECONCILIATION_FIELDS'
-        index_together = ('stock_reconciliation', 'field_type')
+        index_together = (('stock_reconciliation', 'field_type'))
 
 
 class MiscDetailOptions(models.Model):

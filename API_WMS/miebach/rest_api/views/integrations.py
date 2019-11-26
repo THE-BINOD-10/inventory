@@ -875,7 +875,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
         sku_master = sku_ins[0]
     sku_master_dict = {'user': user.id, 'creation_date': datetime.datetime.now()}
     exclude_list = ['skus', 'child_skus']
-    number_fields = ['threshold_quantity', 'hsn_code', 'price', 'mrp', 'status', 'shelf_life', 'cost_price']
+    number_fields = ['threshold_quantity', 'max_norm_quantity','hsn_code', 'price', 'mrp', 'status', 'shelf_life', 'cost_price']
     sku_size = ''
     size_type = ''
     sku_options = []

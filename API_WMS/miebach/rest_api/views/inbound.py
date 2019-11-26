@@ -2705,9 +2705,9 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                     exclude(Q(location__zone__zone__in=get_exclude_zones(user)) |
                               Q(batch_detail__mrp=mrp))
                 if other_mrp_stock.exists():
-                    mrp_change_check = ZoneMaster.objects.filter(zone='MRP Change', user=user.id)
-                    if mrp_change_check.exists():
-                        remarks_list.append("mrp_change")
+                    #mrp_change_check = ZoneMaster.objects.filter(zone='MRP Change', user=user.id)
+                    #if mrp_change_check.exists():
+                    remarks_list.append("mrp_change")
     if 'offer_applicable' in myDict.keys() :
         offer_applicable = myDict['offer_applicable'][i]
         if offer_applicable == 'true':
@@ -5431,10 +5431,10 @@ def confirm_add_po(request, sales_data='', user=''):
                             'billing_address': profile.address, 'shipping_address': ship_to_address,
                             'table_headers': table_headers}
             if get_misc_value('allow_secondary_emails', user.id) == 'true':
-                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
+                write_and_mail_pdf(po_number, rendered, request, user, supplier_email_id, phone_no, po_data,
                                    str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
             if get_misc_value('raise_po', user.id) == 'true' and get_misc_value('allow_secondary_emails', user.id) != 'true':
-                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
+                write_and_mail_pdf(po_number, rendered, request, user, supplier_email, phone_no, po_data,
                                    str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
         check_purchase_order_created(user, po_id)
     except Exception as e:

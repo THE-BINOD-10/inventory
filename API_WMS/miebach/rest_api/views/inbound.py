@@ -2154,7 +2154,8 @@ def get_purchaseorder_locations(put_zone, temp_dict):
     if data:
         order_data = get_purchase_order_data(data)
     else:
-        order_data = {'sku_group': temp_dict['sku_group'], 'wms_code': temp_dict['wms_code'],
+:
+order_data = {'sku_group': temp_dict['sku_group'], 'wms_code': temp_dict['wms_code'],
                       'sku': temp_dict.get('sku', '')}
     sku_group = order_data['sku_group']
     if sku_group == 'undefined':
@@ -2351,25 +2352,17 @@ def save_update_order(location_quantity, location_data, temp_dict, user_check, u
     return po_loc, created_qc_ids
 
 
-def update_seller_summary_locs(data, location, quantity, po_received):
+def update_seller_summary_locs(data, location , quantity, po_received):
     if not po_received['quantity']:
         return po_received
+
     seller_summary = SellerPOSummary.objects.get(id=po_received['id'])
     if not seller_summary.location:
         if seller_summary.quantity != quantity:
-            rem_quantity = float(seller_summary.quantity) - float(quantity)
-            rem_putaway_quantity = float(seller_summary.putaway_quantity) - float(quantity)
-            seller_po_summary = SellerPOSummary.objects.create(seller_po_id=seller_summary.seller_po.id,
-                                                                               receipt_number=seller_summary.receipt_number,
-                                                                               quantity=rem_quantity,
-                                                                               putaway_quantity=rem_putaway_quantity,
-                                                                               location_id=None,
-                                                                               purchase_order_id=data.id,
-                                                                               creation_date=seller_summary.creation_date)
-        seller_summary.location_id = location.id
-        seller_summary.quantity = quantity
-        seller_summary.putaway_quantity = quantity
-        seller_summary.save()
+            seller_summary.location_id = location.id
+            seller_summary.quantity = quantity
+            seller_summary.putaway_quantity = quantity
+            seller_summary.save()
     else:
         if seller_summary.location_id == location.id:
             seller_summary.quantity = float(seller_summary.quantity) + quantity
@@ -2380,6 +2373,7 @@ def update_seller_summary_locs(data, location, quantity, po_received):
                                                                                receipt_number=seller_summary.receipt_number,
                                                                                quantity=quantity,
                                                                                putaway_quantity=quantity,
+                                                                               batch_detial=seller_summary.batch_detail,
                                                                                location_id=location.id,
                                                                                purchase_order_id=data.id,
                                                                                creation_date=datetime.datetime.now())
@@ -2401,6 +2395,7 @@ def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segrega
         pallet_number = temp_dict['pallet_number']
     # location = get_purchaseorder_locations(put_zone, temp_dict)
     received_quantity = float(temp_dict['received_quantity'])
+
     data.status = 'grn-generated'
     data.save()
     purchase_data = get_purchase_order_data(data)
@@ -2423,6 +2418,7 @@ def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segrega
         location = get_purchaseorder_locations(put_zone, temp_dict)
         received_quantity = po_received['quantity']
         for loc in location:
+
             location_quantity, received_quantity = get_remaining_capacity(loc, received_quantity, put_zone,
                                                                           pallet_number, user)
             if not location_quantity:
@@ -2967,12 +2963,9 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
         batch_dict = {}
         if 'batch_no' in myDict.keys():
             batch_dict = {'transact_type': 'po_loc', 'batch_no': myDict['batch_no'][i],
-                          'expiry_date': myDict['exp_date'][i],
-                          'manufactured_date': myDict['mfg_date'][i],
-                          'tax_percent': myDict['tax_percent'][i],
-                          'mrp': myDict['mrp'][i], 'buy_price': myDict['buy_price'][i]
-                         }
-            batch_dict['weight'] = myDict['weight'][i]
+                          'expiry_date': myDict['exp_date'][i], 'manufactured_date': myDict['mfg_date'][i],
+                          'tax_percent': myDict['tax_percent'][i], 'mrp': myDict['mrp'][i],
+                          'buy_price': myDict['buy_price'][i], 'weight': myDict['weight'][i]}
             add_ean_weight_to_batch_detail(purchase_data['sku'], batch_dict)
         temp_quantity = data.received_quantity
         unit = ''
@@ -3085,7 +3078,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                                                seller_summary_id=seller_received_list[0].get('id', ''))
         temp_dict = {'received_quantity': float(value), 'user': user.id, 'data': data, 'pallet_number': pallet_number,
                      'pallet_data': pallet_data}
-        if (get_permission(request.user, 'add_qualitycheck') and purchase_data['qc_check'] == 1):
+        if get_permission(request.user, 'add_qualitycheck') and purchase_data['qc_check'] == 1:
             put_zone = 'QC_ZONE'
             qc_data = copy.deepcopy(QUALITY_CHECK_FIELDS)
             qc_data['purchase_order_id'] = data.id

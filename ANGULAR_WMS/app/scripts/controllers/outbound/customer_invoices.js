@@ -311,6 +311,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var field_name = "";
       var data = [];
       var selected_customers = [];
+      var selected_marketplaces = [];
       if (vm.user_type == 'distributor') {
         data = vm.checked_ids;
       } else {
@@ -319,6 +320,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
             if(selected_customers.indexOf(temp['Customer Name']) == -1) {
               selected_customers.push(temp['Customer Name']);
+            }
+            if(selected_marketplaces.indexOf(temp['Marketplace']) == -1) {
+              selected_marketplaces.push(temp['Marketplace']);
             }
             if(!(po_number)) {
               po_number = temp[temp['check_field']];
@@ -334,6 +338,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
       if(selected_customers.length > 1){
         vm.service.showNoty("Please select one customer orders only");
+        return
+      }
+      if(selected_marketplaces.length > 1){
+        vm.service.showNoty("Please select one Marketplace only");
         return
       }
       if(status) {

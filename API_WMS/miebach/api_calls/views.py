@@ -1255,6 +1255,10 @@ def get_mp_inventory(request):
             #skus = eval(skus)
             if skus:
                 filter_params['sku_code__in'] = skus
+                limit = 0
+            log_mp = ('MP inventory request from %s with request data %s '%
+                         (str(request.user.username), str(request_data)))
+            mb_stock_sycn_log(log_mp, user)
         except:
             return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}), status=400)
         if not seller_id:

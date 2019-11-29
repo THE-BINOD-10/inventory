@@ -3253,7 +3253,7 @@ class StockReconciliation(models.Model):
     class Meta:
         db_table = 'STOCK_RECONCILIATION'
         unique_together = ('sku', 'mrp', 'weight', 'creation_date')
-        index_together = (('sku', 'mrp', 'weight', 'creation_date'),)
+        index_together = (('sku', 'mrp', 'weight', 'creation_date'), ('sku', 'creation_date'))
 
 
 class StockReconciliationFields(models.Model):
@@ -3273,7 +3273,7 @@ class StockReconciliationFields(models.Model):
 
     class Meta:
         db_table = 'STOCK_RECONCILIATION_FIELDS'
-        index_together = ('stock_reconciliation', 'field_type')
+        index_together = (('stock_reconciliation', 'field_type'))
 
 
 class MiscDetailOptions(models.Model):

@@ -1160,10 +1160,11 @@ def get_picklist_data(data_id, user_id):
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
             else:
                 sku_total_quantities[wms_code] = float(order.reserved_quantity)
-        if get_misc_value('picklist_sort_by', user_id) == 'true':
-            data = sorted(data, key=itemgetter('order_id'))
-        else:
-            data = sorted(data, key=itemgetter('sequence'))
+        if get_misc_value('picklist_sort_by_sku_sequence', user_id) == 'false':
+            if get_misc_value('picklist_sort_by', user_id) == 'true':
+                data = sorted(data, key=itemgetter('order_id'))
+            else:
+                data = sorted(data, key=itemgetter('sequence'))
         return data, sku_total_quantities, courier_name
     else:
         courier_name = ''
@@ -1259,7 +1260,8 @@ def get_picklist_data(data_id, user_id):
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
             else:
                 sku_total_quantities[wms_code] = float(order.reserved_quantity)
-        data = sorted(data, key=itemgetter('sequence'))
+        if get_misc_value('picklist_sort_by_sku_sequence', user_id) == 'false':
+            data = sorted(data, key=itemgetter('sequence'))
         return data, sku_total_quantities, courier_name
 
 
@@ -9025,7 +9027,7 @@ def order_category_generate_picklist(request, user=''):
         order_id = ''.join(re.findall('\d+', order_id))
         order_filter['order_id'] = order_id
         order_filter['order_code'] = order_code
-        order_detail = all_orders.filter(**order_filter).order_by('shipment_date')
+        order_detail = all_orders.filter(**order_filter).order_by('sku__sequence','shipment_date')
         seller_orders = all_seller_orders.filter(order_id__in=order_detail.values_list('id', flat=True), status=1). \
             order_by('order__shipment_date')
         try:

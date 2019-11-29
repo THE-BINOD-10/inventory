@@ -2280,6 +2280,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'mandate_sku_supplier':'mandate_sku_supplier',
                         'brand_categorization':'brand_categorization',
                         'purchase_order_preview':'purchase_order_preview',
+                        'picklist_sort_by_sku_sequence': 'picklist_sort_by_sku_sequence',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

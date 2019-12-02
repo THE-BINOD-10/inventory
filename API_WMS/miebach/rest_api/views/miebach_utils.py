@@ -4163,31 +4163,44 @@ def get_openjo_details(search_params, user, sub_user):
     return temp_data
 
 
-def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=False, send_first_day=False, stock_rec_data=None):
+def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=False, stock_rec_data=None,
+                            send_damaged=True, opening_stock_date=None):
     data_dict = {'quantity': 0, 'cgst_amount': 0, 'sgst_amount': 0, 'igst_amount': 0, 'cess_amount': 0,
                      'value_before_tax': 0, 'value_after_tax': 0, 'price_before_tax': 0}
     if not data_objs:
         purchase_data = []
         if not send_last_day:
             fields_parameters2 = copy.deepcopy(fields_parameters1)
+            if opening_stock_date:
+                fields_parameters2['stock_reconciliation__creation_date__regex'] = opening_stock_date
             fields_parameters2['stock_reconciliation__%s_quantity__gt' % fields_parameters1['field_type']] = 0
             purchase_data = StockReconciliationFields.objects.\
                                             annotate(tax_sum=Sum(F('cgst_tax')+F('sgst_tax')+F('igst_tax')+F('cess_tax'))).\
                                             filter(**fields_parameters2)
-            if purchase_data.exists() and send_first_day:
-                first_date = purchase_data.first().stock_reconciliation.creation_date.date()
-                purchase_data = purchase_data.filter(stock_reconciliation__creation_date__regex=first_date)
+            #if purchase_data.exists() and send_first_day:
+            #    first_date = purchase_data.first().stock_reconciliation.creation_date.date()
+            #    purchase_data = purchase_data.filter(stock_reconciliation__creation_date__regex=first_date)
         damaged_field = '%s_qty_damaged' % fields_parameters1['field_type']
     else:
         purchase_data = data_objs.annotate(tax_sum=Sum(F('cgst_tax')+F('sgst_tax')+F('igst_tax')+F('cess_tax')))
         damaged_field = 'closing_qty_damaged'
     if purchase_data:
+        used_damage_qtys = []
         for data in purchase_data:
-            quantity = data.quantity - getattr(data.stock_reconciliation, damaged_field)
+            quantity = data.quantity
+            if not send_damaged:
+                if data.stock_reconciliation.id not in used_damage_qtys:
+                    quantity = data.quantity - getattr(data.stock_reconciliation, damaged_field)
+                    used_damage_qtys.append(data.stock_reconciliation.id)
             amount = quantity * data.price_before_tax
             data_dict['quantity'] += quantity
-            data_dict['value_before_tax'] += data.value_before_tax
-            data_dict['value_after_tax'] += data.value_after_tax
+            value_before_tax = data.value_before_tax
+            value_after_tax = data.value_after_tax
+            if not send_damaged:
+                value_after_tax = (data.value_after_tax/data.quantity) * quantity
+                value_before_tax = (data.value_before_tax/data.quantity) * quantity
+            data_dict['value_before_tax'] += value_before_tax
+            data_dict['value_after_tax'] += value_after_tax
             if data.cgst_tax:
                 data_dict['cgst_amount'] += (amount/100) * data.cgst_tax
             if data.sgst_tax:
@@ -4196,14 +4209,19 @@ def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=F
                 data_dict['igst_amount'] += (amount/100) * data.igst_tax
             if data.cess_tax:
                 data_dict['igst_amount'] += (amount/100) * data.cess_tax
-            data_dict['value_after_tax'] = data_dict['value_before_tax'] + data_dict['cgst_amount'] + \
-                                            data_dict['sgst_amount'] + data_dict['igst_amount'] + data_dict['cess_amount']
+            #data_dict['value_after_tax'] = data_dict['value_before_tax'] + data_dict['cgst_amount'] + \
+            #                                data_dict['sgst_amount'] + data_dict['igst_amount'] + data_dict['cess_amount']
         if data_dict['quantity']:
             data_dict['price_before_tax'] = data_dict['value_before_tax'] / data_dict['quantity']
     elif stock_rec_data:
-        stock_reconciliation_objs = StockReconciliation.objects.filter(sku_id=stock_rec_data.sku_id, mrp=stock_rec_data.mrp,
-                                        weight=stock_rec_data.weight, creation_date__gte=fields_parameters1['stock_reconciliation__creation_date__gte'],
-                                        creation_date__lte=fields_parameters1['stock_reconciliation__creation_date__lte'])
+        if opening_stock_date:
+            stock_reconciliation_objs = StockReconciliation.objects.filter(sku_id=stock_rec_data.sku_id, mrp=stock_rec_data.mrp,
+                                                                            weight=stock_rec_data.weight,
+                                                                            creation_date__regex=opening_stock_date)
+        else:
+            stock_reconciliation_objs = StockReconciliation.objects.filter(sku_id=stock_rec_data.sku_id, mrp=stock_rec_data.mrp,
+                                            weight=stock_rec_data.weight, creation_date__gte=fields_parameters1['stock_reconciliation__creation_date__gte'],
+                                            creation_date__lte=fields_parameters1['stock_reconciliation__creation_date__lte'])
         if send_last_day:
             last_date = stock_reconciliation_objs.latest('creation_date').creation_date.date()
             stock_reconciliation_objs = stock_reconciliation_objs.filter(creation_date__regex=last_date)
@@ -4263,7 +4281,6 @@ def get_financial_report_data(search_params, user, sub_user):
         search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
         fields_parameters['stock_reconciliation__sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
 
-
     search_parameters['sku__user'] = user.id
     fields_parameters['stock_reconciliation__sku__user'] = user.id
     if 'from_date' in search_params:
@@ -4291,7 +4308,8 @@ def get_financial_report_data(search_params, user, sub_user):
             for stock_rec_data in stock_rec_distinct_data[start_index:stop_index]:
                 print counter
                 counter += 1
-                opening_stock_data = StockReconciliationFields.objects.filter(stock_reconciliation_id=stock_rec_data.id).\
+                opening_stock_data = StockReconciliationFields.objects.filter(stock_reconciliation_id=stock_rec_data.id,
+                                                                                field_type='opening', creation_date__regex=opening_stock_date).\
                                                 values('stock_reconciliation__sku__sku_code', 'stock_reconciliation__sku__sku_desc',
                                                             'stock_reconciliation__sku_id',
                                                             'stock_reconciliation__sku__sku_category', 'stock_reconciliation__sku__sub_category',
@@ -4330,6 +4348,7 @@ def get_financial_report_data(search_params, user, sub_user):
                 for row_data in rows_data:
                     #Opening Stock Calculation
                     fields_parameters1 = copy.deepcopy(fields_parameters)
+                    stock_rec_data1 = stock_rec_data
                     if row_data['table'] == 'stock_rec_field':
                         opening_stock = row_data['data']
                         tax_rate = opening_stock['cgst_tax'] + opening_stock['sgst_tax'] + opening_stock['igst_tax']
@@ -4337,6 +4356,7 @@ def get_financial_report_data(search_params, user, sub_user):
                         mrp = opening_stock['stock_reconciliation__mrp']
                         weight = opening_stock['stock_reconciliation__weight']
                         cess_tax = opening_stock['cess_tax']
+                        stock_rec_data1 = None
                     else:
                         tax_rate = 0
                         mrp = stock_rec_data.mrp
@@ -4359,17 +4379,18 @@ def get_financial_report_data(search_params, user, sub_user):
                     closing_stock_objs = closing_objs.filter(**closing_obj_filter)
                     fields_parameters1['field_type'] = 'closing'
                     closing_dict = get_financial_group_dict(fields_parameters1, data_objs=closing_stock_objs, send_last_day=True,
-                                                            stock_rec_data=stock_rec_data)
+                                                            stock_rec_data=stock_rec_data, send_damaged=False)
                     fields_parameters1['field_type'] = 'opening'
-                    opening_dict = get_financial_group_dict(fields_parameters1, send_first_day=True)
+                    opening_dict = get_financial_group_dict(fields_parameters1, send_damaged=False, stock_rec_data=stock_rec_data1,
+                                                            opening_stock_date=opening_stock_date)
                     fields_parameters1['field_type'] = 'purchase'
-                    purchase_dict = get_financial_group_dict(fields_parameters1)
+                    purchase_dict = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1)
                     fields_parameters1['field_type'] = 'rtv'
-                    rtv_dict = get_financial_group_dict(fields_parameters1)
+                    rtv_dict = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1)
                     fields_parameters1['field_type'] = 'returns'
-                    returns_dict = get_financial_group_dict(fields_parameters1)
+                    returns_dict = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1)
                     fields_parameters1['field_type'] = 'customer_sales'
-                    csd = get_financial_group_dict(fields_parameters1)
+                    csd = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1)
                     margin_percentage = 0
                     if csd['quantity']:
                         sale_price = StockReconciliationFields.objects.\
@@ -4381,14 +4402,14 @@ def get_financial_report_data(search_params, user, sub_user):
                             sale_price = 0
                         margin_amount = sale_price - csd['value_before_tax']
                         if sale_price:
-                            margin_percentage = (margin_amount / float(sale_price)) * 100
+                            margin_percentage = float('%.2f' % ((margin_amount / float(sale_price)) * 100))
 
                     fields_parameters1['field_type'] = 'internal_sales'
-                    isd = get_financial_group_dict(fields_parameters1)
+                    isd = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1)
                     fields_parameters1['field_type'] = 'stock_transfer'
-                    std = get_financial_group_dict(fields_parameters1)
+                    std = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1)
                     fields_parameters1['field_type'] = 'adjustment'
-                    adjustment_dict = get_financial_group_dict(fields_parameters1)
+                    adjustment_dict = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1)
                     physical_qty = StockDetail.objects.filter(sku_id=sku_id, batch_detail__mrp=mrp,
                                                               batch_detail__weight=weight,
                                                               batch_detail__tax_percent=tax_rate).distinct().\

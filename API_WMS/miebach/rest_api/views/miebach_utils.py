@@ -4181,14 +4181,22 @@ def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=F
         purchase_data = data_objs.annotate(tax_sum=Sum(F('cgst_tax')+F('sgst_tax')+F('igst_tax')+F('cess_tax')))
         damaged_field = 'closing_qty_damaged'
     if purchase_data:
+        used_damage_qtys = []
         for data in purchase_data:
             quantity = data.quantity
             if not send_damaged:
-                quantity = data.quantity - getattr(data.stock_reconciliation, damaged_field)
+                if data.stock_reconciliation.id not in used_damage_qtys:
+                    quantity = data.quantity - getattr(data.stock_reconciliation, damaged_field)
+                    used_damage_qtys.append(data.stock_reconciliation.id)
             amount = quantity * data.price_before_tax
             data_dict['quantity'] += quantity
-            data_dict['value_before_tax'] += data.value_before_tax
-            data_dict['value_after_tax'] += data.value_after_tax
+            value_before_tax = data.value_before_tax
+            value_after_tax = data.value_after_tax
+            if not send_damaged:
+                value_after_tax = (data.value_after_tax/data.quantity) * quantity
+                value_before_tax = (data.value_before_tax/data.quantity) * quantity
+            data_dict['value_before_tax'] += value_before_tax
+            data_dict['value_after_tax'] += value_after_tax
             if data.cgst_tax:
                 data_dict['cgst_amount'] += (amount/100) * data.cgst_tax
             if data.sgst_tax:
@@ -4268,7 +4276,6 @@ def get_financial_report_data(search_params, user, sub_user):
     if 'bundle' in search_params:
         search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
         fields_parameters['stock_reconciliation__sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
-
 
     search_parameters['sku__user'] = user.id
     fields_parameters['stock_reconciliation__sku__user'] = user.id
@@ -4368,9 +4375,9 @@ def get_financial_report_data(search_params, user, sub_user):
                     closing_stock_objs = closing_objs.filter(**closing_obj_filter)
                     fields_parameters1['field_type'] = 'closing'
                     closing_dict = get_financial_group_dict(fields_parameters1, data_objs=closing_stock_objs, send_last_day=True,
-                                                            stock_rec_data=stock_rec_data, send_damaged=True)
+                                                            stock_rec_data=stock_rec_data, send_damaged=False)
                     fields_parameters1['field_type'] = 'opening'
-                    opening_dict = get_financial_group_dict(fields_parameters1, send_damaged=True, stock_rec_data=stock_rec_data1,
+                    opening_dict = get_financial_group_dict(fields_parameters1, send_damaged=False, stock_rec_data=stock_rec_data1,
                                                             opening_stock_date=opening_stock_date)
                     fields_parameters1['field_type'] = 'purchase'
                     purchase_dict = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1)
@@ -4391,7 +4398,7 @@ def get_financial_report_data(search_params, user, sub_user):
                             sale_price = 0
                         margin_amount = sale_price - csd['value_before_tax']
                         if sale_price:
-                            margin_percentage = (margin_amount / float(sale_price)) * 100
+                            margin_percentage = float('%.2f' % ((margin_amount / float(sale_price)) * 100))
 
                     fields_parameters1['field_type'] = 'internal_sales'
                     isd = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1)

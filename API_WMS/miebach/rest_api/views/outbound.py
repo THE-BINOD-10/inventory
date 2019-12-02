@@ -1032,10 +1032,11 @@ def get_picklist_data(data_id, user_id):
             else:
                 sku_total_quantities[wms_code] = float(order.reserved_quantity)
         data = batch_data.values()
-        if get_misc_value('picklist_sort_by', user_id) == 'true':
-            data = sorted(data, key=itemgetter('order_id'))
-        else:
-            data = sorted(data, key=itemgetter('sequence'))
+        if get_misc_value('picklist_sort_by_sku_sequence', user_id) == 'false':
+            if get_misc_value('picklist_sort_by', user_id) == 'true':
+                data = sorted(data, key=itemgetter('order_id'))
+            else:
+                data = sorted(data, key=itemgetter('sequence'))
         return data, sku_total_quantities, courier_name
 
     elif order_status == "open":

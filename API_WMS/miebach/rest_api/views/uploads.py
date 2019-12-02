@@ -1441,10 +1441,10 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                         log.info('SKU Master Upload failed for %s and params are %s and error statement is %s' % (
                         str(user.username), str(request.POST.dict()), str(e)))
 
-            elif key == 'hsn_code':
-                if cell_data:
-                    if not isinstance(cell_data, (int, float)):
-                        index_status.setdefault(row_idx, set()).add('HSN Code must be integer')
+            # elif key == 'hsn_code':
+            #     if cell_data:
+            #         if not isinstance(cell_data, (int, float)):
+            #             index_status.setdefault(row_idx, set()).add('HSN Code must be integer')
                         # elif not len(str(int(cell_data))) == 8:
                         #    index_status.setdefault(row_idx, set()).add('HSN Code should be 8 digit')
 
@@ -2803,7 +2803,8 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     data_dict[key] = cell_data
         if not index_status:
             for data in data_list:
-                if data['sku_id']== data_dict['sku_id'] and data['supplier_id'] == data_dict['supplier_id']:
+                if data['sku_id']== data_dict['sku_id'] and data['supplier_id'] == data_dict['supplier_id'] and \
+                    data.get('po_name', '') == data_dict.get('po_name', ''):
                     index_status.setdefault(row_idx, set()).add('SKU added in multiple rows for same supplier')
 
         data_list.append(data_dict)
@@ -2869,7 +2870,8 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     for final_dict in data_list:
         final_dict['sku'] = SKUMaster.objects.get(id=final_dict['sku_id'], user=user.id)
         final_dict['supplier'] = SupplierMaster.objects.get(id=final_dict['supplier_id'], user=user.id)
-        final_dict['seller'] = SellerMaster.objects.get(id=final_dict['seller_id'], user=user.id)
+        if final_dict.get('seller_id', ''):
+            final_dict['seller'] = SellerMaster.objects.get(id=final_dict['seller_id'], user=user.id)
         final_dict['po_date'] = datetime.datetime.strptime(final_dict.get('po_date', ''), '%Y-%m-%d %H:%M:%S')
         if final_dict.get('po_delivery_date', '') != '':
             final_dict['po_delivery_date'] = datetime.datetime.strptime(final_dict.get('po_delivery_date', ''), '%Y-%m-%d %H:%M:%S')
@@ -3273,9 +3275,9 @@ def purchase_order_preview_generation(request, user, data_list):
                 else:
                     for tax_name in taxes.keys():
                         try:
-                            taxes[tax] = float(data.get('%s_tax' % tax_name, 0))
+                            taxes[tax_name] = float(data.get(tax_name, 0))
                         except:
-                            taxes[tax] = 0
+                            taxes[tax_name] = 0
                 if data.get('cess_tax', 0) != '':
                     taxes['cess_tax'] = data.get('cess_tax', 0)
                 if data.get('apmc_tax', 0) != '':
@@ -3557,6 +3559,7 @@ def move_inventory_upload(request, user=''):
     seller_receipt_dict = {}
     sku_codes = []
     receipt_number = get_stock_receipt_number(user)
+    count=0
     for data_dict in data_list:
         extra_dict = OrderedDict()
         wms_code = data_dict['wms_code']
@@ -3582,12 +3585,14 @@ def move_inventory_upload(request, user=''):
                 seller_receipt_dict[str(seller_id)] = receipt_number
         extra_dict['receipt_type'] = 'move-inventory'
         extra_dict['receipt_number'] = receipt_number
-        move_stock_location(wms_code, source_loc, dest_loc, quantity, user, **extra_dict)
+        response=move_stock_location(wms_code, source_loc, dest_loc, quantity, user, **extra_dict)
+        if response == 'Added Successfully':
+            count+=1
         mod_locations.append(source_loc)
         mod_locations.append(dest_loc)
     update_filled_capacity(list(set(mod_locations)), user.id)
     if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(sku_codes, user)
-    return HttpResponse('Success')
+    return HttpResponse('Successfully moved {} items'.format(count))
 
 
 def get_marketplace_headers(row_idx, open_sheet):
@@ -4017,6 +4022,7 @@ def inventory_adjust_upload(request, user=''):
     for final_dict in data_list:
         # location_data = ''
         wms_code = final_dict['sku_master'].wms_code
+        sku_codes.append(wms_code)
         loc = final_dict['location_master'].location
         quantity = final_dict['quantity']
         reason = final_dict['reason']

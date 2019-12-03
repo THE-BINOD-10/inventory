@@ -1030,7 +1030,10 @@ def print_po_reports(request, user=''):
                     quantity = seller_summary_obj.quantity
                     bill_no = seller_summary_obj.invoice_number if seller_summary_obj.invoice_number else ''
                     bill_date = seller_summary_obj.invoice_date if seller_summary_obj.invoice_date else data.updation_date
-                    price = open_data.price
+                    if seller_summary_obj.price:
+                        price = seller_summary_obj.price
+                    else:
+                        price=open_data.price
                     cgst_tax = open_data.cgst_tax
                     sgst_tax = open_data.sgst_tax
                     igst_tax = open_data.igst_tax

@@ -1127,7 +1127,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
     return sku_master, insert_status, new_ean_objs
 
 
-def update_skus(skus, user='', company_name=''):
+def update_skus (skus, user='', company_name=''):
     sku_mapping = eval(LOAD_CONFIG.get(company_name, 'sku_mapping_dict', ''))
     NOW = datetime.datetime.now()
     insert_status = {'SKUS Created': [], 'SKUS updated': []}

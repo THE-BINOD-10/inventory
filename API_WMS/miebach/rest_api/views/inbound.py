@@ -2689,19 +2689,12 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
     remarks_list = []
     if data.open_po:
         if myDict.get('mrp', '') and myDict['mrp'][i]:
-            if float(data.open_po.mrp) != float(myDict['mrp'][i]):
+            if float(data.open_po.sku.mrp) != float(myDict['mrp'][i]):
                  remarks_list.append("mrp_change")
         if 'mrp_change' not in remarks_list and seller_pos:
             if batch_dict and batch_dict.get('mrp', ''):
                 mrp = float(batch_dict['mrp'])
-                other_mrp_stock = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0,
-                                                             sku_id=data.open_po.sku_id,
-                                           sellerstock__seller_id=seller_pos[0].seller_id).\
-                    exclude(Q(location__zone__zone__in=get_exclude_zones(user)) |
-                              Q(batch_detail__mrp=mrp))
-                if other_mrp_stock.exists():
-                    #mrp_change_check = ZoneMaster.objects.filter(zone='MRP Change', user=user.id)
-                    #if mrp_change_check.exists():
+                if float(data.open_po.sku.mrp) != mrp:
                     remarks_list.append("mrp_change")
     if 'offer_applicable' in myDict.keys() :
         offer_applicable = myDict['offer_applicable'][i]
@@ -4065,6 +4058,8 @@ def validate_putaway(all_data, user):
                 validate_seller_id = pol.purchase_order.open_po.sellerpo_set.filter()[0].seller_id
     mrp_putaway_status = []
     for key, value in all_data.iteritems():
+        if not validate_seller_id:
+            continue
         if not key[1]:
             status = 'Location is Empty, Enter Location'
         if key[1]:

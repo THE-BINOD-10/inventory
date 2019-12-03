@@ -2010,6 +2010,7 @@ class SellerPOSummary(models.Model):
     cess_tax = models.FloatField(default=0)
     apmc_tax = models.FloatField(default=0)
     overall_discount = models.FloatField(default=0)
+    price=models.FloatField(default=0)
     remarks = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

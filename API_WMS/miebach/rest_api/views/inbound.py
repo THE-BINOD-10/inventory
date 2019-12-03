@@ -1898,6 +1898,7 @@ def get_supplier_data(request, user=''):
                                 'value': get_decimal_limit(user.id, order.saved_quantity),
                                 'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
                                 'price': order_data['price'],
+                                'grn_price':order_data['price'],
                                 'mrp': order_data['mrp'],
                                 'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
                                 'unit': order_data['unit'],
@@ -2655,138 +2656,156 @@ def create_update_primary_segregation(data, quantity, temp_dict, batch_obj=None,
 def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number='', invoice_date=None,
                      challan_number='', challan_date=None, dc_level_grn='', round_off_total=0,
                      batch_dict=None, po_type='po'):
-    if not receipt_id:
-        return
-    if not batch_dict:
-        batch_dict = {}
-    seller_pos = []
-    if data.open_po:
-        seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id)
-    seller_received_list = []
-    #invoice_number = int(invoice_number)
-    if not invoice_date and not dc_level_grn:
-        invoice_date = datetime.datetime.now().date()
-    elif dc_level_grn:
-        invoice_date = None
-    if invoice_number:
-        order_status_flag = 'supplier_invoices'
-    if challan_number:
-        order_status_flag = 'po_challans'
-    if not invoice_number and not challan_number:
-        order_status_flag = 'processed_pos'
-    discount_percent = 0
-    if 'discount_percentage' in myDict.keys() and myDict['discount_percentage'][i]:
-        discount_percent = myDict['discount_percentage'][i]
-    cess_tax = 0
-    if 'cess_percent' in myDict.keys() and myDict['cess_percent'][i]:
-        cess_tax = myDict['cess_percent'][i]
-    apmc_tax = 0
-    if 'apmc_percent' in myDict.keys() and myDict['apmc_percent'][i]:
-        apmc_tax = myDict['apmc_percent'][i]
-    overall_discount = 0
-    if 'overall_discount' in myDict.keys() and myDict['overall_discount'][0]:
-        overall_discount = myDict['overall_discount'][0]
-    remarks_list = []
-    if data.open_po:
-        if myDict.get('mrp', '') and myDict['mrp'][i]:
-            if float(data.open_po.sku.mrp) != float(myDict['mrp'][i]):
-                 remarks_list.append("mrp_change")
-        if 'mrp_change' not in remarks_list and seller_pos:
-            if batch_dict and batch_dict.get('mrp', ''):
-                mrp = float(batch_dict['mrp'])
-                if float(data.open_po.sku.mrp) != mrp:
-                    remarks_list.append("mrp_change")
-    if 'offer_applicable' in myDict.keys() :
-        offer_applicable = myDict['offer_applicable'][i]
-        if offer_applicable == 'true':
-            remarks_list.append("offer_applied")
-    remarks = ','.join(remarks_list)
-    if user.userprofile.user_type == 'warehouse_user' or po_type == 'st':
-        seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,
-                                                                           invoice_number=invoice_number,
-                                                                           quantity=value,
-                                                                           putaway_quantity=value,
-                                                                           purchase_order_id=data.id,
-                                                                           creation_date=datetime.datetime.now(),
-                                                                           invoice_date=invoice_date,
-                                                                           challan_number=challan_number,
-                                                                           challan_date=challan_date,
-                                                                           order_status_flag=order_status_flag,
-                                                                           discount_percent=discount_percent,
-                                                                           round_off_total=round_off_total,
-                                                                           cess_tax=cess_tax,
-                                                                           apmc_tax=apmc_tax,
-                                                                           overall_discount=overall_discount,
-                                                                           remarks = remarks)
-        temp_seller_rec_dict = {'seller_id': '', 'quantity': value, 'id': seller_po_summary.id,
-                                'remarks': remarks}
-        if po_type == 'st':
-            temp_open_st = data.stpurchaseorder_set.filter()[0].open_st
-            temp_seller_rec_dict['sku_id'] = temp_open_st.sku_id
-        else:
-            temp_seller_rec_dict['sku_id'] = data.open_po.sku_id
-        seller_received_list.append(temp_seller_rec_dict)
-        '''seller_received_list.append(
-            {'seller_id': '', 'sku_id': data.open_po.sku_id, 'quantity': value,
-             'id': seller_po_summary.id, 'remarks': remarks})'''
-    else:
-        for sell_po in seller_pos:
-            if not value:
-                break
-            unit_price = data.open_po.price
-            if not sell_po.unit_price:
-                margin_percent = get_misc_value('seller_margin', user.id)
-                if sell_po.seller.margin:
-                    margin_percent = sell_po.seller.margin
-                seller_mapping = SellerMarginMapping.objects.filter(seller_id=sell_po.seller_id, sku_id=data.open_po.sku_id,
-                                                                    seller__user=user.id)
-                if seller_mapping:
-                    margin_percent = seller_mapping[0].margin
-                if margin_percent:
-                    try:
-                        margin_percent = float(margin_percent)
-                    except:
-                        margin_percent = 0
-                    price = float(data.open_po.price)
-                    tax = data.open_po.cgst_tax + data.open_po.sgst_tax + data.open_po.igst_tax + data.open_po.cess_tax + data.open_po.utgst_tax
-                    price = price + ((price / 100) * float(tax))
-                    unit_price = float(price) / (1 - (margin_percent / 100))
-                    sell_po.unit_price = float(("%." + str(2) + "f") % (unit_price))
-                    sell_po.margin_percent = margin_percent
-            # seller_quantity = sell_po.seller_quantity
-            # sell_quan = value
-            # if seller_quantity < value:
-            #     sell_quan = seller_quantity
-            #     value -= seller_quantity
-            # elif seller_quantity >= value:
-            #     sell_quan = value
-            #     value = 0
-            sell_po.received_quantity += value
-            if sell_po.seller_quantity <= sell_po.received_quantity:
-                sell_po.status = 0
-            sell_po.save()
-
-            # seller_received_list.append({'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': sell_quan})
-            seller_po_summary, created = SellerPOSummary.objects.get_or_create(seller_po_id=sell_po.id,
-                                                                               receipt_number=receipt_id,
+    try:
+        if not receipt_id:
+            return
+        if not batch_dict:
+            batch_dict = {}
+        seller_pos = []
+        if data.open_po:
+            seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id)
+        seller_received_list = []
+        #invoice_number = int(invoice_number)
+        if not invoice_date and not dc_level_grn:
+            invoice_date = datetime.datetime.now().date()
+        elif dc_level_grn:
+            invoice_date = None
+        if invoice_number:
+            order_status_flag = 'supplier_invoices'
+        if challan_number:
+            order_status_flag = 'po_challans'
+        if not invoice_number and not challan_number:
+            order_status_flag = 'processed_pos'
+        discount_percent = 0
+        if 'discount_percentage' in myDict.keys() and myDict['discount_percentage'][i]:
+            discount_percent = myDict['discount_percentage'][i]
+        cess_tax = 0
+        if 'cess_percent' in myDict.keys() and myDict['cess_percent'][i]:
+            cess_tax = myDict['cess_percent'][i]
+        apmc_tax = 0
+        grn_price=0
+        if 'apmc_percent' in myDict.keys() and myDict['apmc_percent'][i]:
+            apmc_tax = myDict['apmc_percent'][i]
+        if 'grn_price' in myDict.keys() and myDict['grn_price'][i]:
+            grn_price=myDict['grn_price'][i]
+        overall_discount = 0
+        if 'overall_discount' in myDict.keys() and myDict['overall_discount'][0]:
+            overall_discount = myDict['overall_discount'][0]
+        remarks_list = []
+        if data.open_po:
+            if myDict.get('mrp', '') and myDict['mrp'][i]:
+                if float(data.open_po.mrp) != float(myDict['mrp'][i]):
+                     remarks_list.append("mrp_change")
+            if 'mrp_change' not in remarks_list and seller_pos:
+                if batch_dict and batch_dict.get('mrp', ''):
+                    mrp = float(batch_dict['mrp'])
+                    other_mrp_stock = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0,
+                                                                 sku_id=data.open_po.sku_id,
+                                               sellerstock__seller_id=seller_pos[0].seller_id).\
+                        exclude(Q(location__zone__zone__in=get_exclude_zones(user)) |
+                                  Q(batch_detail__mrp=mrp))
+                    if other_mrp_stock.exists():
+                        #mrp_change_check = ZoneMaster.objects.filter(zone='MRP Change', user=user.id)
+                        #if mrp_change_check.exists():
+                        remarks_list.append("mrp_change")
+        if 'offer_applicable' in myDict.keys() :
+            offer_applicable = myDict['offer_applicable'][i]
+            if offer_applicable == 'true':
+                remarks_list.append("offer_applied")
+        remarks = ','.join(remarks_list)
+        if user.userprofile.user_type == 'warehouse_user' or po_type == 'st':
+            seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,
+                                                                               invoice_number=invoice_number,
                                                                                quantity=value,
                                                                                putaway_quantity=value,
                                                                                purchase_order_id=data.id,
                                                                                creation_date=datetime.datetime.now(),
-                                                                               discount_percent=discount_percent,
+                                                                               invoice_date=invoice_date,
                                                                                challan_number=challan_number,
                                                                                challan_date=challan_date,
-                                                                               invoice_number=invoice_number,
                                                                                order_status_flag=order_status_flag,
-                                                                               invoice_date=invoice_date,
+                                                                               discount_percent=discount_percent,
                                                                                round_off_total=round_off_total,
                                                                                cess_tax=cess_tax,
                                                                                apmc_tax=apmc_tax,
+                                                                               price=grn_price,
                                                                                overall_discount=overall_discount,
                                                                                remarks = remarks)
-            seller_received_list.append(
-                {'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': value,
-                 'id': seller_po_summary.id, 'remarks': remarks})
+            temp_seller_rec_dict = {'seller_id': '', 'quantity': value, 'id': seller_po_summary.id,
+                                    'remarks': remarks}
+            if po_type == 'st':
+                temp_open_st = data.stpurchaseorder_set.filter()[0].open_st
+                temp_seller_rec_dict['sku_id'] = temp_open_st.sku_id
+            else:
+                temp_seller_rec_dict['sku_id'] = data.open_po.sku_id
+            seller_received_list.append(temp_seller_rec_dict)
+            '''seller_received_list.append(
+                {'seller_id': '', 'sku_id': data.open_po.sku_id, 'quantity': value,
+                 'id': seller_po_summary.id, 'remarks': remarks})'''
+        else:
+            for sell_po in seller_pos:
+                if not value:
+                    break
+                unit_price = data.open_po.price
+                if not sell_po.unit_price:
+                    margin_percent = get_misc_value('seller_margin', user.id)
+                    if sell_po.seller.margin:
+                        margin_percent = sell_po.seller.margin
+                    seller_mapping = SellerMarginMapping.objects.filter(seller_id=sell_po.seller_id, sku_id=data.open_po.sku_id,
+                                                                        seller__user=user.id)
+                    if seller_mapping:
+                        margin_percent = seller_mapping[0].margin
+                    if margin_percent:
+                        try:
+                            margin_percent = float(margin_percent)
+                        except:
+                            margin_percent = 0
+                        price = float(data.open_po.price)
+                        tax = data.open_po.cgst_tax + data.open_po.sgst_tax + data.open_po.igst_tax + data.open_po.cess_tax + data.open_po.utgst_tax
+                        price = price + ((price / 100) * float(tax))
+                        unit_price = float(price) / (1 - (margin_percent / 100))
+                        sell_po.unit_price = float(("%." + str(2) + "f") % (unit_price))
+                        sell_po.margin_percent = margin_percent
+                # seller_quantity = sell_po.seller_quantity
+                # sell_quan = value
+                # if seller_quantity < value:
+                #     sell_quan = seller_quantity
+                #     value -= seller_quantity
+                # elif seller_quantity >= value:
+                #     sell_quan = value
+                #     value = 0
+                sell_po.received_quantity += value
+                if sell_po.seller_quantity <= sell_po.received_quantity:
+                    sell_po.status = 0
+                sell_po.save()
+
+                # seller_received_list.append({'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': sell_quan})
+                seller_po_summary, created = SellerPOSummary.objects.get_or_create(seller_po_id=sell_po.id,
+                                                                                   receipt_number=receipt_id,
+                                                                                   quantity=value,
+                                                                                   putaway_quantity=value,
+                                                                                   purchase_order_id=data.id,
+                                                                                   creation_date=datetime.datetime.now(),
+                                                                                   discount_percent=discount_percent,
+                                                                                   challan_number=challan_number,
+                                                                                   challan_date=challan_date,
+                                                                                   invoice_number=invoice_number,
+                                                                                   order_status_flag=order_status_flag,
+                                                                                   invoice_date=invoice_date,
+                                                                                   round_off_total=round_off_total,
+                                                                                   cess_tax=cess_tax,
+                                                                                   price=grn_price,
+                                                                                   apmc_tax=apmc_tax,
+                                                                                   overall_discount=overall_discount,
+                                                                                   remarks = remarks)
+                seller_received_list.append(
+                    {'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': value,
+                     'id': seller_po_summary.id, 'remarks': remarks})
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("sellerposummary creation failed for  " + str(user.username) + \
+                 " and error statement is " + str(e))
     return seller_received_list
 
 
@@ -2992,6 +3011,8 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 purchase_data['sgst_tax'] = float(sku_row_tax_percent)/2
                 purchase_data['cgst_tax'] = float(sku_row_tax_percent)/2
         if user.userprofile.industry_type != 'FMCG':
+            if myDict['grn_price'][i]:
+                purchase_data['price']=myDict['grn_price'][i]
             cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
                     purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
                     purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent,
@@ -8606,6 +8627,8 @@ def get_po_putaway_summary(request, user=''):
         order_data = get_purchase_order_data(order)
         quantity = seller_summary.quantity
         sku = open_po.sku
+        if seller_summary.price and user.userprofile.industry_type != 'FMCG':
+            order_data['price']=seller_summary.price
         processed_val = seller_summary.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
         if processed_val:
             quantity -= processed_val
@@ -8698,7 +8721,10 @@ def get_debit_note_data(rtv_number, user):
         if user.username in MILKBASKET_USERS:
             data_dict_item['price'] = 0
         else:
-            data_dict_item['price'] = get_po.price
+            if obj.seller_po_summary.price:
+                data_dict_item['price']=obj.seller_po_summary.price
+            else:
+                data_dict_item['price'] = get_po.price
         data_dict_item['measurement_unit'] = get_po.sku.measurement_type
         data_dict_item['discount'] = get_po.sku.discount_percentage
         data_dict['invoice_num'] = obj.seller_po_summary.invoice_number

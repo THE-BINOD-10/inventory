@@ -4079,6 +4079,8 @@ def validate_putaway(all_data, user):
                 validate_seller_id = pol.purchase_order.open_po.sellerpo_set.filter()[0].seller_id
     mrp_putaway_status = []
     for key, value in all_data.iteritems():
+        if not validate_seller_id:
+            continue
         if not key[1]:
             status = 'Location is Empty, Enter Location'
         if key[1]:

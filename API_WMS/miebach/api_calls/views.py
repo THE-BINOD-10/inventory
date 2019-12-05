@@ -932,6 +932,7 @@ def get_skus(request):
     user = request.user
     search_params = {'user': user.id}
     request_data = request.body
+    search_query = Q()
     if request_data:
         try:
             request_data = json.loads(request_data)
@@ -944,7 +945,7 @@ def get_skus(request):
         if request_data.get('sku_code'):
             search_params['sku_code'] = request_data['sku_code']
         if request_data.get('sku_search'):
-            search_params['sku_code__icontains'] = request_data['sku_search']
+            search_query = build_search_term_query(['sku_code', 'sku_desc'], request_data['sku_search'])
         if attributes:
             attr_list = list(attributes.values_list('attribute_name', flat=True))
         if attr_list:
@@ -962,7 +963,7 @@ def get_skus(request):
                         attr_filter_ids = attr_ids
             if attr_found:
                 search_params['id__in'] = attr_filter_ids
-    sku_records = SKUMaster.objects.filter(**search_params)
+    sku_records = SKUMaster.objects.filter(search_query, **search_params)
     page_info = scroll_data(request, sku_records, limit=limit, request_type='body')
     sku_records = page_info['data']
     for sku in sku_records:

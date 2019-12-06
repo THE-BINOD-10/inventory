@@ -496,11 +496,12 @@ def get_sku_pack_master(start_index, stop_index, temp_data, search_term, order_t
 
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
+    search_params['sku__user'] = user.id
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
             master_data = SKUPackMaster.objects.filter(
-                Q(sku__wms_code__icontains=search_term)).order_by(order_data)
+                Q(sku__wms_code__icontains=search_term), sku__user=user.id).order_by(order_data)
     else:
         master_data = SKUPackMaster.objects.filter(**search_params).order_by(order_data)
 

@@ -6786,8 +6786,12 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
 @login_required
 @get_admin_user
 def skupack_master_download(request, user=''):
+    sku_file = request.GET['download-file']
+    if sku_file:
+        return error_file_download(sku_file)
     wb, ws = get_work_sheet('sku_pack_form', SKU_PACK_MAPPING.keys())
     return xls_to_response(wb, '%s.sku_pack_form.xls' % str(user.id))
+
 
 @csrf_exempt
 @login_required
@@ -6809,6 +6813,7 @@ def skupack_master_upload(request, user=''):
         return HttpResponse(upload_status)
     return HttpResponse('Success')
 
+
 def sku_pack_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
     log.info("Sku Pack  upload started")
     st_time = datetime.datetime.now()
@@ -6823,8 +6828,10 @@ def sku_pack_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls
     order_data = {}
     log.info("Validation Started %s" % datetime.datetime.now())
     log.info("Sku Pack data Processing Started %s" % (datetime.datetime.now()))
+    data_list = []
     for row_idx in range(1, no_of_rows):
         user_obj = ''
+        data_dict = {}
         if not order_mapping:
             break
         count += 1
@@ -6840,6 +6847,8 @@ def sku_pack_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls
                     sku_obj = SKUMaster.objects.filter(wms_code=sku_code.upper(), user=user.id)
                     if not sku_obj:
                         index_status.setdefault(count, set()).add('Invalid sku code')
+                    else:
+                        data_dict['sku_obj'] = sku_obj[0]
                 except:
                     index_status.setdefault(count, set()).add('Invalid sku code')
             redundent_sku_obj = SKUPackMaster.objects.filter(sku__wms_code= sku_code , sku__user = user.id)
@@ -6852,16 +6861,19 @@ def sku_pack_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls
 
             if not pack_id:
                 index_status.setdefault(count, set()).add('Invalid pack_id')
+            data_dict['pack_id'] = pack_id
             if redundent_sku_obj :
                 if redundent_sku_obj[0].pack_id != pack_id :
                     index_status.setdefault(count, set()).add('SKU Code is already mapped to other pack_id')
         if order_mapping.has_key('pack_quantity'):
+            pack_quantity = 0
             try:
                 pack_quantity = int(get_cell_data(row_idx, order_mapping['pack_quantity'], reader, file_type))
             except:
                 index_status.setdefault(count, set()).add('Invalid pack quantity')
-            if not pack_id:
-                index_status.setdefault(count, set()).add('Invalid pack quantity')
+            data_dict['pack_quantity'] = pack_quantity
+
+        data_list.append(data_dict)
 
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
@@ -6876,39 +6888,28 @@ def sku_pack_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls
             f_name = file_path
         return f_name
 
-    sku_pack = copy.deepcopy(SKU_PACK_DATA)
-    for row_idx in range(1, no_of_rows):
-        for key, value in order_mapping.iteritems():
-            if key == 'sku_code':
-                try:
-                    sku_code = str(int(get_cell_data(row_idx, value, reader, file_type)))
-                except:
-                    sku_code = str(get_cell_data(row_idx, value, reader, file_type))
-            elif key == 'pack_id':
-                try:
-                    pack_id = str(int(get_cell_data(row_idx, value, reader, file_type)))
-                except:
-                    pack_id = str(get_cell_data(row_idx, value, reader, file_type))
-            elif key == 'pack_quantity':
-                 pack_quantity = int(get_cell_data(row_idx, value, reader, file_type))
-
-                 pack_obj = SKUPackMaster.objects.filter(sku__wms_code= sku_code,pack_id = pack_id,sku__user = user.id)
-                 if pack_obj :
-                     pack_obj = pack_obj[0]
-                     pack_obj.pack_quantity = pack_quantity
-                     pack_obj.save()
-                 else:
-                     sku_pack['sku'] = sku_obj[0]
-                     sku_pack ['pack_id'] = pack_id
-                     sku_pack ['pack_quantity'] = pack_quantity
-                     try:
-                         SKUPackMaster.objects.create(**sku_pack)
-                         return 'Success'
-                     except Exception as e:
-                         import traceback
-                         log.debug(traceback.format_exc())
-                         log.info('Insert New SKUPACK failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()),str(e)))
-                         return 'Failed'
+    for data_dict in data_list:
+        sku_obj = data_dict['sku_obj']
+        sku_code = sku_obj.sku_code
+        pack_id = data_dict['pack_id']
+        pack_quantity = data_dict['pack_quantity']
+        sku_pack = copy.deepcopy(SKU_PACK_DATA)
+        pack_obj = SKUPackMaster.objects.filter(sku__wms_code= sku_code,pack_id = pack_id,sku__user = user.id)
+        if pack_obj:
+            pack_obj = pack_obj[0]
+            pack_obj.pack_quantity = pack_quantity
+            pack_obj.save()
+        else:
+            sku_pack['sku'] = sku_obj
+            sku_pack['pack_id'] = pack_id
+            sku_pack['pack_quantity'] = pack_quantity
+            try:
+                SKUPackMaster.objects.create(**sku_pack)
+            except Exception as e:
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info('Insert New SKUPACK failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()),str(e)))
+    return 'Success'
 
 
 @csrf_exempt

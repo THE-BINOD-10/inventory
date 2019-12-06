@@ -135,8 +135,8 @@
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
             <label class="control-label">Tax Type</label>
-            <select class="form-control" name="tax_type" ng-model="showCase.model_data.tax_type" ng-change="showCase.change_tax_type();">
-              <option ng-repeat="tax in showCase.create_order_data.taxes" ng-selected="showCase.model_data.tax_type == tax.tax_value" value="{{tax.tax_value}}">{{tax.tax_name}}</option>
+            <select class="form-control" name="tax_type" ng-modetaxesl="showCase.model_data.tax_type" ng-change="showCase.change_tax_type();">
+              <option ng-repeat="tax in showCase.create_order_data.taxes" ng-selected="showCase.model_data.tax_type == create_order_data.taxes[0].tax_type" value="{{tax.tax_value}}">{{tax.tax_name}}</option>
             </select>
           </div>
         </div>

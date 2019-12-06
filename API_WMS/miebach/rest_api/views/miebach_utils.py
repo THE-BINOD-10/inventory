@@ -1021,16 +1021,22 @@ STOCK_RECONCILIATION_REPORT_DICT = {
       {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'},
   ],
   'dt_headers': ['Created Date', 'SKU Code', 'SKU Desc', 'MRP', 'Weight', 'Vendor Name', 'Brand', 'Category',
-                 'Sub Category', 'Sub Category Type', 'Sheet', 'Opening Qty', 'Opening Avg Rate', 'Opening Amount After Tax', 'Opening Qty Damaged',
+                 'Sub Category', 'Sub Category Type', 'Sheet', 'Opening Qty', 'Opening Avg Rate', 'Opening Amount After Tax',
+                 'Opening Qty Damaged', 'Opening Damaged Amount After Tax',
                  'Purchases Qty', 'Purchases Avg Rate', 'Purchases Amount After Tax', 'Purchase Qty Damaged',
-                 'RTV Qty', 'RTV Avg Rate', 'RTV Amount After Tax', 'Rtv Qty Damaged',
+                 'Purchase Damaged Amount After Tax',
+                 'RTV Qty', 'RTV Avg Rate', 'RTV Amount After Tax', 'RTV Qty Damaged', 'RTV Damaged Amount After Tax',
                  'Customer Sales Qty', 'Customer Sales Avg Rate', 'Customer Sales Amount After Tax', 'Customer Sales Qty Damaged',
+                 'Customer Sales Damaged Amount After Tax',
                  'Internal Sales Qty', 'Internal Sales Avg Rate', 'Internal Sales Amount After Tax', 'Internal Sales Qty Damaged',
+                 'Internal Sales Damaged Amount After Tax',
                  'Stock Transfer Qty', 'Stock Transfer Avg Rate', 'Stock Transfer Amount After Tax', 'Stock Transfer Qty Damaged',
-                 'Returns Qty', 'Returns Avg Rate', 'Returns Amount After Tax', 'Returns Qty Damaged',
+                 'Stock Transfer Damaged Amount After Tax',
+                 'Returns Qty', 'Returns Avg Rate', 'Returns Amount After Tax', 'Returns Qty Damaged', 'Returns Damaged Amount After Tax',
                  'Adjustment Qty', 'Adjustment Avg Rate', 'Adjustment Amount After Tax', 'Adjustment Qty Damaged',
-                 'Closing Qty', 'Closing Avg Rate', 'Closing Amount After Tax', 'Closing Qty Damaged', 'Warehouse Name',
-                 'Report Generation Time'],
+                 'Adjustment Damaged Amount After Tax',
+                 'Closing Qty', 'Closing Avg Rate', 'Closing Amount After Tax', 'Closing Qty Damaged',
+                 'Closing Damaged Amount After Tax', 'Warehouse Name', 'Report Generation Time'],
   'dt_url': 'get_stock_reconciliation_report', 'excel_name': 'get_stock_reconciliation_report',
   'print_url': 'print_stock_reconciliation_report',
 }
@@ -8841,6 +8847,18 @@ def get_basa_report_data(search_params, user, sub_user):
                                                  ('Sub Category', sub_category), ('Stock( Only BA and SA)', quantity),('Weight',weight),('MRP',mrp),('Avg CP',"%.2f" %average_cost_price),('Latest GRN Qty',grn_quantity),('Latest GRN CP', "%.2f" % grn_price))))
     return temp_data
 
+def stock_rec_damaged_amount(stock_rec_obj):
+    damaged_amount_dict = {}
+    field_names = ['opening', 'purchase', 'rtv', 'customer_sales', 'internal_sales', 'stock_transfer',
+                    'returns', 'adjustment', 'closing']
+    for field_name in field_names:
+        damaged_qty = getattr(stock_rec_obj, '%s_qty_damaged' % field_name)
+        field_qty = getattr(stock_rec_obj, '%s_quantity' % field_name)
+        field_amount = getattr(stock_rec_obj, '%s_amount' % field_name)
+        damaged_amount_dict[field_name] = 0
+        if damaged_qty and field_amount:
+            damaged_amount_dict[field_name] = (field_amount/field_qty) * damaged_qty
+    return damaged_amount_dict
 
 def get_stock_reconciliation_report_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date
@@ -8848,14 +8866,16 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['creation_date', 'sku__sku_code', 'sku__sku_desc', 'mrp', 'weight', 'sku__sku_code',
            'sku__sku_brand', 'sku__sku_category', 'sku__sub_category', 'sku__sku_code', 'sku__sku_code',
-           'opening_quantity', 'opening_avg_rate',
-           'opening_amount', 'opening_qty_damaged', 'purchase_quantity', 'purchase_avg_rate', 'purchase_amount', 'purchase_qty_damaged',
-           'rtv_quantity', 'rtv_avg_rate', 'rtv_amount', 'rtv_qty_damaged', 'customer_sales_quantity', 'customer_sales_avg_rate',
-           'customer_sales_amount', 'customer_sales_qty_damaged', 'internal_sales_quantity', 'internal_sales_avg_rate', 'internal_sales_amount', 'internal_sales_qty_damaged',
-           'stock_transfer_quantity', 'stock_transfer_avg_rate', 'stock_transfer_amount', 'stock_transfer_qty_damaged',
-           'returns_quantity', 'returns_avg_rate', 'returns_amount', 'returns_qty_damaged',
-           'adjustment_quantity', 'adjustment_avg_rate', 'adjustment_amount', 'adjustment_qty_damaged',
-           'closing_quantity', 'closing_avg_rate', 'closing_amount', 'closing_qty_damaged', 'id', 'id']
+           'opening_quantity', 'opening_avg_rate', 'opening_amount', 'opening_qty_damaged', 'opening_qty_damaged',
+           'purchase_quantity', 'purchase_avg_rate', 'purchase_amount', 'purchase_qty_damaged', 'purchase_qty_damaged',
+           'rtv_quantity', 'rtv_avg_rate', 'rtv_amount', 'rtv_qty_damaged', 'rtv_qty_damaged',
+           'customer_sales_quantity', 'customer_sales_avg_rate', 'customer_sales_amount', 'customer_sales_qty_damaged',
+           'customer_sales_qty_damaged', 'internal_sales_quantity', 'internal_sales_avg_rate', 'internal_sales_amount',
+           'internal_sales_qty_damaged', 'internal_sales_qty_damaged', 'stock_transfer_quantity', 'stock_transfer_avg_rate',
+           'stock_transfer_amount', 'stock_transfer_qty_damaged', 'stock_transfer_qty_damaged',
+           'returns_quantity', 'returns_avg_rate', 'returns_amount', 'returns_qty_damaged', 'returns_qty_damaged',
+           'adjustment_quantity', 'adjustment_avg_rate', 'adjustment_amount', 'adjustment_qty_damaged', 'adjustment_qty_damaged',
+           'closing_quantity', 'closing_avg_rate', 'closing_amount', 'closing_qty_damaged', 'closing_qty_damaged', 'id', 'id']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
     order_data = lis[col_num]
@@ -8907,6 +8927,7 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
         sku_attr_data = dict(sku.skuattributes_set.filter(attribute_name__in=['Manufacturer', 'Sub Category Type',
                                                                               'Sheet', 'Vendor', 'Searchable', 'Bundle']).\
                                                 values_list('attribute_name', 'attribute_value'))
+        damaged_amount_dict = stock_rec_damaged_amount(stock_rec_obj)
         temp_data['aaData'].append(OrderedDict(( ('Created Date', creation_date),
                                                  ('SKU Code', sku.sku_code), ('SKU Desc', sku.sku_desc),
                                                  ('MRP', stock_rec_obj.mrp), ('Weight', stock_rec_obj.weight),
@@ -8923,45 +8944,54 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
                                                  ('Opening Avg Rate', "%.2f" % stock_rec_obj.opening_avg_rate),
                                                  ('Opening Amount After Tax', "%.2f" % stock_rec_obj.opening_amount),
                                                  ('Opening Qty Damaged', stock_rec_obj.opening_qty_damaged),
+                                                 ('Opening Damaged Amount After Tax', damaged_amount_dict['opening']),
                                                  ('Purchases Qty',  stock_rec_obj.purchase_quantity),
                                                  ('Purchases Avg Rate', "%.2f" % stock_rec_obj.purchase_avg_rate),
                                                  ('Purchases Amount After Tax', "%.2f" % stock_rec_obj.purchase_amount),
                                                  ('Purchase Qty Damaged', stock_rec_obj.purchase_qty_damaged),
+                                                 ('Purchase Damaged Amount After Tax', damaged_amount_dict['purchase']),
                                                  ('RTV Qty', stock_rec_obj.rtv_quantity),
                                                  ('RTV Avg Rate', "%.2f" % stock_rec_obj.rtv_avg_rate),
                                                  ('RTV Amount After Tax', "%.2f" % stock_rec_obj.rtv_amount),
-                                                 ('Rtv Qty Damaged', stock_rec_obj.rtv_qty_damaged),
+                                                 ('RTV Qty Damaged', stock_rec_obj.rtv_qty_damaged),
+                                                 ('RTV Damaged Amount After Tax', damaged_amount_dict['rtv']),
                                                  ('Customer Sales Qty', stock_rec_obj.customer_sales_quantity),
                                                  ('Customer Sales Avg Rate', "%.2f" % stock_rec_obj.customer_sales_avg_rate),
                                                  ('Customer Sales Amount After Tax',
                                                   "%.2f" % stock_rec_obj.customer_sales_amount),
                                                  ('Customer Sales Qty Damaged', stock_rec_obj.customer_sales_qty_damaged),
+                                                 ('Customer Sales Damaged Amount After Tax', damaged_amount_dict['customer_sales']),
                                                  ('Internal Sales Qty',  stock_rec_obj.internal_sales_quantity),
                                                  ('Internal Sales Avg Rate', "%.2f" % stock_rec_obj.internal_sales_avg_rate),
                                                  ('Internal Sales Amount After Tax', "%.2f" % stock_rec_obj.internal_sales_amount),
                                                  ('Internal Sales Qty Damaged', stock_rec_obj.internal_sales_qty_damaged),
+                                                 ('Internal Sales Damaged Amount After Tax', damaged_amount_dict['internal_sales']),
                                                  ('Stock Transfer Qty', stock_rec_obj.stock_transfer_quantity),
                                                  ('Stock Transfer Avg Rate',
                                                   "%.2f" % stock_rec_obj.stock_transfer_avg_rate),
                                                  ('Stock Transfer Amount After Tax',
                                                   "%.2f" % stock_rec_obj.stock_transfer_amount),
                                                  ('Stock Transfer Qty Damaged', stock_rec_obj.stock_transfer_qty_damaged),
+                                                 ('Stock Transfer Damaged Amount After Tax', damaged_amount_dict['stock_transfer']),
                                                  ('Returns Qty', stock_rec_obj.returns_quantity),
                                                  ('Returns Avg Rate',
                                                   "%.2f" % stock_rec_obj.returns_avg_rate),
                                                  ('Returns Amount After Tax',
                                                   "%.2f" % stock_rec_obj.returns_amount),
                                                  ('Returns Qty Damaged', stock_rec_obj.returns_qty_damaged),
+                                                 ('Returns Damaged Amount After Tax', damaged_amount_dict['returns']),
                                                  ('Adjustment Qty', stock_rec_obj.adjustment_quantity),
                                                  ('Adjustment Avg Rate',
                                                   "%.2f" % stock_rec_obj.adjustment_avg_rate),
                                                  ('Adjustment Amount After Tax',
                                                   "%.2f" % stock_rec_obj.adjustment_amount),
                                                  ('Adjustment Qty Damaged', stock_rec_obj.adjustment_qty_damaged),
+                                                 ('Adjustment Damaged Amount After Tax', damaged_amount_dict['adjustment']),
                                                  ('Closing Qty',  stock_rec_obj.closing_quantity),
                                                  ('Closing Avg Rate', "%.2f" % stock_rec_obj.closing_avg_rate),
                                                  ('Closing Amount After Tax', "%.2f" % stock_rec_obj.closing_amount),
                                                  ('Closing Qty Damaged', stock_rec_obj.closing_qty_damaged),
+						 ('Closing Damaged Amount After Tax', damaged_amount_dict['closing']),
                                                  ('Warehouse Name', user.username),
                                                  ('Report Generation Time', str(datetime.datetime.now()))
                                               )))

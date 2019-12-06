@@ -9050,7 +9050,7 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
 
 
 def get_move_inventory_report_data(search_params, user, sub_user):
-    from rest_api.views.common import get_sku_master, get_local_date
+    from rest_api.views.common import get_sku_master, get_local_date, get_utc_start_date
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['sku__sku_code','sku__sku_desc','source_location__location','dest_location__location','quantity',
@@ -9069,11 +9069,12 @@ def get_move_inventory_report_data(search_params, user, sub_user):
         order_data = '-%s' % order_data
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
         search_parameters['creation_date__gt'] = search_params['from_date']
     if 'to_date' in search_params:
-        search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + \
+        search_parameters['creation_date__lt'] = get_utc_start_date(datetime.datetime.combine(search_params['to_date'] + \
                                                                            datetime.timedelta(1),
-                                                             datetime.time())
+                                                             datetime.time()))
     if 'sku_code' in search_params:
         search_parameters['sku__wms_code'] = search_params['sku_code']
     if 'sku_category' in search_params:

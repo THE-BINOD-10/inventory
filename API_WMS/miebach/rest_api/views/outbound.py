@@ -2578,6 +2578,7 @@ def update_invoice(request, user=''):
         ord_det_id = request.POST.get("id", "")
         cm_id = request.POST.get("customer_id", "")
         myDict = dict(request.POST.iterlists())
+        order_code = get_order_prefix(user.id)
         if invoice_date:
             invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
         # order_id_val = ''.join(re.findall('\d+', order_ids))
@@ -2617,7 +2618,7 @@ def update_invoice(request, user=''):
                 if shipment_date:
                     ship_date = shipment_date.split('/')
                     shipment_date = datetime.date(int(ship_date[2]), int(ship_date[0]), int(ship_date[1]))
-                order_id = org_ord_id.replace('MN', '').replace('DC', '').replace('PRE', '')
+                order_id = org_ord_id.replace(order_code, '').replace('DC', '').replace('PRE', '')
                 ord_obj = OrderDetail.objects.filter(original_order_id=org_ord_id)
                 address = myDict['ship_to'][0]
                 sku_qs = SKUMaster.objects.filter(sku_code=sku_id, user=user.id)
@@ -3897,6 +3898,7 @@ def after_admin_approval(request, user=''):
     admin_items, items = [], []
     approval_status = request.POST.get('approval_status', '')
     user_id = user.id
+    order_code_prefix = get_order_prefix(user.id)
     approve_id = request.POST.get('approve_id', '')
     #sku_code = request.POST.get('sku_code', '')
     #quantity = request.POST.get('quantity', '')
@@ -3927,11 +3929,11 @@ def after_admin_approval(request, user=''):
             invoice_amount = amt + ((amt/100) * (ap_status.cgst_tax + ap_status.sgst_tax + ap_status.igst_tax + ap_status.igst_tax))
             admin_items.append([ap_status.sku.sku_desc, quantity, invoice_amount])
             items.append([ap_status.sku.sku_desc, quantity])
-            detail_check = OrderDetail.objects.filter(order_id= order_id,sku_id= ap_status.sku_id,user = user.id,order_code = 'MN')
+            detail_check = OrderDetail.objects.filter(order_id= order_id,sku_id= ap_status.sku_id,user = user.id,order_code = order_code_prefix)
             data_dict = {'order_id':order_id, 'customer_id':customer_user_id, 'user':user_id,
             'title':ap_status.sku.sku_desc, 'quantity':quantity,'invoice_amount':invoice_amount,
-            'sku_id':ap_status.sku_id,'shipment_date':shipment_date,'order_code':'MN',
-            'original_order_id':'MN'+str(order_id), 'status':1}
+            'sku_id':ap_status.sku_id,'shipment_date':shipment_date,'order_code':order_code_prefix,
+            'original_order_id':order_code_prefix+str(order_id), 'status':1}
             if detail_check:
                 detail_check.update(quantity= quantity,invoice_amount= invoice_amount)
             else:
@@ -4663,6 +4665,7 @@ def create_order_from_intermediate_order(request, user):
     host_details = request.META.get('wsgi.url_scheme')+'://'+request.META.get('HTTP_HOST')
     dispatch_qc_check = get_misc_value('dispatch_qc_check', user.id)
     central_order_reassigning =  get_misc_value('central_order_reassigning', user.id) #for 72networks
+    order_code = get_order_prefix(user.id)
     warehouses = json.loads(request.POST.get('warehouse'))
     for wh, wh_data in warehouses.iteritems():
         # Picklist generation
@@ -4785,7 +4788,7 @@ def create_order_from_intermediate_order(request, user):
                         if intermediate_obj:
                             order_dict['customer_name'] = intermediate_obj[0].customer_name
                     order_dict['quantity'] = int(wh_data['quantity'])
-                    order_dict['order_code'] = 'MN'
+                    order_dict['order_code'] = order_code
                     order_dict['shipment_date'] = interm_obj.shipment_date
                     order_dict['order_id'] = get_order_id(wh_id)
                     order_dict['original_order_id'] = order_dict['order_code'] + str(order_dict['order_id'])
@@ -4944,11 +4947,12 @@ def create_backorders(backorder_splitup_map, admin_user, sku_total_qty_map):
                     cm_id = cust_obj.id
                     generic_order_id = get_generic_order_id(cm_id)
                     parent_user = cust_obj.user
-                    backorder_copy = {'quantity': qty, 'order_code': 'MN', 'customer_id': cust_obj.customer_id,
+                    order_code = get_order_prefix(parent_user.id)
+                    backorder_copy = {'quantity': qty, 'order_code': order_code, 'customer_id': cust_obj.customer_id,
                                       'customer_name': cust_obj.name, 'telephone': cust_obj.phone_number,
                                       'email_id': cust_obj.email_id, 'address': cust_obj.address, 'user': parent_user,
                                       'order_id': get_order_id(parent_user)}
-                    backorder_copy['original_order_id'] = 'MN%s' % backorder_copy['order_id']
+                    backorder_copy['original_order_id'] = '%s%s' % (order_code,backorder_copy['order_id'])
                     if cust_obj.tax_type:
                         inter_state_dict = dict(
                             zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
@@ -5116,6 +5120,7 @@ def insert_order_data(request, user=''):
     vehicle_number = request.POST.get('vehicle_num', '')
     is_central_order = request.POST.get('is_central_order', '')
     marketplace_value = request.POST.get('market_list', '')
+    order_code = get_order_prefix(user.id)
     isprava_user = get_admin(user)
     if dist_shipment_address:
         ship_to = dist_shipment_address
@@ -5173,7 +5178,7 @@ def insert_order_data(request, user=''):
             #order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
             # order_data['order_id'] = order_id
             order_data['status'] = order_status_key
-            order_data['order_code'] = 'MN'
+            order_data['order_code'] = order_code
             order_data['marketplace'] = 'Offline'
             if is_sample == 'true':
                 order_data['marketplace'] = 'Sample'
@@ -9509,6 +9514,7 @@ def get_only_date(request, date):
 def get_level_based_customer_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     lis = ['generic_order_id','quantity','Emiza_order_ids', 'corporate_name', 'Delivered Qty', 'Pending Qty', 'Order Value', 'creation_date', 'orderdetail__status', 'po_number', 'schedule_date', 'remarks']
     search_params = get_filtered_params(filters, lis)
+    order_code = get_order_prefix(user.id)
     corporatae_name = ''
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -9619,7 +9625,7 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
             for usr , org_id, expected_date in related_order_ids:
                 record['expected_date'] = expected_date.strftime("%d/%m/%y")
                 if usr in orderprefix_map:
-                    emiza_id = orderprefix_map[usr]+'MN'+str(org_id)
+                    emiza_id = orderprefix_map[usr]+order_code+str(org_id)
                     emiza_order_ids.append(emiza_id)
             record['Emiza_ids'] = list(set(emiza_order_ids))
 
@@ -14009,10 +14015,11 @@ def convert_customorder_to_actualorder(request, user=''):
         order_objs = []
         order_sku = {}
         for usr, qty in stock_wh_map.items():
+            order_code = get_order_prefix(usr)
             if qty <= 0:
                 continue
             order_id = get_order_id(usr)  # user.id should be either DL01 or MH01
-            org_ord_id = 'MN' + str(order_id)
+            org_ord_id = order_code + str(order_id)
             invoice_amount = get_tax_inclusive_invoice_amt(cm_id, smd_price, qty, usr, sku_code, admin_user=admin_user)
             mapped_sku_id = get_syncedusers_mapped_sku(usr, sku_id)
 
@@ -14020,7 +14027,7 @@ def convert_customorder_to_actualorder(request, user=''):
                                  'original_order_id': org_ord_id, 'user': usr,
                                  'shipment_date': exp_date, 'unit_price': smd_price, 'invoice_amount': invoice_amount,
                                  'creation_date': datetime.datetime.now(), 'status': 1,
-                                 'order_code': 'MN', 'remarks' : remarks_value, 'marketplace': 'Offline'}
+                                 'order_code': order_code, 'remarks' : remarks_value, 'marketplace': 'Offline'}
             order_detail_dict.update(dist_order_copy)
             ord_qs = OrderDetail.objects.filter(sku_id=mapped_sku_id, order_id=order_id, user=usr)
             if not ord_qs:

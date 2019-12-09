@@ -107,6 +107,12 @@ def number_in_words(value):
     value = (num2words(int(round(value)), lang='en_IN').replace(',', '').replace('-', ' ')).capitalize()
     return value
 
+def get_order_prefix(userId):
+    order_prefix = 'MN'
+    data = get_misc_value('order_prefix', userId)
+    if data != 'false' and data:
+        order_prefix = data
+    return order_prefix
 
 def service_worker_check(request):
     current_sw = request.GET.get('current_version')
@@ -1363,6 +1369,7 @@ def auto_po_warehouses(sku, qty):
     supplier_id = ''
     price = 0
     taxes = {}
+    order_code = get_order_prefix(sku.user.id)
     wh_customer_map = WarehouseCustomerMapping.objects.filter(warehouse_id=sku.user)
     if not wh_customer_map:
         return supplier_id, price, taxes
@@ -1404,8 +1411,8 @@ def auto_po_warehouses(sku, qty):
                 taxes['utgst_tax'] = float(tax_master.utgst_tax)
         invoice_amount = qty * unit_price
         invoice_amount = invoice_amount + ((invoice_amount/100) * sum(taxes.values()))
-        order_data = {'sku_id': sku_id, 'order_id': order_id, 'order_code': 'MN',
-                      'original_order_id': 'MN' + str(order_id), 'user': usr, 'quantity': qty,
+        order_data = {'sku_id': sku_id, 'order_id': order_id, 'order_code': order_code,
+                      'original_order_id': order_code + str(order_id), 'user': usr, 'quantity': qty,
                       'unit_price': unit_price, 'marketplace': 'Offline', 'customer_id': customer_master.customer_id,
                       'customer_name': customer_master.name, 'invoice_amount': invoice_amount,
                       'title': sku.sku_desc, 'status': 1, 'shipment_date': datetime.datetime.now(),
@@ -2610,8 +2617,9 @@ def get_order_id(user_id, is_pos=False):
         order_key = "-order_id"
     else:
         order_key = "-creation_date"
+    order_code = get_order_prefix(user_id)
     order_detail_id = OrderDetail.objects.filter(Q(order_code__in=\
-                                          ['MN', 'Delivery Challan', 'sample', 'R&D', 'CO','Pre Order']) |
+                                          [order_code, 'Delivery Challan', 'sample', 'R&D', 'CO','Pre Order']) |
                                           reduce(operator.or_, (Q(order_code__icontains=x)\
                                           for x in ['DC', 'PRE'])), user=user_id)\
                                           .order_by(order_key)
@@ -2680,6 +2688,7 @@ def get_central_order_id(customer_id):
 
 def check_and_update_stock(wms_codes, user):
     stock_sync = get_misc_value('stock_sync', user.id)
+    order_code = get_order_prefix(user.id)
     if not stock_sync == 'true':
         return
     from rest_api.views.easyops_api import *
@@ -2688,7 +2697,7 @@ def check_and_update_stock(wms_codes, user):
         sku__wms_code__in=wms_codes,
         sku__user=user.id).values('sku__wms_code').distinct().annotate(total_sum=Sum('quantity'))
 
-    reserved_instances = Picklist.objects.exclude(order__order_code='MN').filter(status__icontains='picked',
+    reserved_instances = Picklist.objects.exclude(order__order_code=order_code).filter(status__icontains='picked',
                                                                                  order__user=user.id,
                                                                                  picked_quantity__gt=0,
                                                                                  order__sku__wms_code__in=wms_codes). \
@@ -8727,7 +8736,8 @@ def check_purchase_order_created(user, po_id):
 
 
 def check_order_detail_created(user, order_id):
-    order_data = OrderDetail.objects.filter(Q(order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO','Pre Order']) |reduce(operator.or_, (Q(order_code__icontains=x)for x in ['DC', 'PRE'])),
+    order_code = get_order_prefix(user.id)
+    order_data = OrderDetail.objects.filter(Q(order_code__in=[order_code, 'Delivery Challan', 'sample', 'R&D', 'CO','Pre Order']) |reduce(operator.or_, (Q(order_code__icontains=x)for x in ['DC', 'PRE'])),
                                             user=user.id, order_id=order_id)
     if not order_data.exists():
         check_and_update_incremetal_type_val(order_id, user, 'order_detail')

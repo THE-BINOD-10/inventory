@@ -3907,7 +3907,6 @@ def after_admin_approval(request, user=''):
     #title = request.POST.get('sku_desc', '')
     shipment_date = request.POST.get('shipment_date',None)
     order_summary = create_orders_data(request, user='')
-    order_code = get_order_prefix(user.id)
     order_id = get_order_id(user.id)
     if shipment_date:
         shipment_date = datetime.datetime.strptime(shipment_date, "%m/%d/%Y")
@@ -3933,8 +3932,8 @@ def after_admin_approval(request, user=''):
             detail_check = OrderDetail.objects.filter(order_id= order_id,sku_id= ap_status.sku_id,user = user.id,order_code = order_code_prefix)
             data_dict = {'order_id':order_id, 'customer_id':customer_user_id, 'user':user_id,
             'title':ap_status.sku.sku_desc, 'quantity':quantity,'invoice_amount':invoice_amount,
-            'sku_id':ap_status.sku_id,'shipment_date':shipment_date,'order_code':order_code,
-            'original_order_id':order_code+str(order_id), 'status':1}
+            'sku_id':ap_status.sku_id,'shipment_date':shipment_date,'order_code':order_code_prefix,
+            'original_order_id':order_code_prefix+str(order_id), 'status':1}
             if detail_check:
                 detail_check.update(quantity= quantity,invoice_amount= invoice_amount)
             else:

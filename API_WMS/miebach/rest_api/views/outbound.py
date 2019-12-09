@@ -862,6 +862,7 @@ def get_picklist_data(data_id, user_id):
     sku_total_quantities = {}
     # sku_imeis_map = {}
     is_combo_picklist = False
+    sku_sequence = 999
     # manufactured_date =''
     # st_order =''
     picklist_orders = Picklist.objects.filter(Q(order__sku__user=user_id) | Q(stock__sku__user=user_id),
@@ -900,6 +901,7 @@ def get_picklist_data(data_id, user_id):
         for order in picklist_orders:
             stock_id = ''
             wms_code = order.sku_code
+            sku_sequence = order.order.sku.sequence
             customer_name = ''
             remarks = ''
             load_unit_handle = ''
@@ -969,6 +971,7 @@ def get_picklist_data(data_id, user_id):
                 location = stock_id.location.location
                 image = stock_id.sku.image_url
                 wms_code = stock_id.sku.wms_code
+                sku_sequence = stock_id.sku.sequence
                 load_unit_handle = stock_id.sku.load_unit_handle
                 category = stock_id.sku.sku_category
                 if stock_id.batch_detail:
@@ -1007,7 +1010,7 @@ def get_picklist_data(data_id, user_id):
 
                 batch_data[match_condition] = {'wms_code': wms_code, 'zone': zone, 'sequence': sequence,
                                                'location': location, 'reserved_quantity': reserved_quantity,
-                                               'picklist_number': data_id, 'stock_id': st_id,
+                                               'picklist_number': data_id, 'stock_id': st_id, 'sku_sequence': sku_sequence,
                                                'picked_quantity': reserved_quantity, 'id': order.id,
                                                'invoice_amount': invoice, 'price': invoice * reserved_quantity,
                                                'image': image, 'order_id': str(order.order_id), 'status': order.status,
@@ -1037,6 +1040,8 @@ def get_picklist_data(data_id, user_id):
                 data = sorted(data, key=itemgetter('order_id'))
             else:
                 data = sorted(data, key=itemgetter('sequence'))
+        else:
+            data = sorted(data, key=itemgetter('sku_sequence'))
         return data, sku_total_quantities, courier_name
 
     elif order_status == "open":
@@ -1060,6 +1065,7 @@ def get_picklist_data(data_id, user_id):
                 parent_sku_code = order.order.sku.sku_code
             if order.order:
                 wms_code = order.order.sku.wms_code
+                sku_sequence = order.order.sku.sequence
                 if order.order_type == 'combo' and order.sku_code:
                     wms_code = order.sku_code
                 invoice_amount = order.order.invoice_amount
@@ -1088,6 +1094,7 @@ def get_picklist_data(data_id, user_id):
                 invoice_amount = 0
                 order_id = ''
                 sku_code = order.stock.sku.sku_code
+                sku_sequence = order.order.sku.sequence
                 title = order.stock.sku.sku_desc
                 marketplace = ""
                 load_unit_handle = order.stock.sku.load_unit_handle
@@ -1114,6 +1121,7 @@ def get_picklist_data(data_id, user_id):
                 location = stock_id.location.location
                 image = stock_id.sku.image_url
                 wms_code = stock_id.sku.wms_code
+                sku_sequence = stock_id.sku.sequence
                 if stock_id.batch_detail:
                     mrp = stock_id.batch_detail.mrp
                     batch_no = stock_id.batch_detail.batch_no
@@ -1143,7 +1151,7 @@ def get_picklist_data(data_id, user_id):
 
             data.append(
                 {'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity,
-                 'picklist_number': data_id, 'stock_id': st_id, 'order_id': str(order.order_id),
+                 'picklist_number': data_id, 'stock_id': st_id, 'order_id': str(order.order_id), 'sku_sequence': sku_sequence,
                  'picked_quantity': order.reserved_quantity, 'id': order.id, 'sequence': sequence,
                  'invoice_amount': invoice_amount, 'price': invoice_amount * order.reserved_quantity, 'image': image,
                  'status': order.status, 'order_no': order_id, 'pallet_code': pallet_code, 'sku_code': sku_code,
@@ -1166,6 +1174,8 @@ def get_picklist_data(data_id, user_id):
                 data = sorted(data, key=itemgetter('order_id'))
             else:
                 data = sorted(data, key=itemgetter('sequence'))
+        else:
+            data = sorted(data, key=itemgetter('sku_sequence'))
         return data, sku_total_quantities, courier_name
     else:
         courier_name = ''

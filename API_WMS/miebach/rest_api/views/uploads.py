@@ -518,6 +518,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
 
 def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
     log.info("order upload started")
+    order_code_prefix = get_order_prefix(user.id)
     st_time = datetime.datetime.now()
     index_status = {}
     # order_mapping = get_order_mapping1(reader, file_type, no_of_rows, no_of_cols)
@@ -531,7 +532,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
     order_id_order_type = {}
     log.info("Validation Started %s" % datetime.datetime.now())
     exist_created_orders = OrderDetail.objects.filter(user=user.id,
-                                                      order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO'])
+                                                      order_code__in=[order_code_prefix, 'Delivery Challan', 'sample', 'R&D', 'CO'])
     extra_fields_mapping = OrderedDict()
     extra_fields_data = OrderedDict()
     for row_idx in range(0, 1):
@@ -695,7 +696,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     # order_data['order_id'] = int(str(time.time()).replace(".", ""))
                     # order_data['order_id'] = time.time()* 1000000
                     order_data['order_id'] = get_order_id(user.id)
-                    order_data['order_code'] = 'MN'
+                    order_data['order_code'] = order_code_prefix
 
             elif key == 'quantity':
                 order_data[key] = float(get_cell_data(row_idx, value, reader, file_type))
@@ -866,7 +867,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
         if not order_data.get('order_id', ''):
             order_data['order_id'] = get_order_id(user.id)
-            order_data['order_code'] = 'MN'
+            order_data['order_code'] = order_code_prefix
         if isinstance(order_data['order_id'], float):
             order_data['order_id'] = str(int(order_data['order_id'])).upper()
         if isinstance(order_data['original_order_id'], float):

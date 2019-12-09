@@ -36,6 +36,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'loc_serial_mapping_switch':false,
                     'brand_categorization':false,
                     'purchase_order_preview':false,
+                    'stop_default_tax':false,
                     'order_prefix': false,
                   };
   vm.all_mails = '';
@@ -63,7 +64,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      81: 'rtv_prefix_code',82:'pos_remarks', 83:'dispatch_qc_check', 84:'block_expired_batches_picklist', 85:'non_transacted_skus',
                      86:'sku_less_than_threshold', 87:'decimal_limit_price', 88: 'mandate_sku_supplier', 89: 'update_mrp_on_grn', 90: 'allow_rejected_serials',
                      91: 'weight_integration_name', 92:'repeat_po', 93:'brand_categorization', 94:'loc_serial_mapping_switch', 95:'purchase_order_preview',
-                     96: 'order_prefix',
+                     96:'stop_default_tax', 97: 'order_prefix',
                      }
 
   vm.check_box_data = [
@@ -540,6 +541,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    name: "Enable Purchase Order Preview",
    model_name: "purchase_order_preview",
    param_no: 95,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
+   name: "Stop Default Tax Type in Create Order",
+   model_name: "stop_default_tax",
+   param_no: 96,
    class_name: "fa fa-server",
    display: true
   }

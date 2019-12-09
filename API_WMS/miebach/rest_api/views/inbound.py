@@ -1079,6 +1079,7 @@ def switches(request, user=''):
                        'loc_serial_mapping_switch':'loc_serial_mapping_switch',
                        'brand_categorization':'brand_categorization',
                        'purchase_order_preview':'purchase_order_preview',
+                       'stop_default_tax':'stop_default_tax',
                        'order_prefix':'order_prefix',
                        }
         toggle_field, selection = "", ""

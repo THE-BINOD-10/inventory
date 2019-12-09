@@ -8380,7 +8380,8 @@ def get_outbound_payment_report(start_index, stop_index, temp_data, search_term,
 @get_admin_user
 def create_orders_data(request, user=''):
     tax_types = copy.deepcopy(TAX_VALUES)
-    tax_types.append({'tax_name': 'DEFAULT', 'tax_value': ''})
+    if not get_misc_value('stop_default_tax', user.id) == 'true':
+        tax_types.insert(0,{'tax_name': 'DEFAULT', 'tax_value': ''})
     invoice_types = get_invoice_types(user)
     mode_of_transport = get_mode_of_transport(user)
     return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_types,

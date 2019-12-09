@@ -110,7 +110,7 @@ def number_in_words(value):
 def get_order_prefix(userId):
     order_prefix = 'MN'
     data = get_misc_value('order_prefix', userId)
-    if data != 'false':
+    if data != 'false' and data:
         order_prefix = data
     return order_prefix
 

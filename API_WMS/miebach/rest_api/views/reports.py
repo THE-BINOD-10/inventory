@@ -560,6 +560,7 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
     status_dict = {'0': 'Inactive', '1': 'Active'}
     temp_data['draw'] = search_params.get('draw')
     marketplace = ''
+    order_code = get_order_prefix(user.id)
     if 'creation_date' in search_params:
         search_parameters['creation_date__gt'] = search_params['creation_date']
     if 'to_date' in search_params:
@@ -569,7 +570,7 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
     if 'wms_code' in search_params:
         search_parameters['sku__wms_code'] = search_params['wms_code'].upper()
     if 'order_id' in search_params:
-        value = search_params['order_id'].strip('OD').strip('MN').strip('SR')
+        value = search_params['order_id'].strip('OD').strip(order_code).strip('SR')
         search_parameters['order__order_id'] = value
     if 'customer_id' in search_params:
         search_parameters['order__customer_id'] = search_params['customer_id']

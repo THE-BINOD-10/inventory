@@ -37,6 +37,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'brand_categorization':false,
                     'purchase_order_preview':false,
                     'stop_default_tax':false,
+                    'delivery_challan_terms_condtions': '',
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -63,7 +64,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      81: 'rtv_prefix_code',82:'pos_remarks', 83:'dispatch_qc_check', 84:'block_expired_batches_picklist', 85:'non_transacted_skus',
                      86:'sku_less_than_threshold', 87:'decimal_limit_price', 88: 'mandate_sku_supplier', 89: 'update_mrp_on_grn', 90: 'allow_rejected_serials',
                      91: 'weight_integration_name', 92:'repeat_po', 93:'brand_categorization', 94:'loc_serial_mapping_switch', 95:'purchase_order_preview',
-                     96:'stop_default_tax',
+                     96:'stop_default_tax', 97:'delivery_challan_terms_condtions',
                      }
 
   vm.check_box_data = [
@@ -771,6 +772,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       vm.getDeclaration(vm.model_data.invoice_declaration)
       vm.getPosremarks(vm.model_data.pos_remarks)
       vm.getRaisePOterms(vm.model_data.raisepo_terms_conditions)
+      vm.getDeliveryChallanterms(vm.model_data.delivery_challan_terms_condtions)
     }
   })
 
@@ -1313,6 +1315,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     vm.switches(data, 78);
     Auth.status();
   }
+  vm.delivery_challan_terms_condtions = function(delivery_challan_terms_condtions){
+    var data = $("[name='delivery_challan_terms_condtions']").val().split("\n").join("<<>>");
+    vm.switches(data, 97);
+    Auth.status();
+  }
 
   vm.getRemarks = function(remarks) {
 
@@ -1352,6 +1359,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $("[name='raisepo_terms_conditions']").val( raisepo_terms_conditions );
     }
     }, 1000);
+  }
+  vm.getDeliveryChallanterms = function(delivery_challan_terms_condtions) {
+    $timeout(function() {
+    if(delivery_challan_terms_condtions && delivery_challan_terms_condtions.split("<<>>").length > 1) {
+      $("[name='delivery_challan_terms_condtions']").val( delivery_challan_terms_condtions.split("<<>>").join("\n") )
+    } else {
+      $("[name='delivery_challan_terms_condtions']").val( delivery_challan_terms_condtions );
+    }
+    }, 1000)
   }
 
       var keynum = "";

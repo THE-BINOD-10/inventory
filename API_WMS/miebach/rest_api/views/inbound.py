@@ -1080,6 +1080,7 @@ def switches(request, user=''):
                        'brand_categorization':'brand_categorization',
                        'purchase_order_preview':'purchase_order_preview',
                        'stop_default_tax':'stop_default_tax',
+                       'delivery_challan_terms_condtions': 'delivery_challan_terms_condtions',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -1102,6 +1103,8 @@ def switches(request, user=''):
                 data[0].save()
         elif toggle_field == 'raisepo_terms_conditions':
             data = UserTextFields.objects.update_or_create(user_id=user_id, field_type = 'terms_conditions', defaults = {'text_field':selection})
+        elif toggle_field == 'delivery_challan_terms_condtions':
+            data = UserTextFields.objects.update_or_create(user_id=user_id, field_type = 'dc_terms_conditions', defaults = {'text_field':selection})
         else:
             if toggle_field == 'tax_details':
                 tax_name = eval(selection)

@@ -1081,6 +1081,7 @@ def switches(request, user=''):
                        'purchase_order_preview':'purchase_order_preview',
                        'stop_default_tax':'stop_default_tax',
                        'delivery_challan_terms_condtions': 'delivery_challan_terms_condtions',
+                       'order_prefix':'order_prefix',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

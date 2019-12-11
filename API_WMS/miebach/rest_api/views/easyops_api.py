@@ -34,7 +34,7 @@ class EasyopsAPI:
         self.is_full_link = LOAD_CONFIG.get(self.company_name, 'is_full_link', False)
         self.content_type_name = LOAD_CONFIG.get(self.company_name, 'content_type_name', False)
         self.use_exist_auth = LOAD_CONFIG.get(self.company_name, 'use_exist_auth', False)
-        self.auth_method = LOAD_CONFIG.get(self.company_name, 'auth_method', '')
+        self.auth_method = eval(LOAD_CONFIG.get(self.company_name, 'auth_method', ''))
         self.token = token
         self.user = user
         self.content_type = 'application/json'

@@ -1442,12 +1442,12 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                         log.info('SKU Master Upload failed for %s and params are %s and error statement is %s' % (
                         str(user.username), str(request.POST.dict()), str(e)))
 
-            # elif key == 'hsn_code':
-            #     if cell_data:
-            #         if not isinstance(cell_data, (int, float)):
-            #             index_status.setdefault(row_idx, set()).add('HSN Code must be integer')
-                        # elif not len(str(int(cell_data))) == 8:
-                        #    index_status.setdefault(row_idx, set()).add('HSN Code should be 8 digit')
+            elif key == 'hsn_code':
+                if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = str(int(cell_data))
+                    if not len(cell_data) == 8:
+                        index_status.setdefault(row_idx, set()).add('HSN Code should be 8 digit')
 
             elif key == 'product_type':
                 if cell_data:

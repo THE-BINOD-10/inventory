@@ -4304,14 +4304,17 @@ def get_financial_report_data(search_params, user, sub_user):
                                     'field_type': 'opening'}
             if 'stock_reconciliation__sku__sku_code' in fields_parameters:
                 opening_stock_filter['stock_reconciliation__sku__sku_code'] = fields_parameters['stock_reconciliation__sku__sku_code']
-            stock_rec_distinct_data = stock_recs.filter(creation_date__regex=closing_stock_date)#.values('sku_id', 'mrp', 'weight').distinct()
+            #stock_rec_distinct_data = stock_recs.filter(creation_date__regex=closing_stock_date)#.values('sku_id', 'mrp', 'weight').distinct()
+            stock_rec_distinct_data = stock_recs.values('sku_id', 'mrp', 'weight').distinct()
             temp_data['recordsTotal'] = stock_rec_distinct_data.count()
             temp_data['recordsFiltered'] = temp_data['recordsTotal']
             counter = 1
             attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
-            for stock_rec_data in stock_rec_distinct_data[start_index:stop_index]:
+            for stock_rec_data_dict in stock_rec_distinct_data[start_index:stop_index]:
                 print counter
                 counter += 1
+                stock_rec_data = stock_recs.filter(sku_id=stock_rec_data_dict['sku_id'], mrp=stock_rec_data_dict['mrp'],
+                                                    weight=stock_rec_data_dict['weight'])[0]
                 opening_stock_data = StockReconciliationFields.objects.filter(stock_reconciliation_id=stock_rec_data.id,
                                                                                 field_type='opening', creation_date__regex=opening_stock_date).\
                                                 values('stock_reconciliation__sku__sku_code', 'stock_reconciliation__sku__sku_desc',
@@ -4350,7 +4353,6 @@ def get_financial_report_data(search_params, user, sub_user):
                 else:
                     rows_data.append({'table': 'stock_rec', 'data': stock_rec_data})
                 for row_data in rows_data:
-                    #Opening Stock Calculation
                     fields_parameters1 = copy.deepcopy(fields_parameters)
                     stock_rec_data1 = stock_rec_data
                     if row_data['table'] == 'stock_rec_field':

@@ -29,11 +29,7 @@
                   <div class="col-md-12 p0">
                     <h4 class="m0"><b>To:</b></h4>
                   </div>
-                  {% if marketplace|lower != 'offline,sample' %}
-                  <div class="col-md-12 p0">
-                    <span>{{marketplace}}</span>
-                  </div>
-                  {% elif marketplace|lower  in 'offline,sample' %}
+                  {% if marketplace|lower  in 'offline,sample' %}
                   <div>
                     {% if customer_details.0.name == '' %}
                     <p class="fs14 m0" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{marketplace}}</p><br>
@@ -61,6 +57,10 @@
                   {% elif consignee %}
                   <div class="col-md-12 p0">
                     <span class="pre-custom p0">{{consignee}}</span>
+                  </div>
+                  {% elif marketplace|lower != 'offline,sample' %}
+                  <div class="col-md-12 p0">
+                    <span>{{marketplace}}</span>
                   </div>
                   {% endif %}
                 </div>

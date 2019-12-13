@@ -29,15 +29,11 @@
                   <div class="col-md-12 p0">
                     <h4 class="m0"><b>To:</b></h4>
                   </div>
-                  {% if consignee %}
-                  <div class="col-md-12 p0">
-                    <span class="pre-custom p0">{{consignee}}</span>
-                  </div>
-                  {% elif marketplace|lower != 'offline' %}
+                  {% if marketplace|lower != 'offline,sample' %}
                   <div class="col-md-12 p0">
                     <span>{{marketplace}}</span>
                   </div>
-                  {% elif marketplace|lower == 'offline' %}
+                  {% elif marketplace|lower  in 'offline,sample' %}
                   <div>
                     {% if customer_details.0.name == '' %}
                     <p class="fs14 m0" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{marketplace}}</p><br>
@@ -61,6 +57,10 @@
                     <p class="fs14 m0" m0 ng-if="showCase.pdf_data.customer_details[0].pan_number">
                       <b>PAN No.: </b>{{customer_details.0.pan_number}}</p>
                     {% endif %}
+                  </div>
+                  {% elif consignee %}
+                  <div class="col-md-12 p0">
+                    <span class="pre-custom p0">{{consignee}}</span>
                   </div>
                   {% endif %}
                 </div>

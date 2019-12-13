@@ -2034,7 +2034,7 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
 
 
 def validate_orders_format(orders, user='', company_name='', is_cancelled=False):
-    order_status_dict = {'NEW': 1, 'RETURN': 4, 'CANCEL': 3}
+    order_status_dict = {'NEW': 1, 'RETURN': 3, 'CANCEL': 4}
     NOW = datetime.datetime.now()
     insert_status = []
     final_data_dict = OrderedDict()
@@ -2070,8 +2070,6 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                 error_message = 'Invalid Order Status - Should be ' + ','.join(order_status_dict.keys())
                 update_error_message(failed_status, 5024, error_message, original_order_id)
                 break
-            else:
-                order_details['status'] = order_status_dict.get(order_status)
 
             if order.has_key('billing_address'):
                 order_details['customer_id'] = order['billing_address'].get('customer_id', 0)
@@ -2111,10 +2109,10 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                 if int(order_detail_present[0].status) == 1:
                     error_code = "5001"
                     message = 'Duplicate Order, ignored at Stockone'
-                elif int(order_detail_present[0].status) == 4:
+                elif int(order_detail_present[0].status) == 3:
                     error_code = "5002"
                     message = 'Order is already returned at Stockone'
-                elif int(order_detail_present[0].status) == 3:
+                elif int(order_detail_present[0].status) == 4:
                     error_code = "5003"
                     message = 'Order is already cancelled at Stockone'
                 update_error_message(failed_status, error_code, message, original_order_id)

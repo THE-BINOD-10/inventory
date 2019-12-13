@@ -2038,6 +2038,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
     NOW = datetime.datetime.now()
     insert_status = []
     final_data_dict = OrderedDict()
+    customer_name, customer_city, customer_telephone, customer_address, customer_pincode = '','','','',0
     try:
         seller_master_dict, valid_order, query_params = {}, {}, {}
         failed_status = OrderedDict()
@@ -2051,16 +2052,20 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
             except:
                 update_error_message(failed_status, 5024, 'Invalid Order Date Format', '')
             order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
-            channel_name = order['source']
+            channel_name = order.get('source', 'offline')
             order_details = copy.deepcopy(ORDER_DATA)
             data = order
+            if not order.get('order_id', ''):
+                generate_order_id = get_order_id(user.id)
+                order_code = get_order_prefix(user.id)
+                order['order_id'] = order_code+str(generate_order_id)
             original_order_id = str(order['order_id'])
             order_code = ''.join(re.findall('\D+', original_order_id))
             order_id = ''.join(re.findall('\d+', original_order_id))
             filter_params = {'user': user.id, 'order_id': order_id}
             filter_params1 = {'user': user.id, 'original_order_id': original_order_id}
 
-            order_status = order['order_status']
+            order_status = order.get('order_status', 'NEW')
             if order_status not in order_status_dict.keys():
                 error_message = 'Invalid Order Status - Should be ' + ','.join(order_status_dict.keys())
                 update_error_message(failed_status, 5024, error_message, original_order_id)
@@ -2071,17 +2076,23 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                 if order_details['customer_id']:
                     try:
                         customer_master = CustomerMaster.objects.filter(user=user.id, customer_id=order_details['customer_id'])
+                        if customer_master:
+                            customer_name = customer_master[0].name
+                            customer_telephone = customer_master[0].phone_number
+                            customer_city = customer_master[0].city
+                            customer_address = customer_master[0].address
+                            customer_pincode = customer_master[0].pincode
                     except:
                         customer_master = []
                     if not customer_master:
                         error_message = 'Invalid Customer ID %s' % str(order_details['customer_id'])
                         update_error_message(failed_status, 5024, error_message, original_order_id)
                         break
-                order_details['customer_name'] = order['billing_address'].get('name', '')
-                order_details['telephone'] = order['billing_address'].get('phone_number', '')
-                order_details['city'] = order['billing_address'].get('city', '')
-                order_details['address'] = order['billing_address'].get('address', '')
-                order_details['pin_code'] = order['billing_address'].get('pincode', '')
+                order_details['customer_name'] = order['billing_address'].get('name', customer_name)
+                order_details['telephone'] = order['billing_address'].get('phone_number', customer_telephone)
+                order_details['city'] = order['billing_address'].get('city', customer_city)
+                order_details['address'] = order['billing_address'].get('address', customer_address)
+                order_details['pin_code'] = order['billing_address'].get('pincode', customer_pincode)
 
             if order_code:
                 filter_params['order_code'] = order_code
@@ -2107,10 +2118,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                 update_error_message(failed_status, error_code, message, original_order_id)
                 break
             for sku_item in sku_items:
-                try:
-                    shipment_date = NOW
-                except:
-                    shipment_date = NOW
+                shipment_date = NOW
                 failed_sku_status = []
                 sku_code = sku_item['sku']
                 sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
@@ -2127,7 +2135,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                     order_det1 = OrderDetail.objects.filter(**filter_params1)
 
                     invoice_amount = 0
-                    unit_price = sku_item['unit_price']
+                    unit_price = sku_item.get('unit_price', sku_master[0].price)
                     if not order_det:
                         order_det = order_det1
 
@@ -2139,7 +2147,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         order_details['order_code'] = order_code
 
                         order_details['sku_id'] = sku_master[0].id
-                        order_details['title'] = sku_item['name']
+                        order_details['title'] = sku_item.get('name', '')
                         order_details['user'] = user.id
                         order_details['quantity'] = sku_item['quantity']
                         order_details['shipment_date'] = shipment_date

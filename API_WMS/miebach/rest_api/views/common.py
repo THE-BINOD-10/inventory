@@ -6580,6 +6580,7 @@ def update_order_dicts(orders, user='', company_name=''):
             order_obj = order_obj[0]
             order_obj.quantity = float(order_obj.quantity) + float(order_det_dict.get('quantity', 0))
             order_obj.invoice_amount = float(order_obj.invoice_amount) + float(order_det_dict.get('invoice_amount', 0))
+            order_obj.status = str(order_det_dict.get('status', 1))
             if company_name == "storehippo":
                 order_obj.sku_code = str(order_det_dict.get('line_item_id', ''))
             order_obj.save()

@@ -32,7 +32,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     angular.forEach(Data.create_orders.custom_order_data, function(sku_data){
       vm.model_data.data.push({sku_id: sku_data.sku_id, quantity: sku_data.quantity, description: sku_data.sku_desc,
                                invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: "",location: "",
-                               serials: [], serial: "", capacity: 0, extra: sku_data.extra, discount: ""})
+                               serials: [], serial: "", capacity: 0, extra: sku_data.extra, discount: "", skuPackQuantity: ""})
     })
     Data.create_orders.custom_order_data = [];
     vm.from_custom_order = true;
@@ -53,7 +53,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
       return false;
     }
     if (last) {
-      vm.model_data.data.push({sku_id: "", quantity: "", invoice_amount: "", price: "", tax: vm.tax, total_amount: "", unit_price: "", discount: ""});
+      vm.model_data.data.push({sku_id: "", quantity: "", invoice_amount: "", price: "", tax: vm.tax, total_amount: "", unit_price: "", discount: "", skuPackQuantity: ""});
     } else {
       vm.model_data.data.splice(index,1);
       vm.cal_total();
@@ -120,12 +120,21 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
       if (form.$valid && vm.model_data.shipment_date && vm.model_data.shipment_time_slot) {
         if (vm.model_data.blind_order) {
           for (var i = 0; i < vm.model_data.data.length; i++) {
-
             if (vm.model_data.data[i].sku_id && (!vm.model_data.data[i].location)) {
-
               colFilters.showNoty("Please locations");
               return false;
               break;
+            }
+          }
+        }
+        if (vm.permissions.sku_pack_config) {
+          for (var j = 0; j < vm.model_data.data.length; j++) {
+            if (vm.model_data.data[j].skuPackQuantity) {
+              var response = vm.isFloat(vm.model_data.data[j].quantity/vm.model_data.data[j].skuPackQuantity)
+              if (response) {
+                colFilters.showNoty(vm.model_data.data[j].sku_id+' - Sku Pack Quantity Mismatch');
+                return false;
+              }
             }
           }
         }
@@ -204,6 +213,9 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   vm.tag_details_loading = false;
   vm.data_loading = "not done"
 
+  vm.isFloat = function(n) {
+    return n != "" && !isNaN(n) && Math.round(n) != n;
+  }
   vm.tag_details = function(cat_name, brand, scroll, status) {
 
     if(scroll && vm.data_loading == "done") {
@@ -962,9 +974,9 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
       if(data.message) {
         vm.create_order_data = data.data;
         vm.model_data.order_taken_by = Session.user_profile.first_name;
-        if(!Service.create_order_data.tax_type) {
-          vm.model_data.tax_type = '';
-        }
+        // if(!Service.create_order_data.tax_type) {
+        //   vm.model_data.tax_type = '';
+        // }
         vm.change_tax_type();
       }
     })
@@ -1104,9 +1116,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
      vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
       sku_data["capacity"] = 0
       if(data.message) {
-
         if(data.data.available_quantity) {
-
           sku_data["capacity"] = data.data.available_quantity;
         }
       }
@@ -1122,10 +1132,12 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     angular.copy(empty_data.data[0], record);
     record.sku_id = item.wms_code;
     record["description"] = item.sku_desc;
-
     vm.get_customer_sku_prices(item.wms_code).then(function(data){
       if(data.length > 0) {
         data = data[0]
+        if (vm.permissions.sku_pack_config) {
+          record["skuPackQuantity"] = data.sku_pack_quantity
+        }
         record["price"] = data.price;
         record["description"] = data.sku_desc;
         if (! vm.model_data.blind_order) {

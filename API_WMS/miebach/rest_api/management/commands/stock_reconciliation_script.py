@@ -40,18 +40,32 @@ class Command(BaseCommand):
         self.stdout.write("Started Stock Reconciliation Updating")
 
 
-        def get_extra_data_info(batch_detail, sku, quantity, tax_type_dict):
+        def get_extra_data_info(batch_detail, sku, quantity, tax_type_dict, tax_percent=0, unit_price=0,
+                                use_cost_price=True, tax_type='', cess_tax=0):
             taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'cess_tax': 0}
             prices = {}
             transact_id = batch_detail.transact_id
             transact_type = batch_detail.transact_type
-            tax = batch_detail.tax_percent
-            prices['value_before_tax'] = batch_detail.buy_price * quantity
+            if use_cost_price:
+                price = batch_detail.buy_price
+                tax = batch_detail.tax_percent
+            else:
+                tax = tax_percent
+                price = unit_price
+            prices['value_before_tax'] = price * quantity
             prices['price_before_tax_values'] = prices['value_before_tax']
             prices['price_before_tax_qtys'] = quantity
             prices['quantity'] = quantity
             prices['value_after_tax'] = prices['value_before_tax']  + \
-                                             ((prices['value_before_tax']/100)*batch_detail.tax_percent)
+                                             ((prices['value_before_tax']/100)*(tax+cess_tax))
+            if not use_cost_price and tax_type:
+                taxes['cess_tax'] = cess_tax
+                if tax_type == 'intra_state':
+                    taxes['cgst_tax'] = float(tax) / 2
+                    taxes['sgst_tax'] = float(tax) / 2
+                else:
+                    taxes['igst_tax'] = float(tax)
+                return prices, taxes
             if transact_type == 'po_loc':
                 po_loc = POLocation.objects.filter(id=transact_id, location__zone__user=user.id)
                 if po_loc.exists():
@@ -82,7 +96,8 @@ class Command(BaseCommand):
 
 
         def sku_stats_group(group_val, group_name, sku_stats_dict, sku_detail, tax, unit_price,
-                            field_type, tax_type_dict, discount=0):
+                            field_type, tax_type_dict, discount=0, use_cost_price=True,
+                            tax_type='', cess_tax=0):
             if sku_detail.stock_detail.location.zone.zone in ['DAMAGED_ZONE']:
                 sku_stats_dict[sku_detail.sku_id][group_val][group_name]['damaged'] += sku_detail.quantity
             sku_stats_dict[sku_detail.sku_id][group_val][group_name]['quantity'] += sku_detail.quantity
@@ -90,17 +105,22 @@ class Command(BaseCommand):
             amount = qty_price
             tax_rate = 0
             if tax:
-                tax_rate = ((amount / 100) * tax)
+                tax_rate = ((amount / 100) * (tax+cess_tax))
                 amount = amount + tax_rate
             sku_stats_dict[sku_detail.sku_id][group_val][group_name]['unit_price_list'].append(amount)
             sku_stats_dict[sku_detail.sku_id][group_val][group_name]['amount'] += amount
             extra_data_key = (field_type, 0)
             taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'cess_tax': 0}
             prices = {'value_before_tax': 0, 'price_before_tax_values': 0, 'price_before_tax_qtys': 0, 'quantity': 0, 'value_after_tax': 0}
-            if sku_detail.stock_detail and sku_detail.stock_detail.batch_detail:
+            if sku_detail.stock_detail and sku_detail.stock_detail.batch_detail and use_cost_price:
                 prices, taxes = get_extra_data_info(sku_detail.stock_detail.batch_detail, sku_detail.sku, sku_detail.quantity,
                                     tax_type_dict)
                 extra_data_key = (field_type, sku_detail.stock_detail.batch_detail.tax_percent)
+            elif not use_cost_price:
+                prices, taxes = get_extra_data_info(sku_detail.stock_detail.batch_detail, sku_detail.sku, sku_detail.quantity,
+                                    tax_type_dict, unit_price=unit_price, tax_percent=tax,
+                                    use_cost_price=use_cost_price, tax_type=tax_type, cess_tax=cess_tax)
+                extra_data_key = (field_type, tax, cess_tax)
             taxes.update({'value_before_tax': 0, 'value_after_tax': 0, 'price_before_tax_values': [],
                           'price_before_tax_qtys': [], 'quantity': 0, 'field_type': field_type})
             sku_stats_dict[sku_detail.sku_id][group_val][group_name]['transact_data'].\
@@ -128,6 +148,8 @@ class Command(BaseCommand):
                 mrp = 0
                 weight = ''
                 tax = 0
+                tax_type = 'intra_state'
+                cess_tax = 0
                 unit_price = sku_detail.stock_detail.unit_price
                 if sku_detail.stock_detail.batch_detail:
                     batch_obj = sku_detail.stock_detail.batch_detail
@@ -145,9 +167,12 @@ class Command(BaseCommand):
                         if cod.exists():
                             cod = cod[0]
                             if cod.cgst_tax:
-                                tax += (cod.cgst_tax + cod.sgst_tax)
+                                tax = (cod.cgst_tax + cod.sgst_tax)
                             else:
+                                tax_type = 'inter_state'
                                 tax = cod.igst_tax
+                            cess_tax = cod.cess_tax
+                            unit_price = (unit_price * 100) / (100 + (tax + cess_tax))
 
                 if sku_detail.transact_type == 'picklist':
                     discount = 0
@@ -168,9 +193,12 @@ class Command(BaseCommand):
                         if cod.exists():
                             cod = cod[0]
                             if cod.cgst_tax:
-                                tax += (cod.cgst_tax + cod.sgst_tax)
+                                tax = (cod.cgst_tax + cod.sgst_tax)
                             else:
+                                tax_type = 'inter_state'
                                 tax = cod.igst_tax
+                            cess_tax = cod.cess_tax
+                            unit_price = (unit_price * 100) / (100 + (tax + cess_tax))
                             if order_type == 'internal_sales':
                                 discount = cod.discount
                     else:
@@ -208,7 +236,8 @@ class Command(BaseCommand):
                 elif sku_detail.transact_type == 'return':
                     field_type = 'returns'
                     sku_stats_group(group_val, 'return', sku_stats_dict, sku_detail, tax, unit_price,
-                                    field_type, tax_type_dict)
+                                    field_type, tax_type_dict, use_cost_price=False,
+                                    tax_type=tax_type)
                 elif sku_detail.transact_type == 'picklist' and order_type:
                     field_type = order_type
                     # qty_price = (sku_detail.quantity * unit_price) - discount
@@ -218,7 +247,8 @@ class Command(BaseCommand):
                     #     tax_rate = ((amount/100)* tax)
                     #     amount = amount + tax_rate
                     sku_stats_group(group_val, order_type, sku_stats_dict, sku_detail, tax, unit_price,
-                                    field_type, tax_type_dict, discount=discount)
+                                    field_type, tax_type_dict, discount=discount, use_cost_price=False,
+                                    tax_type=tax_type, cess_tax=cess_tax)
                     # sku_stats_dict[sku_detail.sku_id][group_val][order_type]['unit_price_list'].append(amount)
                     # sku_stats_dict[sku_detail.sku_id][group_val][order_type]['amount'] += amount
                     # sku_stats_dict[sku_detail.sku_id][group_val][order_type]['transact_data'].append(extra_data)
@@ -363,7 +393,7 @@ class Command(BaseCommand):
             stock_reconciliation_dict[key]['transact_data'] = \
                 list(chain(stock_reconciliation_dict[key]['transact_data'], data_dict['transact_data'].values()))
         users = User.objects.filter(username__in=MILKBASKET_USERS)
-        #users = User.objects.filter(username='NOIDA02')
+        #users = User.objects.filter(username='GGN01')
         today = datetime.now()
         print today
         #stock_rec_field_objs = []
@@ -466,12 +496,14 @@ class Command(BaseCommand):
                                                                      field_type=stock_rec_field['field_type'],
                                                                      cgst_tax=stock_rec_field['cgst_tax'],
                                                                      sgst_tax=stock_rec_field['sgst_tax'],
-                                                                     igst_tax=stock_rec_field['igst_tax'])
+                                                                     igst_tax=stock_rec_field['igst_tax'],
+                                                                     cess_tax=stock_rec_field['cess_tax'])
                             if not exist_recs:
                                 StockReconciliationFields.objects.create(**stock_rec_field)
                                 #stock_rec_field_objs.append(StockReconciliationFields(**stock_rec_field))
                     if not stock_reconciliation_dict:
                         weight = get_sku_weight(sku)
+                        stock_rec_fields = []
                         for key, stock_reconciliation_data1 in stock_reconciliation_dict.iteritems():
                             stock_reconciliation_data = copy.deepcopy(stock_reconciliation_data1)
                             stock_rec_fields = []
@@ -498,7 +530,8 @@ class Command(BaseCommand):
                                                                      field_type=stock_rec_field['field_type'],
                                                                      cgst_tax=stock_rec_field['cgst_tax'],
                                                                      sgst_tax=stock_rec_field['sgst_tax'],
-                                                                     igst_tax=stock_rec_field['igst_tax'])
+                                                                     igst_tax=stock_rec_field['igst_tax'],
+                                                                     cess_tax=stock_rec_field['cess_tax'])
                             if not exist_recs:
                                 StockReconciliationFields.objects.create(**stock_rec_field)
                             #stock_rec_field_objs.append(StockReconciliationFields(**stock_rec_field))

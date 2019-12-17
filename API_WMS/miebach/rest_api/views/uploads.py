@@ -3032,11 +3032,11 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                     company_address = user.userprofile.wh_address
                     if user.username in MILKBASKET_USERS:
                         if user.userprofile.user.email:
-                            company_address = ("%s, Email:%s") % (company_address, user.userprofile.user.email)
+                            company_address = "%s, Email:%s" % (company_address, user.userprofile.user.email)
                         if user.userprofile.phone_number:
-                            company_address = ("%s, Phone:%s") % (company_address, user.userprofile.phone_number)
+                            company_address = "%s, Phone:%s" % (company_address, user.userprofile.phone_number)
                         if user.userprofile.gst_number:
-                            company_address = ("%s, GSTINo:%s") % (company_address, user.userprofile.gst_number)
+                            company_address = "%s, GSTINo:%s" % (company_address, user.userprofile.gst_number)
                 else:
                     company_address = user.userprofile.address
             else:
@@ -3073,9 +3073,6 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             company_name = profile.company_name
             title = 'Purchase Order'
             receipt_type = request.GET.get('receipt_type', '')
-            if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
-                company_name = 'SHPROC Procurement Pvt. Ltd.'
-                title = 'Purchase Order'
             total_amt_in_words = number_in_words(round(total)) + ' ONLY'
             round_value = float(round(total) - float(total))
             company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)

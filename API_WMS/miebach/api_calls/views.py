@@ -946,13 +946,16 @@ def get_skus(request):
             search_params['sku_code'] = request_data['sku_code']
         if request_data.get('sku_search'):
             search_query = build_search_term_query(['sku_code', 'sku_desc'], request_data['sku_search'])
+        sku_model = [field.name for field in SKUMaster._meta.get_fields()]
         if attributes:
             attr_list = list(attributes.values_list('attribute_name', flat=True))
         if attr_list:
             attr_filter_ids = []
             attr_found = False
             for key, value in request_data.items():
-                if key in attr_list:
+                if key in sku_model:
+                    search_params[key] = request_data[key]
+                elif key in attr_list:
                     attr_found = True
                     attr_ids = SKUAttributes.objects.filter(sku__user=user.id, attribute_name=key,
                                                             attribute_value=value).\

@@ -2979,7 +2979,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
             if data.order.sku.sku_code:
                 sku_code_attr = data.order.sku.sku_code
             if sku_code_attr:
-                attributes_obj = SKUAttributes.objects.filter(sku__sku_code=sku_code_attr, attribute_name__in= attributes_list)
+                attributes_obj = SKUAttributes.objects.filter(sku__user=user.id, sku__sku_code=sku_code_attr, attribute_name__in= attributes_list)
                 if attributes_obj.exists():
                     for attribute in attributes_obj:
                         if attribute.attribute_name == 'Manufacturer':
@@ -4179,21 +4179,20 @@ def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=F
                 fields_parameters2['stock_reconciliation__creation_date__regex'] = opening_stock_date
             fields_parameters2['stock_reconciliation__%s_quantity__gt' % fields_parameters1['field_type']] = 0
             purchase_data = StockReconciliationFields.objects.\
-                                            annotate(tax_sum=Sum(F('cgst_tax')+F('sgst_tax')+F('igst_tax')+F('cess_tax'))).\
                                             filter(**fields_parameters2)
             #if purchase_data.exists() and send_first_day:
             #    first_date = purchase_data.first().stock_reconciliation.creation_date.date()
             #    purchase_data = purchase_data.filter(stock_reconciliation__creation_date__regex=first_date)
         damaged_field = '%s_qty_damaged' % fields_parameters1['field_type']
     else:
-        purchase_data = data_objs.annotate(tax_sum=Sum(F('cgst_tax')+F('sgst_tax')+F('igst_tax')+F('cess_tax')))
+        purchase_data = data_objs
         damaged_field = 'closing_qty_damaged'
     if purchase_data:
         used_damage_qtys = []
         for data in purchase_data:
             quantity = data.quantity
             if not send_damaged:
-                if data.stock_reconciliation.id not in used_damage_qtys:
+                if data.stock_reconciliation.id not in used_damage_qtys and quantity >= getattr(data.stock_reconciliation, damaged_field):
                     quantity = data.quantity - getattr(data.stock_reconciliation, damaged_field)
                     used_damage_qtys.append(data.stock_reconciliation.id)
             amount = quantity * data.price_before_tax
@@ -4292,7 +4291,7 @@ def get_financial_report_data(search_params, user, sub_user):
     search_parameters['sku__user'] = user.id
     fields_parameters['stock_reconciliation__sku__user'] = user.id
     if 'from_date' in search_params:
-        stock_recs = StockReconciliation.objects.filter(**search_parameters)
+        stock_recs = StockReconciliation.objects.filter(**search_parameters).only('creation_date')
         if stock_recs.exists():
             if not stop_index:
                 vendor_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
@@ -4302,7 +4301,8 @@ def get_financial_report_data(search_params, user, sub_user):
                                                                    attribute_name='Hub').values_list(
                 'sku_id', 'attribute_value'))
             opening_stock_date = stock_recs[0].creation_date.date()
-            closing_stock_date = stock_recs.order_by('-creation_date')[0].creation_date.date()
+            closing_stock_date = stock_recs.latest('creation_date').creation_date.date()
+            #closing_stock_date = stock_recs.order_by('-creation_date')[0].creation_date.date()
             opening_stock_filter = {'stock_reconciliation__creation_date__regex': opening_stock_date,
                                     'stock_reconciliation__sku__user': user.id,
                                     'field_type': 'opening'}
@@ -4337,8 +4337,7 @@ def get_financial_report_data(search_params, user, sub_user):
                 #temp_data['recordsFiltered'] = temp_data['recordsTotal']
                 closing_objs = StockReconciliationFields.objects.filter(stock_reconciliation__creation_date__regex=closing_stock_date,
                                                                         stock_reconciliation__sku__user=user.id,
-                                                                        field_type='closing').\
-                                                                annotate(tax_sum=Sum(F('cgst_tax')+F('sgst_tax')+F('igst_tax')+F('cess_tax')))
+                                                                        field_type='closing')
                 manufacturer, searchable, bundle = '', '', ''
                 sku_id = stock_rec_data.sku_id
                 attributes_obj = SKUAttributes.objects.filter(sku_id=sku_id, attribute_name__in=attributes_list)
@@ -4362,7 +4361,6 @@ def get_financial_report_data(search_params, user, sub_user):
                     if row_data['table'] == 'stock_rec_field':
                         opening_stock = row_data['data']
                         tax_rate = opening_stock['cgst_tax'] + opening_stock['sgst_tax'] + opening_stock['igst_tax']
-                        tax_sum = tax_rate +  opening_stock['cess_tax']
                         mrp = opening_stock['stock_reconciliation__mrp']
                         weight = opening_stock['stock_reconciliation__weight']
                         cess_tax = opening_stock['cess_tax']
@@ -4371,15 +4369,13 @@ def get_financial_report_data(search_params, user, sub_user):
                         tax_rate = 0
                         mrp = stock_rec_data.mrp
                         weight = stock_rec_data.weight
-                        tax_sum = 0
                         cess_tax = 0
                     # Closing Stock Calculation
-                    closing_obj_filter = {'stock_reconciliation__sku_id': sku_id,
-                                          'stock_reconciliation__mrp': mrp,
-                                          'stock_reconciliation__weight': weight,
-                                          }
+                    closing_obj_filter = OrderedDict((('stock_reconciliation__sku_id', sku_id),
+                                          ('stock_reconciliation__mrp', mrp),
+                                          ('stock_reconciliation__weight', weight),
+                                        ))
                     if row_data['table'] == 'stock_rec_field':
-                        #closing_obj_filter['tax_sum'] = tax_sum
                         closing_obj_filter['cgst_tax'] = opening_stock['cgst_tax']
                         closing_obj_filter['sgst_tax'] = opening_stock['sgst_tax']
                         closing_obj_filter['igst_tax'] = opening_stock['igst_tax']
@@ -4404,7 +4400,6 @@ def get_financial_report_data(search_params, user, sub_user):
                     margin_percentage = 0
                     if csd['quantity']:
                         sale_price = StockReconciliationFields.objects.\
-                                                annotate(tax_sum=Sum(F('cgst_tax')+F('sgst_tax')+F('igst_tax')+F('cess_tax'))).\
                                         filter(**fields_parameters1).aggregate(sale_price=Sum(
                             F('stock_reconciliation__customer_sales_quantity') * F(
                                 'stock_reconciliation__customer_sales_avg_rate')))['sale_price']

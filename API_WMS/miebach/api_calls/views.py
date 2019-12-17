@@ -988,6 +988,39 @@ def get_skus(request):
 
 @csrf_exempt
 @login_required
+def get_skufilters(request):
+    status = {'status': 200,'message': 'Success','data':[]}
+    user = request.user
+    request_data = request.body
+    sku_model = []
+    query_list = []
+    if request_data:
+        try:
+            request_data = json.loads(request_data)
+        except:
+            request_data = {}
+    sku_model = [field.name for field in SKUMaster._meta.get_fields()]
+    attributes = get_user_attributes(user, 'sku')
+    attr_list = []
+    attr_filter_ids = []
+    if attributes:
+        attr_list = list(attributes.values_list('attribute_name', flat=True))
+    if request_data.get('key'):
+        search_param = request_data['key']
+        if search_param in sku_model:
+            query_list = list(SKUMaster.objects.filter(user = user.id).values_list(search_param, flat=True).distinct())
+        elif search_param in attr_list:
+            query_list = list(SKUAttributes.objects.filter(sku__user=user.id, attribute_name=search_param).values_list('attribute_value', flat=True).distinct())
+        else:
+            status['status'] = 400
+    status['data'] = query_list
+    if status['status'] == 400:
+        status['message'] = 'Key error'
+    return HttpResponse(json.dumps(status, cls=DjangoJSONEncoder))
+
+
+@csrf_exempt
+@login_required
 def get_sku(request):
     if request.user.is_anonymous():
         return HttpResponse(json.dumps({'message': 'fail'}))

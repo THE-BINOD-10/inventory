@@ -2915,7 +2915,7 @@ def get_full_invoice_number(user, order_no, order, invoice_date='', pick_number=
     return invoice_number
 
 
-def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos=False, order_obj=None):
+def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos=False, sell_ids='', order_obj=None):
     invoice_number = ""
     inv_no = ""
     invoice_sequence = None
@@ -2945,7 +2945,10 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                 invoice_ins = SellerOrderSummary.objects.filter(seller_order__order__id__in=order_ids).\
                                 exclude(invoice_number='')
             else:
-                invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
+		if sell_ids:
+			invoice_ins = SellerOrderSummary.objects.filter(**sell_ids)
+		else:
+                	invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
             invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
             if invoice_ins:
                 order_no = invoice_ins[0].invoice_number
@@ -3285,7 +3288,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                                         'total_invoice':total_invoice,'total_taxable_amt':total_taxable_amt,'display_customer_sku':display_customer_sku,'customer_sku_codes':customer_sku_codes,
                                         'user':user,'sor_id':sor_id,'sell_ids':sell_ids,'seller_summary':seller_summary,'data':data,'order_id':order_id,'title':title,'tax_type':tax_type,'vat':vat,'mrp_price':mrp_price,
                                         'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal, 'taxes_dict':taxes_dict, 'seller_summary_imei':seller_summary_imei, 'imei_data_sku_wise':imei_data_sku_wise}
-                            data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity = common_calculations(arg_data)
+                            data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity, partial_order_quantity_price = common_calculations(arg_data)
 
                 else:
                     arg_data = {'unit_price':unit_price,'quantity':quantity,'discount':discount,'dat':dat,'is_gst_invoice':is_gst_invoice,'marginal_flag':marginal_flag,
@@ -3294,7 +3297,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                                         'total_invoice':total_invoice,'total_taxable_amt':total_taxable_amt,'display_customer_sku':display_customer_sku,'customer_sku_codes':customer_sku_codes,
                                         'user':user,'sor_id':sor_id,'sell_ids':sell_ids,'seller_summary':seller_summary,'data':data,'order_id':order_id,'title':title,'tax_type':tax_type,'vat':vat,'mrp_price':mrp_price,
                                         'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal,'taxes_dict':taxes_dict, 'seller_summary_imei':'','imei_data_sku_wise':imei_data_sku_wise}
-                    data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity = common_calculations(arg_data)
+                    data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity, partial_order_quantity_price = common_calculations(arg_data)
 
     is_cess_tax_flag = 'true'
     for ord_dict in data:
@@ -3326,7 +3329,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     _invoice_no = ''
     _sequence = ''
     if delivery_challan != 'true':
-        _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos, order_obj=dat)
+        _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos, sell_ids, order_obj=dat)
     challan_no, challan_sequence = get_challan_number(user, seller_summary)
     inv_date = invoice_date.strftime("%m/%d/%Y")
     invoice_date = invoice_date.strftime("%d %b %Y")
@@ -3563,7 +3566,7 @@ def common_calculations(arg_data):
          'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
          'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date,'sno':count,
          'measurement_type': measurement_type})
-    return data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity
+    return data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity, partial_order_quantity_price
 
 
 def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
@@ -10090,6 +10093,11 @@ def get_stock_starting_date(receipt_number, receipt_type, user_id, stock_date):
 
 def get_decimal_data(cell_data, index_status, count, user):
     if get_misc_value('float_switch', user.id) == 'false':
-        if not cell_data.is_integer():
-            index_status.setdefault(count, set()).add('Decimal Not Allowed In Qty')
+        try:
+            cell_data = float(cell_data)
+            frac, whole = math.modf(cell_data)
+            if frac:
+                index_status.setdefault(count, set()).add('Decimal Not Allowed In Qty')
+        except:
+            index_status.setdefault(count, set()).add('Invalid Number')
     return index_status

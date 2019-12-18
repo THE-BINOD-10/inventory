@@ -48,4 +48,5 @@ urlpatterns = [
     url(r'^rista_update_orders/$', rista_update_orders),
     url(r'^store_hippo/$', store_hippo),
     url(r'^get_customers/$', get_customers),
+    url(r'^get_skufilters/$', get_skufilters),
 ]

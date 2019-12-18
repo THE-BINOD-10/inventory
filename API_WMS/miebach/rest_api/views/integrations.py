@@ -2038,6 +2038,11 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
     NOW = datetime.datetime.now()
     insert_status = []
     final_data_dict = OrderedDict()
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    sister_whs1.append(user.username)
+    sister_whs = []
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
     customer_name, customer_city, customer_telephone, customer_address, customer_pincode = '','','','',0
     try:
         seller_master_dict, valid_order, query_params = {}, {}, {}
@@ -2055,6 +2060,14 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
             channel_name = order.get('source', 'offline')
             order_details = copy.deepcopy(ORDER_DATA)
             data = order
+            if order.has_key('warehouse'):
+                warehouse = order['warehouse']
+                if warehouse.lower() in sister_whs:
+                    user = User.objects.get(username=warehouse)
+                else:
+                    error_message = 'Invalid Warehouse Name'
+                    update_error_message(failed_status, 5024, error_message, original_order_id)
+
             if not order.get('order_id', ''):
                 generate_order_id = get_order_id(user.id)
                 order_code = get_order_prefix(user.id)

@@ -2053,7 +2053,10 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
             orders = [orders]
         for ind, order in enumerate(orders):
             try:
-                creation_date = datetime.datetime.strptime(order['order_date'], '%Y-%m-%d %H:%M:%S')
+                if order.has_key('order_date'):
+                    creation_date = datetime.datetime.strptime(order['order_date'], '%Y-%m-%d %H:%M:%S')
+                else:
+                    creation_date = NOW.strftime('%Y-%m-%d %H:%M:%S')
             except:
                 update_error_message(failed_status, 5024, 'Invalid Order Date Format', '')
             order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)

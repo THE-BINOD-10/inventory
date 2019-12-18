@@ -1077,6 +1077,35 @@ def update_order(request):
 
 @csrf_exempt
 @login_required
+def create_orders(request):
+    try:
+        orders = json.loads(request.body)
+    except:
+        return HttpResponse(json.dumps({'message': 'Please send proper data'}))
+    log.info('Request params for ' + request.user.username + ' is ' + str(orders))
+    try:
+        validation_dict, failed_status, final_data_dict = validate_create_orders(orders, user=request.user, company_name='mieone')
+        if validation_dict:
+            return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
+        if failed_status:
+            if type(failed_status) == dict:
+                failed_status.update({'Status': 'Failure'})
+            if type(failed_status) == list:
+                failed_status = failed_status[0]
+                failed_status.update({'Status': 'Failure'})
+            return HttpResponse(json.dumps(failed_status))
+        #status = update_ingram_order_dicts(final_data_dict, seller_id, user=request.user)
+        status = update_order_dicts(final_data_dict, user=request.user, company_name='mieone')
+        log.info(status)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        status = {'messages': 'Internal Server Error', 'status': 0}
+    return HttpResponse(json.dumps(status))
+
+@csrf_exempt
+@login_required
 def update_sku(request):
     skus = ''
     try:

@@ -4168,9 +4168,11 @@ def get_openjo_details(search_params, user, sub_user):
 
 
 def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=False, stock_rec_data=None,
-                            send_damaged=True, opening_stock_date=None):
+                            send_damaged=True, opening_stock_date=None, used_damage_qtys=None):
     data_dict = {'quantity': 0, 'cgst_amount': 0, 'sgst_amount': 0, 'igst_amount': 0, 'cess_amount': 0,
                      'value_before_tax': 0, 'value_after_tax': 0, 'price_before_tax': 0}
+    if not used_damage_qtys:
+        used_damage_qtys = []
     if not data_objs:
         purchase_data = []
         if not send_last_day:
@@ -4188,7 +4190,6 @@ def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=F
         purchase_data = data_objs
         damaged_field = 'closing_qty_damaged'
     if purchase_data:
-        used_damage_qtys = []
         for data in purchase_data:
             quantity = data.quantity
             if not send_damaged:
@@ -4235,7 +4236,7 @@ def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=F
         for stock_reconciliation_obj in stock_reconciliation_objs:
             data_dict['quantity'] += getattr(stock_reconciliation_obj, '%s_quantity' % fields_parameters1['field_type'])
             data_dict['value_after_tax'] += getattr(stock_reconciliation_obj, '%s_amount' % fields_parameters1['field_type'])
-    return data_dict
+    return data_dict, used_damage_qtys
 
 
 def get_financial_report_data(search_params, user, sub_user):
@@ -4350,6 +4351,7 @@ def get_financial_report_data(search_params, user, sub_user):
                         if attribute.attribute_name == 'Bundle':
                             bundle = attribute.attribute_value
                 rows_data = []
+                used_damage_qtys = []
                 if opening_stock_data.exists():
                     for opening_stock in opening_stock_data:
                         rows_data.append({'table': 'stock_rec_field', 'data': opening_stock})
@@ -4384,19 +4386,23 @@ def get_financial_report_data(search_params, user, sub_user):
                     fields_parameters1.update(closing_obj_filter)
                     closing_stock_objs = closing_objs.filter(**closing_obj_filter)
                     fields_parameters1['field_type'] = 'closing'
-                    closing_dict = get_financial_group_dict(fields_parameters1, data_objs=closing_stock_objs, send_last_day=True,
-                                                            stock_rec_data=stock_rec_data, send_damaged=False)
+                    closing_dict, used_damage_qtys = get_financial_group_dict(fields_parameters1, data_objs=closing_stock_objs, send_last_day=True,
+                                                            stock_rec_data=stock_rec_data1, send_damaged=False, used_damage_qtys=used_damage_qtys)
                     fields_parameters1['field_type'] = 'opening'
-                    opening_dict = get_financial_group_dict(fields_parameters1, send_damaged=False, stock_rec_data=stock_rec_data1,
-                                                            opening_stock_date=opening_stock_date)
+                    opening_dict, used_damage_qtys = get_financial_group_dict(fields_parameters1, send_damaged=False, stock_rec_data=stock_rec_data1,
+                                                            opening_stock_date=opening_stock_date, used_damage_qtys=used_damage_qtys)
                     fields_parameters1['field_type'] = 'purchase'
-                    purchase_dict = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1)
+                    purchase_dict, used_damage_qtys = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1,
+                                                                                used_damage_qtys=used_damage_qtys)
                     fields_parameters1['field_type'] = 'rtv'
-                    rtv_dict = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1)
+                    rtv_dict, used_damage_qtys = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1,
+                                                                            used_damage_qtys=used_damage_qtys)
                     fields_parameters1['field_type'] = 'returns'
-                    returns_dict = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1)
+                    returns_dict, used_damage_qtys = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1,
+                                                                                used_damage_qtys=used_damage_qtys)
                     fields_parameters1['field_type'] = 'customer_sales'
-                    csd = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1)
+                    csd, used_damage_qtys = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1,
+                                                                    used_damage_qtys=used_damage_qtys)
                     margin_percentage = 0
                     if csd['quantity']:
                         sale_price = StockReconciliationFields.objects.\
@@ -4410,11 +4416,14 @@ def get_financial_report_data(search_params, user, sub_user):
                             margin_percentage = float('%.2f' % ((margin_amount / float(sale_price)) * 100))
 
                     fields_parameters1['field_type'] = 'internal_sales'
-                    isd = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1)
+                    isd, used_damage_qtys = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1,
+                                                                    used_damage_qtys=used_damage_qtys)
                     fields_parameters1['field_type'] = 'stock_transfer'
-                    std = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1)
+                    std, used_damage_qtys = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1,
+                                                used_damage_qtys=used_damage_qtys)
                     fields_parameters1['field_type'] = 'adjustment'
-                    adjustment_dict = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1)
+                    adjustment_dict, used_damage_qtys = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1,
+                                                                                used_damage_qtys=used_damage_qtys)
                     physical_qty = StockDetail.objects.filter(sku_id=sku_id, batch_detail__mrp=mrp,
                                                               batch_detail__weight=weight,
                                                               batch_detail__tax_percent=tax_rate).distinct().\

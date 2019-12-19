@@ -974,7 +974,7 @@ FINANCIAL_REPORT_DICT =  {
   'Stock Transfers IGST', 'Stock Transfers CESS', 'Stock Transfers Value after Tax', 'Sale Return Qty', 'Sale Return Price Per Unit(Before Taxes)','Sale Return Value before Tax',
   'Sale Return CGST', 'Sale Return SGST','Sale Return IGST', 'Sale Return CESS', 'Sale Return Value after Tax','Closing Qty', 'Closing Price Per Unit(Before Taxes)','Closing Value before Tax',
   'Closing CGST', 'Closing SGST','Closing IGST', 'Closing CESS', 'Closing Value after Tax','Physical Qty', 'Adjustment Qty',
-                 'Adjustment Price Per Unit(Before Taxes)', 'Adjustment Value', 'Margin Percentage'],
+                 'Adjustment Price Per Unit(Before Taxes)', 'Adjustment Value', 'Margin', 'Margin Percentage'],
   'dt_url': 'get_financial_report', 'excel_name': 'get_financial_report',
   'print_url': 'print_financial_report',
 }
@@ -4171,8 +4171,6 @@ def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=F
                             send_damaged=True, opening_stock_date=None, used_damage_qtys=None):
     data_dict = {'quantity': 0, 'cgst_amount': 0, 'sgst_amount': 0, 'igst_amount': 0, 'cess_amount': 0,
                      'value_before_tax': 0, 'value_after_tax': 0, 'price_before_tax': 0}
-    if not used_damage_qtys:
-        used_damage_qtys = []
     if not data_objs:
         purchase_data = []
         if not send_last_day:
@@ -4193,9 +4191,11 @@ def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=F
         for data in purchase_data:
             quantity = data.quantity
             if not send_damaged:
-                if data.stock_reconciliation.id not in used_damage_qtys and quantity >= getattr(data.stock_reconciliation, damaged_field):
+                if data.stock_reconciliation.id not in used_damage_qtys.get(fields_parameters1['field_type'], []) \
+                                                and quantity >= getattr(data.stock_reconciliation, damaged_field):
                     quantity = data.quantity - getattr(data.stock_reconciliation, damaged_field)
-                    used_damage_qtys.append(data.stock_reconciliation.id)
+                    used_damage_qtys.setdefault(fields_parameters1['field_type'], [])
+                    used_damage_qtys[fields_parameters1['field_type']].append(data.stock_reconciliation.id)
             amount = quantity * data.price_before_tax
             data_dict['quantity'] += quantity
             value_before_tax = data.value_before_tax
@@ -4295,21 +4295,25 @@ def get_financial_report_data(search_params, user, sub_user):
         stock_recs = StockReconciliation.objects.filter(**search_parameters).only('creation_date')
         if stock_recs.exists():
             if not stop_index:
-                vendor_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
-                                                                   attribute_name='Vendor').values_list(
+                manufacturer_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                                                                   attribute_name='Manufacturer').values_list(
                 'sku_id', 'attribute_value'))
+                searchable_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                                                                   attribute_name='Searchable').values_list(
+                'sku_id', 'attribute_value'))
+                bundle_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                                                                attribute_name='Bundle').values_list('sku_id', 'attribute_value'))
                 hub_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
-                                                                   attribute_name='Hub').values_list(
-                'sku_id', 'attribute_value'))
+                                                                attribute_name='Hub').values_list('sku_id', 'attribute_value'))
+                vendor_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                                                                attribute_name='Vendor').values_list('sku_id', 'attribute_value'))
             opening_stock_date = stock_recs[0].creation_date.date()
             closing_stock_date = stock_recs.latest('creation_date').creation_date.date()
-            #closing_stock_date = stock_recs.order_by('-creation_date')[0].creation_date.date()
             opening_stock_filter = {'stock_reconciliation__creation_date__regex': opening_stock_date,
                                     'stock_reconciliation__sku__user': user.id,
                                     'field_type': 'opening'}
             if 'stock_reconciliation__sku__sku_code' in fields_parameters:
                 opening_stock_filter['stock_reconciliation__sku__sku_code'] = fields_parameters['stock_reconciliation__sku__sku_code']
-            #stock_rec_distinct_data = stock_recs.filter(creation_date__regex=closing_stock_date)#.values('sku_id', 'mrp', 'weight').distinct()
             stock_rec_distinct_data = stock_recs.values('sku_id', 'mrp', 'weight').distinct()
             temp_data['recordsTotal'] = stock_rec_distinct_data.count()
             temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -4328,30 +4332,28 @@ def get_financial_report_data(search_params, user, sub_user):
                                                             'stock_reconciliation__sku_id','stock_reconciliation__sku__sku_brand',
                                                             'stock_reconciliation__sku__hsn_code', 'stock_reconciliation__mrp',
                                                             'stock_reconciliation__weight','cgst_tax', 'sgst_tax', 'igst_tax',
-                                                            'cess_tax').distinct()#.annotate(Sum('value_before_tax'),
-                                                            #Sum('quantity'),
-                                                            #cgst_amount=Sum((F('value_before_tax')/Value(100))*F('cgst_tax')),
-                                                            #sgst_amount=Sum((F('value_before_tax')/Value(100))*F('sgst_tax')),
-                                                            #igst_amount=Sum((F('value_before_tax')/Value(100))*F('igst_tax')),
-                                                            #cess_amount=Sum((F('value_before_tax')/Value(100))*F('cess_tax')))
-                #temp_data['recordsTotal'] = opening_stock_data.count()
-                #temp_data['recordsFiltered'] = temp_data['recordsTotal']
+                                                            'cess_tax').distinct()
                 closing_objs = StockReconciliationFields.objects.filter(stock_reconciliation__creation_date__regex=closing_stock_date,
                                                                         stock_reconciliation__sku__user=user.id,
                                                                         field_type='closing')
                 manufacturer, searchable, bundle = '', '', ''
                 sku_id = stock_rec_data.sku_id
-                attributes_obj = SKUAttributes.objects.filter(sku_id=sku_id, attribute_name__in=attributes_list)
-                if attributes_obj.exists():
-                    for attribute in attributes_obj:
-                        if attribute.attribute_name == 'Manufacturer':
-                            manufacturer = attribute.attribute_value
-                        if attribute.attribute_name == 'Searchable':
-                            searchable = attribute.attribute_value
-                        if attribute.attribute_name == 'Bundle':
-                            bundle = attribute.attribute_value
+                if not stop_index:
+                    manufacturer = manufacturer_dict.get(sku_id, '')
+                    searchable = searchable_dict.get(sku_id, '')
+                    bundle = bundle_dict.get(sku_id, '')
+                else:
+                    attributes_obj = SKUAttributes.objects.filter(sku_id=sku_id, attribute_name__in=attributes_list)
+                    if attributes_obj.exists():
+                        for attribute in attributes_obj:
+                            if attribute.attribute_name == 'Manufacturer':
+                                manufacturer = attribute.attribute_value
+                            if attribute.attribute_name == 'Searchable':
+                                searchable = attribute.attribute_value
+                            if attribute.attribute_name == 'Bundle':
+                                bundle = attribute.attribute_value
                 rows_data = []
-                used_damage_qtys = []
+                used_damage_qtys = {}
                 if opening_stock_data.exists():
                     for opening_stock in opening_stock_data:
                         rows_data.append({'table': 'stock_rec_field', 'data': opening_stock})
@@ -4404,23 +4406,19 @@ def get_financial_report_data(search_params, user, sub_user):
                     csd, used_damage_qtys = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1,
                                                                     used_damage_qtys=used_damage_qtys)
                     margin_percentage = 0
-                    if csd['quantity']:
-                        sale_price = StockReconciliationFields.objects.\
-                                        filter(**fields_parameters1).aggregate(sale_price=Sum(
-                            F('stock_reconciliation__customer_sales_quantity') * F(
-                                'stock_reconciliation__customer_sales_avg_rate')))['sale_price']
-                        if not sale_price:
-                            sale_price = 0
-                        margin_amount = sale_price - csd['value_before_tax']
-                        if sale_price:
-                            margin_percentage = float('%.2f' % ((margin_amount / float(sale_price)) * 100))
-
                     fields_parameters1['field_type'] = 'internal_sales'
                     isd, used_damage_qtys = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1,
                                                                     used_damage_qtys=used_damage_qtys)
                     fields_parameters1['field_type'] = 'stock_transfer'
                     std, used_damage_qtys = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1,
                                                 used_damage_qtys=used_damage_qtys)
+                    margin = 0
+                    if csd['quantity']:
+                        margin = (opening_dict['value_after_tax'] + purchase_dict['value_after_tax'] + returns_dict['value_after_tax']) - \
+                                    (rtv_dict['value_after_tax'] + csd['value_after_tax'] + isd['value_after_tax'] +\
+                                    std['value_after_tax'] + closing_dict['value_after_tax'])
+                        if margin and csd['value_after_tax']:
+                            margin_percentage = float('%.2f' % ((margin / float(csd['value_after_tax'])) * 100))
                     fields_parameters1['field_type'] = 'adjustment'
                     adjustment_dict, used_damage_qtys = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1,
                                                                                 used_damage_qtys=used_damage_qtys)
@@ -4526,6 +4524,7 @@ def get_financial_report_data(search_params, user, sub_user):
                                                             ('Adjustment Qty', adjustment_dict['quantity']),
                                                             ('Adjustment Price Per Unit(Before Taxes)', '%.2f' % adjustment_dict['price_before_tax']),
                                                             ('Adjustment Value', '%.2f' % adjustment_dict['value_before_tax']),
+                                                            ('Margin', margin),
                                                             ('Margin Percentage', margin_percentage)
                                                             )))
     return temp_data
@@ -8873,7 +8872,7 @@ def stock_rec_damaged_amount(stock_rec_obj):
     return damaged_amount_dict
 
 def get_stock_reconciliation_report_data(search_params, user, sub_user):
-    from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date
+    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date, get_utc_start_date
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['creation_date', 'sku__sku_code', 'sku__sku_desc', 'mrp', 'weight', 'sku__sku_code',
@@ -8912,10 +8911,17 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     if 'sku_brand' in search_params:
         if search_params['sku_brand']:
             search_parameters['sku__sku_brand'] = search_params['sku_brand']
+    #if 'from_date' in search_params:
+    #    search_parameters['creation_date__gt'] = search_params['from_date']
+    #if 'to_date' in search_params:
+    #    search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
     if 'from_date' in search_params:
-        search_parameters['creation_date__gt'] = search_params['from_date']
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gte'] = search_params['from_date']
     if 'to_date' in search_params:
-        search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lte'] = search_params['to_date']
     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
         if 'manufacturer' in search_params:
             search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']

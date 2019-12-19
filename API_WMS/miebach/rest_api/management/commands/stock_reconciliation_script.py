@@ -14,7 +14,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "miebach.settings")
 django.setup()
 from itertools import chain
 from miebach_admin.models import *
-from rest_api.views.common import get_sku_weight
+from rest_api.views.common import get_sku_weight, get_utc_start_date
 from rest_api.views.miebach_utils import MILKBASKET_USERS
 from django.db.models import Count
 from datetime import datetime, date, timedelta
@@ -46,6 +46,7 @@ class Command(BaseCommand):
             prices = {}
             transact_id = batch_detail.transact_id
             transact_type = batch_detail.transact_type
+            cost_price = batch_detail.buy_price
             if use_cost_price:
                 price = batch_detail.buy_price
                 tax = batch_detail.tax_percent
@@ -136,11 +137,12 @@ class Command(BaseCommand):
             sku_stats_dict[sku_detail.sku_id][group_val][group_name]['transact_data'] \
                 [extra_data_key]['price_before_tax_qtys'].append(prices['price_before_tax_qtys'])
 
-        def stock_reconciliation_for_po_picklist(user, today, tax_type_dict):
+        def stock_reconciliation_for_po_picklist(user, today_start, today_end, tax_type_dict):
             filterStats = OrderedDict()
             sku_stats_dict = {}
             filterStats['sku__user'] = user.id
-            filterStats['creation_date__startswith'] = today.date()
+            filterStats['creation_date__gte'] = today_start
+            filterStats['creation_date__lt'] = today_end
             filterStats['transact_type__in'] = ['PO', 'picklist', 'inventory-upload', 'inventory-adjustment',
                                                 'return', 'rtv']
             sku_detail_stats = SKUDetailStats.objects.filter(**filterStats).exclude(stock_detail__isnull=True)
@@ -273,6 +275,9 @@ class Command(BaseCommand):
                 tax = 0
                 field_type = 'closing'
                 extra_data_key = (field_type, float(0))
+                taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'cess_tax': 0}
+                prices = {'value_before_tax': 0, 'price_before_tax_values': 0, 'price_before_tax_qtys': 0,
+                            'quantity': stock.quantity, 'value_after_tax': 0}
                 if stock.batch_detail:
                     batch_detail = stock.batch_detail
                     mrp = batch_detail.mrp
@@ -382,19 +387,21 @@ class Command(BaseCommand):
                                 print stat_name
             return opening_stock_dict
 
-        def stock_reconciliation_group(prefix, data_dict, stock_reconciliation_dict):
-            stock_reconciliation_dict[key]['%s_quantity' % prefix] = data_dict['quantity']
-            stock_reconciliation_dict[key]['%s_qty_damaged' % prefix] = data_dict['damaged']
+        def stock_reconciliation_group(prefix, data_dict, stock_reconciliation_dict, key):
+            stock_reconciliation_dict[key]['%s_quantity' % prefix] += data_dict['quantity']
+            stock_reconciliation_dict[key]['%s_qty_damaged' % prefix] += data_dict['damaged']
             avg_rate = 0
             if data_dict['unit_price_list'] and data_dict['quantity']:
                 avg_rate = sum(data_dict['unit_price_list']) / data_dict['quantity']
             stock_reconciliation_dict[key][ '%s_avg_rate' % prefix] = avg_rate
-            stock_reconciliation_dict[key]['%s_amount' % prefix] = data_dict['amount']
+            stock_reconciliation_dict[key]['%s_amount' % prefix] += data_dict['amount']
             stock_reconciliation_dict[key]['transact_data'] = \
                 list(chain(stock_reconciliation_dict[key]['transact_data'], data_dict['transact_data'].values()))
         users = User.objects.filter(username__in=MILKBASKET_USERS)
         #users = User.objects.filter(username='GGN01')
         today = datetime.now()
+        today_start = get_utc_start_date(today)
+        today_end = today_start + timedelta(1)
         print today
         #stock_rec_field_objs = []
         stock_rec_obj_ids = []
@@ -404,7 +411,7 @@ class Command(BaseCommand):
                 tax_type_dict = dict(
                     SKUSupplier.objects.filter(supplier__user=user.id, preference=1).\
                                         values_list('sku_id', 'supplier__tax_type'))
-                sku_stats_dict = stock_reconciliation_for_po_picklist(user, today, tax_type_dict)
+                sku_stats_dict = stock_reconciliation_for_po_picklist(user, today_start, today_end, tax_type_dict)
                 sku_stock_dict = get_sku_stock_total(user, tax_type_dict)
                 opening_stock_dict = get_opening_stock_dict(user, today, sku_stats_dict, sku_stock_dict)
                 skus = SKUMaster.objects.filter(user=user.id).only('id', 'sku_code')
@@ -415,6 +422,7 @@ class Command(BaseCommand):
                     stock_reconciliation_dict = {}
                     for key, value in sku_stats.iteritems():
                         sku_id, mrp, weight = key
+                        key = (sku_id, mrp, weight.lower())
                         po_details = value['PO']
                         customer_sales_details = value['customer_sales']
                         internal_sales_details = value['internal_sales']
@@ -423,36 +431,48 @@ class Command(BaseCommand):
                         rtv_details = value['rtv']
                         return_details = value['return']
                         stock_reconciliation_dict.setdefault(key, {'sku_id': sku_id, 'mrp': mrp, 'weight': weight,
+                                                                    'closing_quantity': 0, 'closing_qty_damaged': 0, 'closing_amount': 0,
+                                                                    'purchase_quantity': 0, 'purchase_qty_damaged': 0, 'purchase_amount': 0,
+                                                                    'customer_sales_quantity': 0, 'customer_sales_qty_damaged': 0, 'customer_sales_amount': 0,
+                                                                    'internal_sales_quantity': 0, 'internal_sales_qty_damaged': 0, 'internal_sales_amount': 0,
+                                                                    'stock_transfer_quantity': 0, 'stock_transfer_qty_damaged': 0, 'stock_transfer_amount': 0,
+                                                                    'adjustment_quantity': 0, 'adjustment_qty_damaged': 0, 'adjustment_amount': 0,
+                                                                    'rtv_quantity': 0, 'rtv_qty_damaged': 0, 'rtv_amount': 0,
+                                                                    'returns_quantity': 0, 'returns_qty_damaged': 0, 'returns_amount': 0,
                                                                    'transact_data': []})
                         if po_details:
-                            stock_reconciliation_group('purchase', po_details, stock_reconciliation_dict)
+                            stock_reconciliation_group('purchase', po_details, stock_reconciliation_dict, key)
                         if customer_sales_details:
-                            stock_reconciliation_group('customer_sales', customer_sales_details, stock_reconciliation_dict)
+                            stock_reconciliation_group('customer_sales', customer_sales_details, stock_reconciliation_dict, key)
                         if internal_sales_details:
-                            stock_reconciliation_group('internal_sales', internal_sales_details, stock_reconciliation_dict)
+                            stock_reconciliation_group('internal_sales', internal_sales_details, stock_reconciliation_dict, key)
                         if stock_transfer_details:
-                            stock_reconciliation_group('stock_transfer', stock_transfer_details, stock_reconciliation_dict)
+                            stock_reconciliation_group('stock_transfer', stock_transfer_details, stock_reconciliation_dict, key)
                         if adj_details:
-                            stock_reconciliation_group('adjustment', adj_details, stock_reconciliation_dict)
+                            stock_reconciliation_group('adjustment', adj_details, stock_reconciliation_dict, key)
                         if rtv_details:
-                            stock_reconciliation_group('rtv', rtv_details, stock_reconciliation_dict)
+                            stock_reconciliation_group('rtv', rtv_details, stock_reconciliation_dict, key)
                         if return_details:
-                            stock_reconciliation_group('returns', return_details, stock_reconciliation_dict)
+                            stock_reconciliation_group('returns', return_details, stock_reconciliation_dict, key)
                     for key, value in sku_stocks.iteritems():
                         sku_id, mrp, weight = key
+                        key = (sku_id, mrp, weight.lower())
                         stock_reconciliation_dict.setdefault(key, {'sku_id': sku_id, 'mrp': mrp, 'weight': weight,
+                                                                    'closing_quantity': 0, 'closing_qty_damaged': 0,
+                                                                    'closing_amount': 0,
                                                                    'transact_data': []})
-                        stock_reconciliation_dict[key]['closing_quantity'] = value['quantity']
-                        stock_reconciliation_dict[key]['closing_qty_damaged'] = value['damaged']
+                        stock_reconciliation_dict[key]['closing_quantity'] += value['quantity']
+                        stock_reconciliation_dict[key]['closing_qty_damaged'] += value['damaged']
                         avg_rate = 0
                         if value['unit_price_list'] and value['quantity']:
                             avg_rate = sum(value['unit_price_list'])/value['quantity']
                         stock_reconciliation_dict[key]['closing_avg_rate'] = avg_rate
-                        stock_reconciliation_dict[key]['closing_amount'] = value['amount']
+                        stock_reconciliation_dict[key]['closing_amount'] += value['amount']
                         stock_reconciliation_dict[key]['transact_data'] = \
                             list(chain(stock_reconciliation_dict[key]['transact_data'], value['transact_data'].values()))
                     for key, value in sku_openings.iteritems():
                         sku_id, mrp, weight = key
+                        key = (sku_id, mrp, weight.lower())
                         stock_reconciliation_dict.setdefault(key, {'sku_id': sku_id, 'mrp': mrp, 'weight': weight,
                                                                    'transact_data': []})
                         stock_reconciliation_dict[key]['opening_quantity'] = value['quantity']
@@ -481,13 +501,15 @@ class Command(BaseCommand):
                                                           weight=stock_reconciliation_data['weight'],
                                                           creation_date__startswith=today.date(),
                                                                            defaults=stock_reconciliation_data)
+                        # Remove
+                        StockReconciliation.objects.filter(id=stock_rec_obj.id).update(creation_date=today)
                         if not created:
                             stock_rec_obj_ids.append(stock_rec_obj.id)
                         for stock_rec_field in stock_rec_fields:
                             stock_rec_field['stock_reconciliation_id'] = stock_rec_obj.id
                             if 'price_before_tax_values' in stock_rec_field.keys():
                                 stock_rec_field['price_before_tax'] = 0
-                                if stock_rec_field['price_before_tax_values']:
+                                if sum(stock_rec_field['price_before_tax_values']) and sum(stock_rec_field['price_before_tax_qtys']):
                                     stock_rec_field['price_before_tax'] = \
                                         sum(stock_rec_field['price_before_tax_values'])/sum(stock_rec_field['price_before_tax_qtys'])
                                 del stock_rec_field['price_before_tax_values']
@@ -499,7 +521,9 @@ class Command(BaseCommand):
                                                                      igst_tax=stock_rec_field['igst_tax'],
                                                                      cess_tax=stock_rec_field['cess_tax'])
                             if not exist_recs:
-                                StockReconciliationFields.objects.create(**stock_rec_field)
+                                rec_field = StockReconciliationFields.objects.create(**stock_rec_field)
+                                # Remove
+                                StockReconciliationFields.objects.filter(id=rec_field.id).update(creation_date=today)
                                 #stock_rec_field_objs.append(StockReconciliationFields(**stock_rec_field))
                     if not stock_reconciliation_dict:
                         weight = get_sku_weight(sku)
@@ -517,6 +541,8 @@ class Command(BaseCommand):
                                                           weight=weight,
                                                           creation_date__startswith=today.date(),
                                                                            defaults={})
+                        # Remove
+                        StockReconciliation.objects.filter(id=stock_rec_obj.id).update(creation_date=today)
                         if not created:
                             stock_rec_obj_ids.append(stock_rec_obj.id)
                         for stock_rec_field in stock_rec_fields:
@@ -533,7 +559,9 @@ class Command(BaseCommand):
                                                                      igst_tax=stock_rec_field['igst_tax'],
                                                                      cess_tax=stock_rec_field['cess_tax'])
                             if not exist_recs:
-                                StockReconciliationFields.objects.create(**stock_rec_field)
+                                rec_field = StockReconciliationFields.objects.create(**stock_rec_field)
+                                # Remove
+                                StockReconciliationFields.objects.filter(id=rec_field.id).update(creation_date=today)
                             #stock_rec_field_objs.append(StockReconciliationFields(**stock_rec_field))
                 # if stock_rec_field_objs:
                 #     try:

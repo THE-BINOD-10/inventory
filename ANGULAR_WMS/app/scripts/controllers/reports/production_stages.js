@@ -8,9 +8,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.service = Service;
     vm.service.print_enable = false;
     vm.central_order_mgmt = Session.roles.permissions.central_order_mgmt
-     vm.parent_username = Session.parent.userName
-     vm.industry_type = Session.user_profile.industry_type;
-     vm.user_type = Session.user_profile.user_type;
+    vm.parent_username = Session.parent.userName
+    vm.industry_type = Session.user_profile.industry_type;
+    vm.user_type = Session.user_profile.user_type;
+    vm.warehouse_type = Session.user_profile.warehouse_type;
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -37,7 +38,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('Stage Quantity').withTitle('Stage Quantity')
 
     ];
-    if(vm.parent_username == 'isprava_admin'){
+    if(vm.warehouse_type == 'admin'){
       vm.dtColumns.push(DTColumnBuilder.newColumn('Stock Value').withTitle('Stock Value'),
         DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse Name'))
     }

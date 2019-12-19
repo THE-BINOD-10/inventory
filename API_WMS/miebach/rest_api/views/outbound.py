@@ -11721,6 +11721,7 @@ def generate_customer_invoice_tab(request, user=''):
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         return_data = request.GET.get('data', '')
         delivery_challan = request.GET.get('delivery_challan', '')
+        invoice_data['invoice_date'] = invoice_date
         if delivery_challan == "true":
             titles = ['']
             title_dat = get_misc_value('invoice_titles', user.id)

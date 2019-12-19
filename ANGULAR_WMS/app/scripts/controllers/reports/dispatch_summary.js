@@ -14,6 +14,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.dispatch_summary_view_types = Data.dispatch_summary_view_types;
   vm.industry_type = Session.user_profile.industry_type;
   vm.user_type = Session.user_profile.user_type;
+  vm.warehouse_type = Session.user_profile.warehouse_type;
   vm.model_data = {'datatable': vm.g_data.view}
   vm.dtOptions = DTOptionsBuilder.newOptions()
      .withOption('ajax', {
@@ -31,7 +32,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
      .withPaginationType('full_numbers');
 
   vm.dtColumns = vm.service.build_colums(vm.g_data.tb_headers[vm.g_data.view]);
-  if(vm.parent_username == 'isprava_admin'){
+  if(vm.warehouse_type == 'admin'){
       vm.dtColumns.push(DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse Name'))
     }
 

@@ -1080,6 +1080,7 @@ def switches(request, user=''):
                        'brand_categorization':'brand_categorization',
                        'purchase_order_preview':'purchase_order_preview',
                        'stop_default_tax':'stop_default_tax',
+                       'delivery_challan_terms_condtions': 'delivery_challan_terms_condtions',
                        'order_prefix':'order_prefix',
                        }
         toggle_field, selection = "", ""
@@ -1103,6 +1104,8 @@ def switches(request, user=''):
                 data[0].save()
         elif toggle_field == 'raisepo_terms_conditions':
             data = UserTextFields.objects.update_or_create(user_id=user_id, field_type = 'terms_conditions', defaults = {'text_field':selection})
+        elif toggle_field == 'delivery_challan_terms_condtions':
+            data = UserTextFields.objects.update_or_create(user_id=user_id, field_type = 'dc_terms_conditions', defaults = {'text_field':selection})
         else:
             if toggle_field == 'tax_details':
                 tax_name = eval(selection)
@@ -5486,11 +5489,13 @@ def create_mail_attachments(f_name, html_data):
 
 
 def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_no, po_data, order_date, ean_flag=False,
-                       internal=False, report_type='Purchase Order', data_dict_po={}, full_order_date=''):
+                       internal=False, report_type='Purchase Order', data_dict_po={}, full_order_date='',mail_attachments=''):
     receivers = []
     attachments = ''
     if html_data:
         attachments = create_mail_attachments(f_name, html_data)
+    if mail_attachments:
+        attachments+=mail_attachments
     if isinstance(supplier_email, list):
         receivers = receivers + supplier_email
     if isinstance(supplier_email, str):
@@ -8812,11 +8817,14 @@ def prepare_rtv_json_data(request_data, user):
         if request_data['location'][ind] and request_data['return_qty'][ind]:
             quantity = float(request_data['return_qty'][ind])
             seller_summary = SellerPOSummary.objects.get(id=request_data['summary_id'][ind])
-            returned_quantity = seller_summary.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
-            if not returned_quantity:
-                returned_quantity = 0
-            if (seller_summary.quantity - returned_quantity) < quantity:
-                return data_list, 'Return Quantity exceeding the quantity'
+            rtv_object=seller_summary.returntovendor_set.filter()
+            if rtv_object.exists():
+                if not rtv_object[0].status:
+                    returned_quantity = rtv_object.aggregate(Sum('quantity'))['quantity__sum']
+                    if not returned_quantity:
+                        returned_quantity = 0
+                    if (seller_summary.quantity - returned_quantity) < quantity:
+                        return data_list, 'Return Quantity exceeding the quantity'
             data_dict['summary_id'] = request_data['summary_id'][ind]
             data_dict['quantity'] = quantity
             stock_filter = {'sku__user': user.id, 'quantity__gt': 0,

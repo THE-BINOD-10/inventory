@@ -11,6 +11,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.user_type = Session.user_profile.user_type;
     vm.parent_username = Session.parent.userName
     vm.central_order_mgmt = Session.roles.permissions.central_order_mgmt
+    vm.warehouse_type = Session.user_profile.warehouse_type;
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'get_inventory_aging_filter/',
@@ -35,7 +36,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
         DTColumnBuilder.newColumn('As on Date(Days)').withTitle('As on Date(Days)')
     ];
-    if(vm.parent_username == 'isprava_admin'){
+    if(vm.warehouse_type == 'admin'){
       vm.dtColumns.push(DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse Name'))
     }
     if (vm.industry_type == "FMCG" && vm.user_type == "marketplace_user") {

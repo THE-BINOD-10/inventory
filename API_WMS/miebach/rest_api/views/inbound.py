@@ -5489,11 +5489,13 @@ def create_mail_attachments(f_name, html_data):
 
 
 def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_no, po_data, order_date, ean_flag=False,
-                       internal=False, report_type='Purchase Order', data_dict_po={}, full_order_date=''):
+                       internal=False, report_type='Purchase Order', data_dict_po={}, full_order_date='',mail_attachments=''):
     receivers = []
     attachments = ''
     if html_data:
         attachments = create_mail_attachments(f_name, html_data)
+    if mail_attachments:
+        attachments+=mail_attachments
     if isinstance(supplier_email, list):
         receivers = receivers + supplier_email
     if isinstance(supplier_email, str):

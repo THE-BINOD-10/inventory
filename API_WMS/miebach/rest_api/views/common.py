@@ -4160,48 +4160,17 @@ def get_admin(user):
 def get_supplier_sku_prices(request, user=""):
     suppli_id = request.POST.get('suppli_id', '')
     sku_codes = request.POST.get('sku_codes', '')
-    tax_type = ''
     log.info('Get Customer SKU Taxes data for ' + user.username + ' is ' + str(request.POST.dict()))
-    inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     try:
-        sku_codes = [sku_codes]
-        result_data = []
-        supplier_master = ""
-        inter_state = 2
-        edit_tax = False
-        ep_supplier = False
-        if suppli_id:
-            supplier_master = SupplierMaster.objects.filter(id=suppli_id, user=user.id)
-            if supplier_master:
-                tax_type = supplier_master[0].tax_type
-                inter_state = inter_state_dict.get(tax_type, 2)
-                ep_supplier = supplier_master[0].ep_supplier
-        for sku_code in sku_codes:
-            if not sku_code:
-                continue
-            data = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
-            if data:
-                data = data[0]
-            else:
-                return "sku_doesn't exist"
-            tax_masters = TaxMaster.objects.filter(user_id=user.id, product_type=data.product_type,
-                                                   inter_state=inter_state)
-            taxes_data = []
-            for tax_master in tax_masters:
-                taxes_data.append(tax_master.json())
-            supplier_sku = SKUSupplier.objects.filter(sku_id=data.id, supplier_id=supplier_master[0].id)
-            mandate_sku_supplier = get_misc_value('mandate_sku_supplier', user.id)
-            if not supplier_sku and ep_supplier and mandate_sku_supplier == "true":
-                edit_tax = True
-            result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'tax_type': tax_type,
-                'taxes': taxes_data, 'mrp': data.mrp, 'edit_tax':edit_tax})
+        result_data=get_supplier_sku_price_values(suppli_id,sku_codes,user)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         result_data = []
         log.info('Get Supplier SKU Taxes Data failed for %s and params are %s and error statement is %s' % (
-        str(user.username), str(request.GET.dict()), str(e)))
+            str(user.username), str(request.GET.dict()), str(e)))
     return HttpResponse(json.dumps(result_data))
+
 
 
 @csrf_exempt
@@ -9843,7 +9812,19 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
             mrp_value = sku_master.mrp
             if sku_supplier[0].costing_type == 'Margin Based':
                 margin_percentage = sku_supplier[0].margin_percentage
-                prefill_unit_price = mrp_value - ((mrp_value * margin_percentage)/100)
+                prefill_unit_price = mrp_value - ((mrp_value * margin_percentage) / 100)
+                tax=0
+                tax_list=get_supplier_sku_price_values(supplier_id, wms_code, user)
+                if len(tax_list):
+                    tax_list=tax_list[0].get('taxes',[])
+                    if len(tax_list):
+                        tax_list = tax_list[0]
+                        if tax_list.get('inter_state'):
+                            tax=tax_list.get('igst_tax',0)+tax_list.get('apmc_tax',0)+tax_list.get('cess_tax',0)
+                        else:
+                            tax=tax_list.get('cgst_tax',0)+tax_list.get('sgst_tax',0)+tax_list.get('apmc_tax',0)+tax_list.get('cess_tax',0)
+
+                prefill_unit_price = (prefill_unit_price * 100) / (100 + tax)
                 data['price'] = prefill_unit_price
             elif sku_supplier[0].costing_type == 'Markup Based':
                  markup_percentage = sku_supplier[0].markup_percentage
@@ -10101,3 +10082,40 @@ def get_decimal_data(cell_data, index_status, count, user):
         except:
             index_status.setdefault(count, set()).add('Invalid Number')
     return index_status
+
+def get_supplier_sku_price_values(suppli_id, sku_codes,user):
+    tax_type = ''
+    inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
+    sku_codes = [sku_codes]
+    result_data = []
+    supplier_master = ""
+    inter_state = 2
+    edit_tax = False
+    ep_supplier = False
+    if suppli_id:
+        supplier_master = SupplierMaster.objects.filter(id=suppli_id, user=user.id)
+        if supplier_master:
+            tax_type = supplier_master[0].tax_type
+            inter_state = inter_state_dict.get(tax_type, 2)
+            ep_supplier = supplier_master[0].ep_supplier
+    for sku_code in sku_codes:
+        if not sku_code:
+            continue
+        data = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+        if data:
+            data = data[0]
+        else:
+            return "sku_doesn't exist"
+        tax_masters = TaxMaster.objects.filter(user_id=user.id, product_type=data.product_type,
+                                               inter_state=inter_state)
+        taxes_data = []
+        for tax_master in tax_masters:
+            taxes_data.append(tax_master.json())
+        supplier_sku = SKUSupplier.objects.filter(sku_id=data.id, supplier_id=supplier_master[0].id)
+        mandate_sku_supplier = get_misc_value('mandate_sku_supplier', user.id)
+        if not supplier_sku and ep_supplier and mandate_sku_supplier == "true":
+            edit_tax = True
+        result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'tax_type': tax_type,
+                            'taxes': taxes_data, 'mrp': data.mrp, 'edit_tax': edit_tax})
+
+        return result_data

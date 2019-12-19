@@ -2069,6 +2069,9 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                 else:
                     error_message = 'Invalid Warehouse Name'
                     update_error_message(failed_status, 5024, error_message, original_order_id)
+            if order.has_key('order_reference'):
+                order_reference = str(order['order_reference'])
+                order_details['order_reference'] = order_reference
 
             if not order.get('order_id', ''):
                 generate_order_id = get_order_id(user.id)

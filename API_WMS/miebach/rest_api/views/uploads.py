@@ -19,6 +19,8 @@ from django.core import serializers
 import csv
 from sync_sku import *
 from outbound import get_syncedusers_mapped_sku
+from rest_api.views.excel_operations import write_excel_col, get_excel_variables
+
 
 log = init_logger('logs/uploads.log')
 
@@ -3012,12 +3014,13 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             po_temp_data.insert(table_headers.index('APMC (%)'), data1.apmc_tax)
         po_data.append(po_temp_data)
         send_mail_data.setdefault(str(order.order_id), {'purchase_order': order, 'po_data': [],
-                                  'data1': data1, 'total_qty': 0, 'total': 0})
+                                  'data1': data1, 'total_qty': 0, 'total': 0,'seller_id':seller_id})
         send_mail_data[str(order.order_id)]['po_data'].append(po_temp_data)
         send_mail_data[str(order.order_id)]['total_qty'] += total_qty
         send_mail_data[str(order.order_id)]['total'] += total
 
         #mail_result_data = purchase_order_dict(data1, data_req, purchase_order, user, order)
+    excel_headers = ['Seller ID' , 'PO Reference' , 'PO Date', 'Supplier ID']+table_headers
     for key, send_mail_dat in send_mail_data.iteritems():
         try:
             purchase_order = send_mail_dat['data1']
@@ -3069,6 +3072,20 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             else:
                 expiry_date = ''
             po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+            report_file_names = []
+            if user.username in MILKBASKET_USERS:
+                wb, ws, path, file_name = get_excel_variables(po_reference+' '+'Purchase Order Form', 'purchase_order_sheet', excel_headers)
+
+                excel_common_list = [send_mail_dat['seller_id'], purchase_order.po_name,
+                                     purchase_order.creation_date.strftime("%d-%m-%Y"), purchase_order.supplier_id]
+                for i in range(len(po_data)):
+                    row_count=i+1
+                    column_count=0
+                    excel_data = excel_common_list+po_data[i]
+                    for value in excel_data:
+                        ws, column_count = write_excel_col(ws, row_count, column_count, value, bold=False)
+                wb.save(path)
+                report_file_names.append({'name': file_name, 'path': path})
             profile = UserProfile.objects.get(user=user.id)
             company_name = profile.company_name
             title = 'Purchase Order'
@@ -3105,11 +3122,11 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                 if get_misc_value('allow_secondary_emails', user.id) == 'true':
                     write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
                                        str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po,
-                                       full_order_date=str(order_date))
+                                       full_order_date=str(order_date) ,mail_attachments=report_file_names)
                 elif get_misc_value('raise_po', user.id) == 'true':
                     write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
                                        str(order_date).split(' ')[0], ean_flag=ean_flag,
-                                       data_dict_po=data_dict_po, full_order_date=str(order_date))
+                                       data_dict_po=data_dict_po, full_order_date=str(order_date), mail_attachments=report_file_names)
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())

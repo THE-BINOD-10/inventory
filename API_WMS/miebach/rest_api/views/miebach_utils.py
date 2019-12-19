@@ -448,7 +448,7 @@ ORDER_SUMMARY_DICT = {
                 {'label': 'SKU Size', 'name': 'sku_size', 'type': 'input'},
                 {'label': 'Status', 'name': 'order_report_status', 'type': 'select'},
                 {'label': 'Order ID', 'name': 'order_id', 'type': 'input'}],
-    'dt_headers': ['Order Date','Order ID', 'Customer Name', 'SKU Brand', 'SKU Category', 'SKU Sub Category', 'SKU Class', 'SKU Size',
+    'dt_headers': ['Order Date','Order ID', 'Customer ID','Customer Name', 'SKU Brand', 'SKU Category', 'SKU Sub Category', 'SKU Class', 'SKU Size',
                    'SKU Description', 'SKU Code', 'Vehicle Number', 'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Tax', 'Taxable Amount', 'City',
                    'State', 'Marketplace', 'Invoice Amount', 'Status', 'Order Status', 'Remarks','Customer GST Number','Payment Type','Reference Number', 'Advance Amount'],
     'mk_dt_headers': ['Order Date','Order ID', 'Customer Name', 'SKU Brand', 'SKU Category', 'SKU Sub Category', 'SKU Class', 'SKU Size',
@@ -4543,7 +4543,7 @@ def get_order_summary_data(search_params, user, sub_user):
     if user.username in milkbasket_users :
         milkbasket_user = True
 
-    lis = ['creation_date', 'order_id', 'customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
+    lis = ['creation_date', 'order_id', 'customer_id','customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
            'sku__sku_size', 'sku__sku_desc', 'sku__sub_category', 'sku_code', 'sku_code', 'quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
            'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id','order_id',
            'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','invoice_number', 'challan_number', 'quantity','creation_date'];
@@ -4619,13 +4619,13 @@ def get_order_summary_data(search_params, user, sub_user):
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
                                                                     'sku__sku_desc','sku__price','sellerordersummary__invoice_number','sellerordersummary__challan_number','address',
-                                                                    'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
+                                                                    'quantity','original_order_id','order_reference','sku__sku_brand','customer_name','customer_id',
                                                                     'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category').exclude(status = 3).distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
     else:
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size',
                                                                     'sku__sku_desc','sku__price','address','order_code','payment_mode',
-                                                                    'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
+                                                                    'quantity','original_order_id','order_reference','sku__sku_brand','customer_name','customer_id',
                                                                     'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category').exclude(status = 3).distinct()
     pick_filters = {}
     for key, value in search_parameters.iteritems():
@@ -4713,7 +4713,7 @@ def get_order_summary_data(search_params, user, sub_user):
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
 
     total_row = {}
-    total_row = OrderedDict((('Order Date', ''), ('Order ID', ""),('Customer Name', ""),('Order Number' ,""),
+    total_row = OrderedDict((('Order Date', ''), ('Order ID', ""), ("Customer ID", ""), ('Customer Name', ""),('Order Number' ,""),
     ('SKU Brand', ""),('SKU Category', ''),('SKU Class', ''),('SKU Size', ''), ('SKU Description', ''),('SKU Sub Category', ''),
     ('SKU Code', 'TotalQuantity='), ('Vehicle Number', ''),('Order Qty',temp_data['totalOrderQuantity']),('MRP', ''), ('Unit Price',''),('Discount', ''),
     ('Serial Number',''),('Invoice Number',''),('Challan Number', ''),('Quantity',''),('Payment Type' ,''),('Reference Number',''),
@@ -4816,6 +4816,7 @@ def get_order_summary_data(search_params, user, sub_user):
         order_status = ''
         remarks = ''
         order_taken_by = ''
+        vehicle_number = ''
         payment_card, payment_cash ,payment_PhonePe,payment_Paytm,payment_GooglePay = 0, 0,0,0,0
         order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data['id'])
         unit_price, unit_price_inclusive_tax = [data['unit_price']] * 2
@@ -4934,6 +4935,7 @@ def get_order_summary_data(search_params, user, sub_user):
             if order_field_obj.exists():
                 order_extra_fields[order_field_obj[0].name] = order_field_obj[0].value
         aaData = OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
+                                                    ('Customer ID', data['customer_id']),
                                                     ('Customer Name', customer_name),
                                                     ('Order Number' ,data['order_reference']),
                                                     ('SKU Brand', data['sku__sku_brand']),

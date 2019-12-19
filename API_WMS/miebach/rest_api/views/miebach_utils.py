@@ -2896,7 +2896,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
         if 'bundle' in search_params:
             search_parameters['order__sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
 
-    if user.username == 'isprava_admin':
+    if user.userprofile.warehouse_type == 'admin':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
             user = User.objects.get(username=sister_warehouse_name)
@@ -3765,7 +3765,7 @@ def get_stock_summary_data(search_params, user, sub_user):
         if 'bundle' in search_params:
             search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
 
-    if user.username == 'isprava_admin':
+    if user.userprofile.warehouse_type == 'admin':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
             user = User.objects.get(username=sister_warehouse_name)
@@ -7155,7 +7155,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
     increment_invoice = get_misc_value('increment_invoice', user.id)
     search_parameters = {}
     sister_whs = [user.id]
-    if user.username == '72Networks':
+    if user.userprofile.warehouse_type == 'admin':
         sister_whs = list(User.objects.filter(username__in=get_linked_user_objs(user, user)).values_list('id', flat=True))
 
     if not firebase_response:

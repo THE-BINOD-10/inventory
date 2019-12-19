@@ -2305,6 +2305,7 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'sales_return_reasons': 'sales_return_reasons',
                      'rtv_prefix_code': 'rtv_prefix_code',
                      'weight_integration_name': 'weight_integration_name',
+                     'delivery_challan_terms_condtions': 'delivery_challan_terms_condtions',
                      'order_prefix': 'order_prefix',
                      }
 

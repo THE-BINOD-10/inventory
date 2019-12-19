@@ -916,8 +916,11 @@ def configurations(request, user=''):
     if mandatory_receive_po != 'false':
         config_dict['selected_receive_po_mandatory'] = mandatory_receive_po.split(',')
     terms_condition = UserTextFields.objects.filter(user=user.id, field_type = 'terms_conditions')
+    dc_terms_conditions = UserTextFields.objects.filter(user=user.id, field_type = 'dc_terms_conditions')
     if terms_condition.exists():
         config_dict['raisepo_terms_conditions'] = terms_condition[0].text_field
+    if dc_terms_conditions.exists():
+        config_dict['delivery_challan_terms_condtions'] = dc_terms_conditions[0].text_field
     config_dict['all_order_field_options'] = {}
     misc_options = MiscDetailOptions.objects.filter(misc_detail__user=user.id).values('misc_key','misc_value')
     for misc in misc_options :
@@ -3403,6 +3406,10 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         company_name = seller.name #'SHPROC Procurement Pvt. Ltd.'
     if math.ceil(total_quantity) == total_quantity:
         total_quantity = int(total_quantity)
+    dc_terms_conditions = ''
+    terms_condition = UserTextFields.objects.filter(user=user.id, field_type = 'dc_terms_conditions')
+    if terms_condition.exists():
+        dc_terms_conditions = terms_condition[0].text_field.replace('<<>>', '\n')
     invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name,'company_pan_number':pan_number,
                     'company_address': company_address, 'company_number': company_number,
                     'order_date': order_date, 'email': email, 'marketplace': marketplace, 'total_amt': total_amt,
@@ -3432,7 +3439,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
                     'cin_no': cin_no, 'challan_no': challan_no, 'customer_id': customer_id,'challan_sequence':challan_sequence,
                     'show_mrp': show_mrp, 'mode_of_transport' : mode_of_transport, 'vehicle_number' : vehicle_number,
-                    'is_cess_tax_flag': is_cess_tax_flag, 'is_igst_tax_flag': is_igst_tax_flag, 'advance_amount':str(advance_amount)}
+                    'is_cess_tax_flag': is_cess_tax_flag, 'is_igst_tax_flag': is_igst_tax_flag, 'advance_amount':str(advance_amount), 'terms_condition': dc_terms_conditions}
     return invoice_data
 
 def common_calculations(arg_data):

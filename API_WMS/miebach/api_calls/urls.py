@@ -49,4 +49,5 @@ urlpatterns = [
     url(r'^store_hippo/$', store_hippo),
     url(r'^get_customers/$', get_customers),
     url(r'^get_skufilters/$', get_skufilters),
+    url(r'^create_orders/$', create_orders),
 ]

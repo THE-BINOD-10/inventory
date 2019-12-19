@@ -98,7 +98,6 @@ class Command(BaseCommand):
 
         def get_batch_detail_report(users, report_file_names, report_file_name='SKU Inventory Value'):
             batch_detail_headers = copy.deepcopy(BATCH_DETAIL_HEADERS)
-            import pdb;pdb.set_trace()
             for user in users:
                 stock_detail_objs = StockDetail.objects.select_related('sku', 'location', 'location__zone',
                                                                        'pallet_detail',

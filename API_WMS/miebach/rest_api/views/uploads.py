@@ -2853,8 +2853,8 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         if show_cess_tax and show_apmc_tax and ean_flag:
             break
     if user_profile.industry_type == 'FMCG':
-        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
-                         'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt(with out tax)',
+                         'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total(with tax)']
         if user.username in MILKBASKET_USERS:
             table_headers.insert(4, 'Weight')
     else:
@@ -2932,8 +2932,10 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         order_data['ship_to'] = final_dict['ship_to']
         data['creation_date'] = creation_date
         seller_id = ''
+        excel_seller_id = ''
         if final_dict.get('seller', ''):
             seller_id = final_dict['seller'].id
+            excel_seller_id = final_dict['seller'].seller_id
         group_key = (order_data['po_name'], order_data['supplier_id'], data['po_date'], seller_id)
         if group_key not in order_ids.keys():
             po_id = get_purchase_order_id(user)+1
@@ -3014,7 +3016,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             po_temp_data.insert(table_headers.index('APMC (%)'), data1.apmc_tax)
         po_data.append(po_temp_data)
         send_mail_data.setdefault(str(order.order_id), {'purchase_order': order, 'po_data': [],
-                                  'data1': data1, 'total_qty': 0, 'total': 0,'seller_id':seller_id})
+                                  'data1': data1, 'total_qty': 0, 'total': 0,'seller_id':excel_seller_id})
         send_mail_data[str(order.order_id)]['po_data'].append(po_temp_data)
         send_mail_data[str(order.order_id)]['total_qty'] += total_qty
         send_mail_data[str(order.order_id)]['total'] += total

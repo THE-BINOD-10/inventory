@@ -40,7 +40,7 @@ NOW = datetime.datetime.now()
 
 SKU_GROUP_FIELDS = {'group': '', 'user': ''}
 
-MILKBASKET_USERS = ['milkbasket', 'milkbasket_test', 'NOIDA02', 'NOIDA01', 'GGN01', 'HYD01', 'BLR01']
+MILKBASKET_USERS = ['milkbasket_test', 'NOIDA02', 'NOIDA01', 'GGN01', 'HYD01', 'BLR01']
 
 MILKBASKET_BULK_ZONE = 'Bulk Zone'
 

@@ -8,6 +8,7 @@ import os
 import logging
 import copy
 import django
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "miebach.settings")
 django.setup()
 from itertools import chain
@@ -17,10 +18,11 @@ from django.db.models.fields import DateField, CharField
 from django.db.models import Value
 from datetime import datetime, date, timedelta
 from miebach_admin.models import *
-from rest_api.views.common import get_sku_weight, get_all_sellable_zones, get_work_sheet, get_utc_start_date, get_local_date
+from rest_api.views.common import get_sku_weight, get_all_sellable_zones, get_work_sheet, get_utc_start_date, \
+    get_local_date
+from rest_api.views.excel_operations import write_excel_col, get_excel_variables
 from rest_api.views.miebach_utils import MILKBASKET_USERS, fn_timer, BATCH_DETAIL_HEADERS
 from rest_api.views.mail_server import send_mail_attachment
-from xlwt import  easyxf
 
 
 def init_logger(log_file):
@@ -33,71 +35,63 @@ def init_logger(log_file):
     log.setLevel(logging.DEBUG)
     return log
 
+
 log = init_logger('logs/milkbasket_central_report_mail.log')
 
 ba_location = 'BA'
 
+
 class Command(BaseCommand):
     help = "Milkbasket Central Reports Mail"
+
     def handle(self, *args, **options):
         self.stdout.write("Milkbasket Central Reports Script")
-
-        def write_excel_col(ws, row_count, column_count, value,bold = False):
-            if bold:
-                header_style = easyxf('font: bold on')
-                ws.write(row_count, column_count, value,header_style)
-            else:
-                ws.write(row_count, column_count, value)
-            column_count += 1
-            return ws, column_count
-
-        def get_excel_variables(file_name, sheet_name, headers, headers_index=0):
-            wb, ws = get_work_sheet(sheet_name, headers, headers_index=headers_index)
-            file_name = '%s.%s' % (file_name, 'xls')
-            path = ('static/excel_files/%s') % file_name
-            if not os.path.exists('static/excel_files/'):
-                os.makedirs('static/excel_files/')
-            return wb, ws, path, file_name
 
         def get_adjustment_report(users, start_date, end_date, report_file_names, report_file_name):
             col1 = 1
             col2 = 2
             name = report_file_name
             wb, ws, path, file_name = get_excel_variables(name, report_file_name, [])
-            ws.write_merge(0, 0, 1,5,'Adjustment Report')
-            adjustment_column_dict ={3:'Positive Adjustment',4:'Negative Adjustment',5:'Total'}
-            for key,value in adjustment_column_dict.iteritems() :
-                ws, column_count = write_excel_col(ws,key,0, value,bold = True)
-            for user in users :
-                positive_quantity = InventoryAdjustment.objects.filter(stock__sku__user = user.id,
-                                                             creation_date__gte=start_date,creation_date__lte=end_date,adjusted_quantity__gt=0)\
-                                                             .annotate(total_price = F('adjusted_quantity') * F('stock__batch_detail__buy_price'))\
-                                                             .annotate(total_price_tax = F('total_price') + (F('total_price')/100) *F('stock__batch_detail__tax_percent'))\
-                                                             .aggregate(Sum('total_price_tax'))['total_price_tax__sum']
+            ws.write_merge(0, 0, 1, 5, 'Adjustment Report')
+            adjustment_column_dict = {3: 'Positive Adjustment', 4: 'Negative Adjustment', 5: 'Total'}
+            for key, value in adjustment_column_dict.iteritems():
+                ws, column_count = write_excel_col(ws, key, 0, value, bold=True)
+            for user in users:
+                positive_quantity = InventoryAdjustment.objects.filter(stock__sku__user=user.id,
+                                                                       creation_date__gte=start_date,
+                                                                       creation_date__lte=end_date,
+                                                                       adjusted_quantity__gt=0) \
+                    .annotate(total_price=F('adjusted_quantity') * F('stock__batch_detail__buy_price')) \
+                    .annotate(
+                    total_price_tax=F('total_price') + (F('total_price') / 100) * F('stock__batch_detail__tax_percent')) \
+                    .aggregate(Sum('total_price_tax'))['total_price_tax__sum']
 
-                negative_quantity = InventoryAdjustment.objects.filter(stock__sku__user = user.id,
-                                                creation_date__gte=start_date,creation_date__lte=end_date,adjusted_quantity__lt=0)\
-                                                .annotate(total_price = F('adjusted_quantity') * F('stock__batch_detail__buy_price'))\
-                                                .annotate(total_price_tax = F('total_price') + F('total_price') *F('stock__batch_detail__tax_percent')/100)\
-                                                .aggregate(Sum('total_price_tax'))['total_price_tax__sum']
+                negative_quantity = InventoryAdjustment.objects.filter(stock__sku__user=user.id,
+                                                                       creation_date__gte=start_date,
+                                                                       creation_date__lte=end_date,
+                                                                       adjusted_quantity__lt=0) \
+                    .annotate(total_price=F('adjusted_quantity') * F('stock__batch_detail__buy_price')) \
+                    .annotate(
+                    total_price_tax=F('total_price') + F('total_price') * F('stock__batch_detail__tax_percent') / 100) \
+                    .aggregate(Sum('total_price_tax'))['total_price_tax__sum']
 
-                if not positive_quantity : positive_quantity = 0
-                if not negative_quantity :
+                if not positive_quantity: positive_quantity = 0
+                if not negative_quantity:
                     negative_quantity = 0
                 else:
                     negative_quantity = negative_quantity
                 total = positive_quantity + negative_quantity
 
-                ws.write_merge(1, 1, col1,col2,user.username.upper())
-                ws, column_count = write_excel_col(ws,2,col1, 'Amount',bold = True)
-                ws, column_count = write_excel_col(ws,2,col2, 'Realized',bold = True)
-                ws, column_count = write_excel_col(ws,3,col1, float("%.2f" % positive_quantity))
-                ws, column_count = write_excel_col(ws,4,col1, float("%.2f" % abs(negative_quantity)))
-                ws, column_count = write_excel_col(ws,5,col1, float("%.2f" % total))
-                for i in [3,4,5] :
-                    ws, column_count = write_excel_col(ws,i,col2, 0)
-                col1+=2
-                col2+=2
+                ws.write_merge(1, 1, col1, col2, user.username.upper())
+                ws, column_count = write_excel_col(ws, 2, col1, 'Amount', bold=True)
+                ws, column_count = write_excel_col(ws, 2, col2, 'Realized', bold=True)
+                ws, column_count = write_excel_col(ws, 3, col1, float("%.2f" % positive_quantity))
+                ws, column_count = write_excel_col(ws, 4, col1, float("%.2f" % abs(negative_quantity)))
+                ws, column_count = write_excel_col(ws, 5, col1, float("%.2f" % total))
+                for i in [3, 4, 5]:
+                    ws, column_count = write_excel_col(ws, i, col2, 0)
+                col1 += 2
+                col2 += 2
             wb.save(path)
             report_file_names.append({'name': file_name, 'path': path})
             return report_file_names
@@ -105,23 +99,33 @@ class Command(BaseCommand):
         def get_batch_detail_report(users, report_file_names, report_file_name='SKU Inventory Value'):
             batch_detail_headers = copy.deepcopy(BATCH_DETAIL_HEADERS)
             for user in users:
-                stock_detail_objs = StockDetail.objects.select_related('sku', 'location', 'location__zone', 'pallet_detail',
-                                                           'batch_detail').prefetch_related('sku', 'location',
-                                                                                            'location__zone').\
-                                            exclude(Q(receipt_number=0)|Q(batch_detail__buy_price=0)).\
-                                            filter(sku__user=user.id, quantity__gt=0).values_list('receipt_number', 'receipt_date',
-                                            'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'batch_detail__batch_no', 'batch_detail__mrp',
-                                            'batch_detail__weight', 'batch_detail__buy_price', 'batch_detail__tax_percent',
-                                            'batch_detail__manufactured_date', 'batch_detail__expiry_date', 'location__zone__zone',
-                                            'location__location', 'quantity', 'receipt_type')
+                stock_detail_objs = StockDetail.objects.select_related('sku', 'location', 'location__zone',
+                                                                       'pallet_detail',
+                                                                       'batch_detail').prefetch_related('sku',
+                                                                                                        'location',
+                                                                                                        'location__zone'). \
+                    exclude(Q(receipt_number=0) | Q(batch_detail__buy_price=0)). \
+                    filter(sku__user=user.id, quantity__gt=0).values_list('receipt_number', 'receipt_date',
+                                                                          'sku__sku_code', 'sku__sku_desc',
+                                                                          'sku__sku_category', 'batch_detail__batch_no',
+                                                                          'batch_detail__mrp',
+                                                                          'batch_detail__weight',
+                                                                          'batch_detail__buy_price',
+                                                                          'batch_detail__tax_percent',
+                                                                          'batch_detail__manufactured_date',
+                                                                          'batch_detail__expiry_date',
+                                                                          'location__zone__zone',
+                                                                          'location__location', 'quantity',
+                                                                          'receipt_type')
                 name = '%s_%s' % (user.username, report_file_name)
                 wb, ws, path, file_name = get_excel_variables(name, name, batch_detail_headers)
                 row_count = 1
                 for stock_detail_vals in stock_detail_objs:
                     for col_count, stock_detail_val in enumerate(stock_detail_vals):
                         if col_count in [1]:
-                            stock_detail_val = get_local_date(user, stock_detail_val, send_date=True).strftime("%d %b %Y")
-                        elif col_count in [10,11]:
+                            stock_detail_val = get_local_date(user, stock_detail_val, send_date=True).strftime(
+                                "%d %b %Y")
+                        elif col_count in [10, 11]:
                             if stock_detail_val:
                                 stock_detail_val = stock_detail_val.strftime("%d %b %Y")
                             else:
@@ -132,11 +136,9 @@ class Command(BaseCommand):
                 report_file_names.append({'name': file_name, 'path': path})
             return report_file_names
 
-
-
         users = User.objects.filter(username__in=['GGN01', 'NOIDA01', 'NOIDA02', 'HYD01', 'BLR01'])
-        #users = User.objects.filter(username__in=['GGN01'])
-        category_list = list(SKUMaster.objects.filter(user__in=users, status=1).exclude(sku_category='').\
+        # users = User.objects.filter(username__in=['GGN01'])
+        category_list = list(SKUMaster.objects.filter(user__in=users, status=1).exclude(sku_category=''). \
                              values_list('sku_category', flat=True).distinct())
         inv_value_dict = OrderedDict()
         doc_value_dict = OrderedDict()
@@ -151,15 +153,18 @@ class Command(BaseCommand):
         inv_value_headers = list(chain(inv_value_headers, user_mapping.values()))
         try:
             report_file_names = []
-            #Week Report
-            start_date = get_utc_start_date(datetime.now()-timedelta(6))
+            # Week Report
+            start_date = get_utc_start_date(datetime.now() - timedelta(6))
             end_date = start_date + timedelta(days=7)
-            report_file_names = get_adjustment_report(users, start_date, end_date, report_file_names, report_file_name='Adjustment Report Weekly')
-            #MTD Report
+            report_file_names = get_adjustment_report(users, start_date, end_date, report_file_names,
+                                                      report_file_name='Adjustment Report Weekly')
+            # MTD Report
             start_date = get_utc_start_date(datetime.now().replace(day=1))
-            end_date = get_utc_start_date(datetime.now()+timedelta(days=1))
-            report_file_names = get_adjustment_report(users, start_date, end_date, report_file_names, report_file_name='Adjustment Report-MTD')
-            report_file_names = get_batch_detail_report(users, report_file_names, report_file_name='SKU Inventory Value')
+            end_date = get_utc_start_date(datetime.now() + timedelta(days=1))
+            report_file_names = get_adjustment_report(users, start_date, end_date, report_file_names,
+                                                      report_file_name='Adjustment Report-MTD')
+            report_file_names = get_batch_detail_report(users, report_file_names,
+                                                        report_file_name='SKU Inventory Value')
             for category in category_list:
                 log.info("Calculation started for Category %s" % category)
                 for user in users:
@@ -172,28 +177,31 @@ class Command(BaseCommand):
                     margin_percent_dict.setdefault(category, {})
                     margin_percent_dict[category].setdefault(int(user.id), 0)
                     # Doc Value Calculation Starts
-                    no_zero_stock_days = list(StockStats.objects.filter(sku__sku_category=category, sku__user=user.id, closing_stock__gt=0). \
-                                         annotate(creation_date_only=Cast('creation_date', DateField())).values(
-                        'creation_date_only').distinct(). \
-                                         order_by('-creation_date_only').values_list('creation_date_only', flat=True)[
-                                         :7])
+                    no_zero_stock_days = list(
+                        StockStats.objects.filter(sku__sku_category=category, sku__user=user.id, closing_stock__gt=0). \
+                            annotate(creation_date_only=Cast('creation_date', DateField())).values(
+                            'creation_date_only').distinct(). \
+                            order_by('-creation_date_only').values_list('creation_date_only', flat=True)[
+                        :7])
 
                     all_orders = OrderDetail.objects.filter(user=user.id, sku__sku_category=category,
-                                                                   customerordersummary__isnull=False, sellerorder__seller__seller_id=2)
+                                                            customerordersummary__isnull=False,
+                                                            sellerorder__seller__seller_id=2)
                     order_detail_objs = all_orders. \
                                             annotate(creation_date_only=Cast('creation_date', DateField())). \
                                             filter(creation_date_only__in=no_zero_stock_days).values(
                         'creation_date_only').distinct(). \
-                                            order_by('-creation_date_only').\
-                        annotate(quantity_sum=Sum('quantity'),value_sum=Sum((F('quantity') * F('unit_price'))))[:7] # +\
-                                    #((F('quantity')*F('unit_price')/Value('100'))*(F('customerordersummary__cgst_tax')+\
-                                    # F('customerordersummary__sgst_tax')+F('customerordersummary__igst_tax')+\
-                                    #                                               F('customerordersummary__cess_tax'))) ))[:7]
+                                            order_by('-creation_date_only'). \
+                                            annotate(quantity_sum=Sum('quantity'),
+                                                     value_sum=Sum((F('quantity') * F('unit_price'))))[:7]  # +\
+                    # ((F('quantity')*F('unit_price')/Value('100'))*(F('customerordersummary__cgst_tax')+\
+                    # F('customerordersummary__sgst_tax')+F('customerordersummary__igst_tax')+\
+                    #                                               F('customerordersummary__cess_tax'))) ))[:7]
                     total_sale_value = 0
                     if order_detail_objs.exists():
                         for order_detail_obj in order_detail_objs:
                             total_sale_value += order_detail_obj['value_sum']
-                    avg_sale_value = total_sale_value/7
+                    avg_sale_value = total_sale_value / 7
                     doc_value_dict[category][int(user.id)] = avg_sale_value
                     # Doc Value Calculation Ends
 
@@ -231,10 +239,11 @@ class Command(BaseCommand):
                         margin_value_dict[category][int(user.id)] = pick_sale_val - pick_cost_val
                         margin_percent_dict[category][int(user.id)] = (pick_sale_val - pick_cost_val)/pick_sale_val'''
                     # Margin Value and Percent Calculation Ends
-                inventory_value_objs = StockDetail.objects.filter(sku__user__in=users, sku__sku_category=category, quantity__gt=0).\
-                                                exclude(Q(receipt_number=0) | Q(location__zone__zone='DAMAGED_ZONE')).\
-                                                values('sku__sku_category', 'sku__user', 'batch_detail__tax_percent',
-                                                            'quantity', 'batch_detail__buy_price')
+                inventory_value_objs = StockDetail.objects.filter(sku__user__in=users, sku__sku_category=category,
+                                                                  quantity__gt=0). \
+                    exclude(Q(receipt_number=0) | Q(location__zone__zone='DAMAGED_ZONE')). \
+                    values('sku__sku_category', 'sku__user', 'batch_detail__tax_percent',
+                           'quantity', 'batch_detail__buy_price')
                 for data in inventory_value_objs:
                     tax_percent = 0
                     if data['batch_detail__tax_percent']:
@@ -244,7 +253,7 @@ class Command(BaseCommand):
                         buy_price = data['batch_detail__buy_price']
                     total_value = data['quantity'] * buy_price
                     if tax_percent:
-                        total_value += (total_value/100)*tax_percent
+                        total_value += (total_value / 100) * tax_percent
                     inv_value_dict[data['sku__sku_category']][int(data['sku__user'])] += total_value
 
             name = 'inventory_value_report'
@@ -262,7 +271,7 @@ class Command(BaseCommand):
                     total_inventory_value.setdefault(user, 0)
                     total_inventory_value[user] += value
                 row_count += 1
-            #Adding Totals in Bottom for Inventory Value report
+            # Adding Totals in Bottom for Inventory Value report
             column_count = 0
             ws, column_count = write_excel_col(ws, row_count, column_count, 'Total')
             for user, value in total_inventory_value.iteritems():
@@ -284,20 +293,22 @@ class Command(BaseCommand):
                         stock_value = inv_value_dict[category][user]
                         total_doc_dict[user]['total_sales'] += value
                         total_doc_dict[user]['total_inventory'] += stock_value
-                        log.info("Category %s, User %s, Total Avg Sale %s, Total Inventory %s" % (category, str(user), str(value), str(stock_value)))
-                        doc_value = stock_value/value
+                        log.info("Category %s, User %s, Total Avg Sale %s, Total Inventory %s" % (
+                            category, str(user), str(value), str(stock_value)))
+                        doc_value = stock_value / value
                     doc_value = float("%.2f" % doc_value)
                     ws, column_count = write_excel_col(ws, row_count, column_count, doc_value)
                 row_count += 1
-            #Adding Totals in Bottom for Doc Report
+            # Adding Totals in Bottom for Doc Report
             column_count = 0
             ws, column_count = write_excel_col(ws, row_count, column_count, 'Total')
             for user, value in total_doc_dict.iteritems():
                 column_count = (user_mapping.keys().index(user)) + 1
                 total_doc = 0
                 if value['total_sales']:
-                    total_doc = value['total_inventory']/value['total_sales']
-                log.info("Total Inventory %s, Total Sale %s for DOC, User %s" % (str(value['total_inventory']), str(value['total_sales']), str(user)))
+                    total_doc = value['total_inventory'] / value['total_sales']
+                log.info("Total Inventory %s, Total Sale %s for DOC, User %s" % (
+                    str(value['total_inventory']), str(value['total_sales']), str(user)))
                 ws, column_count = write_excel_col(ws, row_count, column_count, total_doc)
 
             wb.save(path)
@@ -326,11 +337,12 @@ class Command(BaseCommand):
                 row_count += 1
             wb.save(path)
             report_file_names.append({'name': file_name, 'path': path})'''
-            #send_to = ['sreekanth@mieone.com']
-            send_to = ['shishir.sharma@milkbasket.com', 'gaurav.srivastava@milkbasket.com', 'anubhav.gupta@milkbasket.com',
-                       'anubhavsood@milkbasket.com', 'tapasya.tibrewal@milkbasket.com', 'prijil.d@milkbasket.com',
-                       'sahil.madan@milkbasket.com', 'anurag@milkbasket.com', 'rajiv.joshi@milkbasket.com',
-                       'saurabh.kumar@milkbasket.com', 'naveen.panwar@milkbasket.com']
+            send_to = ['avadhani@mieone.com']
+            # send_to = ['shishir.sharma@milkbasket.com', 'gaurav.srivastava@milkbasket.com',
+            #            'anubhav.gupta@milkbasket.com',
+            #            'anubhavsood@milkbasket.com', 'tapasya.tibrewal@milkbasket.com', 'prijil.d@milkbasket.com',
+            #            'sahil.madan@milkbasket.com', 'anurag@milkbasket.com', 'rajiv.joshi@milkbasket.com',
+            #            'saurabh.kumar@milkbasket.com', 'naveen.panwar@milkbasket.com']
             subject = '%s Reports dated %s' % ('Milkbasket', datetime.now().date())
             text = 'Please find the scheduled reports in the attachment dated: %s' % str(
                 datetime.now().date())

@@ -642,6 +642,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
         vm.model_data.supplier_id = vm.model_data.seller_supplier_map[vm.model_data.seller_type.split(":")[0]];
       }
       if (vm.model_data.supplier_id) {
+      vm.get_supplier_sku_prices(item.wms_code).then(function(sku_data){
+            sku_data = sku_data[0];
+            vm.model_data.tax_type = sku_data.tax_type.replace(" ","_").toLowerCase();
+            //sku_data["price"] = product.fields.price;
+            //vm.model_data.supplier_sku_prices = sku_data;
+            product["taxes"] = sku_data.taxes;
+            product["fields"]["edit_tax"] = sku_data.edit_tax;
+            vm.get_tax_value(product);
+        })
         var supplier = vm.model_data.supplier_id;
         $http.get(Session.url+'get_mapping_values/?wms_code='+product.fields.sku.wms_code+'&supplier_id='+supplier, {withCredentials : true}).success(function(data, status, headers, config) {
           if (data.hasOwnProperty('error_msg')) {
@@ -666,15 +675,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
             }
           }
         });
-        vm.get_supplier_sku_prices(item.wms_code).then(function(sku_data){
-            sku_data = sku_data[0];
-            vm.model_data.tax_type = sku_data.tax_type.replace(" ","_").toLowerCase();
-            //sku_data["price"] = product.fields.price;
-            //vm.model_data.supplier_sku_prices = sku_data;
-            product["taxes"] = sku_data.taxes;
-            product["fields"]["edit_tax"] = sku_data.edit_tax;
-            vm.get_tax_value(product);
-        })
       }
     }
     vm.update_wms_records = function(){

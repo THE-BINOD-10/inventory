@@ -930,6 +930,9 @@ def get_skus(request):
     data = []
     limit = 30
     user = request.user
+    attr_list = []
+    error_status = []
+    skus = []
     search_params = {'user': user.id}
     request_data = request.body
     search_query = Q()
@@ -939,11 +942,14 @@ def get_skus(request):
         except:
             request_data = {}
         attributes = get_user_attributes(user, 'sku')
-        attr_list = []
         if request_data.get('limit'):
             limit = request_data['limit']
         if request_data.get('sku_code'):
             search_params['sku_code'] = request_data['sku_code']
+        skus = request_data.get('sku_list', [])
+        skus = map(lambda sku: str(sku), skus)
+        if skus:
+            search_params['sku_code__in'] = skus
         if request_data.get('sku_search'):
             search_query = build_search_term_query(['sku_code', 'sku_desc'], request_data['sku_search'])
         sku_model = [field.name for field in SKUMaster._meta.get_fields()]
@@ -967,6 +973,9 @@ def get_skus(request):
             if attr_found:
                 search_params['id__in'] = attr_filter_ids
     sku_records = SKUMaster.objects.filter(search_query, **search_params)
+    error_skus = set(skus) - set(sku_records.values_list('sku_code', flat=True))
+    for error_sku in error_skus:
+        error_status.append({'sku': error_sku, 'message': 'SKU Not found'})
     page_info = scroll_data(request, sku_records, limit=limit, request_type='body')
     sku_records = page_info['data']
     for sku in sku_records:
@@ -975,6 +984,11 @@ def get_skus(request):
             updated = sku.updation_date.strftime('%Y-%m-%d %H:%M:%S')
         data_dict = OrderedDict(( ('id', sku.id), ('sku_code', sku.sku_code), ('sku_desc', sku.sku_desc),
                                   ('sku_brand', sku.sku_brand), ('sku_category', sku.sku_category), ('price', str(sku.price)),
+                                  ('mrp', str(sku.mrp)),
+                                  ('cost_price', str(sku.cost_price)),
+                                  ('product_type', sku.product_type),
+                                  ('hsn_code', sku.hsn_code),
+                                  ('ean_number', sku.ean_number),
                                   ('active', sku.status),
                                   ('created_at', sku.creation_date.strftime('%Y-%m-%d %H:%M:%S')),
                                   ('updated_at', updated )))
@@ -986,7 +1000,9 @@ def get_skus(request):
         data.append(data_dict)
 
     page_info['data'] = data
-    page_info['message'] = 'success'
+    page_info['message'] = "Success"
+    if error_status:
+        page_info['error_data'] = [{'errors': error_status}]
     return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
 
 @csrf_exempt

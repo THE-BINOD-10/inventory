@@ -981,12 +981,16 @@ def get_skus(request):
     for sku in sku_records:
         updated = ''
         cgst, sgst, igst, cess = '','','',''
-        tax_obj = TaxMaster.objects.filter(product_type=sku.product_type, user=user.id)
+        tax_obj = TaxMaster.objects.filter(product_type=sku.product_type, user=user.id, max_amt__gte=sku.price, min_amt__lte=sku.price)
         if tax_obj:
-            cgst = str(tax_obj[0].cgst_tax)
-            sgst = str(tax_obj[0].sgst_tax)
-            igst = str(tax_obj[0].igst_tax)
-            cess = str(tax_obj[0].cess_tax)
+            inter_tax = tax_obj.filter(inter_state=0)
+            if inter_tax:
+                cgst = str(inter_tax[0].cgst_tax)
+                sgst = str(inter_tax[0].sgst_tax)
+            intra_tax = tax_obj.filter(inter_state=1)
+            if intra_tax:
+                igst = str(intra_tax[0].igst_tax)
+                cess = str(intra_tax[0].cess_tax)
         if sku.updation_date:
             updated = sku.updation_date.strftime('%Y-%m-%d %H:%M:%S')
         data_dict = OrderedDict(( ('id', sku.id), ('sku_code', sku.sku_code), ('sku_desc', sku.sku_desc),

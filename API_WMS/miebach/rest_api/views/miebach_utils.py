@@ -4415,9 +4415,9 @@ def get_financial_report_data(search_params, user, sub_user):
                                                 used_damage_qtys=used_damage_qtys)
                     margin = 0
                     if csd['quantity']:
-                        margin = (opening_dict['value_after_tax'] + purchase_dict['value_after_tax'] + returns_dict['value_after_tax']) - \
-                                    (rtv_dict['value_after_tax'] + csd['value_after_tax'] + isd['value_after_tax'] +\
-                                    std['value_after_tax'] + closing_dict['value_after_tax'])
+                        margin = (rtv_dict['value_after_tax'] + csd['value_after_tax'] + isd['value_after_tax'] +\
+                                    std['value_after_tax'] + closing_dict['value_after_tax']) - \
+                                    (opening_dict['value_after_tax'] + purchase_dict['value_after_tax'] + returns_dict['value_after_tax'])
                         if margin and csd['value_after_tax']:
                             margin_percentage = float('%.2f' % ((margin / float(csd['value_after_tax'])) * 100))
                     fields_parameters1['field_type'] = 'adjustment'

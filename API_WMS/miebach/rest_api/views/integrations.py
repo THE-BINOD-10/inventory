@@ -2346,6 +2346,22 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
 
                     order_create = True
 
+                    try:
+                        cgst_tax = float(sku_item['tax_percent'].get('CGST', 0))
+                    except:
+                        cgst_tax = 0
+                    try:
+                        sgst_tax = float(sku_item['tax_percent'].get('SGST', 0))
+                    except:
+                        sgst_tax = 0
+                    try:
+                        igst_tax = float(sku_item['tax_percent'].get('IGST', 0))
+                    except:
+                        igst_tax = 0
+                    try:
+                        utgst_tax = float(sku_item['tax_percent'].get('UTGST', 0))
+                    except:
+                        utgst_tax = 0
                     if order_create:
                         order_details['original_order_id'] = original_order_id
                         order_details['order_id'] = order_id
@@ -2359,27 +2375,21 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         order_details['marketplace'] = channel_name
                         order_details['invoice_amount'] = float(invoice_amount)
                         order_details['unit_price'] = float(unit_price)
+                        tax = cgst_tax + sgst_tax
+                        if not tax and igst_tax:
+                            tax = igst_tax
+                        if order_create and not invoice_amount:
+                            amt = float(order_details['quantity']) * order_details['unit_price']
+                            order_details['invoice_amount'] = amt + ((amt/100)*tax)
                         order_details['creation_date'] = creation_date
 
                         final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details,
                                                              final_data_dict=final_data_dict)
                     if not failed_status and not insert_status and sku_item.get('tax_percent', {}):
-                        try:
-                            order_summary_dict['cgst_tax'] = float(sku_item['tax_percent'].get('CGST', 0))
-                        except:
-                            order_summary_dict['cgst_tax'] = 0
-                        try:
-                            order_summary_dict['sgst_tax'] = float(sku_item['tax_percent'].get('SGST', 0))
-                        except:
-                            order_summary_dict['sgst_tax'] = 0
-                        try:
-                            order_summary_dict['igst_tax'] = float(sku_item['tax_percent'].get('IGST', 0))
-                        except:
-                            order_summary_dict['igst_tax'] = 0
-                        try:
-                            order_summary_dict['utgst_tax'] = float(sku_item['tax_percent'].get('UTGST', 0))
-                        except:
-                            order_summary_dict['utgst_tax'] = 0
+                        order_summary_dict['cgst_tax'] = cgst_tax
+                        order_summary_dict['sgst_tax'] = sgst_tax
+                        order_summary_dict['igst_tax'] = igst_tax
+                        order_summary_dict['utgst_tax'] = utgst_tax
                         order_summary_dict['consignee'] = order_details['address']
                         order_summary_dict['invoice_date'] = order_details['creation_date']
                         order_summary_dict['inter_state'] = 0

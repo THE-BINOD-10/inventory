@@ -2281,8 +2281,10 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                 order_details['telephone'] = order['billing_address'].get('phone_number', customer_telephone)
                 order_details['city'] = order['billing_address'].get('city', customer_city)
                 order_details['address'] = order['billing_address'].get('address', customer_address)
-                order_details['pin_code'] = order['billing_address'].get('pincode', customer_pincode)
-
+                try:
+                    order_details['pin_code'] = int(order['billing_address'].get('pincode', customer_pincode))
+                except:
+                    order_details['pin_code'] = 0
             if order_code:
                 filter_params['order_code'] = order_code
             sku_items = order['items']
@@ -2336,7 +2338,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         order_details['order_code'] = order_code
 
                         order_details['sku_id'] = sku_master[0].id
-                        order_details['title'] = sku_item.get('name', '')
+                        order_details['title'] = sku_item.get('name', sku_master[0].sku_desc)
                         order_details['user'] = user.id
                         order_details['quantity'] = sku_item['quantity']
                         order_details['shipment_date'] = shipment_date

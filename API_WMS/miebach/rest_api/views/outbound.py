@@ -11592,6 +11592,7 @@ def move_to_inv(request, user=''):
             for sel_obj in seller_summary:
                 if not sel_obj.invoice_number:
                     sel_obj.invoice_number = order_no
+                    sel_obj.creation_date=datetime.datetime.now()
                     sel_obj.save()
                     is_inv_num_added = True
                 else:

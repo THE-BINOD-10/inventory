@@ -2053,22 +2053,23 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
         for ind, order in enumerate(orders):
             try:
                 if order.has_key('order_date'):
-                    creation_date = datetime.datetime.strptime(order['order_date'], '%Y-%m-%d %H:%M:%S')
+                    creation_date = parser.parse(order['order_date'])
                 else:
-                    creation_date = NOW.strftime('%Y-%m-%d %H:%M:%S')
+                    creation_date = NOW
             except:
                 update_error_message(failed_status, 5024, 'Invalid Order Date Format', '')
+            try:
+                if order.has_key('shipment_date'):
+                    shipment_date = parser.parse(order['shipment_date'])
+                else:
+                    shipment_date = NOW
+            except:
+                update_error_message(failed_status, 5024, 'Invalid Shipment Date Format', '')
+
             order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
             channel_name = order.get('source', 'offline')
             order_details = copy.deepcopy(ORDER_DATA)
             data = order
-            if order.has_key('warehouse'):
-                warehouse = order['warehouse']
-                if warehouse.lower() in sister_whs:
-                    user = User.objects.get(username=warehouse)
-                else:
-                    error_message = 'Invalid Warehouse Name'
-                    update_error_message(failed_status, 5024, error_message, original_order_id)
             if order.has_key('order_reference'):
                 order_reference = str(order['order_reference'])
                 order_details['order_reference'] = order_reference
@@ -2082,6 +2083,14 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
             order_id = ''.join(re.findall('\d+', original_order_id))
             filter_params = {'user': user.id, 'order_id': order_id}
             filter_params1 = {'user': user.id, 'original_order_id': original_order_id}
+
+            if order.has_key('warehouse'):
+                warehouse = order['warehouse']
+                if warehouse.lower() in sister_whs:
+                    user = User.objects.get(username=warehouse)
+                else:
+                    error_message = 'Invalid Warehouse Name'
+                    update_error_message(failed_status, 5024, error_message, original_order_id)
 
             order_status = order.get('order_status', 'NEW')
             if order_status not in order_status_dict.keys():
@@ -2136,7 +2145,6 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                 update_error_message(failed_status, error_code, message, original_order_id)
                 break
             for sku_item in sku_items:
-                shipment_date = NOW
                 failed_sku_status = []
                 sku_code = sku_item['sku']
                 sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
@@ -2227,11 +2235,18 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
         for ind, order in enumerate(orders):
             try:
                 if order.has_key('order_date'):
-                    creation_date = datetime.datetime.strptime(order['order_date'], '%Y-%m-%d %H:%M:%S')
+                    creation_date = parser.parse(order['order_date'])
                 else:
-                    creation_date = NOW.strftime('%Y-%m-%d %H:%M:%S')
+                    creation_date = NOW
             except:
                 update_error_message(failed_status, 5024, 'Invalid Order Date Format', '')
+            try:
+                if order.has_key('shipment_date'):
+                    shipment_date = parser.parse(order['shipment_date'])
+                else:
+                    shipment_date = NOW
+            except:
+                update_error_message(failed_status, 5024, 'Invalid Shipment Date Format', '')
             order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
             channel_name = order.get('source', 'offline')
             order_details = copy.deepcopy(ORDER_DATA)
@@ -2281,8 +2296,10 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                 order_details['telephone'] = order['billing_address'].get('phone_number', customer_telephone)
                 order_details['city'] = order['billing_address'].get('city', customer_city)
                 order_details['address'] = order['billing_address'].get('address', customer_address)
-                order_details['pin_code'] = order['billing_address'].get('pincode', customer_pincode)
-
+                try:
+                    order_details['pin_code'] = int(order['billing_address'].get('pincode', customer_pincode))
+                except:
+                    order_details['pin_code'] = 0
             if order_code:
                 filter_params['order_code'] = order_code
             sku_items = order['items']
@@ -2307,7 +2324,6 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                 update_error_message(failed_status, error_code, message, original_order_id)
                 break
             for sku_item in sku_items:
-                shipment_date = NOW
                 failed_sku_status = []
                 sku_code = sku_item['sku']
                 sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
@@ -2336,7 +2352,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         order_details['order_code'] = order_code
 
                         order_details['sku_id'] = sku_master[0].id
-                        order_details['title'] = sku_item.get('name', '')
+                        order_details['title'] = sku_item.get('name', sku_master[0].sku_desc)
                         order_details['user'] = user.id
                         order_details['quantity'] = sku_item['quantity']
                         order_details['shipment_date'] = shipment_date
@@ -2348,10 +2364,22 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details,
                                                              final_data_dict=final_data_dict)
                     if not failed_status and not insert_status and sku_item.get('tax_percent', {}):
-                        order_summary_dict['cgst_tax'] = float(sku_item['tax_percent'].get('CGST', 0))
-                        order_summary_dict['sgst_tax'] = float(sku_item['tax_percent'].get('SGST', 0))
-                        order_summary_dict['igst_tax'] = float(sku_item['tax_percent'].get('IGST', 0))
-                        order_summary_dict['utgst_tax'] = float(sku_item['tax_percent'].get('UTGST', 0))
+                        try:
+                            order_summary_dict['cgst_tax'] = float(sku_item['tax_percent'].get('CGST', 0))
+                        except:
+                            order_summary_dict['cgst_tax'] = 0
+                        try:
+                            order_summary_dict['sgst_tax'] = float(sku_item['tax_percent'].get('SGST', 0))
+                        except:
+                            order_summary_dict['sgst_tax'] = 0
+                        try:
+                            order_summary_dict['igst_tax'] = float(sku_item['tax_percent'].get('IGST', 0))
+                        except:
+                            order_summary_dict['igst_tax'] = 0
+                        try:
+                            order_summary_dict['utgst_tax'] = float(sku_item['tax_percent'].get('UTGST', 0))
+                        except:
+                            order_summary_dict['utgst_tax'] = 0
                         order_summary_dict['consignee'] = order_details['address']
                         order_summary_dict['invoice_date'] = order_details['creation_date']
                         order_summary_dict['inter_state'] = 0

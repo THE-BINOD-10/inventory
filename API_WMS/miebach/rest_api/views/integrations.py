@@ -2035,6 +2035,7 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
 def validate_create_orders(orders, user='', company_name='', is_cancelled=False):
     order_status_dict = {'NEW': 1, 'RETURN': 3, 'CANCEL': 4}
     NOW = datetime.datetime.now()
+    date_formate = '%Y-%m-%dT%H:%M:%S.%f'
     insert_status = []
     final_data_dict = OrderedDict()
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
@@ -2053,22 +2054,19 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
         for ind, order in enumerate(orders):
             try:
                 if order.has_key('order_date'):
-                    creation_date = datetime.datetime.strptime(order['order_date'], '%Y-%m-%d %H:%M:%S')
+                    creation_date = datetime.datetime.strptime(order['order_date'], date_formate)
                 else:
-                    creation_date = NOW.strftime('%Y-%m-%d %H:%M:%S')
+                    creation_date = NOW
+                if order.has_key('shipment_date'):
+                    shipment_date = datetime.datetime.strptime(order['shipment_date'], date_formate)
+                else:
+                    shipment_date = NOW
             except:
                 update_error_message(failed_status, 5024, 'Invalid Order Date Format', '')
             order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
             channel_name = order.get('source', 'offline')
             order_details = copy.deepcopy(ORDER_DATA)
             data = order
-            if order.has_key('warehouse'):
-                warehouse = order['warehouse']
-                if warehouse.lower() in sister_whs:
-                    user = User.objects.get(username=warehouse)
-                else:
-                    error_message = 'Invalid Warehouse Name'
-                    update_error_message(failed_status, 5024, error_message, original_order_id)
             if order.has_key('order_reference'):
                 order_reference = str(order['order_reference'])
                 order_details['order_reference'] = order_reference
@@ -2082,6 +2080,14 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
             order_id = ''.join(re.findall('\d+', original_order_id))
             filter_params = {'user': user.id, 'order_id': order_id}
             filter_params1 = {'user': user.id, 'original_order_id': original_order_id}
+
+            if order.has_key('warehouse'):
+                warehouse = order['warehouse']
+                if warehouse.lower() in sister_whs:
+                    user = User.objects.get(username=warehouse)
+                else:
+                    error_message = 'Invalid Warehouse Name'
+                    update_error_message(failed_status, 5024, error_message, original_order_id)
 
             order_status = order.get('order_status', 'NEW')
             if order_status not in order_status_dict.keys():
@@ -2136,7 +2142,6 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                 update_error_message(failed_status, error_code, message, original_order_id)
                 break
             for sku_item in sku_items:
-                shipment_date = NOW
                 failed_sku_status = []
                 sku_code = sku_item['sku']
                 sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)

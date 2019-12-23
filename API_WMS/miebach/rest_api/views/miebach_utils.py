@@ -4389,10 +4389,16 @@ def get_financial_report_data(search_params, user, sub_user):
                     fields_parameters1.update(closing_obj_filter)
                     closing_stock_objs = closing_objs.filter(**closing_obj_filter)
                     fields_parameters1['field_type'] = 'closing'
+                    closing_damaged_flag = True
+                    if closing_stock_date < datetime.datetime.strptime('2019-12-23', '%Y-%M-%d').date():
+                        closing_damaged_flag = False
                     closing_dict, used_damage_qtys = get_financial_group_dict(fields_parameters1, data_objs=closing_stock_objs, send_last_day=True,
-                                                            stock_rec_data=stock_rec_data1, send_damaged=False, used_damage_qtys=used_damage_qtys)
+                                                            stock_rec_data=stock_rec_data1, send_damaged=closing_damaged_flag, used_damage_qtys=used_damage_qtys)
                     fields_parameters1['field_type'] = 'opening'
-                    opening_dict, used_damage_qtys = get_financial_group_dict(fields_parameters1, send_damaged=False, stock_rec_data=stock_rec_data1,
+                    opening_damaged_flag = True
+                    if closing_stock_date < datetime.datetime.strptime('2019-12-24', '%Y-%M-%d').date():
+                        opening_damaged_flag = False
+                    opening_dict, used_damage_qtys = get_financial_group_dict(fields_parameters1, send_damaged=opening_damaged_flag, stock_rec_data=stock_rec_data1,
                                                             opening_stock_date=opening_stock_date, used_damage_qtys=used_damage_qtys)
                     fields_parameters1['field_type'] = 'purchase'
                     purchase_dict, used_damage_qtys = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1,

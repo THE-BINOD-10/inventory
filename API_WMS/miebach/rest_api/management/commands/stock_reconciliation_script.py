@@ -284,8 +284,9 @@ class Command(BaseCommand):
                     weight = batch_detail.weight
                     unit_price = batch_detail.buy_price
                     tax = batch_detail.tax_percent
-                    prices, taxes = get_extra_data_info(batch_detail, stock.sku, stock.quantity,
-                                                     tax_type_dict)
+                    if stock.location.zone.zone not in ['DAMAGED_ZONE']:
+                        prices, taxes = get_extra_data_info(batch_detail, stock.sku, stock.quantity,
+                                                         tax_type_dict)
                     extra_data_key = (field_type, batch_detail.tax_percent)
                 taxes.update({'value_before_tax': 0, 'value_after_tax': 0, 'price_before_tax_values': [],
                               'price_before_tax_qtys': [], 'quantity': 0, 'field_type': field_type})

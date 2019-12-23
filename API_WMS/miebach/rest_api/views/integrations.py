@@ -2035,7 +2035,6 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
 def validate_create_orders(orders, user='', company_name='', is_cancelled=False):
     order_status_dict = {'NEW': 1, 'RETURN': 3, 'CANCEL': 4}
     NOW = datetime.datetime.now()
-    date_formate = '%Y-%m-%dT%H:%M:%S.%f'
     insert_status = []
     final_data_dict = OrderedDict()
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
@@ -2054,15 +2053,19 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
         for ind, order in enumerate(orders):
             try:
                 if order.has_key('order_date'):
-                    creation_date = datetime.datetime.strptime(order['order_date'], date_formate)
+                    creation_date = parser.parse(order['order_date'])
                 else:
                     creation_date = NOW
+            except:
+                update_error_message(failed_status, 5024, 'Invalid Order Date Format', '')
+            try:
                 if order.has_key('shipment_date'):
-                    shipment_date = datetime.datetime.strptime(order['shipment_date'], date_formate)
+                    shipment_date = parser.parse(order['shipment_date'])
                 else:
                     shipment_date = NOW
             except:
-                update_error_message(failed_status, 5024, 'Invalid Order Date Format', '')
+                update_error_message(failed_status, 5024, 'Invalid Shipment Date Format', '')
+
             order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
             channel_name = order.get('source', 'offline')
             order_details = copy.deepcopy(ORDER_DATA)

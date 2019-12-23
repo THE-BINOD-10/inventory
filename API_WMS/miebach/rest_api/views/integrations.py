@@ -2101,6 +2101,8 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
             if order.has_key('customer_id'):
                 order_details['customer_id'] = order.get('customer_id', 0)
                 if order_details['customer_id']:
+                    customer = order_details['customer_id'].split('_')
+                    order_details['customer_id'] = customer[-1]
                     try:
                         customer_master = CustomerMaster.objects.filter(user=user.id, customer_id=order_details['customer_id'])
                         if customer_master:

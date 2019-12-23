@@ -4576,7 +4576,7 @@ def get_order_summary_data(search_params, user, sub_user):
         search_parameters['sku__sku_class'] = search_params['sku_class']
     if 'city' in search_params:
         search_parameters['city'] = search_params['city']
-    if 'city' in search_params:
+    if 'state' in search_params:
         search_parameters['state'] = search_params['state']
     if 'order_id' in search_params:
         order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])

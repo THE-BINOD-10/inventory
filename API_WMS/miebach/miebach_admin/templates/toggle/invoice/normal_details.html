@@ -135,7 +135,7 @@
                           {% endif %}
                         </div>
                         {% endif %}
-                        {% if marketplace|lower != 'offline,sample' %}
+                        {% if marketplace|lower not in 'offline,sample' %}
                         <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline,sample'" class="fs13">
                           {{marketplace}}<br>
                         </div>
@@ -162,7 +162,7 @@
                         <div class="col-md-12 p0 fs13">
                           <p class="pre-custom p0">{{consignee}}</p>
                         </div>
-                        {% elif marketplace|lower == 'offline,sample' %}
+                        {% elif marketplace|lower in 'offline,sample' %}
                         <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() == 'offline,sample'">
                           {% if customer_details.0.name == '' %}
                           <p class="fs13 m0" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{marketplace}}</p>
@@ -188,7 +188,7 @@
                           {% endif %}
                         </div>
                         {% endif %}
-                        {% if marketplace|lower != 'offline,sample' %}
+                        {% if marketplace|lower not in 'offline,sample' %}
                         <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'" class="fs13">
                           {{marketplace}}<br>
                         </div>

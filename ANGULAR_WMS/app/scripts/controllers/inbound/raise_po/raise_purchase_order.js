@@ -463,6 +463,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       if (vm.warehouse_type == 'CENTRAL_ADMIN') {
         elem.push({name:'is_central_po', value:true});
       }
+      if (vm.wh_purchase_order){
+        elem.push({name:'wh_purchase_order', value:true})
+      }
       vm.service.apiCall(confirm_url, 'POST', elem, true).then(function(data){
         if(data.message) {
           if (data.data == "success") {
@@ -895,4 +898,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     });
   }
 
+vm.checkWHSupplierExist  = function (sup_id) {
+    console.log(sup_id);
+    $http.get(Session.url + 'search_wh_supplier?', {
+      params: {
+        q: sup_id,
+        type: ''
+      }
+    }).then(function(resp){
+      if (resp.data.length == 0) {
+        console.log("No Warehouse Supplier")
+      };
+    });
+  }
 }

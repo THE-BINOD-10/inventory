@@ -9333,6 +9333,76 @@ def check_and_create_supplier_wh_mapping(user, warehouse, supplier_id):
     return new_supplier_id
 
 
+def check_and_create_wh_supplier(retailUserObj, levelOneWarehouseObj):
+    userProfileObj = UserProfile.objects.filter(user=levelOneWarehouseObj.id)
+    if userProfileObj:
+        userProfileObj = userProfileObj[0]
+    master_mapping = MastersMapping.objects.filter(user=retailUserObj.id, master_id=userProfileObj.id,
+                                               mapping_type='warehouse_supplier_mapping')
+    if master_mapping:
+        new_supplier_id = master_mapping[0].mapping_id
+    else:
+        phone_number = userProfileObj.phone_number or 0
+        new_supplier_id = create_new_supplier(retailUserObj, userProfileObj.user.first_name, userProfileObj.user.email,
+                                          userProfileObj.phone_number,
+                                        userProfileObj.address, userProfileObj.gst_number)
+        if new_supplier_id:
+            MastersMapping.objects.create(user=retailUserObj.id, master_id=userProfileObj.id, mapping_id=new_supplier_id,
+                                         mapping_type='warehouse_supplier_mapping')
+    return new_supplier_id
+
+
+def createSalesOrderAtLevelOneWarehouse(user, po_suggestions, order_id):
+    try:
+        mappingObj = MastersMapping.objects.filter(user=user.id, mapping_id=po_suggestions['supplier_id'])
+        levelOneWhId = int(mappingObj[0].master_id)
+        actUserId = UserProfile.objects.get(id=levelOneWhId).user.id
+        # order_id = get_order_id(levelOneWhId)
+        order_code = get_order_prefix(actUserId)
+        org_ord_id = order_code + str(order_id)
+        quantity = po_suggestions['order_quantity']
+        customer_id = 0 #TODO Currently not creating LevelTwoWarehouses as Customers. So Taking 0 as customer Id
+        customer_name = user.username
+        shipment_date = po_suggestions['delivery_date']
+        sgst_tax = po_suggestions['sgst_tax']
+        cgst_tax = po_suggestions['cgst_tax']
+        igst_tax = po_suggestions['igst_tax']
+        tax_type = 'NA' #TODO
+        address = po_suggestions['ship_to']
+        unit_price = po_suggestions['price']
+        taxes = {}
+        taxes['cgst_tax'] = float(po_suggestions['cgst_tax'])
+        taxes['sgst_tax'] = float(po_suggestions['sgst_tax'])
+        taxes['igst_tax'] = float(po_suggestions['igst_tax'])
+        taxes['utgst_tax'] = float(po_suggestions['utgst_tax'])
+        invoice_amount = quantity * unit_price
+        invoice_amount = invoice_amount + ((invoice_amount / 100) * sum(taxes.values()))
+        sku_id = po_suggestions['sku_id']
+        from rest_api.views.outbound import get_syncedusers_mapped_sku
+        actSku = get_syncedusers_mapped_sku(actUserId, sku_id)
+        title = SKUMaster.objects.get(id=actSku).sku_desc
+        order_detail_dict = {'sku_id': actSku, 'title': title, 'quantity': quantity, 'order_id': order_id,
+                             'original_order_id': org_ord_id, 'user': actUserId, 'customer_id': customer_id,
+                             'customer_name': customer_name, 'shipment_date': shipment_date,
+                             'address': address, 'unit_price': unit_price, 'invoice_amount': invoice_amount,
+                             'creation_date': None, 'status':1, 'order_code': order_code}
+        ord_obj = OrderDetail.objects.filter(order_id=order_id, sku_id=sku_id, order_code=order_code)
+        if ord_obj:
+            ord_obj = ord_obj[0]
+            ord_obj.quantity = quantity
+            ord_obj.unit_price = unit_price
+            ord_obj.invoice_amount = invoice_amount
+            ord_obj.save()
+        else:
+            ord_obj = OrderDetail(**order_detail_dict)
+            ord_obj.save()
+
+        CustomerOrderSummary.objects.create(order=ord_obj, sgst_tax=sgst_tax,cgst_tax=cgst_tax,
+                                            igst_tax=igst_tax, tax_type=tax_type)
+    except Exception as e:
+        import traceback; print(traceback.format_exc())
+
+
 @get_admin_user
 def search_style_data(request, user=''):
     sku_master, sku_master_ids = get_sku_master(user, request.user)

@@ -7406,7 +7406,7 @@ def generate_order_po_data(request, user=''):
     supplier_list = []
     suppliers = SupplierMaster.objects.filter(user=user.id)
     for supplier in suppliers:
-        supplier_list.append({'id': supplier.id, 'name': supplier.name})
+        supplier_list.append({'id': supplier.id, 'name': supplier.name, 'tax_type': supplier.tax_type})
     request_dict = dict(request.POST.iterlists())
     table_type_name = request.POST.get('table_name', '')
     if table_type_name == 'stock_transfer_order':
@@ -7438,6 +7438,7 @@ def generate_order_po_data(request, user=''):
             order_details = OrderDetail.objects.filter(original_order_id=original_order_id, user=user.id)
     if table_type_name == 'stock_transfer_order':
         for sku_id in stock_transfer_obj.values('sku__id').distinct():
+            taxes = {}
             order_detail = stock_transfer_obj.filter(sku__id=sku_id['sku__id'])
             product_qty = order_detail.aggregate(Sum('quantity'))['quantity__sum']
             data_id = ','.join([str(order_id.id) for order_id in order_detail])
@@ -7454,6 +7455,7 @@ def generate_order_po_data(request, user=''):
                               'quantity': product_qty, 'selected_item': selected_item, 'price': price})
     else:
         for sku_id in order_details.values('sku__id').distinct():
+            taxes = {}
             order_detail = order_details.filter(sku__id=sku_id['sku__id'])
             product_qty = order_detail.aggregate(Sum('quantity'))['quantity__sum']
             data_id = ','.join([str(order_id.id) for order_id in order_detail])
@@ -7462,12 +7464,17 @@ def generate_order_po_data(request, user=''):
             order_detail = order_detail[0]
             sku_supplier = SKUSupplier.objects.filter(sku__wms_code=order_detail.sku.wms_code, sku__user=user.id)
             if sku_supplier:
-                selected_item = {'id': sku_supplier[0].supplier_id, 'name': sku_supplier[0].supplier.name}
+                sku_price_details = get_supplier_sku_price_values(sku_supplier[0].supplier_id, sku_supplier[0].sku.sku_code, user)
+                if sku_price_details:
+                    taxes = sku_price_details[0]['taxes']
+                selected_item = {'id': sku_supplier[0].supplier_id, 'name': sku_supplier[0].supplier.name,
+                                 'tax_type': sku_supplier[0].supplier.tax_type}
                 price = sku_supplier[0].price
             else:
                 selected_item = supplier_list[1]
             data_dict.append({'order_id': data_id, 'wms_code': order_detail.sku.wms_code, 'title': order_detail.sku.sku_desc,
-                              'quantity': product_qty, 'selected_item': selected_item, 'price': price})
+                              'quantity': product_qty, 'selected_item': selected_item, 'price': price,
+                              'taxes': taxes[0]})
     return HttpResponse(json.dumps({'data_dict': data_dict, 'supplier_list': supplier_list}))
 
 @csrf_exempt

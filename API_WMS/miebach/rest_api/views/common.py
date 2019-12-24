@@ -10107,7 +10107,7 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
         else:
             return "sku_doesn't exist"
         tax_masters = TaxMaster.objects.filter(user_id=user.id, product_type=data.product_type,
-                                               inter_state=inter_state)
+                                               inter_state=inter_state, max_amt__gte=data.price, min_amt__lte=data.price)
         taxes_data = []
         for tax_master in tax_masters:
             taxes_data.append(tax_master.json())

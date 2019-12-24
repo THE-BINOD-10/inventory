@@ -8536,7 +8536,7 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
         'city', 'status']
 
     # unsort_lis = ['Customer Name', 'Order ID', 'Market Place ', 'Total Quantity']
-    unsorted_dict = {7: 'Order Taken By', 8: 'Status'}
+    unsorted_dict = {8: 'Order Taken By', 9: 'Status'}
     data_dict = {'status': 1, 'user': user.id, 'quantity__gt': 0}
 
     order_data = lis[col_num]

@@ -103,6 +103,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.pop_buttons = true;
     }
 
+    vm.datatable_sort_key = [0, 'asc']
+
+    if(vm.g_data.view == "CustomerOrderView"){
+      vm.datatable_sort_key = [7, 'desc']
+    }
+
     vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'special_key': JSON.stringify(vm.special_key)}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -117,7 +123,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
        .withOption('drawCallback', function(settings) {
          vm.service.make_selected(settings, vm.selected);
        })
-       .withOption('order', [0, 'asc'])
+       .withOption('order', vm.datatable_sort_key)
        .withOption('lengthMenu', [100, 200, 300, 400, 500, 1000, 2000])
        .withOption('pageLength', 100)
        .withOption('processing', true)

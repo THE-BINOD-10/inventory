@@ -525,10 +525,10 @@ class Command(BaseCommand):
                                                                          sgst_tax=stock_rec_field['sgst_tax'],
                                                                          igst_tax=stock_rec_field['igst_tax'],
                                                                          cess_tax=stock_rec_field['cess_tax'])
-                                if not exist_recs:
-                                    rec_field = StockReconciliationFields.objects.create(**stock_rec_field)
-                                    #stock_rec_field_objs.append(StockReconciliationFields(**stock_rec_field))
-                                    StockReconciliationFields.objects.filter(id=rec_field.id).update(creation_date=today)
+                                #if not exist_recs:
+                                rec_field = StockReconciliationFields.objects.create(**stock_rec_field)
+                                #stock_rec_field_objs.append(StockReconciliationFields(**stock_rec_field))
+                                StockReconciliationFields.objects.filter(id=rec_field.id).update(creation_date=today)
                         if not stock_reconciliation_dict:
                             weight = get_sku_weight(sku)
                             stock_rec_fields = []

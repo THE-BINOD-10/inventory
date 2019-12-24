@@ -2066,6 +2066,14 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
             except:
                 update_error_message(failed_status, 5024, 'Invalid Shipment Date Format', '')
 
+            if order.has_key('warehouse'):
+                warehouse = order['warehouse']
+                if warehouse.lower() in sister_whs:
+                    user = User.objects.get(username=warehouse)
+                else:
+                    error_message = 'Invalid Warehouse Name'
+                    update_error_message(failed_status, 5024, error_message, original_order_id)
+
             order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
             channel_name = order.get('source', 'offline')
             order_details = copy.deepcopy(ORDER_DATA)
@@ -2083,14 +2091,6 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
             order_id = ''.join(re.findall('\d+', original_order_id))
             filter_params = {'user': user.id, 'order_id': order_id}
             filter_params1 = {'user': user.id, 'original_order_id': original_order_id}
-
-            if order.has_key('warehouse'):
-                warehouse = order['warehouse']
-                if warehouse.lower() in sister_whs:
-                    user = User.objects.get(username=warehouse)
-                else:
-                    error_message = 'Invalid Warehouse Name'
-                    update_error_message(failed_status, 5024, error_message, original_order_id)
 
             order_status = order.get('order_status', 'NEW')
             if order_status not in order_status_dict.keys():

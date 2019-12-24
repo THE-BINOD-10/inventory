@@ -3781,7 +3781,8 @@ def get_stock_summary_data(search_params, user, sub_user):
     search_parameters['sku_id__in'] = sku_master_ids
     sku_master = StockDetail.objects.exclude(receipt_number=0).values_list('sku_id', 'sku__sku_code', 'sku__sku_desc',
                                                                            'sku__sku_brand',
-                                                                           'sku__sku_category', 'sku__user').distinct().annotate(
+                                                                           'sku__sku_category', 
+                                                                           'sku__sub_category','sku__user').distinct().annotate(
         total=Sum('quantity'), stock_value=Sum(F('quantity') * F('sku__cost_price'))).filter(quantity__gt=0,
                                       **search_parameters)
     if search_stage and not search_stage == 'In Stock':
@@ -3825,8 +3826,8 @@ def get_stock_summary_data(search_params, user, sub_user):
                     searchable = attribute.attribute_value
                 if attribute.attribute_name == 'Bundle':
                     bundle = attribute.attribute_value
-        if len(list(sku)) >= 6:
-            sku_stages_dict['In Stock'] = sku[6]
+        if len(list(sku)) >= 7:
+            sku_stages_dict['In Stock'] = sku[7]
         if sku[0] in intransit_skus:
             total_ordered = map(lambda d: d['total_order'], purchase_orders)[intransit_skus.index(sku[0])]
             total_received = map(lambda d: d['total_received'], purchase_orders)[intransit_skus.index(sku[0])]
@@ -3850,10 +3851,10 @@ def get_stock_summary_data(search_params, user, sub_user):
         for key, value in sku_stages_dict.iteritems():
             warehouse = 0
             stock_value = 0
-            if sku[5]:
-                warehouse = warehouse_users.get(sku[5])
-            if sku[7]:
-               stock_value = sku[7]
+            if sku[6]:
+                warehouse = warehouse_users.get(sku[6])
+            if sku[8]:
+               stock_value = sku[8]
             ord_dict = OrderedDict((('SKU Code', sku[1]), ('Description', sku[2]),
                                                 ('Brand', sku[3]), ('Category', sku[4]),('SKU Sub Category', sku[5]),
                                                 ('Stage', key), ('Stage Quantity', value), ('Stock Value', stock_value),  ('Warehouse', warehouse)))

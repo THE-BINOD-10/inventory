@@ -2099,7 +2099,7 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                 break
 
             if order.has_key('customer_id'):
-                order_details['customer_id'] = order.get('customer_id', 0)
+                order_details['customer_id'] = str(order.get('customer_id', 0))
                 if order_details['customer_id']:
                     customer = order_details['customer_id'].split('_')
                     order_details['customer_id'] = customer[-1]
@@ -2110,7 +2110,10 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                             customer_telephone = customer_master[0].phone_number
                             customer_city = customer_master[0].city
                             customer_address = customer_master[0].address
-                            customer_pincode = customer_master[0].pincode
+                            try:
+                                customer_pincode = int(customer_master[0].pincode)
+                            except:
+                                customer_pincode = 0
                     except:
                         customer_master = []
                     if not customer_master:

@@ -4201,7 +4201,7 @@ def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=F
             data_dict['quantity'] += quantity
             value_before_tax = data.value_before_tax
             value_after_tax = data.value_after_tax
-            if not send_damaged:
+            if not send_damaged and data.quantity:
                 value_after_tax = (data.value_after_tax/data.quantity) * quantity
                 value_before_tax = (data.value_before_tax/data.quantity) * quantity
             data_dict['value_before_tax'] += value_before_tax

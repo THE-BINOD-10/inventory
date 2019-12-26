@@ -3166,6 +3166,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             is_gst_invoice = True
 
         for dat in order_data:
+            count += 1
             profit_price,marginal_flag = 0, 0
             order_id = dat.original_order_id
             advance_amount += dat.payment_received
@@ -3255,7 +3256,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             if dat.unit_price > 0:
                 unit_price = dat.unit_price
             else:
-                unit_price = ((float(dat.invoice_amount) / float(dat.quantity))) - (tax / float(dat.quantity))
+                unit_price = (float(dat.invoice_amount) / float(dat.quantity)) - (tax / float(dat.quantity))
             if el_price:
                 unit_price = el_price
             if dat.sku.sku_code:
@@ -3282,6 +3283,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                                 seller_summary_imei = seller_summary.filter(order_id = dat.id, id= seller_id_value)
                             if profit_price < 1:
                                 cgst_tax,sgst_tax,igst_tax,utgst_tax = 0, 0 ,0, 0
+
                             arg_data = {'unit_price':unit_price,'quantity':quantity,'discount':discount,'dat':dat,'is_gst_invoice':is_gst_invoice,'marginal_flag':marginal_flag,
                                         'cgst_tax':cgst_tax,'sgst_tax':sgst_tax,'igst_tax':igst_tax,'utgst_tax':utgst_tax,'cess_tax':cess_tax,'profit_price':profit_price,'hsn_summary':hsn_summary,
                                         'total_quantity':total_quantity,'partial_order_quantity_price':partial_order_quantity_price,'_total_tax':_total_tax,
@@ -3556,11 +3558,10 @@ def common_calculations(arg_data):
         quantity = int(quantity)
     quantity = get_decimal_limit(user.id ,quantity)
     invoice_amount = get_decimal_limit(user.id ,invoice_amount ,'price')
-    count = count +1
     data.append(
         {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
          'title': title, 'invoice_amount': str(invoice_amount),
-         'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price, 'tax_type': tax_type,
+         'quantity': quantity, 'tax': "%.2f" % _tax, 'unit_price': unit_price, 'tax_type': tax_type,
          'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
          'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt':amt, 'taxes': taxes_dict,
          'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
@@ -6051,10 +6052,10 @@ def build_invoice(invoice_data, user, css=False):
         no_of_skus += 2
     '''
     invoice_data['empty_data'] = []
-    if (data_length >= no_of_skus):
+    if data_length >= no_of_skus:
 
         needed_space = inv_footer + inv_footer + inv_total
-        if (perm_hsn_summary == 'true'):
+        if perm_hsn_summary == 'true':
             needed_space = needed_space + inv_summary + hsn_summary_length
         temp_render_space = 0
         temp_render_space = inv_height - (inv_details + inv_header)
@@ -6063,20 +6064,15 @@ def build_invoice(invoice_data, user, css=False):
         if data_value :
             number_of_pages = number_of_pages + 1
         for i in range(number_of_pages):
-            temp_page = {'data': []}
-            temp_page['data'] = invoice_data['data'][i * temp_no_of_skus: (i + 1) * temp_no_of_skus]
-            temp_page['empty_data'] = []
+            temp_page = {'data': invoice_data['data'][i * temp_no_of_skus: (i + 1) * temp_no_of_skus], 'empty_data': []}
             render_data.append(temp_page)
         if int(math.ceil(float(data_length) / temp_no_of_skus)) == 0:
-            temp_page = {'data': []}
-            temp_page['data'] = invoice_data['data']
-            temp_page['empty_data'] = []
-            temp_page['empty_data'] = []
+            temp_page = {'data': invoice_data['data'], 'empty_data': []}
             render_data.append(temp_page)
         last = len(render_data) - 1
         data_length = len(render_data[last]['data'])
 
-        if (no_of_skus < data_length):
+        if no_of_skus < data_length:
             render_data.append({'empty_data': [], 'data': [render_data[last]['data'][data_length - 1]]})
             render_data[last]['data'] = render_data[last]['data'][:data_length - 1]
 
@@ -10107,7 +10103,7 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
         else:
             return "sku_doesn't exist"
         tax_masters = TaxMaster.objects.filter(user_id=user.id, product_type=data.product_type,
-                                               inter_state=inter_state)
+                                               inter_state=inter_state, max_amt__gte=data.price, min_amt__lte=data.price)
         taxes_data = []
         for tax_master in tax_masters:
             taxes_data.append(tax_master.json())
@@ -10119,3 +10115,27 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
                             'taxes': taxes_data, 'mrp': data.mrp, 'edit_tax': edit_tax})
 
         return result_data
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_misc_value(request, user=''):
+    misc_dictionary = json.loads(request.POST.get('data'))
+    if misc_dictionary:
+        misc_obj=MiscDetail.objects.filter(user=user.id,misc_type=misc_dictionary.keys()[0])
+        if misc_obj.exists():
+            misc_obj=misc_obj[0]
+            misc_obj.misc_value=misc_dictionary.values()[0]
+            misc_obj.save()
+        else:
+            MiscDetail.objects.create(user=user.id, misc_type=misc_dictionary.keys()[0],misc_value=misc_dictionary.values()[0])
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_value_for_misc_type(request, user=''):
+    misc_type=request.GET.get('misc_type')
+    misc_value = get_misc_value(misc_type, user.id)
+    return HttpResponse(json.dumps({'selected_view': misc_value}))
+

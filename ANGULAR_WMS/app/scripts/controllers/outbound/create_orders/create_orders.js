@@ -48,8 +48,11 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 
   vm.update_data = update_data;
   function update_data(index, data, last) {
-    console.log(data);
     if (last && (!vm.model_data.data[index].sku_id)) {
+      return false;
+    }
+    var resultant = vm.sku_pack_quantity_check();
+    if (!resultant){
       return false;
     }
     if (last) {
@@ -113,7 +116,20 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     vm.model_data["email_id"] = "";
     vm.model_data["address"] = "";
   }
-
+  vm.sku_pack_quantity_check = function (){
+    if (vm.permissions.sku_pack_config) {
+      for (var j = 0; j < vm.model_data.data.length; j++) {
+        if (vm.model_data.data[j].skuPackQuantity) {
+          var response = vm.isFloat(vm.model_data.data[j].quantity/vm.model_data.data[j].skuPackQuantity)
+          if (response) {
+            colFilters.showNoty(vm.model_data.data[j].sku_id+' - Sku Pack Quantity Mismatch');
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+  }
   vm.bt_disable = false;
   vm.insert_order_data = function(event, form, is_sample='') {
     if (event.keyCode != 13) {
@@ -127,16 +143,9 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
             }
           }
         }
-        if (vm.permissions.sku_pack_config) {
-          for (var j = 0; j < vm.model_data.data.length; j++) {
-            if (vm.model_data.data[j].skuPackQuantity) {
-              var response = vm.isFloat(vm.model_data.data[j].quantity/vm.model_data.data[j].skuPackQuantity)
-              if (response) {
-                colFilters.showNoty(vm.model_data.data[j].sku_id+' - Sku Pack Quantity Mismatch');
-                return false;
-              }
-            }
-          }
+        var resultant = vm.sku_pack_quantity_check();
+        if (!resultant){
+          return false;
         }
         if (vm.final_data.total_amount && vm.model_data.payment_received != ''){
           if (!(Math.round(vm.final_data.total_amount) <= parseInt(vm.model_data.payment_received)) ? true : false) {
@@ -696,7 +705,6 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 
   vm.final_data = {total_quantity:0,total_amount:0,temp_total_amount:0}
   vm.cal_total = function() {
-
     vm.final_data.total_quantity = 0;
     vm.final_data.total_amount = 0;
     vm.final_data.temp_total_amount = 0;
@@ -842,7 +850,6 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 
   vm.update_data_serial = update_data_serial;
   function update_data_serial(index, data, last) {
-    console.log(data);
     if (last && (!vm.dispatch_data[index].serial_number)) {
       return false;
     }

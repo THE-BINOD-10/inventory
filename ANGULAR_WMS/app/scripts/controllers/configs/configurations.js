@@ -938,43 +938,41 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
 
   vm.save_mail_config = function() {
     var report_selected = [];
-     var report_removed = [];
-     var data = {};
-
-     var date_val = $($('#datepicker11')[0]).val();
-     var selected = $('#configurations').find('#ms-my-select').find('.ms-elem-selection.ms-selected').find('span')
-     var removed = $('#configurations').find('#ms-my-select').find('.ms-selectable').find('li').not($('.ms-selected')).find('span');
-     for(i=0; i<selected.length; i++) {
-       report_selected.push($(selected[i]).text());
-     }
-     for(i=0; i<removed.length; i++) {
-       report_removed.push($(removed[i]).text());
-     }
-     console.log(vm.model_data.email);
-     data['selected'] = report_selected;
-     data['removed'] = report_removed;
-     var mail_to = ""
-     angular.forEach($(".mail-to .tagsinput .tag span"),function(data){
-       mail_to = mail_to + $(data).text().slice(0,-2)+",";
-     })
-     if(mail_to) {
-       mail_to = mail_to.slice(0,-1)
-     }
-     data['email'] = mail_to;
-     data['frequency'] = $('#days_range').val();
-     data['date_val'] = date_val;
-     data['range'] = $('.time_data option:selected').val();
-     $.ajax({url: Session.url+'update_mail_configuration/',
-             method: 'POST',
-             data: data,
-             xhrFields: {
-               withCredentials: true
-             },
-             'success': function(response) {
-               msg = response;
-               $scope.showNoty();
-               Auth.status();
-     }});
+    var report_removed = [];
+    var data = {};
+    var date_val = $($('#datepicker11')[0]).val();
+    var selected = $('#ms-my-select').find('.ms-elem-selection.ms-selected').find('span');
+    var removed = $('#ms-my-select').find('.ms-elem-selection').not($('.ms-selected')).find('span');
+    for(i=0; i<selected.length; i++) {
+      report_selected.push($(selected[i]).text());
+    }
+    for(i=0; i<removed.length; i++) {
+      report_removed.push($(removed[i]).text());
+    }
+    data['selected'] = report_selected;
+    data['removed'] = report_removed;
+    var mail_to = ""
+    angular.forEach($(".mail-to .tagsinput .tag span"),function(data){
+      mail_to = mail_to + $(data).text().slice(0,-2)+",";
+    })
+    if(mail_to) {
+      mail_to = mail_to.slice(0,-1)
+    }
+    data['email'] = mail_to;
+    data['frequency'] = $('#days_range').val();
+    data['date_val'] = date_val;
+    data['range'] = $('.time_data option:selected').val();
+    $.ajax({url: Session.url+'update_mail_configuration/',
+       method: 'POST',
+       data: data,
+       xhrFields: {
+       withCredentials: true
+       },
+       'success': function(response) {
+         msg = response;
+         $scope.showNoty();
+         Auth.status();
+    }});
   }
 
   vm.mail_now = function() {

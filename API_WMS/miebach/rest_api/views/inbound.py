@@ -1458,13 +1458,12 @@ def search_wh_supplier(request, user=''):
     admin_user = UserGroups.objects.filter(user_id=user_id).values_list('admin_user_id', flat=True)
     if not admin_user:
         return HttpResponse("Something Went Wrong, check with StockOne Team.")
-    companyWhs = UserGroups.objects.filter(admin_user_id=admin_user[0]).exclude(user_id=user_id).values_list('user_id', flat=True)
-    data = User.objects.filter(id__in=companyWhs)
-    # data = SupplierMaster.objects.filter(Q(id__icontains=data_id) | Q(name__icontains=data_id), user=user.id)
+    companyWhs = list(UserGroups.objects.filter(admin_user_id=admin_user[0]).exclude(user_id=user_id).values_list('user_id', flat=True))
+    data = UserProfile.objects.filter(Q(user_id__in=companyWhs, warehouse_level=1))
     suppliers = []
     if data:
         for supplier in data:
-            suppliers.append(str(supplier.username) + ":" + str(supplier.first_name))
+            suppliers.append(str(supplier.user.username) + ":" + str(supplier.user.first_name))
     return HttpResponse(json.dumps(suppliers))
 
 

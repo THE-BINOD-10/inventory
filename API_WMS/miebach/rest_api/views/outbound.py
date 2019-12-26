@@ -9155,13 +9155,16 @@ def update_order_data(request, user=""):
             if not order_obj:
                 default_dict['order_id'] = order_id
                 default_dict['order_code'] = order_code
-                default_dict['sku_id'] = sku_id
-                order_obj = OrderDetail.objects.create(default_dict)
+                default_dict['sku_id'] = sku_id.id
+                order_obj = OrderDetail.objects.create(**default_dict)
                 created = True
             else:
                 remainging_quantity =  quantity - order_obj[0].quantity
                 default_dict['original_quantity'] = order_obj[0].original_quantity + remainging_quantity
+                default_dict['invoice_amount'] = (float(myDict['invoice_amount'][i]) / quantity) * \
+                                                    default_dict['original_quantity']
                 order_obj.update(**default_dict)
+                order_obj = order_obj[0]
             # order_obj, created = OrderDetail.objects.update_or_create(
             #     order_id=order_id, order_code=order_code, sku=sku_id, defaults=default_dict
             # )

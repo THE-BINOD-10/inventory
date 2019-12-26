@@ -10115,3 +10115,27 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
                             'taxes': taxes_data, 'mrp': data.mrp, 'edit_tax': edit_tax})
 
         return result_data
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_misc_value(request, user=''):
+    misc_dictionary = json.loads(request.POST.get('data'))
+    if misc_dictionary:
+        misc_obj=MiscDetail.objects.filter(user=user.id,misc_type=misc_dictionary.keys()[0])
+        if misc_obj.exists():
+            misc_obj=misc_obj[0]
+            misc_obj.misc_value=misc_dictionary.values()[0]
+            misc_obj.save()
+        else:
+            MiscDetail.objects.create(user=user.id, misc_type=misc_dictionary.keys()[0],misc_value=misc_dictionary.values()[0])
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_value_for_misc_type(request, user=''):
+    misc_type=request.GET.get('misc_type')
+    misc_value = get_misc_value(misc_type, user.id)
+    return HttpResponse(json.dumps({'selected_view': misc_value}))
+

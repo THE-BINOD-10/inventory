@@ -866,6 +866,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }, 1000);
     }
   });
+  vm.service.apiCall('get_value_for_misc_type/?misc_type=view_order_selection').then(function(data){
+    vm.g_data.view = data.data.selected_view
+  });
 
   vm.address_change = function(switch_value) {
     vm.service.apiCall("switches/?picklist_display_address="+String(switch_value)).then(function(data) {
@@ -1144,6 +1147,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
   vm.change_datatable = function() {
     Data.other_view.view =  vm.g_data.view;
+    vm.service.apiCall('save_misc_value/', 'POST',{'data':JSON.stringify({'view_order_selection':vm.g_data.view})}).then(function(data) {
+      });
     $state.go($state.current, {}, {reload: true});
   }
 

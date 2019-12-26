@@ -3,8 +3,8 @@
   <div class="row style-menu" style="height: 40px;position: absolute;top:0px;width:100%;z-index:100">
     <div class="col-md-4 col-sm-4 col-xs-4">
       <div class="menu-left" style="line-height: 40px">
-        <span ng-if="!showCase.disable_brands " ng-click="showCase.back_brands_button('brand_value');"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i> Back</span>
-        <!-- <span ng-if="showCase.brand_categorization" ng-click="showCase.change_config('Brand View', 'customer_portal_prefered_view');"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i> Backs</span> -->
+        <!-- <span ng-if="!showCase.disable_brands " ng-click="showCase.back_brands_button('brand_value');"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i> Back</span> -->
+        <span ng-if="!showCase.brand_categorization && !showCase.disable_brands" ng-click="showCase.change_config('Brand View', 'customer_portal_prefered_view');"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i> Back</span>
       </div>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-4 brand-title">

@@ -4326,9 +4326,12 @@ def get_financial_report_data(search_params, user, sub_user):
                 counter += 1
                 stock_rec_data = stock_recs.filter(sku_id=stock_rec_data_dict['sku_id'], mrp=stock_rec_data_dict['mrp'],
                                                     weight=stock_rec_data_dict['weight'])[0]
-                opening_stock_data = StockReconciliationFields.objects.filter(stock_reconciliation_id=stock_rec_data.id,
-                                                                            creation_date__regex=opening_stock_date).\
-                                                values('stock_reconciliation__sku__sku_code', 'stock_reconciliation__sku__sku_desc',
+                opening_stock_query = StockReconciliationFields.objects.filter(stock_reconciliation__sku_id=stock_rec_data_dict['sku_id'],
+                                                                                stock_reconciliation__mrp=stock_rec_data_dict['mrp'],
+                                                                                stock_reconciliation__weight=stock_rec_data_dict['weight'],
+                                                                            creation_date__gte=opening_stock_date,
+                                                                            creation_date__lt=closing_stock_date+datetime.timedelta(1))
+                opening_stock_data = opening_stock_query.values('stock_reconciliation__sku__sku_code', 'stock_reconciliation__sku__sku_desc',
                                                             'stock_reconciliation__sku_id',
                                                             'stock_reconciliation__sku__sku_category', 'stock_reconciliation__sku__sub_category',
                                                             'stock_reconciliation__sku_id','stock_reconciliation__sku__sku_brand',

@@ -10130,6 +10130,7 @@ def save_misc_value(request, user=''):
             misc_obj.save()
         else:
             MiscDetail.objects.create(user=user.id, misc_type=misc_dictionary.keys()[0],misc_value=misc_dictionary.values()[0])
+    return HttpResponse("Success")
 
 @csrf_exempt
 @login_required

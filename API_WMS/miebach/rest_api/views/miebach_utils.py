@@ -2827,7 +2827,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
     warehouse_users = {}
     central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
     if customer_view:
-        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category', 'order__sku__sub_category','order__sku__sku_brand', 'order__sku__user',
+        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc',
+               'order__sku__sku_category', 'order__sku__sub_category','order__sku__sku_brand', 'order__sku__user',
                'order__sku__sub_category','order__sku__sku_brand', 'order__sku__user']#'order__quantity', 'picked_quantity']
         model_obj = Picklist
         param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code','manufacturer':'order__sku__skuattributes__attribute_value__iexact'}
@@ -2928,7 +2929,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
     model_data = model_obj.objects.filter(**search_parameters)
     if customer_view:
         model_data = model_data.values(*lis).distinct()\
-                               .annotate(qty=Sum('order__quantity'), tot_count=Count('order__quantity'))\
+                               .annotate(qty=Sum('order__original_quantity'), tot_count=Count('order__original_quantity'))\
                                .annotate(tot_qty=F('qty')/Cast(F('tot_count'), FloatField()))\
                                .annotate(loc_qty=Sum('picklistlocation__quantity'), res_qty=Sum('picklistlocation__reserved'))
     if search_params.get('order_term'):
@@ -2967,7 +2968,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                     ('Sub Category', data['order__sku__sub_category']),
                                                     ('SKU Brand', data['order__sku__sku_brand']),
                                                     ('Quantity', data['qty']),
-                                                    ('Picked Quantity', data['qty'] - data['res_qty']),
+                                                    ('Picked Quantity', data['loc_qty'] - data['res_qty']),
                                                     ('Warehouse', warehouse_users.get(data['order__sku__user']))
                                                   ))
             if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
@@ -3032,7 +3033,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Sub Category',data.order.sku.sub_category),
                                                             ('SKU Brand', data.order.sku.sku_brand),
                                                             ('Location', 'NO STOCK'),
-                                                            ('Quantity', data.order.quantity),
+                                                            ('Quantity', data.order.original_quantity),
                                                             ('Picked Quantity', data.picked_quantity),
                                                             ('Selling Price', data.order.unit_price), ('Sale Tax Percent', tax_percent),
                                                             ('Cost Price', cost_price), ('Cost Tax Percent', cost_tax_percent),
@@ -3074,7 +3075,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Sub Category',data.order.sku.sub_category),
                                                             ('SKU Brand', data.order.sku.sku_brand),
                                                             ('Location', pick_loc.stock.location.location),
-                                                            ('Quantity', data.order.quantity),
+                                                            ('Quantity', data.order.original_quantity),
                                                             ('Picked Quantity', picked_quantity),
                                                             ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])),
                                                             ('Selling Price', data.order.unit_price), ('Sale Tax Percent', tax_percent),
@@ -4553,7 +4554,7 @@ def get_order_summary_data(search_params, user, sub_user):
         milkbasket_user = True
 
     lis = ['creation_date', 'order_id', 'customer_id','customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
-           'sku__sku_size', 'sku__sku_desc', 'sku__sub_category', 'sku_code', 'sku_code', 'quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
+           'sku__sku_size', 'sku__sku_desc', 'sku__sub_category', 'sku_code', 'sku_code', 'original_quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
            'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id','order_id',
            'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','invoice_number', 'challan_number', 'quantity','creation_date'];
     if milkbasket_user :
@@ -4628,13 +4629,13 @@ def get_order_summary_data(search_params, user, sub_user):
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
                                                                     'sku__sku_desc','sku__price','sellerordersummary__invoice_number','sellerordersummary__challan_number','address',
-                                                                    'quantity','original_order_id','order_reference','sku__sku_brand','customer_name','customer_id',
+                                                                    'quantity', 'original_quantity', 'original_order_id','order_reference','sku__sku_brand','customer_name','customer_id',
                                                                     'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category').exclude(status = 3).distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
     else:
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size',
                                                                     'sku__sku_desc','sku__price','address','order_code','payment_mode',
-                                                                    'quantity','original_order_id','order_reference','sku__sku_brand','customer_name','customer_id',
+                                                                    'quantity', 'original_quantity', 'original_order_id','order_reference','sku__sku_brand','customer_name','customer_id',
                                                                     'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category').exclude(status = 3).distinct()
     pick_filters = {}
     for key, value in search_parameters.iteritems():
@@ -4698,7 +4699,7 @@ def get_order_summary_data(search_params, user, sub_user):
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     try:
-        temp_data['totalOrderQuantity'] = int(orders.aggregate(Sum('quantity'))['quantity__sum'])
+        temp_data['totalOrderQuantity'] = int(orders.aggregate(Sum('original_quantity'))['original_quantity__sum'])
     except:
         temp_data['totalOrderQuantity'] = 0
     try:
@@ -4842,7 +4843,7 @@ def get_order_summary_data(search_params, user, sub_user):
                 vat = order_summary[0].vat
                 #if not unit_price:
             else:
-                amt = unit_price_inclusive_tax * float(data['quantity'])
+                amt = unit_price_inclusive_tax * float(data['original_quantity'])
                 cgst_amt = float(order_summary[0].cgst_tax) * (float(amt) / 100)
                 sgst_amt = float(order_summary[0].sgst_tax) * (float(amt) / 100)
                 igst_amt = float(order_summary[0].igst_tax) * (float(amt) / 100)
@@ -4853,7 +4854,7 @@ def get_order_summary_data(search_params, user, sub_user):
             tax = float(float(data['invoice_amount']) / 100) * vat
         if order_status == 'None':
             order_status = ''
-        invoice_amount = "%.2f" % ((float(unit_price) * float(data['quantity'])) + tax - discount)
+        invoice_amount = "%.2f" % ((float(unit_price) * float(data['original_quantity'])) + tax - discount)
         taxable_amount = "%.2f" % abs(float(invoice_amount) - float(tax))
         unit_price = "%.2f" % unit_price
 
@@ -4952,7 +4953,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('SKU Sub Category', data['sku__sub_category']),
                                                     ('SKU Class', data['sku__sku_class']),
                                                     ('SKU Size', data['sku__sku_size']), ('SKU Description', data['sku__sku_desc']),
-                                                    ('SKU Code', data['sku__sku_code']), ('Order Qty', int(data['quantity'])),
+                                                    ('SKU Code', data['sku__sku_code']), ('Order Qty', int(data['original_quantity'])),
                                                     ('MRP', mrp_price), ('Unit Price', float(unit_price_inclusive_tax)),
                                                     ('Discount', discount),
                                                     ('Serial Number',serial_number),
@@ -7401,9 +7402,8 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
     from rest_api.views.common import  get_order_detail_objs,get_purchase_order_data
     oneassist_condition = get_misc_value('dispatch_qc_check', user.id)
     lis = ['open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__sku__sku_category', 'open_po__sku__sub_category',
-            'open_po__sku__sku_brand','open_po__order_quantity','open_po__sku__sku_code',
-            'open_po__sku__sku_brand','open_po__order_quantity','open_po__sku__sku_code',
-            'open_po__sku__sku_brand','open_po__order_quantity','open_po__sku__sku_code']
+            'open_po__sku__sku_brand','open_po__order_quantity','order_id',
+            'open_po__sku__user']
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
         if search_params['order_term'] == 'desc':
@@ -7445,19 +7445,18 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
     else:
         warehouses = UserGroups.objects.filter(admin_user_id=user.id)
     warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
-    sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
-    sku_master_ids = sku_master.values_list('id', flat=True)
+    warehouse_users[user.id] = user.username
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=warehouse_users.keys(),
-                                                   open_po__sku_id__in=sku_master_ids,
-                                                   received_quantity__lt=F('open_po__order_quantity')).exclude(status='location-assigned').filter(**search_parameters)
-    if not purchase_orders:
-        rw_orders = RWPurchase.objects.filter(rwo__vendor__user=user.id,
-                                              rwo__job_order__product_code_id__in=sku_master_ids). \
-            exclude(purchase_order__status__in=['location-assigned', 'stock-transfer']). \
-            values_list('purchase_order_id', flat=True)
-        purchase_orders = PurchaseOrder.objects.filter(id__in=rw_orders)
+                                                   received_quantity__lt=F('open_po__order_quantity')).\
+                    exclude(status='location-assigned').filter(**search_parameters).order_by(order_data)
+    # if not purchase_orders:
+    #     rw_orders = RWPurchase.objects.filter(rwo__vendor__user=user.id,
+    #                                           rwo__job_order__product_code_id__in=sku_master_ids). \
+    #         exclude(purchase_order__status__in=['location-assigned', 'stock-transfer']). \
+    #         values_list('purchase_order_id', flat=True)
+    #     purchase_orders = PurchaseOrder.objects.filter(id__in=rw_orders)
 
-    temp_data['recordsTotal'] = len(purchase_orders)
+    temp_data['recordsTotal'] = purchase_orders.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     ship_search_params  = {}
     if stop_index:
@@ -7467,7 +7466,7 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for order in purchase_orders:
         manufacturer,searchable,bundle = '','',''
-        attributes_obj = SKUAttributes.objects.filter(sku_id=data.sku.id, attribute_name__in= attributes_list)
+        attributes_obj = SKUAttributes.objects.filter(sku_id=order.open_po.sku_id, attribute_name__in= attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:
                 if attribute.attribute_name == 'Manufacturer':
@@ -7478,7 +7477,6 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
                     bundle = attribute.attribute_value
         po_reference_no = '%s%s_%s' % (
         order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
-        order_data = get_purchase_order_data(order)
         customer_name, sr_number = '', ''
         if oneassist_condition == 'true':
             customer_data = OrderMapping.objects.filter(mapping_id=order.id, mapping_type='PO')
@@ -7490,12 +7488,14 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
                     courtesy_sr_number = OrderFields.objects.filter(original_order_id = inter_order_id, user = admin_user.id, name = 'original_order_id')
                     if courtesy_sr_number:
                         sr_number = courtesy_sr_number[0].value
-        po_quantity = float(order_data['order_quantity']) - float(order.received_quantity)
+        po_quantity = float(order.open_po.order_quantity) - float(order.received_quantity)
         warehouse_location = warehouse_users[order.open_po.sku.user]
-        ord_dict = OrderedDict((('SKU Code',order_data['wms_code']),('PO No',po_reference_no),
-                                                ('SKU Category',order_data['sku_category']),('Sub Category',order_data['sub_category']),
-                                                ('SKU Brand',order_data['sku_brand']),
-                                            ('Quantity',po_quantity ), ('Sku Description', order_data['sku_desc']),('Location',warehouse_location), ('Customer Name', customer_name), ('SR Number', sr_number)))
+        ord_dict = OrderedDict((('SKU Code',order.open_po.sku.wms_code),('PO No',po_reference_no),
+                                                ('SKU Category',order.open_po.sku.sku_category),('Sub Category',order.open_po.sku.sub_category),
+                                                ('SKU Brand',order.open_po.sku.sku_brand),
+                                                ('Quantity',po_quantity ), ('Sku Description', order.open_po.sku.sku_desc),
+                                                ('Location',warehouse_location), ('Customer Name', customer_name),
+                                ('SR Number', sr_number)))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             ord_dict['Manufacturer'] = manufacturer
             ord_dict['Searchable'] = searchable

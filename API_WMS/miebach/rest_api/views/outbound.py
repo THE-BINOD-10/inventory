@@ -7406,7 +7406,7 @@ def generate_order_po_data(request, user=''):
     supplier_list = []
     suppliers = SupplierMaster.objects.filter(user=user.id)
     for supplier in suppliers:
-        supplier_list.append({'id': supplier.id, 'name': supplier.name})
+        supplier_list.append({'id': supplier.id, 'name': supplier.name, 'tax_type': supplier.tax_type})
     request_dict = dict(request.POST.iterlists())
     table_type_name = request.POST.get('table_name', '')
     if table_type_name == 'stock_transfer_order':
@@ -7438,6 +7438,7 @@ def generate_order_po_data(request, user=''):
             order_details = OrderDetail.objects.filter(original_order_id=original_order_id, user=user.id)
     if table_type_name == 'stock_transfer_order':
         for sku_id in stock_transfer_obj.values('sku__id').distinct():
+            taxes = {}
             order_detail = stock_transfer_obj.filter(sku__id=sku_id['sku__id'])
             product_qty = order_detail.aggregate(Sum('quantity'))['quantity__sum']
             data_id = ','.join([str(order_id.id) for order_id in order_detail])
@@ -7454,6 +7455,7 @@ def generate_order_po_data(request, user=''):
                               'quantity': product_qty, 'selected_item': selected_item, 'price': price})
     else:
         for sku_id in order_details.values('sku__id').distinct():
+            taxes = {}
             order_detail = order_details.filter(sku__id=sku_id['sku__id'])
             product_qty = order_detail.aggregate(Sum('quantity'))['quantity__sum']
             data_id = ','.join([str(order_id.id) for order_id in order_detail])
@@ -7462,12 +7464,17 @@ def generate_order_po_data(request, user=''):
             order_detail = order_detail[0]
             sku_supplier = SKUSupplier.objects.filter(sku__wms_code=order_detail.sku.wms_code, sku__user=user.id)
             if sku_supplier:
-                selected_item = {'id': sku_supplier[0].supplier_id, 'name': sku_supplier[0].supplier.name}
+                sku_price_details = get_supplier_sku_price_values(sku_supplier[0].supplier_id, sku_supplier[0].sku.sku_code, user)
+                if sku_price_details:
+                    taxes = sku_price_details[0]['taxes']
+                selected_item = {'id': sku_supplier[0].supplier_id, 'name': sku_supplier[0].supplier.name,
+                                 'tax_type': sku_supplier[0].supplier.tax_type}
                 price = sku_supplier[0].price
             else:
                 selected_item = supplier_list[1]
             data_dict.append({'order_id': data_id, 'wms_code': order_detail.sku.wms_code, 'title': order_detail.sku.sku_desc,
-                              'quantity': product_qty, 'selected_item': selected_item, 'price': price})
+                              'quantity': product_qty, 'selected_item': selected_item, 'price': price,
+                              'taxes': taxes[0]})
     return HttpResponse(json.dumps({'data_dict': data_dict, 'supplier_list': supplier_list}))
 
 @csrf_exempt
@@ -8529,7 +8536,7 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
         'city', 'status']
 
     # unsort_lis = ['Customer Name', 'Order ID', 'Market Place ', 'Total Quantity']
-    unsorted_dict = {7: 'Order Taken By', 8: 'Status'}
+    unsorted_dict = {8: 'Order Taken By', 9: 'Status'}
     data_dict = {'status': 1, 'user': user.id, 'quantity__gt': 0}
 
     order_data = lis[col_num]
@@ -9126,11 +9133,11 @@ def update_order_data(request, user=""):
             s_date = datetime.datetime.strptime(myDict['shipment_date'][0], '%d %b, %Y %H:%M %p')
             if not myDict['item_code'][i] or not myDict['quantity'][i]:
                 continue
+            quantity = float(myDict['quantity'][i])
             sku_id = SKUMaster.objects.get(sku_code=myDict['item_code'][i], user=user.id)
-
             if not myDict['invoice_amount'][i]:
                 myDict['invoice_amount'][i] = 0
-            default_dict = {'title': myDict['product_title'][i], 'quantity': myDict['quantity'][i],
+            default_dict = {'title': myDict['product_title'][i], 'quantity': quantity,
                             'invoice_amount': myDict['invoice_amount'][i],
                             'user': user.id, 'customer_id': older_order.customer_id,
                             'customer_name': older_order.customer_name,
@@ -9150,9 +9157,24 @@ def update_order_data(request, user=""):
                     to_save_courier_name.save()
             elif int(sku_order[0].status) == 0:
                 continue
-            order_obj, created = OrderDetail.objects.update_or_create(
-                order_id=order_id, order_code=order_code, sku=sku_id, defaults=default_dict
-            )
+            order_obj = OrderDetail.objects.filter(order_id=order_id, order_code=order_code, sku=sku_id)
+            created = False
+            if not order_obj:
+                default_dict['order_id'] = order_id
+                default_dict['order_code'] = order_code
+                default_dict['sku_id'] = sku_id.id
+                order_obj = OrderDetail.objects.create(**default_dict)
+                created = True
+            else:
+                remainging_quantity =  quantity - order_obj[0].quantity
+                default_dict['original_quantity'] = order_obj[0].original_quantity + remainging_quantity
+                default_dict['invoice_amount'] = (float(myDict['invoice_amount'][i]) / quantity) * \
+                                                    default_dict['original_quantity']
+                order_obj.update(**default_dict)
+                order_obj = order_obj[0]
+            # order_obj, created = OrderDetail.objects.update_or_create(
+            #     order_id=order_id, order_code=order_code, sku=sku_id, defaults=default_dict
+            # )
             if not created and order_obj.sellerorder_set.filter().exists():
                 seller_order = order_obj.sellerorder_set.filter()[0]
                 seller_order.quantity = order_obj.quantity
@@ -11589,9 +11611,11 @@ def move_to_inv(request, user=''):
             inv_no = int(invoice_seq.value)
             order_no = str(inv_no).zfill(3)
             is_inv_num_added = False
+            date = datetime.datetime.now()
             for sel_obj in seller_summary:
                 if not sel_obj.invoice_number:
                     sel_obj.invoice_number = order_no
+                    sel_obj.creation_date=date
                     sel_obj.save()
                     is_inv_num_added = True
                 else:
@@ -11721,6 +11745,7 @@ def generate_customer_invoice_tab(request, user=''):
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         return_data = request.GET.get('data', '')
         delivery_challan = request.GET.get('delivery_challan', '')
+        invoice_data['invoice_date'] = invoice_date
         if delivery_challan == "true":
             titles = ['']
             title_dat = get_misc_value('invoice_titles', user.id)

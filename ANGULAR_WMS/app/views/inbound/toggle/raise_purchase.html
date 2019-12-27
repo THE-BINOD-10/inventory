@@ -142,7 +142,7 @@
                 <input name="po_delivery_date" ui-jq="datepicker" ng-model="showCase.model_data.po_delivery_date" class="form-control stk-readonly" type="text" id="po_delivery_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
               </div>
             </div>
-            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.warehouse_type == 'CENTRAL_ADMIN'">
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.warehouse_type == 'admin'">
               <div class="form-group">
                 <label class="control-label"> Warehouse </label>
                 <select class="form-control" name="warehouse_name" ng-model="showCase.model_data.warehouse" ng-init="showCase.model_data.warehouse=showCase.model_data.warehouse_names[0]">
@@ -338,13 +338,13 @@
           <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
         </div>
 		</div>
-        <div class="modal-footer" ng-if="showCase.warehouse_type != 'CENTRAL_ADMIN'">
+        <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin'">
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop {{showCase.permissions.change_openpo?'pop-normal':'pop-green'}}" ng-click="showCase.save_raise_po(form)">{{showCase.permissions.change_openpo?'Save':'Send for Approval'}}</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)">Confirm PO</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print_grn()">Print</button>
         </div>
-        <div class="modal-footer" ng-if="showCase.warehouse_type == 'CENTRAL_ADMIN'">
+        <div class="modal-footer" ng-if="showCase.warehouse_type == 'admin'">
           <button type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)">Confirm PO</button>
         </div>
       </div>

@@ -298,6 +298,7 @@ class OrderDetail(models.Model):
     sku = models.ForeignKey(SKUMaster)
     title = models.CharField(max_length=256, default='')
     quantity = models.FloatField(default=0)
+    original_quantity = models.FloatField(default=0)
     invoice_amount = models.FloatField(default=0)
     shipment_date = models.DateTimeField()
     marketplace = models.CharField(max_length=256, default='')
@@ -3427,3 +3428,11 @@ class ProccessRunning(models.Model):
     class Meta:
         db_table = 'PROCESS_RUNNING'
         unique_together = ('user', 'process_name')
+
+
+
+@receiver(post_save, sender=OrderDetail)
+def save_order_original_quantity(sender, instance, created, **kwargs):
+    if created:
+        instance.original_quantity = instance.quantity
+        instance.save()

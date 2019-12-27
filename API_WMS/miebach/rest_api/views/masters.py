@@ -1428,7 +1428,7 @@ def update_sku_supplier_values(request, user=''):
 @get_admin_user
 def insert_mapping(request, user=''):
     data_dict = copy.deepcopy(SUPPLIER_SKU_DATA)
-    integer_data = ('preference')
+    integer_data = 'preference'
     for key, value in request.POST.iteritems():
 
         if key == 'wms_code':
@@ -1447,29 +1447,29 @@ def insert_mapping(request, user=''):
 
         elif key in integer_data:
             if not value.isdigit():
-                return HttpResponse('Plese enter Integer values for Priority and MOQ')
+                return HttpResponse('Please enter Integer values for Priority and MOQ')
 
         if key == 'preference':
             preference = value
 
         if value != '':
             data_dict[key] = value
+    if user.username not in MILKBASKET_USERS:
+        sku_supplier = SKUSupplier.objects.filter(Q(sku_id=sku_id[0].id) & Q(preference=preference),
+                                                  sku__user=user.id)
+        if sku_supplier:
+            return HttpResponse('Preference matched with existing WMS Code')
 
-    sku_supplier = SKUSupplier.objects.filter(Q(sku_id=sku_id[0].id) & Q(preference=preference),
-                                              sku__user=user.id)
-    if sku_supplier:
-        return HttpResponse('Preference matched with existing WMS Code')
-
-    data = SKUSupplier.objects.filter(supplier_id=supplier, sku_id=sku_id[0].id)
-    if data:
-        return HttpResponse('Duplicate Entry')
-    preference_data = SKUSupplier.objects.filter(sku_id=sku_id[0].id).order_by('-preference').\
-                                            values_list('preference', flat=True)
-    min_preference = 0
-    if preference_data:
-        min_preference = int(preference_data[0])
-    if int(preference) in preference_data:
-        return HttpResponse('Duplicate Priority, Next incremantal value is %s' % str(min_preference + 1))
+        data = SKUSupplier.objects.filter(supplier_id=supplier, sku_id=sku_id[0].id)
+        if data:
+            return HttpResponse('Duplicate Entry')
+        preference_data = SKUSupplier.objects.filter(sku_id=sku_id[0].id).order_by('-preference').\
+                                                values_list('preference', flat=True)
+        min_preference = 0
+        if preference_data.exists():
+            min_preference = int(float(preference_data[0]))
+        if int(preference) in preference_data:
+            return HttpResponse('Duplicate Priority, Next incremantal value is %s' % str(min_preference + 1))
 
     sku_supplier = SKUSupplier(**data_dict)
     sku_supplier.save()

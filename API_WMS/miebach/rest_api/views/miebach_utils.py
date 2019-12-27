@@ -448,7 +448,7 @@ ORDER_SUMMARY_DICT = {
                 {'label': 'SKU Size', 'name': 'sku_size', 'type': 'input'},
                 {'label': 'Status', 'name': 'order_report_status', 'type': 'select'},
                 {'label': 'Order ID', 'name': 'order_id', 'type': 'input'}],
-    'dt_headers': ['Order Date','Order ID', 'Customer Name', 'SKU Brand', 'SKU Category', 'SKU Sub Category', 'SKU Class', 'SKU Size',
+    'dt_headers': ['Order Date','Order ID', 'Customer ID','Customer Name', 'SKU Brand', 'SKU Category', 'SKU Sub Category', 'SKU Class', 'SKU Size',
                    'SKU Description', 'SKU Code', 'Vehicle Number', 'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Tax', 'Taxable Amount', 'City',
                    'State', 'Marketplace', 'Invoice Amount', 'Status', 'Order Status', 'Remarks','Customer GST Number','Payment Type','Reference Number', 'Advance Amount'],
     'mk_dt_headers': ['Order Date','Order ID', 'Customer Name', 'SKU Brand', 'SKU Category', 'SKU Sub Category', 'SKU Class', 'SKU Size',
@@ -974,7 +974,7 @@ FINANCIAL_REPORT_DICT =  {
   'Stock Transfers IGST', 'Stock Transfers CESS', 'Stock Transfers Value after Tax', 'Sale Return Qty', 'Sale Return Price Per Unit(Before Taxes)','Sale Return Value before Tax',
   'Sale Return CGST', 'Sale Return SGST','Sale Return IGST', 'Sale Return CESS', 'Sale Return Value after Tax','Closing Qty', 'Closing Price Per Unit(Before Taxes)','Closing Value before Tax',
   'Closing CGST', 'Closing SGST','Closing IGST', 'Closing CESS', 'Closing Value after Tax','Physical Qty', 'Adjustment Qty',
-                 'Adjustment Price Per Unit(Before Taxes)', 'Adjustment Value', 'Margin Percentage'],
+                 'Adjustment Price Per Unit(Before Taxes)', 'Adjustment Value', 'Margin', 'Margin Percentage'],
   'dt_url': 'get_financial_report', 'excel_name': 'get_financial_report',
   'print_url': 'print_financial_report',
 }
@@ -2305,6 +2305,7 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'sales_return_reasons': 'sales_return_reasons',
                      'rtv_prefix_code': 'rtv_prefix_code',
                      'weight_integration_name': 'weight_integration_name',
+                     'delivery_challan_terms_condtions': 'delivery_challan_terms_condtions',
                      'order_prefix': 'order_prefix',
                      }
 
@@ -2826,7 +2827,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
     warehouse_users = {}
     central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
     if customer_view:
-        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__sku__sku_category', 'order__sku__sub_category','order__sku__sku_brand', 'order__sku__user',
+        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc',
+               'order__sku__sku_category', 'order__sku__sub_category','order__sku__sku_brand', 'order__sku__user',
                'order__sku__sub_category','order__sku__sku_brand', 'order__sku__user']#'order__quantity', 'picked_quantity']
         model_obj = Picklist
         param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code','manufacturer':'order__sku__skuattributes__attribute_value__iexact'}
@@ -2896,7 +2898,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
         if 'bundle' in search_params:
             search_parameters['order__sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
 
-    if user.username == 'isprava_admin':
+    if user.userprofile.warehouse_type == 'admin':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
             user = User.objects.get(username=sister_warehouse_name)
@@ -2927,7 +2929,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
     model_data = model_obj.objects.filter(**search_parameters)
     if customer_view:
         model_data = model_data.values(*lis).distinct()\
-                               .annotate(qty=Sum('order__quantity'), tot_count=Count('order__quantity'))\
+                               .annotate(qty=Sum('order__original_quantity'), tot_count=Count('order__original_quantity'))\
                                .annotate(tot_qty=F('qty')/Cast(F('tot_count'), FloatField()))\
                                .annotate(loc_qty=Sum('picklistlocation__quantity'), res_qty=Sum('picklistlocation__reserved'))
     if search_params.get('order_term'):
@@ -2966,7 +2968,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                     ('Sub Category', data['order__sku__sub_category']),
                                                     ('SKU Brand', data['order__sku__sku_brand']),
                                                     ('Quantity', data['qty']),
-                                                    ('Picked Quantity', data['qty'] - data['res_qty']),
+                                                    ('Picked Quantity', data['loc_qty'] - data['res_qty']),
                                                     ('Warehouse', warehouse_users.get(data['order__sku__user']))
                                                   ))
             if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
@@ -3031,7 +3033,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Sub Category',data.order.sku.sub_category),
                                                             ('SKU Brand', data.order.sku.sku_brand),
                                                             ('Location', 'NO STOCK'),
-                                                            ('Quantity', data.order.quantity),
+                                                            ('Quantity', data.order.original_quantity),
                                                             ('Picked Quantity', data.picked_quantity),
                                                             ('Selling Price', data.order.unit_price), ('Sale Tax Percent', tax_percent),
                                                             ('Cost Price', cost_price), ('Cost Tax Percent', cost_tax_percent),
@@ -3073,7 +3075,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Sub Category',data.order.sku.sub_category),
                                                             ('SKU Brand', data.order.sku.sku_brand),
                                                             ('Location', pick_loc.stock.location.location),
-                                                            ('Quantity', data.order.quantity),
+                                                            ('Quantity', data.order.original_quantity),
                                                             ('Picked Quantity', picked_quantity),
                                                             ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])),
                                                             ('Selling Price', data.order.unit_price), ('Sale Tax Percent', tax_percent),
@@ -3765,7 +3767,7 @@ def get_stock_summary_data(search_params, user, sub_user):
         if 'bundle' in search_params:
             search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
 
-    if user.username == 'isprava_admin':
+    if user.userprofile.warehouse_type == 'admin':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
             user = User.objects.get(username=sister_warehouse_name)
@@ -3780,7 +3782,8 @@ def get_stock_summary_data(search_params, user, sub_user):
     search_parameters['sku_id__in'] = sku_master_ids
     sku_master = StockDetail.objects.exclude(receipt_number=0).values_list('sku_id', 'sku__sku_code', 'sku__sku_desc',
                                                                            'sku__sku_brand',
-                                                                           'sku__sku_category', 'sku__user').distinct().annotate(
+                                                                           'sku__sku_category', 
+                                                                           'sku__sub_category','sku__user').distinct().annotate(
         total=Sum('quantity'), stock_value=Sum(F('quantity') * F('sku__cost_price'))).filter(quantity__gt=0,
                                       **search_parameters)
     if search_stage and not search_stage == 'In Stock':
@@ -3824,8 +3827,8 @@ def get_stock_summary_data(search_params, user, sub_user):
                     searchable = attribute.attribute_value
                 if attribute.attribute_name == 'Bundle':
                     bundle = attribute.attribute_value
-        if len(list(sku)) >= 6:
-            sku_stages_dict['In Stock'] = sku[6]
+        if len(list(sku)) >= 7:
+            sku_stages_dict['In Stock'] = sku[7]
         if sku[0] in intransit_skus:
             total_ordered = map(lambda d: d['total_order'], purchase_orders)[intransit_skus.index(sku[0])]
             total_received = map(lambda d: d['total_received'], purchase_orders)[intransit_skus.index(sku[0])]
@@ -3849,10 +3852,10 @@ def get_stock_summary_data(search_params, user, sub_user):
         for key, value in sku_stages_dict.iteritems():
             warehouse = 0
             stock_value = 0
-            if sku[5]:
-                warehouse = warehouse_users.get(sku[5])
-            if sku[7]:
-               stock_value = sku[7]
+            if sku[6]:
+                warehouse = warehouse_users.get(sku[6])
+            if sku[8]:
+               stock_value = sku[8]
             ord_dict = OrderedDict((('SKU Code', sku[1]), ('Description', sku[2]),
                                                 ('Brand', sku[3]), ('Category', sku[4]),('SKU Sub Category', sku[5]),
                                                 ('Stage', key), ('Stage Quantity', value), ('Stock Value', stock_value),  ('Warehouse', warehouse)))
@@ -4171,8 +4174,6 @@ def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=F
                             send_damaged=True, opening_stock_date=None, used_damage_qtys=None):
     data_dict = {'quantity': 0, 'cgst_amount': 0, 'sgst_amount': 0, 'igst_amount': 0, 'cess_amount': 0,
                      'value_before_tax': 0, 'value_after_tax': 0, 'price_before_tax': 0}
-    if not used_damage_qtys:
-        used_damage_qtys = []
     if not data_objs:
         purchase_data = []
         if not send_last_day:
@@ -4193,14 +4194,16 @@ def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=F
         for data in purchase_data:
             quantity = data.quantity
             if not send_damaged:
-                if data.stock_reconciliation.id not in used_damage_qtys and quantity >= getattr(data.stock_reconciliation, damaged_field):
+                if data.stock_reconciliation.id not in used_damage_qtys.get(fields_parameters1['field_type'], []) \
+                                                and quantity >= getattr(data.stock_reconciliation, damaged_field):
                     quantity = data.quantity - getattr(data.stock_reconciliation, damaged_field)
-                    used_damage_qtys.append(data.stock_reconciliation.id)
+                    used_damage_qtys.setdefault(fields_parameters1['field_type'], [])
+                    used_damage_qtys[fields_parameters1['field_type']].append(data.stock_reconciliation.id)
             amount = quantity * data.price_before_tax
             data_dict['quantity'] += quantity
             value_before_tax = data.value_before_tax
             value_after_tax = data.value_after_tax
-            if not send_damaged:
+            if not send_damaged and data.quantity:
                 value_after_tax = (data.value_after_tax/data.quantity) * quantity
                 value_before_tax = (data.value_before_tax/data.quantity) * quantity
             data_dict['value_before_tax'] += value_before_tax
@@ -4295,21 +4298,25 @@ def get_financial_report_data(search_params, user, sub_user):
         stock_recs = StockReconciliation.objects.filter(**search_parameters).only('creation_date')
         if stock_recs.exists():
             if not stop_index:
-                vendor_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
-                                                                   attribute_name='Vendor').values_list(
+                manufacturer_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                                                                   attribute_name='Manufacturer').values_list(
                 'sku_id', 'attribute_value'))
+                searchable_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                                                                   attribute_name='Searchable').values_list(
+                'sku_id', 'attribute_value'))
+                bundle_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                                                                attribute_name='Bundle').values_list('sku_id', 'attribute_value'))
                 hub_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
-                                                                   attribute_name='Hub').values_list(
-                'sku_id', 'attribute_value'))
+                                                                attribute_name='Hub').values_list('sku_id', 'attribute_value'))
+                vendor_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                                                                attribute_name='Vendor').values_list('sku_id', 'attribute_value'))
             opening_stock_date = stock_recs[0].creation_date.date()
             closing_stock_date = stock_recs.latest('creation_date').creation_date.date()
-            #closing_stock_date = stock_recs.order_by('-creation_date')[0].creation_date.date()
             opening_stock_filter = {'stock_reconciliation__creation_date__regex': opening_stock_date,
                                     'stock_reconciliation__sku__user': user.id,
                                     'field_type': 'opening'}
             if 'stock_reconciliation__sku__sku_code' in fields_parameters:
                 opening_stock_filter['stock_reconciliation__sku__sku_code'] = fields_parameters['stock_reconciliation__sku__sku_code']
-            #stock_rec_distinct_data = stock_recs.filter(creation_date__regex=closing_stock_date)#.values('sku_id', 'mrp', 'weight').distinct()
             stock_rec_distinct_data = stock_recs.values('sku_id', 'mrp', 'weight').distinct()
             temp_data['recordsTotal'] = stock_rec_distinct_data.count()
             temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -4320,38 +4327,39 @@ def get_financial_report_data(search_params, user, sub_user):
                 counter += 1
                 stock_rec_data = stock_recs.filter(sku_id=stock_rec_data_dict['sku_id'], mrp=stock_rec_data_dict['mrp'],
                                                     weight=stock_rec_data_dict['weight'])[0]
-                opening_stock_data = StockReconciliationFields.objects.filter(stock_reconciliation_id=stock_rec_data.id,
-                                                                            creation_date__regex=opening_stock_date).\
-                                                values('stock_reconciliation__sku__sku_code', 'stock_reconciliation__sku__sku_desc',
+                opening_stock_query = StockReconciliationFields.objects.filter(stock_reconciliation__sku_id=stock_rec_data_dict['sku_id'],
+                                                                                stock_reconciliation__mrp=stock_rec_data_dict['mrp'],
+                                                                                stock_reconciliation__weight=stock_rec_data_dict['weight'],
+                                                                            creation_date__gte=opening_stock_date,
+                                                                            creation_date__lt=closing_stock_date+datetime.timedelta(1))
+                opening_stock_data = opening_stock_query.values('stock_reconciliation__sku__sku_code', 'stock_reconciliation__sku__sku_desc',
                                                             'stock_reconciliation__sku_id',
                                                             'stock_reconciliation__sku__sku_category', 'stock_reconciliation__sku__sub_category',
                                                             'stock_reconciliation__sku_id','stock_reconciliation__sku__sku_brand',
                                                             'stock_reconciliation__sku__hsn_code', 'stock_reconciliation__mrp',
                                                             'stock_reconciliation__weight','cgst_tax', 'sgst_tax', 'igst_tax',
-                                                            'cess_tax').distinct()#.annotate(Sum('value_before_tax'),
-                                                            #Sum('quantity'),
-                                                            #cgst_amount=Sum((F('value_before_tax')/Value(100))*F('cgst_tax')),
-                                                            #sgst_amount=Sum((F('value_before_tax')/Value(100))*F('sgst_tax')),
-                                                            #igst_amount=Sum((F('value_before_tax')/Value(100))*F('igst_tax')),
-                                                            #cess_amount=Sum((F('value_before_tax')/Value(100))*F('cess_tax')))
-                #temp_data['recordsTotal'] = opening_stock_data.count()
-                #temp_data['recordsFiltered'] = temp_data['recordsTotal']
+                                                            'cess_tax').distinct()
                 closing_objs = StockReconciliationFields.objects.filter(stock_reconciliation__creation_date__regex=closing_stock_date,
                                                                         stock_reconciliation__sku__user=user.id,
                                                                         field_type='closing')
                 manufacturer, searchable, bundle = '', '', ''
                 sku_id = stock_rec_data.sku_id
-                attributes_obj = SKUAttributes.objects.filter(sku_id=sku_id, attribute_name__in=attributes_list)
-                if attributes_obj.exists():
-                    for attribute in attributes_obj:
-                        if attribute.attribute_name == 'Manufacturer':
-                            manufacturer = attribute.attribute_value
-                        if attribute.attribute_name == 'Searchable':
-                            searchable = attribute.attribute_value
-                        if attribute.attribute_name == 'Bundle':
-                            bundle = attribute.attribute_value
+                if not stop_index:
+                    manufacturer = manufacturer_dict.get(sku_id, '')
+                    searchable = searchable_dict.get(sku_id, '')
+                    bundle = bundle_dict.get(sku_id, '')
+                else:
+                    attributes_obj = SKUAttributes.objects.filter(sku_id=sku_id, attribute_name__in=attributes_list)
+                    if attributes_obj.exists():
+                        for attribute in attributes_obj:
+                            if attribute.attribute_name == 'Manufacturer':
+                                manufacturer = attribute.attribute_value
+                            if attribute.attribute_name == 'Searchable':
+                                searchable = attribute.attribute_value
+                            if attribute.attribute_name == 'Bundle':
+                                bundle = attribute.attribute_value
                 rows_data = []
-                used_damage_qtys = []
+                used_damage_qtys = {}
                 if opening_stock_data.exists():
                     for opening_stock in opening_stock_data:
                         rows_data.append({'table': 'stock_rec_field', 'data': opening_stock})
@@ -4386,10 +4394,16 @@ def get_financial_report_data(search_params, user, sub_user):
                     fields_parameters1.update(closing_obj_filter)
                     closing_stock_objs = closing_objs.filter(**closing_obj_filter)
                     fields_parameters1['field_type'] = 'closing'
+                    closing_damaged_flag = True
+                    if closing_stock_date < datetime.datetime.strptime('2019-12-23', '%Y-%M-%d').date():
+                        closing_damaged_flag = False
                     closing_dict, used_damage_qtys = get_financial_group_dict(fields_parameters1, data_objs=closing_stock_objs, send_last_day=True,
-                                                            stock_rec_data=stock_rec_data1, send_damaged=False, used_damage_qtys=used_damage_qtys)
+                                                            stock_rec_data=stock_rec_data1, send_damaged=closing_damaged_flag, used_damage_qtys=used_damage_qtys)
                     fields_parameters1['field_type'] = 'opening'
-                    opening_dict, used_damage_qtys = get_financial_group_dict(fields_parameters1, send_damaged=False, stock_rec_data=stock_rec_data1,
+                    opening_damaged_flag = True
+                    if closing_stock_date < datetime.datetime.strptime('2019-12-24', '%Y-%M-%d').date():
+                        opening_damaged_flag = False
+                    opening_dict, used_damage_qtys = get_financial_group_dict(fields_parameters1, send_damaged=opening_damaged_flag, stock_rec_data=stock_rec_data1,
                                                             opening_stock_date=opening_stock_date, used_damage_qtys=used_damage_qtys)
                     fields_parameters1['field_type'] = 'purchase'
                     purchase_dict, used_damage_qtys = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1,
@@ -4404,23 +4418,19 @@ def get_financial_report_data(search_params, user, sub_user):
                     csd, used_damage_qtys = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1,
                                                                     used_damage_qtys=used_damage_qtys)
                     margin_percentage = 0
-                    if csd['quantity']:
-                        sale_price = StockReconciliationFields.objects.\
-                                        filter(**fields_parameters1).aggregate(sale_price=Sum(
-                            F('stock_reconciliation__customer_sales_quantity') * F(
-                                'stock_reconciliation__customer_sales_avg_rate')))['sale_price']
-                        if not sale_price:
-                            sale_price = 0
-                        margin_amount = sale_price - csd['value_before_tax']
-                        if sale_price:
-                            margin_percentage = float('%.2f' % ((margin_amount / float(sale_price)) * 100))
-
                     fields_parameters1['field_type'] = 'internal_sales'
                     isd, used_damage_qtys = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1,
                                                                     used_damage_qtys=used_damage_qtys)
                     fields_parameters1['field_type'] = 'stock_transfer'
                     std, used_damage_qtys = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1,
                                                 used_damage_qtys=used_damage_qtys)
+                    margin = 0
+                    if csd['quantity']:
+                        margin = (rtv_dict['value_after_tax'] + csd['value_after_tax'] + isd['value_after_tax'] +\
+                                    std['value_after_tax'] + closing_dict['value_after_tax']) - \
+                                    (opening_dict['value_after_tax'] + purchase_dict['value_after_tax'] + returns_dict['value_after_tax'])
+                        if margin and csd['value_after_tax']:
+                            margin_percentage = float('%.2f' % ((margin / float(csd['value_after_tax'])) * 100))
                     fields_parameters1['field_type'] = 'adjustment'
                     adjustment_dict, used_damage_qtys = get_financial_group_dict(fields_parameters1, stock_rec_data=stock_rec_data1,
                                                                                 used_damage_qtys=used_damage_qtys)
@@ -4526,6 +4536,7 @@ def get_financial_report_data(search_params, user, sub_user):
                                                             ('Adjustment Qty', adjustment_dict['quantity']),
                                                             ('Adjustment Price Per Unit(Before Taxes)', '%.2f' % adjustment_dict['price_before_tax']),
                                                             ('Adjustment Value', '%.2f' % adjustment_dict['value_before_tax']),
+                                                            ('Margin', margin),
                                                             ('Margin Percentage', margin_percentage)
                                                             )))
     return temp_data
@@ -4542,8 +4553,8 @@ def get_order_summary_data(search_params, user, sub_user):
     if user.username in milkbasket_users :
         milkbasket_user = True
 
-    lis = ['creation_date', 'order_id', 'customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
-           'sku__sku_size', 'sku__sku_desc', 'sku__sub_category', 'sku_code', 'sku_code', 'quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
+    lis = ['creation_date', 'order_id', 'customer_id','customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
+           'sku__sku_size', 'sku__sku_desc', 'sku__sub_category', 'sku_code', 'sku_code', 'original_quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
            'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id','order_id',
            'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','invoice_number', 'challan_number', 'quantity','creation_date'];
     if milkbasket_user :
@@ -4576,7 +4587,7 @@ def get_order_summary_data(search_params, user, sub_user):
         search_parameters['sku__sku_class'] = search_params['sku_class']
     if 'city' in search_params:
         search_parameters['city'] = search_params['city']
-    if 'city' in search_params:
+    if 'state' in search_params:
         search_parameters['state'] = search_params['state']
     if 'order_id' in search_params:
         order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])
@@ -4618,13 +4629,13 @@ def get_order_summary_data(search_params, user, sub_user):
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
                                                                     'sku__sku_desc','sku__price','sellerordersummary__invoice_number','sellerordersummary__challan_number','address',
-                                                                    'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
+                                                                    'quantity', 'original_quantity', 'original_order_id','order_reference','sku__sku_brand','customer_name','customer_id',
                                                                     'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category').exclude(status = 3).distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
     else:
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size',
                                                                     'sku__sku_desc','sku__price','address','order_code','payment_mode',
-                                                                    'quantity','original_order_id','order_reference','sku__sku_brand','customer_name',
+                                                                    'quantity', 'original_quantity', 'original_order_id','order_reference','sku__sku_brand','customer_name','customer_id',
                                                                     'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category').exclude(status = 3).distinct()
     pick_filters = {}
     for key, value in search_parameters.iteritems():
@@ -4688,7 +4699,7 @@ def get_order_summary_data(search_params, user, sub_user):
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     try:
-        temp_data['totalOrderQuantity'] = int(orders.aggregate(Sum('quantity'))['quantity__sum'])
+        temp_data['totalOrderQuantity'] = int(orders.aggregate(Sum('original_quantity'))['original_quantity__sum'])
     except:
         temp_data['totalOrderQuantity'] = 0
     try:
@@ -4712,7 +4723,7 @@ def get_order_summary_data(search_params, user, sub_user):
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
 
     total_row = {}
-    total_row = OrderedDict((('Order Date', ''), ('Order ID', ""),('Customer Name', ""),('Order Number' ,""),
+    total_row = OrderedDict((('Order Date', ''), ('Order ID', ""), ("Customer ID", ""), ('Customer Name', ""),('Order Number' ,""),
     ('SKU Brand', ""),('SKU Category', ''),('SKU Class', ''),('SKU Size', ''), ('SKU Description', ''),('SKU Sub Category', ''),
     ('SKU Code', 'TotalQuantity='), ('Vehicle Number', ''),('Order Qty',temp_data['totalOrderQuantity']),('MRP', ''), ('Unit Price',''),('Discount', ''),
     ('Serial Number',''),('Invoice Number',''),('Challan Number', ''),('Quantity',''),('Payment Type' ,''),('Reference Number',''),
@@ -4815,6 +4826,7 @@ def get_order_summary_data(search_params, user, sub_user):
         order_status = ''
         remarks = ''
         order_taken_by = ''
+        vehicle_number = ''
         payment_card, payment_cash ,payment_PhonePe,payment_Paytm,payment_GooglePay = 0, 0,0,0,0
         order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data['id'])
         unit_price, unit_price_inclusive_tax = [data['unit_price']] * 2
@@ -4831,7 +4843,7 @@ def get_order_summary_data(search_params, user, sub_user):
                 vat = order_summary[0].vat
                 #if not unit_price:
             else:
-                amt = unit_price_inclusive_tax * float(data['quantity'])
+                amt = unit_price_inclusive_tax * float(data['original_quantity'])
                 cgst_amt = float(order_summary[0].cgst_tax) * (float(amt) / 100)
                 sgst_amt = float(order_summary[0].sgst_tax) * (float(amt) / 100)
                 igst_amt = float(order_summary[0].igst_tax) * (float(amt) / 100)
@@ -4842,7 +4854,7 @@ def get_order_summary_data(search_params, user, sub_user):
             tax = float(float(data['invoice_amount']) / 100) * vat
         if order_status == 'None':
             order_status = ''
-        invoice_amount = "%.2f" % ((float(unit_price) * float(data['quantity'])) + tax - discount)
+        invoice_amount = "%.2f" % ((float(unit_price) * float(data['original_quantity'])) + tax - discount)
         taxable_amount = "%.2f" % abs(float(invoice_amount) - float(tax))
         unit_price = "%.2f" % unit_price
 
@@ -4933,6 +4945,7 @@ def get_order_summary_data(search_params, user, sub_user):
             if order_field_obj.exists():
                 order_extra_fields[order_field_obj[0].name] = order_field_obj[0].value
         aaData = OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
+                                                    ('Customer ID', data['customer_id']),
                                                     ('Customer Name', customer_name),
                                                     ('Order Number' ,data['order_reference']),
                                                     ('SKU Brand', data['sku__sku_brand']),
@@ -4940,7 +4953,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('SKU Sub Category', data['sku__sub_category']),
                                                     ('SKU Class', data['sku__sku_class']),
                                                     ('SKU Size', data['sku__sku_size']), ('SKU Description', data['sku__sku_desc']),
-                                                    ('SKU Code', data['sku__sku_code']), ('Order Qty', int(data['quantity'])),
+                                                    ('SKU Code', data['sku__sku_code']), ('Order Qty', int(data['original_quantity'])),
                                                     ('MRP', mrp_price), ('Unit Price', float(unit_price_inclusive_tax)),
                                                     ('Discount', discount),
                                                     ('Serial Number',serial_number),
@@ -7155,7 +7168,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
     increment_invoice = get_misc_value('increment_invoice', user.id)
     search_parameters = {}
     sister_whs = [user.id]
-    if user.username == '72Networks':
+    if user.userprofile.warehouse_type == 'admin':
         sister_whs = list(User.objects.filter(username__in=get_linked_user_objs(user, user)).values_list('id', flat=True))
 
     if not firebase_response:
@@ -7389,9 +7402,8 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
     from rest_api.views.common import  get_order_detail_objs,get_purchase_order_data
     oneassist_condition = get_misc_value('dispatch_qc_check', user.id)
     lis = ['open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__sku__sku_category', 'open_po__sku__sub_category',
-            'open_po__sku__sku_brand','open_po__order_quantity','open_po__sku__sku_code',
-            'open_po__sku__sku_brand','open_po__order_quantity','open_po__sku__sku_code',
-            'open_po__sku__sku_brand','open_po__order_quantity','open_po__sku__sku_code']
+            'open_po__sku__sku_brand','open_po__order_quantity','order_id',
+            'open_po__sku__user']
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
         if search_params['order_term'] == 'desc':
@@ -7433,19 +7445,18 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
     else:
         warehouses = UserGroups.objects.filter(admin_user_id=user.id)
     warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
-    sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
-    sku_master_ids = sku_master.values_list('id', flat=True)
+    warehouse_users[user.id] = user.username
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=warehouse_users.keys(),
-                                                   open_po__sku_id__in=sku_master_ids,
-                                                   received_quantity__lt=F('open_po__order_quantity')).exclude(status='location-assigned').filter(**search_parameters)
-    if not purchase_orders:
-        rw_orders = RWPurchase.objects.filter(rwo__vendor__user=user.id,
-                                              rwo__job_order__product_code_id__in=sku_master_ids). \
-            exclude(purchase_order__status__in=['location-assigned', 'stock-transfer']). \
-            values_list('purchase_order_id', flat=True)
-        purchase_orders = PurchaseOrder.objects.filter(id__in=rw_orders)
+                                                   received_quantity__lt=F('open_po__order_quantity')).\
+                    exclude(status='location-assigned').filter(**search_parameters).order_by(order_data)
+    # if not purchase_orders:
+    #     rw_orders = RWPurchase.objects.filter(rwo__vendor__user=user.id,
+    #                                           rwo__job_order__product_code_id__in=sku_master_ids). \
+    #         exclude(purchase_order__status__in=['location-assigned', 'stock-transfer']). \
+    #         values_list('purchase_order_id', flat=True)
+    #     purchase_orders = PurchaseOrder.objects.filter(id__in=rw_orders)
 
-    temp_data['recordsTotal'] = len(purchase_orders)
+    temp_data['recordsTotal'] = purchase_orders.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     ship_search_params  = {}
     if stop_index:
@@ -7455,7 +7466,7 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for order in purchase_orders:
         manufacturer,searchable,bundle = '','',''
-        attributes_obj = SKUAttributes.objects.filter(sku_id=data.sku.id, attribute_name__in= attributes_list)
+        attributes_obj = SKUAttributes.objects.filter(sku_id=order.open_po.sku_id, attribute_name__in= attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:
                 if attribute.attribute_name == 'Manufacturer':
@@ -7466,7 +7477,6 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
                     bundle = attribute.attribute_value
         po_reference_no = '%s%s_%s' % (
         order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
-        order_data = get_purchase_order_data(order)
         customer_name, sr_number = '', ''
         if oneassist_condition == 'true':
             customer_data = OrderMapping.objects.filter(mapping_id=order.id, mapping_type='PO')
@@ -7478,12 +7488,14 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
                     courtesy_sr_number = OrderFields.objects.filter(original_order_id = inter_order_id, user = admin_user.id, name = 'original_order_id')
                     if courtesy_sr_number:
                         sr_number = courtesy_sr_number[0].value
-        po_quantity = float(order_data['order_quantity']) - float(order.received_quantity)
+        po_quantity = float(order.open_po.order_quantity) - float(order.received_quantity)
         warehouse_location = warehouse_users[order.open_po.sku.user]
-        ord_dict = OrderedDict((('SKU Code',order_data['wms_code']),('PO No',po_reference_no),
-                                                ('SKU Category',order_data['sku_category']),('Sub Category',order_data['sub_category']),
-                                                ('SKU Brand',order_data['sku_brand']),
-                                            ('Quantity',po_quantity ), ('Sku Description', order_data['sku_desc']),('Location',warehouse_location), ('Customer Name', customer_name), ('SR Number', sr_number)))
+        ord_dict = OrderedDict((('SKU Code',order.open_po.sku.wms_code),('PO No',po_reference_no),
+                                                ('SKU Category',order.open_po.sku.sku_category),('Sub Category',order.open_po.sku.sub_category),
+                                                ('SKU Brand',order.open_po.sku.sku_brand),
+                                                ('Quantity',po_quantity ), ('Sku Description', order.open_po.sku.sku_desc),
+                                                ('Location',warehouse_location), ('Customer Name', customer_name),
+                                ('SR Number', sr_number)))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             ord_dict['Manufacturer'] = manufacturer
             ord_dict['Searchable'] = searchable
@@ -8873,7 +8885,7 @@ def stock_rec_damaged_amount(stock_rec_obj):
     return damaged_amount_dict
 
 def get_stock_reconciliation_report_data(search_params, user, sub_user):
-    from rest_api.views.common import get_sku_master, get_filtered_params ,get_local_date
+    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date, get_utc_start_date
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['creation_date', 'sku__sku_code', 'sku__sku_desc', 'mrp', 'weight', 'sku__sku_code',
@@ -8912,10 +8924,17 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     if 'sku_brand' in search_params:
         if search_params['sku_brand']:
             search_parameters['sku__sku_brand'] = search_params['sku_brand']
+    #if 'from_date' in search_params:
+    #    search_parameters['creation_date__gt'] = search_params['from_date']
+    #if 'to_date' in search_params:
+    #    search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
     if 'from_date' in search_params:
-        search_parameters['creation_date__gt'] = search_params['from_date']
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gte'] = search_params['from_date']
     if 'to_date' in search_params:
-        search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lte'] = search_params['to_date']
     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
         if 'manufacturer' in search_params:
             search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']

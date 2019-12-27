@@ -1081,6 +1081,7 @@ def switches(request, user=''):
                        'brand_categorization':'brand_categorization',
                        'purchase_order_preview':'purchase_order_preview',
                        'stop_default_tax':'stop_default_tax',
+                       'delivery_challan_terms_condtions': 'delivery_challan_terms_condtions',
                        'order_prefix':'order_prefix',
                        }
         toggle_field, selection = "", ""
@@ -1104,6 +1105,8 @@ def switches(request, user=''):
                 data[0].save()
         elif toggle_field == 'raisepo_terms_conditions':
             data = UserTextFields.objects.update_or_create(user_id=user_id, field_type = 'terms_conditions', defaults = {'text_field':selection})
+        elif toggle_field == 'delivery_challan_terms_condtions':
+            data = UserTextFields.objects.update_or_create(user_id=user_id, field_type = 'dc_terms_conditions', defaults = {'text_field':selection})
         else:
             if toggle_field == 'tax_details':
                 tax_name = eval(selection)
@@ -2725,20 +2728,22 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
         remarks_list = []
         if data.open_po:
             if myDict.get('mrp', '') and myDict['mrp'][i]:
-                if float(data.open_po.mrp) != float(myDict['mrp'][i]):
-                     remarks_list.append("mrp_change")
+                if float(data.open_po.sku.mrp) != float(myDict['mrp'][i]):
+                    remarks_list.append("mrp_change")
             if 'mrp_change' not in remarks_list and seller_pos:
                 if batch_dict and batch_dict.get('mrp', ''):
                     mrp = float(batch_dict['mrp'])
-                    other_mrp_stock = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0,
-                                                                 sku_id=data.open_po.sku_id,
-                                               sellerstock__seller_id=seller_pos[0].seller_id).\
-                        exclude(Q(location__zone__zone__in=get_exclude_zones(user)) |
-                                  Q(batch_detail__mrp=mrp))
-                    if other_mrp_stock.exists():
-                        #mrp_change_check = ZoneMaster.objects.filter(zone='MRP Change', user=user.id)
-                        #if mrp_change_check.exists():
+                    if float(data.open_po.sku.mrp) != mrp:
                         remarks_list.append("mrp_change")
+                    # other_mrp_stock = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0,
+                    #                                              sku_id=data.open_po.sku_id,
+                    #                            sellerstock__seller_id=seller_pos[0].seller_id).\
+                    #     exclude(Q(location__zone__zone__in=get_exclude_zones(user)) |
+                    #               Q(batch_detail__mrp=mrp))
+                    # if other_mrp_stock.exists():
+                    #     #mrp_change_check = ZoneMaster.objects.filter(zone='MRP Change', user=user.id)
+                    #     #if mrp_change_check.exists():
+
         if 'offer_applicable' in myDict.keys() :
             offer_applicable = myDict['offer_applicable'][i]
             if offer_applicable == 'true':
@@ -5521,11 +5526,13 @@ def create_mail_attachments(f_name, html_data):
 
 
 def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_no, po_data, order_date, ean_flag=False,
-                       internal=False, report_type='Purchase Order', data_dict_po={}, full_order_date=''):
+                       internal=False, report_type='Purchase Order', data_dict_po={}, full_order_date='',mail_attachments=''):
     receivers = []
     attachments = ''
     if html_data:
         attachments = create_mail_attachments(f_name, html_data)
+    if mail_attachments:
+        attachments+=mail_attachments
     if isinstance(supplier_email, list):
         receivers = receivers + supplier_email
     if isinstance(supplier_email, str):

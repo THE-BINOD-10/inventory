@@ -27,22 +27,8 @@
           <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span> </button>
         </div>
         <div class="modal-body raise_po" ng-class="(showCase.confirm_print)? 'hide': 'show'">
-          <div ng-if="!(user.user_profile.user_type == 'marketplace_user')">
-            <div class="row" ng-if="(!(showCase.update)) && showCase.warehouse_type != 'CENTRAL_ADMIN'">
-              <div class="col-md-4 col-sm-4 col-xs-6">
-                <p align="right">Vendor Receipt</p>
-              </div>
-              <div class="col-md-1 col-sm-1 col-xs-2">
-                <label class="switch switch-sm square">
-                  <div>
-                    <input type="checkbox" ng-model="showCase.vendor_receipt">
-                    <span>
-                      <i class="handle"></i>
-                    </span>
-                  </div>
-                </label>
-              </div>
-            <div class="row" ng-if="(!(showCase.update)) && showCase.warehouse_type != 'CENTRAL_ADMIN'">
+          <div class="row" ng-if="!(user.user_profile.user_type == 'marketplace_user')">
+            <div ng-if="(!(showCase.update)) && showCase.warehouse_type != 'CENTRAL_ADMIN' && showCase.warehouse_level == 2">
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <p align="right">WHPurchase</p>
               </div>
@@ -50,6 +36,21 @@
                 <label class="switch switch-sm square">
                   <div>
                     <input type="checkbox" ng-model="showCase.wh_purchase_order">
+                    <span>
+                      <i class="handle"></i>
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </div>
+            <div ng-if="(!(showCase.update)) && showCase.warehouse_type != 'CENTRAL_ADMIN'">
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <p align="right">Vendor Receipt</p>
+              </div>
+              <div class="col-md-1 col-sm-1 col-xs-2">
+                <label class="switch switch-sm square">
+                  <div>
+                    <input type="checkbox" ng-model="showCase.vendor_receipt">
                     <span>
                       <i class="handle"></i>
                     </span>
@@ -136,7 +137,8 @@
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
-                <label class="control-label">PO Delivery Date</label>
+                <label class="control-label" ng-if="!showCase.wh_purchase_order">PO Delivery Date</label>
+                <label class="control-label" ng-if="showCase.wh_purchase_order">PO Delivery Date*</label>
                 <input name="po_delivery_date" ui-jq="datepicker" ng-model="showCase.model_data.po_delivery_date" class="form-control stk-readonly" type="text" id="po_delivery_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
               </div>
             </div>

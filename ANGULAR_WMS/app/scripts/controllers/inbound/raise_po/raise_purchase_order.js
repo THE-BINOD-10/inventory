@@ -18,6 +18,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.industry_type = vm.user_profile.industry_type;
     vm.display_purchase_history_table = false;
     vm.warehouse_type = vm.user_profile.warehouse_type;
+    vm.warehouse_level = vm.user_profile.warehouse_level;
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
     vm.filters = {'datatable': 'RaisePO', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
@@ -615,6 +616,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       if (!vm.model_data.supplier_id && Session.user_profile.user_type != 'marketplace_user' && Session.user_profile.industry_type != 'FMCG') {
         product.fields.sku.wms_code = ''
         vm.service.showNoty('Fill Supplier ID');
+        return false;
+      }
+      if (vm.wh_purchase_order && (!vm.model_data.po_delivery_date || typeof(vm.model_data.po_delivery_date) == 'undefined')) {
+        product.fields.sku.wms_code = ''
+        vm.service.showNoty('Fill Delivery Date');
         return false;
       }
       if(vm.permissions.show_purchase_history) {

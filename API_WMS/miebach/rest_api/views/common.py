@@ -257,7 +257,8 @@ def add_user_permissions(request, response_data, user=''):
                                              'industry_type': user_profile.industry_type,
                                              'user_type': user_profile.user_type,
                                              'request_user_type': request_user_profile.user_type,
-                                             'warehouse_type': user_profile.warehouse_type}
+                                             'warehouse_type': user_profile.warehouse_type,
+                                             'warehouse_level': user_profile.warehouse_level}
 
     setup_status = 'false'
     if 'completed' not in user_profile.setup_status:
@@ -9357,6 +9358,7 @@ def createSalesOrderAtLevelOneWarehouse(user, po_suggestions, order_id):
         mappingObj = MastersMapping.objects.filter(user=user.id, mapping_id=po_suggestions['supplier_id'])
         levelOneWhId = int(mappingObj[0].master_id)
         actUserId = UserProfile.objects.get(id=levelOneWhId).user.id
+        retailAddress = UserProfile.objects.get(user_id=user.id).address
         # order_id = get_order_id(levelOneWhId)
         order_code = get_order_prefix(actUserId)
         org_ord_id = order_code + str(order_id)
@@ -9368,7 +9370,7 @@ def createSalesOrderAtLevelOneWarehouse(user, po_suggestions, order_id):
         cgst_tax = po_suggestions['cgst_tax']
         igst_tax = po_suggestions['igst_tax']
         tax_type = 'NA' #TODO
-        address = po_suggestions['ship_to']
+        address = po_suggestions.get('ship_to', '') or retailAddress
         unit_price = po_suggestions['price']
         taxes = {}
         taxes['cgst_tax'] = float(po_suggestions['cgst_tax'])

@@ -1306,6 +1306,9 @@ class BOMMaster(models.Model):
 
 class PriceMaster(models.Model):
     id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField(default=0)
+    attribute_type = models.CharField(max_length=64, default='')
+    attribute_value = models.CharField(max_length=64, default='')
     sku = models.ForeignKey(SKUMaster, default=None)
     price_type = models.CharField(max_length=32, default='')
     price = models.FloatField(default=0)

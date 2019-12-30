@@ -1466,7 +1466,7 @@ def search_wh_supplier(request, user=''):
     suppliers = []
     if data:
         for supplier in data:
-            suppliers.append(str(supplier.user.username) + ":" + str(supplier.user.first_name))
+            suppliers.append(str(supplier.user.id) + ":" + str(supplier.user.first_name))
     return HttpResponse(json.dumps(suppliers))
 
 
@@ -1597,13 +1597,7 @@ def get_raisepo_group_data(user, myDict):
                 myDict['supplier_id'][0] = check_and_create_supplier(seller_id, user)
         if myDict.get('wh_purchase_order', []):
             if myDict['wh_purchase_order'][0] == 'true':
-                if i == 0:
-                    myDict['levelOneWhUserName'] = myDict['supplier_id'][0]
-                levelOneWarehouseObj = User.objects.filter(username=myDict['levelOneWhUserName'])
-                if levelOneWarehouseObj:
-                    levelOneWarehouseObj = levelOneWarehouseObj[0]
-                retailUserObj = user
-                myDict['supplier_id'][0] = check_and_create_wh_supplier(retailUserObj, levelOneWarehouseObj)
+                myDict['supplier_id'][0] = check_and_create_wh_supplier(user, myDict['supplier_id'][0])
 
 
         if not myDict['wms_code'][i]:

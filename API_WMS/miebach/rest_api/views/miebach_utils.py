@@ -265,6 +265,13 @@ COMBO_ALLOCATE_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('Combo 
                                               ('Child Quantity', 'child_quantity'),
                                             ))
 
+BRAND_LEVEL_PRICING_EXCEL_MAPPING =  OrderedDict((('SKU Attribute Type(Brand, Category)', 'attribute_type'),
+                                                  ('SKU Attribute Value', 'attribute_value'),
+                                                  ('Selling Price Type', 'price_type'),
+                                                  ('Min Range', 'min_unit_range'), ('Max Range', 'max_unit_range'),
+                                                  ('Price', 'price'), ('Discount', 'discount')))
+
+
 SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'GSTIN Number', 'PAN Number',
                     'PIN Code', 'City', 'State', 'Country', 'Days required to supply', 'Fulfillment Amount',
                     'Credibility', 'Tax Type(Options: Inter State, Intra State)', 'PO Expiry Duration',

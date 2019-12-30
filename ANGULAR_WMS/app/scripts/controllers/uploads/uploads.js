@@ -327,6 +327,16 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    perm: "change_substitutionsummary",
                  },
+                 {
+                   title: "Brand Level Pricing Download/ Upload",
+                   download: "Brand Level Pricing Download Form",
+                   upload: "Brand Level Pricing Upload Form",
+                   durl: "brand_level_pricing_form/",
+                   uurl: "brand_level_pricing_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   perm: "add_pricemaster",
+                 },
                 ]
 
   $scope.download = function(data) {

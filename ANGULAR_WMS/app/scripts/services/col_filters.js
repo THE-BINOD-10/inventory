@@ -8,7 +8,7 @@ angular
   var vm = this;
   vm.label = '';
   vm.value = '';
-
+  vm.download_load = false;
   vm.add_search_boxes = function(id) {
     var table = (id)? id+" > thead > tr > th": ".custom-table > thead > tr > th";
     var count = 0;
@@ -92,6 +92,7 @@ angular
       angular.extend(data, vm.search);
       data['search[value]'] = $(".dataTables_filter:visible").find("input").val();
       data = $.param(data);
+      vm.download_load = true;
       $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
       $http({
                method: 'POST',
@@ -100,6 +101,7 @@ angular
            window.location = Session.host+data;
            vm.headers = [];
            vm.search = {};
+           vm.download_load = false;
       });
     }
 

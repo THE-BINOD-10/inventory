@@ -466,10 +466,7 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
         if price_band_flag == 'true':
             user = get_admin(data.user)
 
-        price_types = list(
-            PriceMaster.objects.exclude(price_type__in=["", 'D1-R', 'R-C']).filter(sku__user=user.id).
-                values_list('price_type', flat=True).distinct())
-
+        price_types = get_distinct_price_types(user)
         price_type = data.price_type
         phone_number = ''
         if data.phone_number and data.phone_number != '0':

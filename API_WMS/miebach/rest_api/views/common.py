@@ -4185,9 +4185,10 @@ def get_customer_sku_prices(request, user=""):
     sgst_tax = ''
     cgst_tax = ''
     product_type = ''
+    skuPack_quantity = ''
     marginal_flag = 0
     log.info('Get Customer SKU Prices data for ' + user.username + ' is ' + str(request.POST.dict()))
-
+    sku_pack_config = get_misc_value('sku_pack_config', user.id)
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     try:
         if sku_codes:
@@ -4253,8 +4254,12 @@ def get_customer_sku_prices(request, user=""):
                         price_bands_list.append(price_band_map)
                     price = price_master_objs[0].price
                     discount = price_master_objs[0].discount
+            if sku_pack_config == 'true' and data.id:
+                skuPack_data = SKUPackMaster.objects.filter(sku__id= data.id, sku__user= user.id)
+                if skuPack_data:
+                    skuPack_quantity = skuPack_data[0].pack_quantity
             result_data.append(
-                {'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': price, 'discount': discount,
+                {'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': price, 'discount': discount, 'sku_pack_quantity': skuPack_quantity,
                  'taxes': taxes_data, 'price_bands_map': price_bands_list, 'mrp': data.mrp, 'product_type': product_type, 'igst_tax': igst_tax, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'marginal_flag':marginal_flag})
 
     except Exception as e:
@@ -10139,4 +10144,15 @@ def get_value_for_misc_type(request, user=''):
     misc_type=request.GET.get('misc_type')
     misc_value = get_misc_value(misc_type, user.id)
     return HttpResponse(json.dumps({'selected_view': misc_value}))
+
+
+def get_distinct_price_types(user):
+    price_types1 = list(PriceMaster.objects.exclude(price_type__in=["", 'D1-R', 'R-C']).
+                       filter(sku__user=user.id).values_list('price_type', flat=True).
+                       distinct())
+    price_types2 = list(PriceMaster.objects.exclude(price_type__in=["", 'D1-R', 'R-C']).
+                       filter(user=user.id).values_list('price_type', flat=True).
+                       distinct())
+    price_types = list(chain(price_types1, price_types2))
+    return price_types
 

@@ -365,7 +365,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.reloadData = function () {
       $('.custom-table').DataTable().draw();
     };
-
+    vm.excel = excel;
+    function excel() {
+      angular.copy(vm.dtColumns,colFilters.headers);
+      angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
+      colFilters.download_excel()
+    }
     vm.generate_invoice = function(click_type, DC=false){
       var po_number = '';
       var status = false;

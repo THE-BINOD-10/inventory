@@ -16,7 +16,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.selectAll = false;
     vm.bt_disable = true;
     vm.display = false;
-
     var send = {'tabType': 'DeliveryChallans'};
     vm.service.apiCall("customer_invoice_data/", "GET", send).then(function(data) {
       if(data.message) {
@@ -176,6 +175,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.reloadData = function () {
       $('.custom-table').DataTable().draw();
     };
+    vm.excel = excel;
+    function excel() {
+      angular.copy(vm.dtColumns,colFilters.headers);
+      angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
+      colFilters.download_excel()
+    }
     vm.loadjs = function () {
       vm.DeliveryChallanCtrl_enable = true;
     }

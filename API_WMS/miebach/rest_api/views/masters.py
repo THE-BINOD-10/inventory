@@ -3094,10 +3094,16 @@ def add_pricing(request, user=''):
     brand_view = int(post_data_dict.get('brand_view', [0])[0])
     price_type = post_data_dict['price_type'][0]
     if brand_view:
+        attr_mapping = {'Brand': 'sku_brand', 'Category': 'sku_category'}
         attribute_type = post_data_dict['attribute_name'][0]
         attribute_value = post_data_dict['attribute_value'][0]
         if not attribute_value and attribute_type and price_type:
             return HttpResponse('Missing Required Fields')
+        sku_filter_dict = {'user': user.id,
+                           attr_mapping[attribute_type]: attribute_value}
+        sku_master = SKUMaster.objects.filter(**sku_filter_dict)
+        if not sku_master.exists():
+            return HttpResponse('Invalid Attribute Value')
     else:
         sku_code = post_data_dict['sku_code'][0]
         if not sku_code and price_type:

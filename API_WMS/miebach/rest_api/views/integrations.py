@@ -2399,10 +2399,22 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         utgst_tax = float(tax_obj[0].utgst_tax)
 
                     if sku_item.has_key('tax_percent'):
-                        cgst_tax = float(sku_item['tax_percent'].get('CGST', 0))
-                        sgst_tax = float(sku_item['tax_percent'].get('SGST', 0))
-                        igst_tax = float(sku_item['tax_percent'].get('IGST', 0))
-                        utgst_tax = float(sku_item['tax_percent'].get('UTGST', 0)) 
+                        try:
+                            cgst_tax = float(sku_item['tax_percent'].get('CGST', 0))
+                        except:
+                            cgst_tax = 0
+                        try:
+                            sgst_tax = float(sku_item['tax_percent'].get('SGST', 0))
+                        except:
+                            sgst_tax = 0
+                        try:
+                            igst_tax = float(sku_item['tax_percent'].get('IGST', 0))
+                        except:
+                            igst_tax = 0
+                        try:
+                            utgst_tax = float(sku_item['tax_percent'].get('UTGST', 0))
+                        except:
+                            utgst_tax = 0
 
                     if order_create:
                         order_details['original_order_id'] = original_order_id

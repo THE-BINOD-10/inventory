@@ -5232,6 +5232,7 @@ def confirm_add_po(request, sales_data='', user=''):
             table_headers.insert(table_headers.index('UTGST (%)'), 'APMC (%)')
         if display_remarks == 'true':
             table_headers.append('Remarks')
+        order_id = None
         for key, value in all_data.iteritems():
             po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
             sku_id = SKUMaster.objects.filter(wms_code=key.upper(), user=user.id)
@@ -5384,7 +5385,8 @@ def confirm_add_po(request, sales_data='', user=''):
                     mappingObj = MastersMapping.objects.filter(user=user.id, mapping_id=po_suggestions['supplier_id'])
                     levelOneWhId = int(mappingObj[0].master_id)
                     actUserId = UserProfile.objects.get(id=levelOneWhId).user.id
-                    order_id = get_order_id(actUserId)
+                    if not order_id:
+                        order_id = get_order_id(actUserId)
                     createSalesOrderAtLevelOneWarehouse(user, po_suggestions, order_id)
             if sales_data and not status:
                 check_purchase_order_created(user, po_id)

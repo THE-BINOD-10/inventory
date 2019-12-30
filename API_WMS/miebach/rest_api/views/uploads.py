@@ -3835,9 +3835,9 @@ def validate_combo_sku_form(open_sheet, user):
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
                 cell_data = str(cell_data)
-                sku_master = MarketplaceMapping.objects.filter(marketplace_code=cell_data, sku__user=user)
+                sku_master = MarketplaceMapping.objects.filter(marketplace_code=cell_data, sku__user=user.id)
                 if not sku_master:
-                    sku_master = SKUMaster.objects.filter(sku_code=cell_data, user=user)
+                    sku_master = SKUMaster.objects.filter(sku_code=cell_data, user=user.id)
                 if not sku_master:
                     if col_idx == 0:
                         message = 'Invalid SKU Code'
@@ -3848,7 +3848,7 @@ def validate_combo_sku_form(open_sheet, user):
     if not index_status:
         return 'Success'
 
-    f_name = '%s.combo_sku_form.xls' % user
+    f_name = '%s.combo_sku_form.xls' % user.id
     write_error_file(f_name, index_status, open_sheet, COMBO_SKU_EXCEL_HEADERS, 'Combo SKU')
     return f_name
 
@@ -3867,7 +3867,7 @@ def combo_sku_upload(request, user=''):
     except:
         return HttpResponse('Invalid File')
 
-    status = validate_combo_sku_form(open_sheet, str(user.id))
+    status = validate_combo_sku_form(open_sheet, user)
     if status != 'Success':
         return HttpResponse(status)
 

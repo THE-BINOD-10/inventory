@@ -3263,34 +3263,33 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 sku_attr_obj = SKUAttributes.objects.filter(sku_id=dat.sku_id,
                                         attribute_name='MARGINAL GST').only('attribute_value')
                 imei_data_sku_wise = []
-                if sku_attr_obj.exists():
-                    if sku_attr_obj[0].attribute_value.upper() == 'YES':
-                        marginal_flag = 1
+                if sku_attr_obj.exists() and sku_attr_obj[0].attribute_value.upper() == 'YES':
+                    marginal_flag = 1
+                    if pick_num:
+                        cost_price_obj = seller_summary.filter(order_id = dat.id, pick_number__in = pick_num).values('picklist__stock__unit_price', 'quantity')
+                    else:
+                        cost_price_obj = seller_summary.filter(order_id = dat.id).values('picklist__stock__unit_price', 'quantity')
+                    for index,margin_cost_price_obj in enumerate(cost_price_obj):
+                        cost_price = margin_cost_price_obj['picklist__stock__unit_price']
+                        quantity = margin_cost_price_obj['quantity']
+                        profit_price = (unit_price * quantity) - (cost_price * quantity)
+                        seller_summary_obj_sku_wise = seller_summary.filter(order__sku_id = dat.sku_id)
+                        seller_id_value = seller_summary_obj_sku_wise[index].id
+                        # seller_id_value = seller_summary[index].id
                         if pick_num:
-                            cost_price_obj = seller_summary.filter(order_id = dat.id, pick_number__in = pick_num).values('picklist__stock__unit_price', 'quantity')
+                            seller_summary_imei = seller_summary.filter(order_id = dat.id, pick_number__in = pick_num, id= seller_id_value)
                         else:
-                            cost_price_obj = seller_summary.filter(order_id = dat.id).values('picklist__stock__unit_price', 'quantity')
-                        for index,margin_cost_price_obj in enumerate(cost_price_obj):
-                            cost_price = margin_cost_price_obj['picklist__stock__unit_price']
-                            quantity = margin_cost_price_obj['quantity']
-                            profit_price = (unit_price * quantity) - (cost_price * quantity)
-                            seller_summary_obj_sku_wise = seller_summary.filter(order__sku_id = dat.sku_id)
-                            seller_id_value = seller_summary_obj_sku_wise[index].id
-                            # seller_id_value = seller_summary[index].id
-                            if pick_num:
-                                seller_summary_imei = seller_summary.filter(order_id = dat.id, pick_number__in = pick_num, id= seller_id_value)
-                            else:
-                                seller_summary_imei = seller_summary.filter(order_id = dat.id, id= seller_id_value)
-                            if profit_price < 1:
-                                cgst_tax,sgst_tax,igst_tax,utgst_tax = 0, 0 ,0, 0
+                            seller_summary_imei = seller_summary.filter(order_id = dat.id, id= seller_id_value)
+                        if profit_price < 1:
+                            cgst_tax,sgst_tax,igst_tax,utgst_tax = 0, 0 ,0, 0
 
-                            arg_data = {'unit_price':unit_price,'quantity':quantity,'discount':discount,'dat':dat,'is_gst_invoice':is_gst_invoice,'marginal_flag':marginal_flag,
-                                        'cgst_tax':cgst_tax,'sgst_tax':sgst_tax,'igst_tax':igst_tax,'utgst_tax':utgst_tax,'cess_tax':cess_tax,'profit_price':profit_price,'hsn_summary':hsn_summary,
-                                        'total_quantity':total_quantity,'partial_order_quantity_price':partial_order_quantity_price,'_total_tax':_total_tax,
-                                        'total_invoice':total_invoice,'total_taxable_amt':total_taxable_amt,'display_customer_sku':display_customer_sku,'customer_sku_codes':customer_sku_codes,
-                                        'user':user,'sor_id':sor_id,'sell_ids':sell_ids,'seller_summary':seller_summary,'data':data,'order_id':order_id,'title':title,'tax_type':tax_type,'vat':vat,'mrp_price':mrp_price,
-                                        'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal, 'taxes_dict':taxes_dict, 'seller_summary_imei':seller_summary_imei, 'imei_data_sku_wise':imei_data_sku_wise}
-                            data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity, partial_order_quantity_price = common_calculations(arg_data)
+                        arg_data = {'unit_price':unit_price,'quantity':quantity,'discount':discount,'dat':dat,'is_gst_invoice':is_gst_invoice,'marginal_flag':marginal_flag,
+                                    'cgst_tax':cgst_tax,'sgst_tax':sgst_tax,'igst_tax':igst_tax,'utgst_tax':utgst_tax,'cess_tax':cess_tax,'profit_price':profit_price,'hsn_summary':hsn_summary,
+                                    'total_quantity':total_quantity,'partial_order_quantity_price':partial_order_quantity_price,'_total_tax':_total_tax,
+                                    'total_invoice':total_invoice,'total_taxable_amt':total_taxable_amt,'display_customer_sku':display_customer_sku,'customer_sku_codes':customer_sku_codes,
+                                    'user':user,'sor_id':sor_id,'sell_ids':sell_ids,'seller_summary':seller_summary,'data':data,'order_id':order_id,'title':title,'tax_type':tax_type,'vat':vat,'mrp_price':mrp_price,
+                                    'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal, 'taxes_dict':taxes_dict, 'seller_summary_imei':seller_summary_imei, 'imei_data_sku_wise':imei_data_sku_wise}
+                        data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity, partial_order_quantity_price = common_calculations(arg_data)
 
                 else:
                     arg_data = {'unit_price':unit_price,'quantity':quantity,'discount':discount,'dat':dat,'is_gst_invoice':is_gst_invoice,'marginal_flag':marginal_flag,
@@ -4173,6 +4172,52 @@ def get_supplier_sku_prices(request, user=""):
     return HttpResponse(json.dumps(result_data))
 
 
+def get_order_sku_price(customer_master, data, user):
+    price_bands_list = []
+    sku_code = data.sku_code
+    customer_price_name = get_misc_value('calculate_customer_price', user.id)
+    is_sellingprice = False
+    price = data.cost_price
+    if customer_price_name == 'price':
+        price = data.price
+        is_sellingprice = True
+    discount = 0
+
+    if customer_master:
+        customer_obj = customer_master[0]
+        price_type = customer_obj.price_type
+        price_band_flag = get_misc_value('priceband_sync', user.id)
+        if price_band_flag == 'true':
+            user = get_admin(user)
+        price, mrp = get_customer_based_price(customer_obj, price, data.mrp, is_sellingprice)
+        price_master_objs = PriceMaster.objects.filter(price_type=price_type, sku__sku_code=sku_code,
+                                                       sku__user=user.id)
+        if price_master_objs:
+            price_bands_list = []
+            for i in price_master_objs:
+                price_band_map = {'price': i.price, 'discount': i.discount,
+                                  'min_unit_range': i.min_unit_range, 'max_unit_range': i.max_unit_range}
+                price_bands_list.append(price_band_map)
+            price = price_master_objs[0].price
+            discount = price_master_objs[0].discount
+        elif price_type:
+            attr_mapping = copy.deepcopy(SKU_NAME_FIELDS_MAPPING)
+            for attr_key, attr_val in attr_mapping.items():
+                price_master_objs = PriceMaster.objects.filter(user=user.id, price_type=price_type,
+                                                                    attribute_type=attr_key,
+                                                                    attribute_value=getattr(data, attr_val))
+                if price_master_objs.exists():
+                    price_master_obj = price_master_objs[0]
+                    if price_master_obj.price:
+                        price = price_master_obj.price
+                    discount = price_master_obj.discount
+                    price_bands_list = [{'price': price, 'discount': price_master_obj.discount,
+                                        'min_unit_range': price_master_obj.min_unit_range,
+                                         'max_unit_range': price_master_obj.max_unit_range}]
+                    break
+
+    return price, discount, price_bands_list
+
 
 @csrf_exempt
 @login_required
@@ -4229,31 +4274,32 @@ def get_customer_sku_prices(request, user=""):
             for tax_master in tax_masters:
                 taxes_data.append(tax_master.json())
 
-            customer_price_name = get_misc_value('calculate_customer_price', user.id)
-            is_sellingprice = False
-            price = data.cost_price
-            if customer_price_name == 'price':
-                price = data.price
-                is_sellingprice = True
-            discount = 0
-
-            if customer_master:
-                customer_obj = customer_master[0]
-                price_type = customer_obj.price_type
-                price_band_flag = get_misc_value('priceband_sync', user.id)
-                if price_band_flag == 'true':
-                    user = get_admin(user)
-                price, mrp = get_customer_based_price(customer_obj, price, data.mrp, is_sellingprice)
-                price_master_objs = PriceMaster.objects.filter(price_type=price_type, sku__sku_code=sku_code,
-                                                               sku__user=user.id)
-                if price_master_objs:
-                    price_bands_list = []
-                    for i in price_master_objs:
-                        price_band_map = {'price': i.price, 'discount': i.discount,
-                                          'min_unit_range': i.min_unit_range, 'max_unit_range': i.max_unit_range}
-                        price_bands_list.append(price_band_map)
-                    price = price_master_objs[0].price
-                    discount = price_master_objs[0].discount
+            price, discount, price_bands_list = get_order_sku_price(customer_master, data, user)
+            # customer_price_name = get_misc_value('calculate_customer_price', user.id)
+            # is_sellingprice = False
+            # price = data.cost_price
+            # if customer_price_name == 'price':
+            #     price = data.price
+            #     is_sellingprice = True
+            # discount = 0
+            #
+            # if customer_master:
+            #     customer_obj = customer_master[0]
+            #     price_type = customer_obj.price_type
+            #     price_band_flag = get_misc_value('priceband_sync', user.id)
+            #     if price_band_flag == 'true':
+            #         user = get_admin(user)
+            #     price, mrp = get_customer_based_price(customer_obj, price, data.mrp, is_sellingprice)
+            #     price_master_objs = PriceMaster.objects.filter(price_type=price_type, sku__sku_code=sku_code,
+            #                                                    sku__user=user.id)
+            #     if price_master_objs:
+            #         price_bands_list = []
+            #         for i in price_master_objs:
+            #             price_band_map = {'price': i.price, 'discount': i.discount,
+            #                               'min_unit_range': i.min_unit_range, 'max_unit_range': i.max_unit_range}
+            #             price_bands_list.append(price_band_map)
+            #         price = price_master_objs[0].price
+            #         discount = price_master_objs[0].discount
             if sku_pack_config == 'true' and data.id:
                 skuPack_data = SKUPackMaster.objects.filter(sku__id= data.id, sku__user= user.id)
                 if skuPack_data:

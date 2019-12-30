@@ -1154,6 +1154,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
         }
         record["taxes"] = data.taxes;
         record["mrp"] = data.mrp;
+        record["discount_percentage"] = data.discount;
         record.invoice_amount = Number(record.price)*Number(record.quantity);
         record["priceRanges"] = data.price_bands_map;
         vm.cal_percentage(record);

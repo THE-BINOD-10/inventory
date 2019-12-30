@@ -2297,6 +2297,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                 update_error_message(failed_status, 5024, error_message, original_order_id)
                 break
 
+            customer_master = []
             if order.has_key('billing_address'):
                 order_details['customer_id'] = order['billing_address'].get('customer_id', 0)
                 if order_details['customer_id']:
@@ -2374,7 +2375,18 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                                                         max_amt__gte=sku_master[0].price, min_amt__lte=sku_master[0].price, inter_state=inter_state)
 
                     invoice_amount = 0
-                    unit_price = sku_item.get('unit_price', sku_master[0].price)
+                    unit_price = sku_item.get('unit_price', '')
+                    discount_amount = sku_item.get('discount_amount', '')
+                    if discount_amount:
+                        try:
+                            order_summary_dict['discount'] = float(discount_amount)
+                        except:
+                            order_summary_dict['discount'] = 0
+                    if unit_price == '':
+                        unit_price, discount, price_bands_list = get_order_sku_price(customer_master, sku_master[0], user)
+                        if discount_amount == '':
+                            order_summary_dict['discount'] = ((float(sku_item['quantity']) * unit_price)/100) * discount
+                            #unit_price = sku_item.get('unit_price', sku_master[0].price)
                     if not order_det:
                         order_det = order_det1
 
@@ -2409,7 +2421,8 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         if not tax and igst_tax:
                             tax = igst_tax
                         if order_create and not invoice_amount:
-                            amt = float(order_details['quantity']) * order_details['unit_price']
+                            amt = (float(order_details['quantity']) * order_details['unit_price']) -\
+                                  order_summary_dict['discount']
                             order_details['invoice_amount'] = amt + ((amt/100)*tax)
                         order_details['creation_date'] = creation_date
 

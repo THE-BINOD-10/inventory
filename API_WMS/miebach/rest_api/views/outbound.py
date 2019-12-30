@@ -8557,7 +8557,7 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
         'city', 'status']
 
     # unsort_lis = ['Customer Name', 'Order ID', 'Market Place ', 'Total Quantity']
-    unsorted_dict = {7: 'Order Taken By', 8: 'Status'}
+    unsorted_dict = {8: 'Order Taken By', 9: 'Status'}
     data_dict = {'status': 1, 'user': user.id, 'quantity__gt': 0}
 
     order_data = lis[col_num]
@@ -9154,11 +9154,11 @@ def update_order_data(request, user=""):
             s_date = datetime.datetime.strptime(myDict['shipment_date'][0], '%d %b, %Y %H:%M %p')
             if not myDict['item_code'][i] or not myDict['quantity'][i]:
                 continue
+            quantity = float(myDict['quantity'][i])
             sku_id = SKUMaster.objects.get(sku_code=myDict['item_code'][i], user=user.id)
-
             if not myDict['invoice_amount'][i]:
                 myDict['invoice_amount'][i] = 0
-            default_dict = {'title': myDict['product_title'][i], 'quantity': myDict['quantity'][i],
+            default_dict = {'title': myDict['product_title'][i], 'quantity': quantity,
                             'invoice_amount': myDict['invoice_amount'][i],
                             'user': user.id, 'customer_id': older_order.customer_id,
                             'customer_name': older_order.customer_name,
@@ -9178,9 +9178,24 @@ def update_order_data(request, user=""):
                     to_save_courier_name.save()
             elif int(sku_order[0].status) == 0:
                 continue
-            order_obj, created = OrderDetail.objects.update_or_create(
-                order_id=order_id, order_code=order_code, sku=sku_id, defaults=default_dict
-            )
+            order_obj = OrderDetail.objects.filter(order_id=order_id, order_code=order_code, sku=sku_id)
+            created = False
+            if not order_obj:
+                default_dict['order_id'] = order_id
+                default_dict['order_code'] = order_code
+                default_dict['sku_id'] = sku_id.id
+                order_obj = OrderDetail.objects.create(**default_dict)
+                created = True
+            else:
+                remainging_quantity =  quantity - order_obj[0].quantity
+                default_dict['original_quantity'] = order_obj[0].original_quantity + remainging_quantity
+                default_dict['invoice_amount'] = (float(myDict['invoice_amount'][i]) / quantity) * \
+                                                    default_dict['original_quantity']
+                order_obj.update(**default_dict)
+                order_obj = order_obj[0]
+            # order_obj, created = OrderDetail.objects.update_or_create(
+            #     order_id=order_id, order_code=order_code, sku=sku_id, defaults=default_dict
+            # )
             if not created and order_obj.sellerorder_set.filter().exists():
                 seller_order = order_obj.sellerorder_set.filter()[0]
                 seller_order.quantity = order_obj.quantity

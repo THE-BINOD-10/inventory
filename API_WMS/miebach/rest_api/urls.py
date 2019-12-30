@@ -411,6 +411,9 @@ urlpatterns = [
     url(r'^print_pdf_my_orders_swiss/$', print_pdf_my_orders_swiss),
     url(r'^sm_custom_order_cancel/$', sm_custom_order_cancel),
     url(r'^dispatch_serial_numbers/$', dispatch_serial_numbers),
+    url(r'^save_misc_value/$', save_misc_value),
+    url(r'^get_value_for_misc_type/$', get_value_for_misc_type),
+
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

@@ -145,6 +145,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
        });
        var table_headers_dict = vm.g_data.tb_headers[vm.g_data.view]
        vm.dtColumns = vm.service.build_colums2(table_headers_dict)
+
+       vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
+      .renderWith(function(data, type, full, meta) {
+        if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
+          vm.selected = {};
+        }
+        vm.selected[meta.row] = vm.selectAll;
+        return vm.service.frontHtml + meta.row + vm.service.endHtml;
+    }))
     }
     vm.get_data_table()
 
@@ -155,14 +164,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         }
       }
     }
-    vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
-      .renderWith(function(data, type, full, meta) {
-        if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
-          vm.selected = {};
-        }
-        vm.selected[meta.row] = vm.selectAll;
-        return vm.service.frontHtml + meta.row + vm.service.endHtml;
-    }))
 
    vm.dtInstance = {};
     vm.reloadData = reloadData;

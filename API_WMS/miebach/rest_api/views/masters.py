@@ -3075,9 +3075,15 @@ def get_attribute_price_master_results(start_index, stop_index, temp_data, searc
     if order_term == 'desc':
         order_data = '-%s' % order_data
     search_parameters['user'] = user.id
-    master_data = PriceMaster.objects.filter(**search_parameters).order_by(order_data)
+    if search_term:
+        master_data = PriceMaster.objects.filter(Q(attribute_type__icontains=search_term) |Q(attribute_value__icontains=search_term)|
+                                                 Q(price_type__icontains=search_term) | Q(price__icontains=search_term),**search_parameters).order_by(order_data)
+    else:
+        master_data = PriceMaster.objects.filter(**search_parameters).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+
     for obj in master_data[start_index:stop_index]:
         temp_data['aaData'].append(OrderedDict((('Attribute Name', obj.attribute_type),
                                                        ('Attribute Value', obj.attribute_value),

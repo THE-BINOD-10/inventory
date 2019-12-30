@@ -7,7 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
-
+    vm.reloadData = function() {
     vm.filters = {'datatable': 'PricingMaster'}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -26,9 +26,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        .withOption('initComplete', function( settings ) {
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
+       var columns = ["SKU Code", "SKU Description", "Selling Price Type", "Price"];
+       vm.dtColumns = vm.service.build_colums(columns);
 
-    var columns = ["SKU Code", "SKU Description", "Selling Price Type", "Price"];
-    vm.dtColumns = vm.service.build_colums(columns);
+    }
+    vm.reloadData();
 
     vm.dtInstance = {};
 
@@ -78,6 +80,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.update = false;
     $state.go('app.masters.PricingMaster.Add');
   }
+
 
   vm.send_pricing = function(url, data) {
 
@@ -153,6 +156,36 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
   }
 
+ vm.reports = {}
+ vm.report_data = {};
+ vm.empty_data ={};
+  vm.toggle_price_master = function() {
+    var send = {};
+    if(!vm.toggle_brand){
+        vm.reloadData();
+    } else {
+    var name = 'brand_price_master';
+    vm.service.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data) {
+    	if (data.message) {
+    	  if ($.isEmptyObject(data.data.data)) {
+    		  vm.datatable = false;
+    		  vm.dtInstance = {};
+    	  } else {
+      	  vm.reports[name] = data.data.data.excel_name;
+      	  angular.copy(data.data.data, vm.report_data)
+          vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(datam) {
+            vm.empty_data = datam.empty_data;
+            angular.copy(vm.empty_data, vm.filters_dt_data)
+            vm.dtOptions = datam.dtOptions;
+            vm.dtColumns = datam.dtColumns;
+            vm.datatable = true;
+            vm.dtInstance = {};
+          })
+        }
+    	}
+  	})
+    }
+  }
   vm.clearFields = function(data, index){
     data[index][name] = "";
     data[index].min_unit_range = '';

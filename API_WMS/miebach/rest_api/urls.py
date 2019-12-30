@@ -70,10 +70,14 @@ urlpatterns = [
     url(r'^upload_images/$', upload_images),
     url(r'^get_barcodes_myntra/$', get_barcodes_myntra),
     url(r'^change_warehouse_password/$', change_warehouse_password),
-    url(r'^insert_sku_pack/$',insert_sku_pack),
-    url(r'^insert_replenushment/$',insert_replenushment),
-    url(r'^get_zone_details/$',get_zone_details),
-    url(r'^delete_cluster_sku/$',delete_cluster_sku),
+    url(r'^insert_sku_pack/$', insert_sku_pack),
+    url(r'^insert_replenushment/$', insert_replenushment),
+    url(r'^get_zone_details/$', get_zone_details),
+    url(r'^delete_cluster_sku/$', delete_cluster_sku),
+    url(r'^get_brand_price_filter/$', get_brand_price_filter),
+
+
+
 
 
 

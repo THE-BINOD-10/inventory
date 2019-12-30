@@ -6,6 +6,10 @@
       </div>
       <div class="col-md-6 col-sm-12 col-xs-12">
         <div class="row">
+          <label class="switch switch-sm square mt5">
+				<input type="checkbox" ng-model="showCase.toggle_brand" ng-change="showCase.toggle_price_master()" class="ng-valid ng-dirty">
+				<span><i class="handle"></i></span>
+			</label>
           <div ng-include="'views/common/excel_button.html'"></div>
           <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-4" ng-click="showCase.add()" ng-if="!permissions.priceband_sync">New</button>
         </div>

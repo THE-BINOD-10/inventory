@@ -28,7 +28,7 @@
         </div>
         <div class="modal-body raise_po" ng-class="(showCase.confirm_print)? 'hide': 'show'">
           <div class="row" ng-if="!(user.user_profile.user_type == 'marketplace_user')">
-            <div ng-if="(!(showCase.update)) && showCase.warehouse_type != 'CENTRAL_ADMIN' && showCase.warehouse_level == 2">
+            <div ng-if="(!(showCase.update)) && showCase.warehouse_type != 'CENTRAL_ADMIN' && showCase.warehouse_level == 2 && showCase.multi_level_system == 1">
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <p align="right">WHPurchase</p>
               </div>

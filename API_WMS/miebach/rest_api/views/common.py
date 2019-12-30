@@ -258,7 +258,8 @@ def add_user_permissions(request, response_data, user=''):
                                              'user_type': user_profile.user_type,
                                              'request_user_type': request_user_profile.user_type,
                                              'warehouse_type': user_profile.warehouse_type,
-                                             'warehouse_level': user_profile.warehouse_level}
+                                             'warehouse_level': user_profile.warehouse_level,
+                                             'multi_level_system': user_profile.multi_level_system}
 
     setup_status = 'false'
     if 'completed' not in user_profile.setup_status:
@@ -6934,15 +6935,20 @@ def get_shipment_quantity(user, all_orders, sku_grouping=False):
 
 
 def get_marketplace_names(user, status_type):
+    userIds = [user.id]
+    if user.userprofile.multi_level_system == 1:
+        sameGroupWhs = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
+        userIds = UserProfile.objects.filter(user_id__in=sameGroupWhs, warehouse_level=1).values_list('user_id', flat=True)
+
     if status_type == 'picked':
         marketplace = list(
-            Picklist.objects.exclude(order__marketplace='').filter(picked_quantity__gt=0, order__user=user.id). \
+            Picklist.objects.exclude(order__marketplace='').filter(picked_quantity__gt=0, order__user__in=userIds). \
             values_list('order__marketplace', flat=True).distinct())
     elif status_type == 'all_marketplaces':
-        marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(user=user.id, quantity__gt=0). \
+        marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(user__in=userIds, quantity__gt=0). \
                            values_list('marketplace', flat=True).distinct())
     else:
-        marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(status=1, user=user.id, quantity__gt=0). \
+        marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(status=1, user__in=userIds, quantity__gt=0). \
                            values_list('marketplace', flat=True).distinct())
     return marketplace
 
@@ -9359,7 +9365,7 @@ def createSalesOrderAtLevelOneWarehouse(user, po_suggestions, order_id):
                              'original_order_id': org_ord_id, 'user': actUserId, 'customer_id': customer_id,
                              'customer_name': customer_name, 'shipment_date': shipment_date,
                              'address': address, 'unit_price': unit_price, 'invoice_amount': invoice_amount,
-                             'creation_date': None, 'status':1, 'order_code': order_code}
+                             'creation_date': None, 'status':1, 'order_code': order_code, 'marketplace': 'Offline'}
         ord_obj = OrderDetail.objects.filter(order_id=order_id, sku_id=sku_id, order_code=order_code)
         if ord_obj:
             ord_obj = ord_obj[0]

@@ -1595,15 +1595,15 @@ def get_raisepo_group_data(user, myDict):
         if not myDict['supplier_id'][0] and receipt_type == 'Hosted Warehouse' and myDict['dedicated_seller'][0] and myDict['wh_purchase_order'] != 'true':
                 seller_id = myDict['dedicated_seller'][0].split(':')[0]
                 myDict['supplier_id'][0] = check_and_create_supplier(seller_id, user)
-        if myDict['wh_purchase_order'][0] == 'true':
-            print("myDict::", myDict['supplier_id'])
-            if i == 0:
-                myDict['levelOneWhUserName'] = myDict['supplier_id'][0]
-            levelOneWarehouseObj = User.objects.filter(username=myDict['levelOneWhUserName'])
-            if levelOneWarehouseObj:
-                levelOneWarehouseObj = levelOneWarehouseObj[0]
-            retailUserObj = user
-            myDict['supplier_id'][0] = check_and_create_wh_supplier(retailUserObj, levelOneWarehouseObj)
+        if myDict.get('wh_purchase_order', []):
+            if myDict['wh_purchase_order'][0] == 'true':
+                if i == 0:
+                    myDict['levelOneWhUserName'] = myDict['supplier_id'][0]
+                levelOneWarehouseObj = User.objects.filter(username=myDict['levelOneWhUserName'])
+                if levelOneWarehouseObj:
+                    levelOneWarehouseObj = levelOneWarehouseObj[0]
+                retailUserObj = user
+                myDict['supplier_id'][0] = check_and_create_wh_supplier(retailUserObj, levelOneWarehouseObj)
 
 
         if not myDict['wms_code'][i]:
@@ -5385,12 +5385,13 @@ def confirm_add_po(request, sales_data='', user=''):
             suggestion = OpenPO.objects.get(id=sup_id, sku__user=user.id)
             setattr(suggestion, 'status', 0)
             suggestion.save()
-            if myDict['wh_purchase_order'][0] == 'true':
-                mappingObj = MastersMapping.objects.filter(user=user.id, mapping_id=po_suggestions['supplier_id'])
-                levelOneWhId = int(mappingObj[0].master_id)
-                actUserId = UserProfile.objects.get(id=levelOneWhId).user.id
-                order_id = get_order_id(actUserId)
-                createSalesOrderAtLevelOneWarehouse(user, po_suggestions, order_id)
+            if myDict.get('wh_purchase_order', []):
+                if myDict['wh_purchase_order'][0] == 'true':
+                    mappingObj = MastersMapping.objects.filter(user=user.id, mapping_id=po_suggestions['supplier_id'])
+                    levelOneWhId = int(mappingObj[0].master_id)
+                    actUserId = UserProfile.objects.get(id=levelOneWhId).user.id
+                    order_id = get_order_id(actUserId)
+                    createSalesOrderAtLevelOneWarehouse(user, po_suggestions, order_id)
             if sales_data and not status:
                 check_purchase_order_created(user, po_id)
                 return HttpResponse(str(order.id) + ',' + str(order.order_id))

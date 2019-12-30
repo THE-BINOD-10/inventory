@@ -19,6 +19,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.display_purchase_history_table = false;
     vm.warehouse_type = vm.user_profile.warehouse_type;
     vm.warehouse_level = vm.user_profile.warehouse_level;
+    vm.multi_level_system = vm.user_profile.multi_level_system;
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
     vm.filters = {'datatable': 'RaisePO', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}

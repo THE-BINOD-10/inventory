@@ -9323,14 +9323,22 @@ def check_and_create_supplier_wh_mapping(user, warehouse, supplier_id):
 
 
 def check_and_create_wh_supplier(retailUserObj, levelOneWarehouseObj):
-    userProfileObj = UserProfile.objects.filter(user=levelOneWarehouseObj.id)
+    new_supplier_id = None
+    userProfileObj = UserProfile.objects.filter(user=levelOneWarehouseObj)
     if userProfileObj:
         userProfileObj = userProfileObj[0]
-    master_mapping = MastersMapping.objects.filter(user=retailUserObj.id, master_id=userProfileObj.id,
+        master_mapping = MastersMapping.objects.filter(user=retailUserObj.id, master_id=userProfileObj.id,
                                                mapping_type='warehouse_supplier_mapping')
-    if master_mapping:
-        new_supplier_id = master_mapping[0].mapping_id
+        if master_mapping:
+            new_supplier_id = master_mapping[0].mapping_id
     else:
+        supplier_master = SupplierMaster.objects.get(id=levelOneWarehouseObj, user=retailUserObj.id)
+        if supplier_master:
+            # master_mapping = MastersMapping.objects.filter(user=retailUserObj.id, mapping_id=supplier_master.id,
+            #                                    mapping_type='warehouse_supplier_mapping')
+            new_supplier_id = supplier_master.id
+    
+    if not new_supplier_id:
         phone_number = userProfileObj.phone_number or 0
         new_supplier_id = create_new_supplier(retailUserObj, userProfileObj.user.first_name, userProfileObj.user.email,
                                           userProfileObj.phone_number,

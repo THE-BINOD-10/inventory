@@ -1006,6 +1006,7 @@ class UserProfile(models.Model):
     wh_phone_number = models.CharField(max_length=32, default='', blank=True)
     gst_number = models.CharField(max_length=32, default='', blank=True)
     multi_warehouse = models.IntegerField(default=0, blank=True)
+    multi_level_system = models.IntegerField(default=0, blank=True) # Added for GoMech Multi Level System.
     is_trail = models.IntegerField(default=0, blank=True)
     api_hash = models.CharField(max_length=256, default='', blank=True)
     setup_status = models.CharField(max_length=60, default='completed', blank=True)

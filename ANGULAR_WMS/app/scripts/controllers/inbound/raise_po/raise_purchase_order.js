@@ -18,6 +18,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.industry_type = vm.user_profile.industry_type;
     vm.display_purchase_history_table = false;
     vm.warehouse_type = vm.user_profile.warehouse_type;
+    vm.warehouse_level = vm.user_profile.warehouse_level;
+    vm.multi_level_system = vm.user_profile.multi_level_system;
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
     vm.filters = {'datatable': 'RaisePO', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
@@ -463,6 +465,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       if (vm.warehouse_type == 'CENTRAL_ADMIN') {
         elem.push({name:'is_central_po', value:true});
       }
+      if (vm.wh_purchase_order){
+        elem.push({name:'wh_purchase_order', value:true})
+      }
       vm.service.apiCall(confirm_url, 'POST', elem, true).then(function(data){
         if(data.message) {
           if (data.data == "success") {
@@ -612,6 +617,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       if (!vm.model_data.supplier_id && Session.user_profile.user_type != 'marketplace_user' && Session.user_profile.industry_type != 'FMCG') {
         product.fields.sku.wms_code = ''
         vm.service.showNoty('Fill Supplier ID');
+        return false;
+      }
+      if (vm.wh_purchase_order && (!vm.model_data.po_delivery_date || typeof(vm.model_data.po_delivery_date) == 'undefined')) {
+        product.fields.sku.wms_code = ''
+        vm.service.showNoty('Fill Delivery Date');
         return false;
       }
       if(vm.permissions.show_purchase_history) {
@@ -895,4 +905,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     });
   }
 
+vm.checkWHSupplierExist  = function (sup_id) {
+    console.log(sup_id);
+    $http.get(Session.url + 'search_wh_supplier?', {
+      params: {
+        q: sup_id,
+        type: ''
+      }
+    }).then(function(resp){
+      if (resp.data.length == 0) {
+        console.log("No Warehouse Supplier")
+      };
+    });
+  }
 }

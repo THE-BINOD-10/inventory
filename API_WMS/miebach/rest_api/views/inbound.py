@@ -806,11 +806,12 @@ def validate_wms(request, user=''):
     tax_list = []
     receipt_type = request.POST.get('receipt_type', '')
     is_central_po = request.POST.get('is_central_po', '')
+    wh_purchase_order = request.POST.get('wh_purchase_order', '')
     warehouse = None
     if is_central_po == 'true':
         warehouse = User.objects.get(username=request.POST['warehouse_name'])
     supplier_master = SupplierMaster.objects.filter(id=myDict['supplier_id'][0], user=user.id)
-    if not supplier_master and not receipt_type == 'Hosted Warehouse':
+    if not supplier_master and not receipt_type == 'Hosted Warehouse' and wh_purchase_order != 'true':
         return HttpResponse("Invalid Supplier " + myDict['supplier_id'][0])
     if myDict.get('vendor_id', ''):
         vendor_master = VendorMaster.objects.filter(vendor_id=myDict['vendor_id'][0], user=user.id)
@@ -1454,6 +1455,24 @@ def search_supplier(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def search_wh_supplier(request, user=''):
+    data_id = request.GET['q']
+    user_id = request.user.id
+    admin_user = UserGroups.objects.filter(user_id=user_id).values_list('admin_user_id', flat=True)
+    if not admin_user:
+        return HttpResponse("Something Went Wrong, check with StockOne Team.")
+    companyWhs = list(UserGroups.objects.filter(admin_user_id=admin_user[0]).exclude(user_id=user_id).values_list('user_id', flat=True))
+    data = UserProfile.objects.filter(Q(user_id__in=companyWhs, warehouse_level=1))
+    suppliers = []
+    if data:
+        for supplier in data:
+            suppliers.append(str(supplier.user.id) + ":" + str(supplier.user.first_name))
+    return HttpResponse(json.dumps(suppliers))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def search_vendor(request, user=''):
     data_id = request.GET['q']
     data = VendorMaster.objects.filter(Q(vendor_id__icontains=data_id) | Q(name__icontains=data_id), user=user.id)
@@ -1573,9 +1592,13 @@ def get_raisepo_group_data(user, myDict):
         if receipt_type:
             order_types = dict(zip(PO_ORDER_TYPES.values(), PO_ORDER_TYPES.keys()))
             order_type = order_types.get(receipt_type, 'SR')
-        if not myDict['supplier_id'][0] and receipt_type == 'Hosted Warehouse' and myDict['dedicated_seller'][0]:
-            seller_id = myDict['dedicated_seller'][0].split(':')[0]
-            myDict['supplier_id'][0] = check_and_create_supplier(seller_id, user)
+        if not myDict['supplier_id'][0] and receipt_type == 'Hosted Warehouse' and myDict['dedicated_seller'][0] and myDict['wh_purchase_order'] != 'true':
+                seller_id = myDict['dedicated_seller'][0].split(':')[0]
+                myDict['supplier_id'][0] = check_and_create_supplier(seller_id, user)
+        if myDict.get('wh_purchase_order', []):
+            if myDict['wh_purchase_order'][0] == 'true':
+                myDict['supplier_id'][0] = check_and_create_wh_supplier(user, myDict['supplier_id'][0])
+
 
         if not myDict['wms_code'][i]:
             continue
@@ -5209,6 +5232,7 @@ def confirm_add_po(request, sales_data='', user=''):
             table_headers.insert(table_headers.index('UTGST (%)'), 'APMC (%)')
         if display_remarks == 'true':
             table_headers.append('Remarks')
+        order_id = None
         for key, value in all_data.iteritems():
             po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
             sku_id = SKUMaster.objects.filter(wms_code=key.upper(), user=user.id)
@@ -5356,6 +5380,14 @@ def confirm_add_po(request, sales_data='', user=''):
             suggestion = OpenPO.objects.get(id=sup_id, sku__user=user.id)
             setattr(suggestion, 'status', 0)
             suggestion.save()
+            if myDict.get('wh_purchase_order', []):
+                if myDict['wh_purchase_order'][0] == 'true':
+                    mappingObj = MastersMapping.objects.filter(user=user.id, mapping_id=po_suggestions['supplier_id'])
+                    levelOneWhId = int(mappingObj[0].master_id)
+                    actUserId = UserProfile.objects.get(id=levelOneWhId).user.id
+                    if not order_id:
+                        order_id = get_order_id(actUserId)
+                    createSalesOrderAtLevelOneWarehouse(user, po_suggestions, order_id)
             if sales_data and not status:
                 check_purchase_order_created(user, po_id)
                 return HttpResponse(str(order.id) + ',' + str(order.order_id))

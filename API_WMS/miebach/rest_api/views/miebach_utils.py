@@ -265,6 +265,13 @@ COMBO_ALLOCATE_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('Combo 
                                               ('Child Quantity', 'child_quantity'),
                                             ))
 
+BRAND_LEVEL_PRICING_EXCEL_MAPPING =  OrderedDict((('SKU Attribute Type(Brand, Category)', 'attribute_type'),
+                                                  ('SKU Attribute Value', 'attribute_value'),
+                                                  ('Selling Price Type', 'price_type'),
+                                                  ('Min Range', 'min_unit_range'), ('Max Range', 'max_unit_range'),
+                                                  ('Price', 'price'), ('Discount', 'discount')))
+
+
 SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'GSTIN Number', 'PAN Number',
                     'PIN Code', 'City', 'State', 'Country', 'Days required to supply', 'Fulfillment Amount',
                     'Credibility', 'Tax Type(Options: Inter State, Intra State)', 'PO Expiry Duration',
@@ -572,7 +579,6 @@ SKU_WISE_RTV_DICT = {'filters' : [
                            "Invoice Date"],
 		'dt_url': 'get_sku_wise_rtv_filter', 'excel_name': 'sku_wise_rtv_report', 'print_url': '',
 	   }
-
 
 SELLER_INVOICE_DETAILS_DICT = {
     'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -2393,7 +2399,8 @@ CLUSTER_SKU_MAPPING = OrderedDict((
 
 BATCH_DETAIL_HEADERS = ['Receipt Number', 'Receipt Date', 'WMS Code', 'Product Description', 'SKU Category', 'Batch Number', 'MRP', 'Weight',
                         'Price', 'Tax Percent', 'Manufactured Date', 'Expiry Date', 'Zone', 'Location', 'Quantity', 'Receipt Type']
-#PICKLIST_EXCLUDE_ZONES = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
+
+SKU_NAME_FIELDS_MAPPING = OrderedDict((('Brand', 'sku_brand'), ('Category', 'sku_category')))
 
 def fn_timer(function):
     @wraps(function)
@@ -5253,17 +5260,17 @@ def get_returns_addition_data(search_params, user, sub_user):
         order_return = order_returns.filter(return_id=data['return_id'], sku__sku_code=data['sku__sku_code'])
         invoice_amount = 0
         date_str = order_return[0].return_date.strftime('%d/%m/%H/%M')
-        transaction_id = ('%s-%s-%s-%s') % (return_id, str(sku_code), str(order_return[0].return_type[:3]), date_str)
+        transaction_id = '%s-%s-%s-%s' % (return_id, str(sku_code), str(order_return[0].return_type[:3]), date_str)
         if order_return and order_return[0].seller_order:
             seller_order = order_return[0].seller_order
             seller_id = seller_order.seller.seller_id
             order = order_return[0].seller_order.order
             invoice_amount = (order.invoice_amount / order.quantity) * data['total_received']
-            transaction_id = ('%s-%s-%s') % (str(order.order_id), str(seller_order.sor_id), transaction_id)
+            transaction_id = '%s-%s-%s' % (str(order.order_id), str(seller_order.sor_id), transaction_id)
         elif order_return and order_return[0].order:
             order = order_return[0].order
             invoice_amount = (order.invoice_amount / order.quantity) * data['total_received']
-            transaction_id = ('%s-%s') % (str(order.order_id), transaction_id)
+            transaction_id = '%s-%s' % (str(order.order_id), transaction_id)
         temp_data['aaData'].append(OrderedDict((('Transaction ID', transaction_id),
                                                 ('Product Code', sku_code),
                                                 ('Seller ID', seller_id),

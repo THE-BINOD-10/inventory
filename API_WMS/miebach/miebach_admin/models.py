@@ -1006,6 +1006,7 @@ class UserProfile(models.Model):
     wh_phone_number = models.CharField(max_length=32, default='', blank=True)
     gst_number = models.CharField(max_length=32, default='', blank=True)
     multi_warehouse = models.IntegerField(default=0, blank=True)
+    multi_level_system = models.IntegerField(default=0, blank=True) # Added for GoMech Multi Level System.
     is_trail = models.IntegerField(default=0, blank=True)
     api_hash = models.CharField(max_length=256, default='', blank=True)
     setup_status = models.CharField(max_length=60, default='completed', blank=True)
@@ -1306,7 +1307,10 @@ class BOMMaster(models.Model):
 
 class PriceMaster(models.Model):
     id = BigAutoField(primary_key=True)
-    sku = models.ForeignKey(SKUMaster, default=None)
+    user = models.PositiveIntegerField(default=0)
+    attribute_type = models.CharField(max_length=64, default='')
+    attribute_value = models.CharField(max_length=64, default='')
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
     price_type = models.CharField(max_length=32, default='')
     price = models.FloatField(default=0)
     discount = models.FloatField(default=0)
@@ -1318,7 +1322,8 @@ class PriceMaster(models.Model):
 
     class Meta:
         db_table = 'PRICE_MASTER'
-        unique_together = ('sku', 'price_type', 'min_unit_range', 'max_unit_range', 'unit_type')
+        unique_together = ('sku', 'price_type', 'min_unit_range', 'max_unit_range', 'unit_type',
+                           'user', 'attribute_type', 'attribute_value')
         index_together = ('sku', 'price_type', 'min_unit_range', 'max_unit_range')
 
     def json(self):

@@ -37,7 +37,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('As on Date(Days)').withTitle('As on Date(Days)')
     ];
     if(vm.warehouse_type == 'admin'){
-      vm.dtColumns.push(DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse Name'))
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Warehouse Name').withTitle('Warehouse Name'))
     }
     if (vm.industry_type == "FMCG" && vm.user_type == "marketplace_user") {
       vm.dtColumns.splice(5, 0, DTColumnBuilder.newColumn('Manufacturer').withTitle('Manufacturer'))

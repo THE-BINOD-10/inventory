@@ -3858,7 +3858,7 @@ def get_stock_summary_data(search_params, user, sub_user):
                stock_value = sku[8]
             ord_dict = OrderedDict((('SKU Code', sku[1]), ('Description', sku[2]),
                                                 ('Brand', sku[3]), ('Category', sku[4]),('SKU Sub Category', sku[5]),
-                                                ('Stage', key), ('Stage Quantity', value), ('Stock Value', stock_value),  ('Warehouse', warehouse)))
+                                                ('Stage', key), ('Stage Quantity', value), ('Stock Value', stock_value),  ('Warehouse Name', warehouse)))
             if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
                 ord_dict['Manufacturer'] = manufacturer
                 ord_dict['Searchable'] = searchable

@@ -10140,3 +10140,14 @@ def get_value_for_misc_type(request, user=''):
     misc_value = get_misc_value(misc_type, user.id)
     return HttpResponse(json.dumps({'selected_view': misc_value}))
 
+
+def get_distinct_price_types(user):
+    price_types1 = list(PriceMaster.objects.exclude(price_type__in=["", 'D1-R', 'R-C']).
+                       filter(sku__user=user.id).values_list('price_type', flat=True).
+                       distinct())
+    price_types2 = list(PriceMaster.objects.exclude(price_type__in=["", 'D1-R', 'R-C']).
+                       filter(user=user.id).values_list('price_type', flat=True).
+                       distinct())
+    price_types = list(chain(price_types1, price_types2))
+    return price_types
+

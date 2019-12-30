@@ -8191,10 +8191,7 @@ def get_customer_master_id(request, user=''):
     if user.userprofile.warehouse_type == 'DIST':
         reseller_price_type = 'D-R'
 
-    price_types = list(PriceMaster.objects.exclude(price_type__in=["", 'D1-R', 'R-C']).
-                       filter(sku__user=admin_user.id).values_list('price_type', flat=True).
-                       distinct())
-
+    price_types = get_distinct_price_types(admin_user)
     return HttpResponse(json.dumps({'customer_id': customer_id, 'tax_data': TAX_VALUES, 'price_types': price_types,
                                     'level_2_price_type': level_2_price_type, 'price_type': reseller_price_type}))
 

@@ -27,9 +27,24 @@
           <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span> </button>
         </div>
         <div class="modal-body raise_po" ng-class="(showCase.confirm_print)? 'hide': 'show'">
-          <div ng-if="!(user.user_profile.user_type == 'marketplace_user')">
-            <div class="row" ng-if="(!(showCase.update)) && showCase.warehouse_type != 'CENTRAL_ADMIN'">
-              <div class="col-md-11 col-sm-11 col-xs-10">
+          <div class="row" ng-if="!(user.user_profile.user_type == 'marketplace_user')">
+            <div ng-if="(!(showCase.update)) && showCase.warehouse_type != 'CENTRAL_ADMIN' && showCase.warehouse_level == 2 && showCase.multi_level_system == 1">
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <p align="right">WHPurchase</p>
+              </div>
+              <div class="col-md-1 col-sm-1 col-xs-2">
+                <label class="switch switch-sm square">
+                  <div>
+                    <input type="checkbox" ng-model="showCase.wh_purchase_order">
+                    <span>
+                      <i class="handle"></i>
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </div>
+            <div ng-if="(!(showCase.update)) && showCase.warehouse_type != 'CENTRAL_ADMIN'">
+              <div class="col-md-4 col-sm-4 col-xs-6">
                 <p align="right">Vendor Receipt</p>
               </div>
               <div class="col-md-1 col-sm-1 col-xs-2">
@@ -45,7 +60,7 @@
             </div>
           </div>
           <div class="row">
-            <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.model_data.receipt_type != 'Hosted Warehouse'">
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.model_data.receipt_type != 'Hosted Warehouse' && !showCase.wh_purchase_order">
               <div class="form-group">
                 <label class="control-label"> Supplier ID/Name * </label>
                 <input type="text" autocomplete="off" ng-if="(!(showCase.update))" name="supplier_id_name" ng-model="showCase.model_data.supplier_id_name" placeholder="Search Supplier"
@@ -53,6 +68,20 @@
                   typeahead-on-select="showCase.model_data.supplier_id = showCase.service.change_search_value(showCase.model_data.supplier_id_name); showCase.update_wms_records()"
                   ng-blur="showCase.service.checkSearchValue(showCase.model_data.supplier_id, 'search_supplier?', $event, '', 'Supplier');"
                   ng-keyup="$event.keyCode == 13 ? showCase.checkSupplierExist(showCase.model_data.supplier_id) : null"
+                  ng-required="(showCase.model_data.receipt_type != 'Hosted Warehouse')? true: false;" ng-disabled="showCase.update"
+                >
+                <input name="supplier_id" class="form-control" type="hidden" ng-model="showCase.model_data.supplier_id" value="{{showCase.model_data.supplier_id}}">
+                <input name="supplier_id_name" class="form-control" ng-if="showCase.update" type="text" ng-model="showCase.model_data.supplier_id_name" value="{{showCase.model_data.supplier_id_name}}" ng-readonly="showCase.update">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.wh_purchase_order">
+              <div class="form-group">
+                <label class="control-label"> Warehouse ID/Name * </label>
+                <input type="text" autocomplete="off" ng-if="(!(showCase.update))" name="supplier_id_name" ng-model="showCase.model_data.supplier_id_name" placeholder="Search Wareshouse"
+                  typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wh_supplier?')" typeahead-loading="loadingLocations" class="form-control"
+                  typeahead-on-select="showCase.model_data.supplier_id = showCase.service.change_search_value(showCase.model_data.supplier_id_name); showCase.update_wms_records()"
+                  ng-blur="showCase.service.checkSearchValue(showCase.model_data.supplier_id, 'search_wh_supplier?', $event, '', 'Supplier');"
+                  ng-keyup="$event.keyCode == 13 ? showCase.checkWHSupplierExist(showCase.model_data.supplier_id) : null"
                   ng-required="(showCase.model_data.receipt_type != 'Hosted Warehouse')? true: false;" ng-disabled="showCase.update"
                 >
                 <input name="supplier_id" class="form-control" type="hidden" ng-model="showCase.model_data.supplier_id" value="{{showCase.model_data.supplier_id}}">
@@ -108,7 +137,8 @@
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
-                <label class="control-label">PO Delivery Date</label>
+                <label class="control-label" ng-if="!showCase.wh_purchase_order">PO Delivery Date</label>
+                <label class="control-label" ng-if="showCase.wh_purchase_order">PO Delivery Date*</label>
                 <input name="po_delivery_date" ui-jq="datepicker" ng-model="showCase.model_data.po_delivery_date" class="form-control stk-readonly" type="text" id="po_delivery_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
               </div>
             </div>

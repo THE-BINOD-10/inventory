@@ -104,6 +104,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     });
   }
   if (vm.brand_categorization) {
+    localStorage.removeItem('category_value');
+    vm.category = '';
     vm.change_config('Category View', 'customer_portal_prefered_view');
   }
   vm.goto_home_page = function () {

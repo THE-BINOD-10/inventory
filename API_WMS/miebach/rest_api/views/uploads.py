@@ -7789,7 +7789,7 @@ def validate_brand_level_pricing_form(request, reader, user, no_of_rows, no_of_c
     excel_check_list = price_mapping.values()
     if not set(excel_check_list).issubset(excel_mapping.keys()):
         return 'Invalid File', []
-    attr_mapping = {'Brand': 'sku_brand', 'Category': 'sku_category'}
+    attr_mapping = copy.deepcopy(SKU_NAME_FIELDS_MAPPING)
     number_fields = ['min_range', 'max_range', 'price', 'discount']
     data_list = []
     for row_idx in range(1, no_of_rows):

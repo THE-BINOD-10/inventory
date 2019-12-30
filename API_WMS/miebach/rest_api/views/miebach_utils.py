@@ -2399,7 +2399,8 @@ CLUSTER_SKU_MAPPING = OrderedDict((
 
 BATCH_DETAIL_HEADERS = ['Receipt Number', 'Receipt Date', 'WMS Code', 'Product Description', 'SKU Category', 'Batch Number', 'MRP', 'Weight',
                         'Price', 'Tax Percent', 'Manufactured Date', 'Expiry Date', 'Zone', 'Location', 'Quantity', 'Receipt Type']
-#PICKLIST_EXCLUDE_ZONES = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
+
+SKU_NAME_FIELDS_MAPPING = OrderedDict((('Brand', 'sku_brand'), ('Category', 'sku_category')))
 
 def fn_timer(function):
     @wraps(function)

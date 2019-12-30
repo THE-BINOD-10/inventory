@@ -762,6 +762,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
+      if (vm.wh_purchase_order){
+        elem.push({name:'wh_purchase_order', value:true})
+      }
       vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
         if(data.message){
           if(data.data == 'success') {

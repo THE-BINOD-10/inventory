@@ -74,8 +74,6 @@ urlpatterns = [
     url(r'^insert_replenushment/$', insert_replenushment),
     url(r'^get_zone_details/$', get_zone_details),
     url(r'^delete_cluster_sku/$', delete_cluster_sku),
-    url(r'^get_brand_price_filter/$', get_brand_price_filter),
-
 
 
 

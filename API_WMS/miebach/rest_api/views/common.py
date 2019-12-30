@@ -2947,11 +2947,16 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                 invoice_ins = SellerOrderSummary.objects.filter(seller_order__order__id__in=order_ids).\
                                 exclude(invoice_number='')
             else:
-		if sell_ids:
-			invoice_ins = SellerOrderSummary.objects.filter(**sell_ids)
-		else:
-                	invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
-            invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
+                if sell_ids:
+                    invoice_ins = SellerOrderSummary.objects.filter(**sell_ids).exclude(invoice_number='')
+                else:
+                    invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
+            if user.userprofile.multi_level_system == 1:
+                admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
+                admin_user = User.objects.get(id=admin_user_id)
+                invoice_sequence = get_invoice_sequence_obj(admin_user, order.marketplace)
+            else:
+                invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
             if invoice_ins:
                 order_no = invoice_ins[0].invoice_number
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)

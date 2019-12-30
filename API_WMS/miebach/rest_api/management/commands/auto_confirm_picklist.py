@@ -95,11 +95,12 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
         if 'st_po' not in dir(order) and order.customerordersummary_set.filter().exists():
             if order.sku.relation_type == 'combo' and not combo_allocate_stock:
                 combo_data = sku_combos.filter(parent_sku_id=order.sku.id)
+                add_mrp_filter = False
                 needed_mrp_filter = list(combo_data.values_list('member_sku__mrp', flat=True))
             else:
                 needed_mrp_filter = [order.customerordersummary_set.filter()[0].mrp]
                 sku_mrp_dict[order.sku_id] = order.customerordersummary_set.filter()[0].mrp
-            sku_id_stock_filter['batch_detail__mrp__in'] = needed_mrp_filter
+                sku_id_stock_filter['batch_detail__mrp__in'] = needed_mrp_filter
     if seller_order:
         temp_sku_stocks = sku_stocks
         sku_stocks = sku_stocks.filter(sellerstock__seller_id=seller_order.seller_id).distinct()

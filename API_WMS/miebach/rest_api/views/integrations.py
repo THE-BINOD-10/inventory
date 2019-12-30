@@ -2179,9 +2179,9 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
 
                     order_create = True
                     if tax_obj:
-                        cgst_tax = tax_obj[0].cgst_tax
-                        sgst_tax = tax_obj[0].sgst_tax
-                        igst_tax = tax_obj[0].igst_tax
+                        cgst_tax = float(tax_obj[0].cgst_tax)
+                        sgst_tax = float(tax_obj[0].sgst_tax)
+                        igst_tax = float(tax_obj[0].igst_tax)
 
                     if order_create:
                         order_details['original_order_id'] = original_order_id
@@ -2207,9 +2207,9 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                         final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details,
                                                              final_data_dict=final_data_dict)
                     if not failed_status and not insert_status:
-                        order_summary_dict['cgst_tax'] = float(cgst_tax)
-                        order_summary_dict['sgst_tax'] = float(sgst_tax)
-                        order_summary_dict['igst_tax'] = float(igst_tax)
+                        order_summary_dict['cgst_tax'] = cgst_tax
+                        order_summary_dict['sgst_tax'] = sgst_tax
+                        order_summary_dict['igst_tax'] = igst_tax
                         order_summary_dict['utgst_tax'] = 0
                         order_summary_dict['consignee'] = order_details['address']
                         order_summary_dict['invoice_date'] = order_details['creation_date']
@@ -2238,6 +2238,8 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
     order_status_dict = {'NEW': 1, 'RETURN': 3, 'CANCEL': 4}
     NOW = datetime.datetime.now()
     insert_status = []
+    inter_state = 1
+    cgst_tax, igst_tax, sgst_tax, utgst_tax = 0,0,0,0
     final_data_dict = OrderedDict()
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
     sister_whs1.append(user.username)
@@ -2295,6 +2297,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                 update_error_message(failed_status, 5024, error_message, original_order_id)
                 break
 
+            customer_master = []
             if order.has_key('billing_address'):
                 order_details['customer_id'] = order['billing_address'].get('customer_id', 0)
                 if order_details['customer_id']:
@@ -2306,6 +2309,9 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                             customer_city = customer_master[0].city
                             customer_address = customer_master[0].address
                             customer_pincode = customer_master[0].pincode
+                            customer_tax_type = customer_master[0].tax_type
+                            if customer_tax_type == "inter_state":
+                                inter_state = 0
                     except:
                         customer_master = []
                     if not customer_master:
@@ -2343,6 +2349,13 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                     message = 'Order is already cancelled at Stockone'
                 update_error_message(failed_status, error_code, message, original_order_id)
                 break
+            if order.has_key('attribute'):
+                extra_fields_data = OrderedDict()
+                extra_attributes = order['attribute']
+                for key in extra_attributes:
+                    extra_fields_data[key] = extra_attributes[key]
+                if extra_fields_data:
+                    create_extra_fields_for_order(original_order_id, extra_fields_data, user)
             for sku_item in sku_items:
                 failed_sku_status = []
                 sku_code = sku_item['sku']
@@ -2358,30 +2371,51 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                     grouping_key = str(original_order_id) + '<<>>' + str(sku_master[0].sku_code)
                     order_det = OrderDetail.objects.filter(**filter_params)
                     order_det1 = OrderDetail.objects.filter(**filter_params1)
+                    tax_obj = TaxMaster.objects.filter(product_type=sku_master[0].product_type, user=user.id,
+                                                        max_amt__gte=sku_master[0].price, min_amt__lte=sku_master[0].price, inter_state=inter_state)
 
                     invoice_amount = 0
-                    unit_price = sku_item.get('unit_price', sku_master[0].price)
+                    unit_price = sku_item.get('unit_price', '')
+                    discount_amount = sku_item.get('discount_amount', '')
+                    if discount_amount:
+                        try:
+                            order_summary_dict['discount'] = float(discount_amount)
+                        except:
+                            order_summary_dict['discount'] = 0
+                    if unit_price == '':
+                        unit_price, discount, price_bands_list = get_order_sku_price(customer_master, sku_master[0], user)
+                        if discount_amount == '':
+                            order_summary_dict['discount'] = ((float(sku_item['quantity']) * unit_price)/100) * discount
+                            #unit_price = sku_item.get('unit_price', sku_master[0].price)
                     if not order_det:
                         order_det = order_det1
 
                     order_create = True
 
-                    try:
-                        cgst_tax = float(sku_item['tax_percent'].get('CGST', 0))
-                    except:
-                        cgst_tax = 0
-                    try:
-                        sgst_tax = float(sku_item['tax_percent'].get('SGST', 0))
-                    except:
-                        sgst_tax = 0
-                    try:
-                        igst_tax = float(sku_item['tax_percent'].get('IGST', 0))
-                    except:
-                        igst_tax = 0
-                    try:
-                        utgst_tax = float(sku_item['tax_percent'].get('UTGST', 0))
-                    except:
-                        utgst_tax = 0
+                    if tax_obj:
+                        cgst_tax = float(tax_obj[0].cgst_tax)
+                        sgst_tax = float(tax_obj[0].sgst_tax)
+                        igst_tax = float(tax_obj[0].igst_tax)
+                        utgst_tax = float(tax_obj[0].utgst_tax)
+
+                    if sku_item.has_key('tax_percent'):
+                        try:
+                            cgst_tax = float(sku_item['tax_percent'].get('CGST', 0))
+                        except:
+                            cgst_tax = 0
+                        try:
+                            sgst_tax = float(sku_item['tax_percent'].get('SGST', 0))
+                        except:
+                            sgst_tax = 0
+                        try:
+                            igst_tax = float(sku_item['tax_percent'].get('IGST', 0))
+                        except:
+                            igst_tax = 0
+                        try:
+                            utgst_tax = float(sku_item['tax_percent'].get('UTGST', 0))
+                        except:
+                            utgst_tax = 0
+
                     if order_create:
                         order_details['original_order_id'] = original_order_id
                         order_details['order_id'] = order_id
@@ -2399,13 +2433,14 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         if not tax and igst_tax:
                             tax = igst_tax
                         if order_create and not invoice_amount:
-                            amt = float(order_details['quantity']) * order_details['unit_price']
+                            amt = (float(order_details['quantity']) * order_details['unit_price']) -\
+                                  order_summary_dict['discount']
                             order_details['invoice_amount'] = amt + ((amt/100)*tax)
                         order_details['creation_date'] = creation_date
 
                         final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details,
                                                              final_data_dict=final_data_dict)
-                    if not failed_status and not insert_status and sku_item.get('tax_percent', {}):
+                    if not failed_status and not insert_status:
                         order_summary_dict['cgst_tax'] = cgst_tax
                         order_summary_dict['sgst_tax'] = sgst_tax
                         order_summary_dict['igst_tax'] = igst_tax
@@ -2413,9 +2448,9 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         order_summary_dict['consignee'] = order_details['address']
                         order_summary_dict['invoice_date'] = order_details['creation_date']
                         order_summary_dict['inter_state'] = 0
-                        order_summary_dict['mrp'] = sku_item.get('mrp', 0)
+                        order_summary_dict['mrp'] = sku_item.get('mrp', sku_master[0].mrp)
                         if order_summary_dict['igst_tax']:
-                            order_summary_dict['inter_state'] = 1
+                            order_summary_dict['inter_state'] = inter_state
                         final_data_dict = check_and_add_dict(grouping_key, 'order_summary_dict',
                                                              order_summary_dict, final_data_dict=final_data_dict)
 

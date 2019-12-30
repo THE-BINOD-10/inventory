@@ -3835,9 +3835,9 @@ def validate_combo_sku_form(open_sheet, user):
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
                 cell_data = str(cell_data)
-                sku_master = MarketplaceMapping.objects.filter(marketplace_code=cell_data, sku__user=user)
+                sku_master = MarketplaceMapping.objects.filter(marketplace_code=cell_data, sku__user=user.id)
                 if not sku_master:
-                    sku_master = SKUMaster.objects.filter(sku_code=cell_data, user=user)
+                    sku_master = SKUMaster.objects.filter(sku_code=cell_data, user=user.id)
                 if not sku_master:
                     if col_idx == 0:
                         message = 'Invalid SKU Code'
@@ -3848,7 +3848,7 @@ def validate_combo_sku_form(open_sheet, user):
     if not index_status:
         return 'Success'
 
-    f_name = '%s.combo_sku_form.xls' % user
+    f_name = '%s.combo_sku_form.xls' % user.id
     write_error_file(f_name, index_status, open_sheet, COMBO_SKU_EXCEL_HEADERS, 'Combo SKU')
     return f_name
 
@@ -3867,7 +3867,7 @@ def combo_sku_upload(request, user=''):
     except:
         return HttpResponse('Invalid File')
 
-    status = validate_combo_sku_form(open_sheet, str(user.id))
+    status = validate_combo_sku_form(open_sheet, user)
     if status != 'Success':
         return HttpResponse(status)
 
@@ -7765,3 +7765,103 @@ def combo_allocate_upload(request, user=''):
         log.info('Combo allocate stock failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(data_dict), str(e)))
     return HttpResponse('Success')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def brand_level_pricing_form(request, user=''):
+    excel_file = request.GET['download-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_headers = copy.deepcopy(BRAND_LEVEL_PRICING_EXCEL_MAPPING)
+    wb, ws = get_work_sheet('Brand Level Pricing', excel_headers)
+    return xls_to_response(wb, '%s.brand_level_pricing_form.xls' % str(user.id))
+
+
+@csrf_exempt
+def validate_brand_level_pricing_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    price_mapping = copy.deepcopy(BRAND_LEVEL_PRICING_EXCEL_MAPPING)
+    price_mapping_res = dict(zip(price_mapping.values(), price_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 price_mapping)
+    excel_check_list = price_mapping.values()
+    if not set(excel_check_list).issubset(excel_mapping.keys()):
+        return 'Invalid File', []
+    attr_mapping = copy.deepcopy(SKU_NAME_FIELDS_MAPPING)
+    number_fields = ['min_range', 'max_range', 'price', 'discount']
+    data_list = []
+    for row_idx in range(1, no_of_rows):
+        row_data = OrderedDict()
+        for key, value in excel_mapping.items():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'attribute_type':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Missing SKU Attribute Name')
+                elif cell_data not in ['Brand', 'Category']:
+                    index_status.setdefault(row_idx, set()).add('Invalid SKU Attribute Name')
+                else:
+                    row_data[key] = cell_data
+            elif key == 'attribute_value':
+                if not index_status:
+                    sku_filter_dict = {'user': user.id,
+                                       attr_mapping[row_data['attribute_type']]: cell_data}
+                    sku_master = SKUMaster.objects.filter(**sku_filter_dict)
+                    if not sku_master.exists():
+                        index_status.setdefault(row_idx, set()).add('Invalid SKU Attribute Value')
+                    else:
+                        row_data[key] = cell_data
+            elif key in number_fields:
+                try:
+                    row_data[key] = float(cell_data)
+                except:
+                    index_status.setdefault(row_idx, set()).add('%s should be number' % price_mapping_res[key])
+            else:
+                row_data[key] = cell_data
+        data_list.append(row_data)
+    if not index_status:
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, []
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, []
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def brand_level_pricing_upload(request, user=''):
+    fname = request.FILES['files']
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, final_data = validate_brand_level_pricing_form(request, reader, user, no_of_rows,
+                                                     no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    for data_dict in final_data:
+        pricing_master = PriceMaster.objects.filter(user=user.id, price_type=data_dict['price_type'],
+                                                    min_unit_range=data_dict['min_unit_range'],
+                                                    max_unit_range=data_dict['max_unit_range'],
+                                                    attribute_type=data_dict['attribute_type'],
+                                                    attribute_value=data_dict['attribute_value'])
+        if pricing_master.exists():
+            pricing_master.update(price=data_dict['price'], discount=data_dict['discount'])
+        else:
+            data_dict['user'] = user.id
+            PriceMaster.objects.create(**data_dict)
+    return HttpResponse("Success")

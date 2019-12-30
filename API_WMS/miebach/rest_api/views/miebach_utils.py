@@ -580,6 +580,10 @@ SKU_WISE_RTV_DICT = {'filters' : [
 		'dt_url': 'get_sku_wise_rtv_filter', 'excel_name': 'sku_wise_rtv_report', 'print_url': '',
 	   }
 
+BRAND_PRICE_MASTER = {
+		'dt_headers': ["Attribute Name", "Attribute Value", "Selling Price Type", "Price"],
+		'dt_url': 'get_brand_price_filter', 'excel_name': 'brand_price_master', 'print_url': '',
+	   }
 
 SELLER_INVOICE_DETAILS_DICT = {
     'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -1136,6 +1140,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'basa_report':BASA_REPORT_DICT,
                      'move_inventory_report' : MOVE_TO_INVENTORY_REPORT_DICT,
                      'financial_report': FINANCIAL_REPORT_DICT,
+                     'brand_price_master':BRAND_PRICE_MASTER,
                     }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -5260,17 +5265,17 @@ def get_returns_addition_data(search_params, user, sub_user):
         order_return = order_returns.filter(return_id=data['return_id'], sku__sku_code=data['sku__sku_code'])
         invoice_amount = 0
         date_str = order_return[0].return_date.strftime('%d/%m/%H/%M')
-        transaction_id = ('%s-%s-%s-%s') % (return_id, str(sku_code), str(order_return[0].return_type[:3]), date_str)
+        transaction_id = '%s-%s-%s-%s' % (return_id, str(sku_code), str(order_return[0].return_type[:3]), date_str)
         if order_return and order_return[0].seller_order:
             seller_order = order_return[0].seller_order
             seller_id = seller_order.seller.seller_id
             order = order_return[0].seller_order.order
             invoice_amount = (order.invoice_amount / order.quantity) * data['total_received']
-            transaction_id = ('%s-%s-%s') % (str(order.order_id), str(seller_order.sor_id), transaction_id)
+            transaction_id = '%s-%s-%s' % (str(order.order_id), str(seller_order.sor_id), transaction_id)
         elif order_return and order_return[0].order:
             order = order_return[0].order
             invoice_amount = (order.invoice_amount / order.quantity) * data['total_received']
-            transaction_id = ('%s-%s') % (str(order.order_id), transaction_id)
+            transaction_id = '%s-%s' % (str(order.order_id), transaction_id)
         temp_data['aaData'].append(OrderedDict((('Transaction ID', transaction_id),
                                                 ('Product Code', sku_code),
                                                 ('Seller ID', seller_id),
@@ -9208,3 +9213,30 @@ def get_move_inventory_report_data(search_params, user, sub_user):
                                                 ('Transaction Date',date),
                                                 ('Updated User', updated_user_name))))
     return temp_data
+
+
+def get_brand_price_filter_data(search_params, user, sub_user):
+    brand_price_data = copy.deepcopy(AJAX_DATA)
+    lis = ['sku__sku_code','quantity','batch_detail__mrp', 'seller__name']
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term', 'asc')
+    start_index = search_params.get('start', 0)
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
+    else:
+        stop_index = None
+    search_parameters = {}
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    search_parameters['user']=user.id
+    master_data = PriceMaster.objects.filter(**search_parameters).order_by(order_data)
+    brand_price_data['recordsTotal'] = master_data.count()
+    brand_price_data['recordsFiltered'] = brand_price_data['recordsTotal']
+    for obj in master_data[start_index:stop_index]:
+        brand_price_data['aaData'].append(OrderedDict((('Attribute Name', obj.attribute_type),
+                                                ('Attribute Value', obj.attribute_value),
+                                                ('Selling Price Type', obj.price_type),
+                                                ('Price', obj.price))))
+    return brand_price_data
+

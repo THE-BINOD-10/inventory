@@ -13,8 +13,8 @@
               <div class="col-md-4">
                 <div class="form-group" ng-if="showCase.toggle_brand">
                 <label class="control-label"> Attribute Name </label>
-                <select name="warehouse_name" class="form-control">
-                  <option ng-repeat="wh in ['SKU Brand', 'SKU Category']" value="{{wh}}">{{wh}}</option>
+                <select name="attribute_name" class="form-control">
+                  <option ng-repeat="wh in ['Brand', 'Category']" value="{{wh}}">{{wh}}</option>
                 </select>
                 </div>
                 <div class="form-group" ng-if="!showCase.toggle_brand">

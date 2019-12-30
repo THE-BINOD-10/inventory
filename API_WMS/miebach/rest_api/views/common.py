@@ -257,7 +257,9 @@ def add_user_permissions(request, response_data, user=''):
                                              'industry_type': user_profile.industry_type,
                                              'user_type': user_profile.user_type,
                                              'request_user_type': request_user_profile.user_type,
-                                             'warehouse_type': user_profile.warehouse_type}
+                                             'warehouse_type': user_profile.warehouse_type,
+                                             'warehouse_level': user_profile.warehouse_level,
+                                             'multi_level_system': user_profile.multi_level_system}
 
     setup_status = 'false'
     if 'completed' not in user_profile.setup_status:
@@ -2945,11 +2947,16 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                 invoice_ins = SellerOrderSummary.objects.filter(seller_order__order__id__in=order_ids).\
                                 exclude(invoice_number='')
             else:
-		if sell_ids:
-			invoice_ins = SellerOrderSummary.objects.filter(**sell_ids)
-		else:
-                	invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
-            invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
+                if sell_ids:
+                    invoice_ins = SellerOrderSummary.objects.filter(**sell_ids).exclude(invoice_number='')
+                else:
+                    invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
+            if user.userprofile.multi_level_system == 1:
+                admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
+                admin_user = User.objects.get(id=admin_user_id)
+                invoice_sequence = get_invoice_sequence_obj(admin_user, order.marketplace)
+            else:
+                invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
             if invoice_ins:
                 order_no = invoice_ins[0].invoice_number
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
@@ -6984,15 +6991,20 @@ def get_shipment_quantity(user, all_orders, sku_grouping=False):
 
 
 def get_marketplace_names(user, status_type):
+    userIds = [user.id]
+    if user.userprofile.multi_level_system == 1:
+        sameGroupWhs = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
+        userIds = UserProfile.objects.filter(user_id__in=sameGroupWhs, warehouse_level=1).values_list('user_id', flat=True)
+
     if status_type == 'picked':
         marketplace = list(
-            Picklist.objects.exclude(order__marketplace='').filter(picked_quantity__gt=0, order__user=user.id). \
+            Picklist.objects.exclude(order__marketplace='').filter(picked_quantity__gt=0, order__user__in=userIds). \
             values_list('order__marketplace', flat=True).distinct())
     elif status_type == 'all_marketplaces':
-        marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(user=user.id, quantity__gt=0). \
+        marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(user__in=userIds, quantity__gt=0). \
                            values_list('marketplace', flat=True).distinct())
     else:
-        marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(status=1, user=user.id, quantity__gt=0). \
+        marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(status=1, user__in=userIds, quantity__gt=0). \
                            values_list('marketplace', flat=True).distinct())
     return marketplace
 
@@ -9354,6 +9366,77 @@ def check_and_create_supplier_wh_mapping(user, warehouse, supplier_id):
             MastersMapping.objects.create(user=user.id, master_id=supplier_id, mapping_id=new_supplier_id,
                                          mapping_type='central_supplier_mapping')
     return new_supplier_id
+
+
+def check_and_create_wh_supplier(retailUserObj, levelOneWarehouseObj):
+    userProfileObj = UserProfile.objects.filter(user=levelOneWarehouseObj.id)
+    if userProfileObj:
+        userProfileObj = userProfileObj[0]
+    master_mapping = MastersMapping.objects.filter(user=retailUserObj.id, master_id=userProfileObj.id,
+                                               mapping_type='warehouse_supplier_mapping')
+    if master_mapping:
+        new_supplier_id = master_mapping[0].mapping_id
+    else:
+        phone_number = userProfileObj.phone_number or 0
+        new_supplier_id = create_new_supplier(retailUserObj, userProfileObj.user.first_name, userProfileObj.user.email,
+                                          userProfileObj.phone_number,
+                                        userProfileObj.address, userProfileObj.gst_number)
+        if new_supplier_id:
+            MastersMapping.objects.create(user=retailUserObj.id, master_id=userProfileObj.id, mapping_id=new_supplier_id,
+                                         mapping_type='warehouse_supplier_mapping')
+    return new_supplier_id
+
+
+def createSalesOrderAtLevelOneWarehouse(user, po_suggestions, order_id):
+    try:
+        mappingObj = MastersMapping.objects.filter(user=user.id, mapping_id=po_suggestions['supplier_id'])
+        levelOneWhId = int(mappingObj[0].master_id)
+        actUserId = UserProfile.objects.get(id=levelOneWhId).user.id
+        retailAddress = UserProfile.objects.get(user_id=user.id).address
+        # order_id = get_order_id(levelOneWhId)
+        order_code = get_order_prefix(actUserId)
+        org_ord_id = order_code + str(order_id)
+        quantity = po_suggestions['order_quantity']
+        customer_id = 0 #TODO Currently not creating LevelTwoWarehouses as Customers. So Taking 0 as customer Id
+        customer_name = user.username
+        shipment_date = po_suggestions['delivery_date']
+        sgst_tax = po_suggestions['sgst_tax']
+        cgst_tax = po_suggestions['cgst_tax']
+        igst_tax = po_suggestions['igst_tax']
+        tax_type = 'NA' #TODO
+        address = po_suggestions.get('ship_to', '') or retailAddress
+        unit_price = po_suggestions['price']
+        taxes = {}
+        taxes['cgst_tax'] = float(po_suggestions['cgst_tax'])
+        taxes['sgst_tax'] = float(po_suggestions['sgst_tax'])
+        taxes['igst_tax'] = float(po_suggestions['igst_tax'])
+        taxes['utgst_tax'] = float(po_suggestions['utgst_tax'])
+        invoice_amount = quantity * unit_price
+        invoice_amount = invoice_amount + ((invoice_amount / 100) * sum(taxes.values()))
+        sku_id = po_suggestions['sku_id']
+        from rest_api.views.outbound import get_syncedusers_mapped_sku
+        actSku = get_syncedusers_mapped_sku(actUserId, sku_id)
+        title = SKUMaster.objects.get(id=actSku).sku_desc
+        order_detail_dict = {'sku_id': actSku, 'title': title, 'quantity': quantity, 'order_id': order_id,
+                             'original_order_id': org_ord_id, 'user': actUserId, 'customer_id': customer_id,
+                             'customer_name': customer_name, 'shipment_date': shipment_date,
+                             'address': address, 'unit_price': unit_price, 'invoice_amount': invoice_amount,
+                             'creation_date': None, 'status':1, 'order_code': order_code, 'marketplace': 'Offline'}
+        ord_obj = OrderDetail.objects.filter(order_id=order_id, sku_id=sku_id, order_code=order_code)
+        if ord_obj:
+            ord_obj = ord_obj[0]
+            ord_obj.quantity = quantity
+            ord_obj.unit_price = unit_price
+            ord_obj.invoice_amount = invoice_amount
+            ord_obj.save()
+        else:
+            ord_obj = OrderDetail(**order_detail_dict)
+            ord_obj.save()
+
+        CustomerOrderSummary.objects.create(order=ord_obj, sgst_tax=sgst_tax,cgst_tax=cgst_tax,
+                                            igst_tax=igst_tax, tax_type=tax_type)
+    except Exception as e:
+        import traceback; print(traceback.format_exc())
 
 
 @get_admin_user

@@ -136,6 +136,7 @@ urlpatterns = [
     url(r'^insert_inventory_adjust/$', insert_inventory_adjust),
     url(r'^delete_po/$', delete_po),
     url(r'^search_supplier/$', search_supplier),
+    url(r'^search_wh_supplier/$', search_wh_supplier),
     url(r'^search_vendor/$', search_vendor),
     url(r'^search_wms_codes/$', search_wms_codes),
     url(r'^search_corporate_names/$', search_corporate_names),

@@ -1307,7 +1307,10 @@ class BOMMaster(models.Model):
 
 class PriceMaster(models.Model):
     id = BigAutoField(primary_key=True)
-    sku = models.ForeignKey(SKUMaster, default=None)
+    user = models.PositiveIntegerField(default=0)
+    attribute_type = models.CharField(max_length=64, default='')
+    attribute_value = models.CharField(max_length=64, default='')
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
     price_type = models.CharField(max_length=32, default='')
     price = models.FloatField(default=0)
     discount = models.FloatField(default=0)
@@ -1319,7 +1322,8 @@ class PriceMaster(models.Model):
 
     class Meta:
         db_table = 'PRICE_MASTER'
-        unique_together = ('sku', 'price_type', 'min_unit_range', 'max_unit_range', 'unit_type')
+        unique_together = ('sku', 'price_type', 'min_unit_range', 'max_unit_range', 'unit_type',
+                           'user', 'attribute_type', 'attribute_value')
         index_together = ('sku', 'price_type', 'min_unit_range', 'max_unit_range')
 
     def json(self):

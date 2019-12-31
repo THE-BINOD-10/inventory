@@ -40,7 +40,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     ];
     if(vm.warehouse_type == 'admin'){
       vm.dtColumns.push(DTColumnBuilder.newColumn('Stock Value').withTitle('Stock Value'),
-        DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse Name'))
+        DTColumnBuilder.newColumn('Warehouse Name').withTitle('Warehouse Name'))
     }
 
     if (vm.industry_type == "FMCG" && vm.user_type == "marketplace_user") {

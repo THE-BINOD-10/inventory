@@ -70,10 +70,12 @@ urlpatterns = [
     url(r'^upload_images/$', upload_images),
     url(r'^get_barcodes_myntra/$', get_barcodes_myntra),
     url(r'^change_warehouse_password/$', change_warehouse_password),
-    url(r'^insert_sku_pack/$',insert_sku_pack),
-    url(r'^insert_replenushment/$',insert_replenushment),
-    url(r'^get_zone_details/$',get_zone_details),
-    url(r'^delete_cluster_sku/$',delete_cluster_sku),
+    url(r'^insert_sku_pack/$', insert_sku_pack),
+    url(r'^insert_replenushment/$', insert_replenushment),
+    url(r'^get_zone_details/$', get_zone_details),
+    url(r'^delete_cluster_sku/$', delete_cluster_sku),
+
+
 
 
 
@@ -225,6 +227,7 @@ urlpatterns = [
     url(r'^print_rm_picklist/$', print_rm_picklist),
     url(r'^generate_rm_po_data/$', generate_rm_po_data),
     url(r'^confirm_back_order/$', confirm_back_order),
+    url(r'^backorder_supplier_data/$', backorder_supplier_data),
     url(r'^generate_rm_rwo_data/$', generate_rm_rwo_data),
     url(r'^save_rwo/$', save_rwo),
     url(r'^confirm_rwo/$', confirm_rwo),
@@ -595,6 +598,8 @@ urlpatterns += [
     url(r'^cluster_sku_upload/$', cluster_sku_upload),
     url(r'^combo_allocate_form/$', combo_allocate_form),
     url(r'^combo_allocate_upload/$', combo_allocate_upload),
+    url(r'^brand_level_pricing_form/$', brand_level_pricing_form),
+    url(r'^brand_level_pricing_upload/$', brand_level_pricing_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

@@ -9933,6 +9933,15 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
         else:
             ean_number = ''
             sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, supplier_id=supplier_id, sku__user=user.id)
+        if not sku_supplier:
+            attr_mapping = copy.deepcopy(SKU_NAME_FIELDS_MAPPING)
+            for attr_key, attr_val in attr_mapping.items():
+                supplier_sku = SKUSupplier.objects.filter(user=user.id,
+                                                          supplier_id=supplier_id,
+                                                          attribute_type=attr_key,
+                                                          attribute_value=getattr(data, attr_val))
+            if supplier_sku.exists():
+                    sku_supplier = supplier_sku[0]
         sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
         sup_markdown = SupplierMaster.objects.get(id=supplier_id)
         data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,'weight':'',

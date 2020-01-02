@@ -39,6 +39,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'stop_default_tax':false,
                     'delivery_challan_terms_condtions': '',
                     'order_prefix': false,
+                    'supplier_mapping':false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -67,6 +68,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      91: 'weight_integration_name', 92:'repeat_po', 93:'brand_categorization', 94:'loc_serial_mapping_switch', 95:'purchase_order_preview',
                      96:'stop_default_tax', 97:'order_prefix',
                      98: 'delivery_challan_terms_condtions',
+                     99: 'supplier_mapping',
                      }
 
   vm.check_box_data = [
@@ -550,6 +552,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    name: "Stop Default Tax Type in Create Order",
    model_name: "stop_default_tax",
    param_no: 96,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
+   name: "Supplier Mapping",
+   model_name: "supplier_mapping",
+   param_no: 99,
    class_name: "fa fa-server",
    display: true
   }

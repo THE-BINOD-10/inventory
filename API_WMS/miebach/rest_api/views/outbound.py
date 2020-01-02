@@ -7464,18 +7464,62 @@ def generate_order_po_data(request, user=''):
             order_detail = order_detail[0]
             sku_supplier = SKUSupplier.objects.filter(sku__wms_code=order_detail.sku.wms_code, sku__user=user.id)
             if sku_supplier:
-                sku_price_details = get_supplier_sku_price_values(sku_supplier[0].supplier_id, sku_supplier[0].sku.sku_code, user)
+                price, sku_price_details = calculate_price(sku_supplier, user)
                 if sku_price_details:
                     taxes = sku_price_details[0]['taxes']
+                    if taxes:
+                        taxes = taxes[0]
                 selected_item = {'id': sku_supplier[0].supplier_id, 'name': sku_supplier[0].supplier.name,
                                  'tax_type': sku_supplier[0].supplier.tax_type}
-                price = sku_supplier[0].price
             else:
                 selected_item = supplier_list[1]
             data_dict.append({'order_id': data_id, 'wms_code': order_detail.sku.wms_code, 'title': order_detail.sku.sku_desc,
                               'quantity': product_qty, 'selected_item': selected_item, 'price': price,
-                              'taxes': taxes[0]})
+                              'taxes': taxes})
     return HttpResponse(json.dumps({'data_dict': data_dict, 'supplier_list': supplier_list}))
+
+@csrf_exempt
+@get_admin_user
+def backorder_supplier_data(request, user=''):
+    price = 0
+    taxes = {}
+    request_dict = dict(request.POST.iterlists())
+    if request_dict:
+        supplier = request_dict['supplier_id'][0]
+        wms_code = request_dict['wms_code'][0]
+    sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, sku__user=user.id, supplier_id=supplier)
+    if sku_supplier:
+        price, sku_price_details = calculate_price(sku_supplier, user)
+        if sku_price_details:
+            taxes = sku_price_details[0]['taxes']
+            if taxes:
+                taxes = taxes[0]
+    return HttpResponse(json.dumps({'taxes': taxes, 'price':price}))
+
+
+def calculate_price(sku_supplier, user):
+    sku_data = SKUMaster.objects.filter(sku_code =sku_supplier[0].sku.sku_code, user=user.id)
+    sku_price_details = get_supplier_sku_price_values(sku_supplier[0].supplier_id, sku_supplier[0].sku.sku_code, user)
+    mrp_value = sku_data[0].mrp
+    margin_percentage = sku_supplier[0].margin_percentage
+    if sku_supplier[0].costing_type == 'Margin Based':
+        prefill_unit_price = mrp_value - ((mrp_value * margin_percentage) / 100)
+        if len(sku_price_details):
+            tax_list=sku_price_details[0].get('taxes',[])
+        if len(tax_list):
+            tax_list = tax_list[0]
+            if tax_list.get('inter_state'):
+                tax=tax_list.get('igst_tax',0)+tax_list.get('apmc_tax',0)+tax_list.get('cess_tax',0)
+            else:
+                tax=tax_list.get('cgst_tax',0)+tax_list.get('sgst_tax',0)+tax_list.get('apmc_tax',0)+tax_list.get('cess_tax',0)
+
+        price = (prefill_unit_price * 100) / (100 + tax)
+    elif sku_supplier[0].costing_type == 'Markup Based':
+        prefill_unit_price = mrp_value / (1+(markup_percentage/100))
+        data['price'] = prefill_unit_price
+    else:
+        price = sku_supplier[0].price
+    return price, sku_price_details
 
 @csrf_exempt
 @get_admin_user

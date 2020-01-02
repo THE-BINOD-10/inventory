@@ -42,6 +42,22 @@ function BackorderPOPOP($scope, $http, $state, $timeout, Session, colFilters, Se
     vm.getPoData(vm.state_data.data);
   }
 
+  vm.change_supplier_data = function(form){
+    if(form.$invalid) {
+        return false;
+      }
+      var elem = $("form:visible").serializeArray();
+      Service.apiCall("backorder_supplier_data/", "POST", elem, true).then(function(data){
+        if(data.message){
+          if(data.data.taxes){
+            vm.model_data.data_dict[0].taxes = data.data.taxes;
+            vm.model_data.data_dict[0].price = data.data.price;
+          }
+        };
+
+      });
+  }
+
   vm.print_enable = false;
   vm.confirm_disable = false;
   vm.confirm_po = function(form) {

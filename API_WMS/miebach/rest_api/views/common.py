@@ -10236,6 +10236,7 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     sku_codes = [sku_codes]
     result_data = []
+    supplier_sku = []
     supplier_master = ""
     inter_state = 2
     edit_tax = False
@@ -10259,7 +10260,8 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
         taxes_data = []
         for tax_master in tax_masters:
             taxes_data.append(tax_master.json())
-        supplier_sku = SKUSupplier.objects.filter(sku_id=data.id, supplier_id=supplier_master[0].id)
+        if supplier_master:
+            supplier_sku = SKUSupplier.objects.filter(sku_id=data.id, supplier_id=supplier_master[0].id)
         mandate_sku_supplier = get_misc_value('mandate_sku_supplier', user.id)
         if not supplier_sku and ep_supplier and mandate_sku_supplier == "true":
             edit_tax = True

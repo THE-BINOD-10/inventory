@@ -9981,7 +9981,7 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
                 data['price'] = sku_supplier[0].price
             data['supplier_code'] = sku_supplier[0].supplier_code
             data['ean_number'] = ean_number
-            if sku_supplier[0].sku not None:
+            if sku_supplier[0].sku is not None:
                 data['sku'] = sku_supplier[0].sku.sku_code
                 data['measurement_unit'] = sku_supplier[0].sku.measurement_type
         else:

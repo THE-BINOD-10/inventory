@@ -9926,6 +9926,7 @@ def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
 def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
     data = {}
     try:
+        sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
         if wms_code.isdigit():
             ean_number = wms_code
             sku_supplier = SKUSupplier.objects.filter(Q(sku__ean_number=wms_code) | Q(sku__wms_code=wms_code),
@@ -9939,10 +9940,9 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
                 supplier_sku = SKUSupplier.objects.filter(user=user.id,
                                                           supplier_id=supplier_id,
                                                           attribute_type=attr_key,
-                                                          attribute_value=getattr(data, attr_val))
-            if supplier_sku.exists():
-                    sku_supplier = supplier_sku[0]
-        sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
+                                                          attribute_value=getattr(sku_master, attr_val))
+                if supplier_sku.exists():
+                    sku_supplier = supplier_sku
         sup_markdown = SupplierMaster.objects.get(id=supplier_id)
         data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,'weight':'',
                 'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
@@ -9980,9 +9980,10 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
             else:
                 data['price'] = sku_supplier[0].price
             data['supplier_code'] = sku_supplier[0].supplier_code
-            data['sku'] = sku_supplier[0].sku.sku_code
             data['ean_number'] = ean_number
-            data['measurement_unit'] = sku_supplier[0].sku.measurement_type
+            if sku_supplier[0].sku not None:
+                data['sku'] = sku_supplier[0].sku.sku_code
+                data['measurement_unit'] = sku_supplier[0].sku.measurement_type
         else:
             if int(sup_markdown.ep_supplier):
                 data['price'] = 0

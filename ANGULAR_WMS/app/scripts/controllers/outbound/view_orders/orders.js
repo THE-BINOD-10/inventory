@@ -20,6 +20,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.picklist_display_address = vm.permissions.picklist_display_address;
     vm.payment_status = ['To Pay', 'VPP', 'Paid'];
     vm.project_name = "";
+    vm.g_data = {};
 
     vm.update_order_details = update_order_details;
     function update_order_details(index, data, last) {
@@ -83,7 +84,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       })
     }
 
-    vm.g_data = {};
     angular.copy(Data.other_view, vm.g_data);
 
     if(Session.user_profile.user_type != "marketplace_user") {
@@ -166,7 +166,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
 
    vm.dtInstance = {};
-    vm.reloadData = reloadData;
+   vm.reloadData = reloadData;
 
     function reloadData () {
         vm.dtInstance.reloadData();
@@ -206,7 +206,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   }
 
   vm.delete_order_data = function(ord_id) {
-
       var delete_data = {};
       delete_data['order_id'] = ord_id;
       delete_data['order_id_code'] = vm.order_id_code;
@@ -877,7 +876,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
   });
   vm.service.apiCall('get_value_for_misc_type/?misc_type=view_order_selection').then(function(data){
-    vm.g_data.view = data.data.selected_view
+    if(vm.g_data.views.indexOf(data.data.selected_view)== -1){
+        vm.g_data.view = vm.g_data.views[0]
+    } else {
+        vm.g_data.view = data.data.selected_view
+    }
     vm.get_data_table()
   });
 

@@ -7865,3 +7865,149 @@ def brand_level_pricing_upload(request, user=''):
             data_dict['user'] = user.id
             PriceMaster.objects.create(**data_dict)
     return HttpResponse("Success")
+
+
+@csrf_exempt
+@get_admin_user
+def supplier_sku_attributes_form(request, user=''):
+    supplier_file = request.GET['download-supplier-sku-attributes-file']
+    if supplier_file:
+        return error_file_download(supplier_file)
+    wb, ws = get_work_sheet('supplier', SUPPLIER_SKU_ATTRIBUTE_HEADERS)
+    return xls_to_response(wb, '%s.supplier_sku_attributes_form.xls' % str(user.id))
+
+@csrf_exempt
+def validate_supplier_sku_attributes_form(open_sheet, user_id):
+    index_status = {}
+    supplier_ids = []
+    final_data = []
+    attr_mapping = copy.deepcopy(SKU_NAME_FIELDS_MAPPING)
+    supplier_list = SupplierMaster.objects.filter(user=user_id).values_list('id', flat=True)
+    if supplier_list:
+        for i in supplier_list:
+            supplier_ids.append(i)
+    for row_idx in range(1, open_sheet.nrows):
+        row_data = OrderedDict()
+        for col_idx in range(0, len(SUPPLIER_SKU_ATTRIBUTE_HEADERS)):
+            key = open_sheet.cell(0, col_idx).value
+            cell_data = open_sheet.cell(row_idx, col_idx).value
+            # if row_idx == 0:
+            #     if col_idx == 0 and cell_data != 'Supplier Id':
+            #         return 'Invalid File'
+            if key == 'Supplier Id':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Enter Supplier ID')
+                if isinstance(cell_data, (int, float)):
+                    cell_data = str(int(cell_data))
+                if cell_data and cell_data in supplier_ids:
+                    row_data['supplier_id'] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('Supplier ID Not Found')
+
+            if key == 'SKU Attribute Type(Brand, Category)':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Missing SKU Attribute Name')
+                elif cell_data not in ['Brand', 'Category']:
+                    index_status.setdefault(row_idx, set()).add('Invalid SKU Attribute Name')
+                else:
+                    row_data['attribute_type'] = cell_data
+
+            elif key == 'SKU Attribute Value':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Missing SKU Attribute Value')
+                elif row_data['attribute_type']:
+                    sku_filter_dict = {'user': user_id,
+                                       attr_mapping[row_data['attribute_type']]: cell_data}
+                    sku_master = SKUMaster.objects.filter(**sku_filter_dict)
+                    if not sku_master.exists():
+                        index_status.setdefault(row_idx, set()).add('Invalid SKU Attribute Value')
+                    else:
+                        row_data['attribute_value'] = cell_data
+
+            if key == 'Price':
+                if not isinstance(cell_data, (int, float)) and cell_data:
+                    index_status.setdefault(row_idx, set()).add('Price Must be Integer or Float')
+                elif cell_data:
+                    row_data['price'] = cell_data
+
+            if key == 'Costing Type (Price Based/Margin Based/Markup Based)':
+                if cell_data :
+                    if not cell_data in ['Price Based', 'Margin Based','Markup Based']:
+                        index_status.setdefault(row_idx, set()).add('Costing Type should be "Price Based/Margin Based/Markup Based"')
+                    if cell_data == 'Price Based' :
+                        cell_data_price = open_sheet.cell(row_idx, 3).value
+                        if not cell_data_price :
+                            index_status.setdefault(row_idx, set()).add('Price is Mandatory For Price Based')
+                        else:
+                            if not isinstance(cell_data_price, (int, float)) :
+                                index_status.setdefault(row_idx, set()).add('Price Should be Number')
+                            else:
+                                row_data['costing_type'] = cell_data
+                    elif cell_data == 'Margin Based' :
+                        cell_data_margin = open_sheet.cell(row_idx, 5).value
+                        if not cell_data_margin :
+                            index_status.setdefault(row_idx, set()).add('MarkDown Percentage is Mandatory For Margin Based')
+                        elif not isinstance(cell_data_margin, (int, float)):
+                            index_status.setdefault(row_idx, set()).add('MarkDown % Should be in integer or float')
+                        elif  float(cell_data_margin) < 0  or float(cell_data_margin) >  100:
+                            index_status.setdefault(row_idx, set()).add('MarkDown % Should be in between 0 and 100')
+                        else:
+                            row_data['costing_type'] = cell_data
+                    elif cell_data == 'Markup Based' :
+                        cell_data_markup = open_sheet.cell(row_idx, 6).value
+                        if not cell_data_markup :
+                            index_status.setdefault(row_idx, set()).add('Markup Percentage is Mandatory For Markup Based')
+                        elif not isinstance(cell_data_markup, (int, float)):
+                            index_status.setdefault(row_idx, set()).add('Markup % Should be in integer or float')
+                        elif  float(cell_data_markup) < 0 or float(cell_data_markup) > 100:
+                            index_status.setdefault(row_idx, set()).add('Markup % Should be in between 0 and 100')
+                        else:
+                            row_data['costing_type'] = cell_data
+
+            if key == 'MarkDown Percentage':
+                if not isinstance(cell_data, (int, float)) and cell_data:
+                    index_status.setdefault(row_idx, set()).add('MarkDown Percentage Must be Integer or Float')
+                elif cell_data:
+                    row_data['margin_percentage'] = cell_data
+
+            if key == 'Markup Percentage':
+                if not isinstance(cell_data, (int, float)) and cell_data:
+                    index_status.setdefault(row_idx, set()).add('Markup Percentage Must be Integer or Float')
+                elif cell_data:
+                    row_data['markup_percentage'] = cell_data
+
+        final_data.append(row_data)
+
+    if not index_status:
+        return 'Success', final_data
+
+    f_name = '%s.supplier_sku_attributes_form.xls' % user_id
+    write_error_file(f_name, index_status, open_sheet, SUPPLIER_SKU_ATTRIBUTE_HEADERS, 'Supplier')
+    return f_name, []
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def supplier_sku_attributes_upload(request, user=''):
+    fname = request.FILES['files']
+    if fname.name.split('.')[-1] == 'xls' or fname.name.split('.')[-1] == 'xlsx':
+        try:
+            open_book = open_workbook(filename=None, file_contents=fname.read())
+            open_sheet = open_book.sheet_by_index(0)
+        except:
+            return HttpResponse('Invalid File')
+    status, final_data = validate_supplier_sku_attributes_form(open_sheet, str(user.id))
+    if status != 'Success':
+        return HttpResponse(status)
+    for data_dict in final_data:
+        supplier_sku = SKUSupplier.objects.filter(user=user.id,
+                                                    supplier_id=data_dict['supplier_id'],
+                                                    attribute_type=data_dict['attribute_type'],
+                                                    attribute_value=data_dict['attribute_value'])
+        if supplier_sku.exists():
+            supplier_sku.update(**data_dict)
+        else:
+            data_dict['user'] = user.id
+            SKUSupplier.objects.create(**data_dict)
+    return HttpResponse("Success")

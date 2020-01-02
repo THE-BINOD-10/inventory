@@ -7462,7 +7462,17 @@ def generate_order_po_data(request, user=''):
             price = 0
             selected_item = ''
             order_detail = order_detail[0]
+            sku_master = SKUMaster.objects.get(sku_code=order_detail.sku.wms_code, user=user.id)
             sku_supplier = SKUSupplier.objects.filter(sku__wms_code=order_detail.sku.wms_code, sku__user=user.id)
+            if not sku_supplier:
+                attr_mapping = copy.deepcopy(SKU_NAME_FIELDS_MAPPING)
+                for attr_key, attr_val in attr_mapping.items():
+                    supplier_sku = SKUSupplier.objects.filter(user=user.id,
+                                                              supplier_id=supplier_list[1]['id'],
+                                                              attribute_type=attr_key,
+                                                              attribute_value=getattr(sku_master, attr_val))
+                    if supplier_sku.exists():
+                        sku_supplier = supplier_sku
             if sku_supplier:
                 price, sku_price_details = calculate_price(sku_supplier, user)
                 if sku_price_details:
@@ -7487,7 +7497,17 @@ def backorder_supplier_data(request, user=''):
     if request_dict:
         supplier = request_dict['supplier_id'][0]
         wms_code = request_dict['wms_code'][0]
+    sku_master = SKUMaster.objects.get(sku_code=wms_code, user=user.id)
     sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, sku__user=user.id, supplier_id=supplier)
+    if not sku_supplier:
+        attr_mapping = copy.deepcopy(SKU_NAME_FIELDS_MAPPING)
+        for attr_key, attr_val in attr_mapping.items():
+            supplier_sku = SKUSupplier.objects.filter(user=user.id,
+                                                      supplier_id=supplier,
+                                                      attribute_type=attr_key,
+                                                      attribute_value=getattr(sku_master, attr_val))
+            if supplier_sku.exists():
+                sku_supplier = supplier_sku
     if sku_supplier:
         price, sku_price_details = calculate_price(sku_supplier, user)
         if sku_price_details:

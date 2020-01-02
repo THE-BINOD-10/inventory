@@ -4445,3 +4445,32 @@ def delete_cluster_sku (request, user=''):
          log.debug(traceback.format_exc())
          log.info('Cluster SKU Deletion failed for id : %s' % str(cluster))
     return  HttpResponse(status)
+
+@csrf_exempt
+def get_source_sku_attributes_mapping(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['supplier', 'attribute_type', 'attribute_value', 'price','costing_type','margin_percentage','markup_percentage']
+    order_data= lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    search_parameters = {}
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    search_parameters['user'] = user.id
+    if search_term:
+        master_data = SKUSupplier.objects.filter(Q(supplier__id__icontains=search_term)|Q(attribute_type__icontains=search_term) |Q(attribute_value__icontains=search_term)|Q(margin_percentage__icontains=search_term)|
+                                                 Q(markup_percentage__icontains=search_term)|Q(costing_type__icontains=search_term) | Q(price__icontains=search_term),**search_parameters).order_by(order_data)
+    else:
+        master_data = SKUSupplier.objects.filter(**search_parameters).order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+
+    for obj in master_data[start_index:stop_index]:
+        temp_data['aaData'].append(OrderedDict((('attribute_type', obj.attribute_type),
+                                                       ('supplier', obj.supplier_id),
+                                                       ('attribute_value', obj.attribute_value),
+                                                       ('costing_type', obj.costing_type),
+                                                       ('margin_percentage', obj.margin_percentage),
+                                                       ('markup_percentage', obj.markup_percentage),
+                                                       ('Price', obj.price))))

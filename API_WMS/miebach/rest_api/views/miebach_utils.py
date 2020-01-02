@@ -963,17 +963,24 @@ FINANCIAL_REPORT_DICT =  {
       {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
       {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
   ],
-  'dt_headers': ['SKU Code','SKU NAME','Category', 'Sub Category', 'SKU Brand','Manufacturer','Searchable','Bundle', 'City','Hub','Vendor Name','HSN Code','Weight', 'MRP', 'GST No',
-  'IGST Tax Rate','CESS Rate','Opening Qty','Opening Price Per Unit( Before Taxes)','Opening Value before Tax', 'Opening CGST', 'Opening SGST',
-  'Opening IGST', 'Opening CESS', 'Opening Value after Tax', 'Purchase Qty', 'Purchase Price Per Unit(Before Taxes)','Purchase Value before Tax',
-  'Purchase CGST', 'Purchase SGST','Purchase IGST', 'Purchase CESS', 'Purchase Value after Tax', 'Purchase Return Qty', 'Purchase Return Price Per Unit(Before Taxes)','Purchase Return Value before Tax',
-  'Purchase Return CGST', 'Purchase Return SGST','Purchase Return IGST', 'Purchase Return CESS', 'Purchase Return Value after Tax',
-  'Sale to Drsc Qty','Sale to Drsc Price Per Unit( Before Taxes)','Sale to Drsc Value before Tax', 'Sale to Drsc CGST', 'Sale to Drsc SGST',
-  'Sale to Drsc IGST', 'Sale to Drsc CESS', 'Sale to Drsc Value after Tax', 'Sale to othr Qty','Sale to othr Price Per Unit( Before Taxes)','Sale to othr Value before Tax',
-  'Sale to othr CGST', 'Sale to othr SGST','Sale to othr IGST', 'Sale to othr CESS', 'Sale to othr Value after Tax', 'Stock Transfers Qty','Stock Transfers Price Per Unit(Before Taxes)','Stock Transfers Value before Tax', 'Stock Transfers CGST', 'Stock Transfers SGST',
-  'Stock Transfers IGST', 'Stock Transfers CESS', 'Stock Transfers Value after Tax', 'Sale Return Qty', 'Sale Return Price Per Unit(Before Taxes)','Sale Return Value before Tax',
-  'Sale Return CGST', 'Sale Return SGST','Sale Return IGST', 'Sale Return CESS', 'Sale Return Value after Tax','Closing Qty', 'Closing Price Per Unit(Before Taxes)','Closing Value before Tax',
-  'Closing CGST', 'Closing SGST','Closing IGST', 'Closing CESS', 'Closing Value after Tax','Physical Qty', 'Adjustment Qty',
+  'dt_headers': ['SKU Code','SKU NAME','Category', 'Sub Category', 'SKU Brand','Manufacturer','Searchable','Bundle', 'City',
+                 'Hub','Vendor Name','HSN Code','Weight', 'MRP', 'GST No', 'IGST Tax Rate','CESS Rate','Opening Qty',
+                 'Opening Price Per Unit( Before Taxes)','Opening Value before Tax', 'Opening Tax', 'Opening CESS',
+                 'Opening Value after Tax', 'Purchase Qty', 'Purchase Price Per Unit(Before Taxes)','Purchase Value before Tax',
+                 'Purchase Tax', 'Purchase CESS', 'Purchase Value after Tax', 'Purchase Return Qty',
+                 'Purchase Return Price Per Unit(Before Taxes)','Purchase Return Value before Tax',
+                 'Purchase Return Tax', 'Purchase Return CESS',
+                 'Purchase Return Value after Tax', 'Sale to Drsc Qty','Sale to Drsc Price Per Unit( Before Taxes)',
+                 'Sale to Drsc Value before Tax', 'Sale to Drsc Tax', 'Sale to Drsc CESS',
+                 'Sale to Drsc Value after Tax', 'Sale to othr Qty','Sale to othr Price Per Unit( Before Taxes)',
+                 'Sale to othr Value before Tax', 'Sale to othr Tax', 'Sale to othr CESS',
+                 'Sale to othr Value after Tax', 'Stock Transfers Qty','Stock Transfers Price Per Unit(Before Taxes)',
+                 'Stock Transfers Value before Tax', 'Stock Transfers Tax', 'Stock Transfers CESS',
+                 'Stock Transfers Value after Tax', 'Sale Return Qty',
+                 'Sale Return Price Per Unit(Before Taxes)','Sale Return Value before Tax',
+                 'Sale Return Tax', 'Sale Return CESS', 'Sale Return Value after Tax',
+                 'Closing Qty', 'Closing Price Per Unit(Before Taxes)','Closing Value before Tax',
+                 'Closing Tax', 'Closing CESS', 'Closing Value after Tax','Physical Qty', 'Adjustment Qty',
                  'Adjustment Price Per Unit(Before Taxes)', 'Adjustment Value', 'Margin', 'Margin Percentage'],
   'dt_url': 'get_financial_report', 'excel_name': 'get_financial_report',
   'print_url': 'print_financial_report',
@@ -4172,7 +4179,7 @@ def get_openjo_details(search_params, user, sub_user):
 
 def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=False, stock_rec_data=None,
                             send_damaged=True, opening_stock_date=None, used_damage_qtys=None):
-    data_dict = {'quantity': 0, 'cgst_amount': 0, 'sgst_amount': 0, 'igst_amount': 0, 'cess_amount': 0,
+    data_dict = {'quantity': 0, 'tax_amount': 0, 'cess_amount': 0,
                      'value_before_tax': 0, 'value_after_tax': 0, 'price_before_tax': 0}
     if not data_objs:
         purchase_data = []
@@ -4181,7 +4188,7 @@ def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=F
             if opening_stock_date:
                 fields_parameters2['stock_reconciliation__creation_date__regex'] = opening_stock_date
             fields_parameters2['stock_reconciliation__%s_quantity__gt' % fields_parameters1['field_type']] = 0
-            purchase_data = StockReconciliationFields.objects.\
+            purchase_data = StockReconciliationFields.objects.annotate(tax_percent=Sum(F('cgst_tax')+F('sgst_tax')+F('igst_tax'))).\
                                             filter(**fields_parameters2)
             #if purchase_data.exists() and send_first_day:
             #    first_date = purchase_data.first().stock_reconciliation.creation_date.date()
@@ -4208,12 +4215,8 @@ def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=F
                 value_before_tax = (data.value_before_tax/data.quantity) * quantity
             data_dict['value_before_tax'] += value_before_tax
             data_dict['value_after_tax'] += value_after_tax
-            if data.cgst_tax:
-                data_dict['cgst_amount'] += (amount/100) * data.cgst_tax
-            if data.sgst_tax:
-                data_dict['sgst_amount'] += (amount/100) * data.sgst_tax
-            if data.igst_tax:
-                data_dict['igst_amount'] += (amount/100) * data.igst_tax
+            tax_percent = data.cgst_tax + data.sgst_tax + data.igst_tax
+            data_dict['tax_amount'] += (amount/100) * tax_percent
             if data.cess_tax:
                 data_dict['cess_amount'] += (amount/100) * data.cess_tax
             #data_dict['value_after_tax'] = data_dict['value_before_tax'] + data_dict['cgst_amount'] + \
@@ -4332,13 +4335,13 @@ def get_financial_report_data(search_params, user, sub_user):
                                                                                 stock_reconciliation__weight=stock_rec_data_dict['weight'],
                                                                             creation_date__gte=opening_stock_date,
                                                                             creation_date__lt=closing_stock_date+datetime.timedelta(1))
-                opening_stock_data = opening_stock_query.values('stock_reconciliation__sku__sku_code', 'stock_reconciliation__sku__sku_desc',
+                opening_stock_data = opening_stock_query.annotate(tax_percent=Sum(F('cgst_tax')+F('sgst_tax')+F('igst_tax'))).\
+                                                    values('stock_reconciliation__sku__sku_code', 'stock_reconciliation__sku__sku_desc',
                                                             'stock_reconciliation__sku_id',
                                                             'stock_reconciliation__sku__sku_category', 'stock_reconciliation__sku__sub_category',
                                                             'stock_reconciliation__sku_id','stock_reconciliation__sku__sku_brand',
                                                             'stock_reconciliation__sku__hsn_code', 'stock_reconciliation__mrp',
-                                                            'stock_reconciliation__weight','cgst_tax', 'sgst_tax', 'igst_tax',
-                                                            'cess_tax').distinct()
+                                                            'stock_reconciliation__weight','tax_percent').distinct()
                 closing_objs = StockReconciliationFields.objects.filter(stock_reconciliation__creation_date__regex=closing_stock_date,
                                                                         stock_reconciliation__sku__user=user.id,
                                                                         field_type='closing')
@@ -4370,10 +4373,10 @@ def get_financial_report_data(search_params, user, sub_user):
                     stock_rec_data1 = stock_rec_data
                     if row_data['table'] == 'stock_rec_field':
                         opening_stock = row_data['data']
-                        tax_rate = opening_stock['cgst_tax'] + opening_stock['sgst_tax'] + opening_stock['igst_tax']
+                        tax_rate = opening_stock['tax_percent']
                         mrp = opening_stock['stock_reconciliation__mrp']
                         weight = opening_stock['stock_reconciliation__weight']
-                        cess_tax = opening_stock['cess_tax']
+                        cess_tax = 0#opening_stock['cess_tax']
                         stock_rec_data1 = None
                     else:
                         tax_rate = 0
@@ -4386,13 +4389,10 @@ def get_financial_report_data(search_params, user, sub_user):
                                           ('stock_reconciliation__weight', weight),
                                         ))
                     if row_data['table'] == 'stock_rec_field':
-                        closing_obj_filter['cgst_tax'] = opening_stock['cgst_tax']
-                        closing_obj_filter['sgst_tax'] = opening_stock['sgst_tax']
-                        closing_obj_filter['igst_tax'] = opening_stock['igst_tax']
-                        closing_obj_filter['cess_tax'] = opening_stock['cess_tax']
+                        closing_obj_filter['tax_percent'] = opening_stock['tax_percent']
                     #fields_parameters1 = copy.deepcopy(fields_parameters)
                     fields_parameters1.update(closing_obj_filter)
-                    closing_stock_objs = closing_objs.filter(**closing_obj_filter)
+                    closing_stock_objs = closing_objs.annotate(tax_percent=Sum(F('cgst_tax')+F('sgst_tax')+F('igst_tax'))).filter(**closing_obj_filter)
                     fields_parameters1['field_type'] = 'closing'
                     closing_damaged_flag = True
                     if closing_stock_date < datetime.datetime.strptime('2019-12-23', '%Y-%M-%d').date():
@@ -4471,65 +4471,49 @@ def get_financial_report_data(search_params, user, sub_user):
                                                             ('Opening Qty', opening_dict['quantity']),
                                                             ('Opening Price Per Unit( Before Taxes)', '%.2f' % opening_dict['price_before_tax']),
                                                             ('Opening Value before Tax', float('%.2f' % opening_dict['value_before_tax'])),
-                                                            ('Opening CGST', '%.2f' % opening_dict['cgst_amount']),
-                                                            ('Opening SGST', '%.2f' % opening_dict['sgst_amount']),
-                                                            ('Opening IGST', '%.2f' % opening_dict['igst_amount']),
+                                                            ('Opening Tax', '%.2f' % opening_dict['tax_amount']),
                                                             ('Opening CESS', '%.2f' % opening_dict['cess_amount']),
                                                             ('Opening Value after Tax', float('%.2f' % opening_dict['value_after_tax'])),
                                                             ('Purchase Qty', purchase_dict['quantity']),
                                                             ('Purchase Price Per Unit(Before Taxes)', float('%.2f' % purchase_dict['price_before_tax'])),
                                                             ('Purchase Value before Tax', '%.2f' % purchase_dict['value_before_tax']),
-                                                            ('Purchase CGST', '%.2f' % purchase_dict['cgst_amount']),
-                                                            ('Purchase SGST', '%.2f' % purchase_dict['sgst_amount']),
-                                                            ('Purchase IGST', '%.2f' % purchase_dict['igst_amount']),
+                                                            ('Purchase Tax', '%.2f' % purchase_dict['tax_amount']),
                                                             ('Purchase CESS', '%.2f' % purchase_dict['cess_amount']),
                                                             ('Purchase Value after Tax', float('%.2f' % purchase_dict['value_after_tax'])),
                                                             ('Purchase Return Qty', rtv_dict['quantity']),
                                                             ('Purchase Return Price Per Unit(Before Taxes)', '%.2f' % rtv_dict['price_before_tax']),
                                                             ('Purchase Return Value before Tax', float('%.2f' % rtv_dict['value_before_tax'])),
-                                                            ('Purchase Return CGST', '%.2f' % rtv_dict['cgst_amount']),
-                                                            ('Purchase Return SGST', '%.2f' % rtv_dict['sgst_amount']),
-                                                            ('Purchase Return IGST', '%.2f' % rtv_dict['igst_amount']),
+                                                            ('Purchase Return Tax', '%.2f' % rtv_dict['tax_amount']),
                                                             ('Purchase Return CESS', '%.2f' % rtv_dict['cess_amount']),
                                                             ('Purchase Return Value after Tax', float('%.2f' % rtv_dict['value_after_tax'])),
                                                             ('Sale to Drsc Qty', csd['quantity']),
                                                             ('Sale to Drsc Price Per Unit( Before Taxes)', float('%.2f' % csd['price_before_tax'])),
                                                             ('Sale to Drsc Value before Tax', float('%.2f' % csd['value_before_tax'])),
-                                                            ('Sale to Drsc CGST', '%.2f' % csd['cgst_amount']),
-                                                            ('Sale to Drsc SGST', '%.2f' % csd['sgst_amount']),
-                                                            ('Sale to Drsc IGST', '%.2f' % csd['igst_amount']),
+                                                            ('Sale to Drsc Tax', '%.2f' % csd['tax_amount']),
                                                             ('Sale to Drsc CESS', '%.2f' % csd['cess_amount']),
                                                             ('Sale to Drsc Value after Tax', float('%.2f' % csd['value_after_tax'])),
                                                             ('Sale to othr Qty', isd['quantity']),
                                                             ('Sale to othr Price Per Unit( Before Taxes)', '%.2f' % isd['price_before_tax']),
                                                             ('Sale to othr Value before Tax', float('%.2f' % isd['value_before_tax'])),
-                                                            ('Sale to othr CGST', '%.2f' % isd['cgst_amount']),
-                                                            ('Sale to othr SGST', '%.2f' % isd['sgst_amount']),
-                                                            ('Sale to othr IGST', '%.2f' % isd['igst_amount']),
+                                                            ('Sale to othr Tax', '%.2f' % isd['tax_amount']),
                                                             ('Sale to othr CESS', '%.2f' % isd['cess_amount']),
                                                             ('Sale to othr Value after Tax', float('%.2f' % isd['value_after_tax'])),
                                                             ('Stock Transfers Qty', std['quantity']),
                                                             ('Stock Transfers Price Per Unit(Before Taxes)', '%.2f' % std['price_before_tax']),
                                                             ('Stock Transfers Value before Tax', float('%.2f' % std['value_before_tax'])),
-                                                            ('Stock Transfers CGST', '%.2f' % std['cgst_amount']),
-                                                            ('Stock Transfers SGST', '%.2f' % std['sgst_amount']),
-                                                            ('Stock Transfers IGST', '%.2f' % std['igst_amount']),
+                                                            ('Stock Transfers Tax', '%.2f' % std['tax_amount']),
                                                             ('Stock Transfers CESS', '%.2f' % std['cess_amount']),
                                                             ('Stock Transfers Value after Tax', float('%.2f' % std['value_after_tax'])),
                                                             ('Sale Return Qty', returns_dict['quantity']),
                                                             ('Sale Return Price Per Unit(Before Taxes)', '%.2f' % returns_dict['price_before_tax']),
                                                             ('Sale Return Value before Tax', float('%.2f' % returns_dict['value_before_tax'])),
-                                                            ('Sale Return CGST', '%.2f' % returns_dict['cgst_amount']),
-                                                            ('Sale Return SGST', '%.2f' % returns_dict['sgst_amount']),
-                                                            ('Sale Return IGST', '%.2f' % returns_dict['igst_amount']),
+                                                            ('Sale Return Tax', '%.2f' % returns_dict['tax_amount']),
                                                             ('Sale Return CESS', '%.2f' % returns_dict['cess_amount']),
                                                             ('Sale Return Value after Tax', float('%.2f' % returns_dict['value_after_tax'])),
                                                             ('Closing Qty', closing_dict['quantity']),
                                                             ('Closing Price Per Unit(Before Taxes)', '%.2f' % closing_dict['price_before_tax']),
                                                             ('Closing Value before Tax', float('%.2f' % closing_dict['value_before_tax'])),
-                                                            ('Closing CGST', '%.2f' % closing_dict['cgst_amount']),
-                                                            ('Closing SGST', '%.2f' % closing_dict['sgst_amount']),
-                                                            ('Closing IGST', '%.2f' % closing_dict['igst_amount']),
+                                                            ('Closing Tax', '%.2f' % closing_dict['tax_amount']),
                                                             ('Closing CESS', '%.2f' % closing_dict['cess_amount']),
                                                             ('Closing Value after Tax', float('%.2f' % closing_dict['value_after_tax'])),
                                                             ('Physical Qty', physical_qty),

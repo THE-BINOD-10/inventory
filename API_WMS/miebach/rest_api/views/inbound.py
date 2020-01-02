@@ -1083,6 +1083,7 @@ def switches(request, user=''):
                        'stop_default_tax':'stop_default_tax',
                        'delivery_challan_terms_condtions': 'delivery_challan_terms_condtions',
                        'order_prefix':'order_prefix',
+                       'supplier_mapping':'supplier_mapping',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -5181,6 +5182,7 @@ def confirm_add_po(request, sales_data='', user=''):
     data = copy.deepcopy(PO_DATA)
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+    supplier_mapping = get_misc_value('supplier_mapping', user.id)
     if not sales_data:
         po_id = get_purchase_order_id(user)
         if po_sub_user_prefix == 'true':
@@ -5258,26 +5260,27 @@ def confirm_add_po(request, sales_data='', user=''):
             if not mrp:
                 mrp = 0
 
-            if not 'supplier_code' in myDict.keys() and value['supplier_id']:
-                supplier = SKUSupplier.objects.filter(supplier_id=value['supplier_id'], sku__user=user.id)
-                if supplier:
-                    supplier_code = supplier[0].supplier_code
-            elif value['supplier_code']:
-                supplier_code = value['supplier_code']
-            supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=value['supplier_id'],
-                                                          sku__user=user.id)
-            sku_mapping = {'supplier_id': value['supplier_id'], 'sku': sku_id[0], 'preference': 1, 'moq': 0,
-                           'supplier_code': supplier_code, 'price': price, 'creation_date': datetime.datetime.now(),
-                           'updation_date': datetime.datetime.now()}
+            if supplier_mapping == 'false':
+                if not 'supplier_code' in myDict.keys() and value['supplier_id']:
+                    supplier = SKUSupplier.objects.filter(supplier_id=value['supplier_id'], sku__user=user.id)
+                    if supplier:
+                        supplier_code = supplier[0].supplier_code
+                elif value['supplier_code']:
+                    supplier_code = value['supplier_code']
+                supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=value['supplier_id'],
+                                                              sku__user=user.id)
+                sku_mapping = {'supplier_id': value['supplier_id'], 'sku': sku_id[0], 'preference': 1, 'moq': 0,
+                               'supplier_code': supplier_code, 'price': price, 'creation_date': datetime.datetime.now(),
+                               'updation_date': datetime.datetime.now()}
 
-            if supplier_mapping:
-                supplier_mapping = supplier_mapping[0]
-                if sku_mapping['supplier_code'] and supplier_mapping.supplier_code != sku_mapping['supplier_code']:
-                    supplier_mapping.supplier_code = sku_mapping['supplier_code']
-                    supplier_mapping.save()
-            else:
-                new_mapping = SKUSupplier(**sku_mapping)
-                new_mapping.save()
+                if supplier_mapping:
+                    supplier_mapping = supplier_mapping[0]
+                    if sku_mapping['supplier_code'] and supplier_mapping.supplier_code != sku_mapping['supplier_code']:
+                        supplier_mapping.supplier_code = sku_mapping['supplier_code']
+                        supplier_mapping.save()
+                else:
+                    new_mapping = SKUSupplier(**sku_mapping)
+                    new_mapping.save()
             po_suggestions['sku_id'] = sku_id[0].id
             po_suggestions['supplier_id'] = value['supplier_id']
             po_suggestions['order_quantity'] = value['order_quantity']

@@ -540,7 +540,7 @@ data_datatable = {  # masters
     'TaxMaster': 'get_tax_master', 'NetworkMaster': 'get_network_master_results',\
     'StaffMaster': 'get_staff_master', 'CorporateMaster': 'get_corporate_master',\
     'WarehouseSKUMappingMaster': 'get_wh_sku_mapping', 'ClusterMaster': 'get_cluster_sku_results',
-    'ReplenushmentMaster':'get_replenushment_master',
+    'ReplenushmentMaster':'get_replenushment_master', 'supplierSKUAttributes': 'get_source_sku_attributes_mapping',
     'LocationMaster' :'get_zone_details','AttributePricingMaster': 'get_attribute_price_master_results',\
 
     # inbound
@@ -9926,6 +9926,7 @@ def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
 def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
     data = {}
     try:
+        sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
         if wms_code.isdigit():
             ean_number = wms_code
             sku_supplier = SKUSupplier.objects.filter(Q(sku__ean_number=wms_code) | Q(sku__wms_code=wms_code),
@@ -9933,7 +9934,15 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
         else:
             ean_number = ''
             sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, supplier_id=supplier_id, sku__user=user.id)
-        sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
+        if not sku_supplier:
+            attr_mapping = copy.deepcopy(SKU_NAME_FIELDS_MAPPING)
+            for attr_key, attr_val in attr_mapping.items():
+                supplier_sku = SKUSupplier.objects.filter(user=user.id,
+                                                          supplier_id=supplier_id,
+                                                          attribute_type=attr_key,
+                                                          attribute_value=getattr(sku_master, attr_val))
+                if supplier_sku.exists():
+                    sku_supplier = supplier_sku
         sup_markdown = SupplierMaster.objects.get(id=supplier_id)
         data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,'weight':'',
                 'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
@@ -9971,9 +9980,10 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
             else:
                 data['price'] = sku_supplier[0].price
             data['supplier_code'] = sku_supplier[0].supplier_code
-            data['sku'] = sku_supplier[0].sku.sku_code
             data['ean_number'] = ean_number
-            data['measurement_unit'] = sku_supplier[0].sku.measurement_type
+            if sku_supplier[0].sku is not None:
+                data['sku'] = sku_supplier[0].sku.sku_code
+                data['measurement_unit'] = sku_supplier[0].sku.measurement_type
         else:
             if int(sup_markdown.ep_supplier):
                 data['price'] = 0

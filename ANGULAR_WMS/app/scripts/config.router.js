@@ -320,6 +320,10 @@ var app = angular.module('urbanApp')
                   return $ocLazyLoad.load([
                     'scripts/controllers/masters/source_sku_mapping/warehouseSKU.js'
                   ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/masters/source_sku_mapping/supplierSKUAttribute.js'
+                  ])
                 });
               }]
           },

@@ -541,6 +541,8 @@ urlpatterns += [
     url(r'^supplier_upload/$', supplier_upload),
     url(r'^supplier_sku_form/$', supplier_sku_form),
     url(r'^supplier_sku_upload/$', supplier_sku_upload),
+    url(r'^supplier_sku_attributes_form/$', supplier_sku_attributes_form),
+    url(r'^supplier_sku_attributes_upload/$', supplier_sku_attributes_upload),
     url(r'^location_form/$', location_form),
     url(r'^location_upload/$', location_upload),
     url(r'^purchase_order_form/$', purchase_order_form),

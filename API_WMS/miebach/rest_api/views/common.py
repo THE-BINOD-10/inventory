@@ -257,7 +257,9 @@ def add_user_permissions(request, response_data, user=''):
                                              'industry_type': user_profile.industry_type,
                                              'user_type': user_profile.user_type,
                                              'request_user_type': request_user_profile.user_type,
-                                             'warehouse_type': user_profile.warehouse_type}
+                                             'warehouse_type': user_profile.warehouse_type,
+                                             'warehouse_level': user_profile.warehouse_level,
+                                             'multi_level_system': user_profile.multi_level_system}
 
     setup_status = 'false'
     if 'completed' not in user_profile.setup_status:
@@ -539,7 +541,7 @@ data_datatable = {  # masters
     'StaffMaster': 'get_staff_master', 'CorporateMaster': 'get_corporate_master',\
     'WarehouseSKUMappingMaster': 'get_wh_sku_mapping', 'ClusterMaster': 'get_cluster_sku_results',
     'ReplenushmentMaster':'get_replenushment_master',
-    'LocationMaster' :'get_zone_details',
+    'LocationMaster' :'get_zone_details','AttributePricingMaster': 'get_attribute_price_master_results',\
 
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
@@ -2945,11 +2947,16 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                 invoice_ins = SellerOrderSummary.objects.filter(seller_order__order__id__in=order_ids).\
                                 exclude(invoice_number='')
             else:
-		if sell_ids:
-			invoice_ins = SellerOrderSummary.objects.filter(**sell_ids)
-		else:
-                	invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
-            invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
+                if sell_ids:
+                    invoice_ins = SellerOrderSummary.objects.filter(**sell_ids).exclude(invoice_number='')
+                else:
+                    invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
+            if user.userprofile.multi_level_system == 1 and user.userprofile.warehouse_level == 1:
+                admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
+                admin_user = User.objects.get(id=admin_user_id)
+                invoice_sequence = get_invoice_sequence_obj(admin_user, order.marketplace)
+            else:
+                invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
             if invoice_ins:
                 order_no = invoice_ins[0].invoice_number
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
@@ -2965,8 +2972,12 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                     invoice_seq.save()
             else:
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
-    invoice_number = get_full_invoice_number(user, order_no, order, invoice_date=invoice_date,
-                                             pick_number='')
+    if user.userprofile.multi_level_system == 1 and user.userprofile.warehouse_level == 1:
+        admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
+        admin_user = User.objects.get(id=admin_user_id)
+        invoice_number = get_full_invoice_number(admin_user, order_no, order, invoice_date=invoice_date, pick_number='')
+    else:
+        invoice_number = get_full_invoice_number(user, order_no, order, invoice_date=invoice_date, pick_number='')
     # if invoice_sequence:
     #     invoice_sequence = invoice_sequence[0]
     #     inv_num_lis = []
@@ -3263,34 +3274,33 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 sku_attr_obj = SKUAttributes.objects.filter(sku_id=dat.sku_id,
                                         attribute_name='MARGINAL GST').only('attribute_value')
                 imei_data_sku_wise = []
-                if sku_attr_obj.exists():
-                    if sku_attr_obj[0].attribute_value.upper() == 'YES':
-                        marginal_flag = 1
+                if sku_attr_obj.exists() and sku_attr_obj[0].attribute_value.upper() == 'YES':
+                    marginal_flag = 1
+                    if pick_num:
+                        cost_price_obj = seller_summary.filter(order_id = dat.id, pick_number__in = pick_num).values('picklist__stock__unit_price', 'quantity')
+                    else:
+                        cost_price_obj = seller_summary.filter(order_id = dat.id).values('picklist__stock__unit_price', 'quantity')
+                    for index,margin_cost_price_obj in enumerate(cost_price_obj):
+                        cost_price = margin_cost_price_obj['picklist__stock__unit_price']
+                        quantity = margin_cost_price_obj['quantity']
+                        profit_price = (unit_price * quantity) - (cost_price * quantity)
+                        seller_summary_obj_sku_wise = seller_summary.filter(order__sku_id = dat.sku_id)
+                        seller_id_value = seller_summary_obj_sku_wise[index].id
+                        # seller_id_value = seller_summary[index].id
                         if pick_num:
-                            cost_price_obj = seller_summary.filter(order_id = dat.id, pick_number__in = pick_num).values('picklist__stock__unit_price', 'quantity')
+                            seller_summary_imei = seller_summary.filter(order_id = dat.id, pick_number__in = pick_num, id= seller_id_value)
                         else:
-                            cost_price_obj = seller_summary.filter(order_id = dat.id).values('picklist__stock__unit_price', 'quantity')
-                        for index,margin_cost_price_obj in enumerate(cost_price_obj):
-                            cost_price = margin_cost_price_obj['picklist__stock__unit_price']
-                            quantity = margin_cost_price_obj['quantity']
-                            profit_price = (unit_price * quantity) - (cost_price * quantity)
-                            seller_summary_obj_sku_wise = seller_summary.filter(order__sku_id = dat.sku_id)
-                            seller_id_value = seller_summary_obj_sku_wise[index].id
-                            # seller_id_value = seller_summary[index].id
-                            if pick_num:
-                                seller_summary_imei = seller_summary.filter(order_id = dat.id, pick_number__in = pick_num, id= seller_id_value)
-                            else:
-                                seller_summary_imei = seller_summary.filter(order_id = dat.id, id= seller_id_value)
-                            if profit_price < 1:
-                                cgst_tax,sgst_tax,igst_tax,utgst_tax = 0, 0 ,0, 0
+                            seller_summary_imei = seller_summary.filter(order_id = dat.id, id= seller_id_value)
+                        if profit_price < 1:
+                            cgst_tax,sgst_tax,igst_tax,utgst_tax = 0, 0 ,0, 0
 
-                            arg_data = {'unit_price':unit_price,'quantity':quantity,'discount':discount,'dat':dat,'is_gst_invoice':is_gst_invoice,'marginal_flag':marginal_flag,
-                                        'cgst_tax':cgst_tax,'sgst_tax':sgst_tax,'igst_tax':igst_tax,'utgst_tax':utgst_tax,'cess_tax':cess_tax,'profit_price':profit_price,'hsn_summary':hsn_summary,
-                                        'total_quantity':total_quantity,'partial_order_quantity_price':partial_order_quantity_price,'_total_tax':_total_tax,
-                                        'total_invoice':total_invoice,'total_taxable_amt':total_taxable_amt,'display_customer_sku':display_customer_sku,'customer_sku_codes':customer_sku_codes,
-                                        'user':user,'sor_id':sor_id,'sell_ids':sell_ids,'seller_summary':seller_summary,'data':data,'order_id':order_id,'title':title,'tax_type':tax_type,'vat':vat,'mrp_price':mrp_price,
-                                        'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal, 'taxes_dict':taxes_dict, 'seller_summary_imei':seller_summary_imei, 'imei_data_sku_wise':imei_data_sku_wise}
-                            data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity, partial_order_quantity_price = common_calculations(arg_data)
+                        arg_data = {'unit_price':unit_price,'quantity':quantity,'discount':discount,'dat':dat,'is_gst_invoice':is_gst_invoice,'marginal_flag':marginal_flag,
+                                    'cgst_tax':cgst_tax,'sgst_tax':sgst_tax,'igst_tax':igst_tax,'utgst_tax':utgst_tax,'cess_tax':cess_tax,'profit_price':profit_price,'hsn_summary':hsn_summary,
+                                    'total_quantity':total_quantity,'partial_order_quantity_price':partial_order_quantity_price,'_total_tax':_total_tax,
+                                    'total_invoice':total_invoice,'total_taxable_amt':total_taxable_amt,'display_customer_sku':display_customer_sku,'customer_sku_codes':customer_sku_codes,
+                                    'user':user,'sor_id':sor_id,'sell_ids':sell_ids,'seller_summary':seller_summary,'data':data,'order_id':order_id,'title':title,'tax_type':tax_type,'vat':vat,'mrp_price':mrp_price,
+                                    'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal, 'taxes_dict':taxes_dict, 'seller_summary_imei':seller_summary_imei, 'imei_data_sku_wise':imei_data_sku_wise}
+                        data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity, partial_order_quantity_price = common_calculations(arg_data)
 
                 else:
                     arg_data = {'unit_price':unit_price,'quantity':quantity,'discount':discount,'dat':dat,'is_gst_invoice':is_gst_invoice,'marginal_flag':marginal_flag,
@@ -4173,6 +4183,52 @@ def get_supplier_sku_prices(request, user=""):
     return HttpResponse(json.dumps(result_data))
 
 
+def get_order_sku_price(customer_master, data, user):
+    price_bands_list = []
+    sku_code = data.sku_code
+    customer_price_name = get_misc_value('calculate_customer_price', user.id)
+    is_sellingprice = False
+    price = data.cost_price
+    if customer_price_name == 'price':
+        price = data.price
+        is_sellingprice = True
+    discount = 0
+
+    if customer_master:
+        customer_obj = customer_master[0]
+        price_type = customer_obj.price_type
+        price_band_flag = get_misc_value('priceband_sync', user.id)
+        if price_band_flag == 'true':
+            user = get_admin(user)
+        price, mrp = get_customer_based_price(customer_obj, price, data.mrp, is_sellingprice)
+        price_master_objs = PriceMaster.objects.filter(price_type=price_type, sku__sku_code=sku_code,
+                                                       sku__user=user.id)
+        if price_master_objs:
+            price_bands_list = []
+            for i in price_master_objs:
+                price_band_map = {'price': i.price, 'discount': i.discount,
+                                  'min_unit_range': i.min_unit_range, 'max_unit_range': i.max_unit_range}
+                price_bands_list.append(price_band_map)
+            price = price_master_objs[0].price
+            discount = price_master_objs[0].discount
+        elif price_type:
+            attr_mapping = copy.deepcopy(SKU_NAME_FIELDS_MAPPING)
+            for attr_key, attr_val in attr_mapping.items():
+                price_master_objs = PriceMaster.objects.filter(user=user.id, price_type=price_type,
+                                                                    attribute_type=attr_key,
+                                                                    attribute_value=getattr(data, attr_val))
+                if price_master_objs.exists():
+                    price_master_obj = price_master_objs[0]
+                    if price_master_obj.price:
+                        price = price_master_obj.price
+                    discount = price_master_obj.discount
+                    price_bands_list = [{'price': price, 'discount': price_master_obj.discount,
+                                        'min_unit_range': price_master_obj.min_unit_range,
+                                         'max_unit_range': price_master_obj.max_unit_range}]
+                    break
+
+    return price, discount, price_bands_list
+
 
 @csrf_exempt
 @login_required
@@ -4229,31 +4285,32 @@ def get_customer_sku_prices(request, user=""):
             for tax_master in tax_masters:
                 taxes_data.append(tax_master.json())
 
-            customer_price_name = get_misc_value('calculate_customer_price', user.id)
-            is_sellingprice = False
-            price = data.cost_price
-            if customer_price_name == 'price':
-                price = data.price
-                is_sellingprice = True
-            discount = 0
-
-            if customer_master:
-                customer_obj = customer_master[0]
-                price_type = customer_obj.price_type
-                price_band_flag = get_misc_value('priceband_sync', user.id)
-                if price_band_flag == 'true':
-                    user = get_admin(user)
-                price, mrp = get_customer_based_price(customer_obj, price, data.mrp, is_sellingprice)
-                price_master_objs = PriceMaster.objects.filter(price_type=price_type, sku__sku_code=sku_code,
-                                                               sku__user=user.id)
-                if price_master_objs:
-                    price_bands_list = []
-                    for i in price_master_objs:
-                        price_band_map = {'price': i.price, 'discount': i.discount,
-                                          'min_unit_range': i.min_unit_range, 'max_unit_range': i.max_unit_range}
-                        price_bands_list.append(price_band_map)
-                    price = price_master_objs[0].price
-                    discount = price_master_objs[0].discount
+            price, discount, price_bands_list = get_order_sku_price(customer_master, data, user)
+            # customer_price_name = get_misc_value('calculate_customer_price', user.id)
+            # is_sellingprice = False
+            # price = data.cost_price
+            # if customer_price_name == 'price':
+            #     price = data.price
+            #     is_sellingprice = True
+            # discount = 0
+            #
+            # if customer_master:
+            #     customer_obj = customer_master[0]
+            #     price_type = customer_obj.price_type
+            #     price_band_flag = get_misc_value('priceband_sync', user.id)
+            #     if price_band_flag == 'true':
+            #         user = get_admin(user)
+            #     price, mrp = get_customer_based_price(customer_obj, price, data.mrp, is_sellingprice)
+            #     price_master_objs = PriceMaster.objects.filter(price_type=price_type, sku__sku_code=sku_code,
+            #                                                    sku__user=user.id)
+            #     if price_master_objs:
+            #         price_bands_list = []
+            #         for i in price_master_objs:
+            #             price_band_map = {'price': i.price, 'discount': i.discount,
+            #                               'min_unit_range': i.min_unit_range, 'max_unit_range': i.max_unit_range}
+            #             price_bands_list.append(price_band_map)
+            #         price = price_master_objs[0].price
+            #         discount = price_master_objs[0].discount
             if sku_pack_config == 'true' and data.id:
                 skuPack_data = SKUPackMaster.objects.filter(sku__id= data.id, sku__user= user.id)
                 if skuPack_data:
@@ -6938,15 +6995,20 @@ def get_shipment_quantity(user, all_orders, sku_grouping=False):
 
 
 def get_marketplace_names(user, status_type):
+    userIds = [user.id]
+    if user.userprofile.multi_level_system == 1:
+        sameGroupWhs = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
+        userIds = UserProfile.objects.filter(user_id__in=sameGroupWhs, warehouse_level=1).values_list('user_id', flat=True)
+
     if status_type == 'picked':
         marketplace = list(
-            Picklist.objects.exclude(order__marketplace='').filter(picked_quantity__gt=0, order__user=user.id). \
+            Picklist.objects.exclude(order__marketplace='').filter(picked_quantity__gt=0, order__user__in=userIds). \
             values_list('order__marketplace', flat=True).distinct())
     elif status_type == 'all_marketplaces':
-        marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(user=user.id, quantity__gt=0). \
+        marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(user__in=userIds, quantity__gt=0). \
                            values_list('marketplace', flat=True).distinct())
     else:
-        marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(status=1, user=user.id, quantity__gt=0). \
+        marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(status=1, user__in=userIds, quantity__gt=0). \
                            values_list('marketplace', flat=True).distinct())
     return marketplace
 
@@ -9310,6 +9372,85 @@ def check_and_create_supplier_wh_mapping(user, warehouse, supplier_id):
     return new_supplier_id
 
 
+def check_and_create_wh_supplier(retailUserObj, levelOneWarehouseObj):
+    new_supplier_id = None
+    userProfileObj = UserProfile.objects.filter(user=levelOneWarehouseObj)
+    if userProfileObj:
+        userProfileObj = userProfileObj[0]
+        master_mapping = MastersMapping.objects.filter(user=retailUserObj.id, master_id=userProfileObj.id,
+                                               mapping_type='warehouse_supplier_mapping')
+        if master_mapping:
+            new_supplier_id = master_mapping[0].mapping_id
+    else:
+        supplier_master = SupplierMaster.objects.get(id=levelOneWarehouseObj, user=retailUserObj.id)
+        if supplier_master:
+            # master_mapping = MastersMapping.objects.filter(user=retailUserObj.id, mapping_id=supplier_master.id,
+            #                                    mapping_type='warehouse_supplier_mapping')
+            new_supplier_id = supplier_master.id
+    
+    if not new_supplier_id:
+        phone_number = userProfileObj.phone_number or 0
+        new_supplier_id = create_new_supplier(retailUserObj, userProfileObj.user.first_name, userProfileObj.user.email,
+                                          userProfileObj.phone_number,
+                                        userProfileObj.address, userProfileObj.gst_number)
+        if new_supplier_id:
+            MastersMapping.objects.create(user=retailUserObj.id, master_id=userProfileObj.id, mapping_id=new_supplier_id,
+                                         mapping_type='warehouse_supplier_mapping')
+    return new_supplier_id
+
+
+def createSalesOrderAtLevelOneWarehouse(user, po_suggestions, order_id):
+    try:
+        mappingObj = MastersMapping.objects.filter(user=user.id, mapping_id=po_suggestions['supplier_id'])
+        levelOneWhId = int(mappingObj[0].master_id)
+        actUserId = UserProfile.objects.get(id=levelOneWhId).user.id
+        retailAddress = UserProfile.objects.get(user_id=user.id).address
+        # order_id = get_order_id(levelOneWhId)
+        order_code = get_order_prefix(actUserId)
+        org_ord_id = order_code + str(order_id)
+        quantity = po_suggestions['order_quantity']
+        customer_id = 0 #TODO Currently not creating LevelTwoWarehouses as Customers. So Taking 0 as customer Id
+        customer_name = user.username
+        shipment_date = po_suggestions['delivery_date']
+        sgst_tax = po_suggestions['sgst_tax']
+        cgst_tax = po_suggestions['cgst_tax']
+        igst_tax = po_suggestions['igst_tax']
+        tax_type = 'NA' #TODO
+        address = po_suggestions.get('ship_to', '') or retailAddress
+        unit_price = po_suggestions['price']
+        taxes = {}
+        taxes['cgst_tax'] = float(po_suggestions['cgst_tax'])
+        taxes['sgst_tax'] = float(po_suggestions['sgst_tax'])
+        taxes['igst_tax'] = float(po_suggestions['igst_tax'])
+        taxes['utgst_tax'] = float(po_suggestions['utgst_tax'])
+        invoice_amount = quantity * unit_price
+        invoice_amount = invoice_amount + ((invoice_amount / 100) * sum(taxes.values()))
+        sku_id = po_suggestions['sku_id']
+        from rest_api.views.outbound import get_syncedusers_mapped_sku
+        actSku = get_syncedusers_mapped_sku(actUserId, sku_id)
+        title = SKUMaster.objects.get(id=actSku).sku_desc
+        order_detail_dict = {'sku_id': actSku, 'title': title, 'quantity': quantity, 'order_id': order_id,
+                             'original_order_id': org_ord_id, 'user': actUserId, 'customer_id': customer_id,
+                             'customer_name': customer_name, 'shipment_date': shipment_date,
+                             'address': address, 'unit_price': unit_price, 'invoice_amount': invoice_amount,
+                             'creation_date': None, 'status':1, 'order_code': order_code, 'marketplace': 'Offline'}
+        ord_obj = OrderDetail.objects.filter(order_id=order_id, sku_id=sku_id, order_code=order_code)
+        if ord_obj:
+            ord_obj = ord_obj[0]
+            ord_obj.quantity = quantity
+            ord_obj.unit_price = unit_price
+            ord_obj.invoice_amount = invoice_amount
+            ord_obj.save()
+        else:
+            ord_obj = OrderDetail(**order_detail_dict)
+            ord_obj.save()
+
+        CustomerOrderSummary.objects.create(order=ord_obj, sgst_tax=sgst_tax,cgst_tax=cgst_tax,
+                                            igst_tax=igst_tax, tax_type=tax_type)
+    except Exception as e:
+        import traceback; print(traceback.format_exc())
+
+
 @get_admin_user
 def search_style_data(request, user=''):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
@@ -10089,6 +10230,7 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     sku_codes = [sku_codes]
     result_data = []
+    supplier_sku = []
     supplier_master = ""
     inter_state = 2
     edit_tax = False
@@ -10112,7 +10254,8 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
         taxes_data = []
         for tax_master in tax_masters:
             taxes_data.append(tax_master.json())
-        supplier_sku = SKUSupplier.objects.filter(sku_id=data.id, supplier_id=supplier_master[0].id)
+        if supplier_master:
+            supplier_sku = SKUSupplier.objects.filter(sku_id=data.id, supplier_id=supplier_master[0].id)
         mandate_sku_supplier = get_misc_value('mandate_sku_supplier', user.id)
         if not supplier_sku and ep_supplier and mandate_sku_supplier == "true":
             edit_tax = True
@@ -10144,4 +10287,15 @@ def get_value_for_misc_type(request, user=''):
     misc_type=request.GET.get('misc_type')
     misc_value = get_misc_value(misc_type, user.id)
     return HttpResponse(json.dumps({'selected_view': misc_value}))
+
+
+def get_distinct_price_types(user):
+    price_types1 = list(PriceMaster.objects.exclude(price_type__in=["", 'D1-R', 'R-C']).
+                       filter(sku__user=user.id).values_list('price_type', flat=True).
+                       distinct())
+    price_types2 = list(PriceMaster.objects.exclude(price_type__in=["", 'D1-R', 'R-C']).
+                       filter(user=user.id).values_list('price_type', flat=True).
+                       distinct())
+    price_types = list(chain(price_types1, price_types2))
+    return price_types
 

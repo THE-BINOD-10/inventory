@@ -7467,6 +7467,8 @@ def generate_order_po_data(request, user=''):
                 sku_price_details = get_supplier_sku_price_values(sku_supplier[0].supplier_id, sku_supplier[0].sku.sku_code, user)
                 if sku_price_details:
                     taxes = sku_price_details[0]['taxes']
+                    if taxes:
+                        taxes = taxes[0]
                 selected_item = {'id': sku_supplier[0].supplier_id, 'name': sku_supplier[0].supplier.name,
                                  'tax_type': sku_supplier[0].supplier.tax_type}
                 price = sku_supplier[0].price
@@ -7474,8 +7476,27 @@ def generate_order_po_data(request, user=''):
                 selected_item = supplier_list[1]
             data_dict.append({'order_id': data_id, 'wms_code': order_detail.sku.wms_code, 'title': order_detail.sku.sku_desc,
                               'quantity': product_qty, 'selected_item': selected_item, 'price': price,
-                              'taxes': taxes[0]})
+                              'taxes': taxes})
     return HttpResponse(json.dumps({'data_dict': data_dict, 'supplier_list': supplier_list}))
+
+@csrf_exempt
+@get_admin_user
+def backorder_supplier_data(request, user=''):
+    price = 0
+    request_dict = dict(request.POST.iterlists())
+    if request_dict:
+        supplier = request_dict['supplier_id'][0]
+        wms_code = request_dict['wms_code'][0]
+    sku_price_details = get_supplier_sku_price_values(supplier, wms_code, user)
+    sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, sku__user=user.id)
+    if sku_supplier:
+        price = sku_supplier[0].price
+    if sku_price_details:
+        taxes = sku_price_details[0]['taxes']
+        if taxes:
+            taxes = taxes[0]
+    return HttpResponse(json.dumps({'taxes': taxes, 'price':price}))
+
 
 @csrf_exempt
 @get_admin_user
@@ -8191,10 +8212,7 @@ def get_customer_master_id(request, user=''):
     if user.userprofile.warehouse_type == 'DIST':
         reseller_price_type = 'D-R'
 
-    price_types = list(PriceMaster.objects.exclude(price_type__in=["", 'D1-R', 'R-C']).
-                       filter(sku__user=admin_user.id).values_list('price_type', flat=True).
-                       distinct())
-
+    price_types = get_distinct_price_types(admin_user)
     return HttpResponse(json.dumps({'customer_id': customer_id, 'tax_data': TAX_VALUES, 'price_types': price_types,
                                     'level_2_price_type': level_2_price_type, 'price_type': reseller_price_type}))
 
@@ -11605,7 +11623,12 @@ def move_to_inv(request, user=''):
             marketplace = seller_summary[0].seller_order.order.marketplace
         else:
             marketplace = seller_summary[0].order.marketplace
-        invoice_sequence = get_invoice_sequence_obj(user, marketplace)
+        if user.userprofile.multi_level_system == 1:
+            admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
+            admin_user = User.objects.get(id=admin_user_id)
+            invoice_sequence = get_invoice_sequence_obj(admin_user, marketplace)
+        else:
+            invoice_sequence = get_invoice_sequence_obj(user, marketplace)
         if invoice_sequence:
             invoice_seq = invoice_sequence[0]
             inv_no = int(invoice_seq.value)

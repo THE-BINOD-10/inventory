@@ -51,9 +51,11 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     if (last && (!vm.model_data.data[index].sku_id)) {
       return false;
     }
-    var resultant = vm.sku_pack_quantity_check();
-    if (!resultant){
-      return false;
+    if (vm.permissions.sku_pack_config) {
+      var resultant = vm.sku_pack_quantity_check();
+      if (!resultant){
+        return false;
+      }
     }
     if (last) {
       vm.model_data.data.push({sku_id: "", quantity: "", invoice_amount: "", price: "", tax: vm.tax, total_amount: "", unit_price: "", discount: "", skuPackQuantity: ""});
@@ -117,18 +119,16 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     vm.model_data["address"] = "";
   }
   vm.sku_pack_quantity_check = function (){
-    if (vm.permissions.sku_pack_config) {
-      for (var j = 0; j < vm.model_data.data.length; j++) {
-        if (vm.model_data.data[j].skuPackQuantity) {
-          var response = vm.isFloat(vm.model_data.data[j].quantity/vm.model_data.data[j].skuPackQuantity)
-          if (response) {
-            colFilters.showNoty(vm.model_data.data[j].sku_id+' - Sku Pack Quantity Mismatch');
-            return false;
-          }
+    for (var j = 0; j < vm.model_data.data.length; j++) {
+      if (vm.model_data.data[j].skuPackQuantity) {
+        var response = vm.isFloat(vm.model_data.data[j].quantity/vm.model_data.data[j].skuPackQuantity)
+        if (response) {
+          colFilters.showNoty(vm.model_data.data[j].sku_id+' - Sku Pack Quantity Mismatch');
+          return false;
         }
       }
-      return true;
     }
+    return true;
   }
   vm.bt_disable = false;
   vm.insert_order_data = function(event, form, is_sample='') {
@@ -143,9 +143,11 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
             }
           }
         }
-        var resultant = vm.sku_pack_quantity_check();
-        if (!resultant){
-          return false;
+        if (vm.permissions.sku_pack_config) {
+          var resultant = vm.sku_pack_quantity_check();
+          if (!resultant){
+            return false;
+          }
         }
         if (vm.final_data.total_amount && vm.model_data.payment_received != ''){
           if (!(Math.round(vm.final_data.total_amount) <= parseInt(vm.model_data.payment_received)) ? true : false) {
@@ -1154,6 +1156,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
         }
         record["taxes"] = data.taxes;
         record["mrp"] = data.mrp;
+        record["discount_percentage"] = data.discount;
         record.invoice_amount = Number(record.price)*Number(record.quantity);
         record["priceRanges"] = data.price_bands_map;
         vm.cal_percentage(record);

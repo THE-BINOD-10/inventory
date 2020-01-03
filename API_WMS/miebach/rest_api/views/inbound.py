@@ -1083,6 +1083,7 @@ def switches(request, user=''):
                        'stop_default_tax':'stop_default_tax',
                        'delivery_challan_terms_condtions': 'delivery_challan_terms_condtions',
                        'order_prefix':'order_prefix',
+                       'show_mrp_grn': 'show_mrp_grn',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -3046,12 +3047,16 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
                     purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
                     purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent,
-                    purchase_data['apmc_tax'])
+                    purchase_data['apmc_tax'], purchase_data['sku'].mrp)
         else:
+            try:
+                mrp = myDict['mrp'][i]
+            except:
+                mrp = 0
             cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
                     purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
                     purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent,
-                    purchase_data['apmc_tax'],myDict['batch_no'][i])
+                    purchase_data['apmc_tax'],myDict['batch_no'][i], mrp)
 
 
         all_data.setdefault(cond, 0)
@@ -3280,11 +3285,24 @@ def confirm_grn(request, confirm_returns='', user=''):
             if entry_tax:
                 entry_price += (float(entry_price) / 100) * entry_tax
             if user.userprofile.industry_type == 'FMCG':
-                putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
-                                                  key[6], key[7], entry_price, key[8], key[9], key[12]))
+                # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
+                #                                   key[6], key[7], entry_price, key[8], key[9], key[12]))
+                putaway_data[headers].append({'wms_code': key[1], 'order_quantity': order_quantity_dict[key[0]],
+                                              'received_quantity': value, 'measurement_unit': key[2],
+                                               'price': key[3], 'cgst_tax': key[4], 'sgst_tax': key[5],
+                                               'igst_tax': key[6], 'utgst_tax': key[7], 'amount': entry_price,
+                                               'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': key[12],
+                                               'mrp': key[13]})
             else:
-                putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3],key[4], key[5],
-                                              key[6], key[7], entry_price, key[8], key[9], ''))
+                # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3],key[4], key[5],
+                #                               key[6], key[7], entry_price, key[8], key[9], ''))
+                putaway_data[headers].append({'wms_code': key[1], 'order_quantity': order_quantity_dict[key[0]],
+                                              'received_quantity': value,
+                                              'measurement_unit': key[2], 'price': key[3],
+                                              'cgst_tax': key[4], 'sgst_tax': key[5],
+                                              'igst_tax': key[6], 'utgst_tax': key[7], 'amount': entry_price,
+                                              'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': '',
+                                              'mrp': key[12]})
             total_order_qty += order_quantity_dict[key[0]]
             total_received_qty += value
             total_price += entry_price
@@ -3360,7 +3378,8 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'company_name': profile.company_name, 'company_address': profile.address,
                                 'po_number': po_number, 'bill_no': bill_no,
                                 'order_date': order_date, 'order_id': order_id,
-                                'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number, 'remarks':remarks}
+                                'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number,
+                                'remarks':remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)}
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')
@@ -3390,7 +3409,7 @@ def generate_grn_pagination(sku_list):
     sku_len = len(sku_list)
     sku_list1 = []
     for index, sku in enumerate(sku_list):
-        sku += (index+1,)
+        #sku += (index+1,)
         sku_list1.append(sku)
     sku_list = sku_list1
     t = sku_list[0]
@@ -6780,8 +6799,27 @@ def confirm_receive_qc(request, user=''):
             entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7] + float(key[9]) + float(key[11]))
             if entry_tax:
                 entry_price += (float(entry_price) / 100) * entry_tax
-            putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
-                                          key[6], key[7], entry_price, key[8], key[9]))
+            # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
+            #                               key[6], key[7], entry_price, key[8], key[9]))
+            if user.userprofile.industry_type == 'FMCG':
+                # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
+                #                                   key[6], key[7], entry_price, key[8], key[9], key[12]))
+                putaway_data[headers].append({'wms_code': key[1], 'order_quantity': order_quantity_dict[key[0]],
+                                              'received_quantity': value, 'measurement_unit': key[2],
+                                               'price': key[3], 'cgst_tax': key[4], 'sgst_tax': key[5],
+                                               'igst_tax': key[6], 'utgst_tax': key[7], 'amount': entry_price,
+                                               'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': key[12],
+                                               'mrp': key[13]})
+            else:
+                # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3],key[4], key[5],
+                #                               key[6], key[7], entry_price, key[8], key[9], ''))
+                putaway_data[headers].append({'wms_code': key[1], 'order_quantity': order_quantity_dict[key[0]],
+                                              'received_quantity': value,
+                                              'measurement_unit': key[2], 'price': key[3],
+                                              'cgst_tax': key[4], 'sgst_tax': key[5],
+                                              'igst_tax': key[6], 'utgst_tax': key[7], 'amount': entry_price,
+                                              'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': '',
+                                              'mrp': key[12]})
             total_order_qty += order_quantity_dict[key[0]]
             total_received_qty += value
             total_price += entry_price
@@ -6826,7 +6864,8 @@ def confirm_receive_qc(request, user=''):
                                 'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(
                                     data.order_id),
                                 'order_date': order_date, 'order_id': order_id,
-                                'btn_class': btn_class, 'bill_date': str(bill_date)}
+                                'btn_class': btn_class, 'bill_date': str(bill_date),
+                                'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)}
             if oneassist_condition == 'true' and 'main_sr_number' in myDict.keys():
                 report_data_dict['sr_number'] = myDict['main_sr_number'][0]
             misc_detail = get_misc_value('receive_po', user.id)

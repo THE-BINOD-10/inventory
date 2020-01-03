@@ -2300,6 +2300,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'brand_categorization':'brand_categorization',
                         'purchase_order_preview':'purchase_order_preview',
                         'stop_default_tax':'stop_default_tax',
+                        'show_mrp_grn': 'show_mrp_grn',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

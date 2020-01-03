@@ -1448,8 +1448,8 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 if cell_data:
                     if isinstance(cell_data, (int, float)):
                         cell_data = str(int(cell_data))
-                    if not len(cell_data) == 8:
-                        index_status.setdefault(row_idx, set()).add('HSN Code should be 8 digit')
+                    # if not len(cell_data) == 8:
+                    #     index_status.setdefault(row_idx, set()).add('HSN Code should be 8 digit')
 
             elif key == 'product_type':
                 if cell_data:

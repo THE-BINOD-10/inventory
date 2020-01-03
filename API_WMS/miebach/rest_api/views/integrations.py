@@ -2044,7 +2044,7 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
     cgst_tax, igst_tax, sgst_tax = 0,0,0
     for sister_wh1 in sister_whs1:
         sister_whs.append(str(sister_wh1).lower())
-    customer_name, customer_city, customer_telephone, customer_address, customer_pincode, shipping_address = '','','','',0,''
+    customer_name, customer_city, customer_telephone, customer_address, customer_pincode, shipping_address, customer_email = '','','','',0,'',''
     try:
         seller_master_dict, valid_order, query_params = {}, {}, {}
         failed_status = OrderedDict()
@@ -2110,6 +2110,7 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                         if customer_master:
                             customer_name = customer_master[0].name
                             customer_telephone = customer_master[0].phone_number
+                            customer_email= customer_master[0].email_id
                             customer_city = customer_master[0].city
                             customer_address = customer_master[0].address
                             customer_tax_type = customer_master[0].tax_type
@@ -2127,6 +2128,7 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                         break
                 order_details['customer_name'] =  customer_name
                 order_details['telephone'] = customer_telephone
+                order_detail['email_id'] = customer_email
                 order_details['city'] = customer_city
                 order_details['address'] = customer_address
                 order_details['pin_code'] = customer_pincode
@@ -2261,7 +2263,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
     sister_whs = []
     for sister_wh1 in sister_whs1:
         sister_whs.append(str(sister_wh1).lower())
-    customer_name, customer_city, customer_telephone, customer_address, customer_pincode, shipping_address = '','','','',0,''
+    customer_name, customer_city, customer_telephone, customer_address, customer_pincode, shipping_address, customer_email = '','','','',0,'',''
     try:
         seller_master_dict, valid_order, query_params = {}, {}, {}
         failed_status = OrderedDict()
@@ -2324,6 +2326,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         if customer_master:
                             customer_name = customer_master[0].name
                             customer_telephone = customer_master[0].phone_number
+                            customer_email= customer_master[0].email_id
                             customer_city = customer_master[0].city
                             customer_address = customer_master[0].address
                             customer_pincode = customer_master[0].pincode
@@ -2338,6 +2341,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         break
                 order_details['customer_name'] = order['billing_address'].get('name', customer_name)
                 order_details['telephone'] = order['billing_address'].get('phone_number', customer_telephone)
+                order_details['email_id'] = order['billing_address'].get('email', customer_email)
                 order_details['city'] = order['billing_address'].get('city', customer_city)
                 order_details['address'] = order['billing_address'].get('address', customer_address)
                 try:

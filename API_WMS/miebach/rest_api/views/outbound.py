@@ -7474,7 +7474,7 @@ def generate_order_po_data(request, user=''):
                     if supplier_sku.exists():
                         sku_supplier = supplier_sku
             if sku_supplier:
-                price, sku_price_details = calculate_price(sku_supplier, user)
+                price, sku_price_details = calculate_price(sku_supplier, sku_master, user)
                 if sku_price_details:
                     taxes = sku_price_details[0]['taxes']
                     if taxes:
@@ -7509,7 +7509,7 @@ def backorder_supplier_data(request, user=''):
             if supplier_sku.exists():
                 sku_supplier = supplier_sku
     if sku_supplier:
-        price, sku_price_details = calculate_price(sku_supplier, user)
+        price, sku_price_details = calculate_price(sku_supplier, sku_master,user)
         if sku_price_details:
             taxes = sku_price_details[0]['taxes']
             if taxes:
@@ -7517,10 +7517,9 @@ def backorder_supplier_data(request, user=''):
     return HttpResponse(json.dumps({'taxes': taxes, 'price':price}))
 
 
-def calculate_price(sku_supplier, user):
-    sku_data = SKUMaster.objects.filter(sku_code =sku_supplier[0].sku.sku_code, user=user.id)
-    sku_price_details = get_supplier_sku_price_values(sku_supplier[0].supplier_id, sku_supplier[0].sku.sku_code, user)
-    mrp_value = sku_data[0].mrp
+def calculate_price(sku_supplier, sku_master, user):
+    sku_price_details = get_supplier_sku_price_values(sku_supplier[0].supplier_id, sku_master.sku_code, user)
+    mrp_value = sku_master.mrp
     margin_percentage = sku_supplier[0].margin_percentage
     if sku_supplier[0].costing_type == 'Margin Based':
         prefill_unit_price = mrp_value - ((mrp_value * margin_percentage) / 100)

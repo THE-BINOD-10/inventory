@@ -46,7 +46,7 @@
                     <input type="hidden" name="wms_code" value="{{product.wms_code}}">
                     <input type="hidden" name="title" value="{{product.title}}">
                     <input type="hidden" ng-if="product.order_id" name="order_id" value="{{product.order_id}}">
-                    <select class="form-control" ng-model="product.selected_item.id" name="supplier_id" ng-required="true" ng-change="pop.change_supplier_data(form)">
+                    <select class="form-control" ng-model="product.selected_item.id" name="supplier_id" ng-required="true" ng-change="pop.change_supplier_data(form)" title="{{product.selected_item.id}}">
                       <option ng-repeat="supplier in pop.model_data.supplier_list" ng-selected="product.selected_item.id == supplier.id" value="{{supplier.id}}">{{supplier.name}}</option>
                     </select>
                   </td>

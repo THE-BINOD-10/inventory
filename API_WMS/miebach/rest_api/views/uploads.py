@@ -7977,7 +7977,6 @@ def validate_supplier_sku_attributes_form(open_sheet, user_id):
                     row_data['markup_percentage'] = cell_data
 
         final_data.append(row_data)
-
     if not index_status:
         return 'Success', final_data
 

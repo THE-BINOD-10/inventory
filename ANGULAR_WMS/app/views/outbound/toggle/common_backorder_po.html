@@ -23,6 +23,17 @@
             <div class="col-md-12">
               <hr>
             </div>
+            <div class="col-md-3 col-sm-3 col-xs-6">
+              <div class="form-group" ng-repeat="product in pop.model_data.data_dict">
+                <label for="po_reference" class="control-label"> <b>PO Reference</b></label>
+                <input class="form-control" ng-model="product.original_order_id" name= "po_reference" type="text">
+              </div>
+            </div>
+          </div>
+           <div class="row">
+            <div class="col-md-12">
+              <hr>
+            </div>
           </div>
           <div class="row">
             <table class="table">

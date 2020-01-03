@@ -40,6 +40,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'delivery_challan_terms_condtions': '',
                     'order_prefix': false,
                     'supplier_mapping':false,
+                    'show_mrp_grn': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -69,6 +70,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      96:'stop_default_tax', 97:'order_prefix',
                      98: 'delivery_challan_terms_condtions',
                      99: 'supplier_mapping',
+                     100: 'show_mrp_grn',
                      }
 
   vm.check_box_data = [
@@ -556,12 +558,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    display: true
   },
   {
-   name: "Supplier Mapping",
+   name: "Auto Supplier SKU Mapping",
    model_name: "supplier_mapping",
    param_no: 99,
    class_name: "fa fa-server",
    display: true
   }
+    name: "Show MRP in Goods Receipt Note",
+    model_name: "show_mrp_grn",
+    param_no: 100,
+    class_name: "fa fa-rupee",
+    display: true
+  },
 ]
 
   vm.empty = {};

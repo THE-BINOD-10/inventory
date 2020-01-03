@@ -27,12 +27,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
 
     vm.dtColumns = [
-        DTColumnBuilder.newColumn('supplier').withTitle('supplier'),
+        DTColumnBuilder.newColumn('id').withTitle('Id'),
+        DTColumnBuilder.newColumn('supplier_id').withTitle('supplier'),
         DTColumnBuilder.newColumn('attribute_type').withTitle('SKU Attribute Type'),
         DTColumnBuilder.newColumn('attribute_value').withTitle('SKU Attribute Value'),
-        DTColumnBuilder.newColumn('Price').withTitle('Price'),
+        DTColumnBuilder.newColumn('price').withTitle('Price'),
         DTColumnBuilder.newColumn('costing_type').withTitle('Costing Type'),
-        DTColumnBuilder.newColumn('margin_percentage').withTitle('MarkDown Percentage'),
+        DTColumnBuilder.newColumn('markdown_percentage').withTitle('MarkDown Percentage'),
         DTColumnBuilder.newColumn('markup_percentage').withTitle('Markup Percentage'),
     ];
 
@@ -45,8 +46,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.model_data['create_login'] = false;
                 angular.copy(aData, vm.model_data);
                 vm.update = true;
-                vm.title = "Update Warehouse SKU";
-                // $state.go('app.masters.sourceSKUMapping.wh_mapping');
+                vm.title = "Update Supplier SKU-Attribute Mapping";
+                $state.go('app.masters.sourceSKUMapping.sku_attributes');
             });
         });
         return nRow;
@@ -59,42 +60,62 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   /**************************************/
   vm.update = false;
-  var empty_data = {warehouse_name: "", wms_code: "", priority: "", moq: "", price: ""};
+  var empty_data = {supplier_id: "", attribute_type: "", attribute_value: "", price: "", costing_type: "", markdown_percentage: "", markup_percentage: ""};
   vm.model_data = {};
   angular.copy(empty_data, vm.model_data);
 
   //close popup
   vm.close = function() {
-
     angular.copy(empty_data, vm.model_data);
     $state.go('app.masters.sourceSKUMapping');
   }
 
   // open popup for new supplier sku mapping
-  vm.add = function() {
+  vm.get_sku_mrp = function(wms_code){
+    vm.service.apiCall('get_sku_mrp/','POST' ,{'wms_code':JSON.stringify(wms_code)}).then(function(data){
+      if(data.message)
+      {
+        vm.model_data.mrp = data.data['mrp'];
+      }
 
-    vm.title = "Add Warehouse SKU Mapping";
-    angular.copy(empty_data, vm.model_data);
-    vm.update = false;
-    get_warehouses();
-    $state.go('app.masters.sourceSKUMapping.wh_mapping');
+    })
   }
 
-  vm.submit = function(data) {
-
-    if (data.$valid) {
-      if ("Add Warehouse SKU Mapping" == vm.title) {
-        vm.warehouse_sku('insert_wh_mapping/');
+  vm.add = function() {
+    vm.title = "Add Supplier SKU-Attribute Mapping";
+    vm.update = false;
+    get_suppliers();
+    $state.go('app.masters.sourceSKUMapping.sku_attributes');
+  }
+  vm.submit = function() {
+    var valid = true;
+    if (!vm.model_data.supplier_id || !vm.model_data.attribute_type || !vm.model_data.attribute_value) {
+      valid = false;
+      vm.service.pop_msg("Please Fill * Mark Fields");
+    } else if (vm.model_data.costing_type == 'Price Based' && vm.model_data.price == '') {
+      valid = false;
+      vm.service.pop_msg("Price  is Mandatory For Price Based");
+    } else if (vm.model_data.costing_type == 'Margin Based' && vm.model_data.markdown_percentage == '') {
+      valid = false;
+      vm.service.pop_msg("MarkDown Percentage is Mandatory For Margin Based");
+    } else if (vm.model_data.costing_type == 'Markup Based' && vm.model_data.markup_percentage == '') {
+      valid = false;
+      vm.service.pop_msg("Markup Percentage is Mandatory For Markup Based");
+    }
+    if (valid) {
+      if ("Add Supplier SKU-Attribute Mapping" == vm.title) {
+        vm.model_data['api_type'] = 'insert';
+        vm.supplier_sku('insert_supplier_attribute/');
       } else {
-        vm.model_data['data-id'] = vm.model_data.DT_RowId;
-        vm.warehouse_sku('update_sku_warehouse_values/');
+        vm.model_data['api_type'] = 'update';
+        vm.model_data['id'] = vm.model_data.id;
+        vm.supplier_sku('insert_supplier_attribute/');
       }
     }
   }
 
-  // add or update warehouse sku mapping
-  vm.warehouse_sku = function(url) {
-
+  // add or update supplier sku mapping
+  vm.supplier_sku = function(url) {
     vm.service.apiCall(url, 'POST', vm.model_data, true).then(function(data){
       if(data.message) {
         if(data.data == "Updated Successfully" || data.data == "Added Successfully") {
@@ -107,18 +128,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
   }
 
-  // Get all warehouse list
-  vm.warehouse_list = [];
-  function get_warehouses() {
-    vm.service.apiCall('get_warehouse_list/').then(function(data){
+  // Get all supplier list
+  vm.supplier_list = [];
+  vm.attribute_type = ['Brand', 'Category']
+  vm.costing_type_list = ['Price Based', 'Margin Based','Markup Based'];
+  function get_suppliers() {
+    vm.service.apiCall('get_supplier_list/').then(function(data){
       if(data.message) {
         data = data.data;
         var list = [];
-        angular.forEach(data.warehouses, function(d){
-          list.push({"id": d.warehouse_id, "name": d.warehouse_name})
+        angular.forEach(data.suppliers, function(d){
+          list.push(d.id)
         });
-        vm.warehouse_list = list;
-        vm.model_data.warehouse_name = vm.warehouse_list[0].id;
+        vm.supplier_list = list;
+        vm.model_data.supplier_id = vm.supplier_list[0];
+        vm.costing_type_list = data.costing_type;
+        vm.model_data.costing_type = 'Price Based';
+        vm.model_data.attribute_type = 'Brand';
       }
     });
   }

@@ -1,0 +1,89 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt">
+    <div class="modal-dialog model-custom modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title">{{showCase.title}}</h4>
+        </div>
+        <div class="modal-body">
+          <!-- body -->
+          <div class="row">
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Supplier ID *</label>
+                <input ng-if="showCase.update" type="text" name="supplier_id" class="form-control" ng-model="showCase.model_data.supplier_id" ng-readonly="showCase.update">
+                <select ng-if="!(showCase.update)" class="form-control" ng-model="showCase.model_data.supplier_id" ng-options="supplier for supplier in showCase.supplier_list" required></select>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> SKU Attribute Type * </label>
+                <select class="form-control" name="costing_type" ng-model="showCase.model_data.attribute_type">
+                  <option ng-repeat="obj in showCase.attribute_type" value="{{obj}}" ng-selected="obj == showCase.model_data.attribute_type">{{obj}}</option>
+                </select>
+              </div>
+            </div>
+	          <div class="col-md-4 col-sm-6 col-xs-6">
+	            <div class="form-group">
+		            <label class="control-label"> SKU Attribute Value *</label>
+                <input type="text" autocomplete="off"
+                   name="sku_id" class="form-control"
+                   ng-if="showCase.model_data.attribute_type == 'Brand'"
+                   placeholder="Search Sku Brand"
+                   typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_sku_brands?')"
+                   typeahead-loading="WMSCodesLoading"
+                   ng-model="showCase.model_data.attribute_value">
+                <input type="text" autocomplete="off"
+                   ng-if="showCase.model_data.attribute_type == 'Category'"
+                   name="sku_id" class="form-control"
+                   placeholder="Search Sku Category"
+                   typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_sku_categorys?')"
+                   typeahead-loading="WMSCodesLoading"
+                   ng-model="showCase.model_data.attribute_value">
+	            </div>
+              <!-- typeahead-on-select = "showCase.get_sku_mrp(showCase.model_data.wms_code)" -->
+	          </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="col-md-5 control-label"> Price </label>
+              	<input type="text" name="price" class="form-control" ng-model="showCase.model_data.price" decimal-number>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Costing Type </label>
+                <select class="form-control" name="costing_type" ng-model="showCase.model_data.costing_type">
+                  <option ng-repeat="obj in showCase.costing_type_list" value="{{obj}}" ng-selected="obj == showCase.model_data.costing_type">{{obj}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="col-md-8 control-label"> Markdown Percentage </label>
+                <input type="number" min="0" max="100" name="markdown_percentage" class="form-control" ng-model="showCase.model_data.markdown_percentage" decimal-number>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="col-md-6 control-label"> Markup Percentage </label>
+                <input type="number" min="0" max="100" name="markup_percentage" class="form-control" ng-model="showCase.model_data.markup_percentage" decimal-number>
+              </div>
+            </div>
+        </div>
+          <div class="row insert-status">
+            <h4 style="text-align: center;">{{showCase.service.message}}</h4>
+          </div>
+          <!-- body end -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
+          <button type="submit" class="btn pop pop-green" ng-click="showCase.submit()" ng-disabled="process">
+            <span>Save</span>
+            <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+          </button>
+        </div>
+      </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+  </form>
+</div>

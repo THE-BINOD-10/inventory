@@ -2506,6 +2506,76 @@ def search_wms_codes(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def search_sku_brands(request, user=''):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    data_id = request.GET.get('q', '')
+    sku_type = request.GET.get('type', '')
+    extra_filter = {}
+    data_exact = sku_master.filter(Q(sku_brand__iexact=data_id) | Q(sku_desc__iexact=data_id), user=user.id).order_by(
+        'sku_brand')
+    exact_ids = list(data_exact.values_list('id', flat=True))
+    data = sku_master.exclude(id__in=exact_ids).filter(Q(sku_brand__icontains=data_id) | Q(sku_desc__icontains=data_id),
+                                                       user=user.id).order_by('sku_brand')
+    market_place_code = MarketplaceMapping.objects.filter(marketplace_code__icontains=data_id,
+                                                          sku__user=user.id).values_list('sku__sku_code',
+                                                                                         flat=True).distinct()
+    market_place_code = list(market_place_code)
+    data = list(chain(data_exact, data))
+    sku_brands = []
+    count = 0
+    if data:
+        for brand in data:
+            sku_brands.append(str(brand.sku_brand))
+            if len(sku_brands) >= 10:
+                break
+    if len(sku_brands) <= 10:
+        if market_place_code:
+            for marketplace in market_place_code:
+                if len(sku_brands) <= 10:
+                    if marketplace not in sku_brands:
+                        sku_brands.append(marketplace)
+                else:
+                    break
+    return HttpResponse(json.dumps(list(set(sku_brands))))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def search_sku_categorys(request, user=''):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    data_id = request.GET.get('q', '')
+    sku_type = request.GET.get('type', '')
+    extra_filter = {}
+    data_exact = sku_master.filter(Q(sku_category__iexact=data_id) | Q(sku_desc__iexact=data_id), user=user.id).order_by(
+        'sku_category')
+    exact_ids = list(data_exact.values_list('id', flat=True))
+    data = sku_master.exclude(id__in=exact_ids).filter(Q(sku_category__icontains=data_id) | Q(sku_desc__icontains=data_id),
+                                                       user=user.id).order_by('sku_category')
+    market_place_code = MarketplaceMapping.objects.filter(marketplace_code__icontains=data_id,
+                                                          sku__user=user.id).values_list('sku__sku_code',
+                                                                                         flat=True).distinct()
+    market_place_code = list(market_place_code)
+    data = list(chain(data_exact, data))
+    sku_categorys = []
+    count = 0
+    if data:
+        for category in data:
+            sku_categorys.append(str(category.sku_category))
+            if len(sku_categorys) >= 10:
+                break
+    if len(sku_categorys) <= 10:
+        if market_place_code:
+            for marketplace in market_place_code:
+                if len(sku_categorys) <= 10:
+                    if marketplace not in sku_categorys:
+                        sku_categorys.append(marketplace)
+                else:
+                    break
+    return HttpResponse(json.dumps(list(set(sku_categorys))))
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def search_batches(request, user=''):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     data_id = request.GET.get('q', '')
@@ -5888,6 +5958,9 @@ def get_purchase_order_data(order):
         sku = open_data.sku
         price = open_data.price
         mrp = open_data.mrp
+        user_profile = UserProfile.objects.get(user_id=sku.user)
+        if user_profile.user_type == 'warehouse_user':
+            mrp = sku.mrp
         unit = open_data.measurement_unit
         order_type = status_dict[order.open_po.order_type]
         supplier_code = open_data.supplier_code

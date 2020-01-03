@@ -1036,6 +1036,7 @@ def print_po_reports(request, user=''):
                         price = seller_summary_obj.price
                     else:
                         price=open_data.price
+
                     cgst_tax = open_data.cgst_tax
                     sgst_tax = open_data.sgst_tax
                     igst_tax = open_data.igst_tax
@@ -1046,8 +1047,12 @@ def print_po_reports(request, user=''):
                         cess_tax = seller_summary_obj.cess_tax
                     gst_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax + cess_tax + apmc_tax
                     discount = seller_summary_obj.discount_percent
+                    mrp = 0
+                    if user.userprofile.user_type == 'warehouse_user':
+                        mrp = open_data.sku.mrp
                     if seller_summary_obj.batch_detail:
                         price = seller_summary_obj.batch_detail.buy_price
+                        mrp = seller_summary_obj.batch_detail.mrp
                         temp_tax_percent = seller_summary_obj.batch_detail.tax_percent
                         if seller_summary_obj.purchase_order.open_po.supplier.tax_type == 'intra_state':
                             temp_tax_percent = temp_tax_percent / 2
@@ -1065,12 +1070,16 @@ def print_po_reports(request, user=''):
                         amount = amount - (amount * float(discount)/100)
                     if gst_tax:
                         amount += (amount / 100) * gst_tax
-                    grouped_data.setdefault(grouping_key, [open_data.sku.wms_code, open_data.order_quantity, 0,
-                                             open_data.measurement_unit,
-                                             price, cgst_tax, sgst_tax, igst_tax, utgst_tax,
-                                             0, open_data.sku.sku_desc])
-                    grouped_data[grouping_key][2] += quantity
-                    grouped_data[grouping_key][9] += amount
+                    grouped_data.setdefault(grouping_key, {'wms_code': open_data.sku.wms_code,
+                                                           'order_quantity': open_data.order_quantity,
+                                                           'received_quantity': 0,
+                                                           'measurement_unit': open_data.measurement_unit,
+                                                           'price': price, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax,
+                                                           'igst_tax': igst_tax, 'utgst_tax': utgst_tax,
+                                                           'amount': 0, 'sku_desc': open_data.sku.sku_desc,
+                                                           'mrp': mrp})
+                    grouped_data[grouping_key]['received_quantity'] += quantity
+                    grouped_data[grouping_key]['amount'] += amount
                     total += amount
                     total_qty += quantity
                     total_tax += gst_tax
@@ -1081,10 +1090,19 @@ def print_po_reports(request, user=''):
                 gst_tax = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax + open_data.apmc_tax
                 if gst_tax:
                     amount += (amount / 100) * gst_tax
-                po_data[headers].append((open_data.sku.wms_code, open_data.order_quantity, quantity,
-                                open_data.measurement_unit,
-                                open_data.price, open_data.cgst_tax, open_data.sgst_tax, open_data.igst_tax,
-                                open_data.utgst_tax, amount, open_data.sku.sku_desc))
+                mrp = open_data.mrp
+                if user.userprofile.user_type == 'warehouse_user':
+                    mrp = open_data.sku.mrp
+                # po_data[headers].append((open_data.sku.wms_code, open_data.order_quantity, quantity,
+                #                 open_data.measurement_unit,
+                #                 open_data.price, open_data.cgst_tax, open_data.sgst_tax, open_data.igst_tax,
+                #                 open_data.utgst_tax, amount, open_data.sku.sku_desc))
+                po_data[headers].append({'wms_code': open_data.sku.wms_code, 'order_quantity': open_data.order_quantity,
+                                         'received_quantity': quantity, 'measurement_unit': open_data.measurement_unit,
+                                         'price': open_data.price, 'cgst_tax': open_data.cgst_tax,
+                                         'sgst_tax': open_data.sgst_tax, 'igst_tax': open_data.igst_tax,
+                                         'utgst_tax': open_data.utgst_tax, 'amount': amount,
+                                         'sku_desc': open_data.sku.sku_desc, 'mrp': mrp})
                 total += amount
                 total_qty += quantity
                 total_tax += (open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax + open_data.cess_tax + open_data.apmc_tax)
@@ -1097,11 +1115,15 @@ def print_po_reports(request, user=''):
             gst_tax = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax
             if gst_tax:
                 amount += (amount / 100) * gst_tax
-
-            po_data[headers].append(
-                (open_data.sku.wms_code, open_data.order_quantity, data.quantity, open_data.measurement_unit,
-                 open_data.price, open_data.cgst_tax, open_data.sgst_tax, open_data.igst_tax,
-                 open_data.utgst_tax, amount, open_data.sku.sku_desc))
+            mrp = open_data.mrp
+            if user.userprofile.user_type == 'warehouse_user':
+                mrp = open_data.sku.mrp
+            po_data[headers].append({'wms_code': open_data.sku.wms_code, 'order_quantity': open_data.order_quantity,
+                                     'received_quantity': data.quantity, 'measurement_unit': open_data.measurement_unit,
+                                     'price': open_data.price, 'cgst_tax': open_data.cgst_tax, 'sgst_tax': open_data.sgst_tax,
+                                     'igst_tax': open_data.igst_tax, 'utgst_tax': open_data.utgst_tax,
+                                     'amount': amount, 'sku_desc': open_data.sku.sku_desc,
+                                     'mrp': mrp})
             total += amount
             total_qty += po_order.received_quantity
             receipt_type = data.seller_po.receipt_type
@@ -1161,7 +1183,8 @@ def print_po_reports(request, user=''):
                    'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,'overall_discount':overall_discount,
                    'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': int(total_tax),'net_amount':net_amount,
-                   'company_address': company_address, 'sr_number': sr_number, 'lr_number': lr_number, 'remarks': remarks})
+                   'company_address': company_address, 'sr_number': sr_number, 'lr_number': lr_number, 
+                   'remarks': remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)})
 
 
 @csrf_exempt

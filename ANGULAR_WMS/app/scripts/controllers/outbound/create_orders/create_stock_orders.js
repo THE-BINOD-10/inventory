@@ -5,6 +5,9 @@ function CreateStockOrders($scope, $http, $q, $state, Session, colFilters, Servi
   $scope.msg = "start";
   var vm = this;
   vm.service = Service;
+  vm.current_user = {[$scope.user.userName]: $scope.user.user_profile.state};
+  vm.tax_cg_sg = false;
+  vm.igst_enable = false;
   vm.model_data = {}
   var empty_data = {data: [{wms_code: "", order_quantity: "", price: "", capacity:0, tax_type: ""}], warehouse_name: ""};
   angular.copy(empty_data, vm.model_data);
@@ -58,13 +61,13 @@ vm.changeUnitPrice = function(data){
   vm.service.apiCall('get_warehouses_list/').then(function(data){
     if(data.message) {
       vm.warehouse_list = data.data.warehouses;
+      vm.warehouse_list_states = data.data.states;
     }
   })
   vm.bt_disable = false;
   vm.insert_order_data = function(data) {
     if (data.$valid) {
       vm.bt_disable = true;
-      console.log(form);
       var elem = angular.element(form);
       elem = $(elem).serializeArray();
       vm.service.apiCall('create_stock_transfer/', 'POST', elem).then(function(data){
@@ -97,7 +100,6 @@ vm.changeUnitPrice = function(data){
   }
 
   vm.get_sku_data = function(record, item, index) {
-
     record.sku_id = item.wms_code;
     angular.copy(empty_data.data[0], record);
     record.sku_id = item.wms_code;
@@ -113,13 +115,13 @@ vm.changeUnitPrice = function(data){
           if(!(record.price)) {
             record.price = data.mrp;
           }
-          if(data.igst_tax){
+          if(data.igst_tax && vm.igst_enable){
             record.igst = data.igst_tax;
           }
-          if(data.sgst_tax){
+          if(data.sgst_tax && vm.tax_cg_sg){
             record.sgst = data.sgst_tax;
           }
-          if(data.cgst_tax){
+          if(data.cgst_tax && vm.tax_cg_sg){
             record.cgst = data.cgst_tax;
           }
 
@@ -130,13 +132,20 @@ vm.changeUnitPrice = function(data){
       }
     })
   }
-
+  vm.verifyTax = function() {
+    if (vm.warehouse_list_states[vm.model_data.selected] == vm.current_user[Object.keys(vm.current_user)[0]]) {
+      vm.tax_cg_sg = true;
+      vm.igst_enable = false;
+    } else {
+      vm.tax_cg_sg = false;
+      vm.igst_enable = true;
+    }
+  }
   vm.get_customer_sku_prices = function(sku) {
 
     var d = $q.defer();
     var data = {sku_codes: sku}
     vm.service.apiCall("get_customer_sku_prices/", "POST", data).then(function(data) {
-
       if(data.message) {
         d.resolve(data.data);
       }

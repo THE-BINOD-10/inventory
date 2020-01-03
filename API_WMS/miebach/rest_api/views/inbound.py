@@ -394,7 +394,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         customer_data = OrderMapping.objects.filter(mapping_id=supplier.id, mapping_type='PO')
         customer_name = ''
         if customer_data:
-            customer_name = ''
+            customer_name = customer_data[0].order.customer_name
         else:
             if supplier_parent:
                 customer_name = supplier_parent.username
@@ -3243,6 +3243,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     total_order_qty = 0
     total_price = 0
     total_tax = 0
+    tax_value = 0
     pallet_number = ''
     is_putaway = ''
     purchase_data = ''
@@ -3370,9 +3371,13 @@ def confirm_grn(request, confirm_returns='', user=''):
                 overall_discount = float(request.POST['overall_discount'])
             except:
                 overall_discount = 0
+            if total_price:
+                tax_value = (total_price * total_tax)/(100 + total_tax)
+                tax_value = ("%.2f" % tax_value)
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
-                                'total_price': total_price, 'total_tax': total_tax,
+                                'total_price': total_price, 'total_tax': int(total_tax),
+                                'tax_value': tax_value,
                                 'overall_discount':overall_discount,
                                 'net_amount':float(total_price) - float(overall_discount),
                                 'address': address,'grn_extra_field_dict':grn_extra_field_dict,

@@ -7485,7 +7485,7 @@ def generate_order_po_data(request, user=''):
                 selected_item = supplier_list[1]
             data_dict.append({'order_id': data_id, 'wms_code': order_detail.sku.wms_code, 'title': order_detail.sku.sku_desc,
                               'quantity': product_qty, 'selected_item': selected_item, 'price': price,
-                              'taxes': taxes})
+                              'taxes': taxes, 'original_order_id':order_detail.original_order_id})
     return HttpResponse(json.dumps({'data_dict': data_dict, 'supplier_list': supplier_list}))
 
 @csrf_exempt

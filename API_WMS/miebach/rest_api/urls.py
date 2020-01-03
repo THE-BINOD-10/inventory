@@ -230,6 +230,7 @@ urlpatterns = [
     url(r'^print_rm_picklist/$', print_rm_picklist),
     url(r'^generate_rm_po_data/$', generate_rm_po_data),
     url(r'^confirm_back_order/$', confirm_back_order),
+    url(r'^backorder_supplier_data/$', backorder_supplier_data),
     url(r'^generate_rm_rwo_data/$', generate_rm_rwo_data),
     url(r'^save_rwo/$', save_rwo),
     url(r'^confirm_rwo/$', confirm_rwo),

@@ -3042,8 +3042,12 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                     invoice_seq.save()
             else:
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
-    invoice_number = get_full_invoice_number(user, order_no, order, invoice_date=invoice_date,
-                                             pick_number='')
+    if user.userprofile.multi_level_system == 1 and user.userprofile.warehouse_level == 1:
+        admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
+        admin_user = User.objects.get(id=admin_user_id)
+        invoice_number = get_full_invoice_number(admin_user, order_no, order, invoice_date=invoice_date, pick_number='')
+    else:
+        invoice_number = get_full_invoice_number(user, order_no, order, invoice_date=invoice_date, pick_number='')
     # if invoice_sequence:
     #     invoice_sequence = invoice_sequence[0]
     #     inv_num_lis = []
@@ -9996,6 +10000,7 @@ def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
 def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
     data = {}
     try:
+        sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
         if wms_code.isdigit():
             ean_number = wms_code
             sku_supplier = SKUSupplier.objects.filter(Q(sku__ean_number=wms_code) | Q(sku__wms_code=wms_code),
@@ -10003,7 +10008,15 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
         else:
             ean_number = ''
             sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, supplier_id=supplier_id, sku__user=user.id)
-        sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
+        if not sku_supplier:
+            attr_mapping = copy.deepcopy(SKU_NAME_FIELDS_MAPPING)
+            for attr_key, attr_val in attr_mapping.items():
+                supplier_sku = SKUSupplier.objects.filter(user=user.id,
+                                                          supplier_id=supplier_id,
+                                                          attribute_type=attr_key,
+                                                          attribute_value=getattr(sku_master, attr_val))
+                if supplier_sku.exists():
+                    sku_supplier = supplier_sku
         sup_markdown = SupplierMaster.objects.get(id=supplier_id)
         data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,'weight':'',
                 'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
@@ -10041,9 +10054,10 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
             else:
                 data['price'] = sku_supplier[0].price
             data['supplier_code'] = sku_supplier[0].supplier_code
-            data['sku'] = sku_supplier[0].sku.sku_code
             data['ean_number'] = ean_number
-            data['measurement_unit'] = sku_supplier[0].sku.measurement_type
+            if sku_supplier[0].sku is not None:
+                data['sku'] = sku_supplier[0].sku.sku_code
+                data['measurement_unit'] = sku_supplier[0].sku.measurement_type
         else:
             if int(sup_markdown.ep_supplier):
                 data['price'] = 0
@@ -10296,6 +10310,7 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     sku_codes = [sku_codes]
     result_data = []
+    supplier_sku = []
     supplier_master = ""
     inter_state = 2
     edit_tax = False
@@ -10319,7 +10334,8 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
         taxes_data = []
         for tax_master in tax_masters:
             taxes_data.append(tax_master.json())
-        supplier_sku = SKUSupplier.objects.filter(sku_id=data.id, supplier_id=supplier_master[0].id)
+        if supplier_master:
+            supplier_sku = SKUSupplier.objects.filter(sku_id=data.id, supplier_id=supplier_master[0].id)
         mandate_sku_supplier = get_misc_value('mandate_sku_supplier', user.id)
         if not supplier_sku and ep_supplier and mandate_sku_supplier == "true":
             edit_tax = True

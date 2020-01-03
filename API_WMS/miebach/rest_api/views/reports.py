@@ -954,7 +954,7 @@ def get_aging_filter_data(search_params, user, sub_user):
                         bundle = attribute.attribute_value
         ord_dict = OrderedDict((('SKU Code', data[0]), ('SKU Description', data[1]), ('SKU Category', data[2]),
                      ('SKU Sub Category', data[6]),('Sku Brand', data[7]),
-                     ('Location', data[4]), ('Quantity', temp[data]), ('As on Date(Days)', data[3]), ('Warehouse', warehouse_users.get(data[5]))))
+                     ('Location', data[4]), ('Quantity', temp[data]), ('As on Date(Days)', data[3]), ('Warehouse Name', warehouse_users.get(data[5]))))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             ord_dict['Manufacturer'] = manufacturer
             ord_dict['Searchable'] = searchable

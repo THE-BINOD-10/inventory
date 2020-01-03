@@ -946,6 +946,8 @@ def get_skus(request):
             limit = request_data['limit']
         if request_data.get('sku_code'):
             search_params['sku_code'] = request_data['sku_code']
+        if request_data.get('sku_brand'):
+            search_params['sku_brand'] = request_data['sku_brand']
         skus = request_data.get('sku_list', [])
         skus = map(lambda sku: str(sku), skus)
         if skus:

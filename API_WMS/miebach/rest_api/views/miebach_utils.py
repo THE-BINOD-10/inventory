@@ -3869,10 +3869,11 @@ def get_stock_summary_data(search_params, user, sub_user):
         for key, value in sku_stages_dict.iteritems():
             warehouse = 0
             stock_value = 0
-            if sku[6]:
-                warehouse = warehouse_users.get(sku[6])
-            if sku[8]:
-               stock_value = sku[8]
+            if len(list(sku)) >= 7:
+              if sku[6]:
+                  warehouse = warehouse_users.get(sku[6])
+              if sku[8]:
+                 stock_value = sku[8]
             ord_dict = OrderedDict((('SKU Code', sku[1]), ('Description', sku[2]),
                                                 ('Brand', sku[3]), ('Category', sku[4]),('SKU Sub Category', sku[5]),
                                                 ('Stage', key), ('Stage Quantity', value), ('Stock Value', stock_value),  ('Warehouse Name', warehouse)))

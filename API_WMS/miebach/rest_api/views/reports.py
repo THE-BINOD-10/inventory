@@ -1009,6 +1009,7 @@ def print_po_reports(request, user=''):
     total = 0
     total_qty = 0
     total_tax = 0
+    tax_value = 0
     overall_discount = 0
     for data in results:
         receipt_type = ''
@@ -1150,13 +1151,16 @@ def print_po_reports(request, user=''):
     #if receipt_type == 'Hosted Warehouse':
     #    title = 'Stock Transfer Note'
     net_amount = total - overall_discount
+    if total:
+        tax_value = (total * total_tax)/(100 + total_tax)
+        tax_value = ("%.2f" % tax_value)
     return render(request, 'templates/toggle/c_putaway_toggle.html',
                   {'table_headers': table_headers, 'data': po_data, 'data_slices': sku_slices, 'address': address,
                    'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date,
-                   'total_price': total, 'data_dict': data_dict, 'bill_no': bill_no,
+                   'total_price': total, 'data_dict': data_dict, 'bill_no': bill_no, 'tax_value':tax_value,
                    'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,'overall_discount':overall_discount,
-                   'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': total_tax,'net_amount':net_amount,
+                   'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': int(total_tax),'net_amount':net_amount,
                    'company_address': company_address, 'sr_number': sr_number, 'lr_number': lr_number, 'remarks': remarks})
 
 

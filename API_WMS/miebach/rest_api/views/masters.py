@@ -4448,7 +4448,7 @@ def delete_cluster_sku (request, user=''):
 
 @csrf_exempt
 def get_source_sku_attributes_mapping(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['supplier', 'attribute_type', 'attribute_value', 'price','costing_type','margin_percentage','markup_percentage']
+    lis = ['id', 'supplier', 'attribute_type', 'attribute_value', 'price','costing_type','margin_percentage','markup_percentage']
     order_data= lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -4468,9 +4468,46 @@ def get_source_sku_attributes_mapping(start_index, stop_index, temp_data, search
 
     for obj in master_data[start_index:stop_index]:
         temp_data['aaData'].append(OrderedDict((('attribute_type', obj.attribute_type),
-                                                       ('supplier', obj.supplier_id),
+                                                       ('id', obj.id),
+                                                       ('supplier_id', obj.supplier_id),
                                                        ('attribute_value', obj.attribute_value),
                                                        ('costing_type', obj.costing_type),
-                                                       ('margin_percentage', obj.margin_percentage),
+                                                       ('markdown_percentage', obj.margin_percentage),
                                                        ('markup_percentage', obj.markup_percentage),
-                                                       ('Price', obj.price))))
+                                                       ('price', obj.price))))
+
+@csrf_exempt
+@get_admin_user
+def insert_supplier_attribute(request, user=''):
+    attr_mapping = copy.deepcopy(SKU_NAME_FIELDS_MAPPING)
+    data_dict = OrderedDict()
+    for key, value in request.POST.iteritems():
+        if value and not (key == 'api_type' or key == 'id'):
+            if key == 'markdown_percentage':
+                data_dict['margin_percentage'] = value
+            else:
+                data_dict[key] = value
+    if request.POST['api_type'] == 'insert':
+        supplier_sku = SKUSupplier.objects.filter(user=user.id,
+                                            supplier_id=data_dict['supplier_id'],
+                                            attribute_type=data_dict['attribute_type'],
+                                            attribute_value=data_dict['attribute_value'])
+        if supplier_sku.exists():
+            data = "Sku-Attribute Mapping Already Available"
+        else:
+            sku_filter_dict = {'user': user.id,
+                                       attr_mapping[data_dict['attribute_type']]: data_dict['attribute_value']}
+            sku_master = SKUMaster.objects.filter(**sku_filter_dict)
+            if not sku_master.exists():
+                return HttpResponse('Sku Attribute Value Not Found')
+            data_dict['user'] = user.id
+            SKUSupplier.objects.create(**data_dict)
+            data = 'Added Successfully'
+    elif request.POST['api_type'] == 'update' and request.POST['id']:
+        supplier_sku = SKUSupplier.objects.filter(id=request.POST['id'], user=user.id)
+        if supplier_sku.exists():
+            supplier_sku.update(**data_dict)
+            data = 'Updated Successfully'
+    else:
+        data = 'Error Case'
+    return HttpResponse(data)

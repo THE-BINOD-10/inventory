@@ -7954,7 +7954,7 @@ def validate_supplier_sku_attributes_form(open_sheet, user_id):
                         else:
                             row_data['costing_type'] = cell_data
                     elif cell_data == 'Markup Based' :
-                        cell_data_markup = open_sheet.cell(row_idx, 8).value
+                        cell_data_markup = open_sheet.cell(row_idx, 6).value
                         if not cell_data_markup :
                             index_status.setdefault(row_idx, set()).add('Markup Percentage is Mandatory For Markup Based')
                         elif not isinstance(cell_data_markup, (int, float)):
@@ -7977,7 +7977,6 @@ def validate_supplier_sku_attributes_form(open_sheet, user_id):
                     row_data['markup_percentage'] = cell_data
 
         final_data.append(row_data)
-
     if not index_status:
         return 'Success', final_data
 

@@ -44,8 +44,8 @@ class Command(BaseCommand):
                                 use_cost_price=True, tax_type='', cess_tax=0):
             taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'cess_tax': 0}
             prices = {}
-            transact_id = batch_detail.transact_id
-            transact_type = batch_detail.transact_type
+            #transact_id = batch_detail.transact_id
+            #transact_type = batch_detail.transact_type
             cost_price = batch_detail.buy_price
             if use_cost_price:
                 price = batch_detail.buy_price
@@ -61,38 +61,18 @@ class Command(BaseCommand):
                                              ((prices['value_before_tax']/100)*(tax+cess_tax))
             if not use_cost_price and tax_type:
                 taxes['cess_tax'] = cess_tax
-                if tax_type == 'intra_state':
-                    taxes['cgst_tax'] = float(tax) / 2
-                    taxes['sgst_tax'] = float(tax) / 2
-                else:
-                    taxes['igst_tax'] = float(tax)
+                #if tax_type == 'intra_state':
+                #    taxes['cgst_tax'] = float(tax) / 2
+                #    taxes['sgst_tax'] = float(tax) / 2
+                #else:
+                taxes['igst_tax'] = float(tax)
                 return prices, taxes
-            if transact_type == 'po_loc':
-                po_loc = POLocation.objects.filter(id=transact_id, location__zone__user=user.id)
-                if po_loc.exists():
-                    open_po = po_loc[0].purchase_order.open_po
-                    if open_po:
-                        taxes['cess_tax'] = open_po.cess_tax
-                        if open_po.supplier.tax_type == 'intra_state':
-                            taxes['cgst_tax'] = float(tax)/2
-                            taxes['sgst_tax'] = float(tax)/2
-                        else:
-                            taxes['igst_tax'] = float(tax)
-            elif transact_type == 'po':
-                purchase_order = PurchaseOrder.objects.filter(id=transact_id, open_po__sku__user=user.id)
-                if purchase_order.exists():
-                    open_po = purchase_order[0].open_po
-                    if open_po:
-                        taxes['cgst_tax'] = open_po.cgst_tax
-                        taxes['sgst_tax'] = open_po.sgst_tax
-                        taxes['igst_tax'] = open_po.igst_tax
-                        taxes['cess_tax'] = open_po.cess_tax
             else:
-                if tax_type_dict.get(sku.id, '') == 'intra_state':
-                    taxes['cgst_tax'] = tax / 2
-                    taxes['sgst_tax'] = tax / 2
-                else:
-                    taxes['igst_tax'] = tax
+                #if tax_type_dict.get(sku.id, '') == 'intra_state':
+                #    taxes['cgst_tax'] = tax / 2
+                #    taxes['sgst_tax'] = tax / 2
+                #else:
+                taxes['igst_tax'] = tax
             return prices, taxes
 
 
@@ -183,6 +163,9 @@ class Command(BaseCommand):
                         picklist_obj = picklist_obj[0]
                         unit_price = picklist_obj.order.unit_price
                         cod = picklist_obj.order.customerordersummary_set.filter()
+                        #if picklist_obj.order_type == 'combo' and cod:
+                        #    discount_percentage = cod[0].discount/(picklist_obj.order.unit_price/100)
+                        #    unit_price = picklist_obj.stock.sku.price - float(round(picklist_obj.stock.sku.price/100))*discount
                         so = picklist_obj.order.sellerorder_set.filter()
                         if so.exists():
                             seller_id = int(so[0].seller.seller_id)
@@ -287,6 +270,8 @@ class Command(BaseCommand):
                     if stock.location.zone.zone not in ['DAMAGED_ZONE']:
                         prices, taxes = get_extra_data_info(batch_detail, stock.sku, stock.quantity,
                                                          tax_type_dict)
+                    else:
+                        taxes['igst_tax'] = tax
                     extra_data_key = (field_type, batch_detail.tax_percent)
                 taxes.update({'value_before_tax': 0, 'value_after_tax': 0, 'price_before_tax_values': [],
                               'price_before_tax_qtys': [], 'quantity': 0, 'field_type': field_type})

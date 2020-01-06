@@ -5888,6 +5888,9 @@ def get_purchase_order_data(order):
         sku = open_data.sku
         price = open_data.price
         mrp = open_data.mrp
+        user_profile = UserProfile.objects.get(user_id=sku.user)
+        if user_profile.user_type == 'warehouse_user':
+            mrp = sku.mrp
         unit = open_data.measurement_unit
         order_type = status_dict[order.open_po.order_type]
         supplier_code = open_data.supplier_code

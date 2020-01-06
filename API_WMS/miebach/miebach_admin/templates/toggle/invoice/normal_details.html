@@ -66,7 +66,7 @@
                            <strong>Vehicle Number: </strong>
                              {{ vehicle_number }}
                            <br>
-                           {% if marketplace|lower in 'sample' %}
+                           {% if dc_display|lower == 'true' %}
                            <strong>DC Number: </strong>
                              {{ challan_number }}
                            <br>

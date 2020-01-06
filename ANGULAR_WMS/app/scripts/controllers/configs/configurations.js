@@ -40,6 +40,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'delivery_challan_terms_condtions': '',
                     'order_prefix': false,
                     'show_mrp_grn': false,
+                    'display_dc_invoice':false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -68,7 +69,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      91: 'weight_integration_name', 92:'repeat_po', 93:'brand_categorization', 94:'loc_serial_mapping_switch', 95:'purchase_order_preview',
                      96:'stop_default_tax', 97:'order_prefix',
                      98: 'delivery_challan_terms_condtions',
-                     100: 'show_mrp_grn',
+                     100: 'show_mrp_grn', 101:'display_dc_invoice',
                      }
 
   vm.check_box_data = [
@@ -272,6 +273,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       name: "Display IMEI Numbers In Invoice",
       model_name: "show_imei_invoice",
       param_no: 39,
+      class_name: "fa fa-refresh",
+      display: true
+    },
+    {
+      name: "Display Delivery Challan In Invoice",
+      model_name: "display_dc_invoice",
+      param_no: 101,
       class_name: "fa fa-refresh",
       display: true
     },

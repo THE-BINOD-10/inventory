@@ -1084,6 +1084,7 @@ def switches(request, user=''):
                        'delivery_challan_terms_condtions': 'delivery_challan_terms_condtions',
                        'order_prefix':'order_prefix',
                        'show_mrp_grn': 'show_mrp_grn',
+                       'display_dc_invoice': 'display_dc_invoice',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

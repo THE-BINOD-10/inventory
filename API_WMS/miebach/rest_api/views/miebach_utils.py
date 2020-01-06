@@ -2136,7 +2136,7 @@ MP_CUSTOMER_INVOICE_HEADERS = ['UOR ID', 'SOR ID', 'Seller ID', 'Customer Name',
 
 WH_CUSTOMER_INVOICE_HEADERS = ['Order ID', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Order Date&Time',
                                'Total Amount']
-WH_CUSTOMER_INVOICE_HEADERS_TAB = ['Financial Year', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Order Date&Time', 'Total Amount']
+WH_CUSTOMER_INVOICE_HEADERS_TAB = ['Financial Year', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Invoice Date&Time', 'Total Amount']
 
 STOCK_TRANSFER_INVOICE_HEADERS = ['Stock Transfer ID', 'Warehouse Name', 'Picked Quantity', 'Stock Transfer Date&Time', 'Total Amount']
 
@@ -4691,11 +4691,11 @@ def get_order_summary_data(search_params, user, sub_user):
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     try:
-        temp_data['totalOrderQuantity'] = int(orders.aggregate(Sum('original_quantity'))['original_quantity__sum'])
+        temp_data['totalOrderQuantity'] = int(orders.values('id').distinct().aggregate(Sum('original_quantity', distinct=True))['original_quantity__sum'])
     except:
         temp_data['totalOrderQuantity'] = 0
     try:
-        temp_data['totalSellingPrice'] = int(orders.aggregate(Sum('invoice_amount'))['invoice_amount__sum'])
+        temp_data['totalSellingPrice'] = int(orders.values('id').distinct().aggregate(Sum('invoice_amount', distinct=True))['invoice_amount__sum'])
     except:
         temp_data['totalSellingPrice'] = 0
     try:

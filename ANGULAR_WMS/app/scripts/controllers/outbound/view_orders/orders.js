@@ -98,16 +98,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     }
 
-    vm.pop_buttons = false;
-    if (["OrderView", "CustomerOrderView"].indexOf(vm.g_data.view) != -1) {
-      vm.pop_buttons = true;
-    }
-
-    vm.datatable_sort_key = [0, 'asc']
-
-    if(vm.g_data.view == "CustomerOrderView"){
-      vm.datatable_sort_key = [7, 'desc']
-    }
 
     vm.get_data_table = function() {
     vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'special_key': JSON.stringify(vm.special_key)}
@@ -154,6 +144,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.selected[meta.row] = vm.selectAll;
         return vm.service.frontHtml + meta.row + vm.service.endHtml;
     }))
+    vm.pop_buttons = false;
+    if (["OrderView", "CustomerOrderView"].indexOf(vm.g_data.view) != -1) {
+      vm.pop_buttons = true;
+    }
+
+    vm.datatable_sort_key = [0, 'asc']
+
+    if(vm.g_data.view == "CustomerOrderView"){
+      vm.datatable_sort_key = [7, 'desc']
+    }
     }
     vm.get_data_table()
 

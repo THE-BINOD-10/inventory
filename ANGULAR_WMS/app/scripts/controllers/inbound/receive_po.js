@@ -209,7 +209,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       };
                     } else {
                       vm.extra_width = {
-                        'width': '900px'
+                        'width': '1100px'
                       };
                     }
                     vm.model_data.dc_level_grn = false;

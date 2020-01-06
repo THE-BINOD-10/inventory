@@ -277,7 +277,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
-      name: "Display Delivery Challan In Invoice",
+      name: "Display Delivery Challan Number In Invoice",
       model_name: "display_dc_invoice",
       param_no: 101,
       class_name: "fa fa-refresh",

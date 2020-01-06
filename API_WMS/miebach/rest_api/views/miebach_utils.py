@@ -4954,7 +4954,7 @@ def get_order_summary_data(search_params, user, sub_user):
 
         if not quantity:
             quantity = 0
-        invoice_amount_picked = "%.2f" % ((float(unit_price) * float(quantity)) + invoice_tax - discount)
+        invoice_amount_picked = "%.2f" % ((float(unit_price) * float(quantity)) + float(invoice_tax) - discount)
 
         order_extra_fields ={}
         for extra in extra_order_fields :

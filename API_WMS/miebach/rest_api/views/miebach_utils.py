@@ -4947,14 +4947,14 @@ def get_order_summary_data(search_params, user, sub_user):
         if not shipping_address :
             shipping_address = billing_address
 
-        if not quantity:
-            quantity = 0
-        invoice_amount_picked = "%.2f" % ((float(unit_price) * float(quantity)) + tax - discount)
-
         tax_percent = 0
         if float(taxable_amount):
             tax_percent = (tax * 100)/float(taxable_amount)
         invoice_tax = "%.2f" % (float(unit_price) * float(quantity)*(tax_percent/100))
+
+        if not quantity:
+            quantity = 0
+        invoice_amount_picked = "%.2f" % ((float(unit_price) * float(quantity)) + invoice_tax - discount)
 
         order_extra_fields ={}
         for extra in extra_order_fields :

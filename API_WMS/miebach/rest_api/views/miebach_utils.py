@@ -4904,6 +4904,9 @@ def get_order_summary_data(search_params, user, sub_user):
                 invoice_qty_filter['order_id'] = data['id']
                 if data['sellerordersummary__invoice_number']:
                     invoice_qty_filter['invoice_number'] = data['sellerordersummary__invoice_number']
+                else:
+                    invoice_qty_filter['invoice_number'] = ''
+                    invoice_date = ''
                 quantity = SellerOrderSummary.objects.filter(**invoice_qty_filter).aggregate(Sum('quantity'))['quantity__sum']
 
         try:

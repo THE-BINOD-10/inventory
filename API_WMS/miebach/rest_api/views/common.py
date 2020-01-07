@@ -3236,7 +3236,12 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             customer_address = dat.customer_name + '\n' + dat.address + "\nCall: " \
                                + dat.telephone + "\nEmail: " + dat.email_id
         if dat.address:
-            customer_details.append({'id' : dat.customer_id, 'name' : dat.customer_name, 'address' : dat.address, 'email_id':dat.email_id, 'phone_number':dat.telephone})
+            #customer_details.append({'id' : dat.customer_id, 'name' : dat.customer_name, 'address' : dat.address, 'email_id':dat.email_id, 'phone_number':dat.telephone})
+            customer_details[0]['id'] = dat.customer_id
+            customer_details[0]['name'] = dat.customer_name
+            customer_details[0]['address']= dat.address
+            customer_details[0]['email_id'] = dat.email_id
+            customer_details[0]['phone_number'] = dat.telephone
 
         picklist = Picklist.objects.filter(order_id__in=order_ids).order_by('-updation_date')
         if picklist:

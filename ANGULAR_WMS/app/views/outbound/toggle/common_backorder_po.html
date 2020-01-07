@@ -23,6 +23,17 @@
             <div class="col-md-12">
               <hr>
             </div>
+            <div class="col-md-3 col-sm-3 col-xs-6">
+              <div class="form-group">
+                <label for="po_reference" class="control-label"> <b>PO Reference</b></label>
+                <input class="form-control" ng-model="pop.model_data.data_dict[0].original_order_id" name= "po_reference" type="text">
+              </div>
+            </div>
+          </div>
+           <div class="row">
+            <div class="col-md-12">
+              <hr>
+            </div>
           </div>
           <div class="row">
             <table class="table">
@@ -46,7 +57,7 @@
                     <input type="hidden" name="wms_code" value="{{product.wms_code}}">
                     <input type="hidden" name="title" value="{{product.title}}">
                     <input type="hidden" ng-if="product.order_id" name="order_id" value="{{product.order_id}}">
-                    <select class="form-control" ng-model="product.selected_item.id" name="supplier_id" ng-required="true" ng-change="pop.change_supplier_data(form)">
+                    <select class="form-control" ng-model="product.selected_item.id" name="supplier_id" ng-required="true" ng-change="pop.change_supplier_data(form, $index)" title="{{product.selected_item.id}}">
                       <option ng-repeat="supplier in pop.model_data.supplier_list" ng-selected="product.selected_item.id == supplier.id" value="{{supplier.id}}">{{supplier.name}}</option>
                     </select>
                   </td>

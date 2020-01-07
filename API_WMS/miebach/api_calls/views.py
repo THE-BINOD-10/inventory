@@ -946,6 +946,8 @@ def get_skus(request):
             limit = request_data['limit']
         if request_data.get('sku_code'):
             search_params['sku_code'] = request_data['sku_code']
+        if request_data.get('sku_brand'):
+            search_params['sku_brand'] = request_data['sku_brand']
         skus = request_data.get('sku_list', [])
         skus = map(lambda sku: str(sku), skus)
         if skus:
@@ -1052,6 +1054,36 @@ def get_skufilters(request):
     if status['status'] == 400:
         status['message'] = 'Key error'
     return HttpResponse(json.dumps(status, cls=DjangoJSONEncoder))
+
+@csrf_exempt
+@login_required
+def get_warehouses(request):
+    status = {'status': 200,'message': 'Success','data':[]}
+    user = request.user
+    request_data = request.body
+    search_param={}
+    if request_data:
+        try:
+            request_data = json.loads(request_data)
+        except:
+            request_data = {}
+        search_param['user__userprofile__multi_level_system'] = 1
+        if request_data.get('level'):
+            search_param['user__userprofile__warehouse_level'] = request_data['level']
+        if request_data.get('warehouse_name'):
+            search_param['user__username'] = request_data['warehouse_name']
+        if request_data.get('warehouse_id'):
+            search_param['user_id'] = request_data['warehouse_id']
+    warehouse = get_sister_warehouse(user)
+    user_data = warehouse.filter(**search_param).values(warehouse_id=F('user_id'),warehouse_name=F('user__username'),
+                                                        level=F('user__userprofile__warehouse_level'),
+                                                        min_order_value=F('user__userprofile__min_order_val'),
+                                                        email=F('user__email'),
+                                                        city=F('user__userprofile__city'),
+                                                        zone=F('user__userprofile__zone'))
+    status['data'] = list(user_data)
+    return HttpResponse(json.dumps(status, cls=DjangoJSONEncoder))
+
 
 
 @csrf_exempt

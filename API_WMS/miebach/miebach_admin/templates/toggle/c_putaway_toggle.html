@@ -120,8 +120,8 @@ tr,td{
             <span class="pull-right">{{ total_price }}</span>
           </div>
           <div class="col-xs-6 text-left">
-            <span>TAXES:</span>
-            <span class="pull-right">{{ total_tax }}</span>
+            <span>TAX VALUE:</span>
+            <span class="pull-right">{{ tax_value }}</span>
           </div>
         </div>
         <div class="row m0">
@@ -152,9 +152,12 @@ tr,td{
           </div>
           <div class="col-xs-6 text-left">
           Total:
-            <span class="pull-right">{{ total_price }}</span>
-         OverallDiscount:
+            <span class="pull-right">{{ total_price }}</span></div>
+            <div class="col-xs-6 text-left"></div>
+        Overall Discount:
             <span class="pull-right">{{ overall_discount }}</span>
+            <div class="col-xs-6 text-left"></div>
+            <div class="col-xs-6 text-left">
            <h5> Net Amount:
             <span class="pull-right">{{net_amount }}</span></h5>
             </div>

@@ -4544,15 +4544,20 @@ def get_order_summary_data(search_params, user, sub_user):
     milkbasket_users = copy.deepcopy(MILKBASKET_USERS)
     if user.username in milkbasket_users :
         milkbasket_user = True
-
     lis = ['creation_date', 'order_id', 'customer_id','customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
            'sku__sku_size', 'sku__sku_desc', 'sku__sub_category', 'sku_code', 'sku_code', 'original_quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
            'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id','order_id',
-           'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','invoice_number', 'challan_number', 'quantity','creation_date'];
+           'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','invoice_number', 'challan_number', 'quantity','creation_date'];
     if milkbasket_user :
         lis.append('order_id')
     # lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
     temp_data = copy.deepcopy(AJAX_DATA)
+    extra_order_fields = get_misc_value('extra_order_fields', user.id)
+    if extra_order_fields == 'false':
+        extra_order_fields = []
+    else:
+        extra_order_fields = extra_order_fields.split(',')
+    lis+= ['order_id']*len(extra_order_fields)
     search_parameters = {}
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
@@ -4727,11 +4732,6 @@ def get_order_summary_data(search_params, user, sub_user):
         total_row['Searchable'] = ''
         total_row['Bundle'] = ''
     temp_data['aaData'].append(total_row)
-    extra_order_fields = get_misc_value('extra_order_fields', user.id)
-    if extra_order_fields == 'false' :
-        extra_order_fields = []
-    else:
-        extra_order_fields = extra_order_fields.split(',')
     order_extra_fields ={}
     for extra in extra_order_fields :
         order_extra_fields[extra] = ''

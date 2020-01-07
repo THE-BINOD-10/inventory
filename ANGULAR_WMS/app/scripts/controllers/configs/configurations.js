@@ -563,7 +563,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    param_no: 99,
    class_name: "fa fa-server",
    display: true
-  }
+  },
+  {
     name: "Show MRP in Goods Receipt Note",
     model_name: "show_mrp_grn",
     param_no: 100,

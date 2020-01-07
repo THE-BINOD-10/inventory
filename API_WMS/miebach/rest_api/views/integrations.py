@@ -1992,7 +1992,7 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                             order_summary_dict['discount'] = 0
                             if sku_item.get('discount_amount', 0):
                                 try:
-                                    order_summary_dict['discount'] = float(sku_item['discount_amount'])
+                                    order_summary_dict['discount'] = float(sku_item['discount_amount']) * order_details['quantity']
                                 except:
                                     order_summary_dict['discount'] = 0
                             if order_summary_dict['discount']:
@@ -2044,7 +2044,7 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
     cgst_tax, igst_tax, sgst_tax = 0,0,0
     for sister_wh1 in sister_whs1:
         sister_whs.append(str(sister_wh1).lower())
-    customer_name, customer_city, customer_telephone, customer_address, customer_pincode = '','','','',0
+    customer_name, customer_city, customer_telephone, customer_address, customer_pincode, shipping_address, customer_email = '','','','',0,'',''
     try:
         seller_master_dict, valid_order, query_params = {}, {}, {}
         failed_status = OrderedDict()
@@ -2110,6 +2110,7 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                         if customer_master:
                             customer_name = customer_master[0].name
                             customer_telephone = customer_master[0].phone_number
+                            customer_email= customer_master[0].email_id
                             customer_city = customer_master[0].city
                             customer_address = customer_master[0].address
                             customer_tax_type = customer_master[0].tax_type
@@ -2127,9 +2128,24 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                         break
                 order_details['customer_name'] =  customer_name
                 order_details['telephone'] = customer_telephone
+                order_detail['email_id'] = customer_email
                 order_details['city'] = customer_city
                 order_details['address'] = customer_address
                 order_details['pin_code'] = customer_pincode
+            if order.has_key('shipping_address'):
+                shipping_address = order['shipping_address'].get('name','') + '\n' + order['shipping_address'].get('address','')
+                if order['shipping_address'].get('city'):
+                    shipping_address += ("\n" + order['shipping_address'].get('city'))
+                if order['shipping_address'].get('state'):
+                    shipping_address += (", " + order['shipping_address'].get('state'))
+                if order['shipping_address'].get('country'):
+                    shipping_address += (", " + order['shipping_address'].get('country'))
+                if order['shipping_address'].get('pincode'):
+                    shipping_address += ("\nPincode: " + str(order['shipping_address'].get('pincode')))
+                if order['shipping_address'].get('email'):
+                    shipping_address += ("\nEmail: " + order['shipping_address'].get('email'))
+                if order['shipping_address'].get('phone_number'):
+                    shipping_address += ("\nPhone.No: " + str(order['shipping_address'].get('phone_number')))
 
             if order_code:
                 filter_params['order_code'] = order_code
@@ -2211,7 +2227,8 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                         order_summary_dict['sgst_tax'] = sgst_tax
                         order_summary_dict['igst_tax'] = igst_tax
                         order_summary_dict['utgst_tax'] = 0
-                        order_summary_dict['consignee'] = order_details['address']
+                        if shipping_address:
+                            order_summary_dict['consignee'] = shipping_address
                         order_summary_dict['invoice_date'] = order_details['creation_date']
                         order_summary_dict['inter_state'] = inter_state
                         order_summary_dict['mrp'] = sku_master[0].mrp
@@ -2246,7 +2263,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
     sister_whs = []
     for sister_wh1 in sister_whs1:
         sister_whs.append(str(sister_wh1).lower())
-    customer_name, customer_city, customer_telephone, customer_address, customer_pincode = '','','','',0
+    customer_name, customer_city, customer_telephone, customer_address, customer_pincode, shipping_address, customer_email = '','','','',0,'',''
     try:
         seller_master_dict, valid_order, query_params = {}, {}, {}
         failed_status = OrderedDict()
@@ -2280,6 +2297,9 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                 else:
                     error_message = 'Invalid Warehouse Name'
                     update_error_message(failed_status, 5024, error_message, original_order_id)
+            if order.has_key('order_reference'):
+                order_reference = str(order['order_reference'])
+                order_details['order_reference'] = order_reference
 
             if not order.get('order_id', ''):
                 generate_order_id = get_order_id(user.id)
@@ -2306,6 +2326,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         if customer_master:
                             customer_name = customer_master[0].name
                             customer_telephone = customer_master[0].phone_number
+                            customer_email= customer_master[0].email_id
                             customer_city = customer_master[0].city
                             customer_address = customer_master[0].address
                             customer_pincode = customer_master[0].pincode
@@ -2320,12 +2341,27 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         break
                 order_details['customer_name'] = order['billing_address'].get('name', customer_name)
                 order_details['telephone'] = order['billing_address'].get('phone_number', customer_telephone)
+                order_details['email_id'] = order['billing_address'].get('email', customer_email)
                 order_details['city'] = order['billing_address'].get('city', customer_city)
                 order_details['address'] = order['billing_address'].get('address', customer_address)
                 try:
                     order_details['pin_code'] = int(order['billing_address'].get('pincode', customer_pincode))
                 except:
                     order_details['pin_code'] = 0
+            if order.has_key('shipping_address'):
+                shipping_address = order['shipping_address'].get('name','') + '\n' + order['shipping_address'].get('address','')
+                if order['shipping_address'].get('city'):
+                    shipping_address += ("\n" + order['shipping_address'].get('city'))
+                if order['shipping_address'].get('state'):
+                    shipping_address += (", " + order['shipping_address'].get('state'))
+                if order['shipping_address'].get('country'):
+                    shipping_address += (", " + order['shipping_address'].get('country'))
+                if order['shipping_address'].get('pincode'):
+                    shipping_address += ("\nPincode: " + str(order['shipping_address'].get('pincode')))
+                if order['shipping_address'].get('email'):
+                    shipping_address += ("\nEmail: " + order['shipping_address'].get('email'))
+                if order['shipping_address'].get('phone_number'):
+                    shipping_address += ("\nPhone.No: " + str(order['shipping_address'].get('phone_number')))
             if order_code:
                 filter_params['order_code'] = order_code
             sku_items = order['items']
@@ -2445,7 +2481,8 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         order_summary_dict['sgst_tax'] = sgst_tax
                         order_summary_dict['igst_tax'] = igst_tax
                         order_summary_dict['utgst_tax'] = utgst_tax
-                        order_summary_dict['consignee'] = order_details['address']
+                        if shipping_address:
+                            order_summary_dict['consignee'] = shipping_address
                         order_summary_dict['invoice_date'] = order_details['creation_date']
                         order_summary_dict['inter_state'] = 0
                         order_summary_dict['mrp'] = sku_item.get('mrp', sku_master[0].mrp)

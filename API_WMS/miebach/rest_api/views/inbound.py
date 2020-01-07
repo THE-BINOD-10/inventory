@@ -394,7 +394,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         customer_data = OrderMapping.objects.filter(mapping_id=supplier.id, mapping_type='PO')
         customer_name = ''
         if customer_data:
-            customer_name = ''
+            customer_name = customer_data[0].order.customer_name
         else:
             if supplier_parent:
                 customer_name = supplier_parent.username
@@ -1083,6 +1083,9 @@ def switches(request, user=''):
                        'stop_default_tax':'stop_default_tax',
                        'delivery_challan_terms_condtions': 'delivery_challan_terms_condtions',
                        'order_prefix':'order_prefix',
+                       'supplier_mapping':'supplier_mapping',
+                       'show_mrp_grn': 'show_mrp_grn',
+                       'display_dc_invoice': 'display_dc_invoice',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -2925,6 +2928,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     created_qc_ids = {}
     mrp = 0
     supplier_id = request.POST['supplier_id']
+    supplier_mapping_off = get_misc_value('supplier_mapping', user.id)
     update_mrp_on_grn = get_misc_value('update_mrp_on_grn', user.id)
     remarks = request.POST.get('remarks', '')
     expected_date = request.POST.get('expected_date', '')
@@ -3046,12 +3050,16 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
                     purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
                     purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent,
-                    purchase_data['apmc_tax'])
+                    purchase_data['apmc_tax'], purchase_data['sku'].mrp)
         else:
+            try:
+                mrp = myDict['mrp'][i]
+            except:
+                mrp = 0
             cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
                     purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
                     purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent,
-                    purchase_data['apmc_tax'],myDict['batch_no'][i])
+                    purchase_data['apmc_tax'],myDict['batch_no'][i], mrp)
 
 
         all_data.setdefault(cond, 0)
@@ -3084,7 +3092,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
                 if sku_master:
-                    if not mandate_supplier == 'true':
+                    if not mandate_supplier == 'true' or supplier_mapping_off =='false':
                         supplier_code_mapping(request, myDict, i, data)
                 else:
                     if not status_msg:
@@ -3237,6 +3245,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     total_order_qty = 0
     total_price = 0
     total_tax = 0
+    tax_value = 0
     pallet_number = ''
     is_putaway = ''
     purchase_data = ''
@@ -3280,11 +3289,24 @@ def confirm_grn(request, confirm_returns='', user=''):
             if entry_tax:
                 entry_price += (float(entry_price) / 100) * entry_tax
             if user.userprofile.industry_type == 'FMCG':
-                putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
-                                                  key[6], key[7], entry_price, key[8], key[9], key[12]))
+                # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
+                #                                   key[6], key[7], entry_price, key[8], key[9], key[12]))
+                putaway_data[headers].append({'wms_code': key[1], 'order_quantity': order_quantity_dict[key[0]],
+                                              'received_quantity': value, 'measurement_unit': key[2],
+                                               'price': key[3], 'cgst_tax': key[4], 'sgst_tax': key[5],
+                                               'igst_tax': key[6], 'utgst_tax': key[7], 'amount': entry_price,
+                                               'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': key[12],
+                                               'mrp': key[13]})
             else:
-                putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3],key[4], key[5],
-                                              key[6], key[7], entry_price, key[8], key[9], ''))
+                # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3],key[4], key[5],
+                #                               key[6], key[7], entry_price, key[8], key[9], ''))
+                putaway_data[headers].append({'wms_code': key[1], 'order_quantity': order_quantity_dict[key[0]],
+                                              'received_quantity': value,
+                                              'measurement_unit': key[2], 'price': key[3],
+                                              'cgst_tax': key[4], 'sgst_tax': key[5],
+                                              'igst_tax': key[6], 'utgst_tax': key[7], 'amount': entry_price,
+                                              'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': '',
+                                              'mrp': key[12]})
             total_order_qty += order_quantity_dict[key[0]]
             total_received_qty += value
             total_price += entry_price
@@ -3351,16 +3373,21 @@ def confirm_grn(request, confirm_returns='', user=''):
                 overall_discount = float(request.POST['overall_discount'])
             except:
                 overall_discount = 0
+            if total_price:
+                tax_value = (total_price * total_tax)/(100 + total_tax)
+                tax_value = ("%.2f" % tax_value)
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
-                                'total_price': total_price, 'total_tax': total_tax,
+                                'total_price': total_price, 'total_tax': int(total_tax),
+                                'tax_value': tax_value,
                                 'overall_discount':overall_discount,
                                 'net_amount':float(total_price) - float(overall_discount),
                                 'address': address,'grn_extra_field_dict':grn_extra_field_dict,
                                 'company_name': profile.company_name, 'company_address': profile.address,
                                 'po_number': po_number, 'bill_no': bill_no,
                                 'order_date': order_date, 'order_id': order_id,
-                                'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number, 'remarks':remarks}
+                                'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number,
+                                'remarks':remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)}
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')
@@ -3390,7 +3417,7 @@ def generate_grn_pagination(sku_list):
     sku_len = len(sku_list)
     sku_list1 = []
     for index, sku in enumerate(sku_list):
-        sku += (index+1,)
+        #sku += (index+1,)
         sku_list1.append(sku)
     sku_list = sku_list1
     t = sku_list[0]
@@ -5181,6 +5208,7 @@ def confirm_add_po(request, sales_data='', user=''):
     data = copy.deepcopy(PO_DATA)
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+    supplier_mapping = get_misc_value('supplier_mapping', user.id)
     if not sales_data:
         po_id = get_purchase_order_id(user)
         if po_sub_user_prefix == 'true':
@@ -5258,26 +5286,27 @@ def confirm_add_po(request, sales_data='', user=''):
             if not mrp:
                 mrp = 0
 
-            if not 'supplier_code' in myDict.keys() and value['supplier_id']:
-                supplier = SKUSupplier.objects.filter(supplier_id=value['supplier_id'], sku__user=user.id)
-                if supplier:
-                    supplier_code = supplier[0].supplier_code
-            elif value['supplier_code']:
-                supplier_code = value['supplier_code']
-            supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=value['supplier_id'],
-                                                          sku__user=user.id)
-            sku_mapping = {'supplier_id': value['supplier_id'], 'sku': sku_id[0], 'preference': 1, 'moq': 0,
-                           'supplier_code': supplier_code, 'price': price, 'creation_date': datetime.datetime.now(),
-                           'updation_date': datetime.datetime.now()}
+            if supplier_mapping == 'false':
+                if not 'supplier_code' in myDict.keys() and value['supplier_id']:
+                    supplier = SKUSupplier.objects.filter(supplier_id=value['supplier_id'], sku__user=user.id)
+                    if supplier:
+                        supplier_code = supplier[0].supplier_code
+                elif value['supplier_code']:
+                    supplier_code = value['supplier_code']
+                supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=value['supplier_id'],
+                                                              sku__user=user.id)
+                sku_mapping = {'supplier_id': value['supplier_id'], 'sku': sku_id[0], 'preference': 1, 'moq': 0,
+                               'supplier_code': supplier_code, 'price': price, 'creation_date': datetime.datetime.now(),
+                               'updation_date': datetime.datetime.now()}
 
-            if supplier_mapping:
-                supplier_mapping = supplier_mapping[0]
-                if sku_mapping['supplier_code'] and supplier_mapping.supplier_code != sku_mapping['supplier_code']:
-                    supplier_mapping.supplier_code = sku_mapping['supplier_code']
-                    supplier_mapping.save()
-            else:
-                new_mapping = SKUSupplier(**sku_mapping)
-                new_mapping.save()
+                if supplier_mapping:
+                    supplier_mapping = supplier_mapping[0]
+                    if sku_mapping['supplier_code'] and supplier_mapping.supplier_code != sku_mapping['supplier_code']:
+                        supplier_mapping.supplier_code = sku_mapping['supplier_code']
+                        supplier_mapping.save()
+                else:
+                    new_mapping = SKUSupplier(**sku_mapping)
+                    new_mapping.save()
             po_suggestions['sku_id'] = sku_id[0].id
             po_suggestions['supplier_id'] = value['supplier_id']
             po_suggestions['order_quantity'] = value['order_quantity']
@@ -6780,8 +6809,27 @@ def confirm_receive_qc(request, user=''):
             entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7] + float(key[9]) + float(key[11]))
             if entry_tax:
                 entry_price += (float(entry_price) / 100) * entry_tax
-            putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
-                                          key[6], key[7], entry_price, key[8], key[9]))
+            # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
+            #                               key[6], key[7], entry_price, key[8], key[9]))
+            if user.userprofile.industry_type == 'FMCG':
+                # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
+                #                                   key[6], key[7], entry_price, key[8], key[9], key[12]))
+                putaway_data[headers].append({'wms_code': key[1], 'order_quantity': order_quantity_dict[key[0]],
+                                              'received_quantity': value, 'measurement_unit': key[2],
+                                               'price': key[3], 'cgst_tax': key[4], 'sgst_tax': key[5],
+                                               'igst_tax': key[6], 'utgst_tax': key[7], 'amount': entry_price,
+                                               'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': key[12],
+                                               'mrp': key[13]})
+            else:
+                # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3],key[4], key[5],
+                #                               key[6], key[7], entry_price, key[8], key[9], ''))
+                putaway_data[headers].append({'wms_code': key[1], 'order_quantity': order_quantity_dict[key[0]],
+                                              'received_quantity': value,
+                                              'measurement_unit': key[2], 'price': key[3],
+                                              'cgst_tax': key[4], 'sgst_tax': key[5],
+                                              'igst_tax': key[6], 'utgst_tax': key[7], 'amount': entry_price,
+                                              'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': '',
+                                              'mrp': key[12]})
             total_order_qty += order_quantity_dict[key[0]]
             total_received_qty += value
             total_price += entry_price
@@ -6826,7 +6874,8 @@ def confirm_receive_qc(request, user=''):
                                 'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(
                                     data.order_id),
                                 'order_date': order_date, 'order_id': order_id,
-                                'btn_class': btn_class, 'bill_date': str(bill_date)}
+                                'btn_class': btn_class, 'bill_date': str(bill_date),
+                                'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)}
             if oneassist_condition == 'true' and 'main_sr_number' in myDict.keys():
                 report_data_dict['sr_number'] = myDict['main_sr_number'][0]
             misc_detail = get_misc_value('receive_po', user.id)

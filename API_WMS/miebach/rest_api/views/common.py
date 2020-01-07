@@ -224,8 +224,7 @@ def add_user_permissions(request, response_data, user=''):
     parent_data['userId'] = user.id
     parent_data['userName'] = user.username
     admin_user = get_admin(user)
-    if admin_user.get_username().lower() == '72Networks'.lower():
-        parent_data['72networks'] = True
+    parent_data['parent_username'] = admin_user.get_username().lower()
     parent_data['logo'] = COMPANY_LOGO_PATHS.get(user.username, '')
     response_data['data']['userName'] = request.user.username
     response_data['data']['userId'] = request.user.id
@@ -540,7 +539,7 @@ data_datatable = {  # masters
     'TaxMaster': 'get_tax_master', 'NetworkMaster': 'get_network_master_results',\
     'StaffMaster': 'get_staff_master', 'CorporateMaster': 'get_corporate_master',\
     'WarehouseSKUMappingMaster': 'get_wh_sku_mapping', 'ClusterMaster': 'get_cluster_sku_results',
-    'ReplenushmentMaster':'get_replenushment_master',
+    'ReplenushmentMaster':'get_replenushment_master', 'supplierSKUAttributes': 'get_source_sku_attributes_mapping',
     'LocationMaster' :'get_zone_details','AttributePricingMaster': 'get_attribute_price_master_results',\
 
     # inbound
@@ -2506,6 +2505,76 @@ def search_wms_codes(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def search_sku_brands(request, user=''):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    data_id = request.GET.get('q', '')
+    sku_type = request.GET.get('type', '')
+    extra_filter = {}
+    data_exact = sku_master.filter(Q(sku_brand__iexact=data_id) | Q(sku_desc__iexact=data_id), user=user.id).order_by(
+        'sku_brand')
+    exact_ids = list(data_exact.values_list('id', flat=True))
+    data = sku_master.exclude(id__in=exact_ids).filter(Q(sku_brand__icontains=data_id) | Q(sku_desc__icontains=data_id),
+                                                       user=user.id).order_by('sku_brand')
+    market_place_code = MarketplaceMapping.objects.filter(marketplace_code__icontains=data_id,
+                                                          sku__user=user.id).values_list('sku__sku_code',
+                                                                                         flat=True).distinct()
+    market_place_code = list(market_place_code)
+    data = list(chain(data_exact, data))
+    sku_brands = []
+    count = 0
+    if data:
+        for brand in data:
+            sku_brands.append(str(brand.sku_brand))
+            if len(sku_brands) >= 10:
+                break
+    if len(sku_brands) <= 10:
+        if market_place_code:
+            for marketplace in market_place_code:
+                if len(sku_brands) <= 10:
+                    if marketplace not in sku_brands:
+                        sku_brands.append(marketplace)
+                else:
+                    break
+    return HttpResponse(json.dumps(list(set(sku_brands))))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def search_sku_categorys(request, user=''):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    data_id = request.GET.get('q', '')
+    sku_type = request.GET.get('type', '')
+    extra_filter = {}
+    data_exact = sku_master.filter(Q(sku_category__iexact=data_id) | Q(sku_desc__iexact=data_id), user=user.id).order_by(
+        'sku_category')
+    exact_ids = list(data_exact.values_list('id', flat=True))
+    data = sku_master.exclude(id__in=exact_ids).filter(Q(sku_category__icontains=data_id) | Q(sku_desc__icontains=data_id),
+                                                       user=user.id).order_by('sku_category')
+    market_place_code = MarketplaceMapping.objects.filter(marketplace_code__icontains=data_id,
+                                                          sku__user=user.id).values_list('sku__sku_code',
+                                                                                         flat=True).distinct()
+    market_place_code = list(market_place_code)
+    data = list(chain(data_exact, data))
+    sku_categorys = []
+    count = 0
+    if data:
+        for category in data:
+            sku_categorys.append(str(category.sku_category))
+            if len(sku_categorys) >= 10:
+                break
+    if len(sku_categorys) <= 10:
+        if market_place_code:
+            for marketplace in market_place_code:
+                if len(sku_categorys) <= 10:
+                    if marketplace not in sku_categorys:
+                        sku_categorys.append(marketplace)
+                else:
+                    break
+    return HttpResponse(json.dumps(list(set(sku_categorys))))
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def search_batches(request, user=''):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     data_id = request.GET.get('q', '')
@@ -2972,8 +3041,12 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                     invoice_seq.save()
             else:
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
-    invoice_number = get_full_invoice_number(user, order_no, order, invoice_date=invoice_date,
-                                             pick_number='')
+    if user.userprofile.multi_level_system == 1 and user.userprofile.warehouse_level == 1:
+        admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
+        admin_user = User.objects.get(id=admin_user_id)
+        invoice_number = get_full_invoice_number(admin_user, order_no, order, invoice_date=invoice_date, pick_number='')
+    else:
+        invoice_number = get_full_invoice_number(user, order_no, order, invoice_date=invoice_date, pick_number='')
     # if invoice_sequence:
     #     invoice_sequence = invoice_sequence[0]
     #     inv_num_lis = []
@@ -3161,8 +3234,13 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             dat = order_data[0]
             customer_address = dat.customer_name + '\n' + dat.address + "\nCall: " \
                                + dat.telephone + "\nEmail: " + dat.email_id
-        if not customer_details and dat.address:
-            customer_details.append({'id' : dat.customer_id, 'name' : dat.customer_name, 'address' : dat.address})
+        if dat.address:
+            #customer_details.append({'id' : dat.customer_id, 'name' : dat.customer_name, 'address' : dat.address, 'email_id':dat.email_id, 'phone_number':dat.telephone})
+            customer_details[0]['id'] = dat.customer_id
+            customer_details[0]['name'] = dat.customer_name
+            customer_details[0]['address']= dat.address
+            customer_details[0]['email_id'] = dat.email_id
+            customer_details[0]['phone_number'] = dat.telephone
 
         picklist = Picklist.objects.filter(order_id__in=order_ids).order_by('-updation_date')
         if picklist:
@@ -5884,6 +5962,9 @@ def get_purchase_order_data(order):
         sku = open_data.sku
         price = open_data.price
         mrp = open_data.mrp
+        user_profile = UserProfile.objects.get(user_id=sku.user)
+        if user_profile.user_type == 'warehouse_user':
+            mrp = sku.mrp
         unit = open_data.measurement_unit
         order_type = status_dict[order.open_po.order_type]
         supplier_code = open_data.supplier_code
@@ -9926,6 +10007,7 @@ def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
 def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
     data = {}
     try:
+        sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
         if wms_code.isdigit():
             ean_number = wms_code
             sku_supplier = SKUSupplier.objects.filter(Q(sku__ean_number=wms_code) | Q(sku__wms_code=wms_code),
@@ -9933,7 +10015,15 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
         else:
             ean_number = ''
             sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, supplier_id=supplier_id, sku__user=user.id)
-        sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
+        if not sku_supplier:
+            attr_mapping = copy.deepcopy(SKU_NAME_FIELDS_MAPPING)
+            for attr_key, attr_val in attr_mapping.items():
+                supplier_sku = SKUSupplier.objects.filter(user=user.id,
+                                                          supplier_id=supplier_id,
+                                                          attribute_type=attr_key,
+                                                          attribute_value=getattr(sku_master, attr_val))
+                if supplier_sku.exists():
+                    sku_supplier = supplier_sku
         sup_markdown = SupplierMaster.objects.get(id=supplier_id)
         data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,'weight':'',
                 'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
@@ -9971,9 +10061,10 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
             else:
                 data['price'] = sku_supplier[0].price
             data['supplier_code'] = sku_supplier[0].supplier_code
-            data['sku'] = sku_supplier[0].sku.sku_code
             data['ean_number'] = ean_number
-            data['measurement_unit'] = sku_supplier[0].sku.measurement_type
+            if sku_supplier[0].sku is not None:
+                data['sku'] = sku_supplier[0].sku.sku_code
+                data['measurement_unit'] = sku_supplier[0].sku.measurement_type
         else:
             if int(sup_markdown.ep_supplier):
                 data['price'] = 0

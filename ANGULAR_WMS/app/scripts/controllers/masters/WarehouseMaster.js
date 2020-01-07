@@ -7,6 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
+    vm.warehouse_type = Session.user_profile.warehouse_type;
     vm.filters = {'datatable': 'WarehouseMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {

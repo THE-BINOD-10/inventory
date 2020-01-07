@@ -2801,6 +2801,7 @@ def confirm_back_order(request, user=''):
             open_po_dict['cgst_tax'] = val[8]
             open_po_dict['igst_tax'] = val[9]
             open_po_dict['utgst_tax'] = val[10]
+            open_po_dict['po_name'] = data_dict['po_reference'][0]
             if data_dict.get('vendor_id', '') and data_dict['vendor_id'][0]:
                 vendor_master = VendorMaster.objects.filter(vendor_id=data_dict['vendor_id'][0], user=user.id)
                 open_po_dict['vendor_id'] = vendor_master[0].id

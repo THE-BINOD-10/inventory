@@ -42,16 +42,16 @@ function BackorderPOPOP($scope, $http, $state, $timeout, Session, colFilters, Se
     vm.getPoData(vm.state_data.data);
   }
 
-  vm.change_supplier_data = function(form){
+  vm.change_supplier_data = function(form, index){
     if(form.$invalid) {
         return false;
       }
-      var elem = $("form:visible").serializeArray();
+      var elem = vm.model_data.data_dict[index];
       Service.apiCall("backorder_supplier_data/", "POST", elem, true).then(function(data){
         if(data.message){
           if(data.data.taxes){
-            vm.model_data.data_dict[0].taxes = data.data.taxes;
-            vm.model_data.data_dict[0].price = data.data.price;
+            vm.model_data.data_dict[index].taxes = data.data.taxes;
+            vm.model_data.data_dict[index].price = data.data.price;
           }
         };
 

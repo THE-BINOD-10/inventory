@@ -263,9 +263,12 @@ class SupplierMaster(models.Model):
 
 class SKUSupplier(models.Model):
     id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField(default=0)
+    attribute_type = models.CharField(max_length=64, default='')
+    attribute_value = models.CharField(max_length=64, default='')
     supplier = models.ForeignKey(SupplierMaster)
     supplier_type = models.CharField(max_length=32)
-    sku = models.ForeignKey(SKUMaster)
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
     preference = models.CharField(max_length=32)
     moq = models.FloatField(default=0)
     supplier_reference = models.CharField(max_length=256, default='')

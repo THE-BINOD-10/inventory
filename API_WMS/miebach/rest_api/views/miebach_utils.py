@@ -309,6 +309,8 @@ RETURN_DATA_FIELDS = ['sales-check', 'order_id', 'sku_code', 'customer_id', 'shi
 
 SUPPLIER_SKU_HEADERS = ['Supplier Id', 'WMS Code', 'Supplier Code', 'Preference', 'MOQ', 'Price', 'Costing Type (Price Based/Margin Based/Markup Based)', 'MarkDown Percentage','Markup Percentage']
 
+SUPPLIER_SKU_ATTRIBUTE_HEADERS = ['Supplier Id', 'SKU Attribute Type(Brand, Category)', 'SKU Attribute Value', 'Price', 'Costing Type (Price Based/Margin Based/Markup Based)', 'MarkDown Percentage','Markup Percentage']
+
 MARKETPLACE_SKU_HEADERS = ['WMS Code', 'Flipkart SKU', 'Snapdeal SKU', 'Paytm SKU', 'Amazon SKU', 'HomeShop18 SKU',
                            'Jabong SKU', 'Indiatimes SKU', 'Flipkart Description', 'Snapdeal Description',
                            'Paytm Description', 'HomeShop18 Description', 'Jabong Description',
@@ -456,12 +458,12 @@ ORDER_SUMMARY_DICT = {
                 {'label': 'Status', 'name': 'order_report_status', 'type': 'select'},
                 {'label': 'Order ID', 'name': 'order_id', 'type': 'input'}],
     'dt_headers': ['Order Date','Order ID', 'Customer ID','Customer Name', 'SKU Brand', 'SKU Category', 'SKU Sub Category', 'SKU Class', 'SKU Size',
-                   'SKU Description', 'SKU Code', 'Vehicle Number', 'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Tax', 'Taxable Amount', 'City',
-                   'State', 'Marketplace', 'Invoice Amount', 'Status', 'Order Status', 'Remarks','Customer GST Number','Payment Type','Reference Number', 'Advance Amount'],
+                   'SKU Description', 'SKU Code', 'Vehicle Number', 'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Tax', 'Taxable Amount','Tax Percent', 'City',
+                   'State', 'Marketplace', 'Order Amount','Status', 'Order Status', 'Remarks','Customer GST Number','Payment Type','Reference Number', 'Advance Amount', 'HSN Code'],
     'mk_dt_headers': ['Order Date','Order ID', 'Customer Name', 'SKU Brand', 'SKU Category', 'SKU Sub Category', 'SKU Class', 'SKU Size',
                    'SKU Description', 'SKU Code', 'Manufacturer', 'Searchable', 'Bundle',
                     'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Tax', 'Taxable Amount', 'City',
-                   'State', 'Marketplace', 'Invoice Amount', 'Status', 'Order Status', 'Remarks','Customer GST Number','Payment Type','Reference Number'],
+                   'State', 'Marketplace', 'Order Amount','Status', 'Order Status', 'Remarks','Customer GST Number','Payment Type','Reference Number'],
     'dt_url': 'get_order_summary_filter', 'excel_name': 'order_summary_report',
     'print_url': 'print_order_summary_report',
     }
@@ -969,17 +971,24 @@ FINANCIAL_REPORT_DICT =  {
       {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
       {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
   ],
-  'dt_headers': ['SKU Code','SKU NAME','Category', 'Sub Category', 'SKU Brand','Manufacturer','Searchable','Bundle', 'City','Hub','Vendor Name','HSN Code','Weight', 'MRP', 'GST No',
-  'IGST Tax Rate','CESS Rate','Opening Qty','Opening Price Per Unit( Before Taxes)','Opening Value before Tax', 'Opening CGST', 'Opening SGST',
-  'Opening IGST', 'Opening CESS', 'Opening Value after Tax', 'Purchase Qty', 'Purchase Price Per Unit(Before Taxes)','Purchase Value before Tax',
-  'Purchase CGST', 'Purchase SGST','Purchase IGST', 'Purchase CESS', 'Purchase Value after Tax', 'Purchase Return Qty', 'Purchase Return Price Per Unit(Before Taxes)','Purchase Return Value before Tax',
-  'Purchase Return CGST', 'Purchase Return SGST','Purchase Return IGST', 'Purchase Return CESS', 'Purchase Return Value after Tax',
-  'Sale to Drsc Qty','Sale to Drsc Price Per Unit( Before Taxes)','Sale to Drsc Value before Tax', 'Sale to Drsc CGST', 'Sale to Drsc SGST',
-  'Sale to Drsc IGST', 'Sale to Drsc CESS', 'Sale to Drsc Value after Tax', 'Sale to othr Qty','Sale to othr Price Per Unit( Before Taxes)','Sale to othr Value before Tax',
-  'Sale to othr CGST', 'Sale to othr SGST','Sale to othr IGST', 'Sale to othr CESS', 'Sale to othr Value after Tax', 'Stock Transfers Qty','Stock Transfers Price Per Unit(Before Taxes)','Stock Transfers Value before Tax', 'Stock Transfers CGST', 'Stock Transfers SGST',
-  'Stock Transfers IGST', 'Stock Transfers CESS', 'Stock Transfers Value after Tax', 'Sale Return Qty', 'Sale Return Price Per Unit(Before Taxes)','Sale Return Value before Tax',
-  'Sale Return CGST', 'Sale Return SGST','Sale Return IGST', 'Sale Return CESS', 'Sale Return Value after Tax','Closing Qty', 'Closing Price Per Unit(Before Taxes)','Closing Value before Tax',
-  'Closing CGST', 'Closing SGST','Closing IGST', 'Closing CESS', 'Closing Value after Tax','Physical Qty', 'Adjustment Qty',
+  'dt_headers': ['SKU Code','SKU NAME','Category', 'Sub Category', 'SKU Brand','Manufacturer','Searchable','Bundle', 'City',
+                 'Hub','Vendor Name','HSN Code','Weight', 'MRP', 'GST No', 'IGST Tax Rate','CESS Rate','Opening Qty',
+                 'Opening Price Per Unit( Before Taxes)','Opening Value before Tax', 'Opening Tax', 'Opening CESS',
+                 'Opening Value after Tax', 'Purchase Qty', 'Purchase Price Per Unit(Before Taxes)','Purchase Value before Tax',
+                 'Purchase Tax', 'Purchase CESS', 'Purchase Value after Tax', 'Purchase Return Qty',
+                 'Purchase Return Price Per Unit(Before Taxes)','Purchase Return Value before Tax',
+                 'Purchase Return Tax', 'Purchase Return CESS',
+                 'Purchase Return Value after Tax', 'Sale to Drsc Qty','Sale to Drsc Price Per Unit( Before Taxes)',
+                 'Sale to Drsc Value before Tax', 'Sale to Drsc Tax', 'Sale to Drsc CESS',
+                 'Sale to Drsc Value after Tax', 'Sale to othr Qty','Sale to othr Price Per Unit( Before Taxes)',
+                 'Sale to othr Value before Tax', 'Sale to othr Tax', 'Sale to othr CESS',
+                 'Sale to othr Value after Tax', 'Stock Transfers Qty','Stock Transfers Price Per Unit(Before Taxes)',
+                 'Stock Transfers Value before Tax', 'Stock Transfers Tax', 'Stock Transfers CESS',
+                 'Stock Transfers Value after Tax', 'Sale Return Qty',
+                 'Sale Return Price Per Unit(Before Taxes)','Sale Return Value before Tax',
+                 'Sale Return Tax', 'Sale Return CESS', 'Sale Return Value after Tax',
+                 'Closing Qty', 'Closing Price Per Unit(Before Taxes)','Closing Value before Tax',
+                 'Closing Tax', 'Closing CESS', 'Closing Value after Tax','Physical Qty', 'Adjustment Qty',
                  'Adjustment Price Per Unit(Before Taxes)', 'Adjustment Value', 'Margin', 'Margin Percentage'],
   'dt_url': 'get_financial_report', 'excel_name': 'get_financial_report',
   'print_url': 'print_financial_report',
@@ -2133,7 +2142,7 @@ MP_CUSTOMER_INVOICE_HEADERS = ['UOR ID', 'SOR ID', 'Seller ID', 'Customer Name',
 
 WH_CUSTOMER_INVOICE_HEADERS = ['Order ID', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Order Date&Time',
                                'Total Amount']
-WH_CUSTOMER_INVOICE_HEADERS_TAB = ['Financial Year', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Order Date&Time', 'Total Amount']
+WH_CUSTOMER_INVOICE_HEADERS_TAB = ['Financial Year', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Invoice Date&Time', 'Total Amount']
 
 STOCK_TRANSFER_INVOICE_HEADERS = ['Stock Transfer ID', 'Warehouse Name', 'Picked Quantity', 'Stock Transfer Date&Time', 'Total Amount']
 
@@ -2297,6 +2306,9 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'brand_categorization':'brand_categorization',
                         'purchase_order_preview':'purchase_order_preview',
                         'stop_default_tax':'stop_default_tax',
+                        'supplier_mapping':'supplier_mapping',
+                        'show_mrp_grn': 'show_mrp_grn',
+                        'display_dc_invoice': 'display_dc_invoice',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -3793,7 +3805,7 @@ def get_stock_summary_data(search_params, user, sub_user):
     search_parameters['sku_id__in'] = sku_master_ids
     sku_master = StockDetail.objects.exclude(receipt_number=0).values_list('sku_id', 'sku__sku_code', 'sku__sku_desc',
                                                                            'sku__sku_brand',
-                                                                           'sku__sku_category', 
+                                                                           'sku__sku_category',
                                                                            'sku__sub_category','sku__user').distinct().annotate(
         total=Sum('quantity'), stock_value=Sum(F('quantity') * F('sku__cost_price'))).filter(quantity__gt=0,
                                       **search_parameters)
@@ -3863,10 +3875,11 @@ def get_stock_summary_data(search_params, user, sub_user):
         for key, value in sku_stages_dict.iteritems():
             warehouse = 0
             stock_value = 0
-            if sku[6]:
-                warehouse = warehouse_users.get(sku[6])
-            if sku[8]:
-               stock_value = sku[8]
+            if len(list(sku)) >= 7:
+              if sku[6]:
+                  warehouse = warehouse_users.get(sku[6])
+              if sku[8]:
+                 stock_value = sku[8]
             ord_dict = OrderedDict((('SKU Code', sku[1]), ('Description', sku[2]),
                                                 ('Brand', sku[3]), ('Category', sku[4]),('SKU Sub Category', sku[5]),
                                                 ('Stage', key), ('Stage Quantity', value), ('Stock Value', stock_value),  ('Warehouse Name', warehouse)))
@@ -4183,7 +4196,7 @@ def get_openjo_details(search_params, user, sub_user):
 
 def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=False, stock_rec_data=None,
                             send_damaged=True, opening_stock_date=None, used_damage_qtys=None):
-    data_dict = {'quantity': 0, 'cgst_amount': 0, 'sgst_amount': 0, 'igst_amount': 0, 'cess_amount': 0,
+    data_dict = {'quantity': 0, 'tax_amount': 0, 'cess_amount': 0,
                      'value_before_tax': 0, 'value_after_tax': 0, 'price_before_tax': 0}
     if not data_objs:
         purchase_data = []
@@ -4192,7 +4205,7 @@ def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=F
             if opening_stock_date:
                 fields_parameters2['stock_reconciliation__creation_date__regex'] = opening_stock_date
             fields_parameters2['stock_reconciliation__%s_quantity__gt' % fields_parameters1['field_type']] = 0
-            purchase_data = StockReconciliationFields.objects.\
+            purchase_data = StockReconciliationFields.objects.annotate(tax_percent=Sum(F('cgst_tax')+F('sgst_tax')+F('igst_tax'))).\
                                             filter(**fields_parameters2)
             #if purchase_data.exists() and send_first_day:
             #    first_date = purchase_data.first().stock_reconciliation.creation_date.date()
@@ -4219,12 +4232,8 @@ def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=F
                 value_before_tax = (data.value_before_tax/data.quantity) * quantity
             data_dict['value_before_tax'] += value_before_tax
             data_dict['value_after_tax'] += value_after_tax
-            if data.cgst_tax:
-                data_dict['cgst_amount'] += (amount/100) * data.cgst_tax
-            if data.sgst_tax:
-                data_dict['sgst_amount'] += (amount/100) * data.sgst_tax
-            if data.igst_tax:
-                data_dict['igst_amount'] += (amount/100) * data.igst_tax
+            tax_percent = data.cgst_tax + data.sgst_tax + data.igst_tax
+            data_dict['tax_amount'] += (amount/100) * tax_percent
             if data.cess_tax:
                 data_dict['cess_amount'] += (amount/100) * data.cess_tax
             #data_dict['value_after_tax'] = data_dict['value_before_tax'] + data_dict['cgst_amount'] + \
@@ -4343,13 +4352,13 @@ def get_financial_report_data(search_params, user, sub_user):
                                                                                 stock_reconciliation__weight=stock_rec_data_dict['weight'],
                                                                             creation_date__gte=opening_stock_date,
                                                                             creation_date__lt=closing_stock_date+datetime.timedelta(1))
-                opening_stock_data = opening_stock_query.values('stock_reconciliation__sku__sku_code', 'stock_reconciliation__sku__sku_desc',
+                opening_stock_data = opening_stock_query.annotate(tax_percent=Sum(F('cgst_tax')+F('sgst_tax')+F('igst_tax'))).\
+                                                    values('stock_reconciliation__sku__sku_code', 'stock_reconciliation__sku__sku_desc',
                                                             'stock_reconciliation__sku_id',
                                                             'stock_reconciliation__sku__sku_category', 'stock_reconciliation__sku__sub_category',
                                                             'stock_reconciliation__sku_id','stock_reconciliation__sku__sku_brand',
                                                             'stock_reconciliation__sku__hsn_code', 'stock_reconciliation__mrp',
-                                                            'stock_reconciliation__weight','cgst_tax', 'sgst_tax', 'igst_tax',
-                                                            'cess_tax').distinct()
+                                                            'stock_reconciliation__weight','tax_percent').distinct()
                 closing_objs = StockReconciliationFields.objects.filter(stock_reconciliation__creation_date__regex=closing_stock_date,
                                                                         stock_reconciliation__sku__user=user.id,
                                                                         field_type='closing')
@@ -4381,10 +4390,10 @@ def get_financial_report_data(search_params, user, sub_user):
                     stock_rec_data1 = stock_rec_data
                     if row_data['table'] == 'stock_rec_field':
                         opening_stock = row_data['data']
-                        tax_rate = opening_stock['cgst_tax'] + opening_stock['sgst_tax'] + opening_stock['igst_tax']
+                        tax_rate = opening_stock['tax_percent']
                         mrp = opening_stock['stock_reconciliation__mrp']
                         weight = opening_stock['stock_reconciliation__weight']
-                        cess_tax = opening_stock['cess_tax']
+                        cess_tax = 0#opening_stock['cess_tax']
                         stock_rec_data1 = None
                     else:
                         tax_rate = 0
@@ -4397,13 +4406,10 @@ def get_financial_report_data(search_params, user, sub_user):
                                           ('stock_reconciliation__weight', weight),
                                         ))
                     if row_data['table'] == 'stock_rec_field':
-                        closing_obj_filter['cgst_tax'] = opening_stock['cgst_tax']
-                        closing_obj_filter['sgst_tax'] = opening_stock['sgst_tax']
-                        closing_obj_filter['igst_tax'] = opening_stock['igst_tax']
-                        closing_obj_filter['cess_tax'] = opening_stock['cess_tax']
+                        closing_obj_filter['tax_percent'] = opening_stock['tax_percent']
                     #fields_parameters1 = copy.deepcopy(fields_parameters)
                     fields_parameters1.update(closing_obj_filter)
-                    closing_stock_objs = closing_objs.filter(**closing_obj_filter)
+                    closing_stock_objs = closing_objs.annotate(tax_percent=Sum(F('cgst_tax')+F('sgst_tax')+F('igst_tax'))).filter(**closing_obj_filter)
                     fields_parameters1['field_type'] = 'closing'
                     closing_damaged_flag = True
                     if closing_stock_date < datetime.datetime.strptime('2019-12-23', '%Y-%M-%d').date():
@@ -4482,65 +4488,49 @@ def get_financial_report_data(search_params, user, sub_user):
                                                             ('Opening Qty', opening_dict['quantity']),
                                                             ('Opening Price Per Unit( Before Taxes)', '%.2f' % opening_dict['price_before_tax']),
                                                             ('Opening Value before Tax', float('%.2f' % opening_dict['value_before_tax'])),
-                                                            ('Opening CGST', '%.2f' % opening_dict['cgst_amount']),
-                                                            ('Opening SGST', '%.2f' % opening_dict['sgst_amount']),
-                                                            ('Opening IGST', '%.2f' % opening_dict['igst_amount']),
+                                                            ('Opening Tax', '%.2f' % opening_dict['tax_amount']),
                                                             ('Opening CESS', '%.2f' % opening_dict['cess_amount']),
                                                             ('Opening Value after Tax', float('%.2f' % opening_dict['value_after_tax'])),
                                                             ('Purchase Qty', purchase_dict['quantity']),
                                                             ('Purchase Price Per Unit(Before Taxes)', float('%.2f' % purchase_dict['price_before_tax'])),
                                                             ('Purchase Value before Tax', '%.2f' % purchase_dict['value_before_tax']),
-                                                            ('Purchase CGST', '%.2f' % purchase_dict['cgst_amount']),
-                                                            ('Purchase SGST', '%.2f' % purchase_dict['sgst_amount']),
-                                                            ('Purchase IGST', '%.2f' % purchase_dict['igst_amount']),
+                                                            ('Purchase Tax', '%.2f' % purchase_dict['tax_amount']),
                                                             ('Purchase CESS', '%.2f' % purchase_dict['cess_amount']),
                                                             ('Purchase Value after Tax', float('%.2f' % purchase_dict['value_after_tax'])),
                                                             ('Purchase Return Qty', rtv_dict['quantity']),
                                                             ('Purchase Return Price Per Unit(Before Taxes)', '%.2f' % rtv_dict['price_before_tax']),
                                                             ('Purchase Return Value before Tax', float('%.2f' % rtv_dict['value_before_tax'])),
-                                                            ('Purchase Return CGST', '%.2f' % rtv_dict['cgst_amount']),
-                                                            ('Purchase Return SGST', '%.2f' % rtv_dict['sgst_amount']),
-                                                            ('Purchase Return IGST', '%.2f' % rtv_dict['igst_amount']),
+                                                            ('Purchase Return Tax', '%.2f' % rtv_dict['tax_amount']),
                                                             ('Purchase Return CESS', '%.2f' % rtv_dict['cess_amount']),
                                                             ('Purchase Return Value after Tax', float('%.2f' % rtv_dict['value_after_tax'])),
                                                             ('Sale to Drsc Qty', csd['quantity']),
                                                             ('Sale to Drsc Price Per Unit( Before Taxes)', float('%.2f' % csd['price_before_tax'])),
                                                             ('Sale to Drsc Value before Tax', float('%.2f' % csd['value_before_tax'])),
-                                                            ('Sale to Drsc CGST', '%.2f' % csd['cgst_amount']),
-                                                            ('Sale to Drsc SGST', '%.2f' % csd['sgst_amount']),
-                                                            ('Sale to Drsc IGST', '%.2f' % csd['igst_amount']),
+                                                            ('Sale to Drsc Tax', '%.2f' % csd['tax_amount']),
                                                             ('Sale to Drsc CESS', '%.2f' % csd['cess_amount']),
                                                             ('Sale to Drsc Value after Tax', float('%.2f' % csd['value_after_tax'])),
                                                             ('Sale to othr Qty', isd['quantity']),
                                                             ('Sale to othr Price Per Unit( Before Taxes)', '%.2f' % isd['price_before_tax']),
                                                             ('Sale to othr Value before Tax', float('%.2f' % isd['value_before_tax'])),
-                                                            ('Sale to othr CGST', '%.2f' % isd['cgst_amount']),
-                                                            ('Sale to othr SGST', '%.2f' % isd['sgst_amount']),
-                                                            ('Sale to othr IGST', '%.2f' % isd['igst_amount']),
+                                                            ('Sale to othr Tax', '%.2f' % isd['tax_amount']),
                                                             ('Sale to othr CESS', '%.2f' % isd['cess_amount']),
                                                             ('Sale to othr Value after Tax', float('%.2f' % isd['value_after_tax'])),
                                                             ('Stock Transfers Qty', std['quantity']),
                                                             ('Stock Transfers Price Per Unit(Before Taxes)', '%.2f' % std['price_before_tax']),
                                                             ('Stock Transfers Value before Tax', float('%.2f' % std['value_before_tax'])),
-                                                            ('Stock Transfers CGST', '%.2f' % std['cgst_amount']),
-                                                            ('Stock Transfers SGST', '%.2f' % std['sgst_amount']),
-                                                            ('Stock Transfers IGST', '%.2f' % std['igst_amount']),
+                                                            ('Stock Transfers Tax', '%.2f' % std['tax_amount']),
                                                             ('Stock Transfers CESS', '%.2f' % std['cess_amount']),
                                                             ('Stock Transfers Value after Tax', float('%.2f' % std['value_after_tax'])),
                                                             ('Sale Return Qty', returns_dict['quantity']),
                                                             ('Sale Return Price Per Unit(Before Taxes)', '%.2f' % returns_dict['price_before_tax']),
                                                             ('Sale Return Value before Tax', float('%.2f' % returns_dict['value_before_tax'])),
-                                                            ('Sale Return CGST', '%.2f' % returns_dict['cgst_amount']),
-                                                            ('Sale Return SGST', '%.2f' % returns_dict['sgst_amount']),
-                                                            ('Sale Return IGST', '%.2f' % returns_dict['igst_amount']),
+                                                            ('Sale Return Tax', '%.2f' % returns_dict['tax_amount']),
                                                             ('Sale Return CESS', '%.2f' % returns_dict['cess_amount']),
                                                             ('Sale Return Value after Tax', float('%.2f' % returns_dict['value_after_tax'])),
                                                             ('Closing Qty', closing_dict['quantity']),
                                                             ('Closing Price Per Unit(Before Taxes)', '%.2f' % closing_dict['price_before_tax']),
                                                             ('Closing Value before Tax', float('%.2f' % closing_dict['value_before_tax'])),
-                                                            ('Closing CGST', '%.2f' % closing_dict['cgst_amount']),
-                                                            ('Closing SGST', '%.2f' % closing_dict['sgst_amount']),
-                                                            ('Closing IGST', '%.2f' % closing_dict['igst_amount']),
+                                                            ('Closing Tax', '%.2f' % closing_dict['tax_amount']),
                                                             ('Closing CESS', '%.2f' % closing_dict['cess_amount']),
                                                             ('Closing Value after Tax', float('%.2f' % closing_dict['value_after_tax'])),
                                                             ('Physical Qty', physical_qty),
@@ -4563,15 +4553,20 @@ def get_order_summary_data(search_params, user, sub_user):
     milkbasket_users = copy.deepcopy(MILKBASKET_USERS)
     if user.username in milkbasket_users :
         milkbasket_user = True
-
     lis = ['creation_date', 'order_id', 'customer_id','customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
            'sku__sku_size', 'sku__sku_desc', 'sku__sub_category', 'sku_code', 'sku_code', 'original_quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
            'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id','order_id',
-           'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','invoice_number', 'challan_number', 'quantity','creation_date'];
+           'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','invoice_number', 'order_id', 'quantity','creation_date'];
     if milkbasket_user :
         lis.append('order_id')
     # lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
     temp_data = copy.deepcopy(AJAX_DATA)
+    extra_order_fields = get_misc_value('extra_order_fields', user.id)
+    if extra_order_fields == 'false':
+        extra_order_fields = []
+    else:
+        extra_order_fields = extra_order_fields.split(',')
+    lis+= ['order_id']*len(extra_order_fields)
     search_parameters = {}
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
@@ -4641,13 +4636,13 @@ def get_order_summary_data(search_params, user, sub_user):
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
                                                                     'sku__sku_desc','sku__price','sellerordersummary__invoice_number','sellerordersummary__challan_number','address',
                                                                     'quantity', 'original_quantity', 'original_order_id','order_reference','sku__sku_brand','customer_name','customer_id',
-                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category').exclude(status = 3).distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
+                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category','sku__hsn_code').exclude(status = 3).distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
     else:
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size',
                                                                     'sku__sku_desc','sku__price','address','order_code','payment_mode',
                                                                     'quantity', 'original_quantity', 'original_order_id','order_reference','sku__sku_brand','customer_name','customer_id',
-                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category').exclude(status = 3).distinct()
+                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category','sku__hsn_code').exclude(status = 3).distinct()
     pick_filters = {}
     for key, value in search_parameters.iteritems():
         pick_filters['order__%s' % key] = value
@@ -4710,11 +4705,11 @@ def get_order_summary_data(search_params, user, sub_user):
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     try:
-        temp_data['totalOrderQuantity'] = int(orders.aggregate(Sum('original_quantity'))['original_quantity__sum'])
+        temp_data['totalOrderQuantity'] = int(orders.values('id').distinct().aggregate(Sum('original_quantity', distinct=True))['original_quantity__sum'])
     except:
         temp_data['totalOrderQuantity'] = 0
     try:
-        temp_data['totalSellingPrice'] = int(orders.aggregate(Sum('invoice_amount'))['invoice_amount__sum'])
+        temp_data['totalSellingPrice'] = int(orders.values('id').distinct().aggregate(Sum('invoice_amount', distinct=True))['invoice_amount__sum'])
     except:
         temp_data['totalSellingPrice'] = 0
     try:
@@ -4738,25 +4733,19 @@ def get_order_summary_data(search_params, user, sub_user):
     ('SKU Brand', ""),('SKU Category', ''),('SKU Class', ''),('SKU Size', ''), ('SKU Description', ''),('SKU Sub Category', ''),
     ('SKU Code', 'TotalQuantity='), ('Vehicle Number', ''),('Order Qty',temp_data['totalOrderQuantity']),('MRP', ''), ('Unit Price',''),('Discount', ''),
     ('Serial Number',''),('Invoice Number',''),('Challan Number', ''),('Quantity',''),('Payment Type' ,''),('Reference Number',''),
-    ('Taxable Amount',''), ('Tax', ''),('City', ''), ('State', ''), ('Marketplace', 'TotalInvoiceAmount='),('Invoice Amount', temp_data['totalSellingPrice']),
-    ('Price', ''),('Status', ''), ('Order Status', ''),('Customer GST Number',''),('Remarks', ''), ('Order Taken By', ''),
+    ('Taxable Amount',''), ('Tax Percent',''), ('HSN Code', ''), ('Tax', ''),('City', ''), ('State', ''), ('Marketplace', 'TotalOrderAmount='),('Invoice Amount',''),('Order Amount', temp_data['totalSellingPrice']),
+    ('Price', ''),('Status', ''), ('Order Status', ''),('Invoice Tax', ''),('Customer GST Number',''),('Remarks', ''), ('Order Taken By', ''),
     ('Invoice Date',''),('Billing Address',''),('Shipping Address',''),('Payment Cash', ''),('Payment Card', ''),('Payment PhonePe',''),('Payment GooglePay',''),('Payment Paytm',''),('Advance Amount', '')))
     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
         total_row['Manufacturer'] = ''
         total_row['Searchable'] = ''
         total_row['Bundle'] = ''
     temp_data['aaData'].append(total_row)
-    extra_order_fields = get_misc_value('extra_order_fields', user.id)
-    if extra_order_fields == 'false' :
-        extra_order_fields = []
-    else:
-        extra_order_fields = extra_order_fields.split(',')
     order_extra_fields ={}
     for extra in extra_order_fields :
         order_extra_fields[extra] = ''
     if  milkbasket_user :
-        cost_price_dict ={}
-        cost_price_dict['Cost Price'] = ''
+        cost_price_dict = {'Cost Price': ''}
         temp_data['aaData'][0].update(OrderedDict(cost_price_dict))
     temp_data['aaData'][0].update(OrderedDict(order_extra_fields))
 
@@ -4875,6 +4864,7 @@ def get_order_summary_data(search_params, user, sub_user):
             total_charge_amount = order_charges_obj.aggregate(Sum('charge_amount'))['charge_amount__sum']
             total_charge_tax = order_charges_obj.aggregate(Sum('charge_tax_value'))['charge_tax_value__sum']
             invoice_amount = '%.2f' %(float(invoice_amount)+float(total_charge_amount)+float(total_charge_tax))
+
         #payment mode
         payment_obj = OrderFields.objects.filter(user=user.id, name__icontains="payment_",\
                                       original_order_id=data['original_order_id']).values_list('name', 'value')
@@ -4884,6 +4874,7 @@ def get_order_summary_data(search_params, user, sub_user):
                     payment_type += pay[0].replace("order_payment_","")+"-"+pay[1]+","
                 elif  'DC'  in data['order_code'] or 'PRE' in data['order_code']:
                    exec("%s = %s" % (pay[0],pay[1]))
+
         #pos extra fields
         pos_extra = {}
         extra_vals = OrderFields.objects.filter(user=user.id,\
@@ -4893,14 +4884,13 @@ def get_order_summary_data(search_params, user, sub_user):
             for val in extra_vals:
                 if field == val['name']:
                     pos_extra[str(val['name'])] = str(val['value'])
-        invoice_number,invoice_date,quantity,challan_number= '','','',''
+        invoice_number,invoice_date,quantity,challan_number= '','',0,''
         if search_params.get('invoice','') == 'true':
             invoice_number = data['sellerordersummary__invoice_number']
             challan_number = data['sellerordersummary__challan_number']
             if not invoice_number :
                 invoice_number_obj = SellerOrderSummary.objects.filter(order_id = data['id'])
                 if invoice_number_obj.exists() :
-                    invoice_number = invoice_number_obj[0].invoice_number
                     challan_number = invoice_number_obj[0].challan_number
                     if not invoice_no_gen.exists() or (invoice_no_gen and invoice_no_gen[0].creation_date >= invoice_number_obj[0].creation_date):
                         if invoice_number_obj[0].order:
@@ -4923,6 +4913,9 @@ def get_order_summary_data(search_params, user, sub_user):
                 invoice_qty_filter['order_id'] = data['id']
                 if data['sellerordersummary__invoice_number']:
                     invoice_qty_filter['invoice_number'] = data['sellerordersummary__invoice_number']
+                else:
+                    invoice_qty_filter['invoice_number'] = ''
+                    invoice_date = ''
                 quantity = SellerOrderSummary.objects.filter(**invoice_qty_filter).aggregate(Sum('quantity'))['quantity__sum']
 
         try:
@@ -4949,6 +4942,17 @@ def get_order_summary_data(search_params, user, sub_user):
             billing_address = data['address']
         if not shipping_address :
             shipping_address = billing_address
+
+        if not quantity:
+            quantity = 0
+
+        tax_percent = 0
+        if float(taxable_amount):
+            tax_percent = (tax * 100)/float(taxable_amount)
+        invoice_tax = "%.2f" % (float(unit_price) * float(quantity)*(tax_percent/100))
+
+        invoice_amount_picked = "%.2f" % ((float(unit_price) * float(quantity)) + float(invoice_tax) - discount)
+
         order_extra_fields ={}
         for extra in extra_order_fields :
             order_field_obj = OrderFields.objects.filter(original_order_id=data['original_order_id'],user=user.id ,name = extra)
@@ -4970,12 +4974,15 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('Serial Number',serial_number),
                                                     ('Invoice Number',invoice_number),
                                                     ('Challan Number', challan_number),
-                                                    ('Quantity',quantity),
+                                                    ('Quantity',quantity),('HSN Code', data['sku__hsn_code']),
                                                     ('Payment Type' ,payment_type),
                                                     ('Reference Number',reference_number),
-                                                    ('Taxable Amount', float(taxable_amount)), ('Tax', tax),
+                                                    ('Taxable Amount', float(taxable_amount)),
+                                                    ('Tax Percent', tax_percent),
+                                                    ('Invoice Tax', invoice_tax),
+                                                    ('Tax',("%.2f"%tax)),('Invoice Amount', invoice_amount_picked),
                                                     ('City', data['city']), ('State', data['state']), ('Marketplace', data['marketplace']),
-                                                    ('Invoice Amount', float(invoice_amount)), ('Price', data['sku__price']),
+                                                    ('Order Amount', float(invoice_amount)), ('Price', data['sku__price']),
                                                     ('Status', status), ('Order Status', order_status),('Customer GST Number',gst_number),
                                                     ('Remarks', remarks), ('Order Taken By', order_taken_by),
                                                     ('Invoice Date',invoice_date),("Billing Address",billing_address),("Shipping Address",shipping_address),

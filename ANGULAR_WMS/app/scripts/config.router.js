@@ -320,6 +320,10 @@ var app = angular.module('urbanApp')
                   return $ocLazyLoad.load([
                     'scripts/controllers/masters/source_sku_mapping/warehouseSKU.js'
                   ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/masters/source_sku_mapping/supplierSKUAttribute.js'
+                  ])
                 });
               }]
           },
@@ -336,7 +340,10 @@ var app = angular.module('urbanApp')
              url: '/warehouseSKU',
              templateUrl: 'views/masters/toggles/warehouse_sku_update.html'
            })
-
+          .state('app.masters.sourceSKUMapping.sku_attributes', {
+             url: '/supplierSKUAttributes',
+             templateUrl: 'views/masters/toggles/supplier_sku_attributes.html'
+           })
         .state('app.masters.SupplierMaster', {
           url: '/SupplierMaster',
           permission: 'add_suppliermaster',

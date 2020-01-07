@@ -163,9 +163,9 @@ class Command(BaseCommand):
                         picklist_obj = picklist_obj[0]
                         unit_price = picklist_obj.order.unit_price
                         cod = picklist_obj.order.customerordersummary_set.filter()
-                        #if picklist_obj.order_type == 'combo' and cod:
-                        #    discount_percentage = cod[0].discount/(picklist_obj.order.unit_price/100)
-                        #    unit_price = picklist_obj.stock.sku.price - float(round(picklist_obj.stock.sku.price/100))*discount
+                        if picklist_obj.order_type == 'combo' and cod:
+                            discount_percentage = (cod[0].discount/cod[0].order.quantity)/(cod[0].mrp/100)
+                            unit_price = picklist_obj.stock.sku.mrp - (float(picklist_obj.stock.sku.mrp/100) * discount_percentage)
                         so = picklist_obj.order.sellerorder_set.filter()
                         if so.exists():
                             seller_id = int(so[0].seller.seller_id)

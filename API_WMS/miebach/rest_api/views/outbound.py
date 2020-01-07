@@ -7497,7 +7497,7 @@ def backorder_supplier_data(request, user=''):
     taxes = {}
     request_dict = dict(request.POST.iterlists())
     if request_dict:
-        supplier = request_dict['supplier_id'][0]
+        supplier = request_dict['selected_item[id]'][0]
         wms_code = request_dict['wms_code'][0]
     sku_master = SKUMaster.objects.get(sku_code=wms_code, user=user.id)
     sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, sku__user=user.id, supplier_id=supplier)

@@ -558,7 +558,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    display: true
   },
   {
-   name: "Auto Supplier SKU Mapping",
+   name: "Disable Auto Supplier SKU Mapping",
    model_name: "supplier_mapping",
    param_no: 99,
    class_name: "fa fa-server",

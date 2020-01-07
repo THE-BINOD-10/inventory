@@ -2927,6 +2927,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     created_qc_ids = {}
     mrp = 0
     supplier_id = request.POST['supplier_id']
+    supplier_mapping_off = get_misc_value('supplier_mapping', user.id)
     update_mrp_on_grn = get_misc_value('update_mrp_on_grn', user.id)
     remarks = request.POST.get('remarks', '')
     expected_date = request.POST.get('expected_date', '')
@@ -3090,7 +3091,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
                 if sku_master:
-                    if not mandate_supplier == 'true':
+                    if not mandate_supplier == 'true' or supplier_mapping_off =='false':
                         supplier_code_mapping(request, myDict, i, data)
                 else:
                     if not status_msg:

@@ -7814,6 +7814,7 @@ def get_view_order_details(request, user=''):
             discount_percentage = 0
             mrp = customer_order[0].mrp
             payment_status = customer_order[0].payment_status
+            discount = customer_order[0].discount
             if (quantity * unit_price):
                 discount_percentage = float(
                     "%.1f" % (float((customer_order[0].discount * 100) / (quantity * unit_price))))
@@ -7841,7 +7842,8 @@ def get_view_order_details(request, user=''):
              'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
              'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
              'cess_tax': cess_tax,
-             'unit_price': unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data,
+             'unit_price': unit_price, 'discount_percentage': discount_percentage, 'discount': discount,
+             'taxes': taxes_data,
              'order_charges': order_charges,
              'sku_status': one_order.status, 'client_name':client_name, 'payment_status':payment_status, 'mrp':mrp})
     if status_obj in view_order_status:

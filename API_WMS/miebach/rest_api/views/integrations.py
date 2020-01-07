@@ -1992,7 +1992,7 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                             order_summary_dict['discount'] = 0
                             if sku_item.get('discount_amount', 0):
                                 try:
-                                    order_summary_dict['discount'] = float(sku_item['discount_amount'])
+                                    order_summary_dict['discount'] = float(sku_item['discount_amount']) * order_details['quantity']
                                 except:
                                     order_summary_dict['discount'] = 0
                             if order_summary_dict['discount']:

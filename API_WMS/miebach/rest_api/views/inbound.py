@@ -394,7 +394,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         customer_data = OrderMapping.objects.filter(mapping_id=supplier.id, mapping_type='PO')
         customer_name = ''
         if customer_data:
-            customer_name = ''
+            customer_name = customer_data[0].order.customer_name
         else:
             if supplier_parent:
                 customer_name = supplier_parent.username
@@ -1083,7 +1083,9 @@ def switches(request, user=''):
                        'stop_default_tax':'stop_default_tax',
                        'delivery_challan_terms_condtions': 'delivery_challan_terms_condtions',
                        'order_prefix':'order_prefix',
+                       'supplier_mapping':'supplier_mapping',
                        'show_mrp_grn': 'show_mrp_grn',
+                       'display_dc_invoice': 'display_dc_invoice',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -2926,6 +2928,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     created_qc_ids = {}
     mrp = 0
     supplier_id = request.POST['supplier_id']
+    supplier_mapping_off = get_misc_value('supplier_mapping', user.id)
     update_mrp_on_grn = get_misc_value('update_mrp_on_grn', user.id)
     remarks = request.POST.get('remarks', '')
     expected_date = request.POST.get('expected_date', '')
@@ -3089,7 +3092,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
                 if sku_master:
-                    if not mandate_supplier == 'true':
+                    if not mandate_supplier == 'true' or supplier_mapping_off =='false':
                         supplier_code_mapping(request, myDict, i, data)
                 else:
                     if not status_msg:
@@ -3242,6 +3245,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     total_order_qty = 0
     total_price = 0
     total_tax = 0
+    tax_value = 0
     pallet_number = ''
     is_putaway = ''
     purchase_data = ''
@@ -3369,9 +3373,13 @@ def confirm_grn(request, confirm_returns='', user=''):
                 overall_discount = float(request.POST['overall_discount'])
             except:
                 overall_discount = 0
+            if total_price:
+                tax_value = (total_price * total_tax)/(100 + total_tax)
+                tax_value = ("%.2f" % tax_value)
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
-                                'total_price': total_price, 'total_tax': total_tax,
+                                'total_price': total_price, 'total_tax': int(total_tax),
+                                'tax_value': tax_value,
                                 'overall_discount':overall_discount,
                                 'net_amount':float(total_price) - float(overall_discount),
                                 'address': address,'grn_extra_field_dict':grn_extra_field_dict,
@@ -5200,6 +5208,7 @@ def confirm_add_po(request, sales_data='', user=''):
     data = copy.deepcopy(PO_DATA)
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+    supplier_mapping = get_misc_value('supplier_mapping', user.id)
     if not sales_data:
         po_id = get_purchase_order_id(user)
         if po_sub_user_prefix == 'true':
@@ -5277,26 +5286,27 @@ def confirm_add_po(request, sales_data='', user=''):
             if not mrp:
                 mrp = 0
 
-            if not 'supplier_code' in myDict.keys() and value['supplier_id']:
-                supplier = SKUSupplier.objects.filter(supplier_id=value['supplier_id'], sku__user=user.id)
-                if supplier:
-                    supplier_code = supplier[0].supplier_code
-            elif value['supplier_code']:
-                supplier_code = value['supplier_code']
-            supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=value['supplier_id'],
-                                                          sku__user=user.id)
-            sku_mapping = {'supplier_id': value['supplier_id'], 'sku': sku_id[0], 'preference': 1, 'moq': 0,
-                           'supplier_code': supplier_code, 'price': price, 'creation_date': datetime.datetime.now(),
-                           'updation_date': datetime.datetime.now()}
+            if supplier_mapping == 'false':
+                if not 'supplier_code' in myDict.keys() and value['supplier_id']:
+                    supplier = SKUSupplier.objects.filter(supplier_id=value['supplier_id'], sku__user=user.id)
+                    if supplier:
+                        supplier_code = supplier[0].supplier_code
+                elif value['supplier_code']:
+                    supplier_code = value['supplier_code']
+                supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=value['supplier_id'],
+                                                              sku__user=user.id)
+                sku_mapping = {'supplier_id': value['supplier_id'], 'sku': sku_id[0], 'preference': 1, 'moq': 0,
+                               'supplier_code': supplier_code, 'price': price, 'creation_date': datetime.datetime.now(),
+                               'updation_date': datetime.datetime.now()}
 
-            if supplier_mapping:
-                supplier_mapping = supplier_mapping[0]
-                if sku_mapping['supplier_code'] and supplier_mapping.supplier_code != sku_mapping['supplier_code']:
-                    supplier_mapping.supplier_code = sku_mapping['supplier_code']
-                    supplier_mapping.save()
-            else:
-                new_mapping = SKUSupplier(**sku_mapping)
-                new_mapping.save()
+                if supplier_mapping:
+                    supplier_mapping = supplier_mapping[0]
+                    if sku_mapping['supplier_code'] and supplier_mapping.supplier_code != sku_mapping['supplier_code']:
+                        supplier_mapping.supplier_code = sku_mapping['supplier_code']
+                        supplier_mapping.save()
+                else:
+                    new_mapping = SKUSupplier(**sku_mapping)
+                    new_mapping.save()
             po_suggestions['sku_id'] = sku_id[0].id
             po_suggestions['supplier_id'] = value['supplier_id']
             po_suggestions['order_quantity'] = value['order_quantity']

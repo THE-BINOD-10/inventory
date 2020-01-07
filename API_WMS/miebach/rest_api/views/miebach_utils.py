@@ -309,6 +309,8 @@ RETURN_DATA_FIELDS = ['sales-check', 'order_id', 'sku_code', 'customer_id', 'shi
 
 SUPPLIER_SKU_HEADERS = ['Supplier Id', 'WMS Code', 'Supplier Code', 'Preference', 'MOQ', 'Price', 'Costing Type (Price Based/Margin Based/Markup Based)', 'MarkDown Percentage','Markup Percentage']
 
+SUPPLIER_SKU_ATTRIBUTE_HEADERS = ['Supplier Id', 'SKU Attribute Type(Brand, Category)', 'SKU Attribute Value', 'Price', 'Costing Type (Price Based/Margin Based/Markup Based)', 'MarkDown Percentage','Markup Percentage']
+
 MARKETPLACE_SKU_HEADERS = ['WMS Code', 'Flipkart SKU', 'Snapdeal SKU', 'Paytm SKU', 'Amazon SKU', 'HomeShop18 SKU',
                            'Jabong SKU', 'Indiatimes SKU', 'Flipkart Description', 'Snapdeal Description',
                            'Paytm Description', 'HomeShop18 Description', 'Jabong Description',
@@ -2300,7 +2302,9 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'brand_categorization':'brand_categorization',
                         'purchase_order_preview':'purchase_order_preview',
                         'stop_default_tax':'stop_default_tax',
+                        'supplier_mapping':'supplier_mapping',
                         'show_mrp_grn': 'show_mrp_grn',
+                        'display_dc_invoice': 'display_dc_invoice',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -3867,10 +3871,11 @@ def get_stock_summary_data(search_params, user, sub_user):
         for key, value in sku_stages_dict.iteritems():
             warehouse = 0
             stock_value = 0
-            if sku[6]:
-                warehouse = warehouse_users.get(sku[6])
-            if sku[8]:
-               stock_value = sku[8]
+            if len(list(sku)) >= 7:
+              if sku[6]:
+                  warehouse = warehouse_users.get(sku[6])
+              if sku[8]:
+                 stock_value = sku[8]
             ord_dict = OrderedDict((('SKU Code', sku[1]), ('Description', sku[2]),
                                                 ('Brand', sku[3]), ('Category', sku[4]),('SKU Sub Category', sku[5]),
                                                 ('Stage', key), ('Stage Quantity', value), ('Stock Value', stock_value),  ('Warehouse Name', warehouse)))

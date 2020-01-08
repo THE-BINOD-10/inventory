@@ -3316,7 +3316,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 invoice_header = order_summary[0].invoice_type
                 mode_of_transport = order_summary[0].mode_of_transport
                 vehicle_number = order_summary[0].vehicle_number
-                if order_summary[0].invoice_date:
+                if order_summary[0].invoice_date and get_misc_value('customer_dc', user.id) != 'true':
                     invoice_date = order_summary[0].invoice_date
             total_tax += float(tax)
             total_mrp += float(mrp_price)

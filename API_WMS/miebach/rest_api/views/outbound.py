@@ -2650,7 +2650,7 @@ def update_invoice(request, user=''):
                         ord_obj = ord_obj[0]
                         #ord_obj.quantity = quantity
                         ord_obj.unit_price = price
-                        ord_obj.invoice_amount = invoice_amount
+                        ord_obj.invoice_amount = (invoice_amount/quantity) * ord_obj.quantity
                         ord_obj.save()
                     else:
                         ord_obj = OrderDetail(**order_detail_dict)
@@ -2723,7 +2723,9 @@ def update_invoice(request, user=''):
                 if (order_id.quantity * order_id.unit_price):
                     discount_percentage = "%.1f" % (float((cust_obj.discount * 100) / (order_id.quantity * order_id.unit_price)))
             order_id.unit_price = float(myDict['unit_price'][unit_price_index])
-            order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index].replace(',',''))
+            #order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index].replace(',',''))
+            invoice_amount = float(myDict['invoice_amount'][unit_price_index].replace(',',''))
+            order_id.invoice_amount = (invoice_amount/float(myDict['quantity'][unit_price_index])) * order_id.quantity
             if order_id.quantity != float(myDict['quantity'][unit_price_index]) :
                 partial_quantity = True
             order_id.save()

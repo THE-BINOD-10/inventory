@@ -3154,6 +3154,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     vehicle_number = ''
     invoice_reference = ''
     advance_amount = 0
+    admin_user = get_admin(user)
     # Getting the values from database
     user_profile = UserProfile.objects.get(user_id=user.id)
     gstin_no = user_profile.gst_number
@@ -3234,8 +3235,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             dat = order_data[0]
             customer_address = dat.customer_name + '\n' + dat.address + "\nCall: " \
                                + dat.telephone + "\nEmail: " + dat.email_id
-        if dat.address:
-            #customer_details.append({'id' : dat.customer_id, 'name' : dat.customer_name, 'address' : dat.address, 'email_id':dat.email_id, 'phone_number':dat.telephone})
+        if not customer_details and dat.address:
+            customer_details.append({'id' : dat.customer_id, 'name' : dat.customer_name, 'address' : dat.address})
+        if admin_user.username.lower() == 'gomechanic_admin':
             customer_details[0]['id'] = dat.customer_id
             customer_details[0]['name'] = dat.customer_name
             customer_details[0]['address']= dat.address
@@ -3314,7 +3316,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 invoice_header = order_summary[0].invoice_type
                 mode_of_transport = order_summary[0].mode_of_transport
                 vehicle_number = order_summary[0].vehicle_number
-                if order_summary[0].invoice_date:
+                if order_summary[0].invoice_date and get_misc_value('customer_dc', user.id) != 'true':
                     invoice_date = order_summary[0].invoice_date
             total_tax += float(tax)
             total_mrp += float(mrp_price)

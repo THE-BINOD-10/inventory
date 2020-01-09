@@ -1879,6 +1879,8 @@ def get_supplier_data(request, user=''):
                 weight = skuattributes[0].attribute_value
             tax_percent = order_data['cgst_tax'] + order_data['sgst_tax'] + order_data['igst_tax'] +\
                           order_data['utgst_tax']
+
+
             tax_percent_copy = tax_percent
             extra_po_fields = Pofields.objects.filter(user= user.id,po_number = order.order_id,field_type='po_field').values('name','value')
             if extra_po_fields:
@@ -1894,7 +1896,9 @@ def get_supplier_data(request, user=''):
                 for temp_json_obj in temp_jsons:
                     temp_json = json.loads(temp_json_obj.model_json)
                     orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'],
-                                    'sku_desc': order_data['sku_desc'], 'weight': temp_json.get('weight', 0),
+                                    'sku_desc': order_data['sku_desc'],
+                                    'weight': temp_json.get('weight', 0),
+                                    'weight_copy':temp_json.get('weight', 0),
                                     'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
                                     'name': str(order.order_id) + '-' + str(
                                         re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
@@ -1923,6 +1927,7 @@ def get_supplier_data(request, user=''):
             else:
                 orders.append([{ 'order_id': order.id, 'wms_code': order_data['wms_code'],
                                 'sku_desc': order_data['sku_desc'], 'weight': weight,
+                                 'weight_copy':weight,
                                 'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
                                 'name': str(order.order_id) + '-' + str(
                                     re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),

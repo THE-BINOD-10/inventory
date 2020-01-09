@@ -261,6 +261,7 @@
                                                                       ng-keyup="showCase.send_for_approval_check($event, showCase.model_data)"
                                                                       class="form-control detectTab"
                                                                       value="{{data.weight}}"
+                                                                      ng-trim="false"
                                                                       ng-required="showCase.receive_po_mandatory_fields['weight']"></td>
                     <td><input type="text" ng-model="data.discount_percentage" size="18" title="{{ data.discount_percentage }}" name="discount_percentage" class="form-control detectTab" ng-class="service.get_decimal_perm()" percentage-max-value="99.99" percentage-field="" value="{{data.discount_percentage}}" ng-keyup="[showCase.invoice_readonly($event, data, 'discount_percentage', is_number=true), showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)]"></td>
                     <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.batch_no" size="15" title="{{ data.batch_no }}" name="batch_no" class="form-control detectTab" value="{{data.batch_no}}" ng-required="showCase.receive_po_mandatory_fields['batch_no']" ng-keyup= "showCase.invoice_readonly($event, data, 'batch_no', is_number=false)"></td>
@@ -329,6 +330,7 @@
                     <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.weight" size="13" title="{{ data.weight }}"
                                                                       name="weight" class="form-control detectTab"
                                                                       ng-class="service.get_decimal_perm()" value="{{data.weight}}"
+                                                                      ng-trim="false"
                                                                       ng-keyup="showCase.send_for_approval_check($event, showCase.model_data)"
                                                                       ng-required="showCase.receive_po_mandatory_fields['weight']"></td>
                     <td><input type="text" ng-model="data.discount_percentage" size="18" title="{{ data.discount_percentage }}" name="discount_percentage" class="form-control detectTab" ng-class="service.get_decimal_perm()" percentage-max-value="99.99" percentage-field="" value="{{data.discount_percentage}}" ng-keyup="showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)"></td>

@@ -1898,7 +1898,7 @@ def get_supplier_data(request, user=''):
                     orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'],
                                     'sku_desc': order_data['sku_desc'],
                                     'weight': temp_json.get('weight', 0),
-                                    'weight_copy':temp_json.get('weight', 0),
+                                    'weight_copy': weight,
                                     'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
                                     'name': str(order.order_id) + '-' + str(
                                         re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
@@ -2732,11 +2732,12 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
             if myDict.get('mrp', '') and myDict['mrp'][i]:
                 if float(data.open_po.sku.mrp) != float(myDict['mrp'][i]):
                     remarks_list.append("mrp_change")
-            if 'mrp_change' not in remarks_list and seller_pos:
+            if seller_pos:
                 if batch_dict and batch_dict.get('mrp', ''):
                     mrp = float(batch_dict['mrp'])
-                    if float(data.open_po.sku.mrp) != mrp:
-                        remarks_list.append("mrp_change")
+                    #if float(data.open_po.sku.mrp) != mrp:
+                    #    remarks_list.append("mrp_change")
+
                     # other_mrp_stock = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0,
                     #                                              sku_id=data.open_po.sku_id,
                     #                            sellerstock__seller_id=seller_pos[0].seller_id).\
@@ -2745,6 +2746,15 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                     # if other_mrp_stock.exists():
                     #     #mrp_change_check = ZoneMaster.objects.filter(zone='MRP Change', user=user.id)
                     #     #if mrp_change_check.exists():
+                    zones  = get_all_sellable_zones(user)
+                    bulk_zone_name = MILKBASKET_BULK_ZONE
+                    bulk_zones = get_all_zones(user, zones=[bulk_zone_name])
+                    zones = list(chain(zones, bulk_zones))
+                    stock_found = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0,sku_id=data.open_po.sku_id,
+                                                                sellerstock__seller_id=seller_pos[0].seller_id).\
+                                                        filter(location__zone__zone__in=zones).exclude(batch_detail__mrp=mrp)
+                    if not stock_found.exists() and 'mrp_change' in remarks_list:
+                        del remarks_list[remarks_list.index('mrp_change')]
 
         if 'offer_applicable' in myDict.keys() :
             offer_applicable = myDict['offer_applicable'][i]

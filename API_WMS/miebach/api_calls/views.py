@@ -1493,14 +1493,14 @@ def get_mp_inventory(request):
                                                       Value('<<>>'), 'stock__batch_detail__weight',
                                               output_field=CharField())).values_list('group_key').distinct(). \
                             annotate(stock_sum=Sum('reserved')))
-            unsellable_stock = SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone__zone').\
+            '''unsellable_stock = SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone__zone').\
                           filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0,
                                  stock__location__zone__zone__in=non_sellable_zones). \
                           only('stock__sku__sku_code', 'stock__batch_detail__mrp', 'reserved').\
                           annotate(group_key=Concat('stock__sku__sku_code',Value('<<>>'), 'stock__batch_detail__mrp',
                                                     Value('<<>>'), 'stock__batch_detail__weight',
                                           output_field=CharField())).values('group_key').distinct(). \
-                          annotate(stock_sum=Sum('quantity'))
+                          annotate(stock_sum=Sum('quantity'))'''
             bulk_zone_stock = SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone__zone').\
                           filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0,
                                  stock__location__zone__zone__in=bulk_zones). \
@@ -1540,7 +1540,7 @@ def get_mp_inventory(request):
 
             for sku in sku_records:
                 group_data = stocks.filter(stock__sku__sku_code=sku['sku_code']).values('group_key', 'stock_sum')
-                group_data1 = unsellable_stock.filter(stock__sku__sku_code=sku['sku_code'])#.\
+                #group_data1 = unsellable_stock.filter(stock__sku__sku_code=sku['sku_code'])#.\
                                         #exclude(group_key__in=group_data.values_list('group_key', flat=True))
                 group_data2 = bulk_zone_stock.filter(stock__sku__sku_code=sku['sku_code']) #.\
                                         #exclude(group_key__in=group_data.values_list('group_key', flat=True))
@@ -1589,12 +1589,10 @@ def get_mp_inventory(request):
                     mrp_dict.setdefault(sub_group_key, OrderedDict(( ('mrp', mrp), ('weight', weight),
                                                                      ('inventory', OrderedDict((('sellable', 0),
                                                                                                 ('on_hold', 0),
-                                                                                                ('un_sellable', 0),
                                                                                                 ('bulk_area', 0)))))))
                     mrp_dict[sub_group_key]['inventory']['sellable'] += int(inventory)
                     mrp_dict[sub_group_key]['inventory']['on_hold'] += int(reserved)
-                    #mrp_dict[sub_group_key]['inventory']['un_sellable'] += int(unsellable)
-                for stock_dat1 in group_data1:
+                '''for stock_dat1 in group_data1:
                     splitted_val = stock_dat1['group_key'].split('<<>>')
                     sku_code = splitted_val[0]
                     mrp = splitted_val[1]
@@ -1617,7 +1615,7 @@ def get_mp_inventory(request):
                                                                                                 ('on_hold', 0),
                                                                                                 ('un_sellable', 0),
                                                                                                 ('bulk_area', 0)))))))
-                    mrp_dict[sub_group_key]['inventory']['un_sellable'] += int(inventory)
+                    mrp_dict[sub_group_key]['inventory']['un_sellable'] += int(inventory)'''
                 for stock_dat2 in group_data2:
                     splitted_val = stock_dat2['group_key'].split('<<>>')
                     sku_code = splitted_val[0]
@@ -1639,7 +1637,6 @@ def get_mp_inventory(request):
                     mrp_dict.setdefault(sub_group_key, OrderedDict(( ('mrp', mrp), ('weight', weight),
                                                                      ('inventory', OrderedDict((('sellable', 0),
                                                                                                 ('on_hold', 0),
-                                                                                                ('un_sellable', 0),
                                                                                                 ('bulk_area', 0)))))))
                     mrp_dict[sub_group_key]['inventory']['bulk_area'] += int(inventory)
                 for sku_open_order in sku_open_orders:
@@ -1657,7 +1654,6 @@ def get_mp_inventory(request):
                                                                       ('weight', open_weight), ('inventory',
                                                          OrderedDict((('sellable', 0),
                                                                     ('on_hold', 0),
-                                                                    ('un_sellable', 0),
                                                                       ('bulk_area', 0)))))))
                     mrp_dict[open_order_grouping_key]['inventory']['sellable'] -= open_orders[sku_open_order]
                     mrp_dict[open_order_grouping_key]['inventory']['on_hold'] += open_orders[sku_open_order]
@@ -1667,7 +1663,6 @@ def get_mp_inventory(request):
                     mrp_list = [OrderedDict(( ('mrp', sku_obj.mrp), ('weight', get_sku_weight(sku_obj)),
                                                                      ('inventory', OrderedDict((('sellable', 0),
                                                                                                 ('on_hold', 0),
-                                                                                                ('un_sellable', 0),
                                                                                                 ('bulk_area', 0))))))]
                 data.append(OrderedDict(( ('sku', sku['sku_code']), ('data', mrp_list))))
         else:
@@ -1680,18 +1675,18 @@ def get_mp_inventory(request):
                             filter(stock__sellerstock__seller_id=seller_master_id, reserved__gt=0, status=1,
                                     stock__sellerstock__quantity__gt=0, stock__sku__user=user.id).\
                             values_list('stock__sku__sku_code').distinct().annotate(tot_stock=Sum('reserved')))
-            unsellable_stock = dict(SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone__zone').\
+            '''unsellable_stock = dict(SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone__zone').\
                           filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0,
                                  stock__location__zone__zone='Non Sellable Zone').\
                               values_list('stock__sku__sku_code').distinct().\
-                          annotate(tot_stock=Sum('quantity')))
+                          annotate(tot_stock=Sum('quantity')))'''
             for sku in sku_records:
                 inventory = stocks.get(sku['sku_code'], 0)
                 reserved = pick_res.get(sku['sku_code'], 0)
-                unsellable = unsellable_stock.get(sku['sku_code'], 0)
+                #unsellable = unsellable_stock.get(sku['sku_code'], 0)
                 inventory -= reserved
                 data.append(OrderedDict(( ('sku', sku['sku_code']), ('inventory', int(inventory)),
-                                          ('on_hold', int(reserved)), ('un_sellable', unsellable))))
+                                          ('on_hold', int(reserved)))))
         page_info['data'] = data
         #data = scroll_data(request, data, limit=limit)
         response_data = {'page_info': page_info.get('page_info', {}), 'status': 200,

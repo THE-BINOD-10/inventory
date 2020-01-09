@@ -4945,6 +4945,8 @@ def get_order_summary_data(search_params, user, sub_user):
         tax_percent = 0
         if float(taxable_amount):
             tax_percent = (tax * 100)/float(taxable_amount)
+            if tax_percent:
+                tax_percent=int(round(tax_percent))
         invoice_tax = "%.2f" % (float(unit_price) * float(quantity)*(tax_percent/100))
 
         invoice_amount_picked = "%.2f" % ((float(unit_price) * float(quantity)) + float(invoice_tax) - discount)

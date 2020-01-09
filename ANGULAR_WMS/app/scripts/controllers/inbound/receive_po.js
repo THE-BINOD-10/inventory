@@ -2465,6 +2465,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.display_approval_button = true;
           break;
         }
+        if(sku_row_data[i].weight != sku_row_data[i].weight_copy){
+          vm.display_approval_button = true;
+          break;
+        }
       }
       var po_quantity = 0;
       if(sku_row_data[0].po_quantity != '') {

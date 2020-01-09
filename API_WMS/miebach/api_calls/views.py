@@ -1569,10 +1569,10 @@ def get_mp_inventory(request):
                     sell_filter = {'stock__sku__sku_code': sku_code}
                     if mrp or mrp == 0:
                         sell_filter['stock__batch_detail__mrp'] = mrp
-                    unsellable = unsellable_stock.filter(**sell_filter).\
-                                                aggregate(Sum('quantity'))['quantity__sum']
-                    if not unsellable:
-                        unsellable = 0
+                    #unsellable = unsellable_stock.filter(**sell_filter).\
+                    #                            aggregate(Sum('quantity'))['quantity__sum']
+                    #if not unsellable:
+                    #    unsellable = 0
                     # bulk_stock = bulk_zone_stock.filter(**sell_filter).\
                     #                             aggregate(Sum('quantity'))['quantity__sum']
                     # if not bulk_stock:

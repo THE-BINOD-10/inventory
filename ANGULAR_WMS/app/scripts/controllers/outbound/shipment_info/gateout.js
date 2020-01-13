@@ -11,6 +11,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.toggleAll = toggleAll;
     vm.toggleOne = toggleOne;
     vm.host = Session.host;
+    vm.upload_enable = true;
     vm.permissions = Session.roles.permissions;
     var titleHtml = '<input type="checkbox" class="data-select" ng-model="vm.selectAll" ng-change="vm.toggleAll(vm.selectAll, vm.selected); $event.stopPropagation();">';
 
@@ -68,13 +69,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     }
     if(vm.permissions.dispatch_qc_check) {
       vm.dtColumns.push(DTColumnBuilder.newColumn('Signed Invoice').withTitle('Signed Invoice Upload').notSortable())
+    } else {
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Signed Invoice').withTitle('Upload POD').notSortable())
     }
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $compile(angular.element('td', nRow))($scope);
         /*$('td:not(td:first)', nRow).unbind('click');
         $('td:not(td:first)', nRow).bind('click', function() {*/
-        $('td', nRow).unbind('click');
-        $('td', nRow).bind('click', function() {
+        $('td:not(td:last)', nRow).unbind('click');
+        $('td:not(td:last)', nRow).bind('click', function() {
             $scope.$apply(function() {
                 console.log(aData);
                 var data = { gateout : 1, customer_id: aData['Customer ID'], shipment_number:aData['Shipment Number'],
@@ -177,6 +180,51 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       }else if(flag == 'table') {
         vm.uploadedpdf_order_id = data
       }
+    }
+    vm.upload_file_name = "";
+    $scope.$on("fileSelected", function (event, args) {
+      $scope.$apply(function () {
+        vm.upload_file_name = args.file.name;
+        if(vm.upload_enable){
+          vm.uploaded_pdf_send(vm.uploadedpdf_order_id, args.file)
+        }
+      });
+    });
+
+    vm.uploaded_pdf_send = function(id, pdf_file) {
+      vm.upload_enable = false;
+      var formData = new FormData();
+      var el = $("#file-upload");
+      var files = pdf_file;
+
+      if(files.length == 0){
+        return false;
+      }
+      formData.append('pdf_file', files);
+      formData.append('id', id);
+      $.ajax({url: Session.url+'upload_signed_under_taking_form/',
+        data: formData,
+        method: 'POST',
+        processData : false,
+        contentType : false,
+        xhrFields: {
+          withCredentials: true
+        },
+        'success': function(response) {
+          if(response == 'Uploaded Successfully') {
+            vm.dtInstance.reloadData();
+            Service.showNoty(response);
+            vm.upload_enable = true;
+          } else {
+            Service.showNoty(response, 'warning');
+            vm.upload_enable = true;
+          }
+        },
+        'error': function(response) {
+          Service.showNoty('Something Went Wrong', 'warning');
+          vm.upload_enable = true;
+        }
+      });
     }
     vm.view_signed_copy = function(id) {
       let elem = []

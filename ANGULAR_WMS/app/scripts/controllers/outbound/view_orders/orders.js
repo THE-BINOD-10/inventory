@@ -98,16 +98,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     }
 
-    vm.pop_buttons = false;
-    if (["OrderView", "CustomerOrderView"].indexOf(vm.g_data.view) != -1) {
-      vm.pop_buttons = true;
-    }
-
-    vm.datatable_sort_key = [0, 'asc']
-
-    if(vm.g_data.view == "CustomerOrderView"){
-      vm.datatable_sort_key = [7, 'desc']
-    }
 
     vm.get_data_table = function() {
     vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'special_key': JSON.stringify(vm.special_key)}
@@ -154,6 +144,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.selected[meta.row] = vm.selectAll;
         return vm.service.frontHtml + meta.row + vm.service.endHtml;
     }))
+    vm.pop_buttons = false;
+    if (["OrderView", "CustomerOrderView"].indexOf(vm.g_data.view) != -1) {
+      vm.pop_buttons = true;
+    }
+
+    vm.datatable_sort_key = [0, 'asc']
+
+    if(vm.g_data.view == "CustomerOrderView"){
+      vm.datatable_sort_key = [7, 'desc']
+    }
     }
     vm.get_data_table()
 
@@ -369,6 +369,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             }
             // if (value.discount_percentage <= 99.99) {
               vm.discount_per = value.discount_percentage;
+              vm.discount = value.discount;
             // }
 
 	          var image_url = value.image_url;
@@ -387,6 +388,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
               var record = vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity,
               image_url: vm.img_url, remarks: vm.remarks, unit_price: vm.unit_price, taxes: vm.taxes,
+              discount: vm.discount,
               discount_per: vm.discount_per, sgst:vm.sgst, cgst:vm.cgst, igst:vm.igst, cess:vm.cess,default_status: true, sku_status: value.sku_status, mrp:vm.mrp, invoice_amount:vm.invoice_amount})
               var record = vm.model_data.data[index]
               //vm.changeInvoiceAmt(record);

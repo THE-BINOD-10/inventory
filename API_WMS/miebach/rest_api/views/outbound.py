@@ -2604,11 +2604,11 @@ def update_invoice(request, user=''):
                 continue
             else:
                 sku_id = myDict['sku_id'][index]
-                quantity = myDict['quantity'][index]
                 sgst_tax = float(myDict['sgst_tax'][index])
                 cgst_tax = float(myDict['cgst_tax'][index])
                 igst_tax = float(myDict['igst_tax'][index])
                 invoice_amount = float(myDict['invoice_amount'][index].replace(',', ''))
+                print invoice_amount
                 if invoice_amount == 'NaN':
                     invoice_amount = 0
                 # unit_price = myDict['unit_price'][index]
@@ -2636,7 +2636,7 @@ def update_invoice(request, user=''):
                         price = sku_qs[0].price
                     # net_amount = price * int(quantity)
                     # org_order_id = 'MN%s' % order_id
-                    order_detail_dict = {'sku_id': sku_id, 'title': title, 'quantity': quantity, 'order_id': order_id,
+                    order_detail_dict = {'sku_id': sku_id, 'title': title, 'order_id': order_id,
                                          'original_order_id': org_ord_id, 'user': user.id, 'customer_id': customer_id,
                                          'customer_name': customer_name, 'shipment_date': shipment_date,
                                          'address': address, 'unit_price': price, 'invoice_amount': invoice_amount,
@@ -2648,9 +2648,9 @@ def update_invoice(request, user=''):
                     ord_obj = OrderDetail.objects.filter(sku_id=sku_id, original_order_id=org_ord_id)
                     if ord_obj:
                         ord_obj = ord_obj[0]
-                        ord_obj.quantity = quantity
+                        #ord_obj.quantity = quantity
                         ord_obj.unit_price = price
-                        ord_obj.invoice_amount = invoice_amount
+                        ord_obj.invoice_amount = (invoice_amount/quantity) * ord_obj.quantity
                         ord_obj.save()
                     else:
                         ord_obj = OrderDetail(**order_detail_dict)
@@ -2658,7 +2658,7 @@ def update_invoice(request, user=''):
 
                     CustomerOrderSummary.objects.create(order=ord_obj, sgst_tax=sgst_tax,cgst_tax=cgst_tax,
                                                         igst_tax=igst_tax, tax_type=tax_type)
-                    sos_dict = {'quantity': quantity, 'pick_number': 1,
+                    sos_dict = {'pick_number': 1,
                                 'creation_date': datetime.datetime.now(), 'order_id': ord_obj.id,
                                 'invoice_number': invoice_number, 'order_status_flag': 'customer_invoices'}
                     sos_obj = SellerOrderSummary(**sos_dict)
@@ -2675,7 +2675,7 @@ def update_invoice(request, user=''):
                                                                                  "%m/%d/%Y").date()
             if update_dict:
                 ord_ids.update(**update_dict)
-        if increment_invoice == 'true' and invoice_number:
+        '''if increment_invoice == 'true' and invoice_number:
             invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace=marketplace)
             if not invoice_sequence:
                 invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace='')
@@ -2692,7 +2692,7 @@ def update_invoice(request, user=''):
                     invoice_sequence.save()
                 else:
                     resp['msg'] = "Invoice number already Exist"
-                    return HttpResponse(json.dumps(resp))
+                    return HttpResponse(json.dumps(resp))'''
 
         # Updating the Unit Price
         for order_id in ord_ids:
@@ -2700,11 +2700,13 @@ def update_invoice(request, user=''):
                 continue
 
             discount_percentage = 0
-            sos_obj = SellerOrderSummary.objects.filter(order_id=order_id)
+            sos_obj = SellerOrderSummary.objects.filter(order_id=order_id, invoice_number=invoice_number)
             sos_obj.update(invoice_reference=invoice_reference)
+            if invoice_date and sos_obj[0].creation_date.date() != invoice_date:
+                sos_obj.update(creation_date=invoice_date)
             unit_price_index = myDict['id'].index(str(order_id.id))
             # if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
-            if float(myDict['quantity'][unit_price_index]) == 0:
+            '''if float(myDict['quantity'][unit_price_index]) == 0:
                 cust_objs = CustomerOrderSummary.objects.filter(order__id=order_id.id)
                 if cust_objs:
                     cust_obj = cust_objs[0]
@@ -2714,58 +2716,60 @@ def update_invoice(request, user=''):
                     sos_obj.delete()
                 order_id.delete()
                 continue
+            else:'''
+            cust_obj = order_id.customerordersummary_set.all()
+            if cust_obj:
+                cust_obj = cust_obj[0]
+                if (order_id.quantity * order_id.unit_price):
+                    discount_percentage = "%.1f" % (float((cust_obj.discount * 100) / (order_id.quantity * order_id.unit_price)))
+            order_id.unit_price = float(myDict['unit_price'][unit_price_index])
+            #order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index].replace(',',''))
+            invoice_amount = float(myDict['invoice_amount'][unit_price_index].replace(',',''))
+            order_id.invoice_amount = (invoice_amount/float(myDict['quantity'][unit_price_index])) * order_id.quantity
+            if order_id.quantity != float(myDict['quantity'][unit_price_index]) :
+                partial_quantity = True
+            order_id.save()
+            sgst_tax = float(myDict['sgst_tax'][unit_price_index])
+            cgst_tax = float(myDict['cgst_tax'][unit_price_index])
+            igst_tax = float(myDict['igst_tax'][unit_price_index])
+            cust_objs = CustomerOrderSummary.objects.filter(order__id=order_id.id)
+            if cust_objs:
+                cust_obj = cust_objs[0]
+                cust_obj.sgst_tax = sgst_tax
+                cust_obj.cgst_tax = cgst_tax
+                cust_obj.igst_tax = igst_tax
+                cust_obj.consignee = consignee
+                if invoice_date:
+                    cust_obj.invoice_date = invoice_date
+                if discount_percentage:
+                    cust_obj.discount = ((order_id.quantity * order_id.unit_price)/100) * float(discount_percentage)
+                cust_obj.save()
             else:
-                cust_obj = order_id.customerordersummary_set.all()
-                if cust_obj:
-                    cust_obj = cust_obj[0]
-                    if (order_id.quantity * order_id.unit_price):
-                        discount_percentage = "%.1f" % (float((cust_obj.discount * 100) / (order_id.quantity * order_id.unit_price)))
-                order_id.unit_price = float(myDict['unit_price'][unit_price_index])
-                order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index].replace(',',''))
-                if order_id.quantity != float(myDict['quantity'][unit_price_index]) :
-                    partial_quantity = True
-                order_id.save()
-                sgst_tax = float(myDict['sgst_tax'][unit_price_index])
-                cgst_tax = float(myDict['cgst_tax'][unit_price_index])
-                igst_tax = float(myDict['igst_tax'][unit_price_index])
-                cust_objs = CustomerOrderSummary.objects.filter(order__id=order_id.id)
-                if cust_objs:
-                    cust_obj = cust_objs[0]
-                    cust_obj.sgst_tax = sgst_tax
-                    cust_obj.cgst_tax = cgst_tax
-                    cust_obj.igst_tax = igst_tax
-                    cust_obj.consignee = consignee
-                    if invoice_date:
-                        cust_obj.invoice_date = invoice_date
-                    if discount_percentage:
-                        cust_obj.discount = ((order_id.quantity * order_id.unit_price)/100) * float(discount_percentage)
-                    cust_obj.save()
-                else:
-                    CustomerOrderSummary.objects.create(order=order_id, sgst_tax=sgst_tax, cgst_tax=cgst_tax,
-                                                        igst_tax=igst_tax, tax_type=tax_type)
-                sos_objs = SellerOrderSummary.objects.filter(order_id=order_id)
-                updating_quantity = float(myDict['quantity'][unit_price_index])
-                seller_exist_qty = sos_objs.aggregate(Sum('quantity'))['quantity__sum']
-                if not seller_exist_qty:
-                    seller_exist_qty = 0
-                if float(seller_exist_qty) != float(updating_quantity):
-                    updating_diff = float(updating_quantity) - float(seller_exist_qty)
-                    for sos_obj in sos_objs:
-                        if updating_diff <= 0:
-                            if updating_diff > float(sos_obj.quantity):
-                                sos_updating_qty = float(sos_obj.quantity)
-                                updating_diff -= float(sos_obj.quantity)
-                            else:
-                                sos_updating_qty = updating_diff
-                                updating_diff = 0
+                CustomerOrderSummary.objects.create(order=order_id, sgst_tax=sgst_tax, cgst_tax=cgst_tax,
+                                                    igst_tax=igst_tax, tax_type=tax_type)
+            '''sos_objs = SellerOrderSummary.objects.filter(order_id=order_id)
+            updating_quantity = float(myDict['quantity'][unit_price_index])
+            seller_exist_qty = sos_objs.aggregate(Sum('quantity'))['quantity__sum']
+            if not seller_exist_qty:
+                seller_exist_qty = 0
+            if float(seller_exist_qty) != float(updating_quantity):
+                updating_diff = float(updating_quantity) - float(seller_exist_qty)
+                for sos_obj in sos_objs:
+                    if updating_diff <= 0:
+                        if updating_diff > float(sos_obj.quantity):
+                            sos_updating_qty = float(sos_obj.quantity)
+                            updating_diff -= float(sos_obj.quantity)
                         else:
                             sos_updating_qty = updating_diff
                             updating_diff = 0
-                        if sos_updating_qty < 0 :
-                            sos_updating_qty = 0
+                    else:
+                        sos_updating_qty = updating_diff
+                        updating_diff = 0
+                    if sos_updating_qty < 0 :
+                        sos_updating_qty = 0
 
-                        sos_obj.quantity = sos_obj.quantity + sos_updating_qty
-                        sos_obj.save()
+                    sos_obj.quantity = sos_obj.quantity + sos_updating_qty
+                    sos_obj.save()'''
 
 
         # Updating or Creating Order other charges Table
@@ -7463,41 +7467,83 @@ def generate_order_po_data(request, user=''):
             price = 0
             selected_item = ''
             order_detail = order_detail[0]
+            sku_master = SKUMaster.objects.get(sku_code=order_detail.sku.wms_code, user=user.id)
             sku_supplier = SKUSupplier.objects.filter(sku__wms_code=order_detail.sku.wms_code, sku__user=user.id)
+            if not sku_supplier:
+                attr_mapping = copy.deepcopy(SKU_NAME_FIELDS_MAPPING)
+                for attr_key, attr_val in attr_mapping.items():
+                    supplier_sku = SKUSupplier.objects.filter(user=user.id,
+                                                              supplier_id=supplier_list[1]['id'],
+                                                              attribute_type=attr_key,
+                                                              attribute_value=getattr(sku_master, attr_val))
+                    if supplier_sku.exists():
+                        sku_supplier = supplier_sku
             if sku_supplier:
-                sku_price_details = get_supplier_sku_price_values(sku_supplier[0].supplier_id, sku_supplier[0].sku.sku_code, user)
+                price, sku_price_details = calculate_price(sku_supplier, sku_master, user)
                 if sku_price_details:
                     taxes = sku_price_details[0]['taxes']
                     if taxes:
                         taxes = taxes[0]
                 selected_item = {'id': sku_supplier[0].supplier_id, 'name': sku_supplier[0].supplier.name,
                                  'tax_type': sku_supplier[0].supplier.tax_type}
-                price = sku_supplier[0].price
             else:
                 selected_item = supplier_list[1]
             data_dict.append({'order_id': data_id, 'wms_code': order_detail.sku.wms_code, 'title': order_detail.sku.sku_desc,
                               'quantity': product_qty, 'selected_item': selected_item, 'price': price,
-                              'taxes': taxes})
+                              'taxes': taxes, 'original_order_id':order_detail.original_order_id})
     return HttpResponse(json.dumps({'data_dict': data_dict, 'supplier_list': supplier_list}))
 
 @csrf_exempt
 @get_admin_user
 def backorder_supplier_data(request, user=''):
     price = 0
+    taxes = {}
     request_dict = dict(request.POST.iterlists())
     if request_dict:
-        supplier = request_dict['supplier_id'][0]
+        supplier = request_dict['selected_item[id]'][0]
         wms_code = request_dict['wms_code'][0]
-    sku_price_details = get_supplier_sku_price_values(supplier, wms_code, user)
-    sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, sku__user=user.id)
+    sku_master = SKUMaster.objects.get(sku_code=wms_code, user=user.id)
+    sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, sku__user=user.id, supplier_id=supplier)
+    if not sku_supplier:
+        attr_mapping = copy.deepcopy(SKU_NAME_FIELDS_MAPPING)
+        for attr_key, attr_val in attr_mapping.items():
+            supplier_sku = SKUSupplier.objects.filter(user=user.id,
+                                                      supplier_id=supplier,
+                                                      attribute_type=attr_key,
+                                                      attribute_value=getattr(sku_master, attr_val))
+            if supplier_sku.exists():
+                sku_supplier = supplier_sku
     if sku_supplier:
-        price = sku_supplier[0].price
-    if sku_price_details:
-        taxes = sku_price_details[0]['taxes']
-        if taxes:
-            taxes = taxes[0]
+        price, sku_price_details = calculate_price(sku_supplier, sku_master,user)
+        if sku_price_details:
+            taxes = sku_price_details[0]['taxes']
+            if taxes:
+                taxes = taxes[0]
     return HttpResponse(json.dumps({'taxes': taxes, 'price':price}))
 
+
+def calculate_price(sku_supplier, sku_master, user):
+    sku_price_details = get_supplier_sku_price_values(sku_supplier[0].supplier_id, sku_master.sku_code, user)
+    mrp_value = sku_master.mrp
+    margin_percentage = sku_supplier[0].margin_percentage
+    if sku_supplier[0].costing_type == 'Margin Based':
+        prefill_unit_price = mrp_value - ((mrp_value * margin_percentage) / 100)
+        if len(sku_price_details):
+            tax_list=sku_price_details[0].get('taxes',[])
+        if len(tax_list):
+            tax_list = tax_list[0]
+            if tax_list.get('inter_state'):
+                tax=tax_list.get('igst_tax',0)+tax_list.get('apmc_tax',0)+tax_list.get('cess_tax',0)
+            else:
+                tax=tax_list.get('cgst_tax',0)+tax_list.get('sgst_tax',0)+tax_list.get('apmc_tax',0)+tax_list.get('cess_tax',0)
+
+        price = (prefill_unit_price * 100) / (100 + tax)
+    elif sku_supplier[0].costing_type == 'Markup Based':
+        prefill_unit_price = mrp_value / (1+(markup_percentage/100))
+        data['price'] = prefill_unit_price
+    else:
+        price = sku_supplier[0].price
+    return price, sku_price_details
 
 @csrf_exempt
 @get_admin_user
@@ -7813,6 +7859,7 @@ def get_view_order_details(request, user=''):
             discount_percentage = 0
             mrp = customer_order[0].mrp
             payment_status = customer_order[0].payment_status
+            discount = customer_order[0].discount
             if (quantity * unit_price):
                 discount_percentage = float(
                     "%.1f" % (float((customer_order[0].discount * 100) / (quantity * unit_price))))
@@ -7840,7 +7887,8 @@ def get_view_order_details(request, user=''):
              'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
              'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
              'cess_tax': cess_tax,
-             'unit_price': unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data,
+             'unit_price': unit_price, 'discount_percentage': discount_percentage, 'discount': discount,
+             'taxes': taxes_data,
              'order_charges': order_charges,
              'sku_status': one_order.status, 'client_name':client_name, 'payment_status':payment_status, 'mrp':mrp})
     if status_obj in view_order_status:
@@ -11029,10 +11077,10 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             is_marketplace = True
         else:
             lis = ['invoice_number', 'invoice_number', 'financial_year', 'order__customer_name', 'invoice_number', 'invoice_number',
-                   'invoice_number', 'invoice_number', 'invoice_number']
+                   'date_only', 'invoice_number', 'invoice_number']
             user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
             result_values = ['invoice_number', 'financial_year', 'order__customer_name', 'order__marketplace']
-            field_mapping = {'order_quantity_field': 'order__quantity', 'date_only': 'order__creation_date'}
+            field_mapping = {'order_quantity_field': 'order__quantity', 'date_only': 'creation_date'}
             is_marketplace = False
 
         if search_term:
@@ -11112,12 +11160,14 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                                                                 financial_year=data['financial_year'], order__marketplace=data['order__marketplace'])
                 order_ids = seller_order_summaries.values_list('order__id', flat= True)
                 order = seller_order_summaries[0].order
-                invoice_date = order.customerordersummary_set.filter()[0].invoice_date
+                original_order_id = order.original_order_id
+                #invoice_date = seller_order_summaries[0].order.customerordersummary_set.filter()[0].invoice_date
                 #invoice_date = CustomerOrderSummary.objects.filter(order_id__in=order_ids)\
                 #                                   .order_by('-invoice_date').values_list('invoice_date', flat=True)[0]
-                if not invoice_date:
-                    invoice_date = seller_order_summaries.order_by('-updation_date')[0].updation_date
-                data['ordered_quantity'] = OrderDetail.objects.filter(id__in=order_ids).only('quantity').aggregate(Sum('quantity'))['quantity__sum']
+                #if not invoice_date:
+                invoice_date = seller_order_summaries[0].creation_date
+                data['ordered_quantity'] = OrderDetail.objects.filter(user=user.id, original_order_id=original_order_id).\
+						only('original_quantity').aggregate(Sum('original_quantity'))['original_quantity__sum']
                 if not data['ordered_quantity']:
                     data['ordered_quantity'] = 0
                 #order = orders.filter(original_order_id=data['order__original_order_id'])[0]
@@ -11128,7 +11178,8 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                     #invoice_number = ''
                 #ordered_quantity = orders.filter(original_order_id=data['order__original_order_id'])\
                                          #.exclude(status=3).aggregate(Sum('quantity'))['quantity__sum']
-                picked_amount = order_summaries.filter(invoice_number=data['invoice_number'])\
+                picked_amount = order_summaries.filter(invoice_number=data['invoice_number'],
+                                                financial_year=data['financial_year'])\
                                                .values('order__sku_id', 'order__invoice_amount', 'order__quantity')\
                                                .distinct().annotate(pic_qty=Sum('quantity'))\
                                                .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
@@ -11159,7 +11210,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             data_dict.update(OrderedDict((('Financial Year', data['financial_year']), ('Customer Name', customer_name),
                                           ('Order Quantity', data['ordered_quantity']), ('Picked Quantity', data['total_quantity']),
                                           ('Total Amount', "%.2f" %picked_amount),
-                                          ('Order Date&Time', invoice_date), ('Invoice Number', ''), ('Marketplace', order.marketplace)
+                                          ('Invoice Date&Time', invoice_date), ('Invoice Number', ''), ('Marketplace', order.marketplace)
                                           )))
             temp_data['aaData'].append(data_dict)
         log.info('Customer Invoice filtered %s for %s ' % (str(temp_data['recordsTotal']), user.username))
@@ -11770,6 +11821,7 @@ def generate_customer_invoice_tab(request, user=''):
         return_data = request.GET.get('data', '')
         delivery_challan = request.GET.get('delivery_challan', '')
         invoice_data['invoice_date'] = invoice_date
+        invoice_data['dc_display']  = get_misc_value('display_dc_invoice', user.id)
         if delivery_challan == "true":
             titles = ['']
             title_dat = get_misc_value('invoice_titles', user.id)

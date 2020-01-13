@@ -10,6 +10,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.selectAll = false;
     vm.toggleAll = toggleAll;
     vm.toggleOne = toggleOne;
+    vm.host = Session.host;
     vm.permissions = Session.roles.permissions;
     var titleHtml = '<input type="checkbox" class="data-select" ng-model="vm.selectAll" ng-change="vm.toggleAll(vm.selectAll, vm.selected); $event.stopPropagation();">';
 
@@ -162,7 +163,42 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                      "market_list":[]};
     vm.model_data = {};
     angular.copy(vm.empty_data, vm.model_data);
-
+    vm.uploaded_file_data = function(data, flag){
+      vm.uploadedpdf_order_id = ''
+      if(flag == 'view') {
+        var send = $("form:visible");
+        send = $(send).serializeArray();
+        for (var i = 0; i < send.length; i++) {
+          if(send[i].name == 'id'){
+            vm.uploadedpdf_order_id = send[i].value
+          }
+        }
+        vm.view_signed_copy(vm.uploadedpdf_order_id)
+      }else if(flag == 'table') {
+        vm.uploadedpdf_order_id = data
+      }
+    }
+    vm.view_signed_copy = function(id) {
+      let elem = []
+      let host = vm.host
+      elem.push({name:'shipment_id', value:id})
+      vm.service.apiCall("get_signed_oneassist_form/", "POST", elem).then(function(data) {
+        if(data.message) {
+          if (data.data == 'Please Upload Signed Invoice Copy'){
+            Service.showNoty(data.data, 'warning');
+          } else {
+            let srcpdf = host+data.data.data_dict[0]
+            var mywindow = window.open(srcpdf, 'height=400,width=600');
+            mywindow.focus();
+            $timeout(function(){
+              mywindow.print();
+              mywindow.close();
+            }, 3000);
+            return true;
+          }
+        }
+      });
+    }
     vm.submit = function(data) {
       var send = $("form:visible");
       send = $(send).serializeArray();

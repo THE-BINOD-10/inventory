@@ -529,39 +529,26 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    if central_order_reassigning == 'true' and one_assist_qc_check != 'true':
-        results = results.filter(order_shipment__user=user.id).values('order_shipment__shipment_number', 'order_shipment__manifest_number').\
-                                distinct().annotate(ship_quantity=Sum('shipping_quantity')).order_by(order_data)
-    else:
-        results = results.filter(order_shipment__user=user.id).values('order_shipment__shipment_number', 'order_shipment__manifest_number',
-                                'order__customer_id', 'order__customer_name').\
-                                distinct().annotate(ship_quantity=Sum('shipping_quantity')).order_by(order_data)
+    results = results.filter(order_shipment__user=user.id).values('order_shipment__shipment_number', 'order_shipment__manifest_number',
+                            'order__customer_id', 'order__customer_name').\
+                            distinct().annotate(ship_quantity=Sum('shipping_quantity')).order_by(order_data)
     for result in results[start_index:stop_index]:
         shipment_obj = shipment_objs.filter(order_shipment__shipment_number=result['order_shipment__shipment_number'],
                             order_shipment__manifest_number=result['order_shipment__manifest_number'], order_shipment__user=user.id).\
                             only('creation_date', 'order_id', 'id')
         shipment_creation_date = shipment_obj[0].creation_date
         manifest_date = get_local_date(user, shipment_creation_date)
-        if central_order_reassigning == 'true' and one_assist_qc_check != 'true':
-            data_dict = OrderedDict((('Serial Number', result['order_shipment__shipment_number']),
-                                        ('Shipment Number', result['order_shipment__shipment_number']),
-                                                    ('Manifest Number', str(result['order_shipment__manifest_number'])),
-                                                    ('Total Quantity', result['ship_quantity']),
-                                                    ('Manifest Date', manifest_date)
-                                                ))
-        else:
-            data_dict = OrderedDict((('Shipment Number', result['order_shipment__shipment_number']),
+        data_dict = OrderedDict((('Shipment Number', result['order_shipment__shipment_number']),
                                         ('Manifest Number', str(result['order_shipment__manifest_number'])),
                                         ('Customer ID', result['order__customer_id']), ('Customer Name', result['order__customer_name']),
                                         ('Total Quantity', result['ship_quantity'])
                                         ))
-        if one_assist_qc_check == 'true':
-            pdf_obj = MasterDocs.objects.filter(master_id = shipment_obj[0].order_id, master_type='OneAssistSignedCopies')
-            if pdf_obj.exists():
-                signed_copy = '<label class="icon-check" style="font-size: 22px;color: #1fa21f;"></label>'
-            else:
-                signed_copy = '<label class="icon-cloud-upload" style="font-size: 22px;cursor: pointer;"><input type = "file" name="files" id="file-upload" style="display:none" file-uploadd single ng-click= "vm.uploaded_file_data('+"'"+str(shipment_obj[0].id)+"'"+', '+"'"+'table'+"'"+');"/></label>'
-            data_dict['Signed Invoice'] = signed_copy
+        pdf_obj = MasterDocs.objects.filter(master_id__in = shipment_obj.values_list('order_id', flat=True), master_type='OneAssistSignedCopies')
+        if pdf_obj.exists():
+            signed_copy = '<label class="icon-check" style="font-size: 22px;color: #1fa21f;"></label>'
+        else:
+            signed_copy = '<label class="icon-cloud-upload" style="font-size: 22px;cursor: pointer;"><input type = "file" name="files" id="file-upload" style="display:none" file-uploadd single ng-click= "vm.uploaded_file_data('+"'"+str(shipment_obj[0].id)+"'"+', '+"'"+'table'+"'"+');"/></label>'
+        data_dict['Signed Invoice'] = signed_copy
         temp_data['aaData'].append(data_dict)
 
     temp_data['recordsTotal'] = results.count()
@@ -2608,7 +2595,6 @@ def update_invoice(request, user=''):
                 cgst_tax = float(myDict['cgst_tax'][index])
                 igst_tax = float(myDict['igst_tax'][index])
                 invoice_amount = float(myDict['invoice_amount'][index].replace(',', ''))
-                print invoice_amount
                 if invoice_amount == 'NaN':
                     invoice_amount = 0
                 # unit_price = myDict['unit_price'][index]
@@ -6030,7 +6016,7 @@ def get_signed_oneassist_form(request, user=''):
         shipment_detail = ShipmentInfo.objects.get(id=shipment_id)
         order_detail = shipment_detail.order
         if order_detail:
-            pdf_obj = MasterDocs.objects.filter(master_id = order_detail.id)
+            pdf_obj = MasterDocs.objects.filter(master_id = order_detail.id, master_type='OneAssistSignedCopies')
             if pdf_obj:
                 images = list(pdf_obj.values_list('uploaded_file', flat=True))
                 one_assist_pdf.extend(images)
@@ -6423,18 +6409,13 @@ def shipment_info_data(request, user=''):
         if pod_status:
             status = 'Delivered'
         ship_status = ship_status[ship_status.index(status):]
-        data.append({'id': orders.id, 'order_id': orders.order.original_order_id, 'customer_name':orders.order.customer_name,'sku_code': orders.order.sku.sku_code,
+        original_order_id = orders.order.original_order_id
+        if not original_order_id:
+            original_order_id = orders.order.order_code + str(orders.order.order_id)
+        data.append({'id': orders.id, 'order_id': original_order_id, 'customer_name':orders.order.customer_name, 'sku_code': orders.order.sku.sku_code,
                      'ship_quantity': orders.shipping_quantity,
-                     'loan_proposal_id':orders.order.original_order_id,
                      'model':model,
                      'serial_number':serial_number,
-                     'signed_invoice_copy':signed_invoice_copy,
-                     'id_type':id_type,
-                     'id_proof_number':id_proof_number,
-                     'id_card':id_card,
-                     'mobile_no':mobile_no,
-                     'alternative_mobile_no':alternative_mobile_no,
-                     'district':district,
                      'pack_reference': orders.order_packaging.package_reference,
                      'ship_status': ship_status, 'status': status})
         if not ship_reference:

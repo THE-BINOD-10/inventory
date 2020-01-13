@@ -1880,6 +1880,13 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                     error_code = "5003"
                     message = 'Order is already cancelled at Stockone'
                 update_error_message(failed_status, error_code, message, original_order_id)
+            if order.has_key('extra_fields'):
+                extra_fields_data = OrderedDict()
+                extra_attributes = order['extra_fields']
+                for key in extra_attributes:
+                    extra_fields_data[key] = extra_attributes[key]
+                if extra_fields_data:
+                    create_extra_fields_for_order(original_order_id, extra_fields_data, user)
             for sub_order in order['sub_orders']:
                 seller_order_dict = copy.deepcopy(SELLER_ORDER_FIELDS)
                 seller_id = sub_order.get('seller_id', '')

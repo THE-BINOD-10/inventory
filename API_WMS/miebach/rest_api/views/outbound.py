@@ -11159,12 +11159,14 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                                                                 financial_year=data['financial_year'], order__marketplace=data['order__marketplace'])
                 order_ids = seller_order_summaries.values_list('order__id', flat= True)
                 order = seller_order_summaries[0].order
+                original_order_id = order.original_order_id
                 #invoice_date = seller_order_summaries[0].order.customerordersummary_set.filter()[0].invoice_date
                 #invoice_date = CustomerOrderSummary.objects.filter(order_id__in=order_ids)\
                 #                                   .order_by('-invoice_date').values_list('invoice_date', flat=True)[0]
                 #if not invoice_date:
                 invoice_date = seller_order_summaries[0].creation_date
-                data['ordered_quantity'] = OrderDetail.objects.filter(id__in=order_ids).only('quantity').aggregate(Sum('quantity'))['quantity__sum']
+                data['ordered_quantity'] = OrderDetail.objects.filter(user=user.id, original_order_id=original_order_id).\
+						only('original_quantity').aggregate(Sum('original_quantity'))['original_quantity__sum']
                 if not data['ordered_quantity']:
                     data['ordered_quantity'] = 0
                 #order = orders.filter(original_order_id=data['order__original_order_id'])[0]

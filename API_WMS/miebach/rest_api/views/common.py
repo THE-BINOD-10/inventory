@@ -10398,17 +10398,17 @@ def validate_mrp_weight(data_dict, user):
     sellable_bulk_locations=list(chain(collect_all_sellable_location ,bulk_locations))
     sku_mrp_weight_map = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku__wms_code=data_dict['sku_code'],
                                          location__location__in=sellable_bulk_locations).\
-                                         filter(sellerstock__seller_id=validate_seller_id).\
                         exclude(batch_detail__mrp=None, batch_detail__weight=None).values_list('sku__wms_code', 'batch_detail__mrp', 'batch_detail__weight').distinct()
     if sku_mrp_weight_map:
-        for sku_code, mrp_weight_dict in sku_mrp_weight_map:
+        for sku_code, mrp, weight_dict in sku_mrp_weight_map:
+            mrp_weight_dict = {'mrp':mrp, 'weight':weight_dict}
             if sku_code in collect_dict_form.keys():
                 collect_dict_form[sku_code].append(mrp_weight_dict)
             else:
                 collect_dict_form[sku_code] = mrp_weight_dict
         if data_dict['sku_code'] in collect_dict_form.keys():
-            if not str(data_dict['mrp']) in collect_dict_form[data_dict['sku_code']]["mrp"] or not str(data_dict['weight']) in collect_dict_form[data_dict['sku_code']]["weight"]:
-                status = 'For SKU'+data_dict['sku_code']+','+collect_dict_form[data_dict['sku_code']]+'are only accepted.'
+            if not str(data_dict['mrp']) in str(collect_dict_form[data_dict['sku_code']]["mrp"]) or not str(data_dict['weight']) in str(collect_dict_form[data_dict['sku_code']]["weight"]):
+                status = 'For SKU'+str(data_dict['sku_code'])+','+str(collect_dict_form[data_dict['sku_code']])+'are only accepted.'
     return status
 
 

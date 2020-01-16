@@ -1755,7 +1755,7 @@ def insert_inventory_adjust(request, user=''):
         if not mrp or not weight :
             return HttpResponse("MRP and Weight are Mandatory")
         data_dict = {'sku_code':wmscode, 'mrp':mrp, 'weight':weight, 'seller_id':seller_id}
-        validate_mrp_weight(data_dict,user)
+        status =  validate_mrp_weight(data_dict,user)
         if status:
             return HttpResponse(status)
     if seller_id:

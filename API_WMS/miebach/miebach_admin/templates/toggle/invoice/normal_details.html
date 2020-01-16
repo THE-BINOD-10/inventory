@@ -53,32 +53,20 @@
                     <td>
                       <div class="row m0">
                         <div class="col-xs-12 text-left p0 fs13">
-                          <strong>Invoice Number:</strong>{{invoice_no}}<br>
-                          <strong>Invoice Date:</strong>{{invoice_date}}<br>
-                          <strong>Order Number:</strong>
-                             {% if order_reference %}
-                               {{order_reference}}
-                             {% else %}
-                               {{order_id}}
-                             {% endif %}
-                           <br>
-                           <strong>Order Date:</strong>
-                             {% if order_reference_date %} 
-                               {{ order_reference_date }} 
-                             {% else %}
-                               {{order_date}} 
-                             {% endif %}
-                           <br>
+                          <strong>Invoice Number: </strong>{{invoice_no}}<br>
+                          <strong>Invoice Date: </strong>{{invoice_date}}<br>
+                          <strong>Order Number: </strong>{{order_id}}<br>
+                           <strong>Order Date: </strong>{{order_date}}<br>
                            {% if manifest_number %}
-                            <strong>Manifest Number:</strong>{{manifest_number}}<br>
+                            <strong>Manifest Number: </strong>{{manifest_number}}<br>
                            {% endif %}
-                           <strong>Mode of Transport:</strong>
+                           <strong>Mode of Transport: </strong>
                              {{ mode_of_transport }}
                            <br>
-                           <strong>Vehicle Number:</strong>
+                           <strong>Vehicle Number: </strong>
                              {{ vehicle_number }}
                            <br>
-                           {% if challan_number %}
+                           {% if dc_display|lower == 'true' %}
                            <strong>DC Number: </strong>
                              {{ challan_number }}
                            <br>
@@ -135,7 +123,7 @@
                           {% endif %}
                         </div>
                         {% endif %}
-                        {% if marketplace|lower != 'offline,sample' %}
+                        {% if marketplace|lower not in 'offline,sample' %}
                         <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline,sample'" class="fs13">
                           {{marketplace}}<br>
                         </div>
@@ -162,7 +150,7 @@
                         <div class="col-md-12 p0 fs13">
                           <p class="pre-custom p0">{{consignee}}</p>
                         </div>
-                        {% elif marketplace|lower == 'offline,sample' %}
+                        {% elif marketplace|lower in 'offline,sample' %}
                         <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() == 'offline,sample'">
                           {% if customer_details.0.name == '' %}
                           <p class="fs13 m0" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{marketplace}}</p>
@@ -188,7 +176,7 @@
                           {% endif %}
                         </div>
                         {% endif %}
-                        {% if marketplace|lower != 'offline,sample' %}
+                        {% if marketplace|lower not in 'offline,sample' %}
                         <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'" class="fs13">
                           {{marketplace}}<br>
                         </div>

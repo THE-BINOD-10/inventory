@@ -37,7 +37,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'brand_categorization':false,
                     'purchase_order_preview':false,
                     'stop_default_tax':false,
+                    'delivery_challan_terms_condtions': '',
                     'order_prefix': false,
+                    'supplier_mapping':false,
+                    'show_mrp_grn': false,
+                    'display_dc_invoice':false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -64,7 +68,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      81: 'rtv_prefix_code',82:'pos_remarks', 83:'dispatch_qc_check', 84:'block_expired_batches_picklist', 85:'non_transacted_skus',
                      86:'sku_less_than_threshold', 87:'decimal_limit_price', 88: 'mandate_sku_supplier', 89: 'update_mrp_on_grn', 90: 'allow_rejected_serials',
                      91: 'weight_integration_name', 92:'repeat_po', 93:'brand_categorization', 94:'loc_serial_mapping_switch', 95:'purchase_order_preview',
-                     96:'stop_default_tax', 97: 'order_prefix',
+                     96:'stop_default_tax', 97:'order_prefix',
+                     98: 'delivery_challan_terms_condtions',
+                     99: 'supplier_mapping',
+                     100: 'show_mrp_grn',
+                     101:'display_dc_invoice',
                      }
 
   vm.check_box_data = [
@@ -268,6 +276,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       name: "Display IMEI Numbers In Invoice",
       model_name: "show_imei_invoice",
       param_no: 39,
+      class_name: "fa fa-refresh",
+      display: true
+    },
+    {
+      name: "Display Delivery Challan Number In Invoice",
+      model_name: "display_dc_invoice",
+      param_no: 101,
       class_name: "fa fa-refresh",
       display: true
     },
@@ -550,7 +565,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    param_no: 96,
    class_name: "fa fa-server",
    display: true
-  }
+  },
+  {
+   name: "Disable Auto Supplier SKU Mapping",
+   model_name: "supplier_mapping",
+   param_no: 99,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
+    name: "Show MRP in Goods Receipt Note",
+    model_name: "show_mrp_grn",
+    param_no: 100,
+    class_name: "fa fa-rupee",
+    display: true
+  },
 ]
 
   vm.empty = {};
@@ -772,6 +801,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       vm.getDeclaration(vm.model_data.invoice_declaration)
       vm.getPosremarks(vm.model_data.pos_remarks)
       vm.getRaisePOterms(vm.model_data.raisepo_terms_conditions)
+      vm.getDeliveryChallanterms(vm.model_data.delivery_challan_terms_condtions)
     }
   })
 
@@ -938,43 +968,41 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
 
   vm.save_mail_config = function() {
     var report_selected = [];
-     var report_removed = [];
-     var data = {};
-
-     var date_val = $($('#datepicker11')[0]).val();
-     var selected = $('#configurations').find('#ms-my-select').find('.ms-elem-selection.ms-selected').find('span')
-     var removed = $('#configurations').find('#ms-my-select').find('.ms-selectable').find('li').not($('.ms-selected')).find('span');
-     for(i=0; i<selected.length; i++) {
-       report_selected.push($(selected[i]).text());
-     }
-     for(i=0; i<removed.length; i++) {
-       report_removed.push($(removed[i]).text());
-     }
-     console.log(vm.model_data.email);
-     data['selected'] = report_selected;
-     data['removed'] = report_removed;
-     var mail_to = ""
-     angular.forEach($(".mail-to .tagsinput .tag span"),function(data){
-       mail_to = mail_to + $(data).text().slice(0,-2)+",";
-     })
-     if(mail_to) {
-       mail_to = mail_to.slice(0,-1)
-     }
-     data['email'] = mail_to;
-     data['frequency'] = $('#days_range').val();
-     data['date_val'] = date_val;
-     data['range'] = $('.time_data option:selected').val();
-     $.ajax({url: Session.url+'update_mail_configuration/',
-             method: 'POST',
-             data: data,
-             xhrFields: {
-               withCredentials: true
-             },
-             'success': function(response) {
-               msg = response;
-               $scope.showNoty();
-               Auth.status();
-     }});
+    var report_removed = [];
+    var data = {};
+    var date_val = $($('#datepicker11')[0]).val();
+    var selected = $('#ms-my-select').find('.ms-elem-selection.ms-selected').find('span');
+    var removed = $('#ms-my-select').find('.ms-elem-selection').not($('.ms-selected')).find('span');
+    for(i=0; i<selected.length; i++) {
+      report_selected.push($(selected[i]).text());
+    }
+    for(i=0; i<removed.length; i++) {
+      report_removed.push($(removed[i]).text());
+    }
+    data['selected'] = report_selected;
+    data['removed'] = report_removed;
+    var mail_to = ""
+    angular.forEach($(".mail-to .tagsinput .tag span"),function(data){
+      mail_to = mail_to + $(data).text().slice(0,-2)+",";
+    })
+    if(mail_to) {
+      mail_to = mail_to.slice(0,-1)
+    }
+    data['email'] = mail_to;
+    data['frequency'] = $('#days_range').val();
+    data['date_val'] = date_val;
+    data['range'] = $('.time_data option:selected').val();
+    $.ajax({url: Session.url+'update_mail_configuration/',
+       method: 'POST',
+       data: data,
+       xhrFields: {
+       withCredentials: true
+       },
+       'success': function(response) {
+         msg = response;
+         $scope.showNoty();
+         Auth.status();
+    }});
   }
 
   vm.mail_now = function() {
@@ -1314,6 +1342,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     vm.switches(data, 78);
     Auth.status();
   }
+  vm.delivery_challan_terms_condtions = function(delivery_challan_terms_condtions){
+    var data = $("[name='delivery_challan_terms_condtions']").val().split("\n").join("<<>>");
+    vm.switches(data, 98);
+    Auth.status();
+  }
 
   vm.getRemarks = function(remarks) {
 
@@ -1353,6 +1386,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $("[name='raisepo_terms_conditions']").val( raisepo_terms_conditions );
     }
     }, 1000);
+  }
+  vm.getDeliveryChallanterms = function(delivery_challan_terms_condtions) {
+    $timeout(function() {
+    if(delivery_challan_terms_condtions && delivery_challan_terms_condtions.split("<<>>").length > 1) {
+      $("[name='delivery_challan_terms_condtions']").val( delivery_challan_terms_condtions.split("<<>>").join("\n") )
+    } else {
+      $("[name='delivery_challan_terms_condtions']").val( delivery_challan_terms_condtions );
+    }
+    }, 1000)
   }
 
       var keynum = "";

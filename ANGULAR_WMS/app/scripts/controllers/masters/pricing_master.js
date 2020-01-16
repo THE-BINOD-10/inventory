@@ -7,8 +7,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
-
-    vm.filters = {'datatable': 'PricingMaster'}
+    vm.reloadData = function(data_table) {
+    vm.filters = {'datatable': data_table}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -26,9 +26,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        .withOption('initComplete', function( settings ) {
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
+       if (data_table == 'AttributePricingMaster'){
+          var columns = ["Attribute Name", "Attribute Value", "Selling Price Type", "Price"];
+       } else{
+          var columns = ["SKU Code", "SKU Description", "Selling Price Type", "Price"];
+       }
 
-    var columns = ["SKU Code", "SKU Description", "Selling Price Type", "Price"];
-    vm.dtColumns = vm.service.build_colums(columns);
+       vm.dtColumns = vm.service.build_colums(columns);
+
+    }
+    vm.reloadData('PricingMaster');
 
     vm.dtInstance = {};
 
@@ -41,7 +48,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
             $scope.$apply(function() {
-                var send = {sku_code: aData['SKU Code'], price_type: aData['Selling Price Type']};
+               if(!vm.toggle_brand) {
+               var send = {sku_code: aData['SKU Code'],
+                            price_type: aData['Selling Price Type'],
+                            attribute_view: 0 };
+               } else {
+               var send = {attribute_type: aData['Attribute Name'],
+                            attribute_value: aData['Attribute Value'],
+                            price_type: aData['Selling Price Type'],
+                            attribute_view: 1};
+                 }
                 vm.service.apiCall("get_pricetype_data/", "GET", send).then(function(data) {
                     if(data.message) {
                       if (data.data.status) {
@@ -79,8 +95,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $state.go('app.masters.PricingMaster.Add');
   }
 
-  vm.send_pricing = function(url, data) {
 
+  vm.send_pricing = function(url, data) {
+    if(vm.toggle_brand)
+    {
+         var brand_view={}
+         brand_view['name'] = 'brand_view'
+         brand_view['value'] = 1
+         data.push(brand_view)
+    }
     vm.service.apiCall(url, 'POST', data, true).then(function(data){
       if(data.message) {
         if (data.data == 'New Pricing Added' || data.data == 'Updated Successfully')  {
@@ -153,6 +176,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
   }
 
+ vm.reports = {}
+ vm.report_data = {};
+ vm.empty_data ={};
+  vm.toggle_price_master = function() {
+    var send = {};
+    if(!vm.toggle_brand){
+        vm.reloadData('PricingMaster');
+    } else {
+        vm.reloadData('AttributePricingMaster');
+    }
+  }
   vm.clearFields = function(data, index){
     data[index][name] = "";
     data[index].min_unit_range = '';

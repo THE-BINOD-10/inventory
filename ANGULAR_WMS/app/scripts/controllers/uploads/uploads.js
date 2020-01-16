@@ -56,6 +56,16 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    show: true,
                    perm: "add_skusupplier"
                  }, {
+                   title: "Supplier-SKU Attributes Download/ Upload",
+                   download: "Download Supplier-SKU Attributes Form",
+                   upload: "Upload Supplier-SKU Attributes Form",
+                   durl: "supplier_sku_attributes_form/",
+                   uurl: "supplier_sku_attributes_upload/",
+                   dparam: "download-supplier-sku-attributes-file",
+                   value: "",
+                   show: true,
+                   perm: "add_skusupplier"
+                 },{
                    title: "Location Download/ Upload",
                    download: "Download Location Form",
                    upload: "Upload Location Form",
@@ -326,6 +336,16 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    dparam: "download-file",
                    value: "",
                    perm: "change_substitutionsummary",
+                 },
+                 {
+                   title: "Brand Level Pricing Download/ Upload",
+                   download: "Brand Level Pricing Download Form",
+                   upload: "Brand Level Pricing Upload Form",
+                   durl: "brand_level_pricing_form/",
+                   uurl: "brand_level_pricing_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   perm: "add_pricemaster",
                  },
                 ]
 

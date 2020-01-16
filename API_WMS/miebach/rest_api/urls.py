@@ -36,6 +36,7 @@ urlpatterns = [
     url(r'^update_supplier_values/$', update_supplier_values),
     url(r'^insert_supplier/$', insert_supplier),
     url(r'^update_sku_supplier_values/$', update_sku_supplier_values),
+    url(r'^insert_supplier_attribute/$', insert_supplier_attribute),
     url(r'^update_sku_warehouse_values/$', update_sku_warehouse_values),
     url(r'^insert_mapping/$', insert_mapping),
     url(r'^insert_wh_mapping/$', insert_wh_mapping),
@@ -70,10 +71,12 @@ urlpatterns = [
     url(r'^upload_images/$', upload_images),
     url(r'^get_barcodes_myntra/$', get_barcodes_myntra),
     url(r'^change_warehouse_password/$', change_warehouse_password),
-    url(r'^insert_sku_pack/$',insert_sku_pack),
-    url(r'^insert_replenushment/$',insert_replenushment),
-    url(r'^get_zone_details/$',get_zone_details),
-    url(r'^delete_cluster_sku/$',delete_cluster_sku),
+    url(r'^insert_sku_pack/$', insert_sku_pack),
+    url(r'^insert_replenushment/$', insert_replenushment),
+    url(r'^get_zone_details/$', get_zone_details),
+    url(r'^delete_cluster_sku/$', delete_cluster_sku),
+
+
 
 
 
@@ -134,8 +137,11 @@ urlpatterns = [
     url(r'^insert_inventory_adjust/$', insert_inventory_adjust),
     url(r'^delete_po/$', delete_po),
     url(r'^search_supplier/$', search_supplier),
+    url(r'^search_wh_supplier/$', search_wh_supplier),
     url(r'^search_vendor/$', search_vendor),
     url(r'^search_wms_codes/$', search_wms_codes),
+    url(r'^search_sku_brands/$', search_sku_brands),
+    url(r'^search_sku_categorys/$', search_sku_categorys),
     url(r'^search_corporate_names/$', search_corporate_names),
     url(r'^search_reseller_names/$', search_reseller_names),
     url(r'^search_distributor_codes/$', search_distributor_codes),
@@ -224,6 +230,7 @@ urlpatterns = [
     url(r'^print_rm_picklist/$', print_rm_picklist),
     url(r'^generate_rm_po_data/$', generate_rm_po_data),
     url(r'^confirm_back_order/$', confirm_back_order),
+    url(r'^backorder_supplier_data/$', backorder_supplier_data),
     url(r'^generate_rm_rwo_data/$', generate_rm_rwo_data),
     url(r'^save_rwo/$', save_rwo),
     url(r'^confirm_rwo/$', confirm_rwo),
@@ -410,6 +417,9 @@ urlpatterns = [
     url(r'^print_pdf_my_orders_swiss/$', print_pdf_my_orders_swiss),
     url(r'^sm_custom_order_cancel/$', sm_custom_order_cancel),
     url(r'^dispatch_serial_numbers/$', dispatch_serial_numbers),
+    url(r'^save_misc_value/$', save_misc_value),
+    url(r'^get_value_for_misc_type/$', get_value_for_misc_type),
+
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),
@@ -535,6 +545,8 @@ urlpatterns += [
     url(r'^supplier_upload/$', supplier_upload),
     url(r'^supplier_sku_form/$', supplier_sku_form),
     url(r'^supplier_sku_upload/$', supplier_sku_upload),
+    url(r'^supplier_sku_attributes_form/$', supplier_sku_attributes_form),
+    url(r'^supplier_sku_attributes_upload/$', supplier_sku_attributes_upload),
     url(r'^location_form/$', location_form),
     url(r'^location_upload/$', location_upload),
     url(r'^purchase_order_form/$', purchase_order_form),
@@ -591,6 +603,8 @@ urlpatterns += [
     url(r'^cluster_sku_upload/$', cluster_sku_upload),
     url(r'^combo_allocate_form/$', combo_allocate_form),
     url(r'^combo_allocate_upload/$', combo_allocate_upload),
+    url(r'^brand_level_pricing_form/$', brand_level_pricing_form),
+    url(r'^brand_level_pricing_upload/$', brand_level_pricing_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

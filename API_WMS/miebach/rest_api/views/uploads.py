@@ -3391,6 +3391,7 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
     index_status = {}
     location = {}
     data_list = []
+    unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
     inv_mapping = get_move_inventory_excel_upload_headers(user)
     inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
@@ -3481,7 +3482,7 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % fields_mapping[key])
                 else:
                     data_dict[key] = cell_data
-        if user.username in MILKBASKET_USERS:
+        if user.username in MILKBASKET_USERS and unique_mrp == 'true':
             status = validate_mrp_weight(data_dict,user)
             if status:
                 index_status.setdefault(row_idx, set()).add(status)
@@ -3912,6 +3913,7 @@ def combo_sku_upload(request, user=''):
 def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
     index_status = {}
     data_list = []
+    unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
     inv_mapping = get_inventory_adjustment_excel_upload_headers(user)
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
@@ -3982,7 +3984,7 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
                 data_dict[key] = cell_data
-        if user.username in MILKBASKET_USERS:
+        if user.username in MILKBASKET_USERS and unique_mrp == 'true':
             status = validate_mrp_weight(data_dict,user)
             if status:
                 index_status.setdefault(row_idx, set()).add(status)

@@ -10389,7 +10389,6 @@ def get_distinct_price_types(user):
     return price_types
 
 def validate_mrp_weight(data_dict, user):
-    collect_sku_mrp_map = []
     collect_dict_form = {}
     status = ''
     collect_all_sellable_location = list(LocationMaster.objects.filter(zone__segregation='sellable',  zone__user=user.id, status=1).values_list('location', flat=True))

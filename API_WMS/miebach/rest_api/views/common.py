@@ -10407,7 +10407,7 @@ def validate_mrp_weight(data_dict, user):
                 collect_dict_form[sku_code] = mrp_weight_dict
         if data_dict['sku_code'] in collect_dict_form.keys():
             if not str(data_dict['mrp']) in str(collect_dict_form[data_dict['sku_code']]["mrp"]) or not str(data_dict['weight']) in str(collect_dict_form[data_dict['sku_code']]["weight"]):
-                status = 'For SKU'+str(data_dict['sku_code'])+', MRP '+str(collect_dict_form[data_dict['sku_code']]["mrp"])+' and WEIGHT '+str(collect_dict_form[data_dict['sku_code']]["weight"])+' are only accepted.'
+                status = 'For SKU '+str(data_dict['sku_code'])+', MRP '+str(collect_dict_form[data_dict['sku_code']]["mrp"])+' and WEIGHT '+str(collect_dict_form[data_dict['sku_code']]["weight"])+' are only accepted.'
     return status
 
 

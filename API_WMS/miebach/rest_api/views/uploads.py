@@ -3483,6 +3483,7 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                 else:
                     data_dict[key] = cell_data
         if user.username in MILKBASKET_USERS and unique_mrp == 'true':
+            data_dict['sku_code'] = data_dict['wms_code']
             status = validate_mrp_weight(data_dict,user)
             if status:
                 index_status.setdefault(row_idx, set()).add(status)
@@ -3985,6 +3986,7 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                     cell_data = int(cell_data)
                 data_dict[key] = cell_data
         if user.username in MILKBASKET_USERS and unique_mrp == 'true':
+            data_dict['sku_code'] = sku_master[0].sku_code
             status = validate_mrp_weight(data_dict,user)
             if status:
                 index_status.setdefault(row_idx, set()).add(status)

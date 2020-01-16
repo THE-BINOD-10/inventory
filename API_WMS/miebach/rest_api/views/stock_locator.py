@@ -1209,7 +1209,7 @@ def insert_move_inventory(request, user=''):
     if user.username in MILKBASKET_USERS :
         if not mrp or not weight :
             return HttpResponse("MRP and Weight are Mandatory")
-        if unique_mrp == 'true'
+        if unique_mrp == 'true':
             data_dict = {'sku_code':wms_code, 'mrp':mrp, 'weight':weight, 'seller_id':seller_id}
             status = validate_mrp_weight(data_dict,user)
             if status:

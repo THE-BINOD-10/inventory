@@ -34,6 +34,7 @@ class EasyopsAPI:
         self.is_full_link = LOAD_CONFIG.get(self.company_name, 'is_full_link', False)
         self.content_type_name = LOAD_CONFIG.get(self.company_name, 'content_type_name', False)
         self.use_exist_auth = LOAD_CONFIG.get(self.company_name, 'use_exist_auth', False)
+        self.auth_method = eval(LOAD_CONFIG.get(self.company_name, 'auth_method', ''))
         self.token = token
         self.user = user
         self.content_type = 'application/json'
@@ -84,6 +85,10 @@ class EasyopsAPI:
             if not isinstance(response, dict):
                 if response.status_code == 204:
                     response = {}
+                elif self.company_name == 'milkbasket' and response.status_code == 401:
+                    self.get_access_token(self.user)
+                    response = self.get_response(url, data, put)
+                    response = {}
                 else:
                     response = response.json()
             else:
@@ -120,16 +125,21 @@ class EasyopsAPI:
             self.update_token({'access_token': data[1]})
             return {}
         integrations = Integrations.objects.filter(user=user.id, name=self.company_name)
-        if integrations:
+        if integrations and not self.auth_method:
             self.client_id = integrations[0].client_id
             self.secret = integrations[0].secret
             if self.client_id:
                 data = (self.client_id, self.secret)
         auth_url = urljoin(self.host, self.auth_url)
-        if self.auth:
+        if self.auth_method and self.auth:
+            json_response = self.auth_method(auth_url, headers=self.headers, data=json.dumps(data), verify=False).json()
+        elif self.auth:
             json_response = requests.post(auth_url, headers=self.headers, auth=data, verify=False).json()
         else:
             json_response = self.get_response(auth_url, data, is_first=False)
+        if self.company_name == 'milkbasket':
+            self.token = json_response.get('authToken', '')
+            self.update_token({'access_token': json_response.get('authToken', '')})
         if self.check_response_type(json_response, 'json'):
             self.token = json_response.get('access_token', '')
             self.update_token(json_response)

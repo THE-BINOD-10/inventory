@@ -3481,6 +3481,10 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % fields_mapping[key])
                 else:
                     data_dict[key] = cell_data
+        if user.username in MILKBASKET_USERS:
+            status = validate_mrp_weight(data_dict,user)
+            if status:
+                index_status.setdefault(row_idx, set()).add(status)
         if row_idx not in index_status:
             stock_dict = {"sku_id": data_dict['sku_id'],
                           "location_id": data_dict['source_id'],
@@ -3978,6 +3982,10 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
                 data_dict[key] = cell_data
+        if user.username in MILKBASKET_USERS:
+            status = validate_mrp_weight(data_dict,user)
+            if status:
+                index_status.setdefault(row_idx, set()).add(status)
         data_list.append(data_dict)
 
     if not index_status:

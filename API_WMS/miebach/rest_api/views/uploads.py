@@ -1803,6 +1803,7 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
     index_status = {}
     location = {}
     inv_mapping = get_inventory_excel_upload_headers(user)
+    unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
     inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
@@ -1899,11 +1900,16 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 data_dict[key] = cell_data
             else:
                 data_dict[key] = cell_data
+        sku_master = SKUMaster.objects.get(id=data_dict['sku_id'])
+        if user.username in MILKBASKET_USERS and unique_mrp == 'true':
+            data_dict['sku_code'] = sku_master.sku_code
+            status = validate_mrp_weight(data_dict,user)
+            if status:
+                index_status.setdefault(row_idx, set()).add(status)
         if user.userprofile.industry_type == 'FMCG' and data_dict['sku_id']:
             if not data_dict.get('manufactured_date', ''):
                 data_dict['manufactured_date'] = datetime.datetime.now()
             if not data_dict.get('expiry_date', ''):
-                sku_master = SKUMaster.objects.get(id=data_dict['sku_id'])
                 data_dict['expiry_date'] = data_dict['manufactured_date'] + datetime.timedelta(sku_master.shelf_life)
         data_list.append(data_dict)
 

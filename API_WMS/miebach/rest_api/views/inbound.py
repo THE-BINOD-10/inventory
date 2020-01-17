@@ -1732,6 +1732,7 @@ def add_po(request, user=''):
 @reversion.create_revision(atomic=False)
 def insert_inventory_adjust(request, user=''):
     reversion.set_user(request.user)
+    unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
     cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
     #CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
     if not cycle_count:
@@ -1754,6 +1755,12 @@ def insert_inventory_adjust(request, user=''):
     if user.username in MILKBASKET_USERS :
         if not mrp or not weight :
             return HttpResponse("MRP and Weight are Mandatory")
+        if unique_mrp == 'true':
+            location_obj = LocationMaster.objects.filter(zone__user=user.id, location=loc)
+            data_dict = {'sku_code':wmscode, 'mrp':mrp, 'weight':weight, 'seller_id':seller_id, 'location':location_obj[0].location}
+            status =  validate_mrp_weight(data_dict,user)
+            if status:
+                return HttpResponse(status)
     if seller_id:
         seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
         if not seller_master:
@@ -5946,6 +5953,7 @@ def returns_putaway_data(request, user=''):
     mod_locations = []
     marketplace_data = []
     seller_receipt_mapping = {}
+    unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
     for i in range(0, len(myDict['id'])):
         status = ''
         data_id = myDict['id'][i]
@@ -5982,6 +5990,12 @@ def returns_putaway_data(request, user=''):
             stock_filter_params = {'location_id': location_id[0].id, 'receipt_number': receipt_number,
                                    'sku_id': sku_id, 'sku__user': user.id, 'receipt_type': 'return'}
             if batch_detail:
+                if user.username in MILKBASKET_USERS and unique_mrp == 'true':
+                    data_dict = {'sku_code':returns_data.returns.sku.wms_code, 'mrp':batch_detail[0].mrp, 'weight':batch_detail[0].weight,
+                                 'seller_id':seller_id, 'location':location_id[0].location}
+                    status = validate_mrp_weight(data_dict, user)
+                    if status:
+                        return HttpResponse(status)
                 stock_filter_params['batch_detail_id'] = batch_detail[0].id
             stock_data = StockDetail.objects.filter(**stock_filter_params)
             seller_stock = None
@@ -6038,7 +6052,7 @@ def returns_putaway_data(request, user=''):
             returns_data.save()
             status = 'Updated Successfully'
     return_wms_codes = list(set(return_wms_codes))
-    if user_profile.user_type == 'marketplace_user':
+    if user.username in MILKBASKET_USERS:
         check_and_update_marketplace_stock(return_wms_codes, user)
     else:
         check_and_update_stock(return_wms_codes, user)

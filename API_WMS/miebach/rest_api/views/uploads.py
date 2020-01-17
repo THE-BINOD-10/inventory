@@ -1881,9 +1881,11 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 except:
                     index_status.setdefault(row_idx, set()).add('Seller ID Should be number')
             elif key == 'weight':
+                if user.username in MILKBASKET_USERS:
+                    cell_data = mb_weight_correction(cell_data)
+                    if not cell_data:
+                        index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
                 data_dict['weight'] = cell_data
-                if user.username in MILKBASKET_USERS and not cell_data:
-                    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
             elif key == 'mrp':
                 data_dict['mrp'] = cell_data
                 if user.username in MILKBASKET_USERS and not cell_data:
@@ -3472,9 +3474,11 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
             elif key == 'weight':
                 if isinstance(cell_data, float):
                     cell_data = str(int(cell_data))
-                data_dict[key] = cell_data
-                if user.username in MILKBASKET_USERS and not cell_data:
-                    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
+                if user.username in MILKBASKET_USERS:
+                    cell_data = mb_weight_correction(cell_data)
+                    if not cell_data:
+                        index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
+                data_dict['weight'] = cell_data
             elif key == 'mrp':
                 if not isinstance(cell_data, (int, float)):
                    index_status.setdefault(row_idx, set()).add('Invalid Entry for MRP Value')
@@ -3986,8 +3990,10 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid MRP')
             elif key == 'weight' :
+                if user.username in MILKBASKET_USERS:
+                    cell_data = mb_weight_correction(cell_data)
                 data_dict[key] = cell_data
-                #if user.username in MILKBASKET_USERS and not cell_data:
+
                 #    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
             else:
                 if isinstance(cell_data, (int, float)):

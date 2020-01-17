@@ -3006,7 +3006,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                             ]
         if ean_flag:
             ean_number = ''
-            eans = get_sku_ean_list(data1.sku)
+            eans = get_sku_ean_list(data1.sku, order_by_val='desc')
             if eans:
                 ean_number = eans[0]
             po_temp_data.insert(1, ean_number)

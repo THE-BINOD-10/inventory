@@ -1210,7 +1210,8 @@ def insert_move_inventory(request, user=''):
         if not mrp or not weight :
             return HttpResponse("MRP and Weight are Mandatory")
         if unique_mrp == 'true':
-            data_dict = {'sku_code':wms_code, 'mrp':mrp, 'weight':weight, 'seller_id':seller_id}
+            location_obj = LocationMaster.objects.filter(zone__user=user.id, location=dest_loc)
+            data_dict = {'sku_code':wms_code, 'mrp':mrp, 'weight':weight, 'seller_id':seller_id, 'location': location_obj[0].location}
             status = validate_mrp_weight(data_dict,user)
             if status:
                 return HttpResponse(status)

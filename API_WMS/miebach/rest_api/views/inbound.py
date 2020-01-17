@@ -1756,7 +1756,8 @@ def insert_inventory_adjust(request, user=''):
         if not mrp or not weight :
             return HttpResponse("MRP and Weight are Mandatory")
         if unique_mrp == 'true':
-            data_dict = {'sku_code':wmscode, 'mrp':mrp, 'weight':weight, 'seller_id':seller_id}
+            location_obj = LocationMaster.objects.filter(zone__user=user.id, location=loc)
+            data_dict = {'sku_code':wmscode, 'mrp':mrp, 'weight':weight, 'seller_id':seller_id, 'location':location_obj[0].location}
             status =  validate_mrp_weight(data_dict,user)
             if status:
                 return HttpResponse(status)
@@ -5990,7 +5991,8 @@ def returns_putaway_data(request, user=''):
                                    'sku_id': sku_id, 'sku__user': user.id, 'receipt_type': 'return'}
             if batch_detail:
                 if user.username in MILKBASKET_USERS and unique_mrp == 'true':
-                    data_dict = {'sku_code':returns_data.returns.sku.wms_code, 'mrp':batch_detail[0].mrp, 'weight':batch_detail[0].weight, 'seller_id':seller_id}
+                    data_dict = {'sku_code':returns_data.returns.sku.wms_code, 'mrp':batch_detail[0].mrp, 'weight':batch_detail[0].weight,
+                                 'seller_id':seller_id, 'location':location_id[0].location}
                     status = validate_mrp_weight(data_dict, user)
                     if status:
                         return HttpResponse(status)

@@ -10411,4 +10411,9 @@ def validate_mrp_weight(data_dict, user):
                     status = 'For SKU '+str(data_dict['sku_code'])+', MRP '+str(collect_dict_form[data_dict['sku_code']]["mrp"])+' and WEIGHT '+str(collect_dict_form[data_dict['sku_code']]["weight"])+' are only accepted.'
     return status
 
+def mb_weight_correction(weight):
+    if weight:
+        weight = re.sub("\s\s+" , " ", weight).upper().replace('UNITS', 'Units').replace('PCS', 'Pcs').\
+                replace('UNIT', 'Unit').replace('INCHES', 'Inches').replace('INCH', 'Inch').strip()
+    return weight
 

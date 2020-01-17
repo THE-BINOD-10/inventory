@@ -2029,7 +2029,9 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                                                     exclude(batch_detail__isnull=True)
             if latest_batch.exists():
                 batch_obj = latest_batch.latest('id').batch_detail
-                stock_dict["batch_detail_id"] = batch_obj.id
+                batch_dict['buy_price'] = batch_obj.buy_price
+                batch_dict['tax_percent'] = batch_obj.tax_percent
+                add_ean_weight_to_batch_detail(sku[0], batch_dict)
 
             #latest_stock = StockDetail.objects.filter(**stock_dict1)
             #if latest_stock.exists():
@@ -2039,7 +2041,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                 #batch_obj = latest_stock_obj.batch_detail
                 #if batch_obj:
                 #    stock_dict["batch_detail_id"] = batch_obj.id
-            elif batch_dict.keys():
+            if batch_dict.keys():
                 batch_obj = BatchDetail.objects.create(**batch_dict)
                 stock_dict["batch_detail_id"] = batch_obj.id
             if pallet:

@@ -2081,7 +2081,7 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                     user = User.objects.get(username=warehouse)
                 else:
                     error_message = 'Invalid Warehouse Name'
-                    update_error_message(failed_status, 5024, error_message, original_order_id)
+                    update_error_message(failed_status, 5024, error_message, '')
 
             order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
             channel_name = order.get('source', 'offline')
@@ -2135,7 +2135,7 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                         break
                 order_details['customer_name'] =  customer_name
                 order_details['telephone'] = customer_telephone
-                order_detail['email_id'] = customer_email
+                order_details['email_id'] = customer_email
                 order_details['city'] = customer_city
                 order_details['address'] = customer_address
                 order_details['pin_code'] = customer_pincode

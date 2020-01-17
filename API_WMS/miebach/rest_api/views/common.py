@@ -10388,3 +10388,27 @@ def get_distinct_price_types(user):
     price_types = list(chain(price_types1, price_types2))
     return price_types
 
+def validate_mrp_weight(data_dict, user):
+    collect_dict_form = {}
+    status = ''
+    collect_all_sellable_location = list(LocationMaster.objects.filter(zone__segregation='sellable',  zone__user=user.id, status=1).values_list('location', flat=True))
+    bulk_zones= get_all_zones(user ,zones=[MILKBASKET_BULK_ZONE])
+    bulk_locations=list(LocationMaster.objects.filter(zone__zone__in=bulk_zones, zone__user=user.id, status=1).values_list('location', flat=True))
+    sellable_bulk_locations=list(chain(collect_all_sellable_location ,bulk_locations))
+    if data_dict['location'] in sellable_bulk_locations:
+        sku_mrp_weight_map = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku__wms_code=data_dict['sku_code'],
+                                             location__location__in=sellable_bulk_locations).\
+                            exclude(batch_detail__mrp=data_dict['mrp'], batch_detail__weight=data_dict['weight']).values_list('sku__wms_code', 'batch_detail__mrp', 'batch_detail__weight').distinct()
+        if sku_mrp_weight_map:
+            for sku_code, mrp, weight_dict in sku_mrp_weight_map:
+                mrp_weight_dict = {'mrp':mrp, 'weight':weight_dict}
+                if sku_code in collect_dict_form.keys():
+                    collect_dict_form[sku_code].append(mrp_weight_dict)
+                else:
+                    collect_dict_form[sku_code] = mrp_weight_dict
+            if data_dict['sku_code'] in collect_dict_form.keys():
+                if not str(data_dict['mrp']) in str(collect_dict_form[data_dict['sku_code']]["mrp"]) or not str(data_dict['weight']) in str(collect_dict_form[data_dict['sku_code']]["weight"]):
+                    status = 'For SKU '+str(data_dict['sku_code'])+', MRP '+str(collect_dict_form[data_dict['sku_code']]["mrp"])+' and WEIGHT '+str(collect_dict_form[data_dict['sku_code']]["weight"])+' are only accepted.'
+    return status
+
+

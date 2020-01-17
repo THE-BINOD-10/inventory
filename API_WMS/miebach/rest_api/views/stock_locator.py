@@ -1192,6 +1192,7 @@ def insert_move_inventory(request, user=''):
     reversion.set_user(request.user)
     now = str(datetime.datetime.now())
     wms_code = request.GET['wms_code']
+    unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
     check = False
     sku_id = check_and_return_mapping_id(wms_code, "", user, check)
 
@@ -1208,6 +1209,12 @@ def insert_move_inventory(request, user=''):
     if user.username in MILKBASKET_USERS :
         if not mrp or not weight :
             return HttpResponse("MRP and Weight are Mandatory")
+        if unique_mrp == 'true':
+            location_obj = LocationMaster.objects.filter(zone__user=user.id, location=dest_loc)
+            data_dict = {'sku_code':wms_code, 'mrp':mrp, 'weight':weight, 'seller_id':seller_id, 'location': location_obj[0].location}
+            status = validate_mrp_weight(data_dict,user)
+            if status:
+                return HttpResponse(status)
 
     seller_receipt_dict = {}
     receipt_number = get_stock_receipt_number(user)

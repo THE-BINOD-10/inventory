@@ -209,6 +209,8 @@ def get_receive_po_datatable_filters(user, filters, request):
         supplier_search = 'search_10'
     else:
         supplier_search = 'search_9'
+    if filters['search_9']:
+        supplier_search = 'search_9'
     if filters[supplier_search]:
         search_params['open_po__supplier__id__icontains'] = filters[supplier_search]
         search_params1['open_st__warehouse__id__icontains'] = filters[supplier_search]
@@ -256,7 +258,6 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
     rw_purchase_query = build_search_term_query(rw_purchase_list, search_term)
 
     search_params, search_params1, search_params2 = get_receive_po_datatable_filters(user, filters, request)
-
     # Stock Transfer Purchase Records
     stock_results_objs = STPurchaseOrder.objects.exclude(po__status__in=['location-assigned', 'confirmed-putaway',
                                                                          'stock-transfer']).filter(
@@ -7031,8 +7032,11 @@ def get_receive_po_style_view(request, user=''):
         order_by_list = ['stpurchaseorder__open_st__sku__sequence',
                          'rwpurchase__rwo__job_order__product_code__sequence',
                          'open_po__sku__sequence']
-        purchase_orders = PurchaseOrder.objects.filter(Q(**stpurchase_filter) | Q(**rwpurchase_filter) |
-                                                       Q(**purchase_filter)).order_by(*order_by_list)
+        purchase_orders = PurchaseOrder.objects.filter(**purchase_filter).order_by('open_po__sku__sequence')
+        if not purchase_orders:
+            purchase_orders = PurchaseOrder.objects.filter(**stpurchase_filter).order_by('stpurchaseorder__open_st__sku__sequence')
+        if not purchase_orders:
+            purchase_orders = PurchaseOrder.objects.filter(**rwpurchase_filter).order_by('rwpurchase__rwo__job_order__product_code__sequence')
         data_dict = OrderedDict()
         default_po_dict = {'total_order_quantity': 0, 'total_received_quantity': 0, 'total_receivable_quantity': 0}
         for order in purchase_orders:
@@ -7054,26 +7058,26 @@ def get_receive_po_style_view(request, user=''):
             data_dict.setdefault(size_type, {'sizes_list': [], 'styles': {}, 'all_sizes': all_sizes})
             if sku_size not in data_dict[size_type]['sizes_list']:
                 data_dict[size_type]['sizes_list'].append(sku_size)
-	    if not data_dict[size_type]['all_sizes']:
+            if data_dict[size_type]['all_sizes']:
                 data_dict[size_type]['all_sizes'] = data_dict[size_type]['sizes_list']
-            style_data = {'style_code': sku_class, 'style_name': sku.style_name, 'brand': sku.sku_brand,
-                          'category': sku.sku_category}
-            data_dict[size_type]['styles'].setdefault(sku_class, {'style_data': style_data, 'sizes': {},
-                                                                  'po_data': copy.deepcopy(default_po_dict)})
-            order_quantity = order_data['order_quantity']
-            if supplier_status:
-                order_quantity = order_quantity - order_data['intransit_quantity'] - order.received_quantity
-                if order_quantity < 0:
-                    order_quantity = 0
-            data_dict[size_type]['styles'][sku_class]['sizes'][sku_size] = order_quantity
-            data_dict[size_type]['styles'][sku_class]['po_data']['total_order_quantity'] += order_quantity
-            data_dict[size_type]['styles'][sku_class]['po_data']['total_received_quantity'] += order.received_quantity
-            data_dict[size_type]['styles'][sku_class]['po_data']['total_receivable_quantity'] += receivable_quantity
-        order_detail_id = ''
-        if purchase_orders:
-            order_mapping = OrderMapping.objects.filter(mapping_type='PO',mapping_id=purchase_orders[0].id)
-            if order_mapping and order_mapping[0].order.order_code == 'CO':
-                order_detail_id = order_mapping[0].order.original_order_id
+                style_data = {'style_code': sku_class, 'style_name': sku.style_name, 'brand': sku.sku_brand,
+                              'category': sku.sku_category}
+                data_dict[size_type]['styles'].setdefault(sku_class, {'style_data': style_data, 'sizes': {},
+                                                                      'po_data': copy.deepcopy(default_po_dict)})
+                order_quantity = order_data['order_quantity']
+                if supplier_status:
+                    order_quantity = order_quantity - order_data['intransit_quantity'] - order.received_quantity
+                    if order_quantity < 0:
+                        order_quantity = 0
+                data_dict[size_type]['styles'][sku_class]['sizes'][sku_size] = order_quantity
+                data_dict[size_type]['styles'][sku_class]['po_data']['total_order_quantity'] += order_quantity
+                data_dict[size_type]['styles'][sku_class]['po_data']['total_received_quantity'] += order.received_quantity
+                data_dict[size_type]['styles'][sku_class]['po_data']['total_receivable_quantity'] += receivable_quantity
+            order_detail_id = ''
+            if purchase_orders:
+                order_mapping = OrderMapping.objects.filter(mapping_type='PO',mapping_id=purchase_orders[0].id)
+                if order_mapping and order_mapping[0].order.order_code == 'CO':
+                    order_detail_id = order_mapping[0].order.original_order_id
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

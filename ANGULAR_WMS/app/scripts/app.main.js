@@ -166,9 +166,10 @@ angular
       
       $scope.logout = function() {
         var user_type = $scope.permissions.user_type;
+        var parent_username = Session.parent.parent_username
         var user_types = ['central_admin', 'distributor', 'warehouse'];
         Auth.logout().then(function () {
-          if (user_types.indexOf(user_type) != -1) {
+          if (parent_username == 'sm_admin') {
             $state.go("user.smlogin");
           } else {
             $state.go("user.signin");

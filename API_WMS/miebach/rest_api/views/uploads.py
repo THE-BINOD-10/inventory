@@ -2853,7 +2853,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         if show_cess_tax and show_apmc_tax and ean_flag:
             break
     if user_profile.industry_type == 'FMCG':
-        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt(with out tax)',
+        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total(with tax)']
         if user.username in MILKBASKET_USERS:
             table_headers.insert(4, 'Weight')
@@ -3006,7 +3006,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                             ]
         if ean_flag:
             ean_number = ''
-            eans = get_sku_ean_list(data1.sku)
+            eans = get_sku_ean_list(data1.sku, order_by_val='desc')
             if eans:
                 ean_number = eans[0]
             po_temp_data.insert(1, ean_number)

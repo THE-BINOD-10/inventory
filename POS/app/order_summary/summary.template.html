@@ -74,15 +74,15 @@
 
   <div class="summary-row total-cost">
     <div class="pull-left">
-      <p><b>AMOUNT</b></p>
+      <p>AMOUNT</p>
     </div>
     <div class="pull-right">
-      <b>{{ $ctrl.order.subtotal + $ctrl.order.sgst + $ctrl.order.igst + $ctrl.order.utgst + $ctrl.order.cgst | number:2}}/-</b>
+      {{ $ctrl.order.subtotal + $ctrl.order.sgst + $ctrl.order.igst + $ctrl.order.utgst + $ctrl.order.cgst | number:2}}/-
     </div>
   </div>
   <div class="summary-row total-cost">
     <div class="pull-left">
-      <p><b>DISCOUNT</b></p>
+      <p><b>DISCOUNT ON PRICE</b></p>
     </div>
     <div class="pull-right">
       <b>{{$ctrl.order.total_discount | number:2}}/-</b>
@@ -93,7 +93,7 @@
       <p><b>TOTAL COST</b></p>
     </div>
     <div class="pull-right">
-      <b>{{ $ctrl.order.subtotal + $ctrl.order.sgst + $ctrl.order.igst + $ctrl.order.utgst + $ctrl.order.cgst - $ctrl.order.total_discount | number:2 }}/-</b>
+      <b>{{ $ctrl.order.subtotal - $ctrl.order.total_discount | number:2 }}/-</b>
     </div>
   </div>
 
@@ -118,7 +118,7 @@
             <div class="modal-body" style="">
                 <div class="row">
 				  	<div class="col-md-4"><p>On </p></div>
-					<div class="col-md-6"><p><input type="text" value="{{$ctrl.order.total_amount+$ctrl.order.total_discount}}"
+					<div class="col-md-6"><p><input type="text" value="{{$ctrl.order.subtotal}}"
 													readonly></p></div>
 					<div class="col-md-4"><p>Disc Amt </p></div>
 					<div class="col-md-6"><p><input type="text" ng-model="$ctrl.discount" ng-init="$ctrl.discount=0"

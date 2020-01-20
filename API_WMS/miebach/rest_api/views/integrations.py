@@ -1880,6 +1880,13 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                     error_code = "5003"
                     message = 'Order is already cancelled at Stockone'
                 update_error_message(failed_status, error_code, message, original_order_id)
+            if order.has_key('extra_fields'):
+                extra_fields_data = OrderedDict()
+                extra_attributes = order['extra_fields']
+                for key in extra_attributes:
+                    extra_fields_data[key] = extra_attributes[key]
+                if extra_fields_data:
+                    create_extra_fields_for_order(original_order_id, extra_fields_data, user)
             for sub_order in order['sub_orders']:
                 seller_order_dict = copy.deepcopy(SELLER_ORDER_FIELDS)
                 seller_id = sub_order.get('seller_id', '')
@@ -1992,7 +1999,7 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                             order_summary_dict['discount'] = 0
                             if sku_item.get('discount_amount', 0):
                                 try:
-                                    order_summary_dict['discount'] = float(sku_item['discount_amount']) * order_details['quantity']
+                                    order_summary_dict['discount'] = float(sku_item['discount_amount'])
                                 except:
                                     order_summary_dict['discount'] = 0
                             if order_summary_dict['discount']:
@@ -2074,7 +2081,7 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                     user = User.objects.get(username=warehouse)
                 else:
                     error_message = 'Invalid Warehouse Name'
-                    update_error_message(failed_status, 5024, error_message, original_order_id)
+                    update_error_message(failed_status, 5024, error_message, '')
 
             order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
             channel_name = order.get('source', 'offline')
@@ -2128,7 +2135,7 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                         break
                 order_details['customer_name'] =  customer_name
                 order_details['telephone'] = customer_telephone
-                order_detail['email_id'] = customer_email
+                order_details['email_id'] = customer_email
                 order_details['city'] = customer_city
                 order_details['address'] = customer_address
                 order_details['pin_code'] = customer_pincode

@@ -2025,13 +2025,23 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                 del stock_dict["batch_detail__weight"]
             if 'sellerstock__seller_id' in stock_dict.keys():
                 del stock_dict['sellerstock__seller_id']
-            latest_stock = StockDetail.objects.filter(**stock_dict1)
-            if latest_stock.exists():
-                latest_stock_obj = latest_stock.latest('id')
-                batch_obj = latest_stock_obj.batch_detail
-                if batch_obj:
-                    stock_dict["batch_detail_id"] = batch_obj.id
-            elif batch_dict.keys():
+            latest_batch = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id=sku_id, receipt_number=1).\
+                                                    exclude(batch_detail__isnull=True)
+            if latest_batch.exists():
+                batch_obj = latest_batch.latest('id').batch_detail
+                batch_dict['buy_price'] = batch_obj.buy_price
+                batch_dict['tax_percent'] = batch_obj.tax_percent
+                add_ean_weight_to_batch_detail(sku[0], batch_dict)
+
+            #latest_stock = StockDetail.objects.filter(**stock_dict1)
+            #if latest_stock.exists():
+                #latest_batch = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id=sku_id, receipt_number=1).\
+                #                                        exclude(batch_detail__isnull=True).latest('id')
+                #latest_stock_obj = latest_stock.latest('id')
+                #batch_obj = latest_stock_obj.batch_detail
+                #if batch_obj:
+                #    stock_dict["batch_detail_id"] = batch_obj.id
+            if batch_dict.keys():
                 batch_obj = BatchDetail.objects.create(**batch_dict)
                 stock_dict["batch_detail_id"] = batch_obj.id
             if pallet:
@@ -3145,7 +3155,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     partial_order_quantity_price = 0
     order_charges_percent =1
     is_gst_invoice = False
-    invoice_date = datetime.datetime.now()
+    invoice_date = ''
     order_reference_date_field = ''
     order_charges = {}
     total_order_quantity_price = 0
@@ -3154,6 +3164,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     vehicle_number = ''
     invoice_reference = ''
     advance_amount = 0
+    admin_user = get_admin(user)
     # Getting the values from database
     user_profile = UserProfile.objects.get(user_id=user.id)
     gstin_no = user_profile.gst_number
@@ -3189,8 +3200,10 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         order_data = OrderDetail.objects.filter(id__in=order_ids).select_related('sku')
         if user.userprofile.user_type == 'marketplace_user':
             seller_summary = SellerOrderSummary.objects.filter(seller_order__order_id__in=order_ids)
+            invoice_date = seller_summary[0].creation_date
         else:
             seller_summary = SellerOrderSummary.objects.filter(order_id__in=order_ids)
+            invoice_date = seller_summary[0].creation_date
         if seller_summary.exists():
             invoice_reference = seller_summary[0].invoice_reference
             if seller_summary[0].seller_order:
@@ -3234,8 +3247,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             dat = order_data[0]
             customer_address = dat.customer_name + '\n' + dat.address + "\nCall: " \
                                + dat.telephone + "\nEmail: " + dat.email_id
-        if dat.address:
-            #customer_details.append({'id' : dat.customer_id, 'name' : dat.customer_name, 'address' : dat.address, 'email_id':dat.email_id, 'phone_number':dat.telephone})
+        if not customer_details and dat.address:
+            customer_details.append({'id' : dat.customer_id, 'name' : dat.customer_name, 'address' : dat.address})
+        if admin_user.username.lower() == 'gomechanic_admin':
             customer_details[0]['id'] = dat.customer_id
             customer_details[0]['name'] = dat.customer_name
             customer_details[0]['address']= dat.address
@@ -3243,7 +3257,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             customer_details[0]['phone_number'] = dat.telephone
 
         picklist = Picklist.objects.filter(order_id__in=order_ids).order_by('-updation_date')
-        if picklist:
+        if not invoice_date and picklist:
             invoice_date = picklist[0].updation_date
         invoice_date = get_local_date(user, invoice_date, send_date='true')
 
@@ -3314,7 +3328,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 invoice_header = order_summary[0].invoice_type
                 mode_of_transport = order_summary[0].mode_of_transport
                 vehicle_number = order_summary[0].vehicle_number
-                if order_summary[0].invoice_date:
+                if order_summary[0].invoice_date and get_misc_value('customer_dc', user.id) != 'true':
                     invoice_date = order_summary[0].invoice_date
             total_tax += float(tax)
             total_mrp += float(mrp_price)

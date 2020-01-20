@@ -46,6 +46,7 @@ def validate_sales_person(request):
 @get_admin_user
 def get_pos_user_data(request, user=''):
     user_id = user.id
+    admin = get_admin(user)
     status = subprocess.check_output(['pgrep -lf sku_master_file_creator'], \
                                      stderr=subprocess.STDOUT, shell=True)
     if "python" not in status:
@@ -76,6 +77,7 @@ def get_pos_user_data(request, user=''):
         response_data['address'] = user.address
         response_data['phone'] = user.phone_number
         response_data['gstin'] = user.gst_number
+        response_data['admin'] = {"username":admin.username, 'user_id':admin.id}
         return HttpResponse(json.dumps(response_data))
     return HttpResponse("fail")
 
@@ -668,8 +670,6 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
         if order_summary[0].issue_type == "Delivery Challan":
             sgst_temp = (float(order.unit_price) * tax_master["sgst_tax"] / 100)*order.quantity;
             cgst_temp = (float(order.unit_price) * tax_master["cgst_tax"] / 100)*order.quantity;
-            total_amount += (float(order.invoice_amount) - sgst_temp - cgst_temp)
-        else:
             total_amount += (float(order.invoice_amount))
     if order_detail:
         status = 'success'

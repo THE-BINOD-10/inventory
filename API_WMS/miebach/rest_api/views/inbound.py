@@ -5598,7 +5598,7 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         milkbasket_mail_credentials = {'username':'Procurement@milkbasket.com', 'password':'codwtmtnjmvarvip'}
         t = loader.get_template('templates/toggle/auto_po_mail_format.html')
         email_body = t.render(data_dict_po)
-        email_subject = 'Purchase Order from ASPL %s to %s dated %s' % (user.username, data_dict_po['supplier_name'], full_order_date)
+        email_subject = 'Purchase Order %s  from ASPL %s to %s dated %s' % (f_name, user.username, data_dict_po['supplier_name'], full_order_date)
         send_mail_attachment(receivers, email_subject, email_body, files=attachments, milkbasket_mail_credentials=milkbasket_mail_credentials)
     elif supplier_email or internal or internal_mail:
         send_mail_attachment(receivers, email_subject, email_body, files=attachments)
@@ -9053,7 +9053,7 @@ def create_rtv(request, user=''):
             show_data_invoice = get_debit_note_data(rtv_number, user)
             if get_misc_value('rtv_mail', user.id) == 'true':
                 supplier_email = show_data_invoice.get('supplier_email', '')
-                t = loader.get_template('templates/toggle/milk_basket_print.html')
+                t = loader.get_template('templates/toggle/rtv_mail.html')
                 rendered_mail = t.render({'show_data_invoice': [show_data_invoice]})
                 supplier_phone_number = show_data_invoice.get('phone_number', '')
                 company_name = show_data_invoice.get('warehouse_details', '').get('company_name', '')

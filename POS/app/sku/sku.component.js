@@ -30,19 +30,20 @@
       self.nw_status = "";
       self.sku_data_filtered = [];
       self.style_based_sku_data = [];
+      self.selected_skus = [];
 
 
-      $http.get(urlService.mainUrl+'rest_api/get_file_content/?name=sku_master&user='+urlService.userData.parent_id)
-           .then( function(data) {
-              self.sku_data_filtered = data.data.file_content.slice(0,500);
-              self.sku_data = data.data.file_content;
-              self.slice_from = 0;
-              self.slice_to = 500;
-              self.selected_skus = [];
-            },function(error){
-              getOflfineSkuContent();
+      // $http.get(urlService.mainUrl+'rest_api/get_file_content/?name=sku_master&user='+urlService.userData.parent_id)
+      //      .then( function(data) {
+      //         self.sku_data_filtered = data.data.file_content.slice(0,500);
+      //         self.sku_data = data.data.file_content;
+      //         self.slice_from = 0;
+      //         self.slice_to = 500;
+      //         self.selected_skus = [];
+      //       },function(error){
+      //         getOflfineSkuContent();
 
-            });
+      //       });
 
       //get offline sku conntent
       function getOflfineSkuContent(){
@@ -502,7 +503,7 @@
         manageData.prepForBroadcast("clear");
 
         //clear the selected skus in multi select
-        uncheckMultiSelectSkus();
+        // uncheckMultiSelectSkus();
       }
 
       //change issue type
@@ -927,10 +928,10 @@
       }
 
       //multi select sku popup
-      self.all_skus_popup = all_skus_popup;
-      function all_skus_popup() {
-              $('#skuModal').modal('show');
-      }
+      // self.all_skus_popup = all_skus_popup;
+      // function all_skus_popup() {
+      //         $('#skuModal').modal('show');
+      // }
 
       self.skus = [] //urlService.current_order.sku_data;
       function selectedItemChange(item) {

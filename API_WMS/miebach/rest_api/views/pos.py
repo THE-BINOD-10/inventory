@@ -657,7 +657,7 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
                          'quantity': float(order.quantity),
                          'sku_code': order.sku.sku_code,
                          'price': order.invoice_amount,
-                         'unit_price': selling_price,
+                         'unit_price': order.unit_price,
                          'selling_price': original_selling_price,
                          'discount': discount_percentage,
                          'sgst': item_sgst,
@@ -670,7 +670,7 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
         if order_summary[0].issue_type == "Delivery Challan":
             sgst_temp = (float(order.unit_price) * tax_master["sgst_tax"] / 100)*order.quantity;
             cgst_temp = (float(order.unit_price) * tax_master["cgst_tax"] / 100)*order.quantity;
-            total_amount += (float(order.invoice_amount))
+            total_amount += (float(order.unit_price))
     if order_detail:
         status = 'success'
         order = order_detail[0]
@@ -701,7 +701,7 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
             summary = {'total_quantity': total_quantity,
                        'total_amount': total_amount,
                        'total_discount': total_discount,
-                       'subtotal': total_amount,
+                       'subtotal': total_amount ,
                        'cgst': tot_cgst,
                        'sgst': tot_sgst,
                        'gst_based': gst_based,

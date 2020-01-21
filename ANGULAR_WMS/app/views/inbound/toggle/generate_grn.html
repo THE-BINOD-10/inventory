@@ -258,7 +258,8 @@
                                                                       ng-model="data.weight" size="13"
                                                                       title="{{ data.weight }}"
                                                                       name="weight"
-                                                                      ng-keyup="showCase.send_for_approval_check($event, showCase.model_data)"
+                                                                      ng-keyup="[showCase.validate_weight($event, data),
+                                                                                 showCase.send_for_approval_check($event, showCase.model_data)]"
                                                                       class="form-control detectTab"
                                                                       value="{{data.weight}}"
                                                                       ng-trim="false"

@@ -5591,6 +5591,9 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
     if report_type == 'posform' :
         email_body = 'pls find the attachment'
         email_subject = 'pos order'
+    if report_type == 'rtv_mail':
+        email_body = 'Please Find the attachment'
+        email_subject = 'Returned To Vedor Form'
     if report_type == 'Purchase Order' and data_dict_po and user.username in MILKBASKET_USERS:
         milkbasket_mail_credentials = {'username':'Procurement@milkbasket.com', 'password':'codwtmtnjmvarvip'}
         t = loader.get_template('templates/toggle/auto_po_mail_format.html')
@@ -7221,7 +7224,7 @@ def get_segregation_pos(start_index, stop_index, temp_data, search_term, order_t
 def get_po_segregation_data(request, user=''):
     segregations = get_primary_suggestions_data(request, user)
     order_id = request.GET['order_id']
-
+    offer_check = False
     segregations = segregations.select_related('purchase_order', 'batch_detail').\
                                 filter(purchase_order__order_id=order_id)
     if not segregations:
@@ -8802,6 +8805,8 @@ def get_debit_note_data(rtv_number, user):
         get_po = obj.seller_po_summary.purchase_order.open_po
         data_dict['supplier_name'] = get_po.supplier.name
         data_dict['supplier_address'] = get_po.supplier.address
+        data_dict['supplier_email'] = get_po.supplier.email_id
+        data_dict['phone_number'] = get_po.supplier.phone_number
         data_dict['city'] = get_po.supplier.city
         data_dict['state'] = get_po.supplier.state
         data_dict['pincode'] = get_po.supplier.pincode
@@ -9046,6 +9051,15 @@ def create_rtv(request, user=''):
                 rtv_obj.save()
             report_data_dict = {}
             show_data_invoice = get_debit_note_data(rtv_number, user)
+            if get_misc_value('rtv_mail', user.id) == 'true':
+                supplier_email = show_data_invoice.get('supplier_email', '')
+                t = loader.get_template('templates/toggle/milk_basket_print.html')
+                rendered_mail = t.render({'show_data_invoice': [show_data_invoice]})
+                supplier_phone_number = show_data_invoice.get('phone_number', '')
+                company_name = show_data_invoice.get('warehouse_details', '').get('company_name', '')
+                write_and_mail_pdf('Return_to_Vendor', rendered_mail, request, user,
+                                   supplier_email, supplier_phone_number, company_name + 'Return to vendor order',
+                                   '', False, False, 'rtv_mail')
             if user.username in MILKBASKET_USERS:
                 check_and_update_marketplace_stock(sku_codes, user)
             return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})

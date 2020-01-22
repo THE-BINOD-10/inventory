@@ -1023,7 +1023,6 @@ def switches(request, user=''):
                        'invoice_remarks': 'invoice_remarks',
                        'invoice_declaration':'invoice_declaration',
                        'pos_remarks':'pos_remarks',
-                       'raisepo_terms_conditions':'raisepo_terms_conditions',
                        'show_disc_invoice': 'show_disc_invoice',
                        'serial_limit': 'serial_limit',
                        'increment_invoice': 'increment_invoice',
@@ -1106,8 +1105,6 @@ def switches(request, user=''):
             else:
                 setattr(data[0], 'misc_value', selection)
                 data[0].save()
-        elif toggle_field == 'raisepo_terms_conditions':
-            data = UserTextFields.objects.update_or_create(user_id=user_id, field_type = 'terms_conditions', defaults = {'text_field':selection})
         elif toggle_field == 'delivery_challan_terms_condtions':
             data = UserTextFields.objects.update_or_create(user_id=user_id, field_type = 'dc_terms_conditions', defaults = {'text_field':selection})
         else:
@@ -5201,7 +5198,6 @@ def confirm_add_po(request, sales_data='', user=''):
     status = ''
     suggestion = ''
     terms_condition = request.POST.get('terms_condition', '')
-
     if not request.POST:
         return HttpResponse('Updated Successfully')
     sku_id = ''

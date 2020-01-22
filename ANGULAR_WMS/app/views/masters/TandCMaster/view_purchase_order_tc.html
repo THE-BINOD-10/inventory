@@ -1,0 +1,29 @@
+<div id="page-pop">
+  <form name="FeedbackviewDetail" role="form" ui-jq="validate" ui-options="validationOpt">
+    <div class="model-custom">
+      <div class="mw60">
+        <div ng-include="'views/common/loader.html'"></div>
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="pop.ok()"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title"><i class="fa fa-file-text" style="font-size: 22px;"></i> Purchase Order T&C</h4>
+        </div>
+        <div class="mb10" style="padding: 15px;">
+          <div class="detail-list" style="border:none;">
+            <div class="detail-item mb5">
+              <div class="text-center mb15" ng-if = "pop.state_data">
+                <div class="col-lg-12 col-md-12 col-xs-12 col-sm-12" align="center">
+                  <span class="label label-danger mb15" style="font-size: 12px;">View Terms & Conditions</span>
+                </div>
+                <img ng-if="pop.loader" ng-src="images/default_loader.gif" style="margin: auto;display: block;width: 120px;">
+                <div id="poTerms" align="left"></div>
+              </div>
+              <div class="text-center mb15" ng-if = "!pop.state_data">
+                <h4 class="modal-title" style="color: crimson;">---- No Terms & Conditions Found ----</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

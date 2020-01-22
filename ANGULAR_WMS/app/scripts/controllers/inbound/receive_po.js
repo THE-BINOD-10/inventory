@@ -2424,10 +2424,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
   }
 
+
+   vm.validate_weight = function(event, data) {
+     if(vm.milkbasket_users.indexOf(vm.parent_username) >= 0){
+       data.weight = data.weight.toUpperCase().replace(/\s\s+/g, ' ').trim().replace('UNITS', 'Units').replace('PCS', 'Pcs').replace('UNIT', 'Unit').replace('INCHES', 'Inches').replace('INCH', 'Inch');
+     }
+   }
+
     vm.send_for_approval_check = function(event, data) {
     if(vm.milkbasket_users.indexOf(vm.parent_username) < 0){
       return
     }
+
     if(vm.permissions.change_purchaseorder) {
       return
     }

@@ -2504,7 +2504,10 @@ def get_sku_batches(request, user=''):
         for batch in batch_obj:
             sku_batches[batch['batch_no']].append(batch['mrp'])
             sku_batches[batch['batch_no']] = list(set(sku_batches[batch['batch_no']]))
-            sku_weights[batch['batch_no']].append(batch['weight'])
+            weight = batch['weight']
+            if user.username in MILKBASKET_USERS:
+                weight = mb_weight_correction(weight)
+            sku_weights[batch['batch_no']].append(weight)
             sku_weights[batch['batch_no']] = list(set(sku_weights[batch['batch_no']]))
             batch['manufactured_date'] = str(batch['manufactured_date'])
             batch['expiry_date'] = str(batch['expiry_date'])

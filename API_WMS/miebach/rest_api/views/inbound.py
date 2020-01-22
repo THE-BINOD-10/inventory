@@ -2698,7 +2698,7 @@ def create_update_primary_segregation(data, quantity, temp_dict, batch_obj=None,
 
 def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number='', invoice_date=None,
                      challan_number='', challan_date=None, dc_level_grn='', round_off_total=0,
-                     batch_dict=None, po_type='po'):
+                     batch_dict=None, po_type='po', update_mrp_on_grn='false'):
     try:
         if not receipt_id:
             return
@@ -2760,8 +2760,18 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                     stock_found = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0,sku_id=data.open_po.sku_id,
                                                                 sellerstock__seller_id=seller_pos[0].seller_id).\
                                                         filter(location__zone__zone__in=zones).exclude(batch_detail__mrp=mrp)
-                    if not stock_found.exists() and 'mrp_change' in remarks_list:
-                        del remarks_list[remarks_list.index('mrp_change')]
+                    if not stock_found.exists():
+                        if 'mrp_change' in remarks_list:
+                            del remarks_list[remarks_list.index('mrp_change')]
+                        if update_mrp_on_grn == 'true':
+                            sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
+                            if sku_master.exists():
+                                if float(sku_master[0].mrp) != float(myDict['mrp'][i]):
+                                    sku_master.update(mrp=float(myDict['mrp'][i]))
+                                if myDict['weight'][i] and myDict['weight'][i] != get_sku_weight(sku_master[0]):
+                                    attr_obj = sku_master[0].skuattributes_set.filter(attribute_name='weight')
+                                    if attr_obj:
+                                        attr_obj.update(attribute_value=myDict['weight'][i])
 
         if 'offer_applicable' in myDict.keys() :
             offer_applicable = myDict['offer_applicable'][i]
@@ -2993,10 +3003,10 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             value = 0
         if not value:
             continue
-        if 'mrp' in myDict.keys() and update_mrp_on_grn == 'true' and myDict['mrp'][i]:
-            sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
-            if sku_master:
-                sku_master.update(mrp=float(myDict['mrp'][i]))
+        #if 'mrp' in myDict.keys() and update_mrp_on_grn == 'true' and myDict['mrp'][i]:
+        #    sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
+        #    if sku_master:
+        #        sku_master.update(mrp=float(myDict['mrp'][i]))
         if 'po_quantity' in myDict.keys() and 'price' in myDict.keys() and not myDict['id'][i]:
             if myDict['wms_code'][i] and myDict['quantity'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
@@ -3109,7 +3119,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                                                     invoice_number=invoice_number, invoice_date=bill_date,
                                                     challan_number=challan_number, challan_date=challan_date,
                                                     dc_level_grn=dc_level_grn, round_off_total=round_off_total,
-                                                    batch_dict=batch_dict, po_type=po_type)
+                                                    batch_dict=batch_dict, po_type=po_type, update_mrp_on_grn=update_mrp_on_grn)
         if 'wms_code' in myDict.keys():
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)

@@ -466,10 +466,7 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
         if price_band_flag == 'true':
             user = get_admin(data.user)
 
-        price_types = list(
-            PriceMaster.objects.exclude(price_type__in=["", 'D1-R', 'R-C']).filter(sku__user=user.id).
-                values_list('price_type', flat=True).distinct())
-
+        price_types = get_distinct_price_types(user)
         price_type = data.price_type
         phone_number = ''
         if data.phone_number and data.phone_number != '0':
@@ -496,11 +493,12 @@ def get_sku_pack_master(start_index, stop_index, temp_data, search_term, order_t
 
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
+    search_params['sku__user'] = user.id
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
             master_data = SKUPackMaster.objects.filter(
-                Q(sku__wms_code__icontains=search_term)).order_by(order_data)
+                Q(sku__wms_code__icontains=search_term), sku__user=user.id).order_by(order_data)
     else:
         master_data = SKUPackMaster.objects.filter(**search_params).order_by(order_data)
 
@@ -1427,7 +1425,7 @@ def update_sku_supplier_values(request, user=''):
 @get_admin_user
 def insert_mapping(request, user=''):
     data_dict = copy.deepcopy(SUPPLIER_SKU_DATA)
-    integer_data = ('preference')
+    integer_data = 'preference'
     for key, value in request.POST.iteritems():
 
         if key == 'wms_code':
@@ -1446,29 +1444,29 @@ def insert_mapping(request, user=''):
 
         elif key in integer_data:
             if not value.isdigit():
-                return HttpResponse('Plese enter Integer values for Priority and MOQ')
+                return HttpResponse('Please enter Integer values for Priority and MOQ')
 
         if key == 'preference':
             preference = value
 
         if value != '':
             data_dict[key] = value
+    if user.username not in MILKBASKET_USERS:
+        sku_supplier = SKUSupplier.objects.filter(Q(sku_id=sku_id[0].id) & Q(preference=preference),
+                                                  sku__user=user.id)
+        if sku_supplier:
+            return HttpResponse('Preference matched with existing WMS Code')
 
-    sku_supplier = SKUSupplier.objects.filter(Q(sku_id=sku_id[0].id) & Q(preference=preference),
-                                              sku__user=user.id)
-    if sku_supplier:
-        return HttpResponse('Preference matched with existing WMS Code')
-
-    data = SKUSupplier.objects.filter(supplier_id=supplier, sku_id=sku_id[0].id)
-    if data:
-        return HttpResponse('Duplicate Entry')
-    preference_data = SKUSupplier.objects.filter(sku_id=sku_id[0].id).order_by('-preference').\
-                                            values_list('preference', flat=True)
-    min_preference = 0
-    if preference_data:
-        min_preference = int(preference_data[0])
-    if int(preference) in preference_data:
-        return HttpResponse('Duplicate Priority, Next incremantal value is %s' % str(min_preference + 1))
+        data = SKUSupplier.objects.filter(supplier_id=supplier, sku_id=sku_id[0].id)
+        if data:
+            return HttpResponse('Duplicate Entry')
+        preference_data = SKUSupplier.objects.filter(sku_id=sku_id[0].id).order_by('-preference').\
+                                                values_list('preference', flat=True)
+        min_preference = 0
+        if preference_data.exists():
+            min_preference = int(float(preference_data[0]))
+        if int(preference) in preference_data:
+            return HttpResponse('Duplicate Priority, Next incremantal value is %s' % str(min_preference + 1))
 
     sku_supplier = SKUSupplier(**data_dict)
     sku_supplier.save()
@@ -3065,6 +3063,33 @@ def get_price_master_results(start_index, stop_index, temp_data, search_term, or
         temp_data['aaData'].append(OrderedDict((('SKU Code', sku_code), ('SKU Description', sku_desc),
                                                 ('Selling Price Type', price_type), ('Price', val))))
 
+@csrf_exempt
+def get_attribute_price_master_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+                             filters={}):
+    lis = ['attribute_type', 'attribute_type', 'attribute_value', 'price_type','price_type']
+    order_data= lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    search_parameters = {}
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    search_parameters['user'] = user.id
+    if search_term:
+        master_data = PriceMaster.objects.filter(Q(attribute_type__icontains=search_term) |Q(attribute_value__icontains=search_term)|
+                                                 Q(price_type__icontains=search_term) | Q(price__icontains=search_term),**search_parameters).order_by(order_data)
+    else:
+        master_data = PriceMaster.objects.filter(**search_parameters).order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+
+    for obj in master_data[start_index:stop_index]:
+        temp_data['aaData'].append(OrderedDict((('Attribute Name', obj.attribute_type),
+                                                       ('Attribute Value', obj.attribute_value),
+                                                       ('Selling Price Type', obj.price_type),
+                                                       ('Selling Price Type', obj.price_type),
+                                                       ('Price', obj.price))))
 
 @csrf_exempt
 @login_required
@@ -3072,36 +3097,50 @@ def get_price_master_results(start_index, stop_index, temp_data, search_term, or
 def add_pricing(request, user=''):
     ''' add pricing '''
     post_data_dict = dict(request.POST.iterlists())
-    sku_code = post_data_dict['sku_code'][0]
+    brand_view = int(post_data_dict.get('brand_view', [0])[0])
     price_type = post_data_dict['price_type'][0]
+    if brand_view:
+        attr_mapping = {'Brand': 'sku_brand', 'Category': 'sku_category'}
+        attribute_type = post_data_dict['attribute_name'][0]
+        attribute_value = post_data_dict['attribute_value'][0]
+        if not attribute_value and attribute_type and price_type:
+            return HttpResponse('Missing Required Fields')
+        sku_filter_dict = {'user': user.id,
+                           attr_mapping[attribute_type]: attribute_value}
+        sku_master = SKUMaster.objects.filter(**sku_filter_dict)
+        if not sku_master.exists():
+            return HttpResponse('Invalid Attribute Value')
+    else:
+        sku_code = post_data_dict['sku_code'][0]
+        if not sku_code and price_type:
+            return HttpResponse('Missing Required Fields')
+        sku = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+        if not sku:
+            return HttpResponse('Invalid SKU Code')
     min_unit_ranges = post_data_dict['min_unit_range']
     max_unit_ranges = post_data_dict['max_unit_range']
     prices = post_data_dict['price']
     discounts = post_data_dict['discount']
-    if not sku_code and price_type:
-        return HttpResponse('Missing Required Fields')
-    sku = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
-    if not sku:
-        return HttpResponse('Invalid SKU Code')
     for i in range(len(max_unit_ranges)):
         min_unit_range = min_unit_ranges[i]
         max_unit_range = max_unit_ranges[i]
         price = prices[i]
         discount = discounts[i]
-        price_data = PriceMaster.objects.filter(sku__user=user.id, sku__sku_code=sku_code, price_type=price_type,
-                                                min_unit_range=min_unit_range, max_unit_range=max_unit_range)
-        if price_data:
+        filter_params = {'price_type': price_type,
+                         'min_unit_range': min_unit_range, 'max_unit_range': max_unit_range}
+        if brand_view:
+            filter_params['user'] = user.id
+            filter_params['attribute_type'] = attribute_type
+            filter_params['attribute_value'] = attribute_value
+        else:
+            filter_params['sku_id'] = sku[0].id
+        price_data = PriceMaster.objects.filter(**filter_params)
+        if price_data.exists():
             return HttpResponse('Price type already exist in Pricing Master')
         else:
-            data_dict = copy.deepcopy(PRICING_DATA)
-            data_dict['sku'] = sku[0]
-            data_dict['max_unit_range'] = max_unit_range
-            data_dict['min_unit_range'] = min_unit_range
-            data_dict['price_type'] = price_type
-            data_dict['price'] = price
             if discount:
-                data_dict['discount'] = float(discount)
-            pricing_master = PriceMaster(**data_dict)
+                filter_params['discount'] = float(discount)
+            pricing_master = PriceMaster(**filter_params)
             pricing_master.save()
     return HttpResponse('New Pricing Added')
 
@@ -3112,9 +3151,17 @@ def add_pricing(request, user=''):
 def update_pricing(request, user=''):
     ''' update pricing '''
     post_data_dict = dict(request.POST.iterlists())
-    sku_code = post_data_dict['sku_code'][0]
+    brand_view =  int(post_data_dict.get('brand_view',[0])[0])
     price_type = post_data_dict['price_type'][0]
-    price_master_data = PriceMaster.objects.filter(sku__user=user.id, sku__sku_code=sku_code, price_type=price_type)
+    if not brand_view:
+        sku_code = post_data_dict['sku_code'][0]
+        filter_params={'sku__user':user.id, 'sku__sku_code':sku_code, 'price_type':price_type}
+    else:
+        attribute_type=post_data_dict['attribute_name'][0]
+        attribute_value=post_data_dict['attribute_value'][0]
+        filter_params = {'user': user.id,'attribute_type':attribute_type,
+                         'attribute_value':attribute_value, 'price_type':price_type}
+    price_master_data = PriceMaster.objects.filter(**filter_params)
     if not price_master_data:
         return HttpResponse('Invalid data')
 
@@ -3128,6 +3175,8 @@ def update_pricing(request, user=''):
     db_set = set(price_master_data.values_list('min_unit_range', 'max_unit_range'))
     ui_set = set()
     ui_map = {}
+    if not brand_view:
+        sku = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
     for i in range(len(post_data_dict['max_unit_range'])):
         min_amt, max_amt = float(post_data_dict['min_unit_range'][i]), float(post_data_dict['max_unit_range'][i])
         ui_discount = post_data_dict['discount'][i]
@@ -3142,7 +3191,6 @@ def update_pricing(request, user=''):
         ui_map[(float(post_data_dict['min_unit_range'][i]), float(post_data_dict['max_unit_range'][i]))] = (
         price, discount)
 
-    sku = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
 
     new_ranges = ui_set - db_set
     existing_ranges = db_set - ui_set
@@ -3161,17 +3209,28 @@ def update_pricing(request, user=''):
             p.price = price
             p.discount = discount
             p.save()
-        contents = {"en": "Price has revised for SKU %s." % sku[0].sku_code}
+        if not brand_view:
+            contents = {"en": "Price has revised for SKU %s." % sku[0].sku_code}
+        else:
+            contents = {"en": "Price has revised for Attribute {} and Attribute value {}".format(attribute_type,attribute_value)}
         send_push_notification(contents, notified_users)
     if new_ranges:
         for new_range in new_ranges:
             min_unit_range, max_unit_range = new_range
             price, discount = ui_map[(min_unit_range, max_unit_range)]
-            new_price_map = {'sku': sku[0], 'price_type': price_type, 'min_unit_range': min_unit_range,
+            new_price_map = {'price_type': price_type, 'min_unit_range': min_unit_range,
                              'max_unit_range': max_unit_range, 'price': price, 'discount': discount}
+            if brand_view:
+                new_price_map['attribute_type'] = attribute_type
+                new_price_map['attribute_value'] = attribute_value
+            else:
+                new_price_map['sku'] = sku[0]
             pricing_master = PriceMaster(**new_price_map)
             pricing_master.save()
-        contents = {"en": "New Price Range has added for SKU %s." % sku[0].sku_code}
+        if not brand_view:
+            contents = {"en": "New Price Range has added for SKU %s." % sku[0].sku_code}
+        else:
+            contents = {"en": "Price has revised for Attribute {} and Attribute value {}".format(attribute_type,attribute_value)}
         send_push_notification(contents, notified_users)
 
     return HttpResponse('Updated Successfully')
@@ -3611,24 +3670,36 @@ def get_tax_data(request, user=''):
 @get_admin_user
 def get_pricetype_data(request, user=''):
     """ Get all PriceType Details."""
-    price_band_flag = get_misc_value('priceband_sync', user.id)
-    if price_band_flag == 'true':
-        user = get_admin(user)
-
+    attribute_view = int(request.GET.get('attribute_view', 0))
     response = {'status': 0, 'msg': ''}
-    sku_code = request.GET.get('sku_code', '')
     price_type = request.GET.get('price_type', '')
-    if not sku_code and price_type:
-        response['msg'] = 'fail'
-        return HttpResponse(response)
-
-    price_master_objs = PriceMaster.objects.filter(sku__user=user.id, sku__sku_code=sku_code, price_type=price_type)
+    if not attribute_view:
+        price_band_flag = get_misc_value('priceband_sync', user.id)
+        if price_band_flag == 'true':
+            user = get_admin(user)
+        sku_code = request.GET.get('sku_code', '')
+        if not sku_code and price_type:
+            response['msg'] = 'fail'
+            return HttpResponse(response)
+        filter_params = {'sku__user': user.id, 'sku__sku_code': sku_code, 'price_type': price_type}
+        resp = {'data': [], 'sku_code': sku_code, 'selling_price_type': price_type}
+    else:
+        attribute_type=request.GET.get('attribute_type', '')
+        attribute_value=request.GET.get('attribute_value', '')
+        filter_params = {'user': user.id,'attribute_type':attribute_type,'attribute_value': attribute_value, 'price_type': price_type}
+        resp = {'data': [], 'attribute_name': attribute_type,'attribute_value': attribute_value, 'selling_price_type': price_type}
+    price_master_objs = PriceMaster.objects.filter(**filter_params)
     if not price_master_objs:
         response['msg'] = 'Price Master values not found'
         return HttpResponse(response)
-    resp = {'data': [], 'sku_code': sku_code, 'selling_price_type': price_type}
     for price_master_obj in price_master_objs:
-        temp = price_master_obj.json()
+        if attribute_view:
+           temp = {'attribute_name':price_master_obj.attribute_type ,'attribute_value':price_master_obj.attribute_value,
+                   'discount': price_master_obj.discount, 'unit_type': price_master_obj.unit_type,
+                   'price_type': price_master_obj.price_type, 'price': price_master_obj.price,
+                   'max_unit_range': price_master_obj.max_unit_range, 'id': price_master_obj.id, 'min_unit_range': price_master_obj.min_unit_range}
+        else:
+            temp = price_master_obj.json()
         resp['data'].append(temp)
 
     response['status'] = 1
@@ -4374,3 +4445,69 @@ def delete_cluster_sku (request, user=''):
          log.debug(traceback.format_exc())
          log.info('Cluster SKU Deletion failed for id : %s' % str(cluster))
     return  HttpResponse(status)
+
+@csrf_exempt
+def get_source_sku_attributes_mapping(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['id', 'supplier', 'attribute_type', 'attribute_value', 'price','costing_type','margin_percentage','markup_percentage']
+    order_data= lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    search_parameters = {}
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    search_parameters['user'] = user.id
+    if search_term:
+        master_data = SKUSupplier.objects.filter(Q(supplier__id__icontains=search_term)|Q(attribute_type__icontains=search_term) |Q(attribute_value__icontains=search_term)|Q(margin_percentage__icontains=search_term)|
+                                                 Q(markup_percentage__icontains=search_term)|Q(costing_type__icontains=search_term) | Q(price__icontains=search_term),**search_parameters).order_by(order_data)
+    else:
+        master_data = SKUSupplier.objects.filter(**search_parameters).order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+
+    for obj in master_data[start_index:stop_index]:
+        temp_data['aaData'].append(OrderedDict((('attribute_type', obj.attribute_type),
+                                                       ('id', obj.id),
+                                                       ('supplier_id', obj.supplier_id),
+                                                       ('attribute_value', obj.attribute_value),
+                                                       ('costing_type', obj.costing_type),
+                                                       ('markdown_percentage', obj.margin_percentage),
+                                                       ('markup_percentage', obj.markup_percentage),
+                                                       ('price', obj.price))))
+
+@csrf_exempt
+@get_admin_user
+def insert_supplier_attribute(request, user=''):
+    attr_mapping = copy.deepcopy(SKU_NAME_FIELDS_MAPPING)
+    data_dict = OrderedDict()
+    for key, value in request.POST.iteritems():
+        if value and not (key == 'api_type' or key == 'id'):
+            if key == 'markdown_percentage':
+                data_dict['margin_percentage'] = value
+            else:
+                data_dict[key] = value
+    if request.POST['api_type'] == 'insert':
+        supplier_sku = SKUSupplier.objects.filter(user=user.id,
+                                            supplier_id=data_dict['supplier_id'],
+                                            attribute_type=data_dict['attribute_type'],
+                                            attribute_value=data_dict['attribute_value'])
+        if supplier_sku.exists():
+            data = "Sku-Attribute Mapping Already Available"
+        else:
+            sku_filter_dict = {'user': user.id,
+                                       attr_mapping[data_dict['attribute_type']]: data_dict['attribute_value']}
+            sku_master = SKUMaster.objects.filter(**sku_filter_dict)
+            if not sku_master.exists():
+                return HttpResponse('Sku Attribute Value Not Found')
+            data_dict['user'] = user.id
+            SKUSupplier.objects.create(**data_dict)
+            data = 'Added Successfully'
+    elif request.POST['api_type'] == 'update' and request.POST['id']:
+        supplier_sku = SKUSupplier.objects.filter(id=request.POST['id'], user=user.id)
+        if supplier_sku.exists():
+            supplier_sku.update(**data_dict)
+            data = 'Updated Successfully'
+    else:
+        data = 'Error Case'
+    return HttpResponse(data)

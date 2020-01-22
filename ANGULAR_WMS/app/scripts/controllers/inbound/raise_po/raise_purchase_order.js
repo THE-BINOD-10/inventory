@@ -18,6 +18,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.industry_type = vm.user_profile.industry_type;
     vm.display_purchase_history_table = false;
     vm.warehouse_type = vm.user_profile.warehouse_type;
+    vm.warehouse_level = vm.user_profile.warehouse_level;
+    vm.multi_level_system = vm.user_profile.multi_level_system;
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
     vm.filters = {'datatable': 'RaisePO', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
@@ -463,6 +465,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       if (vm.warehouse_type == 'CENTRAL_ADMIN') {
         elem.push({name:'is_central_po', value:true});
       }
+      if (vm.wh_purchase_order){
+        elem.push({name:'wh_purchase_order', value:true})
+      }
       vm.service.apiCall(confirm_url, 'POST', elem, true).then(function(data){
         if(data.message) {
           if (data.data == "success") {
@@ -614,6 +619,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
         vm.service.showNoty('Fill Supplier ID');
         return false;
       }
+      if (vm.wh_purchase_order && (!vm.model_data.po_delivery_date || typeof(vm.model_data.po_delivery_date) == 'undefined')) {
+        product.fields.sku.wms_code = ''
+        vm.service.showNoty('Fill Delivery Date');
+        return false;
+      }
       if(vm.permissions.show_purchase_history) {
 	    $timeout( function() {
 	        vm.populate_last_transaction('')
@@ -642,6 +652,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
         vm.model_data.supplier_id = vm.model_data.seller_supplier_map[vm.model_data.seller_type.split(":")[0]];
       }
       if (vm.model_data.supplier_id) {
+      vm.get_supplier_sku_prices(item.wms_code).then(function(sku_data){
+            sku_data = sku_data[0];
+            vm.model_data.tax_type = sku_data.tax_type.replace(" ","_").toLowerCase();
+            //sku_data["price"] = product.fields.price;
+            //vm.model_data.supplier_sku_prices = sku_data;
+            product["taxes"] = sku_data.taxes;
+            product["fields"]["edit_tax"] = sku_data.edit_tax;
+            vm.get_tax_value(product);
+        })
         var supplier = vm.model_data.supplier_id;
         $http.get(Session.url+'get_mapping_values/?wms_code='+product.fields.sku.wms_code+'&supplier_id='+supplier, {withCredentials : true}).success(function(data, status, headers, config) {
           if (data.hasOwnProperty('error_msg')) {
@@ -666,15 +685,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
             }
           }
         });
-        vm.get_supplier_sku_prices(item.wms_code).then(function(sku_data){
-            sku_data = sku_data[0];
-            vm.model_data.tax_type = sku_data.tax_type.replace(" ","_").toLowerCase();
-            //sku_data["price"] = product.fields.price;
-            //vm.model_data.supplier_sku_prices = sku_data;
-            product["taxes"] = sku_data.taxes;
-            product["fields"]["edit_tax"] = sku_data.edit_tax;
-            vm.get_tax_value(product);
-        })
       }
     }
     vm.update_wms_records = function(){
@@ -752,6 +762,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
+      if (vm.wh_purchase_order){
+        elem.push({name:'wh_purchase_order', value:true})
+      }
       vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
         if(data.message){
           if(data.data == 'success') {
@@ -895,4 +908,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     });
   }
 
+vm.checkWHSupplierExist  = function (sup_id) {
+    console.log(sup_id);
+    $http.get(Session.url + 'search_wh_supplier?', {
+      params: {
+        q: sup_id,
+        type: ''
+      }
+    }).then(function(resp){
+      if (resp.data.length == 0) {
+        console.log("No Warehouse Supplier")
+      };
+    });
+  }
 }

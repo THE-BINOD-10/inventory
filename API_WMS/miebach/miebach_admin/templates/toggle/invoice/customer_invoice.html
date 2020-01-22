@@ -196,7 +196,7 @@
                           </div>
                           <div class="row">
                             <div class="col-xs-{{html_data.totals_data.label_width}}">
-                              Total Tax *
+                              Total Tax
                             </div>
                             <div class="col-xs-{{html_data.totals_data.value_width}} text-right">
                               Rs {{total_tax}}
@@ -267,7 +267,7 @@
                       <span><b class="fs16">DECLARATION:</b></span><br>
                       <p class="pre-custom fs14" style ="display:inline; word-wrap: break-word;">{{declaration}}</p>
                       {% if invoice_remarks != 'false' %}
-                      <p  style ="display:inline; word-wrap: break-word;">{{invoice_declaration}}</p>
+                      <p  style ="display:inline; word-wrap: break-word;">{{invoice_declaration|safe}}</p>
                       {% endif %}
                     </td>
                     <td colspan='{{html_data.hsn_summary_span}}'>

@@ -55,7 +55,10 @@ def scroll_data(request, obj_lists, limit='', request_type='POST'):
     if limit:
         items = limit
     if request_type == 'body':
-        request_data = json.loads(request.body)
+        if request.body:
+            request_data = json.loads(request.body)
+        else:
+            request_data = {}
     elif request_type == 'POST':
         request_data = request.POST.dict()
     else:
@@ -922,24 +925,166 @@ def get_supplier_data(request):
 
 
 @csrf_exempt
+@login_required
 def get_skus(request):
-    if request.user.is_anonymous():
-        return HttpResponse(json.dumps({'message': 'fail'}))
     data = []
-    limit = request.POST.get('limit', '')
-    sku_records = SKUMaster.objects.filter(user = request.user.id)
+    limit = 30
+    user = request.user
+    attr_list = []
+    error_status = []
+    skus = []
+    search_params = {'user': user.id}
+    request_data = request.body
+    search_query = Q()
+    if request_data:
+        try:
+            request_data = json.loads(request_data)
+        except:
+            request_data = {}
+        attributes = get_user_attributes(user, 'sku')
+        if request_data.get('limit'):
+            limit = request_data['limit']
+        if request_data.get('sku_code'):
+            search_params['sku_code'] = request_data['sku_code']
+        if request_data.get('sku_brand'):
+            search_params['sku_brand'] = request_data['sku_brand']
+        skus = request_data.get('sku_list', [])
+        skus = map(lambda sku: str(sku), skus)
+        if skus:
+            search_params['sku_code__in'] = skus
+        if request_data.get('sku_search'):
+            search_query = build_search_term_query(['sku_code', 'sku_desc'], request_data['sku_search'])
+        sku_model = [field.name for field in SKUMaster._meta.get_fields()]
+        if attributes:
+            attr_list = list(attributes.values_list('attribute_name', flat=True))
+        if attr_list:
+            attr_filter_ids = []
+            attr_found = False
+            for key, value in request_data.items():
+                if key in sku_model:
+                    search_params[key] = request_data[key]
+                elif key in attr_list:
+                    attr_found = True
+                    attr_ids = SKUAttributes.objects.filter(sku__user=user.id, attribute_name=key,
+                                                            attribute_value=value).\
+                                                    values_list('sku_id', flat=True)
+                    if attr_filter_ids:
+                        attr_filter_ids = list(set(attr_filter_ids) & set(attr_ids))
+                    else:
+                        attr_filter_ids = attr_ids
+            if attr_found:
+                search_params['id__in'] = attr_filter_ids
+    sku_records = SKUMaster.objects.filter(search_query, **search_params)
+    error_skus = set(skus) - set(sku_records.values_list('sku_code', flat=True))
+    for error_sku in error_skus:
+        error_status.append({'sku': error_sku, 'message': 'SKU Not found'})
+    page_info = scroll_data(request, sku_records, limit=limit, request_type='body')
+    sku_records = page_info['data']
     for sku in sku_records:
         updated = ''
+        cgst, sgst, igst, cess = '','','',''
+        tax_obj = TaxMaster.objects.filter(product_type=sku.product_type, user=user.id, max_amt__gte=sku.price, min_amt__lte=sku.price)
+        if tax_obj:
+            inter_tax = tax_obj.filter(inter_state=0)
+            if inter_tax:
+                cgst = str(inter_tax[0].cgst_tax)
+                sgst = str(inter_tax[0].sgst_tax)
+            intra_tax = tax_obj.filter(inter_state=1)
+            if intra_tax:
+                igst = str(intra_tax[0].igst_tax)
+                cess = str(intra_tax[0].cess_tax)
         if sku.updation_date:
             updated = sku.updation_date.strftime('%Y-%m-%d %H:%M:%S')
-        data.append(OrderedDict(( ('id', sku.id), ('sku_code', sku.sku_code), ('sku_desc', sku.sku_desc), ('sku_category', sku.sku_category),
-                     ('price', str(sku.price)), ('active', sku.status), ('created_at', sku.creation_date.strftime('%Y-%m-%d %H:%M:%S')),
-                     ('updated_at', updated ))))
+        data_dict = OrderedDict(( ('id', sku.id), ('sku_code', sku.sku_code), ('sku_desc', sku.sku_desc),
+                                  ('sku_brand', sku.sku_brand), ('sku_category', sku.sku_category), ('price', str(sku.price)),
+                                  ('mrp', str(sku.mrp)),
+                                  ('cost_price', str(sku.cost_price)),
+                                  ('product_type', sku.product_type),
+                                  ('hsn_code', sku.hsn_code),
+                                  ('cgst', cgst),
+                                  ('sgst', sgst),
+                                  ('igst', igst),
+                                  ('cess', cess),
+                                  ('ean_number', sku.ean_number),
+                                  ('measurement_type', sku.measurement_type),
+                                  ('active', sku.status),
+                                  ('created_at', sku.creation_date.strftime('%Y-%m-%d %H:%M:%S')),
+                                  ('updated_at', updated )))
+        for attr_name in attr_list:
+            data_dict[attr_name] = ''
+            attr_value = sku.skuattributes_set.filter(attribute_name=attr_name).only('attribute_value')
+            if attr_value:
+                data_dict[attr_name] = attr_value[0].attribute_value
+        data.append(data_dict)
 
-    data = scroll_data(request, data, limit=limit)
+    page_info['data'] = data
+    page_info['message'] = "Success"
+    if error_status:
+        page_info['error_data'] = [{'errors': error_status}]
+    return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
 
-    data['message'] = 'success'
-    return HttpResponse(json.dumps(data, cls=DjangoJSONEncoder))
+@csrf_exempt
+@login_required
+def get_skufilters(request):
+    status = {'status': 200,'message': 'Success','data':[]}
+    user = request.user
+    request_data = request.body
+    sku_model = []
+    query_list = []
+    if request_data:
+        try:
+            request_data = json.loads(request_data)
+        except:
+            request_data = {}
+    sku_model = [field.name for field in SKUMaster._meta.get_fields()]
+    attributes = get_user_attributes(user, 'sku')
+    attr_list = []
+    attr_filter_ids = []
+    if attributes:
+        attr_list = list(attributes.values_list('attribute_name', flat=True))
+    if request_data.get('key'):
+        search_param = request_data['key']
+        if search_param in sku_model:
+            query_list = list(SKUMaster.objects.filter(user = user.id).values_list(search_param, flat=True).distinct())
+        elif search_param in attr_list:
+            query_list = list(SKUAttributes.objects.filter(sku__user=user.id, attribute_name=search_param).values_list('attribute_value', flat=True).distinct())
+        else:
+            status['status'] = 400
+    status['data'] = query_list
+    if status['status'] == 400:
+        status['message'] = 'Key error'
+    return HttpResponse(json.dumps(status, cls=DjangoJSONEncoder))
+
+@csrf_exempt
+@login_required
+def get_warehouses(request):
+    status = {'status': 200,'message': 'Success','data':[]}
+    user = request.user
+    request_data = request.body
+    search_param={}
+    if request_data:
+        try:
+            request_data = json.loads(request_data)
+        except:
+            request_data = {}
+        search_param['user__userprofile__multi_level_system'] = 1
+        if request_data.get('level'):
+            search_param['user__userprofile__warehouse_level'] = request_data['level']
+        if request_data.get('warehouse_name'):
+            search_param['user__username'] = request_data['warehouse_name']
+        if request_data.get('warehouse_id'):
+            search_param['user_id'] = request_data['warehouse_id']
+    warehouse = get_sister_warehouse(user)
+    user_data = warehouse.filter(**search_param).values(warehouse_id=F('user_id'),warehouse_name=F('user__username'),
+                                                        level=F('user__userprofile__warehouse_level'),
+                                                        min_order_value=F('user__userprofile__min_order_val'),
+                                                        email=F('user__email'),
+                                                        city=F('user__userprofile__city'),
+                                                        zone=F('user__userprofile__zone'))
+    status['data'] = list(user_data)
+    return HttpResponse(json.dumps(status, cls=DjangoJSONEncoder))
+
+
 
 @csrf_exempt
 @login_required
@@ -985,6 +1130,35 @@ def update_order(request):
         validation_dict, final_data_dict = validate_orders(orders, user=request.user, company_name='mieone')
         if validation_dict:
             return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
+        status = update_order_dicts(final_data_dict, user=request.user, company_name='mieone')
+        log.info(status)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        status = {'messages': 'Internal Server Error', 'status': 0}
+    return HttpResponse(json.dumps(status))
+
+@csrf_exempt
+@login_required
+def create_orders(request):
+    try:
+        orders = json.loads(request.body)
+    except:
+        return HttpResponse(json.dumps({'message': 'Please send proper data'}))
+    log.info('Request params for ' + request.user.username + ' is ' + str(orders))
+    try:
+        validation_dict, failed_status, final_data_dict = validate_create_orders(orders, user=request.user, company_name='mieone')
+        if validation_dict:
+            return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
+        if failed_status:
+            if type(failed_status) == dict:
+                failed_status.update({'Status': 'Failure'})
+            if type(failed_status) == list:
+                failed_status = failed_status[0]
+                failed_status.update({'Status': 'Failure'})
+            return HttpResponse(json.dumps(failed_status))
+        #status = update_ingram_order_dicts(final_data_dict, seller_id, user=request.user)
         status = update_order_dicts(final_data_dict, user=request.user, company_name='mieone')
         log.info(status)
     except Exception as e:
@@ -1808,3 +1982,38 @@ def store_hippo(request):
     time_taken = str(delta.total_seconds())
     storehippo_log.info('------------End Time Taken in Seconds --- ' + time_taken + '-----')
     return HttpResponse(json.dumps(status_resp.sku_code))
+
+
+@login_required
+@get_admin_user
+def get_customers(request, user=''):
+    search_params = {'user': user.id}
+    request_data = request.body
+    limit = 30
+    if request_data:
+        try:
+            request_data = json.loads(request_data)
+        except:
+            return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Json', 'data': []}))
+        if request_data.get('name_search', ''):
+            search_params['name__icontains'] = request_data['name_search']
+        elif request_data.get('name', ''):
+            search_params['name'] = request_data['name']
+        if request_data.get('customer_id_search', ''):
+            search_params['customer_id__icontains'] = request_data['customer_id_search']
+        elif request_data.get('customer_id', ''):
+            search_params['customer_id'] = request_data['customer_id']
+        if request_data.get('limit'):
+            limit = request_data['limit']
+    total_data = []
+    master_data = CustomerMaster.objects.filter(**search_params)
+    page_info = scroll_data(request, master_data, limit=limit, request_type='body')
+    master_data = page_info['data']
+    for data in master_data:
+        if data.phone_number:
+            data.phone_number = int(float(data.phone_number))
+        total_data.append({'customer_id': data.customer_id, 'first_name': data.name,
+                           'last_name': data.last_name, 'address': data.address,
+                           'phone_number': str(data.phone_number), 'email': data.email_id})
+    page_info['data'] = total_data
+    return HttpResponse(json.dumps(page_info))

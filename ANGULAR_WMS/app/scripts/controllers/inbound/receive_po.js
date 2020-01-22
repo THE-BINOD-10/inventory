@@ -209,7 +209,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       };
                     } else {
                       vm.extra_width = {
-                        'width': '900px'
+                        'width': '1100px'
                       };
                     }
                     vm.model_data.dc_level_grn = false;
@@ -1028,8 +1028,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 if (vm.sku_list_1.indexOf(vm.field) == -1){
 
                   if (data.data.sku_code && data.data.sku_code == vm.field) {
-
-                    Service.showNoty(vm.field+' Does Not Exist');
+                    if(field !== vm.field){
+                        Service.showNoty('Ean Number Mapped to '+vm.field);
+                    } else{
+                        Service.showNoty(vm.field+' Does Not Exist');
+                    }
                   } else {
 
                     vm.addNewScannedSku(event, field);

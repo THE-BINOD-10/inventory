@@ -164,53 +164,63 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
 
     vm.move_to = function (click_type) {
-      var po_number = '';
-      var status = false;
-      var field_name = "";
-      var data = [];
-      if (vm.user_type == 'distributor') {
-        data = vm.checked_ids;
-      } else {
-        angular.forEach(vm.selected, function(value, key) {
-          if(value) {
-            var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
-            if(!(po_number)) {
-              po_number = temp[temp['check_field']];
-            } else if (po_number != temp[temp['check_field']]) {
-              //status = true;
-              console.log("true");
-            }
-            field_name = temp['check_field'];
-            data.push(temp['id']);
-          }
-        });
-      }
-
-      if(status) {
-        vm.service.showNoty("Please select same "+field_name+"'s");
-      } else {
-
-        var ids = data.join(",");
-        var url = 'move_to_inv/';
-        var send = {seller_summary_id: ids};
-        if (click_type == 'cancel_inv') {
-           send['cancel'] = true;
-        }
-        vm.bt_disable = true;
-        vm.service.apiCall(url, "GET", send).then(function(data){
-          if(data.message) {
-            console.log(data.message);
-            vm.reloadData();
-          } else {
-            vm.service.showNoty("Something went wrong while moving to DC !!!");
-          }
-        })
-      }
+      vm.service.alert_msg("Do you want to cancel").then(function(msg){
+            if (msg == "true"){
+                        var po_number = '';
+                        var status = false;
+                        var field_name = "";
+                        var data = [];
+                        if (vm.user_type == 'distributor') {
+                          data = vm.checked_ids;
+                        } else {
+                          angular.forEach(vm.selected, function(value, key) {
+                            if(value) {
+                              var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
+                              if(!(po_number)) {
+                                po_number = temp[temp['check_field']];
+                              } else if (po_number != temp[temp['check_field']]) {
+                                //status = true;
+                                console.log("true");
+                              }
+                              field_name = temp['check_field'];
+                              data.push(temp['id']);
+                            }
+                          });
+                        }
+                  
+                        if(status) {
+                          vm.service.showNoty("Please select same "+field_name+"'s");
+                        } else {
+                  
+                          var ids = data.join(",");
+                          var url = 'move_to_inv/';
+                          var send = {seller_summary_id: ids};
+                          if (click_type == 'cancel_inv') {
+                             send['cancel'] = true;
+                          }
+                          vm.bt_disable = true;
+                          vm.service.apiCall(url, "GET", send).then(function(data){
+                            if(data.message) {
+                              console.log(data.message);
+                              vm.reloadData();
+                            } else {
+                              vm.service.showNoty("Something went wrong while moving to DC !!!");
+                            }
+                          })
+                        }
+                      }
+          });
     };
 
     vm.reloadData = function () {
       $('.custom-table').DataTable().draw();
     };
+    vm.excel = excel;
+    function excel() {
+      angular.copy(vm.dtColumns,colFilters.headers);
+      angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
+      colFilters.download_excel()
+    }
     vm.loadjs = function () {
       vm.CustomerInvoicesTabCtrl_enable = true;
     }

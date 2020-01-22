@@ -19,6 +19,8 @@ from django.core import serializers
 import csv
 from sync_sku import *
 from outbound import get_syncedusers_mapped_sku
+from rest_api.views.excel_operations import write_excel_col, get_excel_variables
+
 
 log = init_logger('logs/uploads.log')
 
@@ -518,6 +520,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
 
 def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
     log.info("order upload started")
+    order_code_prefix = get_order_prefix(user.id)
     st_time = datetime.datetime.now()
     index_status = {}
     # order_mapping = get_order_mapping1(reader, file_type, no_of_rows, no_of_cols)
@@ -531,7 +534,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
     order_id_order_type = {}
     log.info("Validation Started %s" % datetime.datetime.now())
     exist_created_orders = OrderDetail.objects.filter(user=user.id,
-                                                      order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO'])
+                                                      order_code__in=[order_code_prefix, 'Delivery Challan', 'sample', 'R&D', 'CO'])
     extra_fields_mapping = OrderedDict()
     extra_fields_data = OrderedDict()
     for row_idx in range(0, 1):
@@ -695,7 +698,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     # order_data['order_id'] = int(str(time.time()).replace(".", ""))
                     # order_data['order_id'] = time.time()* 1000000
                     order_data['order_id'] = get_order_id(user.id)
-                    order_data['order_code'] = 'MN'
+                    order_data['order_code'] = order_code_prefix
 
             elif key == 'quantity':
                 order_data[key] = float(get_cell_data(row_idx, value, reader, file_type))
@@ -866,7 +869,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
         if not order_data.get('order_id', ''):
             order_data['order_id'] = get_order_id(user.id)
-            order_data['order_code'] = 'MN'
+            order_data['order_code'] = order_code_prefix
         if isinstance(order_data['order_id'], float):
             order_data['order_id'] = str(int(order_data['order_id'])).upper()
         if isinstance(order_data['original_order_id'], float):
@@ -1441,12 +1444,12 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                         log.info('SKU Master Upload failed for %s and params are %s and error statement is %s' % (
                         str(user.username), str(request.POST.dict()), str(e)))
 
-            # elif key == 'hsn_code':
-            #     if cell_data:
-            #         if not isinstance(cell_data, (int, float)):
-            #             index_status.setdefault(row_idx, set()).add('HSN Code must be integer')
-                        # elif not len(str(int(cell_data))) == 8:
-                        #    index_status.setdefault(row_idx, set()).add('HSN Code should be 8 digit')
+            elif key == 'hsn_code':
+                if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = str(int(cell_data))
+                    # if not len(cell_data) == 8:
+                    #     index_status.setdefault(row_idx, set()).add('HSN Code should be 8 digit')
 
             elif key == 'product_type':
                 if cell_data:
@@ -2851,7 +2854,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             break
     if user_profile.industry_type == 'FMCG':
         table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
-                         'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+                         'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total(with tax)']
         if user.username in MILKBASKET_USERS:
             table_headers.insert(4, 'Weight')
     else:
@@ -2929,8 +2932,10 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         order_data['ship_to'] = final_dict['ship_to']
         data['creation_date'] = creation_date
         seller_id = ''
+        excel_seller_id = ''
         if final_dict.get('seller', ''):
             seller_id = final_dict['seller'].id
+            excel_seller_id = final_dict['seller'].seller_id
         group_key = (order_data['po_name'], order_data['supplier_id'], data['po_date'], seller_id)
         if group_key not in order_ids.keys():
             po_id = get_purchase_order_id(user)+1
@@ -3001,7 +3006,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                             ]
         if ean_flag:
             ean_number = ''
-            eans = get_sku_ean_list(data1.sku)
+            eans = get_sku_ean_list(data1.sku, order_by_val='desc')
             if eans:
                 ean_number = eans[0]
             po_temp_data.insert(1, ean_number)
@@ -3011,12 +3016,13 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             po_temp_data.insert(table_headers.index('APMC (%)'), data1.apmc_tax)
         po_data.append(po_temp_data)
         send_mail_data.setdefault(str(order.order_id), {'purchase_order': order, 'po_data': [],
-                                  'data1': data1, 'total_qty': 0, 'total': 0})
+                                  'data1': data1, 'total_qty': 0, 'total': 0,'seller_id':excel_seller_id})
         send_mail_data[str(order.order_id)]['po_data'].append(po_temp_data)
         send_mail_data[str(order.order_id)]['total_qty'] += total_qty
         send_mail_data[str(order.order_id)]['total'] += total
 
         #mail_result_data = purchase_order_dict(data1, data_req, purchase_order, user, order)
+    excel_headers = ['Seller ID' , 'PO Reference' , 'PO Date', 'Supplier ID']+table_headers
     for key, send_mail_dat in send_mail_data.iteritems():
         try:
             purchase_order = send_mail_dat['data1']
@@ -3031,11 +3037,11 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                     company_address = user.userprofile.wh_address
                     if user.username in MILKBASKET_USERS:
                         if user.userprofile.user.email:
-                            company_address = ("%s, Email:%s") % (company_address, user.userprofile.user.email)
+                            company_address = "%s, Email:%s" % (company_address, user.userprofile.user.email)
                         if user.userprofile.phone_number:
-                            company_address = ("%s, Phone:%s") % (company_address, user.userprofile.phone_number)
+                            company_address = "%s, Phone:%s" % (company_address, user.userprofile.phone_number)
                         if user.userprofile.gst_number:
-                            company_address = ("%s, GSTINo:%s") % (company_address, user.userprofile.gst_number)
+                            company_address = "%s, GSTINo:%s" % (company_address, user.userprofile.gst_number)
                 else:
                     company_address = user.userprofile.address
             else:
@@ -3068,13 +3074,24 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             else:
                 expiry_date = ''
             po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+            report_file_names = []
+            if user.username in MILKBASKET_USERS:
+                wb, ws, path, file_name = get_excel_variables(po_reference+' '+'Purchase Order Form', 'purchase_order_sheet', excel_headers)
+
+                excel_common_list = [send_mail_dat['seller_id'], purchase_order.po_name,
+                                     purchase_order.creation_date.strftime("%d-%m-%Y"), purchase_order.supplier_id]
+                for i in range(len(po_data)):
+                    row_count=i+1
+                    column_count=0
+                    excel_data = excel_common_list+po_data[i]
+                    for value in excel_data:
+                        ws, column_count = write_excel_col(ws, row_count, column_count, value, bold=False)
+                wb.save(path)
+                report_file_names.append({'name': file_name, 'path': path})
             profile = UserProfile.objects.get(user=user.id)
             company_name = profile.company_name
             title = 'Purchase Order'
             receipt_type = request.GET.get('receipt_type', '')
-            if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
-                company_name = 'SHPROC Procurement Pvt. Ltd.'
-                title = 'Purchase Order'
             total_amt_in_words = number_in_words(round(total)) + ' ONLY'
             round_value = float(round(total) - float(total))
             company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
@@ -3107,11 +3124,11 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                 if get_misc_value('allow_secondary_emails', user.id) == 'true':
                     write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
                                        str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po,
-                                       full_order_date=str(order_date))
+                                       full_order_date=str(order_date) ,mail_attachments=report_file_names)
                 elif get_misc_value('raise_po', user.id) == 'true':
                     write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
                                        str(order_date).split(' ')[0], ean_flag=ean_flag,
-                                       data_dict_po=data_dict_po, full_order_date=str(order_date))
+                                       data_dict_po=data_dict_po, full_order_date=str(order_date), mail_attachments=report_file_names)
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
@@ -3818,9 +3835,9 @@ def validate_combo_sku_form(open_sheet, user):
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
                 cell_data = str(cell_data)
-                sku_master = MarketplaceMapping.objects.filter(marketplace_code=cell_data, sku__user=user)
+                sku_master = MarketplaceMapping.objects.filter(marketplace_code=cell_data, sku__user=user.id)
                 if not sku_master:
-                    sku_master = SKUMaster.objects.filter(sku_code=cell_data, user=user)
+                    sku_master = SKUMaster.objects.filter(sku_code=cell_data, user=user.id)
                 if not sku_master:
                     if col_idx == 0:
                         message = 'Invalid SKU Code'
@@ -3831,7 +3848,7 @@ def validate_combo_sku_form(open_sheet, user):
     if not index_status:
         return 'Success'
 
-    f_name = '%s.combo_sku_form.xls' % user
+    f_name = '%s.combo_sku_form.xls' % user.id
     write_error_file(f_name, index_status, open_sheet, COMBO_SKU_EXCEL_HEADERS, 'Combo SKU')
     return f_name
 
@@ -3850,7 +3867,7 @@ def combo_sku_upload(request, user=''):
     except:
         return HttpResponse('Invalid File')
 
-    status = validate_combo_sku_form(open_sheet, str(user.id))
+    status = validate_combo_sku_form(open_sheet, user)
     if status != 'Success':
         return HttpResponse(status)
 
@@ -6786,8 +6803,12 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
 @login_required
 @get_admin_user
 def skupack_master_download(request, user=''):
+    sku_file = request.GET['download-file']
+    if sku_file:
+        return error_file_download(sku_file)
     wb, ws = get_work_sheet('sku_pack_form', SKU_PACK_MAPPING.keys())
     return xls_to_response(wb, '%s.sku_pack_form.xls' % str(user.id))
+
 
 @csrf_exempt
 @login_required
@@ -6809,6 +6830,7 @@ def skupack_master_upload(request, user=''):
         return HttpResponse(upload_status)
     return HttpResponse('Success')
 
+
 def sku_pack_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
     log.info("Sku Pack  upload started")
     st_time = datetime.datetime.now()
@@ -6823,8 +6845,10 @@ def sku_pack_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls
     order_data = {}
     log.info("Validation Started %s" % datetime.datetime.now())
     log.info("Sku Pack data Processing Started %s" % (datetime.datetime.now()))
+    data_list = []
     for row_idx in range(1, no_of_rows):
         user_obj = ''
+        data_dict = {}
         if not order_mapping:
             break
         count += 1
@@ -6840,6 +6864,8 @@ def sku_pack_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls
                     sku_obj = SKUMaster.objects.filter(wms_code=sku_code.upper(), user=user.id)
                     if not sku_obj:
                         index_status.setdefault(count, set()).add('Invalid sku code')
+                    else:
+                        data_dict['sku_obj'] = sku_obj[0]
                 except:
                     index_status.setdefault(count, set()).add('Invalid sku code')
             redundent_sku_obj = SKUPackMaster.objects.filter(sku__wms_code= sku_code , sku__user = user.id)
@@ -6852,16 +6878,19 @@ def sku_pack_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls
 
             if not pack_id:
                 index_status.setdefault(count, set()).add('Invalid pack_id')
+            data_dict['pack_id'] = pack_id
             if redundent_sku_obj :
                 if redundent_sku_obj[0].pack_id != pack_id :
                     index_status.setdefault(count, set()).add('SKU Code is already mapped to other pack_id')
         if order_mapping.has_key('pack_quantity'):
+            pack_quantity = 0
             try:
                 pack_quantity = int(get_cell_data(row_idx, order_mapping['pack_quantity'], reader, file_type))
             except:
                 index_status.setdefault(count, set()).add('Invalid pack quantity')
-            if not pack_id:
-                index_status.setdefault(count, set()).add('Invalid pack quantity')
+            data_dict['pack_quantity'] = pack_quantity
+
+        data_list.append(data_dict)
 
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
@@ -6876,39 +6905,28 @@ def sku_pack_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls
             f_name = file_path
         return f_name
 
-    sku_pack = copy.deepcopy(SKU_PACK_DATA)
-    for row_idx in range(1, no_of_rows):
-        for key, value in order_mapping.iteritems():
-            if key == 'sku_code':
-                try:
-                    sku_code = str(int(get_cell_data(row_idx, value, reader, file_type)))
-                except:
-                    sku_code = str(get_cell_data(row_idx, value, reader, file_type))
-            elif key == 'pack_id':
-                try:
-                    pack_id = str(int(get_cell_data(row_idx, value, reader, file_type)))
-                except:
-                    pack_id = str(get_cell_data(row_idx, value, reader, file_type))
-            elif key == 'pack_quantity':
-                 pack_quantity = int(get_cell_data(row_idx, value, reader, file_type))
-
-                 pack_obj = SKUPackMaster.objects.filter(sku__wms_code= sku_code,pack_id = pack_id,sku__user = user.id)
-                 if pack_obj :
-                     pack_obj = pack_obj[0]
-                     pack_obj.pack_quantity = pack_quantity
-                     pack_obj.save()
-                 else:
-                     sku_pack['sku'] = sku_obj[0]
-                     sku_pack ['pack_id'] = pack_id
-                     sku_pack ['pack_quantity'] = pack_quantity
-                     try:
-                         SKUPackMaster.objects.create(**sku_pack)
-                         return 'Success'
-                     except Exception as e:
-                         import traceback
-                         log.debug(traceback.format_exc())
-                         log.info('Insert New SKUPACK failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()),str(e)))
-                         return 'Failed'
+    for data_dict in data_list:
+        sku_obj = data_dict['sku_obj']
+        sku_code = sku_obj.sku_code
+        pack_id = data_dict['pack_id']
+        pack_quantity = data_dict['pack_quantity']
+        sku_pack = copy.deepcopy(SKU_PACK_DATA)
+        pack_obj = SKUPackMaster.objects.filter(sku__wms_code= sku_code,pack_id = pack_id,sku__user = user.id)
+        if pack_obj:
+            pack_obj = pack_obj[0]
+            pack_obj.pack_quantity = pack_quantity
+            pack_obj.save()
+        else:
+            sku_pack['sku'] = sku_obj
+            sku_pack['pack_id'] = pack_id
+            sku_pack['pack_quantity'] = pack_quantity
+            try:
+                SKUPackMaster.objects.create(**sku_pack)
+            except Exception as e:
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info('Insert New SKUPACK failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()),str(e)))
+    return 'Success'
 
 
 @csrf_exempt
@@ -7747,3 +7765,248 @@ def combo_allocate_upload(request, user=''):
         log.info('Combo allocate stock failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(data_dict), str(e)))
     return HttpResponse('Success')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def brand_level_pricing_form(request, user=''):
+    excel_file = request.GET['download-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_headers = copy.deepcopy(BRAND_LEVEL_PRICING_EXCEL_MAPPING)
+    wb, ws = get_work_sheet('Brand Level Pricing', excel_headers)
+    return xls_to_response(wb, '%s.brand_level_pricing_form.xls' % str(user.id))
+
+
+@csrf_exempt
+def validate_brand_level_pricing_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    price_mapping = copy.deepcopy(BRAND_LEVEL_PRICING_EXCEL_MAPPING)
+    price_mapping_res = dict(zip(price_mapping.values(), price_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 price_mapping)
+    excel_check_list = price_mapping.values()
+    if not set(excel_check_list).issubset(excel_mapping.keys()):
+        return 'Invalid File', []
+    attr_mapping = copy.deepcopy(SKU_NAME_FIELDS_MAPPING)
+    number_fields = ['min_range', 'max_range', 'price', 'discount']
+    data_list = []
+    for row_idx in range(1, no_of_rows):
+        row_data = OrderedDict()
+        for key, value in excel_mapping.items():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'attribute_type':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Missing SKU Attribute Name')
+                elif cell_data not in ['Brand', 'Category']:
+                    index_status.setdefault(row_idx, set()).add('Invalid SKU Attribute Name')
+                else:
+                    row_data[key] = cell_data
+            elif key == 'attribute_value':
+                if not index_status:
+                    sku_filter_dict = {'user': user.id,
+                                       attr_mapping[row_data['attribute_type']]: cell_data}
+                    sku_master = SKUMaster.objects.filter(**sku_filter_dict)
+                    if not sku_master.exists():
+                        index_status.setdefault(row_idx, set()).add('Invalid SKU Attribute Value')
+                    else:
+                        row_data[key] = cell_data
+            elif key in number_fields:
+                try:
+                    row_data[key] = float(cell_data)
+                except:
+                    index_status.setdefault(row_idx, set()).add('%s should be number' % price_mapping_res[key])
+            else:
+                row_data[key] = cell_data
+        data_list.append(row_data)
+    if not index_status:
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, []
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, []
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def brand_level_pricing_upload(request, user=''):
+    fname = request.FILES['files']
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, final_data = validate_brand_level_pricing_form(request, reader, user, no_of_rows,
+                                                     no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    for data_dict in final_data:
+        pricing_master = PriceMaster.objects.filter(user=user.id, price_type=data_dict['price_type'],
+                                                    min_unit_range=data_dict['min_unit_range'],
+                                                    max_unit_range=data_dict['max_unit_range'],
+                                                    attribute_type=data_dict['attribute_type'],
+                                                    attribute_value=data_dict['attribute_value'])
+        if pricing_master.exists():
+            pricing_master.update(price=data_dict['price'], discount=data_dict['discount'])
+        else:
+            data_dict['user'] = user.id
+            PriceMaster.objects.create(**data_dict)
+    return HttpResponse("Success")
+
+
+@csrf_exempt
+@get_admin_user
+def supplier_sku_attributes_form(request, user=''):
+    supplier_file = request.GET['download-supplier-sku-attributes-file']
+    if supplier_file:
+        return error_file_download(supplier_file)
+    wb, ws = get_work_sheet('supplier', SUPPLIER_SKU_ATTRIBUTE_HEADERS)
+    return xls_to_response(wb, '%s.supplier_sku_attributes_form.xls' % str(user.id))
+
+@csrf_exempt
+def validate_supplier_sku_attributes_form(open_sheet, user_id):
+    index_status = {}
+    supplier_ids = []
+    final_data = []
+    attr_mapping = copy.deepcopy(SKU_NAME_FIELDS_MAPPING)
+    supplier_list = SupplierMaster.objects.filter(user=user_id).values_list('id', flat=True)
+    if supplier_list:
+        for i in supplier_list:
+            supplier_ids.append(i)
+    for row_idx in range(1, open_sheet.nrows):
+        row_data = OrderedDict()
+        for col_idx in range(0, len(SUPPLIER_SKU_ATTRIBUTE_HEADERS)):
+            key = open_sheet.cell(0, col_idx).value
+            cell_data = open_sheet.cell(row_idx, col_idx).value
+            # if row_idx == 0:
+            #     if col_idx == 0 and cell_data != 'Supplier Id':
+            #         return 'Invalid File'
+            if key == 'Supplier Id':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Enter Supplier ID')
+                if isinstance(cell_data, (int, float)):
+                    cell_data = str(int(cell_data))
+                if cell_data and cell_data in supplier_ids:
+                    row_data['supplier_id'] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('Supplier ID Not Found')
+
+            if key == 'SKU Attribute Type(Brand, Category)':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Missing SKU Attribute Name')
+                elif cell_data not in ['Brand', 'Category']:
+                    index_status.setdefault(row_idx, set()).add('Invalid SKU Attribute Name')
+                else:
+                    row_data['attribute_type'] = cell_data
+
+            elif key == 'SKU Attribute Value':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Missing SKU Attribute Value')
+                elif row_data['attribute_type']:
+                    sku_filter_dict = {'user': user_id,
+                                       attr_mapping[row_data['attribute_type']]: cell_data}
+                    sku_master = SKUMaster.objects.filter(**sku_filter_dict)
+                    if not sku_master.exists():
+                        index_status.setdefault(row_idx, set()).add('Invalid SKU Attribute Value')
+                    else:
+                        row_data['attribute_value'] = cell_data
+
+            if key == 'Price':
+                if not isinstance(cell_data, (int, float)) and cell_data:
+                    index_status.setdefault(row_idx, set()).add('Price Must be Integer or Float')
+                elif cell_data:
+                    row_data['price'] = cell_data
+
+            if key == 'Costing Type (Price Based/Margin Based/Markup Based)':
+                if cell_data :
+                    if not cell_data in ['Price Based', 'Margin Based','Markup Based']:
+                        index_status.setdefault(row_idx, set()).add('Costing Type should be "Price Based/Margin Based/Markup Based"')
+                    if cell_data == 'Price Based' :
+                        cell_data_price = open_sheet.cell(row_idx, 3).value
+                        if not cell_data_price :
+                            index_status.setdefault(row_idx, set()).add('Price is Mandatory For Price Based')
+                        else:
+                            if not isinstance(cell_data_price, (int, float)) :
+                                index_status.setdefault(row_idx, set()).add('Price Should be Number')
+                            else:
+                                row_data['costing_type'] = cell_data
+                    elif cell_data == 'Margin Based' :
+                        cell_data_margin = open_sheet.cell(row_idx, 5).value
+                        if not cell_data_margin :
+                            index_status.setdefault(row_idx, set()).add('MarkDown Percentage is Mandatory For Margin Based')
+                        elif not isinstance(cell_data_margin, (int, float)):
+                            index_status.setdefault(row_idx, set()).add('MarkDown % Should be in integer or float')
+                        elif  float(cell_data_margin) < 0  or float(cell_data_margin) >  100:
+                            index_status.setdefault(row_idx, set()).add('MarkDown % Should be in between 0 and 100')
+                        else:
+                            row_data['costing_type'] = cell_data
+                    elif cell_data == 'Markup Based' :
+                        cell_data_markup = open_sheet.cell(row_idx, 6).value
+                        if not cell_data_markup :
+                            index_status.setdefault(row_idx, set()).add('Markup Percentage is Mandatory For Markup Based')
+                        elif not isinstance(cell_data_markup, (int, float)):
+                            index_status.setdefault(row_idx, set()).add('Markup % Should be in integer or float')
+                        elif  float(cell_data_markup) < 0 or float(cell_data_markup) > 100:
+                            index_status.setdefault(row_idx, set()).add('Markup % Should be in between 0 and 100')
+                        else:
+                            row_data['costing_type'] = cell_data
+
+            if key == 'MarkDown Percentage':
+                if not isinstance(cell_data, (int, float)) and cell_data:
+                    index_status.setdefault(row_idx, set()).add('MarkDown Percentage Must be Integer or Float')
+                elif cell_data:
+                    row_data['margin_percentage'] = cell_data
+
+            if key == 'Markup Percentage':
+                if not isinstance(cell_data, (int, float)) and cell_data:
+                    index_status.setdefault(row_idx, set()).add('Markup Percentage Must be Integer or Float')
+                elif cell_data:
+                    row_data['markup_percentage'] = cell_data
+
+        final_data.append(row_data)
+    if not index_status:
+        return 'Success', final_data
+
+    f_name = '%s.supplier_sku_attributes_form.xls' % user_id
+    write_error_file(f_name, index_status, open_sheet, SUPPLIER_SKU_ATTRIBUTE_HEADERS, 'Supplier')
+    return f_name, []
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def supplier_sku_attributes_upload(request, user=''):
+    fname = request.FILES['files']
+    if fname.name.split('.')[-1] == 'xls' or fname.name.split('.')[-1] == 'xlsx':
+        try:
+            open_book = open_workbook(filename=None, file_contents=fname.read())
+            open_sheet = open_book.sheet_by_index(0)
+        except:
+            return HttpResponse('Invalid File')
+    status, final_data = validate_supplier_sku_attributes_form(open_sheet, str(user.id))
+    if status != 'Success':
+        return HttpResponse(status)
+    for data_dict in final_data:
+        supplier_sku = SKUSupplier.objects.filter(user=user.id,
+                                                    supplier_id=data_dict['supplier_id'],
+                                                    attribute_type=data_dict['attribute_type'],
+                                                    attribute_value=data_dict['attribute_value'])
+        if supplier_sku.exists():
+            supplier_sku.update(**data_dict)
+        else:
+            data_dict['user'] = user.id
+            SKUSupplier.objects.create(**data_dict)
+    return HttpResponse("Success")

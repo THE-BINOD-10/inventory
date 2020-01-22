@@ -157,7 +157,8 @@ def get_uploaded_pos_by_customers(start_index, stop_index, temp_data, search_ter
                 ord_det_ids = order_data.values_list('orderdetail__user', 'orderdetail__order_id')
                 for usr, org_id in ord_det_ids:
                     if usr in orderprefix_map:
-                        emiza_id = orderprefix_map[usr]+'MN'+str(org_id)
+                        order_code = get_order_prefix(usr)
+                        emiza_id = orderprefix_map[usr]+order_code+str(org_id)
                         emiza_order_ids.append(emiza_id)
                 emiza_order_ids = list(set(emiza_order_ids))
         cond = (result.id, result.uploaded_user, result.po_number, result.uploaded_date,

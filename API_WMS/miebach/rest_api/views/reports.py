@@ -61,6 +61,8 @@ def get_report_data(request, user=''):
                 for header in extra_order_fields :
                     if header not in data['dt_headers'] :
                         data['dt_headers'].append(header)
+                    if header not in data['mk_dt_headers']:
+                        data['mk_dt_headers'].append(header)
         if 'marketplace' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'marketplace' in person['name'], data['filters'])[0])
@@ -560,6 +562,7 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
     status_dict = {'0': 'Inactive', '1': 'Active'}
     temp_data['draw'] = search_params.get('draw')
     marketplace = ''
+    order_code = get_order_prefix(user.id)
     if 'creation_date' in search_params:
         search_parameters['creation_date__gt'] = search_params['creation_date']
     if 'to_date' in search_params:
@@ -569,7 +572,7 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
     if 'wms_code' in search_params:
         search_parameters['sku__wms_code'] = search_params['wms_code'].upper()
     if 'order_id' in search_params:
-        value = search_params['order_id'].strip('OD').strip('MN').strip('SR')
+        value = search_params['order_id'].strip('OD').strip(order_code).strip('SR')
         search_parameters['order__order_id'] = value
     if 'customer_id' in search_params:
         search_parameters['order__customer_id'] = search_params['customer_id']
@@ -906,7 +909,7 @@ def get_aging_filter_data(search_params, user, sub_user):
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-    if user.username == 'isprava_admin':
+    if user.userprofile.warehouse_type == 'admin':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
             user = User.objects.get(username=sister_warehouse_name)
@@ -953,7 +956,7 @@ def get_aging_filter_data(search_params, user, sub_user):
                         bundle = attribute.attribute_value
         ord_dict = OrderedDict((('SKU Code', data[0]), ('SKU Description', data[1]), ('SKU Category', data[2]),
                      ('SKU Sub Category', data[6]),('Sku Brand', data[7]),
-                     ('Location', data[4]), ('Quantity', temp[data]), ('As on Date(Days)', data[3]), ('Warehouse', warehouse_users.get(data[5]))))
+                     ('Location', data[4]), ('Quantity', temp[data]), ('As on Date(Days)', data[3]), ('Warehouse Name', warehouse_users.get(data[5]))))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             ord_dict['Manufacturer'] = manufacturer
             ord_dict['Searchable'] = searchable
@@ -1008,6 +1011,7 @@ def print_po_reports(request, user=''):
     total = 0
     total_qty = 0
     total_tax = 0
+    tax_value = 0
     overall_discount = 0
     for data in results:
         receipt_type = ''
@@ -1030,7 +1034,11 @@ def print_po_reports(request, user=''):
                     quantity = seller_summary_obj.quantity
                     bill_no = seller_summary_obj.invoice_number if seller_summary_obj.invoice_number else ''
                     bill_date = seller_summary_obj.invoice_date if seller_summary_obj.invoice_date else data.updation_date
-                    price = open_data.price
+                    if seller_summary_obj.price:
+                        price = seller_summary_obj.price
+                    else:
+                        price=open_data.price
+
                     cgst_tax = open_data.cgst_tax
                     sgst_tax = open_data.sgst_tax
                     igst_tax = open_data.igst_tax
@@ -1041,8 +1049,12 @@ def print_po_reports(request, user=''):
                         cess_tax = seller_summary_obj.cess_tax
                     gst_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax + cess_tax + apmc_tax
                     discount = seller_summary_obj.discount_percent
+                    mrp = 0
+                    if user.userprofile.user_type == 'warehouse_user':
+                        mrp = open_data.sku.mrp
                     if seller_summary_obj.batch_detail:
                         price = seller_summary_obj.batch_detail.buy_price
+                        mrp = seller_summary_obj.batch_detail.mrp
                         temp_tax_percent = seller_summary_obj.batch_detail.tax_percent
                         if seller_summary_obj.purchase_order.open_po.supplier.tax_type == 'intra_state':
                             temp_tax_percent = temp_tax_percent / 2
@@ -1060,12 +1072,16 @@ def print_po_reports(request, user=''):
                         amount = amount - (amount * float(discount)/100)
                     if gst_tax:
                         amount += (amount / 100) * gst_tax
-                    grouped_data.setdefault(grouping_key, [open_data.sku.wms_code, open_data.order_quantity, 0,
-                                             open_data.measurement_unit,
-                                             price, cgst_tax, sgst_tax, igst_tax, utgst_tax,
-                                             0, open_data.sku.sku_desc])
-                    grouped_data[grouping_key][2] += quantity
-                    grouped_data[grouping_key][9] += amount
+                    grouped_data.setdefault(grouping_key, {'wms_code': open_data.sku.wms_code,
+                                                           'order_quantity': open_data.order_quantity,
+                                                           'received_quantity': 0,
+                                                           'measurement_unit': open_data.measurement_unit,
+                                                           'price': price, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax,
+                                                           'igst_tax': igst_tax, 'utgst_tax': utgst_tax,
+                                                           'amount': 0, 'sku_desc': open_data.sku.sku_desc,
+                                                           'mrp': mrp})
+                    grouped_data[grouping_key]['received_quantity'] += quantity
+                    grouped_data[grouping_key]['amount'] += amount
                     total += amount
                     total_qty += quantity
                     total_tax += gst_tax
@@ -1076,10 +1092,19 @@ def print_po_reports(request, user=''):
                 gst_tax = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax + open_data.apmc_tax
                 if gst_tax:
                     amount += (amount / 100) * gst_tax
-                po_data[headers].append((open_data.sku.wms_code, open_data.order_quantity, quantity,
-                                open_data.measurement_unit,
-                                open_data.price, open_data.cgst_tax, open_data.sgst_tax, open_data.igst_tax,
-                                open_data.utgst_tax, amount, open_data.sku.sku_desc))
+                mrp = open_data.mrp
+                if user.userprofile.user_type == 'warehouse_user':
+                    mrp = open_data.sku.mrp
+                # po_data[headers].append((open_data.sku.wms_code, open_data.order_quantity, quantity,
+                #                 open_data.measurement_unit,
+                #                 open_data.price, open_data.cgst_tax, open_data.sgst_tax, open_data.igst_tax,
+                #                 open_data.utgst_tax, amount, open_data.sku.sku_desc))
+                po_data[headers].append({'wms_code': open_data.sku.wms_code, 'order_quantity': open_data.order_quantity,
+                                         'received_quantity': quantity, 'measurement_unit': open_data.measurement_unit,
+                                         'price': open_data.price, 'cgst_tax': open_data.cgst_tax,
+                                         'sgst_tax': open_data.sgst_tax, 'igst_tax': open_data.igst_tax,
+                                         'utgst_tax': open_data.utgst_tax, 'amount': amount,
+                                         'sku_desc': open_data.sku.sku_desc, 'mrp': mrp})
                 total += amount
                 total_qty += quantity
                 total_tax += (open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax + open_data.cess_tax + open_data.apmc_tax)
@@ -1092,11 +1117,15 @@ def print_po_reports(request, user=''):
             gst_tax = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax
             if gst_tax:
                 amount += (amount / 100) * gst_tax
-
-            po_data[headers].append(
-                (open_data.sku.wms_code, open_data.order_quantity, data.quantity, open_data.measurement_unit,
-                 open_data.price, open_data.cgst_tax, open_data.sgst_tax, open_data.igst_tax,
-                 open_data.utgst_tax, amount, open_data.sku.sku_desc))
+            mrp = open_data.mrp
+            if user.userprofile.user_type == 'warehouse_user':
+                mrp = open_data.sku.mrp
+            po_data[headers].append({'wms_code': open_data.sku.wms_code, 'order_quantity': open_data.order_quantity,
+                                     'received_quantity': data.quantity, 'measurement_unit': open_data.measurement_unit,
+                                     'price': open_data.price, 'cgst_tax': open_data.cgst_tax, 'sgst_tax': open_data.sgst_tax,
+                                     'igst_tax': open_data.igst_tax, 'utgst_tax': open_data.utgst_tax,
+                                     'amount': amount, 'sku_desc': open_data.sku.sku_desc,
+                                     'mrp': mrp})
             total += amount
             total_qty += po_order.received_quantity
             receipt_type = data.seller_po.receipt_type
@@ -1146,14 +1175,18 @@ def print_po_reports(request, user=''):
     #if receipt_type == 'Hosted Warehouse':
     #    title = 'Stock Transfer Note'
     net_amount = total - overall_discount
+    if total:
+        tax_value = (total * total_tax)/(100 + total_tax)
+        tax_value = ("%.2f" % tax_value)
     return render(request, 'templates/toggle/c_putaway_toggle.html',
                   {'table_headers': table_headers, 'data': po_data, 'data_slices': sku_slices, 'address': address,
                    'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date,
-                   'total_price': total, 'data_dict': data_dict, 'bill_no': bill_no,
+                   'total_price': total, 'data_dict': data_dict, 'bill_no': bill_no, 'tax_value':tax_value,
                    'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,'overall_discount':overall_discount,
-                   'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': total_tax,'net_amount':net_amount,
-                   'company_address': company_address, 'sr_number': sr_number, 'lr_number': lr_number, 'remarks': remarks})
+                   'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': int(total_tax),'net_amount':net_amount,
+                   'company_address': company_address, 'sr_number': sr_number, 'lr_number': lr_number, 
+                   'remarks': remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)})
 
 
 @csrf_exempt

@@ -136,7 +136,7 @@
           <div class="form-group">
             <label class="control-label">Tax Type</label>
             <select class="form-control" name="tax_type" ng-model="showCase.model_data.tax_type" ng-change="showCase.change_tax_type();">
-              <option ng-repeat="tax in showCase.create_order_data.taxes" ng-selected="showCase.model_data.tax_type == tax.tax_value" value="{{tax.tax_value}}">{{tax.tax_name}}</option>
+              <option ng-repeat="tax in showCase.create_order_data.taxes" ng-selected="showCase.model_data.tax_type == create_order_data.taxes[0].tax_type" value="{{tax.tax_value}}">{{tax.tax_name}}</option>
             </select>
           </div>
         </div>
@@ -291,6 +291,7 @@
               <th ng-if="showCase.model_data.blind_order && showCase.permissions.use_imei">Serial Scan</th>
               <!--<th class="w10_">Selected Quantity</th>-->
               <th class="w10_">Quantity</th>
+              <th ng-if="showCase.permissions.sku_pack_config">Sku Pack Quantity</th>
               <th ng-if="showCase.model_data.blind_order">Cost Price</th>
               <th>MRP</th>
               <th ng-show="showCase.fields.indexOf('Unit Price') == -1">Unit Price</th>
@@ -328,6 +329,9 @@
               </td>
               <td>
                 <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-change="showCase.change_quantity(data)" size="12" ng-readonly="showCase.model_data.blind_order && showCase.permissions.use_imei" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Quantity', $index, data)"></div>
+              </td>
+              <td ng-if="showCase.permissions.sku_pack_config">
+                <input type="text" name="skuPackQuantity" class="form-control" size="12" ng-model="data.skuPackQuantity" disabled/>
               </td>
               <td ng-if="showCase.model_data.blind_order">
                 <input type="text" name="cost_price" class="form-control" size="12" ng-model="data.cost_price" ng-class="service.get_decimal_perm()">

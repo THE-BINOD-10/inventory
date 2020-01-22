@@ -1041,12 +1041,17 @@ def get_skufilters(request):
         attr_list = []
         attr_filter_ids = []
         sku_attribute = SKUAttributes.objects.filter(sku__user=user.id)
+        sku_master = SKUMaster.objects.filter(user = user.id)
         if attributes:
             attr_list = list(attributes.values_list('attribute_name', flat=True))
         if request_data.get('key'):
             search_param = request_data['key']
             if search_param in sku_model:
-                query_list = list(SKUMaster.objects.filter(user = user.id).values_list(search_param, flat=True).distinct())
+                if request_data.get('name_search'):
+                    search_query = build_search_term_query([search_param], request_data['name_search'])
+                    if search_query:
+                        sku_master = sku_master.filter(search_query)
+                query_list = list(sku_master.values_list(search_param, flat=True).distinct())
             elif search_param in attr_list:
                 query_list = list(sku_attribute.filter(attribute_name=search_param).values_list('attribute_value', flat=True).distinct())
             else:

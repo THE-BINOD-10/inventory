@@ -2305,10 +2305,12 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'mandate_sku_supplier':'mandate_sku_supplier',
                         'brand_categorization':'brand_categorization',
                         'purchase_order_preview':'purchase_order_preview',
+                        'picklist_sort_by_sku_sequence': 'picklist_sort_by_sku_sequence',
                         'stop_default_tax':'stop_default_tax',
                         'supplier_mapping':'supplier_mapping',
                         'show_mrp_grn': 'show_mrp_grn',
                         'display_dc_invoice': 'display_dc_invoice',
+                        'display_order_reference': 'display_order_reference',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -7191,7 +7193,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
     sister_whs = [user.id]
     if user.userprofile.warehouse_type == 'admin':
         sister_whs = list(User.objects.filter(username__in=get_linked_user_objs(user, user)).values_list('id', flat=True))
-
+        sister_whs.append(user.id)
     if not firebase_response:
         firebase_response = {}
 

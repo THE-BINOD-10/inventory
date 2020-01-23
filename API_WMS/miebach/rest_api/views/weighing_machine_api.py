@@ -8,7 +8,7 @@ weight_port = 12915
 test_val = 0
 is_updated = False
 
-weight_client = paho.Client("client-001")
+#weight_client = paho.Client("client-001")
 
 def weight_on_message(client, userdata, message):
     #time.sleep(10)
@@ -25,6 +25,9 @@ def weigh_on_connect(client, userdata, flags, rc):
 
 
 def get_integration_weight_val(weight_topic):
+    weight_client = paho.Client(weight_topic)
+    weight_client.on_message = weight_on_message
+    weight_client.on_connect = weigh_on_connect
     global test_val, is_updated
     weight_client.username_pw_set(weight_username, weight_password)
     weight_client.connect(weight_broker, weight_port, 60)#connect
@@ -39,5 +42,5 @@ def get_integration_weight_val(weight_topic):
     is_updated = False
     return test_val_cp, is_updated_cp
 
-weight_client.on_message = weight_on_message
-weight_client.on_connect = weigh_on_connect
+#weight_client.on_message = weight_on_message
+#weight_client.on_connect = weigh_on_connect

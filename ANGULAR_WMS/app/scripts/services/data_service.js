@@ -190,7 +190,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
       self.other_view.view = 'SKUView'
     } else {
 
-      self.other_view.view = 'OrderView'
+      self.other_view.view = 'CustomerOrderView'
     }
 
     /** customer login **/

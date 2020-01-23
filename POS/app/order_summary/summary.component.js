@@ -19,6 +19,7 @@
                 data=data.data;
                 if (data.status == "Success"){
                   console.log(data);
+                  self.user = data
                   urlService.userData = data;
                   urlService.VAT = data.VAT;
                   self.VAT = data.VAT;

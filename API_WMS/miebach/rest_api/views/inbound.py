@@ -1024,7 +1024,6 @@ def switches(request, user=''):
                        'invoice_remarks': 'invoice_remarks',
                        'invoice_declaration':'invoice_declaration',
                        'pos_remarks':'pos_remarks',
-                       'raisepo_terms_conditions':'raisepo_terms_conditions',
                        'show_disc_invoice': 'show_disc_invoice',
                        'serial_limit': 'serial_limit',
                        'increment_invoice': 'increment_invoice',
@@ -1081,12 +1080,15 @@ def switches(request, user=''):
                        'loc_serial_mapping_switch':'loc_serial_mapping_switch',
                        'brand_categorization':'brand_categorization',
                        'purchase_order_preview':'purchase_order_preview',
+                       'picklist_sort_by_sku_sequence': 'picklist_sort_by_sku_sequence',
                        'stop_default_tax':'stop_default_tax',
                        'delivery_challan_terms_condtions': 'delivery_challan_terms_condtions',
                        'order_prefix':'order_prefix',
                        'supplier_mapping':'supplier_mapping',
                        'show_mrp_grn': 'show_mrp_grn',
                        'display_dc_invoice': 'display_dc_invoice',
+                       'display_order_reference': 'display_order_reference',
+                       'mrp_discount':'mrp_discount',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -1107,8 +1109,6 @@ def switches(request, user=''):
             else:
                 setattr(data[0], 'misc_value', selection)
                 data[0].save()
-        elif toggle_field == 'raisepo_terms_conditions':
-            data = UserTextFields.objects.update_or_create(user_id=user_id, field_type = 'terms_conditions', defaults = {'text_field':selection})
         elif toggle_field == 'delivery_challan_terms_condtions':
             data = UserTextFields.objects.update_or_create(user_id=user_id, field_type = 'dc_terms_conditions', defaults = {'text_field':selection})
         else:
@@ -3005,14 +3005,6 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             if temp_json_obj.exists():
                 temp_json_obj.delete()
         purchase_data = get_purchase_order_data(data)
-        #Create Batch Detail entry
-        batch_dict = {}
-        if 'batch_no' in myDict.keys():
-            batch_dict = {'transact_type': 'po_loc', 'batch_no': myDict['batch_no'][i],
-                          'expiry_date': myDict['exp_date'][i], 'manufactured_date': myDict['mfg_date'][i],
-                          'tax_percent': myDict['tax_percent'][i], 'mrp': myDict['mrp'][i],
-                          'buy_price': myDict['buy_price'][i], 'weight': myDict['weight'][i]}
-            add_ean_weight_to_batch_detail(purchase_data['sku'], batch_dict)
         temp_quantity = data.received_quantity
         unit = ''
         sku_row_buy_price = 0
@@ -3074,6 +3066,14 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             data.intransit_quantity = 0
         data.saved_quantity = 0
 
+        batch_dict = {}
+        if 'batch_no' in myDict.keys():
+            batch_dict = {'transact_type': 'po_loc', 'batch_no': myDict['batch_no'][i],
+                          'expiry_date': myDict['exp_date'][i], 'manufactured_date': myDict['mfg_date'][i],
+                          'tax_percent': myDict['tax_percent'][i], 'mrp': myDict['mrp'][i],
+                          'buy_price': myDict['buy_price'][i], 'weight': myDict['weight'][i]}
+
+
         seller_received_list = []
         if data.open_po or data.stpurchaseorder_set.filter():
             po_type = 'po'
@@ -3084,6 +3084,11 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                     seller_receipt_id = get_seller_receipt_id(data)
                 else:
                     seller_receipt_id = get_st_seller_receipt_id(data)
+
+        if 'batch_no' in myDict.keys():
+            batch_dict['receipt_number'] = seller_receipt_id
+            add_ean_weight_to_batch_detail(purchase_data['sku'], batch_dict)
+
             seller_received_list = update_seller_po(data, value, user, myDict, i, receipt_id=seller_receipt_id,
                                                     invoice_number=invoice_number, invoice_date=bill_date,
                                                     challan_number=challan_number, challan_date=challan_date,
@@ -5202,7 +5207,6 @@ def confirm_add_po(request, sales_data='', user=''):
     status = ''
     suggestion = ''
     terms_condition = request.POST.get('terms_condition', '')
-
     if not request.POST:
         return HttpResponse('Updated Successfully')
     sku_id = ''
@@ -7386,6 +7390,7 @@ def confirm_primary_segregation(request, user=''):
                     expiry_date = batch_detail.expiry_date.strftime('%m/%d/%Y')
                 batch_dict = {'transact_type': 'po_loc', 'batch_no': batch_detail.batch_no,
                               'expiry_date': expiry_date,
+                              'receipt_number': batch_detail.receipt_number,
                               'manufactured_date': manufactured_date,
                               'tax_percent': batch_detail.tax_percent,
                               'mrp': batch_detail.mrp, 'buy_price': batch_detail.buy_price,
@@ -9706,6 +9711,7 @@ def update_existing_grn(request, user=''):
                         setattr(model_obj, field_mapping[key], datetime.datetime.strptime(value, '%m/%d/%Y'))
                         model_obj.save()
                         create_update_table_history(user, model_obj.id, model_name, field_mapping[key], '', value)
+
                 elif key in ['invoice_number', 'dc_number']:
                     prev_val = getattr(model_obj, field_mapping[key])
                     if prev_val != value:
@@ -9713,6 +9719,28 @@ def update_existing_grn(request, user=''):
                         model_obj.save()
                         create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
                                                     prev_val, value)
+            if model_obj.batch_detail:
+                if model_obj.batch_detail.transact_type == 'seller_po_summary':
+                    PrimarySegregation.objects.filter(seller_po_summary__id=model_obj.batch_detail.transact_id,
+                                                      seller_po_summary__receipt_number=model_obj.receipt_number)\
+                                                .update(batch_detail=model_obj.batch_detail)
+                else:
+                    PrimarySegregation.objects.filter(purchase_order__id=model_obj.batch_detail.transact_id,
+                                                      seller_po_summary__receipt_number=model_obj.receipt_number)\
+                                              .update(batch_detail=model_obj.batch_detail)
+                po_location_ids = POLocation.objects.filter(purchase_order__id=model_obj.batch_detail.transact_id,
+                                                            status=1).values_list('id', flat=True)
+                update_batch_dict = copy.deepcopy(model_obj.batch_detail.__dict__)
+                BatchDetail.objects.filter(transact_type='po_loc', transact_id__in=po_location_ids,
+                                           receipt_number=model_obj.batch_detail.receipt_number)\
+                                    .update(mrp=update_batch_dict.get('mrp',0),
+                                            batch_no=update_batch_dict.get('batch_no'),
+                                            buy_price=update_batch_dict.get('buy_price'),
+                                            manufactured_date=update_batch_dict.get('manufactured_date'),
+                                            expiry_date=update_batch_dict.get('expiry_date'),
+                                            tax_percent=update_batch_dict.get('tax_percent'))
+
+
             if batch_dict and not model_obj.batch_detail:
                 batch_dict['transact_id'] = model_obj.id
                 batch_dict['transact_type'] = 'seller_po_summary'

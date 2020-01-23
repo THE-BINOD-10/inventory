@@ -445,7 +445,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     }
 
     vm.confirm_add_po = function() {
-
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
@@ -453,7 +452,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     }
 
     vm.confirm_po = function() {
-
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
@@ -468,6 +466,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       if (vm.wh_purchase_order){
         elem.push({name:'wh_purchase_order', value:true})
       }
+      if (vm.model_data.terms_condition) {
+        elem.push({name: "terms_condition", value:vm.model_data.terms_condition});
+      }
       vm.service.apiCall(confirm_url, 'POST', elem, true).then(function(data){
         if(data.message) {
           if (data.data == "success") {
@@ -480,7 +481,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     }
 
     vm.raise_po = function(url, elem) {
-
       vm.service.alert_msg("Do you want to Raise PO").then(function(msg) {
         if (msg == "true") {
           vm.service.apiCall(url, 'POST', elem).then(function(data){

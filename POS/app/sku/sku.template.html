@@ -45,6 +45,14 @@
             ng-init="$ctrl.stype_switch=false"
             ng-change="$ctrl.change_style_switch($ctrl.style_switch)">
   </md-switch>
+  <span style="float: left;margin:5px 5px 5px 10px;">Discount on MRP: </span>
+  <md-switch class="switch"
+            ng-model="$ctrl.mrp_discount"
+            aria-label="Switch"
+            style="float: left;margin: 0"
+            ng-init="$ctrl.mrp_discount=true"
+            ng-change="$ctrl.change_mrp_discount($ctrl.mrp_discount, 'mrp_discount')">
+  </md-switch>
    <!-- <p style="text-align: left;"> -->
     <span style="float: left;margin:5px 5px 5px 10px;">Issue Type: </span>
       <!-- <h5> Issue Type* </h5> -->

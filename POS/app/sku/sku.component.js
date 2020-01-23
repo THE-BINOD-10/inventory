@@ -9,8 +9,8 @@
       function ($http, $scope, $timeout, $q, $log, urlService, manageData, printer, $rootScope, $location, $window) {
         var self = this;
         self.tax_inclusive = true;
+        self.mrp_discount = true;
         self.send_email = false;
-
       self.simulateQuery = false;
       self.isDisabled    = false;
       $scope.onlyNumbers = /^\d+$/;
@@ -32,7 +32,6 @@
       self.style_based_sku_data = [];
       self.selected_skus = [];
 
-
       // $http.get(urlService.mainUrl+'rest_api/get_file_content/?name=sku_master&user='+urlService.userData.parent_id)
       //      .then( function(data) {
       //         self.sku_data_filtered = data.data.file_content.slice(0,500);
@@ -46,6 +45,7 @@
       //       });
 
       //get offline sku conntent
+
       function getOflfineSkuContent(){
         getData("").then(function(data){
                 if(data.length==0){
@@ -231,6 +231,34 @@
         }
      }
 
+     //Discount on MRP
+     self.change_mrp_discount = change_mrp_discount;
+     function change_mrp_discount(switch_value, switch_name){
+      var temp_url=urlService.mainUrl+"rest_api/switches/?"+switch_name+"="+String(switch_value);
+      $http({
+        method: 'GET',
+        url:temp_url,
+        withCredential: true,
+        }).success(function(data, status, headers, config) {
+        $(".preloader").removeClass("ng-show").addClass("ng-hide");
+          });
+     }
+     var temp_url=urlService.mainUrl+"rest_api/pos_mrp_discount/";
+    $http({
+      method: 'GET',
+      url:temp_url,
+      withCredential: true,
+      }).success(function(data, status, headers, config) {
+        self.mrp_discount = data.mrp_discount;
+        $(".preloader").removeClass("ng-show").addClass("ng-hide");
+        setCheckSum(setCheckSumFormate(JSON.stringify(data.mrp_discount),MRP_DISCOUNT)).
+            then(function(data){
+              console.log("mrp_discount_switch saved in local db "+data);
+            }).catch(function(error){
+              console.log("tax_inclusive_switch saving issue in local db "+error);
+            });
+      })
+
      //change qty for style based sku
      self.change_style_qty = change_style_qty;
      function change_style_qty(sku_code, qty) {
@@ -279,6 +307,7 @@
         urlService.current_order.summary.total_quantity = 0;
         urlService.current_order.summary.total_returned = 0;
         urlService.current_order.summary.subtotal = 0;
+        urlService.current_order.summary.unit_price = 0;
         urlService.current_order.summary.sgst = 0;
         urlService.current_order.summary.cgst = 0;
         urlService.current_order.summary.igst = 0;
@@ -293,6 +322,7 @@
             self.skus[i].price = parseFloat((self.skus[i].quantity * Math.abs(self.skus[i].unit_price)).toFixed(2));
             urlService.current_order.summary.total_amount += self.skus[i].price;
             urlService.current_order.summary.subtotal += self.skus[i].price;
+            urlService.current_order.summary.unit_price += self.skus[i].price;
             var total_tax_percent =  self.skus[i].sgst_percent + self.skus[i].cgst_percent + self.skus[i].igst_percent + self.skus[i].utgst_percent
             var unit_price = self.skus[i].price;
             self.skus[i].sgst = (unit_price * self.skus[i].sgst_percent)/100
@@ -317,6 +347,7 @@
             self.skus[i].price = parseFloat((unit_price).toFixed(2));
             urlService.current_order.summary.total_amount += self.skus[i].price;
             urlService.current_order.summary.subtotal += self.skus[i].price;
+            urlService.current_order.summary.unit_price += self.skus[i].price;
           }
           urlService.current_order.summary.total_quantity += self.skus[i].quantity;
           var discount = (((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100);
@@ -352,6 +383,9 @@
             urlService.current_order.summary.total_amount = urlService.current_order.summary.total_amount + urlService.current_order.summary.sgst + urlService.current_order.summary.cgst + urlService.current_order.summary.igst + urlService.current_order.summary.utgst;
           }
         }
+        if(self.mrp_discount){
+            urlService.current_order.summary.subtotal = urlService.current_order.summary.total_amount
+          }
         urlService.current_order.summary.issue_type = self.issue_selected;
         var date=new Date();
         urlService.current_order.summary.invoice_number = "TI/"+(date.getMonth()+1)+date.getFullYear().toString().substr(2)+"/";

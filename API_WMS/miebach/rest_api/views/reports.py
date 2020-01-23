@@ -61,6 +61,8 @@ def get_report_data(request, user=''):
                 for header in extra_order_fields :
                     if header not in data['dt_headers'] :
                         data['dt_headers'].append(header)
+                    if header not in data['mk_dt_headers']:
+                        data['mk_dt_headers'].append(header)
         if 'marketplace' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'marketplace' in person['name'], data['filters'])[0])

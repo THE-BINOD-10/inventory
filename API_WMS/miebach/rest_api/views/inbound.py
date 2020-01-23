@@ -209,6 +209,8 @@ def get_receive_po_datatable_filters(user, filters, request):
         supplier_search = 'search_10'
     else:
         supplier_search = 'search_9'
+    if filters['search_9']:
+        supplier_search = 'search_9'
     if filters[supplier_search]:
         search_params['open_po__supplier__id__icontains'] = filters[supplier_search]
         search_params1['open_st__warehouse__id__icontains'] = filters[supplier_search]
@@ -256,7 +258,6 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
     rw_purchase_query = build_search_term_query(rw_purchase_list, search_term)
 
     search_params, search_params1, search_params2 = get_receive_po_datatable_filters(user, filters, request)
-
     # Stock Transfer Purchase Records
     stock_results_objs = STPurchaseOrder.objects.exclude(po__status__in=['location-assigned', 'confirmed-putaway',
                                                                          'stock-transfer']).filter(
@@ -5590,11 +5591,14 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
     if report_type == 'posform' :
         email_body = 'pls find the attachment'
         email_subject = 'pos order'
+    if report_type == 'rtv_mail':
+        email_body = 'Please Find the attachment'
+        email_subject = 'Returned To Vedor Form'
     if report_type == 'Purchase Order' and data_dict_po and user.username in MILKBASKET_USERS:
         milkbasket_mail_credentials = {'username':'Procurement@milkbasket.com', 'password':'codwtmtnjmvarvip'}
         t = loader.get_template('templates/toggle/auto_po_mail_format.html')
         email_body = t.render(data_dict_po)
-        email_subject = 'Purchase Order from ASPL %s to %s dated %s' % (user.username, data_dict_po['supplier_name'], full_order_date)
+        email_subject = 'Purchase Order %s  from ASPL %s to %s dated %s' % (f_name, user.username, data_dict_po['supplier_name'], full_order_date)
         send_mail_attachment(receivers, email_subject, email_body, files=attachments, milkbasket_mail_credentials=milkbasket_mail_credentials)
     elif supplier_email or internal or internal_mail:
         send_mail_attachment(receivers, email_subject, email_body, files=attachments)
@@ -7031,8 +7035,11 @@ def get_receive_po_style_view(request, user=''):
         order_by_list = ['stpurchaseorder__open_st__sku__sequence',
                          'rwpurchase__rwo__job_order__product_code__sequence',
                          'open_po__sku__sequence']
-        purchase_orders = PurchaseOrder.objects.filter(Q(**stpurchase_filter) | Q(**rwpurchase_filter) |
-                                                       Q(**purchase_filter)).order_by(*order_by_list)
+        purchase_orders = PurchaseOrder.objects.filter(**purchase_filter).order_by('open_po__sku__sequence')
+        if not purchase_orders:
+            purchase_orders = PurchaseOrder.objects.filter(**stpurchase_filter).order_by('stpurchaseorder__open_st__sku__sequence')
+        if not purchase_orders:
+            purchase_orders = PurchaseOrder.objects.filter(**rwpurchase_filter).order_by('rwpurchase__rwo__job_order__product_code__sequence')
         data_dict = OrderedDict()
         default_po_dict = {'total_order_quantity': 0, 'total_received_quantity': 0, 'total_receivable_quantity': 0}
         for order in purchase_orders:
@@ -7054,26 +7061,26 @@ def get_receive_po_style_view(request, user=''):
             data_dict.setdefault(size_type, {'sizes_list': [], 'styles': {}, 'all_sizes': all_sizes})
             if sku_size not in data_dict[size_type]['sizes_list']:
                 data_dict[size_type]['sizes_list'].append(sku_size)
-	    if not data_dict[size_type]['all_sizes']:
+            if data_dict[size_type]['all_sizes']:
                 data_dict[size_type]['all_sizes'] = data_dict[size_type]['sizes_list']
-            style_data = {'style_code': sku_class, 'style_name': sku.style_name, 'brand': sku.sku_brand,
-                          'category': sku.sku_category}
-            data_dict[size_type]['styles'].setdefault(sku_class, {'style_data': style_data, 'sizes': {},
-                                                                  'po_data': copy.deepcopy(default_po_dict)})
-            order_quantity = order_data['order_quantity']
-            if supplier_status:
-                order_quantity = order_quantity - order_data['intransit_quantity'] - order.received_quantity
-                if order_quantity < 0:
-                    order_quantity = 0
-            data_dict[size_type]['styles'][sku_class]['sizes'][sku_size] = order_quantity
-            data_dict[size_type]['styles'][sku_class]['po_data']['total_order_quantity'] += order_quantity
-            data_dict[size_type]['styles'][sku_class]['po_data']['total_received_quantity'] += order.received_quantity
-            data_dict[size_type]['styles'][sku_class]['po_data']['total_receivable_quantity'] += receivable_quantity
-        order_detail_id = ''
-        if purchase_orders:
-            order_mapping = OrderMapping.objects.filter(mapping_type='PO',mapping_id=purchase_orders[0].id)
-            if order_mapping and order_mapping[0].order.order_code == 'CO':
-                order_detail_id = order_mapping[0].order.original_order_id
+                style_data = {'style_code': sku_class, 'style_name': sku.style_name, 'brand': sku.sku_brand,
+                              'category': sku.sku_category}
+                data_dict[size_type]['styles'].setdefault(sku_class, {'style_data': style_data, 'sizes': {},
+                                                                      'po_data': copy.deepcopy(default_po_dict)})
+                order_quantity = order_data['order_quantity']
+                if supplier_status:
+                    order_quantity = order_quantity - order_data['intransit_quantity'] - order.received_quantity
+                    if order_quantity < 0:
+                        order_quantity = 0
+                data_dict[size_type]['styles'][sku_class]['sizes'][sku_size] = order_quantity
+                data_dict[size_type]['styles'][sku_class]['po_data']['total_order_quantity'] += order_quantity
+                data_dict[size_type]['styles'][sku_class]['po_data']['total_received_quantity'] += order.received_quantity
+                data_dict[size_type]['styles'][sku_class]['po_data']['total_receivable_quantity'] += receivable_quantity
+            order_detail_id = ''
+            if purchase_orders:
+                order_mapping = OrderMapping.objects.filter(mapping_type='PO',mapping_id=purchase_orders[0].id)
+                if order_mapping and order_mapping[0].order.order_code == 'CO':
+                    order_detail_id = order_mapping[0].order.original_order_id
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -7217,7 +7224,7 @@ def get_segregation_pos(start_index, stop_index, temp_data, search_term, order_t
 def get_po_segregation_data(request, user=''):
     segregations = get_primary_suggestions_data(request, user)
     order_id = request.GET['order_id']
-
+    offer_check = False
     segregations = segregations.select_related('purchase_order', 'batch_detail').\
                                 filter(purchase_order__order_id=order_id)
     if not segregations:
@@ -8798,6 +8805,8 @@ def get_debit_note_data(rtv_number, user):
         get_po = obj.seller_po_summary.purchase_order.open_po
         data_dict['supplier_name'] = get_po.supplier.name
         data_dict['supplier_address'] = get_po.supplier.address
+        data_dict['supplier_email'] = get_po.supplier.email_id
+        data_dict['phone_number'] = get_po.supplier.phone_number
         data_dict['city'] = get_po.supplier.city
         data_dict['state'] = get_po.supplier.state
         data_dict['pincode'] = get_po.supplier.pincode
@@ -9042,6 +9051,15 @@ def create_rtv(request, user=''):
                 rtv_obj.save()
             report_data_dict = {}
             show_data_invoice = get_debit_note_data(rtv_number, user)
+            if get_misc_value('rtv_mail', user.id) == 'true':
+                supplier_email = show_data_invoice.get('supplier_email', '')
+                t = loader.get_template('templates/toggle/rtv_mail.html')
+                rendered_mail = t.render({'show_data_invoice': [show_data_invoice]})
+                supplier_phone_number = show_data_invoice.get('phone_number', '')
+                company_name = show_data_invoice.get('warehouse_details', '').get('company_name', '')
+                write_and_mail_pdf('Return_to_Vendor', rendered_mail, request, user,
+                                   supplier_email, supplier_phone_number, company_name + 'Return to vendor order',
+                                   '', False, False, 'rtv_mail')
             if user.username in MILKBASKET_USERS:
                 check_and_update_marketplace_stock(sku_codes, user)
             return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})

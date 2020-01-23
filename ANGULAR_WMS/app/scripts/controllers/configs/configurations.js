@@ -36,6 +36,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'loc_serial_mapping_switch':false,
                     'brand_categorization':false,
                     'purchase_order_preview':false,
+                    'picklist_sort_by_sku_sequence':false,
                     'stop_default_tax':false,
                     'delivery_challan_terms_condtions': '',
                     'order_prefix': false,
@@ -75,6 +76,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      100: 'show_mrp_grn',
                      101: 'display_dc_invoice',
                      102: 'display_order_reference',
+                     103: 'picklist_sort_by_sku_sequence',
                      }
 
   vm.check_box_data = [
@@ -236,6 +238,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       name: "Picklist Sort By Order Sequence",
       model_name: "picklist_sort_by",
       param_no: 19,
+      class_name: "fa fa-envelope",
+      display: true
+    },
+    {
+      name: "Picklist Sort By SKU Sequence",
+      model_name: "picklist_sort_by_sku_sequence",
+      param_no: 103,
       class_name: "fa fa-envelope",
       display: true
     },

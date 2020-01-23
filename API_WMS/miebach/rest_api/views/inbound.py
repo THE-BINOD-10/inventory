@@ -1081,6 +1081,7 @@ def switches(request, user=''):
                        'loc_serial_mapping_switch':'loc_serial_mapping_switch',
                        'brand_categorization':'brand_categorization',
                        'purchase_order_preview':'purchase_order_preview',
+                       'picklist_sort_by_sku_sequence': 'picklist_sort_by_sku_sequence',
                        'stop_default_tax':'stop_default_tax',
                        'delivery_challan_terms_condtions': 'delivery_challan_terms_condtions',
                        'order_prefix':'order_prefix',
@@ -1088,6 +1089,7 @@ def switches(request, user=''):
                        'show_mrp_grn': 'show_mrp_grn',
                        'display_dc_invoice': 'display_dc_invoice',
                        'display_order_reference': 'display_order_reference',
+                       'mrp_discount':'mrp_discount',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

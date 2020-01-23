@@ -10,7 +10,8 @@ app.service('urlService', function($rootScope){
     this.hold_data = [];
     this.current_order = {"customer_data" : {"customer_extra": {}},
                           "sku_data" : [],
-                          "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0},
+                          "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0, 
+                                    "unit_price": 0, "cgst":0, "sgst": 0, "igst":0, "utgst":0},
                           "money_data": {},
                           "status": 0
                           };

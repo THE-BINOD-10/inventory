@@ -251,6 +251,7 @@ def add_user_permissions(request, response_data, user=''):
                                              'registered_date': get_local_date(request.user,
                                                                                user_profile.creation_date),
                                              'email': request.user.email,
+                                             'state': user_profile.state,
                                              'trail_user': status_dict[int(user_profile.is_trail)],
                                              'company_name': user_profile.company_name,
                                              'industry_type': user_profile.industry_type,

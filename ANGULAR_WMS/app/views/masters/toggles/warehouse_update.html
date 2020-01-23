@@ -86,7 +86,8 @@
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label">State</label>
-                <input type="text" name="state" class="form-control" ng-model="showCase.model_data.state">
+                <!-- <input type="text" name="state" class="form-control" ng-model="showCase.model_data.state"> -->
+                <select class="form-control" ng-model="showCase.model_data.state" ng-options="state for state in showCase.statesList"></select>
               </div>
             </div>
             <div class="col-md-4" ng-if="showCase.update">

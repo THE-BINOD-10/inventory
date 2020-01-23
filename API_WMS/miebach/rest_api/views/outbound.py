@@ -5647,17 +5647,18 @@ def check_stocks(order_sku, user, enable_damaged_stock, order_objs, continue_fla
 @get_admin_user
 def get_warehouses_list(request, user=''):
     user_list = []
+    user_states = {}
     admin_user = UserGroups.objects.filter(
         Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)). \
         values_list('admin_user_id', flat=True)
     user_groups = UserGroups.objects.filter(admin_user_id__in=admin_user).values('user__username',
-                                                                                 'admin_user__username')
+                                                                                 'admin_user__username', 'user__userprofile__state')
     for users in user_groups:
         for key, value in users.iteritems():
-            if user.username != value and value not in user_list:
+            if user.username != value and value not in user_list and key not in ['user__userprofile__state']:
                 user_list.append(value)
-
-    return HttpResponse(json.dumps({'warehouses': user_list}))
+                user_states[value] = users['user__userprofile__state']
+    return HttpResponse(json.dumps({'warehouses': user_list, 'states': user_states}))
 
 
 def validate_st(all_data, user):

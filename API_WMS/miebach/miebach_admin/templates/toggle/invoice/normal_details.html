@@ -56,7 +56,10 @@
                           <strong>Invoice Number: </strong>{{invoice_no}}<br>
                           <strong>Invoice Date: </strong>{{invoice_date}}<br>
                           <strong>Order Number: </strong>{{order_id}}<br>
-                           <strong>Order Date: </strong>{{order_date}}<br>
+                          <strong>Order Date: </strong>{{order_date}}<br>
+                          {% if order_reference %}
+                            <strong>Order Reference: </strong>{{order_reference}}<br>
+                          {% endif %}
                            {% if manifest_number %}
                             <strong>Manifest Number: </strong>{{manifest_number}}<br>
                            {% endif %}

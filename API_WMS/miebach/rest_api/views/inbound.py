@@ -1024,7 +1024,6 @@ def switches(request, user=''):
                        'invoice_remarks': 'invoice_remarks',
                        'invoice_declaration':'invoice_declaration',
                        'pos_remarks':'pos_remarks',
-                       'raisepo_terms_conditions':'raisepo_terms_conditions',
                        'show_disc_invoice': 'show_disc_invoice',
                        'serial_limit': 'serial_limit',
                        'increment_invoice': 'increment_invoice',
@@ -1081,12 +1080,15 @@ def switches(request, user=''):
                        'loc_serial_mapping_switch':'loc_serial_mapping_switch',
                        'brand_categorization':'brand_categorization',
                        'purchase_order_preview':'purchase_order_preview',
+                       'picklist_sort_by_sku_sequence': 'picklist_sort_by_sku_sequence',
                        'stop_default_tax':'stop_default_tax',
                        'delivery_challan_terms_condtions': 'delivery_challan_terms_condtions',
                        'order_prefix':'order_prefix',
                        'supplier_mapping':'supplier_mapping',
                        'show_mrp_grn': 'show_mrp_grn',
                        'display_dc_invoice': 'display_dc_invoice',
+                       'display_order_reference': 'display_order_reference',
+                       'mrp_discount':'mrp_discount',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -1107,8 +1109,6 @@ def switches(request, user=''):
             else:
                 setattr(data[0], 'misc_value', selection)
                 data[0].save()
-        elif toggle_field == 'raisepo_terms_conditions':
-            data = UserTextFields.objects.update_or_create(user_id=user_id, field_type = 'terms_conditions', defaults = {'text_field':selection})
         elif toggle_field == 'delivery_challan_terms_condtions':
             data = UserTextFields.objects.update_or_create(user_id=user_id, field_type = 'dc_terms_conditions', defaults = {'text_field':selection})
         else:
@@ -5207,7 +5207,6 @@ def confirm_add_po(request, sales_data='', user=''):
     status = ''
     suggestion = ''
     terms_condition = request.POST.get('terms_condition', '')
-
     if not request.POST:
         return HttpResponse('Updated Successfully')
     sku_id = ''

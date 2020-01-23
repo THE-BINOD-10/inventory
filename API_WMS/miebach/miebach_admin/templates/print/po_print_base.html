@@ -59,3 +59,15 @@
     </tbody>
   </table>
 </div>
+<div>
+  {% if data.terms_condition %}
+    <div class= "col-lg-12 col-md-12 col-sm-12 col-xs-12" style="margin-top:10px">
+      <div class="col-md-12 col-sm-12 col-xs-12">
+          <b>Terms and Condition :</b>
+      </div>
+      <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+          <p>{{ data.terms_condition|safe }}</p>
+      </div>
+    </div>
+  {% endif %}
+</div>

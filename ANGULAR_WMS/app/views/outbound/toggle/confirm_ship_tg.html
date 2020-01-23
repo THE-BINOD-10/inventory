@@ -56,17 +56,10 @@
                 <tr>
                   <th> Order ID </th>
                   <th> Customer Name </th>
-                  <th>Loan Proposal Id </th>
-                  <th>Model Description</th>
-                  <th> District </th>
-                  <th> Phone numbers </th>
+                  <th>SKU Description</th>
                   <th> SKU Code </th>
                   <th> Shipping Quantity </th>
                   <th> Serial_number </th>
-                  <th>Signed Invoice Copy</th>
-                  <th>ID Type</th>
-                  <th>ID NUMBER </th>
-                  <th>ID Card</th>
                   <th> Pack Reference </th>
                   <th> Status </th>
                 </tr>
@@ -77,17 +70,10 @@
                   <input type="hidden" name="order_id" value="{{data.order_id}}">
                   <td>{{data.order_id}}</td>
                   <td>{{data.customer_name}}</td>
-                  <td>{{ data.loan_proposal_id}}</td>
                   <td>{{ data.model}}</td>
-                  <td>{{data.district}}</td>
-                  <td>{{data.mobile_no}},{{data.alternative_mobile_no}}</td>
                   <td>{{data.sku_code}}</td>
                   <td>{{data.ship_quantity}}</td>
                   <td>{{data.serial_number}}</td>
-                  <td> <img src="{{data.signed_invoice_copy}}" style="width:100px;height:100px;padding-right:2px;"/></td>
-                  <td>{{data.id_type}}</td>
-                  <td>{{data.id_proof_number}}</td>
-                  <td><img src="{{data.id_card}}" style="width:100px;height:100px;padding-right:2px;"/></td>
                   <td>{{data.pack_reference}}</td>
                   <td>
                     <select ng-model="data.status" class="form-control" name="status">
@@ -125,13 +111,14 @@
             </div>
           </div>
         <div ng-include="'views/common/msg.html'"></div>
-        <div class="row" ng-if="vm.permissions.dispatch_qc_check">
+        <div class="row">
           <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12 col-md-offset-3 col-lg-offset-3">
             <div class="col-lg-6 col-md-6">
               <button type="button" class="btn pop pop-green"  ng-if="vm.permissions.dispatch_qc_check" ng-click="vm.under_taken_form(form)">Download Under Taken Form</button>
             </div>
             <div class="col-lg-6 col-md-6">
-              <button type="button" class="btn pop pop-green"  ng-if="vm.permissions.dispatch_qc_check" ng-click="vm.uploaded_file_data(form, 'view')">View Signed Under taken Form</button>
+              <button type="button" class="btn pop pop-green" ng-if="vm.permissions.dispatch_qc_check" ng-click="vm.uploaded_file_data(form, 'view')">View Signed Under taken Form</button>
+              <button type="button" class="btn pop pop-green" ng-if="!vm.permissions.dispatch_qc_check" ng-click="vm.uploaded_file_data(form, 'view')">View POD</button>
             </div>
           </div>
         </div>

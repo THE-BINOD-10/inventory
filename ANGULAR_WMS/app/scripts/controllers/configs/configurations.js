@@ -42,6 +42,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'supplier_mapping':false,
                     'show_mrp_grn': false,
                     'display_dc_invoice':false,
+                    'display_order_reference':false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -72,7 +73,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      98: 'delivery_challan_terms_condtions',
                      99: 'supplier_mapping',
                      100: 'show_mrp_grn',
-                     101:'display_dc_invoice',
+                     101: 'display_dc_invoice',
+                     102: 'display_order_reference',
                      }
 
   vm.check_box_data = [
@@ -579,6 +581,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     param_no: 100,
     class_name: "fa fa-rupee",
     display: true
+  },
+  {
+   name: "Display Order Reference in Outbound",
+   model_name: "display_order_reference",
+   param_no: 102,
+   class_name: "fa fa-server",
+   display: true
   },
 ]
 

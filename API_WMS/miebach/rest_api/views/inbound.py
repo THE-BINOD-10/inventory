@@ -1755,7 +1755,7 @@ def insert_inventory_adjust(request, user=''):
     if user.username in MILKBASKET_USERS :
         if not mrp or not weight :
             return HttpResponse("MRP and Weight are Mandatory")
-        if unique_mrp == 'true':
+        if unique_mrp == 'true' and quantity not in ['0', 0]:
             location_obj = LocationMaster.objects.filter(zone__user=user.id, location=loc)
             data_dict = {'sku_code':wmscode, 'mrp':mrp, 'weight':weight, 'seller_id':seller_id, 'location':location_obj[0].location}
             status =  validate_mrp_weight(data_dict,user)

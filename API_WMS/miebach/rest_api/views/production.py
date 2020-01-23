@@ -2856,7 +2856,9 @@ def confirm_back_order(request, user=''):
         data_dictionary['executive_name'] = executive_name
         data_dictionary['customer_name'] = customer_name
         data_dictionary['customization'] = customization
-
+        tc_master = UserTextFields.objects.filter(user=user.id, field_type='terms_conditions')
+        if tc_master.exists():
+            data_dictionary['terms_condition'] = tc_master[0].text_field
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dictionary)
         if get_misc_value('raise_po', user.id) == 'true':

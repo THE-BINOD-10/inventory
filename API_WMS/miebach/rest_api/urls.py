@@ -108,6 +108,7 @@ urlpatterns = [
     url(r'^get_terms_and_conditions/$', get_terms_and_conditions),
     url(r'^insert_update_terms/$', insert_update_terms),
     url(r'^delete_terms/$', delete_terms),
+    url(r'^insert_po_terms/$', insert_po_terms),
     url(r'^insert_staff/$', insert_staff),
     url(r'^update_staff_values/$', update_staff_values),
     url(r'^get_user_attributes_list/$', get_user_attributes_list),
@@ -696,6 +697,7 @@ urlpatterns += [
     url('^get_extra_fields/$', get_extra_fields),
     url('^get_staff_members_list/$', get_staff_members_list),
     url(r'^pos_tax_inclusive/$', pos_tax_inclusive),
+    url(r'^pos_mrp_discount/$', pos_mrp_discount),
     url(r'^stock_transfer_invoice_data/$', stock_transfer_invoice_data),
     url(r'^pos_send_mail/$', pos_send_mail),
 

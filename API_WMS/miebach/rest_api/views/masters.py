@@ -3972,7 +3972,6 @@ def insert_update_terms(request, user=''):
         message = 'Mandatory fields missing'
     return HttpResponse(json.dumps({'status': status, 'message': message, 'data': data}))
 
-
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -3988,6 +3987,36 @@ def delete_terms(request, user=''):
         TANDCMaster.objects.filter(id=terms_dict['id']).delete()
         message = 'Deleted Successfully'
         status = 1
+    else:
+        message = 'Mandatory fields missing'
+    return HttpResponse(json.dumps({'status': status, 'message': message, 'data': data}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def insert_po_terms(request, user=''):
+    ''' Create or Update PO Terms and conditions'''
+    terms_dict = request.POST.dict()
+    message = ''
+    status = 0
+    data = {}
+    if  terms_dict.get('get_data', '') != 'poTerms' and terms_dict.get('field_type', ''):
+        terms_dict['user_id'] = user.id
+        tc_master = UserTextFields.objects.filter(user=user.id, field_type=terms_dict['field_type'])
+        if tc_master.exists():
+            tc_master.update(text_field=terms_dict['text_field'])
+            message = 'Updated Successfully'
+            status = 1
+        else:
+            UserTextFields.objects.create(**terms_dict)
+            message = 'Added Successfully'
+            status = 1
+    elif terms_dict.get('get_data', '') == 'poTerms':
+        tc_master = UserTextFields.objects.filter(user=user.id, field_type=terms_dict['field_type'])
+        if tc_master.exists():
+            message = 'Data Access'
+            status = 1
+            data = tc_master[0].text_field
     else:
         message = 'Mandatory fields missing'
     return HttpResponse(json.dumps({'status': status, 'message': message, 'data': data}))

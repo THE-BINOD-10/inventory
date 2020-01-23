@@ -37,18 +37,6 @@
             >
   </md-switch>
 
-  <p style="text-align: left;">
-    <div>
-      <h5> Issue Type* </h5>
-      <select ng-init="$ctrl.issue_selected=$ctrl.names[0]"
-        ng-model="$ctrl.issue_selected"
-        ng-change="$ctrl.change_issue_type($ctrl.issue_selected)"
-        ng-options="x for x in $ctrl.names"
-        style="width: 25%;margin: 0px;">
-      </select>
-    </div>
-  </p>
-
   <span style="float: left;margin:5px 5px 5px 10px;">Style search: </span>
   <md-switch class="switch"
             ng-model="$ctrl.style_switch"
@@ -57,6 +45,24 @@
             ng-init="$ctrl.stype_switch=false"
             ng-change="$ctrl.change_style_switch($ctrl.style_switch)">
   </md-switch>
+  <span style="float: left;margin:5px 5px 5px 10px;">Discount on MRP: </span>
+  <md-switch class="switch"
+            ng-model="$ctrl.mrp_discount"
+            aria-label="Switch"
+            style="float: left;margin: 0"
+            ng-init="$ctrl.mrp_discount=true"
+            ng-change="$ctrl.change_mrp_discount($ctrl.mrp_discount, 'mrp_discount')">
+  </md-switch>
+   <!-- <p style="text-align: left;"> -->
+    <span style="float: left;margin:5px 5px 5px 10px;">Issue Type: </span>
+      <!-- <h5> Issue Type* </h5> -->
+      <select ng-init="$ctrl.issue_selected=$ctrl.names[0]"
+        ng-model="$ctrl.issue_selected"
+        ng-change="$ctrl.change_issue_type($ctrl.issue_selected)"
+        ng-options="x for x in $ctrl.names"
+        style="width: 25%;margin: 5px;">
+      </select>
+  <!-- </p> -->
 
   </div>
   <div layout="column" style="display:block;" ng-cloak>
@@ -94,12 +100,12 @@
         </form>
       </md-content>
     </div>
-    <div class="col-md-2" style="padding:6px">
+    <!-- <div class="col-md-2" style="padding:6px">
       <div class="btn btn-danger"
            style="width: 90%;padding: 6px;font-size:12px;"
            ng-click="$ctrl.all_skus_popup()">MULTI SELECT
       </div>
-    </div>
+    </div> -->
   </div>
   <div class="sku-details">
     <table style="width: 100%;">
@@ -238,4 +244,4 @@
             </div>
 		</div>
 	</div>
-</div><!-- style sku modal-->
+ </div><!-- style sku modal-->

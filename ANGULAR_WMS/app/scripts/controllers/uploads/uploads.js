@@ -443,6 +443,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
     .error(function(){
       vm.service.showNoty("Upload Fail");
       $("input").val('');
+      $scope.files = [];
       $scope.disable = false;
     });
   };

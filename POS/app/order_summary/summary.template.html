@@ -5,9 +5,8 @@
     <select ng-model="$ctrl.staff_member" ng-init="$ctrl.staff_members[0]" ng-options="c as c for c in $ctrl.staff_members" style="padding: 5px;margin-left: 11px;width: 55%;" ng-change="$ctrl.staff_member_value($ctrl.staff_member)">
     </select>
   </div>
-
   <h5>Order Summary</h5>
-  <div class="summary-row">
+  <div class="summary-row" ng-if="$ctrl.user.admin.username != 'gomechanic_admin'">
     <div class="pull-left">
       <p>Total Quantity</p>
     </div>
@@ -15,15 +14,15 @@
       <b ng-if="$ctrl.order.total_quantity > 0">{{$ctrl.order.total_quantity}}</b>
     </div>
   </div>
-  <div class="summary-row">
+  <div class="summary-row" ng-if="$ctrl.user.admin.username != 'gomechanic_admin'">
     <div class="pull-left">
       <p>Subtotal</p>
     </div>
     <div class="pull-right">
-      <b>{{$ctrl.order.subtotal | number:2}}</b>
+      <b>{{$ctrl.order.unit_price | number:2}}</b>
     </div>
   </div>
-  <div class="summary-row">
+  <div class="summary-row" ng-if="$ctrl.user.admin.username != 'gomechanic_admin'">
     <div class="pull-left">
       <p>CGST</p>
     </div>
@@ -31,7 +30,7 @@
       <b>{{$ctrl.order.cgst | number:2}}</b>
     </div>
   </div>
-  <div class="summary-row">
+  <div class="summary-row" ng-if="$ctrl.user.admin.username != 'gomechanic_admin'">
     <div class="pull-left">
       <p>SGST</p>
     </div>
@@ -39,7 +38,7 @@
       <b>{{$ctrl.order.sgst | number:2}}</b>
     </div>
   </div>
-  <div class="summary-row">
+  <div class="summary-row" ng-if="$ctrl.user.admin.username != 'gomechanic_admin'">
     <div class="pull-left">
       <p>IGST</p>
     </div>
@@ -47,7 +46,7 @@
       <b>{{$ctrl.order.igst}}</b>
     </div>
   </div>
-  <div class="summary-row">
+  <div class="summary-row" ng-if="$ctrl.user.admin.username != 'gomechanic_admin'">
     <div class="pull-left">
       <p>UTGST</p>
     </div>
@@ -63,7 +62,7 @@
       <b ng-if="$ctrl.order.total_discount > 0">{{$ctrl.order.total_discount | number:2}}</b>
     </div>
   </div>-->
-  <div class="summary-row">
+  <div class="summary-row" ng-if="$ctrl.user.admin.username != 'gomechanic_admin'">
     <div class="pull-left">
       <p>Total Returned</p>
     </div>
@@ -77,12 +76,12 @@
       <p>AMOUNT</p>
     </div>
     <div class="pull-right">
-      {{ $ctrl.order.subtotal + $ctrl.order.sgst + $ctrl.order.igst + $ctrl.order.utgst + $ctrl.order.cgst | number:2}}/-
+      {{ $ctrl.order.total_amount | number:2}}/-
     </div>
   </div>
   <div class="summary-row total-cost">
     <div class="pull-left">
-      <p><b>DISCOUNT ON PRICE</b></p>
+      <p><b>DISCOUNT</b></p>
     </div>
     <div class="pull-right">
       <b>{{$ctrl.order.total_discount | number:2}}/-</b>
@@ -92,7 +91,7 @@
     <div class="pull-left">
       <p><b>TOTAL COST</b></p>
     </div>
-    <div class="pull-right">
+    <div class="pull-right" >
       <b>{{ $ctrl.order.subtotal - $ctrl.order.total_discount | number:2 }}/-</b>
     </div>
   </div>
@@ -118,7 +117,7 @@
             <div class="modal-body" style="">
                 <div class="row">
 				  	<div class="col-md-4"><p>On </p></div>
-					<div class="col-md-6"><p><input type="text" value="{{$ctrl.order.subtotal}}"
+					<div class="col-md-6"><p><input type="text" value="{{$ctrl.order.subtotal | number:2}}"
 													readonly></p></div>
 					<div class="col-md-4"><p>Disc Amt </p></div>
 					<div class="col-md-6"><p><input type="text" ng-model="$ctrl.discount" ng-init="$ctrl.discount=0"
@@ -128,7 +127,7 @@
 											 		 ng-init="$ctrl.disc_percent=0"
 													 ng-change="$ctrl.change_disc_perc($ctrl.disc_percent)"></p></div>
 				  	<div class="col-md-4"><p>Tot Cost </p></div>
-					<div class="col-md-6"><p><input type="text" ng-model="$ctrl.total_amount"
+					<div class="col-md-6"><p><input type="text" ng-model="$ctrl.total_amount | number:2"
 													ng-init="$ctrl.total_amount=0" readonly></p></div>
                 </div>
             </div>

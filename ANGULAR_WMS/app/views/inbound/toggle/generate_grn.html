@@ -196,8 +196,12 @@
                     <th>Tax</th>
                     <th>Cess</th>
                     <th>APMC</th>
+                    <th ng-if="showCase.industry_type=='FMCG'"> Add Discrepancy</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">Return Quantity</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">Discrepancy Reason</th>
                     <th>Total</th>
                     <th ng-if="showCase.permissions.pallet_switch || showCase.industry_type=='FMCG'" class="plus"></th>
+
                     <th class="detail"></th>
                   <tr>
                 </thead>
@@ -240,7 +244,14 @@
                     </td>
                     <input type= "hidden"  value = "{{data.offer_check}}"  name="offer_applicable">
                     <td ng-if="showCase.permissions.pallet_switch"><input type="text" ng-show=" data.sku_details[0].fields.load_unit_handle == 'pallet'" ng-model="data.pallet_number" name="pallet_number" class="form-control detectTab"></td>
-                    <td><input ng-if="showCase.model_data.use_imei=='false'" type="text" size="20" ng-model="data.value" name="quantity" class="form-control detectTab" ng-class="service.get_decimal_perm()" required ng-keyup="[showCase.invoice_readonly($event, data, 'value', is_number=true), showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex), showCase.send_for_approval_check($event, showCase.model_data)]" ng-focus="showCase.quantity_focused=true;showCase.get_current_weight($event, showCase.model_data, innerIndex, outerIndex)" ng-blur="showCase.quantity_focused=false" ng-readonly="showCase.permissions.use_imei">
+                    <td><input ng-if="showCase.model_data.use_imei=='false'" type="text" size="20"
+                               ng-model="data.value" name="quantity"
+                               class="form-control detectTab" ng-class="service.get_decimal_perm()"
+                               required
+                               ng-keyup="[showCase.invoice_readonly($event, data, 'value', is_number=true), showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex), showCase.send_for_approval_check($event, showCase.model_data)]"
+                               ng-focus="showCase.quantity_focused=true;showCase.get_current_weight($event, showCase.model_data, innerIndex, outerIndex)"
+                               ng-blur="showCase.quantity_focused=false"
+                               ng-readonly="showCase.permissions.use_imei">
                     <input ng-if="showCase.model_data.use_imei=='true'" type="text" size="20" ng-model="data.value" ng-init="data.value = !showCase.showOldQty ? 0 : data.value" name="quantity" class="form-control detectTab" ng-class="service.get_decimal_perm()" required ng-keyup="[showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)]" ng-readonly="showCase.permissions.use_imei && data.show_imei"> </div></td>
                     <td><input type="text" ng-model="data.unit" size="12" title="{{ data.unit }}" name="unit" class="form-control detectTab" readonly></td>
                     <td ng-if="showCase.permissions.use_imei">
@@ -267,9 +278,31 @@
                     </td>
                     <td><input type="text" ng-model="data.apmc_percent" size="12" id="tabChange" title="{{ data.apmc_percent }}"  ng-class="decimal" name="apmc_percent" class="form-control detectTab detectReceiveTab" ng-keyup="[showCase.invoice_readonly($event, data, 'apmc_percent', is_number=true), showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)]" maxlength="5" value="{{data.apmc_percent}}">
                     </td>
+                    <td ng-if="showCase.industry_type=='FMCG'">
+                      <input  type="checkbox"  ng-checked = "data.discrepency_check"
+                              value = "{{data.discrepency_check}}" ng-model="data.discrepency_check" style="zoom:1.5;">
+                    </td>
+                    <input type= "hidden"  value = "{{data.discrepency_check}}"  name="discrepency_check">
+
+                    <td ng-if="showCase.industry_type=='FMCG'">
+                        <input type="text"
+                               ng-model="data.discrepency_quantity"
+                               size="15" title="{{ data.discrepency_quantity }}"
+                               name="discrepency_quantity" class="form-control detectTab"
+                               value="{{data.discrepency_quantity}}"
+                               ng-keyup= "showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)">
+                    </td>
+                    <td ng-if="showCase.industry_type=='FMCG'">
+                      <input type="text" ng-model="data.discrepency_reason"
+                             size="15" title="{{ data.discrepency_reason }}"
+                             name="discrepency_reason" class="form-control detectTab"
+                             value="{{data.discrepency_reason}}"
+                             ng-keyup= "showCase.invoice_readonly($event, data, 'batch_no', is_number=false)">
+                    </td>
                     <td><input type="text" size="23" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" class="form-control detectTab" value="{{data.total_amt}}" readonly>
                     <!-- <input type="text" size="40" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" name="total_amt" class="form-control detectTab" value="{{data.total_amt}}" desabled> --></td>
                     <td ng-if="showCase.permissions.pallet_switch || showCase.industry_type=='FMCG'"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
+
                     <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
                     </td>
                   </tr>

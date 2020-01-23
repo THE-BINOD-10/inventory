@@ -1,0 +1,151 @@
+{% load tag_extras %}
+
+<style>
+  {% include 'toggle/bootstrap.min.css' %}
+  {% include 'toggle/page1.css' %}
+  html { zoom: 0.79; /*workaround for phantomJS2 rendering pages too large }
+</style>
+
+{% load tag_extras %}
+
+<div>
+<style>
+{% include 'toggle/page1.css' %}
+/* @media print{
+table{
+  border-collapse: collapse;
+}
+tr,td{
+  page-break-inside: avoid;
+  white-space:nowrap;
+}
+} */
+
+</style>
+{% for page in data_slices %}
+<div class="print-invoice2 mb20">
+<div class="invoice-body">
+<table class="table table-bordered m0" width="960">
+  <tbody>
+    <tr>
+      <td colspan="2">
+        <h3 class="m0" align="center"><b>Discrepancy NOTE</b></h3>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <h3 class="m0" align="center"><b>{{ company_name }}</b></h3>
+        <p class="m0" align="center">{{ company_address }}</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="width: 50%">
+        <div class="row m0" style="height: 105px;overflow: hidden;">
+          <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+            <div class="col-md-12 p0">
+              <h4 class="m0"><b>Supplier Details:</b></h4>
+            </div>
+            <div class="col-md-12 p0">
+              <span><b>Supplier ID: </b>{{ data_dict.1.1 }}</span><br>
+              <span><b>Supplier Name: </b>{{ data_dict.3.1 }}</span><br>
+              <span><b>GST NO: </b>{{ data_dict.4.1 }}</span><br>
+              <span>{{ address }}</span>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td class="fs14">
+        <div class="row m0">
+          <div class="col-xs-6 text-left">
+            <strong>GRN NO:</strong>{{ po_number }}
+          </div>
+          <div class="col-xs-6 text-left">
+            <strong>Date:</strong>{{ order_date }}
+          </div>
+        </div>
+        <div class="row m0">
+          <div class="col-xs-6 text-left">
+            <strong>Bill NO:</strong> {{ bill_no }}
+          </div>
+          <div class="col-xs-6 text-left">
+            <strong>Bill Date:</strong>{{ bill_date }}
+          </div>
+        </div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<table class="table-bordered bl br cal-table m0 table-custom" width="960">
+  <thead>
+    <tr class="fs14">
+      <th class="w5"><center>SL NO</center></th>
+      <th><center>UPC</center></th>
+      <th><center>Name</center></th>
+      <th class="w6"><center>QTY</center></th>
+      <th class="w6"><center>Unit Landing Price(Excluding tax)</center></th>
+      <th class="w6"><center>Sub Total (Excluding Tax)</center></th>
+      <th class="w6"><center>GST(%)</center></th>
+      <th class="w6"><center>Net Amount(including tax)</center></th>
+      <th class="w6"><center>Reason</center></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for i in page %}
+    {% if i.discrepency_quantity %}
+    <tr class="fs14 rm-border">
+      {% if i.discrepency_quantity %}
+        <td class="text-left">{{ forloop.counter }}</td>
+      {% else %}
+        <td class="text-left"></td>
+      {% endif %}
+      <td class="text-left"><div class="wrap">{{i.wms_code}}</div></td>
+      <td class="text-left"><div class="wrap">{{i.sku_desc}}</div></td>
+      <td class="text-right"> {{ i.discrepency_quantity}} </td>
+      <td class="text-right">{{i.price}}</td>
+      <td class="text-right">{{i.discrepencey_price}}</td>
+      <td class="text-right">{{i.tax_percent}}</td>
+      <td class="text-right">{{i.discrepencey_price_tax}}</td>
+      <td class="text-right">{{i.discrepency_reason}}</td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+    {% if forloop.last %}
+    <tr style="border-top: 1px solid black;">
+      <td class="fs14" colspan="3">
+        <div class="row m0">
+          <div class="col-xs-12 text-left">
+            <span>NAME OF CORRIER:</span><br>
+            <span>LR/GC NOTE NO.: {{ lr_number }}</span><br>
+            <span>VEHICLE NO.:</span><br>
+            <span>PACKING REF.:</span><br>
+            <span>REMARKS: {{remarks}}</span>
+          </div>
+      </td>
+      <td class="fs14" colspan="6">
+      </td>
+    </tr>
+    <tr style="border-top: 1px solid black;">
+        <td class="fs14" colspan="9">
+        <div class="row m0">
+        </div>
+        <div class="row m0">
+          <div class="col-xs-6 text-left">
+          </div>
+          <div class="col-xs-6 text-left">
+            <span>Total Qty: </span>
+            <span class="pull-right">{{ total_discrepency_qty }}</span>
+            <br><br><br>
+            <span>Total Amount(including Tax): </span>
+            <span class="pull-right"> {{ total_discrepency_amount }}</span>
+          </div>
+        </div>
+          <p>This is a computer generated Invoice and Signature is not required</p>
+      </td>
+    </tr>
+    {% endif %}
+  </tbody>
+</table>
+</div>
+</div>
+{% endfor %}
+</div>

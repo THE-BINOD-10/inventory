@@ -205,7 +205,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.title = "Generate GRN";
                     if (vm.industry_type == 'FMCG') {
                       vm.extra_width = {
-                        'width': '1400px'
+                        'width': '1550px'
                       };
                     } else {
                       vm.extra_width = {
@@ -2348,7 +2348,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if(sku_row_data.discount_percentage == ''){
         sku_row_data.discount_percentage = 0;
       }
-
+      if(sku_row_data.discrepency_quantity == ''){
+        sku_row_data.discrepency_quantity = 0;
+      } else{
+            if(sku_row_data.po_quantity < Number(sku_row_data.discrepency_quantity)+Number(sku_row_data.value))
+                {
+                    Service.showNoty('Returning Quantity is Greater than PO Quantity ');
+                }
+      }
+      if(sku_row_data.value == ''){
+        sku_row_data.value = 0;
+      }
       if (Number(sku_row_data.tax_percent)) {
 
         sku_row_data.tax_percent = Number(sku_row_data.tax_percent).toFixed(1)
@@ -2365,6 +2375,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       if (vm.industry_type == 'FMCG') {
         var total_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
+        if (Number(sku_row_data.discrepency_quantity)) {
+            total_amt +=  Number(sku_row_data.buy_price)* Number(sku_row_data.discrepency_quantity)
+        }
       } else {
         var total_amt = Number(sku_row_data.value)*Number(sku_row_data.price);
       }

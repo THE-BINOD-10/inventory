@@ -8612,7 +8612,7 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     user_dict = eval(user_dict)
     lis = ['order_id', 'customer_name', 'order_id', 'address', 'marketplace', 'total', 'shipment_date', 'date_only',
-        'city', 'status']
+        'city', 'status', 'order_reference']
 
     # unsort_lis = ['Customer Name', 'Order ID', 'Market Place ', 'Total Quantity']
     unsorted_dict = {8: 'Order Taken By', 9: 'Status'}
@@ -8664,15 +8664,15 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
     all_orders = OrderDetail.objects.filter(**data_dict).exclude(order_code="CO")
     if search_term:
         mapping_results = all_orders.values('customer_name', 'order_id', 'order_code', 'original_order_id',
-                                            'marketplace', 'address'). \
+                                            'marketplace', 'address', 'order_reference'). \
             distinct().annotate(total=Sum('quantity'), date_only=Cast('creation_date', DateField())).filter(Q(customer_name__icontains=search_term) |
                                                               Q(order_id__icontains=search_term) |
-                                                              Q(sku__sku_category__icontains=search_term) |
+                                                              Q(sku__sku_category__icontains=search_term) | Q(order_reference__icontains=search_term)|
                                                               Q(original_order_id__icontains=search_term),
                                                               **search_params).order_by(order_data)
     else:
         mapping_results = all_orders.values('customer_name', 'order_id', 'order_code', 'original_order_id',
-                                            'marketplace', 'address'). \
+                                            'marketplace', 'address', 'order_reference'). \
             distinct().annotate(total=Sum('quantity'), date_only=Cast('creation_date', DateField())).\
             filter(**search_params).order_by(order_data)
 
@@ -8698,6 +8698,7 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
             order_taken_val = cust_status_obj[0]['order_taken_by']
 
         order_id = dat['order_code'] + str(dat['order_id'])
+        order_reference = dat['order_reference']
         if dat['original_order_id']:
             order_id = dat['original_order_id']
         check_values = order_id
@@ -8730,7 +8731,7 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
                                                 ('Total Quantity', tot_quantity), ('Address', dat['address']),
                                                 ('Creation Date', creation_data),
                                                 ('Shipment Date', shipment_data), ('Order Taken By', order_taken_val),
-                                                ('Status', cust_status), ('id', index), ('DT_RowClass', 'results'),
+                                                ('Status', cust_status), ('Order Reference', order_reference), ('id', index), ('DT_RowClass', 'results'),
                                                 ('data_value', check_values))))
         index += 1
 
@@ -11834,6 +11835,9 @@ def generate_customer_invoice_tab(request, user=''):
         delivery_challan = request.GET.get('delivery_challan', '')
         invoice_data['invoice_date'] = invoice_date
         invoice_data['dc_display']  = get_misc_value('display_dc_invoice', user.id)
+        order_reference_display = get_misc_value('display_order_reference', user.id)
+        if order_reference_display == 'false':
+            invoice_data['order_reference'] = ''
         if delivery_challan == "true":
             titles = ['']
             title_dat = get_misc_value('invoice_titles', user.id)

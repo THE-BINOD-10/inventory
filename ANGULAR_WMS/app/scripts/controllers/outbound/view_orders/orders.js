@@ -102,7 +102,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
 
 
-    // vm.get_data_table = function() {
+  // vm.get_data_table = function() {
     vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'special_key': JSON.stringify(vm.special_key)}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -138,7 +138,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
        });
        var table_headers_dict = vm.g_data.tb_headers[vm.g_data.view]
        vm.dtColumns = vm.service.build_colums2(table_headers_dict)
-
+       if (vm.permissions.display_order_reference && vm.g_data.view == "CustomerOrderView") {
+          vm.dtColumns.push({
+            'mData': 'Order Reference',
+            'sTitle': 'Order Reference'
+          })
+       }
        vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
       .renderWith(function(data, type, full, meta) {
         if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {

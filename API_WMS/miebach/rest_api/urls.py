@@ -108,6 +108,7 @@ urlpatterns = [
     url(r'^get_terms_and_conditions/$', get_terms_and_conditions),
     url(r'^insert_update_terms/$', insert_update_terms),
     url(r'^delete_terms/$', delete_terms),
+    url(r'^insert_po_terms/$', insert_po_terms),
     url(r'^insert_staff/$', insert_staff),
     url(r'^update_staff_values/$', update_staff_values),
     url(r'^get_user_attributes_list/$', get_user_attributes_list),

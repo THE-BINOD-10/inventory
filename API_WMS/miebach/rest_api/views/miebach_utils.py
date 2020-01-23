@@ -7189,7 +7189,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
     sister_whs = [user.id]
     if user.userprofile.warehouse_type == 'admin':
         sister_whs = list(User.objects.filter(username__in=get_linked_user_objs(user, user)).values_list('id', flat=True))
-
+        sister_whs.append(user.id)
     if not firebase_response:
         firebase_response = {}
 

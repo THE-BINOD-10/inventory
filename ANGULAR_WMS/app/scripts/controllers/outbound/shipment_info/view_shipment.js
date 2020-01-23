@@ -53,12 +53,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout,$compile, $roo
        vm.dtColumns.push(DTColumnBuilder.newColumn('Manifest Date').withTitle('Manifest Date'))
     } else {
       vm.dtColumns.push(DTColumnBuilder.newColumn('Shipment Number').withTitle('Shipment Number')),
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Manifest Number').withTitle('Manifest Number')),
       vm.dtColumns.push(DTColumnBuilder.newColumn('Customer ID').withTitle('Customer ID')),
       vm.dtColumns.push(DTColumnBuilder.newColumn('Customer Name').withTitle('Customer Name')),
       vm.dtColumns.push(DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'))
     }
     if(vm.permissions.dispatch_qc_check) {
       vm.dtColumns.push(DTColumnBuilder.newColumn('Signed Invoice').withTitle('Signed Invoice Upload').notSortable())
+    } else {
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Signed Invoice').withTitle('Upload POD').notSortable())
     }
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $compile(angular.element('td', nRow))($scope);

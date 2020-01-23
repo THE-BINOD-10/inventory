@@ -18,7 +18,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,'grn_fields':'', 'po_fields':'', 'rtv_reasons':'',
                     'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': '',
                     'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false,
-                    'invoice_remarks': '','invoice_declaration':'', 'raisepo_terms_conditions':'', 'show_disc_invoice': false, 'serial_limit': '',
+                    'invoice_remarks': '','invoice_declaration':'', 'show_disc_invoice': false, 'serial_limit': '',
                     'increment_invoice': false, 'create_shipment_type': false, 'auto_allocate_stock': false,
                     'generic_wh_level': false, 'auto_confirm_po': false, 'create_order_po': false, 'shipment_sku_scan': false,
                     'disable_brands_view': false, 'sellable_segregation': false, 'display_styles_price': false,
@@ -65,7 +65,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      65: 'auto_expire_enq_limit', 66: 'invoice_based_payment_tracker', 67: 'receive_po_invoice_check',
                      68: 'mark_as_delivered', 69: 'receive_po_mandatory_fields', 70: 'central_order_mgmt',
                      71: 'order_exceed_stock',72:'invoice_declaration',73:'central_order_reassigning',
-                     74: 'sku_pack_config', 75: 'po_sub_user_prefix', 76: 'combo_allocate_stock', 77:'sno_in_invoice', 78:'raisepo_terms_conditions',
+                     74: 'sku_pack_config', 75: 'po_sub_user_prefix', 76: 'combo_allocate_stock', 77:'sno_in_invoice',
                      79: 'generate_delivery_challan_before_pullConfiramation', 80: 'unique_mrp_putaway',
                      81: 'rtv_prefix_code',82:'pos_remarks', 83:'dispatch_qc_check', 84:'block_expired_batches_picklist', 85:'non_transacted_skus',
                      86:'sku_less_than_threshold', 87:'decimal_limit_price', 88: 'mandate_sku_supplier', 89: 'update_mrp_on_grn', 90: 'allow_rejected_serials',
@@ -818,7 +818,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       vm.getRemarks(vm.model_data.invoice_remarks)
       vm.getDeclaration(vm.model_data.invoice_declaration)
       vm.getPosremarks(vm.model_data.pos_remarks)
-      vm.getRaisePOterms(vm.model_data.raisepo_terms_conditions)
       vm.getDeliveryChallanterms(vm.model_data.delivery_challan_terms_condtions)
     }
   })
@@ -1355,11 +1354,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     vm.switches(data, 82);
     Auth.status();
   }
-  vm.raise_po_terms_conditions = function(raisepo_terms_conditions) {
-    var data = $("[name='raisepo_terms_conditions']").val().split("\n").join("<<>>");
-    vm.switches(data, 78);
-    Auth.status();
-  }
   vm.delivery_challan_terms_condtions = function(delivery_challan_terms_condtions){
     var data = $("[name='delivery_challan_terms_condtions']").val().split("\n").join("<<>>");
     vm.switches(data, 98);
@@ -1393,15 +1387,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $("[name='pos_remarks']").val( pos_remarks.split("<<>>").join("\n") )
     } else {
       $("[name='pos_remarks']").val( pos_remarks );
-    }
-    }, 1000);
-  }
-  vm.getRaisePOterms= function(raisepo_terms_conditions) {
-    $timeout(function() {
-    if(raisepo_terms_conditions && raisepo_terms_conditions.split("<<>>").length > 1) {
-      $("[name='raisepo_terms_conditions']").val( raisepo_terms_conditions.split("<<>>").join("\n") )
-    } else {
-      $("[name='raisepo_terms_conditions']").val( raisepo_terms_conditions );
     }
     }, 1000);
   }

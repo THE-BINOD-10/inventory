@@ -15,7 +15,7 @@
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Warehouse Name </label>
-                <select name="warehouse_name" class="form-control">
+                <select name="warehouse_name" class="form-control" ng-model="showCase.model_data.selected" ng-change="showCase.verifyTax()">
                   <option ng-repeat="wh in showCase.warehouse_list" value="{{wh}}">{{wh}}</option>
                 </select>
               </div>
@@ -59,13 +59,13 @@
                        <input type="hidden" name="id" value="">
                     </td>
                     <td>
-                      <input type="text" name="cgst" class="form-control" size="2" ng-model="data.cgst" ng-keyup="showCase.changeUnitPrice(data)" decimal-number>
+                      <input type="text" name="cgst" class="form-control" size="2" ng-model="data.cgst" ng-keyup="showCase.changeUnitPrice(data)" decimal-number ng-readonly="showCase.igst_enable">
                     </td>
                     <td>
-                      <input type="text" name="sgst" class="form-control" size="2" ng-model="data.sgst" ng-keyup="showCase.changeUnitPrice(data)" decimal-number>
+                      <input type="text" name="sgst" class="form-control" size="2" ng-model="data.sgst" ng-keyup="showCase.changeUnitPrice(data)" decimal-number ng-readonly="showCase.igst_enable">
                     </td>
                     <td>
-                      <input type="text" name="igst" class="form-control" size="2" ng-model="data.igst" ng-keyup="showCase.changeUnitPrice(data)" decimal-number>
+                      <input type="text" name="igst" class="form-control" size="2" ng-model="data.igst" ng-keyup="showCase.changeUnitPrice(data)" decimal-number ng-readonly="showCase.tax_cg_sg">
                     </td>
                     <td>
                       <input type="text" name="total_price" class="form-control" ng-model="data.total_price" decimal-number>

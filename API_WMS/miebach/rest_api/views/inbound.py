@@ -9720,22 +9720,26 @@ def update_existing_grn(request, user=''):
                         model_obj.save()
                         create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
                                                     prev_val, value)
-                if model_obj.batch_detail:
-                    if model_obj.batch_detail.transact_type == 'seller_po_summary':
-                        PrimarySegregation.objects.filter(seller_po_summary__id=model_obj.batch_detail.transact_id,
-                                                          seller_po_summary__receipt_number=model_obj.receipt_number)\
-                                                    .update(batch_detail=model_obj.batch_detail)
-                    else:
-                        PrimarySegregation.objects.filter(purchase_order__id=model_obj.batch_detail.transact_id,
-                                                          seller_po_summary__receipt_number=model_obj.receipt_number)\
-                                                  .update(batch_detail=model_obj.batch_detail)
-                    po_location_ids = POLocation.objects.filter(purchase_order__id=model_obj.batch_detail.transact_id,
-                                                                status=1).values_list('id', flat=True)
-                    update_batch_dict = copy.deepcopy(model_obj.batch_detail.__dict__)
-                    del update_batch_dict['id']
-                    del update_batch_dict['_state']
-                    BatchDetail.objects.filter(transact_type='po_loc', transact_id__in=po_location_ids,
-                                               receipt_number=model_obj.batch_detail.receipt_number).update(**update_batch_dict)
+            if model_obj.batch_detail:
+                if model_obj.batch_detail.transact_type == 'seller_po_summary':
+                    PrimarySegregation.objects.filter(seller_po_summary__id=model_obj.batch_detail.transact_id,
+                                                      seller_po_summary__receipt_number=model_obj.receipt_number)\
+                                                .update(batch_detail=model_obj.batch_detail)
+                else:
+                    PrimarySegregation.objects.filter(purchase_order__id=model_obj.batch_detail.transact_id,
+                                                      seller_po_summary__receipt_number=model_obj.receipt_number)\
+                                              .update(batch_detail=model_obj.batch_detail)
+                po_location_ids = POLocation.objects.filter(purchase_order__id=model_obj.batch_detail.transact_id,
+                                                            status=1).values_list('id', flat=True)
+                update_batch_dict = copy.deepcopy(model_obj.batch_detail.__dict__)
+                BatchDetail.objects.filter(transact_type='po_loc', transact_id__in=po_location_ids,
+                                           receipt_number=model_obj.batch_detail.receipt_number)\
+                                    .update(mrp=update_batch_dict.get('mrp',0),
+                                            batch_no=update_batch_dict.get('batch_no'),
+                                            buy_price=update_batch_dict.get('buy_price'),
+                                            manufactured_date=update_batch_dict.get('manufactured_date'),
+                                            expiry_date=update_batch_dict.get('expiry_date'),
+                                            tax_percent=update_batch_dict.get('tax_percent'))
 
 
             if batch_dict and not model_obj.batch_detail:

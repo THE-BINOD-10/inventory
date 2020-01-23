@@ -1351,7 +1351,7 @@ def get_orders(request):
                                                              datetime.time())
         search_parameters['creation_date__lt'] = search_params['to_date']
     if 'order_id' in search_params:
-        search_parameters['original_order_id'] = search_params['order_id']
+        search_parameters['original_order_id__in'] = search_params['order_id'].split(',')
     search_parameters['user'] = request.user.id
     order_records = OrderDetail.objects.filter(**search_parameters).values_list('original_order_id',flat= True).distinct()
     page_info = scroll_data(request, order_records, limit=limit)

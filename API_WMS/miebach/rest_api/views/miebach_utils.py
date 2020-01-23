@@ -1380,7 +1380,7 @@ MAIL_REPORTS_DATA = OrderedDict((('Raise PO', 'raise_po'), ('Receive PO', 'recei
                                  ('Dispatch', 'dispatch'), ('Internal Mail', 'internal_mail'),
                                  ('Raise JO', 'raise_jo'), ('Stock Transfer Note', 'stock_transfer_note'),
                                  ('Block Stock', 'enquiry'), ('Central Orders', 'central_orders'),
-                                 ('GRN Approval', 'grn_approval'),('Allow Secondary Emails', 'allow_secondary_emails')
+                                 ('GRN Approval', 'grn_approval'),('Allow Secondary Emails', 'allow_secondary_emails'),('RTV Mail','rtv_mail'),
                                  ))
 
 # Configurations
@@ -2301,6 +2301,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'mandate_sku_supplier':'mandate_sku_supplier',
                         'brand_categorization':'brand_categorization',
                         'purchase_order_preview':'purchase_order_preview',
+                        'picklist_sort_by_sku_sequence': 'picklist_sort_by_sku_sequence',
                         'stop_default_tax':'stop_default_tax',
                         'supplier_mapping':'supplier_mapping',
                         'show_mrp_grn': 'show_mrp_grn',
@@ -4826,6 +4827,7 @@ def get_order_summary_data(search_params, user, sub_user):
         payment_card, payment_cash ,payment_PhonePe,payment_Paytm,payment_GooglePay = 0, 0,0,0,0
         order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data['id'])
         unit_price, unit_price_inclusive_tax = [data['unit_price']] * 2
+        tax_percent = 0
         if order_summary.exists():
             mrp_price = order_summary[0].mrp
             discount = order_summary[0].discount
@@ -4838,8 +4840,10 @@ def get_order_summary_data(search_params, user, sub_user):
                 tax = order_summary[0].tax_value
                 vat = order_summary[0].vat
                 #if not unit_price:
+                tax_percent = tax * (100/(data['original_quantity'] * data['unit_price']))
             else:
                 amt = unit_price_inclusive_tax * float(data['original_quantity'])
+                tax_percent = order_summary[0].cgst_tax + order_summary[0].sgst_tax + order_summary[0].igst_tax + order_summary[0].utgst_tax
                 cgst_amt = float(order_summary[0].cgst_tax) * (float(amt) / 100)
                 sgst_amt = float(order_summary[0].sgst_tax) * (float(amt) / 100)
                 igst_amt = float(order_summary[0].igst_tax) * (float(amt) / 100)
@@ -4942,10 +4946,10 @@ def get_order_summary_data(search_params, user, sub_user):
         if not quantity:
             quantity = 0
 
-        tax_percent = 0
-        if float(taxable_amount):
-            tax_percent = (tax * 100)/float(taxable_amount)
-        invoice_tax = "%.2f" % (float(unit_price) * float(quantity)*(tax_percent/100))
+        #tax_percent = 0
+        #if float(taxable_amount):
+        #    tax_percent = (tax * 100)/float(taxable_amount)
+        invoice_tax = "%.2f" % (((float(unit_price) * float(quantity))/100)*(tax_percent))
 
         invoice_amount_picked = "%.2f" % ((float(unit_price) * float(quantity)) + float(invoice_tax) - discount)
 

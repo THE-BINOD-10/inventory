@@ -11675,12 +11675,12 @@ def move_to_inv(request, user=''):
             marketplace = seller_summary[0].seller_order.order.marketplace
         else:
             marketplace = seller_summary[0].order.marketplace
-        if user.userprofile.multi_level_system == 1:
-            admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
-            admin_user = User.objects.get(id=admin_user_id)
-            invoice_sequence = get_invoice_sequence_obj(admin_user, marketplace)
-        else:
-            invoice_sequence = get_invoice_sequence_obj(user, marketplace)
+        #if user.userprofile.multi_level_system == 1:
+        #    admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
+        #    admin_user = User.objects.get(id=admin_user_id)
+        #    invoice_sequence = get_invoice_sequence_obj(admin_user, marketplace)
+        #else:
+        invoice_sequence = get_invoice_sequence_obj(user, marketplace)
         if invoice_sequence:
             invoice_seq = invoice_sequence[0]
             inv_no = int(invoice_seq.value)

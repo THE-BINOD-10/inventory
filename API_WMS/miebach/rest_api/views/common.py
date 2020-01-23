@@ -3031,12 +3031,12 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                     invoice_ins = SellerOrderSummary.objects.filter(**sell_ids).exclude(invoice_number='')
                 else:
                     invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
-            if user.userprofile.multi_level_system == 1 and user.userprofile.warehouse_level == 1:
-                admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
-                admin_user = User.objects.get(id=admin_user_id)
-                invoice_sequence = get_invoice_sequence_obj(admin_user, order.marketplace)
-            else:
-                invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
+            #if user.userprofile.multi_level_system == 1 and user.userprofile.warehouse_level == 1:
+            #    admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
+            #    admin_user = User.objects.get(id=admin_user_id)
+            #    invoice_sequence = get_invoice_sequence_obj(admin_user, order.marketplace)
+            #else:
+            invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
             if invoice_ins:
                 order_no = invoice_ins[0].invoice_number
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
@@ -3052,12 +3052,12 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                     invoice_seq.save()
             else:
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
-    if user.userprofile.multi_level_system == 1 and user.userprofile.warehouse_level == 1:
-        admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
-        admin_user = User.objects.get(id=admin_user_id)
-        invoice_number = get_full_invoice_number(admin_user, order_no, order, invoice_date=invoice_date, pick_number='')
-    else:
-        invoice_number = get_full_invoice_number(user, order_no, order, invoice_date=invoice_date, pick_number='')
+    #if user.userprofile.multi_level_system == 1 and user.userprofile.warehouse_level == 1:
+    #    admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
+    #    admin_user = User.objects.get(id=admin_user_id)
+    #    invoice_number = get_full_invoice_number(admin_user, order_no, order, invoice_date=invoice_date, pick_number='')
+    #else:
+    invoice_number = get_full_invoice_number(user, order_no, order, invoice_date=invoice_date, pick_number='')
     # if invoice_sequence:
     #     invoice_sequence = invoice_sequence[0]
     #     inv_num_lis = []
@@ -7088,9 +7088,9 @@ def get_shipment_quantity(user, all_orders, sku_grouping=False):
 
 def get_marketplace_names(user, status_type):
     userIds = [user.id]
-    if user.userprofile.multi_level_system == 1:
-        sameGroupWhs = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
-        userIds = UserProfile.objects.filter(user_id__in=sameGroupWhs, warehouse_level=1).values_list('user_id', flat=True)
+    #if user.userprofile.multi_level_system == 1:
+    #    sameGroupWhs = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
+    #    userIds = UserProfile.objects.filter(user_id__in=sameGroupWhs, warehouse_level=1).values_list('user_id', flat=True)
 
     if status_type == 'picked':
         marketplace = list(

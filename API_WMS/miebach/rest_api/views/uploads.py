@@ -1903,7 +1903,7 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
             else:
                 data_dict[key] = cell_data
         sku_master = SKUMaster.objects.get(id=data_dict['sku_id'])
-        if user.username in MILKBASKET_USERS and unique_mrp == 'true':
+        if user.username in MILKBASKET_USERS and unique_mrp == 'true' and not index_status:
             data_dict['sku_code'] = sku_master.sku_code
             data_dict['location'] = location_obj[0].location
             status = validate_mrp_weight(data_dict,user)
@@ -3493,7 +3493,7 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % fields_mapping[key])
                 else:
                     data_dict[key] = cell_data
-        if user.username in MILKBASKET_USERS and unique_mrp == 'true':
+        if user.username in MILKBASKET_USERS and unique_mrp == 'true' and not index_status:
             data_dict['sku_code'] = data_dict['wms_code']
             data_dict['location'] = dest_location[0].location
             status = validate_mrp_weight(data_dict,user)
@@ -3999,7 +3999,7 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
                 data_dict[key] = cell_data
-        if user.username in MILKBASKET_USERS and unique_mrp == 'true':
+        if user.username in MILKBASKET_USERS and unique_mrp == 'true' and not index_status:
             data_dict['sku_code'] = sku_master[0].sku_code
             data_dict['location'] = location_master[0].location
             status = validate_mrp_weight(data_dict,user)

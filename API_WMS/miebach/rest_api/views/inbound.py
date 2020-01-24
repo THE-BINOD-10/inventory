@@ -4216,31 +4216,9 @@ def validate_putaway(all_data, user):
                 status = 'Enter Valid Location'
 
         if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-            collect_sku_mrp_map = []
-            collect_dict_form = {}
-            collect_all_sellable_location = list(LocationMaster.objects.filter(zone__segregation='sellable',  zone__user=user.id, status=1).values_list('location', flat=True))
-            bulk_zones= get_all_zones(user ,zones=[MILKBASKET_BULK_ZONE])
-            bulk_locations=list(LocationMaster.objects.filter(zone__zone__in=bulk_zones, zone__user=user.id, status=1).values_list('location', flat=True))
-            sellable_bulk_locations=list(chain(collect_all_sellable_location ,bulk_locations))
-
-            if key[1] in sellable_bulk_locations:
-                sku_mrp_map = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku__wms_code=key[4],
-                                                         location__location__in=sellable_bulk_locations).\
-                                                    filter(sellerstock__seller_id=validate_seller_id).\
-                    exclude(batch_detail__mrp=None).values_list('sku__wms_code', 'batch_detail__mrp').distinct()
-
-                if sku_mrp_map:
-                    collect_sku_mrp_map = ['<#>'.join([str(one), str(two)]) for one, two in sku_mrp_map]
-                    for one, two in sku_mrp_map:
-                        sku_code = str(one)
-                        mrp = str(two)
-                        if sku_code in collect_dict_form.keys():
-                            collect_dict_form[sku_code].append(mrp)
-                        else:
-                            collect_dict_form[sku_code] = [mrp]
-                    if key[4] in collect_dict_form.keys():
-                        if not str(float(key[5])) in collect_dict_form[key[4]]:
-                            mrp_putaway_status.append('For SKU '+ key[4] +', MRPs ' + ','.join(collect_dict_form[key[4]]) + ' are only accepted')
+            data_dict = {'sku_code':key[4], 'mrp':key[5], 'weight':key[6], 'seller_id':validate_seller_id, 'location': key[1]}
+            validation_status = validate_mrp_weight(data_dict,user)
+            mrp_putaway_status.append(validation_status)
     if mrp_putaway_status:
         status += ', '.join(mrp_putaway_status)
     return status
@@ -4410,14 +4388,14 @@ def putaway_data(request, user=''):
                 myDict['orig_data'][i] = eval(myDict['orig_data'][i])
                 for orig_data in myDict['orig_data'][i]:
                     if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-                        cond = (orig_data['orig_id'], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i], myDict['mrp'][i])
+                        cond = (orig_data['orig_id'], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i], myDict['mrp'][i], myDict['weight'][i])
                     else:
                         cond = (orig_data['orig_id'], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
                     all_data.setdefault(cond, 0)
                     all_data[cond] += float(orig_data['orig_quantity'])
             else:
                 if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-                    cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i], myDict['mrp'][i])
+                    cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i], myDict['mrp'][i], myDict['weight'][i])
                 else:
                     cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
                 all_data.setdefault(cond, 0)

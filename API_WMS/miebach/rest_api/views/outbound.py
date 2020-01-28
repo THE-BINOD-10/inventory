@@ -6027,15 +6027,17 @@ def get_signed_oneassist_form(request, user=''):
         return HttpResponse('Fields are missing.')
     try:
         one_assist_pdf = []
-        shipment_detail = ShipmentInfo.objects.get(id=shipment_id)
-        order_detail = shipment_detail.order
+        shipment_detail = ShipmentInfo.objects.filter(id=shipment_id).values('order_shipment__shipment_number', 'order_shipment__manifest_number', 'order_shipment__user')
+        order_detail = ShipmentInfo.objects.filter(**shipment_detail[0]).values_list('order_id', flat=True)
         if order_detail:
-            pdf_obj = MasterDocs.objects.filter(master_id = order_detail.id, master_type='OneAssistSignedCopies')
+            pdf_obj = MasterDocs.objects.filter(master_id__in = order_detail, master_type='OneAssistSignedCopies')
             if pdf_obj:
                 images = list(pdf_obj.values_list('uploaded_file', flat=True))
                 one_assist_pdf.extend(images)
             else:
                 return HttpResponse('Please Upload Signed Invoice Copy')
+        else:
+            return HttpResponse('No Orders Found')
     except Exception as e:
         log.info('PDF is not Available for user %s and params are %s and error statement is %s' % (
             str(request.user.username), str(request.POST.dict()), str(e)))

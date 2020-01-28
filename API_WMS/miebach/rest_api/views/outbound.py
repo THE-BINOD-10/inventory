@@ -7536,9 +7536,10 @@ def calculate_price(sku_supplier, sku_master, user):
         price = (prefill_unit_price * 100) / (100 + tax)
     elif sku_supplier[0].costing_type == 'Markup Based':
         prefill_unit_price = mrp_value / (1+(markup_percentage/100))
-        data['price'] = prefill_unit_price
+        price = prefill_unit_price
     else:
         price = sku_supplier[0].price
+    price = float("%.2f" % price)
     return price, sku_price_details
 
 @csrf_exempt

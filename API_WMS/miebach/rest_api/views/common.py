@@ -10068,11 +10068,11 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
                             tax=tax_list.get('cgst_tax',0)+tax_list.get('sgst_tax',0)+tax_list.get('apmc_tax',0)+tax_list.get('cess_tax',0)
 
                 prefill_unit_price = (prefill_unit_price * 100) / (100 + tax)
-                data['price'] = prefill_unit_price
+                data['price'] = float("%.2f" % prefill_unit_price)
             elif sku_supplier[0].costing_type == 'Markup Based':
                  markup_percentage = sku_supplier[0].markup_percentage
                  prefill_unit_price = mrp_value / (1+(markup_percentage/100))
-                 data['price'] = prefill_unit_price
+                 data['price'] = float("%.2f" % prefill_unit_price)
             else:
                 data['price'] = sku_supplier[0].price
             data['supplier_code'] = sku_supplier[0].supplier_code

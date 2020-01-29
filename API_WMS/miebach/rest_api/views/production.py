@@ -2664,7 +2664,7 @@ def get_grn_json_data(order, user, request):
             supplier = purchase_order.open_po.supplier
             total_qty += purchase_order.open_po.order_quantity
 
-        po_data.append((purchase_order.open_po.sku.sku_code, supplier_code, purchase_order.open_po.sku.sku_desc,
+        po_data.append((purchase_order.open_po.sku.sku_code, supplier_code, purchase_order.open_po.sku.sku_desc, purchase_order.open_po.sku.sku_brand,
                         purchase_order.open_po.order_quantity, purchase_order.open_po.price, amount,
                         purchase_order.open_po.sgst_tax, purchase_order.open_po.cgst_tax,
                         purchase_order.open_po.igst_tax, purchase_order.open_po.utgst_tax,
@@ -2690,7 +2690,7 @@ def get_grn_json_data(order, user, request):
 
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
     table_headers = (
-        'WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Unit Price', 'Amount', 'SGST', 'CGST', 'IGST', 'UTGST',
+        'WMS Code', 'Supplier Code', 'Description', 'Brand', 'Quantity', 'Unit Price', 'Amount', 'SGST', 'CGST', 'IGST', 'UTGST',
         'Remarks')
     profile = UserProfile.objects.get(user=user.id)
     w_address, company_address = get_purchase_company_address(profile)
@@ -2862,7 +2862,7 @@ def confirm_back_order(request, user=''):
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dictionary)
         if get_misc_value('raise_po', user.id) == 'true':
-            rendered = [rendered, rendered1] if rendered1 else rendered
+            # rendered = [rendered, rendered1] if rendered1 else rendered
             write_and_mail_pdf(data_dictionary['po_reference'], rendered, request, user,
                                data_dictionary['supplier_email'], data_dictionary['telephone'], data_dictionary['data'],
                                str(data_dictionary['order_date']).split(' ')[0])
@@ -2870,7 +2870,6 @@ def confirm_back_order(request, user=''):
             status = "Created PO Numbers are " + str(order_id)
         else:
             status += ", " + str(order_id)
-
         all_invoice_data.append(data_dictionary)
     # t1 = loader.get_template('templates/toggle/po_template_order.html')
     t1 = loader.get_template('templates/print/po_multi_form.html')

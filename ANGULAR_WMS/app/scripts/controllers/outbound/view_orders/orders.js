@@ -365,6 +365,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             vm.igst = value.igst_tax;
             vm.cess = value.cess_tax;
             vm.taxes = value.taxes;
+            vm.brand = value.sku_brand;
 	    vm.mrp = value.mrp;
             vm.order_charges = value.order_charges;
             vm.client_name = value.client_name;
@@ -393,7 +394,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
               var record = vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity,
               image_url: vm.img_url, remarks: vm.remarks, unit_price: vm.unit_price, taxes: vm.taxes,
-              discount: vm.discount,
+              discount: vm.discount, brand: vm.brand,
               discount_per: vm.discount_per, sgst:vm.sgst, cgst:vm.cgst, igst:vm.igst, cess:vm.cess,default_status: true, sku_status: value.sku_status, mrp:vm.mrp, invoice_amount:vm.invoice_amount})
               var record = vm.model_data.data[index]
               //vm.changeInvoiceAmt(record);

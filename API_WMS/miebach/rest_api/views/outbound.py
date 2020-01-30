@@ -7486,7 +7486,7 @@ def generate_order_po_data(request, user=''):
                 selected_item = supplier_list[1]
             data_dict.append({'order_id': data_id, 'wms_code': order_detail.sku.wms_code, 'title': order_detail.sku.sku_desc,
                               'quantity': product_qty, 'selected_item': selected_item, 'price': price,
-                              'taxes': taxes, 'original_order_id':order_detail.original_order_id})
+                              'taxes': taxes, 'original_order_id':order_detail.original_order_id, 'brand': order_detail.sku.sku_brand})
     return HttpResponse(json.dumps({'data_dict': data_dict, 'supplier_list': supplier_list}))
 
 @csrf_exempt
@@ -7817,6 +7817,15 @@ def get_view_order_details(request, user=''):
         remarks = one_order.remarks
         sku_code = one_order.sku.sku_code
         sku_type = one_order.sku.sku_type
+        sku_brand = one_order.sku.sku_brand
+        order_sku_attributes = []
+        if one_order.original_order_id and one_order.sku.id:
+            order_sku_attr = OrderFields.objects.filter(user=user.id, original_order_id=one_order.original_order_id, order_type='order_sku', extra_fields=one_order.sku.id)
+            if order_sku_attr.exists():
+                for datum in order_sku_attr:
+                    tmp_obj = {}
+                    tmp_obj[datum.name] = datum.value
+                    order_sku_attributes.append(tmp_obj)
         field_type = 'product_attribute'
         vend_dict = {'printing_vendor': "", 'embroidery_vendor': "", 'production_unit': ""}
         sku_extra_data = {}
@@ -7872,7 +7881,7 @@ def get_view_order_details(request, user=''):
             order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'id'))
 
         order_details_data.append(
-            {'product_title': product_title, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
+            {'product_title': product_title, 'sku_brand': sku_brand, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
              'cust_id': customer_id, 'cust_name': customer_name, 'phone': phone, 'email': email, 'address': address,
              'city': city,
              'state': state, 'pin': pin, 'shipment_date': str(shipment_date), 'item_code': sku_code,
@@ -7883,7 +7892,7 @@ def get_view_order_details(request, user=''):
              'print_vendor': vend_dict['printing_vendor'],
              'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
              'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
-             'cess_tax': cess_tax,
+             'cess_tax': cess_tax, 'order_sku_attributes': order_sku_attributes,
              'unit_price': unit_price, 'discount_percentage': discount_percentage, 'discount': discount,
              'taxes': taxes_data,
              'order_charges': order_charges,

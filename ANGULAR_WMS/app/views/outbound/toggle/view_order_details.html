@@ -227,8 +227,10 @@
           <tr>
             <th>ITEM CODE</th>
             <th>PRODUCT TITLE </th>
+            <th>Brand </th>
+            <th ng-if="sku_headers" ng-repeat="sku_headers in showCase.extra_headers">{{sku_headers}}</th>
             <th>QUANTITY</th>
-	    <th>MRP</th>
+            <th>MRP</th>
             <th>UNIT PRICE</th>
             <th>DISCOUNT(%)</th>
             <th ng-if="showCase.model_data.tax_type == 'intra_state'">SGST(%)</th>
@@ -251,6 +253,12 @@
 	        </td>
             <td>
               <input type="text" class="form-control" name="product_title" ng-model="data.product_title" ng-readonly="data.default_status">
+            </td>
+            <td>
+              <input type="text" ng-if="data.brand" class="form-control" name="sku_brand" ng-model="data.brand" readonly>
+            </td>
+            <td ng-repeat="sku_headers in showCase.extra_headers">
+              <label ng-if="sku_headers">{{data.order_sku_attributes[sku_headers]}}</label>
             </td>
             <td>
               <input type="text" class="form-control" name="quantity" ng-model="data.quantity" ng-change="showCase.changeInvoiceAmt(data)" ng-readonly="showCase.input_status">

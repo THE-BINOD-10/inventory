@@ -9237,8 +9237,8 @@ def get_move_inventory_report_data(search_params, user, sub_user):
 def get_bulk_stock_update_data(search_params, user, sub_user):
   from rest_api.views.common import get_sku_master, get_local_date
   temp_data = copy.deepcopy(AJAX_DATA)
-  lis = ['source_sku_code__sku_code', 'source_location', 'destination_location', 'source_quantity', 'creation_date']
-  col_num = search_params.get('order_index', 4)
+  lis = ['source_sku_code__sku_code', 'source_sku_code__sku_code', 'source_sku_code__sku_code', 'source_sku_code__sku_code', 'source_location', 'destination_location', 'source_quantity', 'creation_date']
+  col_num = search_params.get('order_index',7)
   order_term = search_params.get('order_term', 'asc')
   start_index = search_params.get('start', 0)
   if search_params.get('length', 0):

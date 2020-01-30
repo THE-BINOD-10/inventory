@@ -1123,8 +1123,8 @@ BULK_STOCK_UPDATE = {
         {'label': 'Source Location', 'name': 'source_location', 'type': 'input'},
         {'label': 'Destination Location', 'name': 'destination_location', 'type': 'input'},
     ],
-    'dt_headers': ['SKU Code','Source Location',
-                   'Destination Location','Quantity','Transaction Date'],
+    'dt_headers': ['SKU Code', 'SKU Description', 'MRP', 'Weight', 'Source Location',
+                    'Destination Location', 'Quantity','Transaction Date'],
     'dt_url': 'get_bulk_stock_update', 'excel_name': 'get_bulk_stock_update',
     'print_url': 'print_bulk_stock_update',
 }
@@ -9268,8 +9268,15 @@ def get_bulk_stock_update_data(search_params, user, sub_user):
   temp_data['recordsTotal'] = master_data.count()
   temp_data['recordsFiltered'] = temp_data['recordsTotal']
   for data in master_data[start_index:stop_index]:
+    mrp, weight = '', ''
     date = get_local_date(user, data.creation_date)
+    if data.dest_batch:
+      mrp = data.dest_batch.mrp
+      weight = data.dest_batch.weight
     temp_data['aaData'].append(OrderedDict((('SKU Code', data.source_sku_code.sku_code),
+                                            ('SKU Description', data.source_sku_code.sku_desc),
+                                            ('MRP', mrp),
+                                            ('Weight', weight),
                                             ('Source Location',data.source_location),
                                             ('Destination Location',data.destination_location),
                                             ('Quantity',data.source_quantity),

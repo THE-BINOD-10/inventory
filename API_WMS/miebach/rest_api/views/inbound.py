@@ -1894,7 +1894,7 @@ def get_supplier_data(request, user=''):
             if temp_jsons.exists():
                 for temp_json_obj in temp_jsons:
                     temp_json = json.loads(temp_json_obj.model_json)
-                    orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'],
+                    orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'], 'sku_brand': order_data['sku'].sku_brand,
                                     'sku_desc': order_data['sku_desc'], 'weight': temp_json.get('weight', 0),
                                     'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
                                     'name': str(order.order_id) + '-' + str(
@@ -1922,7 +1922,7 @@ def get_supplier_data(request, user=''):
                                     'is_stock_transfer': temp_json.get('is_stock_transfer', ''),'po_extra_fields':json.dumps(list(extra_po_fields)),
                                     }])
             else:
-                orders.append([{ 'order_id': order.id, 'wms_code': order_data['wms_code'],
+                orders.append([{ 'order_id': order.id, 'wms_code': order_data['wms_code'], 'sku_brand': order_data['sku'].sku_brand,
                                 'sku_desc': order_data['sku_desc'], 'weight': weight,
                                 'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
                                 'name': str(order.order_id) + '-' + str(
@@ -5544,7 +5544,7 @@ def create_mail_attachments(f_name, html_data):
             path = 'static/temp_files/'
             folder_check(path)
             file = open(path + file_name, "w+b")
-            file.write(data)
+            file.write(xcode(data))
             file.close()
             os.system(
                 "./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (path + file_name, path + pdf_file))

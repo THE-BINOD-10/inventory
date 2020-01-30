@@ -5544,7 +5544,7 @@ def create_mail_attachments(f_name, html_data):
             path = 'static/temp_files/'
             folder_check(path)
             file = open(path + file_name, "w+b")
-            file.write(data)
+            file.write(xcode(data))
             file.close()
             os.system(
                 "./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (path + file_name, path + pdf_file))

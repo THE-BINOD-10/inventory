@@ -1115,6 +1115,19 @@ MOVE_TO_INVENTORY_REPORT_DICT = {
     'print_url': 'print_move_inventory_report',
 }
 
+BULK_STOCK_UPDATE = {
+  'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label': 'Source Location', 'name': 'source_location', 'type': 'input'},
+        {'label': 'Destination Location', 'name': 'destination_location', 'type': 'input'},
+    ],
+    'dt_headers': ['SKU Code','Source Location',
+                   'Destination Location','Quantity','Transaction Date'],
+    'dt_url': 'get_bulk_stock_update', 'excel_name': 'get_bulk_stock_update',
+    'print_url': 'print_bulk_stock_update',
+}
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT,
                      'sku_wise_po_report': SKU_WISE_PO_DICT,
                      'grn_report': GRN_DICT, 'sku_wise_grn_report' : SKU_WISE_GRN_DICT, 'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT,
@@ -1144,6 +1157,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'basa_report':BASA_REPORT_DICT,
                      'move_inventory_report' : MOVE_TO_INVENTORY_REPORT_DICT,
                      'financial_report': FINANCIAL_REPORT_DICT,
+                     'bulk_stock_update': BULK_STOCK_UPDATE,
                     }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -1714,6 +1728,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_basa_report':'get_basa_report_data',
                         'get_move_inventory_report':'get_move_inventory_report_data',
                         'get_financial_report':'get_financial_report_data',
+                        'get_bulk_stock_update':'get_bulk_stock_update_data',
                         }
 # End of Download Excel Report Mapping
 
@@ -9217,3 +9232,46 @@ def get_move_inventory_report_data(search_params, user, sub_user):
                                                 ('Transaction Date',date),
                                                 ('Updated User', updated_user_name))))
     return temp_data
+
+
+def get_bulk_stock_update_data(search_params, user, sub_user):
+  from rest_api.views.common import get_sku_master, get_local_date
+  temp_data = copy.deepcopy(AJAX_DATA)
+  lis = ['source_sku_code__sku_code', 'source_location', 'destination_location', 'source_quantity', 'creation_date']
+  col_num = search_params.get('order_index', 4)
+  order_term = search_params.get('order_term', 'asc')
+  start_index = search_params.get('start', 0)
+  if search_params.get('length', 0):
+      stop_index = start_index + search_params.get('length', 0)
+  else:
+      stop_index = None
+  search_parameters = {}
+  order_data = lis[col_num]
+  if order_term == 'desc':
+      order_data = '-%s' % order_data
+  if 'from_date' in search_params:
+      search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+      search_parameters['creation_date__gte'] = search_params['from_date']
+  if 'to_date' in search_params:
+      search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                           datetime.time())
+      search_parameters['creation_date__lte'] = search_params['to_date']
+  if 'sku_code' in search_params:
+      search_parameters['source_sku_code__sku_code'] = search_params['sku_code']
+  if 'source_location' in search_params :
+      search_parameters['source_location'] = search_params['source_location']
+  if 'destination_location' in search_params :
+      search_parameters['destination_location'] = search_params['destination_location']
+  # search_parameters['summary_type'] = 'bulk_stock_update'
+  search_parameters['source_sku_code__user'] = user.id
+  master_data = SubstitutionSummary.objects.filter(**search_parameters).order_by(order_data)
+  temp_data['recordsTotal'] = master_data.count()
+  temp_data['recordsFiltered'] = temp_data['recordsTotal']
+  for data in master_data[start_index:stop_index]:
+    date = get_local_date(user, data.creation_date)
+    temp_data['aaData'].append(OrderedDict((('SKU Code', data.source_sku_code.sku_code),
+                                            ('Source Location',data.source_location),
+                                            ('Destination Location',data.destination_location),
+                                            ('Quantity',data.source_quantity),
+                                            ('Transaction Date', date))))
+  return temp_data

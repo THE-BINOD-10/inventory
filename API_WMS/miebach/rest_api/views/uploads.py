@@ -3728,14 +3728,14 @@ def validate_bom_form(open_sheet, user, bom_excel):
                 product_sku = open_sheet.cell(row_idx, bom_excel[key]).value
                 if isinstance(product_sku, (int, float)):
                     product_sku = int(product_sku)
-                sku_code = SKUMaster.objects.filter(sku_code=product_sku, user=user)
+                sku_code = SKUMaster.objects.filter(sku_code=product_sku, user=user.id)
                 if not sku_code:
                     index_status.setdefault(row_idx, set()).add('Invalid SKU Code %s' % product_sku)
             if key == 'material_sku':
                 material_sku = open_sheet.cell(row_idx, bom_excel[key]).value
                 if isinstance(material_sku, (int, float)):
                     material_sku = int(material_sku)
-                sku_code = SKUMaster.objects.filter(sku_code=material_sku, user=user)
+                sku_code = SKUMaster.objects.filter(sku_code=material_sku, user=user.id)
                 if not sku_code:
                     index_status.setdefault(row_idx, set()).add('Invalid SKU Code %s' % material_sku)
             elif key == 'material_quantity':
@@ -3763,7 +3763,7 @@ def validate_bom_form(open_sheet, user, bom_excel):
     if not index_status:
         return 'Success'
 
-    f_name = '%s.bom_form.xls' % user
+    f_name = '%s.bom_form.xls' % user.id
     write_error_file(f_name, index_status, open_sheet, BOM_UPLOAD_EXCEL_HEADERS, 'BOM')
     return f_name
 
@@ -3781,7 +3781,7 @@ def bom_upload(request, user=''):
         open_sheet = open_book.sheet_by_index(0)
     except:
         return HttpResponse("Invalid File")
-    status = validate_bom_form(open_sheet, str(user.id), bom_excel)
+    status = validate_bom_form(open_sheet, user, bom_excel)
 
     if status != 'Success':
         return HttpResponse(status)

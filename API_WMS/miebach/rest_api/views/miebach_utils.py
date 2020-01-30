@@ -9262,7 +9262,7 @@ def get_bulk_stock_update_data(search_params, user, sub_user):
       search_parameters['source_location'] = search_params['source_location']
   if 'destination_location' in search_params :
       search_parameters['destination_location'] = search_params['destination_location']
-  # search_parameters['summary_type'] = 'bulk_stock_update'
+  search_parameters['summary_type'] = 'bulk_stock_update'
   search_parameters['source_sku_code__user'] = user.id
   master_data = SubstitutionSummary.objects.filter(**search_parameters).order_by(order_data)
   temp_data['recordsTotal'] = master_data.count()

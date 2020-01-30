@@ -856,6 +856,11 @@ def configurations(request, user=''):
         config_dict['all_order_fields'] = ''
     else:
         config_dict['all_order_fields'] = extra_order_fields
+    extra_order_sku_fields = get_misc_value('extra_order_sku_fields', user.id)
+    if extra_order_sku_fields == 'false' :
+        config_dict['all_order_sku_fields'] = ''
+    else:
+        config_dict['all_order_sku_fields'] = extra_order_sku_fields
     grn_fields = get_misc_value('grn_fields', user.id)
     if grn_fields == 'false' :
         config_dict['grn_fields'] = ''
@@ -1056,22 +1061,22 @@ def po_message(po_data, phone_no, user_name, f_name, order_date, ean_flag, table
     total_amount = 0
     if ean_flag:
         for po in po_data:
-            data += '\nD.NO: %s, Qty: %s' % (po[2], po[4])
+            data += '\nD.NO: %s, Qty: %s' % (po[2], po[5])
+            if table_headers:
+                total_quantity += int(po[table_headers.index('Qty')])
+                total_amount += float(po[table_headers.index('Amt')])
+            else:
+                total_quantity += int(po[5])
+                total_amount += float(po[7])
+    else:
+        for po in po_data:
+            data += '\nD.NO: %s, Qty: %s' % (po[1], po[4])
             if table_headers:
                 total_quantity += int(po[table_headers.index('Qty')])
                 total_amount += float(po[table_headers.index('Amt')])
             else:
                 total_quantity += int(po[4])
                 total_amount += float(po[6])
-    else:
-        for po in po_data:
-            data += '\nD.NO: %s, Qty: %s' % (po[1], po[3])
-            if table_headers:
-                total_quantity += int(po[table_headers.index('Qty')])
-                total_amount += float(po[table_headers.index('Amt')])
-            else:
-                total_quantity += int(po[3])
-                total_amount += float(po[5])
     data += '\nTotal Qty: %s, Total Amount: %s\nPlease check WhatsApp for Images' % (total_quantity, total_amount)
     send_sms(phone_no, data)
 
@@ -1081,9 +1086,9 @@ def grn_message(po_data, phone_no, user_name, f_name, order_date):
     total_quantity = 0
     total_amount = 0
     for po in po_data:
-        data += '\nD.NO: %s, Qty: %s' % (po[0], po[4])
-        total_quantity += int(po[4])
-        total_amount += int(po[5])
+        data += '\nD.NO: %s, Qty: %s' % (po[0], po[5])
+        total_quantity += int(po[5])
+        total_amount += int(po[6])
     data += '\nTotal Qty: %s, Total Amount: %s' % (total_quantity, total_amount)
     send_sms(phone_no, data)
 
@@ -2426,6 +2431,35 @@ def save_order_extra_fields(request, user=''):
                         record.delete()
             misc_detail_obj = misc_detail[0]
             misc_detail_obj.misc_value = order_extra_fields
+            misc_detail_obj.save()
+    except:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Issue for ' + request)
+        return HttpResponse("Something Went Wrong")
+
+    return HttpResponse("Saved Successfully")
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_order_sku_extra_fields(request, user=''):
+    extra_order_sku_fields = request.GET.get('extra_order_sku_fields', '')
+    misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='extra_order_sku_fields')
+    try:
+        if not misc_detail.exists():
+             MiscDetail.objects.create(user=user.id,misc_type='extra_order_sku_fields',misc_value=extra_order_sku_fields)
+        else:
+            misc_order_option_list = list(MiscDetailOptions.objects.filter(misc_detail__user=user.id).values_list('misc_key',flat=True))
+            order_extra_list = extra_order_sku_fields.split(',')
+            diff_list = list(set(misc_order_option_list)- set(order_extra_list))
+            if len(diff_list) > 0 :
+                for key in diff_list :
+                    misc_records = MiscDetailOptions.objects.filter(misc_detail__user= user.id,misc_key = key)
+                    for record in misc_records :
+                        record.delete()
+            misc_detail_obj = misc_detail[0]
+            misc_detail_obj.misc_value = extra_order_sku_fields
             misc_detail_obj.save()
     except:
         import traceback
@@ -10068,11 +10102,11 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
                             tax=tax_list.get('cgst_tax',0)+tax_list.get('sgst_tax',0)+tax_list.get('apmc_tax',0)+tax_list.get('cess_tax',0)
 
                 prefill_unit_price = (prefill_unit_price * 100) / (100 + tax)
-                data['price'] = prefill_unit_price
+                data['price'] = float("%.2f" % prefill_unit_price)
             elif sku_supplier[0].costing_type == 'Markup Based':
                  markup_percentage = sku_supplier[0].markup_percentage
                  prefill_unit_price = mrp_value / (1+(markup_percentage/100))
-                 data['price'] = prefill_unit_price
+                 data['price'] = float("%.2f" % prefill_unit_price)
             else:
                 data['price'] = sku_supplier[0].price
             data['supplier_code'] = sku_supplier[0].supplier_code

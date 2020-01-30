@@ -4058,8 +4058,8 @@ def get_openjo_details(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master
     from rest_api.views.production import get_user_stages
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
-    lis = ['jo_id', 'jo_creation_date', 'sku__brand', 'sku__sku_category', 'sku__sku_class', 'sku__sku_code', 'stage',
-           'quantity','sku__sub_category']
+    lis = ['jo_id', 'jo_creation_date', 'sku__brand', 'sku__sku_category', 'sku__sub_category', 'sku__sku_class', 'sku__sku_code', 'stage',
+           'quantity']
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     final_data = []
@@ -4174,6 +4174,7 @@ def get_openjo_details(search_params, user, sub_user):
         last_data.append(OrderedDict((('JO Code', one_data['data'].job_code), ('Jo Creation Date', ' '.join(date[0:3])),
                                       ('SKU Brand', one_data['data'].product_code.sku_brand),
                                       ('SKU Category', one_data['data'].product_code.sku_category),
+                                      ('SKU Sub Category', one_data['data'].product_code.sub_category),
                                       ('SKU Class', one_data['data'].product_code.sku_class),
                                       ('SKU Code', one_data['data'].product_code.sku_code),
                                       ('Stage', one_data['stage']), ('Quantity', one_data['quantity']))))

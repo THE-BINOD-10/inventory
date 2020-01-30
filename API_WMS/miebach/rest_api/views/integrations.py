@@ -2458,7 +2458,13 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                             utgst_tax = float(sku_item['tax_percent'].get('UTGST', 0))
                         except:
                             utgst_tax = 0
-
+                    if sku_item.has_key('sku_order_fields'):
+                        sku_fields = sku_item['sku_order_fields']
+                        for datum in sku_fields.keys():
+                            sku_ord_dict = {'user': user.id, 'original_order_id': original_order_id, 'name': datum,
+                                         'value': sku_fields[datum], 'order_type': 'order_sku', 'extra_fields': sku_master[0].id }
+                            sku_attr_obj = OrderFields(**sku_ord_dict)
+                            sku_attr_obj.save()
                     if order_create:
                         order_details['original_order_id'] = original_order_id
                         order_details['order_id'] = order_id

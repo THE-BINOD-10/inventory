@@ -888,7 +888,6 @@ def get_picklist_data(data_id, user_id):
         for order in picklist_orders:
             stock_id = ''
             wms_code = order.sku_code
-            sku_sequence = order.order.sku.sequence
             customer_name = ''
             remarks = ''
             load_unit_handle = ''
@@ -906,6 +905,7 @@ def get_picklist_data(data_id, user_id):
                 stock_id = pick_stocks.get(id=order.stock_id)
             if order.order:
                 sku_code = order.order.sku_code
+                sku_sequence = order.order.sku.sequence
                 title = order.order.title
                 invoice = order.order.invoice_amount
                 customer_name = order.order.customer_name

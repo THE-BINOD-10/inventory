@@ -856,6 +856,11 @@ def configurations(request, user=''):
         config_dict['all_order_fields'] = ''
     else:
         config_dict['all_order_fields'] = extra_order_fields
+    extra_order_sku_fields = get_misc_value('extra_order_sku_fields', user.id)
+    if extra_order_sku_fields == 'false' :
+        config_dict['all_order_sku_fields'] = ''
+    else:
+        config_dict['all_order_sku_fields'] = extra_order_sku_fields
     grn_fields = get_misc_value('grn_fields', user.id)
     if grn_fields == 'false' :
         config_dict['grn_fields'] = ''
@@ -2426,6 +2431,35 @@ def save_order_extra_fields(request, user=''):
                         record.delete()
             misc_detail_obj = misc_detail[0]
             misc_detail_obj.misc_value = order_extra_fields
+            misc_detail_obj.save()
+    except:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Issue for ' + request)
+        return HttpResponse("Something Went Wrong")
+
+    return HttpResponse("Saved Successfully")
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_order_sku_extra_fields(request, user=''):
+    extra_order_sku_fields = request.GET.get('extra_order_sku_fields', '')
+    misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='extra_order_sku_fields')
+    try:
+        if not misc_detail.exists():
+             MiscDetail.objects.create(user=user.id,misc_type='extra_order_sku_fields',misc_value=extra_order_sku_fields)
+        else:
+            misc_order_option_list = list(MiscDetailOptions.objects.filter(misc_detail__user=user.id).values_list('misc_key',flat=True))
+            order_extra_list = extra_order_sku_fields.split(',')
+            diff_list = list(set(misc_order_option_list)- set(order_extra_list))
+            if len(diff_list) > 0 :
+                for key in diff_list :
+                    misc_records = MiscDetailOptions.objects.filter(misc_detail__user= user.id,misc_key = key)
+                    for record in misc_records :
+                        record.delete()
+            misc_detail_obj = misc_detail[0]
+            misc_detail_obj.misc_value = extra_order_sku_fields
             misc_detail_obj.save()
     except:
         import traceback

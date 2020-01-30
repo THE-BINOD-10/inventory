@@ -7818,6 +7818,14 @@ def get_view_order_details(request, user=''):
         sku_code = one_order.sku.sku_code
         sku_type = one_order.sku.sku_type
         sku_brand = one_order.sku.sku_brand
+        order_sku_attributes = []
+        if one_order.original_order_id and one_order.sku.id:
+            order_sku_attr = OrderFields.objects.filter(user=user.id, original_order_id=one_order.original_order_id, order_type='order_sku', extra_fields=one_order.sku.id)
+            if order_sku_attr.exists():
+                for datum in order_sku_attr:
+                    tmp_obj = {}
+                    tmp_obj[datum.name] = datum.value
+                    order_sku_attributes.append(tmp_obj)
         field_type = 'product_attribute'
         vend_dict = {'printing_vendor': "", 'embroidery_vendor': "", 'production_unit': ""}
         sku_extra_data = {}
@@ -7884,7 +7892,7 @@ def get_view_order_details(request, user=''):
              'print_vendor': vend_dict['printing_vendor'],
              'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
              'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
-             'cess_tax': cess_tax,
+             'cess_tax': cess_tax, 'order_sku_attributes': order_sku_attributes,
              'unit_price': unit_price, 'discount_percentage': discount_percentage, 'discount': discount,
              'taxes': taxes_data,
              'order_charges': order_charges,

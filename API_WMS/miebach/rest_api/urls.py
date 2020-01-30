@@ -661,6 +661,7 @@ urlpatterns += [
     url(r'delete_temp_json/$', delete_temp_json),
     url(r'^search_batches/$', search_batches),
     url(r'^save_order_extra_fields/$', save_order_extra_fields),
+    url(r'^save_order_sku_extra_fields/$', save_order_sku_extra_fields),
     url(r'^get_sku_mrp/$', get_sku_mrp),
     url(r'^get_current_weight/$', get_current_weight),
     url(r'^get_decimal_data/$', get_decimal_data),

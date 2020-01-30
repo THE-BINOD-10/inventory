@@ -2774,10 +2774,8 @@ def confirm_back_order(request, user=''):
     all_invoice_data = []
     for key, value in all_data.iteritems():
         order_id = 1
-        purchase_order_id = PurchaseOrder.objects.filter(open_po__sku__user=user.id).order_by('-order_id')
-        if purchase_order_id:
-            order_id = int(purchase_order_id[0].order_id) + 1
-
+        order_id = get_purchase_order_id(user)
+        order_id = int(order_id) + 1
         po_data = []
         for val in value:
             price = 0

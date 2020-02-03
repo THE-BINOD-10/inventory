@@ -36,6 +36,7 @@ class Command(BaseCommand):
         self.stdout.write("Started Updating")
         users = User.objects.filter(username__in = MILKBASKET_USERS)
         dest_stocks = ''
+        sku_codes = []
         for user in users:
             try:
                 collect_all_sellable_location = list(LocationMaster.objects.filter(zone__segregation='sellable',  zone__user=user.id, status=1).values_list('location', flat=True))
@@ -47,6 +48,7 @@ class Command(BaseCommand):
                 stock_zero_skus = list(set(mrp_offer_change_data.values_list('sku__id')) - set(ba_sa_data.values_list('sku__id')))
                 for sku in stock_zero_skus:
                     sku_id = sku[0]
+                    sku_code = SKUMaster.objects.filter(id = sku_id)[0].sku_code
                     validate_data = mrp_offer_change_data.filter(sku = sku_id)
                     stocks = validate_data.filter(batch_detail__mrp = validate_data[0].batch_detail.mrp, batch_detail__weight=validate_data[0].batch_detail.weight)
                     quantity = stocks.aggregate(Sum("quantity"))
@@ -65,6 +67,8 @@ class Command(BaseCommand):
                                 'destination_quantity': quantity, 'source_batch_id':stocks[0].batch_detail_id,
                                 'dest_batch_id': dest_batch.id, 'seller_id': seller_id, 'summary_type': 'bulk_stock_update'}
                     SubstitutionSummary.objects.create(**sub_data)
+                    sku_codes.append(sku_code)
+                    check_and_update_marketplace_stock(sku_codes, user)
                     log.info("Bulk Stock Update Done For " + str(json.dumps(sub_data)))
             except Exception as e:
                 import traceback

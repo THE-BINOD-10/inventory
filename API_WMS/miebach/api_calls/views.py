@@ -1430,9 +1430,6 @@ def get_mp_inventory(request):
             if skus:
                 filter_params['sku_code__in'] = skus
                 limit = len(skus)
-            log_mp = ('MP inventory request from %s with request data %s '%
-                         (str(request.user.username), str(request_data)))
-            mb_stock_sycn_log(log_mp, user)
         except:
             return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}), status=400)
         if not seller_id:
@@ -1455,6 +1452,8 @@ def get_mp_inventory(request):
                 return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Seller ID'}), status=400)
         except:
             return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Seller ID'}), status=400)
+        log_mp = ('MP inventory request from %s with request data %s '% (str(user.username), str(request_data)))
+        mb_stock_sycn_log(log_mp, user)
         seller_master_id = seller_master[0].id
         picklist_exclude_zones = get_exclude_zones(user)
         filter_params['user'] = user.id
@@ -1660,7 +1659,16 @@ def get_mp_inventory(request):
                 mrp_list = mrp_dict.values()
                 if not mrp_list:
                     sku_obj = SKUMaster.objects.get(id=sku['id'])
-                    mrp_list = [OrderedDict(( ('mrp', sku_obj.mrp), ('weight', get_sku_weight(sku_obj)),
+                    mrp = 0
+                    weight = ''
+                    collect_all_sellable_location = list(LocationMaster.objects.filter(zone__segregation='sellable',  zone__user=user.id, status=1).values_list('location', flat=True))
+                    bulk_zones= get_all_zones(user ,zones=[MILKBASKET_BULK_ZONE])
+                    bulk_locations=list(LocationMaster.objects.filter(zone__zone__in=bulk_zones, zone__user=user.id, status=1).values_list('location', flat=True))
+                    sellable_bulk_locations=list(chain(collect_all_sellable_location ,bulk_locations))
+                    mrp_weight_obj = StockDetail.objects.filter(sku=sku['id'], location__location__in=sellable_bulk_locations)
+                    if mrp_weight_obj:
+                        mrp_weight_obj = mrp_weight_obj.latest('creation_date')
+                    mrp_list = [OrderedDict(( ('mrp', mrp_weight_obj.batch_detail.mrp), ('weight', mrp_weight_obj.batch_detail.weight),
                                                                      ('inventory', OrderedDict((('sellable', 0),
                                                                                                 ('on_hold', 0),
                                                                                                 ('bulk_area', 0))))))]

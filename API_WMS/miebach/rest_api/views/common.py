@@ -2832,10 +2832,10 @@ def check_and_update_marketplace_stock(sku_codes, user):
         try:
             sku_tupl = (user.username, sku_codes)
             log.info('Update for stock sync of'+str(sku_tupl))
-            response = obj.update_stock_count(sku_tupl, user=user)
             log_mb_sync = ('Updating for stock sync of skus %s from the user %s ' %
                                         (str(sku_codes), str(user.username)))
             mb_stock_sycn_log(log_mb_sync, user)
+            response = obj.update_stock_count(sku_tupl, user=user)
         except Exception as e:
             log.info('Stock sync failed for %s and skus are %s and error statement is %s'%
                         (str(user.username),str(sku_codes), str(e)))

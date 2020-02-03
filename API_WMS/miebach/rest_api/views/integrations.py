@@ -1134,12 +1134,15 @@ def update_skus (skus, user='', company_name=''):
     failed_status = OrderedDict()
     try:
         token_user = user
-        if 'warehouse' not in skus.keys():
-            error_message = 'warehouse key missing'
-            update_error_message(failed_status, 5020, error_message, '', field_key='warehouse')
-        else:
+        sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+        if 'warehouse' not in skus.keys() and sister_whs1:
+            error_message = 'User %s have multiple warehouses. Please specify the warehouse.'% (str(user.username))
+            update_error_message(failed_status, 5021, error_message, '', field_key='warehouse')
+        if 'warehouse' in skus.keys():
+        #     error_message = 'warehouse key missing'
+        #     update_error_message(failed_status, 5020, error_message, '', field_key='warehouse')
+        # else:
             warehouse = skus['warehouse']
-            sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
             sister_whs1.append(token_user.username)
             sister_whs = []
             for sister_wh1 in sister_whs1:
@@ -1150,7 +1153,7 @@ def update_skus (skus, user='', company_name=''):
                 error_message = 'Invalid Warehouse Name'
                 update_error_message(failed_status, 5021, error_message, warehouse, field_key='warehouse')
         if failed_status:
-            return insert_status, failed_status
+            return insert_status, failed_status.values()
         user_attr_list = get_user_attributes(user, 'sku')
         user_attr_list = list(user_attr_list.values_list('attribute_name', flat=True))
         user_profile = user.userprofile
@@ -1308,6 +1311,8 @@ def update_customers(customers, user='', company_name=''):
                         continue
                     if not value in price_types:
                         insert_status['Invalid Price types for customer ids'].append(str(customer_id))
+                elif key =='tin_number':
+                    value = customer_data.get('gst_number', '')
                 customer_master_dict[key] = value
                 if customer_master:
                     setattr(customer_master, key, value)
@@ -2325,8 +2330,8 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                 break
 
             customer_master = []
-            if order.has_key('billing_address'):
-                order_details['customer_id'] = order['billing_address'].get('customer_id', 0)
+            if order.has_key('customer_id'):
+                order_details['customer_id'] = order.get('customer_id', 0)
                 if order_details['customer_id']:
                     try:
                         customer_master = CustomerMaster.objects.filter(user=user.id, customer_id=order_details['customer_id'])
@@ -2346,6 +2351,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         error_message = 'Invalid Customer ID %s' % str(order_details['customer_id'])
                         update_error_message(failed_status, 5024, error_message, original_order_id)
                         break
+            if order.has_key('billing_address'):
                 order_details['customer_name'] = order['billing_address'].get('name', customer_name)
                 order_details['telephone'] = order['billing_address'].get('phone_number', customer_telephone)
                 order_details['email_id'] = order['billing_address'].get('email', customer_email)
@@ -2353,6 +2359,16 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                 order_details['address'] = order['billing_address'].get('address', customer_address)
                 try:
                     order_details['pin_code'] = int(order['billing_address'].get('pincode', customer_pincode))
+                except:
+                    order_details['pin_code'] = 0
+            else:
+                order_details['customer_name'] = customer_name
+                order_details['telephone'] = customer_telephone
+                order_details['email_id'] = customer_email
+                order_details['city'] = customer_city
+                order_details['address'] = customer_address
+                try:
+                    order_details['pin_code'] = customer_pincode
                 except:
                     order_details['pin_code'] = 0
             if order.has_key('shipping_address'):

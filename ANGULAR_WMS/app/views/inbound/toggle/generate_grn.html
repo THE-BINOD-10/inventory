@@ -174,7 +174,7 @@
                   <tr>
                     <th>WMS CODE</th>
                     <th>Title</th>
-                    <th>Brand</th>
+                    <th ng-if="showCase.industry_type!='FMCG'">Brand</th>
                     <th ng-if = "showCase.show_ean_number">EAN Number</th>
                     <th>PO Qty</th>
                     <th ng-if="showCase.industry_type=='FMCG'"> Offer?</th>
@@ -229,7 +229,7 @@
                       <input type="text" name="sku_desc" ng-model="data.sku_desc" size="70" title="{{ data.sku_desc }}" class="form-control detectTab" readonly>
                     </td>
                     <td>
-                      <input type="text" name="sku_brand" ng-model="data.sku_brand" size="70" title="{{ data.sku_brand }}" class="form-control detectTab" readonly>
+                      <input ng-if="showCase.industry_type!='FMCG'" type="text" name="sku_brand" ng-model="data.sku_brand" size="70" title="{{ data.sku_brand }}" class="form-control detectTab" readonly>
                     </td>
                     <td ng-if = "showCase.show_ean_number">
                       <input type="text"  ng-model="data.ean_number" size="70" title="{{ data.ean_number }}" class="form-control detectTab" readonly>

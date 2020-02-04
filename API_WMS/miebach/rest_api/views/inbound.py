@@ -3148,7 +3148,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                          ('GSTIN No', purchase_data['gstin_number']))
 
             price = float(value) * float(purchase_data['price'])
-            po_data.append((purchase_data['wms_code'], purchase_data['supplier_code'], purchase_data['sku_desc'],
+            po_data.append((purchase_data['wms_code'], purchase_data['supplier_code'], purchase_data['sku_brand'], purchase_data['sku_desc'],
                             purchase_data['order_quantity'], value, price))
             continue
         else:
@@ -3166,7 +3166,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             'utgst_tax']
         if gst_taxes:
             price += (price / 100) * gst_taxes
-        po_data.append((purchase_data['wms_code'], purchase_data['supplier_code'], purchase_data['sku_desc'],
+        po_data.append((purchase_data['wms_code'], purchase_data['supplier_code'], purchase_data['sku_brand'], purchase_data['sku_desc'],
                         purchase_data['order_quantity'],
                         value, price))
     create_file_po_mapping(request, user, seller_receipt_id, myDict)

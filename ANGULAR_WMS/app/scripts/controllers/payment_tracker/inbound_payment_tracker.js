@@ -22,7 +22,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.po_qc = (vm.permissions.receive_process == "receipt-qc")? true: false;
     vm.g_data = Data.payment_based_invoice;
 
-    var sort_no = (vm.g_data.style_view)? 1: 0;
+    var sort_no = 5;
     vm.filters = {'datatable': 'POPaymentTrackerInvBased', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
     				'search4': '', 'search5': ''};
 
@@ -36,7 +36,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               }
            })
        .withDataProp('data')
-       .withOption('order', [sort_no, 'desc'])
+       .withOption('order', [sort_no, 'asc'])
        .withOption('processing', true)
        .withOption('serverSide', true)
        .withOption('createdRow', function(row, data, dataIndex) {
@@ -141,7 +141,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.invoice_update = function(form){
 
     var elem = angular.element($('form'));
-    elem = elem[0];
+    elem = elem[2];
     elem = $(elem).serializeArray();
     elem.push({'name':'invoice_number', 'value':Data.invoice_data.invoice_number});
 

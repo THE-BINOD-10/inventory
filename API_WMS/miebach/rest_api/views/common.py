@@ -5975,7 +5975,7 @@ def get_purchase_order_data(order):
         order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group,
                       'sku': order.product_code,
                       'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle,
-                      'sku_desc': order.product_code.sku_desc,
+                      'sku_desc': order.product_code.sku_desc,'sku_brand':order.product_code.sku_brand,
                       'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0, 'apmc_tax': 0, 'tin_number': '',
                       'intransit_quantity': intransit_quantity, 'shelf_life': order.product_code.shelf_life,
                       'show_imei': order.product_code.enable_serial_based}
@@ -6048,7 +6048,7 @@ def get_purchase_order_data(order):
         apmc_tax = 0
         tin_number = ''
     order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp,'wms_code': sku.wms_code,
-                  'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
+                  'sku_code': sku.sku_code, 'sku_brand':sku.sku_brand,'supplier_id': user_data.id, 'zone': sku.zone,
                   'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
                   'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,
                   'phone_number': user_data.phone_number, 'email_id': email_id,

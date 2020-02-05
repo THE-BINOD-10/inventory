@@ -2490,10 +2490,10 @@ def save_config_extra_fields(request, user=''):
                 misc_detail_obj = misc_detail[0]
                 misc_detail_obj.misc_value = fields
                 misc_detail_obj.save()
-        except:
+        except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
-            log.info('Issue for ' + request)
+            log.info('Issue for {} withe exception {}'.format(request.GET.dict(),str(e)))
             return HttpResponse("Something Went Wrong")
     else:
         return HttpResponse("Limit Exceeded Enter only Four Fields")
@@ -6755,8 +6755,8 @@ def update_order_dicts(orders, user='', company_name=''):
             order['order_summary_dict']['order_id'] = order_detail.id
             customer_order_summary = CustomerOrderSummary.objects.create(**order['order_summary_dict'])
         if order.get('seller_order_dict', {}):
-            trans_mapping = check_create_seller_order(order['seller_order_dict'], order_detail, user,
-                                                      order.get('swx_mappings', []), trans_mapping=trans_mapping)
+            check_create_seller_order(order['seller_order_dict'], order_detail, user,
+                                      order.get('swx_mappings', []), trans_mapping=trans_mapping)
         order_sku = {}
         sku_obj = SKUMaster.objects.filter(id=order_det_dict['sku_id'])
 

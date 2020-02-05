@@ -2485,7 +2485,7 @@ def save_config_extra_fields(request, user=''):
         misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=field_type)
         try:
             if not misc_detail.exists():
-                 MiscDetail.objects.create(user=user.id,misc_type=misc_type,misc_value=fields)
+                 MiscDetail.objects.create(user=user.id,misc_type=field_type,misc_value=fields)
             else:
                 misc_detail_obj = misc_detail[0]
                 misc_detail_obj.misc_value = fields

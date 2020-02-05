@@ -2052,7 +2052,7 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
     sister_whs1.append(user.username)
     sister_whs = []
-    inter_state = 1
+    inter_state = 0
     cgst_tax, igst_tax, sgst_tax = 0,0,0
     for sister_wh1 in sister_whs1:
         sister_whs.append(str(sister_wh1).lower())
@@ -2127,7 +2127,7 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                             customer_address = customer_master[0].address
                             customer_tax_type = customer_master[0].tax_type
                             if customer_tax_type == "inter_state":
-                                inter_state = 0
+                                inter_state = 1
                             try:
                                 customer_pincode = int(customer_master[0].pincode)
                             except:
@@ -2267,7 +2267,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
     order_status_dict = {'NEW': 1, 'RETURN': 3, 'CANCEL': 4}
     NOW = datetime.datetime.now()
     insert_status = []
-    inter_state = 1
+    inter_state = 0
     cgst_tax, igst_tax, sgst_tax, utgst_tax = 0,0,0,0
     final_data_dict = OrderedDict()
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
@@ -2344,7 +2344,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                             customer_pincode = customer_master[0].pincode
                             customer_tax_type = customer_master[0].tax_type
                             if customer_tax_type == "inter_state":
-                                inter_state = 0
+                                inter_state = 1
                     except:
                         customer_master = []
                     if not customer_master:

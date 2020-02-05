@@ -826,6 +826,7 @@ class MoveInventory(models.Model):
     batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True)
     pallet_detail = models.ForeignKey(PalletDetail, blank=True, null=True)
     seller = models.ForeignKey(SellerMaster, blank=True, null=True)
+    reason = models.CharField(max_length=256, default='', null=True, blank=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

@@ -1204,6 +1204,7 @@ def insert_move_inventory(request, user=''):
     seller_id = request.GET.get('seller_id', '')
     batch_no = request.GET.get('batch_number', '')
     mrp =request.GET.get('mrp', '')
+    reason = request.GET.get('reason', '')
     weight = request.GET.get('weight', '')
     if user.username in MILKBASKET_USERS :
         if not mrp or not weight :
@@ -1219,7 +1220,7 @@ def insert_move_inventory(request, user=''):
             seller_receipt_dict[str(seller_id)] = receipt_number
     status = move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id,
                                  batch_no=batch_no, mrp=mrp,weight=weight,
-                                 receipt_number=receipt_number, receipt_type='move-inventory')
+                                 receipt_number=receipt_number, receipt_type='move-inventory',reason = reason)
     if 'success' in status.lower():
         update_filled_capacity([source_loc, dest_loc], user.id)
         sku_code = [wms_code]
@@ -3457,3 +3458,10 @@ def ba_to_sa_calculate_now(request, user=''):
         return HttpResponse("Calculate BA to SA Failed")
 
     return HttpResponse('Calculated Successfully')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_move_inventory_reasons(request,user=''):
+    move_inventory_reasons = get_misc_value('move_inventory_reasons', user.id).split(',')
+    return HttpResponse(json.dumps({'move_inventory_reasons': move_inventory_reasons}))

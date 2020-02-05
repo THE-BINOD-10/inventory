@@ -878,6 +878,11 @@ def configurations(request, user=''):
         config_dict['rtv_reasons'] = ''
     else:
         config_dict['rtv_reasons'] = rtv_reasons
+    move_inventory_reasons = get_misc_value('move_inventory_reasons', user.id)
+    if move_inventory_reasons == 'false':
+        config_dict['move_inventory_reasons'] = ''
+    else:
+        config_dict['move_inventory_reasons'] = move_inventory_reasons
 
     if config_dict['mail_alerts'] == 'false':
         config_dict['mail_alerts'] = 0
@@ -1779,7 +1784,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
     return dest_batch
 
 def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp='',
-                        weight='', receipt_number='', receipt_type=''):
+                        weight='', receipt_number='', receipt_type='',reason=''):
     # sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
     try:
         sku = check_and_return_mapping_id(wms_code, "", user, False)
@@ -1861,7 +1866,7 @@ def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_i
 
         dest_batch = update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
                            dest_seller_id=seller_id, receipt_type=receipt_type, receipt_number=receipt_number)
-        move_inventory_dict = {'sku_id': sku_id, 'source_location_id': source[0].id,
+        move_inventory_dict = {'sku_id': sku_id, 'source_location_id': source[0].id,'reason':reason,
                                'dest_location_id': dest[0].id, 'quantity': move_quantity, }
         if seller_id:
             move_inventory_dict['seller_id'] = seller_id
@@ -2472,21 +2477,12 @@ def save_order_sku_extra_fields(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-def save_grn_fields(request, user=''):
-    grn_fields = request.GET.get('grn_fields', '')
-    po_fields = request.GET.get('po_fields', '')
-    rtv_reasons = request.GET.get('rtv_reasons', '')
-    if grn_fields:
-        misc_type = 'grn_fields'
-        fields = grn_fields
-    if po_fields:
-        misc_type = 'po_fields'
-        fields = po_fields
-    if rtv_reasons:
-        misc_type = 'rtv_reasons'
-        fields = rtv_reasons
-    if len(fields.split(',')) <=  4 :
-        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=misc_type)
+def save_config_extra_fields(request, user=''):
+    field_type = request.GET.get('field_type', '')
+    fields = request.GET.get('config_extra_fields', '')
+    field_type =field_type.strip('.')
+    if len(fields.split(',')) <=  4 or field_type == 'move_inventory_reasons' :
+        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=field_type)
         try:
             if not misc_detail.exists():
                  MiscDetail.objects.create(user=user.id,misc_type=misc_type,misc_value=fields)
@@ -5737,8 +5733,11 @@ def generate_barcode_dict(pdf_format, myDicts, user):
                     single.update()
                     single['SKUCode'] = sku if sku else label
                     single['Label'] = label if label else sku
-                    if barcode_opt == 'sku_ean' and sku_data.ean_number:
-                        single['Label'] = str(sku_data.ean_number)
+                    if barcode_opt == 'sku_ean' :
+                        if sku_data.ean_number:
+                            single['Label'] = str(sku_data.ean_number)
+                        elif  EANNumbers.objects.filter(sku__id = sku_data.id).exists():
+                            single['Label'] = EANNumbers.objects.filter(sku__id=sku_data.id)[0].ean_number
                     single['SKUPrintQty'] = quant
                     if myDict.get('mfg_date', ''):
                         single['mfg_date'] = myDict['mfg_date'][ind]

@@ -5596,8 +5596,14 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         email_body = 'pls find the attachment'
         email_subject = 'pos order'
     if report_type == 'rtv_mail':
-        email_body = 'Please Find the attachment'
-        email_subject = 'Returned To Vedor Form'
+        t = loader.get_template('templates/toggle/auto_rtv_mail_format.html')
+        email_body = t.render(data_dict_po)
+        extra_data = ''
+        if user.username in MILKBASKET_USERS:
+            extra_data = 'ASPL'
+        email_subject = 'Debit Note {} from {} {} to  {}'.format(data_dict_po.get('rtv_number',''),
+                                                                 extra_data,user.username,data_dict_po.get('supplier_name',''))
+
     if report_type == 'Purchase Order' and data_dict_po and user.username in MILKBASKET_USERS:
         milkbasket_mail_credentials = {'username':'Procurement@milkbasket.com', 'password':'codwtmtnjmvarvip'}
         t = loader.get_template('templates/toggle/auto_po_mail_format.html')
@@ -8737,8 +8743,8 @@ def get_po_putaway_summary(request, user=''):
         if quantity <= 0:
             continue
         data_dict = {'summary_id': seller_summary.id, 'order_id': order.id, 'sku_code': sku.sku_code,
-                     'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price']}
-        data_dict['tax_percent'] = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax + open_po.cess_tax
+                     'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price'],
+                     'tax_percent': open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax + open_po.cess_tax}
         d_zone_obj = StockDetail.objects.filter(sku_id =seller_summary.purchase_order.open_po.sku.id,sku__user = seller_summary.purchase_order.open_po.sku.user,location__zone__zone = 'DAMAGED_ZONE').exclude(quantity=0)
         if d_zone_obj:
             po_loc = POLocation.objects.filter(purchase_order_id=seller_summary.purchase_order_id,location__zone__user=seller_summary.purchase_order.open_po.sku.user,location__zone__zone= 'DAMAGED_ZONE')
@@ -8817,11 +8823,8 @@ def get_debit_note_data(rtv_number, user):
         data_dict['pincode'] = get_po.supplier.pincode
         data_dict['pan'] = get_po.supplier.pan_number
         data_dict.setdefault('item_details', [])
-        data_dict_item = {}
-        data_dict_item['sku_code'] = get_po.sku.sku_code
-        data_dict_item['sku_desc'] = get_po.sku.sku_desc
-        data_dict_item['hsn_code'] = get_po.sku.hsn_code
-        data_dict_item['order_qty'] = obj.quantity
+        data_dict_item = {'sku_code': get_po.sku.sku_code, 'sku_desc': get_po.sku.sku_desc,
+                          'hsn_code': get_po.sku.hsn_code, 'order_qty': obj.quantity}
         if user.username in MILKBASKET_USERS:
             data_dict_item['price'] = 0
         else:
@@ -9043,28 +9046,40 @@ def create_rtv(request, user=''):
             date_val = get_financial_year(datetime.datetime.now())
             date_val = date_val.replace('-', '')
             rtv_number = '%s%s-%s' % (rtv_prefix_code, date_val, rtv_no)
+            invoice_number= ''
+            send_rtv_mail = False
+            if get_misc_value('rtv_mail', user.id) == 'true':
+                send_rtv_mail = True
             for final_dict in data_list:
                 update_stock_detail(final_dict['stocks'], float(final_dict['quantity']), user, final_dict['rtv_id'])
                 #ReturnToVendor.objects.create(rtv_number=rtv_number, seller_po_summary_id=final_dict['summary_id'],
                 #                              quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
                 rtv_reason = final_dict.get('rtv_reasons', '')
                 rtv_obj = ReturnToVendor.objects.get(id=final_dict['rtv_id'])
+                if send_rtv_mail:
+                    if not invoice_number:
+                        invoice_number = rtv_obj.seller_po_summary.invoice_number
                 rtv_obj.rtv_number = rtv_number
                 rtv_obj.return_type = return_type
                 rtv_obj.status=0
                 rtv_obj.return_reason = rtv_reason
                 rtv_obj.save()
-            report_data_dict = {}
             show_data_invoice = get_debit_note_data(rtv_number, user)
-            if get_misc_value('rtv_mail', user.id) == 'true':
+            if send_rtv_mail:
                 supplier_email = show_data_invoice.get('supplier_email', '')
+                data_dict_po = {'po_date': show_data_invoice.get('grn_date',''),
+                                'po_reference': show_data_invoice.get('grn_no',''),
+                                'invoice_number': invoice_number,
+                                'supplier_name':show_data_invoice.get('supplier_name',''),
+                                'rtv_number':show_data_invoice.get('rtv_number',''),
+                                 }
                 t = loader.get_template('templates/toggle/rtv_mail.html')
                 rendered_mail = t.render({'show_data_invoice': [show_data_invoice]})
                 supplier_phone_number = show_data_invoice.get('phone_number', '')
                 company_name = show_data_invoice.get('warehouse_details', '').get('company_name', '')
                 write_and_mail_pdf('Return_to_Vendor', rendered_mail, request, user,
                                    supplier_email, supplier_phone_number, company_name + 'Return to vendor order',
-                                   '', False, False, 'rtv_mail')
+                                   '', False, False, 'rtv_mail' ,data_dict_po )
             if user.username in MILKBASKET_USERS:
                 check_and_update_marketplace_stock(sku_codes, user)
             return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
@@ -9078,9 +9093,7 @@ def create_rtv(request, user=''):
 
 def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, col_filters={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    search_params = {}
-    search_params['status'] = 1
-    search_params['seller_po_summary__purchase_order__open_po__sku_id__in'] = sku_master_ids
+    search_params = {'status': 1, 'seller_po_summary__purchase_order__open_po__sku_id__in': sku_master_ids}
     lis = ['seller_po_summary__purchase_order__open_po__supplier_id',
            'seller_po_summary__purchase_order__open_po__supplier_id',
            'seller_po_summary__purchase_order__open_po__supplier__name',

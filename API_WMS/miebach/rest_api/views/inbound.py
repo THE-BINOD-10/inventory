@@ -3085,15 +3085,15 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 else:
                     seller_receipt_id = get_st_seller_receipt_id(data)
 
-        if 'batch_no' in myDict.keys():
-            batch_dict['receipt_number'] = seller_receipt_id
-            add_ean_weight_to_batch_detail(purchase_data['sku'], batch_dict)
-
             seller_received_list = update_seller_po(data, value, user, myDict, i, receipt_id=seller_receipt_id,
                                                     invoice_number=invoice_number, invoice_date=bill_date,
                                                     challan_number=challan_number, challan_date=challan_date,
                                                     dc_level_grn=dc_level_grn, round_off_total=round_off_total,
                                                     batch_dict=batch_dict, po_type=po_type)
+        if 'batch_no' in myDict.keys():
+            batch_dict['receipt_number'] = seller_receipt_id
+            add_ean_weight_to_batch_detail(purchase_data['sku'], batch_dict)
+
         if 'wms_code' in myDict.keys():
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
@@ -8415,7 +8415,6 @@ def get_inv_based_po_payment_data(start_index, stop_index, temp_data, search_ter
     #master_data = master_data.exclude(invoice_amount=F('payment_received'))
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-
     for data in master_data[start_index:stop_index]:
         seller_summary_obj = SellerPOSummary.objects.filter(invoice_number=data['invoice_number'],\
                                              purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
@@ -8438,7 +8437,7 @@ def get_inv_based_po_payment_data(start_index, stop_index, temp_data, search_ter
             due_date = (invoice_date + datetime.timedelta(days=credit_period)).strftime("%d %b %Y")
             invoice_date = invoice_date.strftime("%d %b %Y")
             data_dict = OrderedDict((('invoice_number', data['invoice_number']),
-                                     ('invoice_date', invoice_date), ('due_date', due_date),
+                                     ('invoicee_date', invoice_date), ('due_date', due_date),
                                      ('supplier_name', data['purchase_order__open_po__supplier__name']),
                                      ('supplier_id', data['purchase_order__open_po__supplier__id']),
                                      ('invoice_amount', "%.2f" % tot_amt),

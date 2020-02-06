@@ -73,7 +73,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 return data;
             }
         }),
-        DTColumnBuilder.newColumn('invoice_date').withTitle('Invoice Date'),
+        DTColumnBuilder.newColumn('invoicee_date').withTitle('Invoice Date'),
         DTColumnBuilder.newColumn('due_date').withTitle('Due Date'),
     ];
 

@@ -8437,7 +8437,7 @@ def get_inv_based_po_payment_data(start_index, stop_index, temp_data, search_ter
             due_date = (invoice_date + datetime.timedelta(days=credit_period)).strftime("%d %b %Y")
             invoice_date = invoice_date.strftime("%d %b %Y")
             data_dict = OrderedDict((('invoice_number', data['invoice_number']),
-                                     ('invoice_date', invoice_date), ('due_date', due_date),
+                                     ('invoicee_date', invoice_date), ('due_date', due_date),
                                      ('supplier_name', data['purchase_order__open_po__supplier__name']),
                                      ('supplier_id', data['purchase_order__open_po__supplier__id']),
                                      ('invoice_amount', "%.2f" % tot_amt),

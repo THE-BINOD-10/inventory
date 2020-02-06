@@ -25,7 +25,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.g_data = Data.payment_based_invoice;
     // vm.g_data.style_view = true;
 
-    var sort_no = (vm.g_data.style_view)? 1: 0;
+    var sort_no = 5;
     vm.filters = {'datatable': 'PaymentTrackerInvBased', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
     				'search4': '', 'search5': ''};
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -62,7 +62,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('invoice_amount').withTitle('Invoice Amount'),
         DTColumnBuilder.newColumn('payment_received').withTitle('Payment Received'),
         DTColumnBuilder.newColumn('payment_receivable').withTitle('Payment Receivable'),
-        DTColumnBuilder.newColumn('invoice_date').withTitle('Invoice Date'),
+        DTColumnBuilder.newColumn('invoicee_date').withTitle('Invoice Date'),
         DTColumnBuilder.newColumn('due_date').withTitle('Due Date'),
     ];
 
@@ -158,7 +158,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.invoice_update = function(form){
 
     var elem = angular.element($('form'));
-    elem = elem[1];
+    elem = elem[0];
     elem = $(elem).serializeArray();
     elem.push({'name':'invoice_number', 'value':Data.invoice_data.invoice_number});
 
@@ -191,7 +191,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     if(value) {
       var data = {order_id: order.order_id, amount: value,
                   bank: bank, mode_of_payment: mode_of_payment,
-                  remarks: remarks}
+                  remarks: remarks, invoice_number:order.invoice_number}
       vm.service.apiCall("update_payment_status/", "GET", data).then(function(data){
         if(data.message) {
 

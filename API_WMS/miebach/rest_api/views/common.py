@@ -489,7 +489,7 @@ def get_search_params(request, user=''):
                     'aging_period': 'aging_period', 'source_sku_code': 'source_sku_code',
                     'destination_sku_code': 'destination_sku_code',
                     'destination_sku_category': 'destination_sku_category',
-                    'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name'}
+                    'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name', 'customer':'customer'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -6708,8 +6708,8 @@ def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, i
     elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('quantity'):
         final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name]['quantity'] + \
                                                               adding_dat.get('quantity', 0)
-    elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('invoice_amount'):
-        final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name][
+    # elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('invoice_amount'):
+        final_data_dict[grouping_key][key_name]['invoice_amount'] = final_data_dict[grouping_key][key_name][
                                                                   'invoice_amount'] + \
                                                               adding_dat.get('invoice_amount', 0)
     else:

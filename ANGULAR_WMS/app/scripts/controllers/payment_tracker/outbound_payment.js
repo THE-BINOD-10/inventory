@@ -29,7 +29,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.g_data = Data.payment_based_invoice;
     // vm.g_data.style_view = true;
 
-    var sort_no = (vm.g_data.style_view)? 1: 0;
+    var sort_no = 6;
     vm.filters = {'datatable': 'PaymentTrackerInvBased', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
             'search4': '', 'search5': ''};
 
@@ -73,7 +73,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 return data;
             }
         }),
-        DTColumnBuilder.newColumn('invoice_date').withTitle('Invoice Date'),
+        DTColumnBuilder.newColumn('invoicee_date').withTitle('Invoice Date'),
         DTColumnBuilder.newColumn('due_date').withTitle('Due Date'),
     ];
 

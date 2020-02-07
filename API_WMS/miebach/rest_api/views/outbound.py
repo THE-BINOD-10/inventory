@@ -8090,6 +8090,10 @@ def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, 
         seller_ord_summary = SellerOrderSummary.objects.filter(**user_filter)\
                                       .filter(invoice_number=data['invoice_number'])
         order_ids = seller_ord_summary.values_list('order__id', flat= True)
+        picked_amount = seller_ord_summary.values('order__sku_id', 'order__invoice_amount', 'order__quantity')\
+                                        .distinct().annotate(pic_qty=Sum('quantity'))\
+                                        .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
+                                        .aggregate(Sum('cur_amt'))['cur_amt__sum']
         order_amt_cal = OrderDetail.objects.filter(id__in=order_ids).aggregate(invoice_amount = Sum('invoice_amount'), payment_received=Sum('payment_received'))
         invoice_date = CustomerOrderSummary.objects.filter(order_id__in=order_ids)\
                                            .order_by('-invoice_date').values_list('invoice_date', flat=True)[0]
@@ -8102,13 +8106,13 @@ def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, 
         if invoice_date:
             due_date = (invoice_date + datetime.timedelta(days=credit_period)).strftime("%d %b %Y")
             invoice_date = invoice_date.strftime("%d %b %Y")
-        payment_receivable = order_amt_cal['invoice_amount'] - order_amt_cal['payment_received']
+        payment_receivable = picked_amount - order_amt_cal['payment_received']
         data_dict = OrderedDict((('invoice_number', data['invoice_number']),
                                 ('invoicee_date', invoice_date),
                                 ('due_date', due_date),
                                 ('customer_name', data['order__customer_name']),
                                 ('customer_id', data['order__customer_id']),
-                                ('invoice_amount', "%.2f" % order_amt_cal['invoice_amount']),
+                                ('invoice_amount', "%.2f" % picked_amount),
                                 ('payment_received', "%.2f" % order_amt_cal['payment_received']),
                                 ('payment_receivable', "%.2f" % payment_receivable)
                                ))
@@ -8360,6 +8364,7 @@ def update_payment_status(request, user=''):
 def get_outbound_payment_report(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
 
     ''' Outbound Payment Report datatable code '''
+    data_dict = OrderedDict()
     headers, search_params, filter_params = get_search_params(request)
     user_profile = UserProfile.objects.get(user_id=user.id)
     # customer_name = request.POST.get('customer', '')
@@ -8369,7 +8374,7 @@ def get_outbound_payment_report(start_index, stop_index, temp_data, search_term,
     user_filter = {'order__user': user.id}
     result_values = ['payment_id', 'payment_date', 'order__sellerordersummary__invoice_number',
                      'mode_of_pay', 'remarks', 'order__customer_name', 'order__customer_id',
-                     'order__invoice_amount', 'payment_received']#to make distinct grouping
+                     'order__invoice_amount', 'payment_received', 'order__order_id', 'order__quantity']#to make distinct grouping
     #filter
     if 'from_date' in search_params:
         from_date = datetime.datetime.combine(search_params['from_date'], datetime.time())
@@ -8418,7 +8423,7 @@ def get_outbound_payment_report(start_index, stop_index, temp_data, search_term,
         master_data = PaymentSummary.objects.filter(order__sellerordersummary__invoice_number__in=competed_inv_nos)\
                         .filter(search_query, **user_filter)\
                         .values(*result_values).distinct()\
-                        .annotate(tot_payment_received = Sum('payment_received'), tot_invoice_amount = Sum('order__invoice_amount'))
+
 
     elif order_term:
         if order_term == 'asc' and (col_num or col_num == 0):
@@ -8428,34 +8433,49 @@ def get_outbound_payment_report(start_index, stop_index, temp_data, search_term,
         master_data = PaymentSummary.objects.filter(order__sellerordersummary__invoice_number__in=competed_inv_nos)\
                         .filter(**user_filter)\
                         .values(*result_values).distinct()\
-                        .annotate(tot_payment_received = Sum('payment_received'), tot_invoice_amount = Sum('order__invoice_amount'))\
                         .order_by(order_by)
     else:
         master_data = PaymentSummary.objects.filter(order__sellerordersummary__invoice_number__in=competed_inv_nos)\
                             .filter(**user_filter)\
                             .values(*result_values).distinct()\
-                            .annotate(tot_payment_received = Sum('payment_received'), tot_invoice_amount = Sum('order__invoice_amount'))
-    temp_data['recordsTotal'] = master_data.count()
-    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    # temp_data['recordsTotal'] = master_data.count()
+    # temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
-    for data in master_data[start_index:stop_index]:
-
-        tot_inv_amount = SellerOrderSummary.objects.filter(invoice_number=data['order__sellerordersummary__invoice_number'],\
-                                                    order__customer_id=data['order__customer_id'])\
-                                                   .aggregate(tot_inv_amnt=Sum('order__invoice_amount'))
+    for data in master_data:
+        seller_order_summary = SellerOrderSummary.objects.filter(invoice_number=data['order__sellerordersummary__invoice_number'], order__user=user.id)
+        picked_amount = seller_order_summary.values('order__invoice_amount', 'order__quantity')\
+                                               .distinct().annotate(pic_qty=Sum('quantity'))\
+                                               .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
+                                               .aggregate(Sum('cur_amt'))['cur_amt__sum']
+        grouping_key = data['order__order_id']
         payment_date = data['payment_date'].strftime("%d %b %Y") if data['payment_date'] else ''
-
-        data_dict = OrderedDict((('payment_id', data['payment_id']),
-                                ('payment_date', payment_date),
-                                ('invoice_number', data['order__sellerordersummary__invoice_number']),
-                                ('mode_of_pay', data['mode_of_pay']),
-                                ('remarks', data['remarks']),
-                                ('customer_name', data['order__customer_name']),
-                                ('customer_id', data['order__customer_id']),
-                                ('invoice_amount', "%.2f" % tot_inv_amount['tot_inv_amnt']),
-                                ('payment_received', "%.2f" % data['tot_payment_received'])
-                               ))
-        temp_data['aaData'].append(data_dict)
+        data_dict.setdefault(grouping_key, {'payment_id': data['payment_id'],
+                                            'payment_date': payment_date,
+                                            'invoice_number': data['order__sellerordersummary__invoice_number'],
+                                            'mode_of_pay':data['mode_of_pay'],
+                                            'remarks': data['remarks'],
+                                            'customer_name':data['order__customer_name'],
+                                            'customer_id': data['order__customer_id'],
+                                            'invoice_amount': picked_amount,
+                                            'payment_received':0
+                                            })
+        # data_dict[grouping_key]['invoice_amount'] += data['order__invoice_amount']
+        data_dict[grouping_key]['payment_received'] += data['payment_received'] 
+        # data_dict = OrderedDict((('payment_id', data['payment_id']),
+        #                         ('payment_date', payment_date),
+        #                         ('invoice_number', data['order__sellerordersummary__invoice_number']),
+        #                         ('mode_of_pay', data['mode_of_pay']),
+        #                         ('remarks', data['remarks']),
+        #                         ('customer_name', data['order__customer_name']),
+        #                         ('customer_id', data['order__customer_id']),
+        #                         ('invoice_amount', "%.2f" % data['tot_invoice_amount']),
+        #                         ('payment_received', "%.2f" % data['tot_payment_received'])
+        #                        ))
+    order_data_loop = data_dict.values()
+    temp_data['recordsTotal'] =len(order_data_loop)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for data1 in order_data_loop[start_index:stop_index]:
+        temp_data['aaData'].append(data1)
 
 
 @login_required

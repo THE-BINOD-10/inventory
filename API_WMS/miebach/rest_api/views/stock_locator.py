@@ -3362,6 +3362,12 @@ def ba_to_sa_calculate_now(request, user=''):
     master_data = SKUMaster.objects.filter(user=user.id, status=1).order_by('id').only('id', 'sku_code')
     sellable_zones = get_all_sellable_zones(user)
     total_avg_sale_per_day_value = 0
+    total_avg_sale_per_day_unit = 0
+    sku_avg_sale_per_day_units =  0
+    sku_avg_sale_per_day_value = 0
+    cumulative_contribution = 0
+    classification = 'Slow'
+    peak=0
     sku_avg_sale_mapping = OrderedDict()
     sku_avail_qty = OrderedDict()
     sku_res_qty = OrderedDict()
@@ -3372,7 +3378,7 @@ def ba_to_sa_calculate_now(request, user=''):
     bulk_zone_name = MILKBASKET_BULK_ZONE
     bulk_zones = get_all_zones(user, zones=[bulk_zone_name])
     locations = LocationMaster.objects.filter(zone__user=user.id, zone__zone__in=zones)
-    last_month_date = get_utc_start_date(datetime.now() - timedelta(31))
+    last_month_date = get_utc_start_date(datetime.datetime.now() - timedelta(31))
     if not locations:
         return HttpResponse("Sellable Locations not found")
     seller_master = SellerMaster.objects.filter(seller_id=1, user=user.id)
@@ -3476,7 +3482,7 @@ def ba_to_sa_calculate_now(request, user=''):
             else:
                 sku_avg_sale_mapping_data = sku_avg_sale_mapping[data.id]
                 sku_avg_sale_per_day_units = sku_avg_sale_mapping_data['avg_sale_per_day_units']
-                # sku_avg_sale_per_day_value = sku_avg_sale_mapping_data['avg_sale_per_day_value']
+                sku_avg_sale_per_day_value = sku_avg_sale_mapping_data['avg_sale_per_day_value']
                 sku_avail_qty = sku_avg_sale_mapping_data['avail_qty']
                 peak = sku_avg_sale_mapping_data['peak']
                 avg_more_sales = filter(lambda person: person['sku_avg_sale_per_day_units'] >= sku_avg_sale_per_day_value,

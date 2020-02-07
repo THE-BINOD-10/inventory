@@ -206,9 +206,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           // customer.payment_received = Number(customer.payment_received) + Number(value);
           // vm.payment_data.total_payment_receivable = Number(vm.payment_data.total_payment_receivable) - Number(value);
           // vm.payment_data.total_payment_received = Number(vm.payment_data.total_payment_received) + Number(value);
-          if(order.inv_amount == order.received) {
-            vm.model_data.data.splice(index, 1);
-          }
+          // if(order.inv_amount == order.received) {
+          //   vm.model_data.data.splice(index, 1);
+          // }
           // if (customer.payment_received == customer.invoice_amount) {
           //   vm.payment_data.payments.splice(index2, 1);
           // }

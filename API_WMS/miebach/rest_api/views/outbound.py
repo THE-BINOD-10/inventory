@@ -32,6 +32,7 @@ from rest_api.rista_save_transfer import *
 
 log = init_logger('logs/outbound.log')
 picklist_qc_log =  init_logger('logs/picklist_qc_log.log')
+payment_log = init_logger('logs/payments.log')
 
 today = datetime.datetime.now().strftime("%Y%m%d")
 storehippo_fulfillments_log = init_logger('logs/storehippo_fulfillments_log_' + today + '.log')
@@ -8089,7 +8090,7 @@ def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, 
         seller_ord_summary = SellerOrderSummary.objects.filter(**user_filter)\
                                       .filter(invoice_number=data['invoice_number'])
         order_ids = seller_ord_summary.values_list('order__id', flat= True)
-        invoice_amnt = OrderDetail.objects.filter(id__in=order_ids).aggregate(invoice_amount = Sum('invoice_amount'))
+        order_amt_cal = OrderDetail.objects.filter(id__in=order_ids).aggregate(invoice_amount = Sum('invoice_amount'), payment_received=Sum('payment_received'))
         invoice_date = CustomerOrderSummary.objects.filter(order_id__in=order_ids)\
                                            .order_by('-invoice_date').values_list('invoice_date', flat=True)[0]
         if not invoice_date:
@@ -8101,14 +8102,14 @@ def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, 
         if invoice_date:
             due_date = (invoice_date + datetime.timedelta(days=credit_period)).strftime("%d %b %Y")
             invoice_date = invoice_date.strftime("%d %b %Y")
-        payment_receivable = data['invoice_amount'] - data['payment_received']
+        payment_receivable = order_amt_cal['invoice_amount'] - order_amt_cal['payment_received']
         data_dict = OrderedDict((('invoice_number', data['invoice_number']),
                                 ('invoicee_date', invoice_date),
                                 ('due_date', due_date),
                                 ('customer_name', data['order__customer_name']),
                                 ('customer_id', data['order__customer_id']),
-                                ('invoice_amount', "%.2f" % invoice_amnt['invoice_amount']),
-                                ('payment_received', "%.2f" % data['payment_received']),
+                                ('invoice_amount', "%.2f" % order_amt_cal['invoice_amount']),
+                                ('payment_received', "%.2f" % order_amt_cal['payment_received']),
                                 ('payment_receivable', "%.2f" % payment_receivable)
                                ))
         temp_data['aaData'].append(data_dict)
@@ -8299,6 +8300,7 @@ def update_payment_status(request, user=''):
         data_dict = dict(request.GET.iterlists())
         invoice_numbers = [request.GET.get('invoice_number', '')]
     payment_id = get_incremental(user, "payment_summary", 1)
+    payment_log.info('Update payment request from user %s is %s' % (str(user.username),str(data_dict)))
     for index, invoice_number in enumerate(invoice_numbers):
         order_ids = get_order_ids(user, invoice_number)
         data_dict['order_id'] = order_ids
@@ -8350,6 +8352,7 @@ def update_payment_status(request, user=''):
                         order.payment_received = float(order.payment_received) + float(payment)
                         payment = 0
                     order.save()
+                payment_log.info('Payment updated %s for invoice_number %s' % (str(order.payment_received), str(invoice_number)))
     return HttpResponse(json.dumps({'status': True, 'message': 'Payment Successfully Completed !'}))
 
 
@@ -8437,9 +8440,9 @@ def get_outbound_payment_report(start_index, stop_index, temp_data, search_term,
 
     for data in master_data[start_index:stop_index]:
 
-        # tot_inv_amount = SellerOrderSummary.objects.filter(invoice_number=data['order__sellerordersummary__invoice_number'],\
-        #                                             order__customer_id=data['order__customer_id'])\
-        #                                            .aggregate(tot_inv_amnt=Sum('order__invoice_amount'))
+        tot_inv_amount = SellerOrderSummary.objects.filter(invoice_number=data['order__sellerordersummary__invoice_number'],\
+                                                    order__customer_id=data['order__customer_id'])\
+                                                   .aggregate(tot_inv_amnt=Sum('order__invoice_amount'))
         payment_date = data['payment_date'].strftime("%d %b %Y") if data['payment_date'] else ''
 
         data_dict = OrderedDict((('payment_id', data['payment_id']),
@@ -8449,7 +8452,7 @@ def get_outbound_payment_report(start_index, stop_index, temp_data, search_term,
                                 ('remarks', data['remarks']),
                                 ('customer_name', data['order__customer_name']),
                                 ('customer_id', data['order__customer_id']),
-                                ('invoice_amount', "%.2f" % data['tot_invoice_amount']),
+                                ('invoice_amount', "%.2f" % tot_inv_amount['tot_inv_amnt']),
                                 ('payment_received', "%.2f" % data['tot_payment_received'])
                                ))
         temp_data['aaData'].append(data_dict)

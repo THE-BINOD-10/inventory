@@ -71,7 +71,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.po_qc = (vm.permissions.receive_process == "receipt-qc")? true: false;
     vm.g_data = Data.payment_based_invoice;
 
-    var sort_no = (vm.g_data.style_view)? 1: 0;
+    var sort_no = 2;
     vm.filters = {'datatable': 'OutboundPaymentReport', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
     				'search4': '', 'search5': '', 'search6': '', 'search7': ''/*, 'search8': ''*/};
 

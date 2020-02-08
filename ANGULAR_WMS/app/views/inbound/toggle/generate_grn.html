@@ -14,7 +14,7 @@
 </style>
 <div id="page-pop" class="modal fade in over-x" tabindex="-1" role="dialog" style="z-index: 1049">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid grn-form" novalidate="novalidate">
-  <div class="modal-dialog model-custom modal-lg" style="width: 1200px;">
+  <div class="modal-dialog model-custom modal-lg" ng-style="showCase.extra_width">
     <div class="modal-content mw100">
       <div class="process-overlay" ng-if="process || showCase.fb.process"><div class="process-text">Loading...</div></div>
       <div class="modal-header">
@@ -174,7 +174,7 @@
                   <tr>
                     <th>WMS CODE</th>
                     <th>Title</th>
-                    <th>Brand</th>
+                    <th ng-if="showCase.industry_type!='FMCG'">Brand</th>
                     <th ng-if = "showCase.show_ean_number">EAN Number</th>
                     <th>PO Qty</th>
                     <th ng-if="showCase.industry_type=='FMCG'"> Offer?</th>
@@ -228,7 +228,7 @@
                     <td>
                       <input type="text" name="sku_desc" ng-model="data.sku_desc" size="70" title="{{ data.sku_desc }}" class="form-control detectTab" readonly>
                     </td>
-                    <td>
+                    <td ng-if="showCase.industry_type!='FMCG'">
                       <input type="text" name="sku_brand" ng-model="data.sku_brand" size="70" title="{{ data.sku_brand }}" class="form-control detectTab" readonly>
                     </td>
                     <td ng-if = "showCase.show_ean_number">

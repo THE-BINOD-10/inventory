@@ -489,7 +489,7 @@ def get_search_params(request, user=''):
                     'aging_period': 'aging_period', 'source_sku_code': 'source_sku_code',
                     'destination_sku_code': 'destination_sku_code',
                     'destination_sku_category': 'destination_sku_category',
-                    'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name'}
+                    'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name', 'customer':'customer'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -5978,7 +5978,7 @@ def get_purchase_order_data(order):
         order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group,
                       'sku': order.product_code,
                       'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle,
-                      'sku_desc': order.product_code.sku_desc,
+                      'sku_desc': order.product_code.sku_desc,'sku_brand':order.product_code.sku_brand,
                       'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0, 'apmc_tax': 0, 'tin_number': '',
                       'intransit_quantity': intransit_quantity, 'shelf_life': order.product_code.shelf_life,
                       'show_imei': order.product_code.enable_serial_based}
@@ -6051,7 +6051,7 @@ def get_purchase_order_data(order):
         apmc_tax = 0
         tin_number = ''
     order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp,'wms_code': sku.wms_code,
-                  'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
+                  'sku_code': sku.sku_code, 'sku_brand':sku.sku_brand,'supplier_id': user_data.id, 'zone': sku.zone,
                   'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
                   'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,
                   'phone_number': user_data.phone_number, 'email_id': email_id,
@@ -6711,8 +6711,8 @@ def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, i
     elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('quantity'):
         final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name]['quantity'] + \
                                                               adding_dat.get('quantity', 0)
-    elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('invoice_amount'):
-        final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name][
+    # elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('invoice_amount'):
+        final_data_dict[grouping_key][key_name]['invoice_amount'] = final_data_dict[grouping_key][key_name][
                                                                   'invoice_amount'] + \
                                                               adding_dat.get('invoice_amount', 0)
     else:

@@ -3580,6 +3580,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
 def common_calculations(arg_data):
     for key,val in arg_data.items():
         exec(key + '=val')
+    order_discount = discount
+    unit_discount = float(order_discount)/dat.original_quantity
+    discount = unit_discount * quantity
     amt = (unit_price * quantity) - discount
     base_price = "%.2f" % (unit_price * quantity)
     hsn_code = ''

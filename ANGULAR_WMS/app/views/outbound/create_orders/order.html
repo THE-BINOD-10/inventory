@@ -132,7 +132,7 @@
             <input name="email_id" class="form-control" type="email" ng-model="showCase.model_data.email_id" readonly>
           </div>
         </div>
-        <div class="col-md-4 col-sm-4 col-xs-6">
+        <div class="col-md-4 col-sm-4 col-xs-6" ng-hide="true">
           <div class="form-group">
             <label class="control-label">Tax Type</label>
             <select class="form-control" name="tax_type" ng-model="showCase.model_data.tax_type" ng-change="showCase.change_tax_type();">

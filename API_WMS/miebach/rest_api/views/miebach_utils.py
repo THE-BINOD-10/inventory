@@ -2819,7 +2819,7 @@ def get_receipt_filter_data(search_params, user, sub_user):
                     searchable = attribute.attribute_value
                 if attribute.attribute_name == 'Bundle':
                     bundle = attribute.attribute_value
-        ord_dict = OrderedDict((('PO Reference', po_reference), ('WMS Code', data.open_po.sku.wms_code),
+        ord_dict = OrderedDict((('PO Number', po_reference), ('WMS Code', data.open_po.sku.wms_code),
                                                 ('SKU Category', data.open_po.sku.sku_category),
                                                 ('SKU Sub Category', data.open_po.sku.sub_category),
                                                 ('Sku Brand', data.open_po.sku.sku_brand),
@@ -3805,7 +3805,7 @@ def get_stock_summary_data(search_params, user, sub_user):
                                                                            'sku__sku_brand',
                                                                            'sku__sku_category',
                                                                            'sku__sub_category','sku__user').distinct().annotate(
-        total=Sum('quantity'), stock_value=Sum(F('quantity') * F('sku__cost_price'))).filter(quantity__gt=0,
+        total=Sum('quantity'), stock_value=Sum(F('quantity') * F('unit_price'))).filter(quantity__gt=0,
                                       **search_parameters)
     if search_stage and not search_stage == 'In Stock':
         sku_master = []
@@ -4821,6 +4821,7 @@ def get_order_summary_data(search_params, user, sub_user):
         tax = 0
         vat = 5.5
         discount = 0
+        unit_discount = 0
         mrp_price = data['sku__mrp']
         order_status = ''
         remarks = ''
@@ -4833,6 +4834,7 @@ def get_order_summary_data(search_params, user, sub_user):
         if order_summary.exists():
             mrp_price = order_summary[0].mrp
             discount = order_summary[0].discount
+            unit_discount = float(discount)/float(data['original_quantity'])
             order_status = order_summary[0].status
             remarks = order_summary[0].central_remarks
             order_taken_by = order_summary[0].order_taken_by
@@ -4951,9 +4953,10 @@ def get_order_summary_data(search_params, user, sub_user):
         #tax_percent = 0
         #if float(taxable_amount):
         #    tax_percent = (tax * 100)/float(taxable_amount)
-        invoice_tax = "%.2f" % (((float(unit_price) * float(quantity))/100)*(tax_percent))
+        amount = (float(unit_price) * float(quantity)) - (unit_discount * float(quantity))
+        invoice_tax = "%.2f" % ((amount/100)*(tax_percent))
 
-        invoice_amount_picked = "%.2f" % ((float(unit_price) * float(quantity)) + float(invoice_tax) - discount)
+        invoice_amount_picked = "%.2f" % ((amount) + float(invoice_tax))
 
         order_extra_fields ={}
         for extra in extra_order_fields :

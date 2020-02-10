@@ -3363,11 +3363,11 @@ def ba_to_sa_calculate_now(request, user=''):
     sellable_zones = get_all_sellable_zones(user)
     total_avg_sale_per_day_value = 0
     total_avg_sale_per_day_unit = 0
-    sku_avg_sale_per_day_units =  0
+    sku_avg_sale_per_day_units = 0
     sku_avg_sale_per_day_value = 0
     cumulative_contribution = 0
     classification = 'Slow'
-    peak=0
+    peak = 0
     sku_avg_sale_mapping = OrderedDict()
     sku_avail_qty = OrderedDict()
     sku_res_qty = OrderedDict()
@@ -3460,10 +3460,9 @@ def ba_to_sa_calculate_now(request, user=''):
                                                  'avg_sale_per_day_units': avg_sale_per_day_units}
             else:
                 sku_avg_sale_mapping[data.id] = {'avg_sale_per_day_value': 0,
-                                                  'avail_qty': 0,
-                                                  'peak': 0,
-                                                  'avg_sale_per_day_units': 0}
-
+                                                 'avail_qty': 0,
+                                                 'peak': 0,
+                                                 'avg_sale_per_day_units': 0}
 
         log.info(
             "BA to SA calculating segregation for user %s ended at %s" % (user.username, str(datetime.datetime.now())))
@@ -3491,7 +3490,7 @@ def ba_to_sa_calculate_now(request, user=''):
             sku_avg_sale_per_day_value = sku_avg_sale_mapping_data['avg_sale_per_day_value']
             sku_avail_qty = sku_avg_sale_mapping_data['avail_qty']
             peak = sku_avg_sale_mapping_data['peak']
-            avg_more_sales = filter(lambda person: person['sku_avg_sale_per_day_units'] >= sku_avg_sale_per_day_value,
+            avg_more_sales = filter(lambda person: person['sku_avg_sale_per_day_units'] >= sku_avg_sale_per_day_units,
                                     sku_avg_sale_mapping.values())
             sum_avg_more_sales = 0
             for avg_more_sale in avg_more_sales:

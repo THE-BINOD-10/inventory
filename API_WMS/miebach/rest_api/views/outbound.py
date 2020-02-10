@@ -8500,7 +8500,7 @@ def get_outbound_payment_report(start_index, stop_index, temp_data, search_term,
         payment_date = data['payment_date'].strftime("%d %b %Y") if data['payment_date'] else ''
         data_dict.setdefault(grouping_key, {'payment_id': data['payment_id'],
                                             'payment_date': payment_date,
-                                            'invoice_number': data['invoice_number'],
+                                            'invoicee_number': data['invoice_number'],
                                             'mode_of_pay':data['mode_of_pay'],
                                             'remarks': data['remarks'],
                                             'customer_name':data['order__customer_name'],

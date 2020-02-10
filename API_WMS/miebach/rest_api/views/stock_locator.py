@@ -3458,6 +3458,12 @@ def ba_to_sa_calculate_now(request, user=''):
                                                  'avail_qty': avail_qty,
                                                  'peak': peak,
                                                  'avg_sale_per_day_units': avg_sale_per_day_units}
+            else:
+                sku_avg_sale_mapping[data.id] = {'avg_sale_per_day_value': 0,
+                                                  'avail_qty': 0,
+                                                  'peak': 0,
+                                                  'avg_sale_per_day_units': 0}
+
 
         log.info(
             "BA to SA calculating segregation for user %s ended at %s" % (user.username, str(datetime.datetime.now())))

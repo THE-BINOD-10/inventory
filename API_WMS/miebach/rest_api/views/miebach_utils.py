@@ -3059,9 +3059,13 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Selling Price', data.order.unit_price), ('Sale Tax Percent', tax_percent),
                                                             ('Cost Price', cost_price), ('Cost Tax Percent', cost_tax_percent),
                                                             ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])), ('Customer Name', customer_name),
-                                                            ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
-                                                            ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate),
-                                                            ('Warehouse', warehouse_users.get(data.order.user))))
+                                            ))
+                    if user.userprofile.industry_type == 'FMCG':
+                        ord_dict['Batch Number'] = batch_number
+                        ord_dict['MRP'] = batchDetail_mrp
+                        ord_dict['Manufactured Date'] = batchDetail_mfgdate
+                        ord_dict['Expiry Date'] = batchDetail_expdate
+                    ord_dict['Warehouse'] = warehouse_users.get(data.order.user)
                     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
                         ord_dict['Manufacturer'] = manufacturer
                         ord_dict['Searchable'] = searchable

@@ -950,10 +950,11 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                                          field_key='sku_code')
             continue
         elif key in ["cgst", "sgst", "igst", "cess"]:
-            try:
-                taxes_dict[taxes_mapping[key]] = float(value)
-            except:
-                taxes_dict[taxes_mapping[key]] = 0
+            if value or value == '0':
+                try:
+                    taxes_dict[taxes_mapping[key]] = float(value)
+                except:
+                    taxes_dict[taxes_mapping[key]] = 0
             continue
         elif key == 'image_url':
             if value and 'http' not in value:
@@ -983,8 +984,14 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                             error_message = str(temp_ean) + ' EAN Number already mapped to SKU ' + str(exist_sku_eans[temp_ean])
                             update_error_message(failed_status, 5031, error_message, sku_code,
                                                  field_key='sku_code')
+            else:
+                EANNumbers.objects.filter(sku_id=sku_master.id).delete()
+                sku_obj = sku_master
+                sku_obj.ean_number = ''
+                sku_obj.save()
+
             continue
-        if value == None:
+        if value is None:
             value = ''
         sku_master_dict[key] = value
         if sku_master:
@@ -993,7 +1000,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
     if sku_code in sum(insert_status.values(), []):
         return sku_master, insert_status, new_ean_objs
     product_type = ''
-    if taxes_dict and sum(taxes_dict.values()) > 0:
+    if taxes_dict :
         product_type_dict = {}
         cgst_check = True
         if taxes_dict.get('cgst_tax', 0) or taxes_dict.get('sgst_tax', 0):
@@ -1015,7 +1022,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                 product_type = ''
             else:
                 product_type = tax_master_obj[0]
-        if not product_type:
+        if not product_type and sum(taxes_dict.values()) > 0:
             error_message = 'Tax Master not found'
             update_error_message(failed_status, 5028, error_message, sku_code,
                                  field_key='sku_code')
@@ -1075,7 +1082,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
             #     SKUAttributes.objects.create(sku_id=sku_master.id, attribute_name=option['name'],
             #                                  attribute_value=option['value'],
             #                                  creation_date=datetime.datetime.now())
-    if sku_master and product_type:
+    if sku_master and taxes_dict :
         sku_master.product_type = product_type
         update_sku_obj = True
         #sku_master.save()

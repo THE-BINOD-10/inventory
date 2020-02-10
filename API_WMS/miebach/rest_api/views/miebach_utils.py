@@ -483,8 +483,8 @@ OPEN_JO_REP_DICT = {
     'dt_url': 'get_openjo_report_details', 'excel_name': 'open_jo_report', 'print_url': 'print_open_jo_report',
     }
 
-SKU_WISE_PO_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'},
-                                {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+SKU_WISE_PO_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': 'date'},
+                                {'label': 'PO To Date', 'name': 'to_date', 'type': 'date'},
                                 {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                                 {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
                                 {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
@@ -504,8 +504,8 @@ SKU_WISE_PO_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'typ
                     }
 
 
-GRN_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'},
-                        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': 'date'},
+                        {'label': 'PO To Date', 'name': 'to_date', 'type': 'date'},
                         {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
                         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
                         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
@@ -2823,7 +2823,7 @@ def get_receipt_filter_data(search_params, user, sub_user):
                     searchable = attribute.attribute_value
                 if attribute.attribute_name == 'Bundle':
                     bundle = attribute.attribute_value
-        ord_dict = OrderedDict((('PO Reference', po_reference), ('WMS Code', data.open_po.sku.wms_code),
+        ord_dict = OrderedDict((('PO Number', po_reference), ('WMS Code', data.open_po.sku.wms_code),
                                                 ('SKU Category', data.open_po.sku.sku_category),
                                                 ('SKU Sub Category', data.open_po.sku.sub_category),
                                                 ('Sku Brand', data.open_po.sku.sku_brand),
@@ -3063,9 +3063,13 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Selling Price', data.order.unit_price), ('Sale Tax Percent', tax_percent),
                                                             ('Cost Price', cost_price), ('Cost Tax Percent', cost_tax_percent),
                                                             ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])), ('Customer Name', customer_name),
-                                                            ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
-                                                            ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate),
-                                                            ('Warehouse', warehouse_users.get(data.order.user))))
+                                            ))
+                    if user.userprofile.industry_type == 'FMCG':
+                        ord_dict['Batch Number'] = batch_number
+                        ord_dict['MRP'] = batchDetail_mrp
+                        ord_dict['Manufactured Date'] = batchDetail_mfgdate
+                        ord_dict['Expiry Date'] = batchDetail_expdate
+                    ord_dict['Warehouse'] = warehouse_users.get(data.order.user)
                     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
                         ord_dict['Manufacturer'] = manufacturer
                         ord_dict['Searchable'] = searchable
@@ -3809,7 +3813,7 @@ def get_stock_summary_data(search_params, user, sub_user):
                                                                            'sku__sku_brand',
                                                                            'sku__sku_category',
                                                                            'sku__sub_category','sku__user').distinct().annotate(
-        total=Sum('quantity'), stock_value=Sum(F('quantity') * F('sku__cost_price'))).filter(quantity__gt=0,
+        total=Sum('quantity'), stock_value=Sum(F('quantity') * F('unit_price'))).filter(quantity__gt=0,
                                       **search_parameters)
     if search_stage and not search_stage == 'In Stock':
         sku_master = []
@@ -4825,6 +4829,7 @@ def get_order_summary_data(search_params, user, sub_user):
         tax = 0
         vat = 5.5
         discount = 0
+        unit_discount = 0
         mrp_price = data['sku__mrp']
         order_status = ''
         remarks = ''
@@ -4837,6 +4842,7 @@ def get_order_summary_data(search_params, user, sub_user):
         if order_summary.exists():
             mrp_price = order_summary[0].mrp
             discount = order_summary[0].discount
+            unit_discount = float(discount)/float(data['original_quantity'])
             order_status = order_summary[0].status
             remarks = order_summary[0].central_remarks
             order_taken_by = order_summary[0].order_taken_by
@@ -4848,7 +4854,7 @@ def get_order_summary_data(search_params, user, sub_user):
                 #if not unit_price:
                 tax_percent = tax * (100/(data['original_quantity'] * data['unit_price']))
             else:
-                amt = unit_price_inclusive_tax * float(data['original_quantity'])
+                amt = unit_price_inclusive_tax * float(data['original_quantity']) - discount
                 tax_percent = order_summary[0].cgst_tax + order_summary[0].sgst_tax + order_summary[0].igst_tax + order_summary[0].utgst_tax
                 cgst_amt = float(order_summary[0].cgst_tax) * (float(amt) / 100)
                 sgst_amt = float(order_summary[0].sgst_tax) * (float(amt) / 100)
@@ -4955,9 +4961,10 @@ def get_order_summary_data(search_params, user, sub_user):
         #tax_percent = 0
         #if float(taxable_amount):
         #    tax_percent = (tax * 100)/float(taxable_amount)
-        invoice_tax = "%.2f" % (((float(unit_price) * float(quantity))/100)*(tax_percent))
+        amount = (float(unit_price) * float(quantity)) - (unit_discount * float(quantity))
+        invoice_tax = "%.2f" % ((amount/100)*(tax_percent))
 
-        invoice_amount_picked = "%.2f" % ((float(unit_price) * float(quantity)) + float(invoice_tax) - discount)
+        invoice_amount_picked = "%.2f" % ((amount) + float(invoice_tax))
 
         order_extra_fields ={}
         for extra in extra_order_fields :

@@ -8164,12 +8164,23 @@ def get_invoice_payment_tracker(request, user=''):
     order_data = []
     expected_date = ''
     for data in master_data:
+        seller_ord_summary = SellerOrderSummary.objects.filter(**user_filter)\
+                                      .filter(invoice_number=data['invoice_number'])
+        picked_amount = seller_ord_summary.values('order__sku_id', 'order__invoice_amount', 'order__quantity')\
+                                        .distinct().annotate(pic_qty=Sum('quantity'))\
+                                        .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
+                                        .aggregate(Sum('cur_amt'))['cur_amt__sum']
+        payment_received = 0
+        payment_obj = PaymentSummary.objects.filter(invoice_number=data['invoice_number'], order__user = user.id)
+        if payment_obj:
+            payment_received = payment_obj.aggregate(payment_received = Sum('payment_received'))['payment_received']
+        payment_receivable = round(picked_amount) - round(payment_received)
         order_data.append(
             {'order_id': str(data['order__order_id']), 'display_order': data['challan_number'],
              'account': '', 'original_order_id': data['order__original_order_id'],
-             'inv_amount': "%.2f" % data['invoice_amount_sum'],
-             'receivable': "%.2f" % (data['invoice_amount_sum'] - data['payment_received_sum']),
-             'received': '%.2f' % data['payment_received_sum'],
+             'inv_amount': round(picked_amount),
+             'receivable': payment_receivable ,
+             'received': round(payment_received),
              'invoice_number': data['invoice_number'],
              'expected_date': expected_date})
     response["data"] = order_data

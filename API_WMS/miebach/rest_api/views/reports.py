@@ -1262,6 +1262,14 @@ def excel_reports(request, user=''):
         file_type = 'csv'
     if temp[1] in ['dispatch_summary'] and len(report_data['aaData']) > 0:
         headers = report_data['aaData'][0].keys()
+    if temp[1] in ['order_summary_report']:
+        headers.extend(["Billing Address" ,"Shipping Address"])
+        headers.extend(["Order Taken By", "Payment Cash", "Payment Card","Payment PhonePe","Payment GooglePay","Payment Paytm"])
+        extra_fields_obj = MiscDetail.objects.filter(user=user.id, misc_type__icontains="pos_extra_fields")
+        for field in extra_fields_obj:
+            tmp = field.misc_value.split(',')
+            for i in tmp:
+                headers.append(str(i))
     excel_data = print_excel(request, report_data, headers, excel_name, file_type=file_type)
     return excel_data
 

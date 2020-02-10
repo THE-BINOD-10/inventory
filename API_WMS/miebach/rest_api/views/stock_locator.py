@@ -3495,7 +3495,9 @@ def ba_to_sa_calculate_now(request, user=''):
             sum_avg_more_sales = 0
             for avg_more_sale in avg_more_sales:
                 sum_avg_more_sales += avg_more_sale['avg_sale_per_day_units']
-            cumulative_contribution = (sum_avg_more_sales / total_avg_sale_per_day_unit) * 100
+            cumulative_contribution = 0
+            if total_avg_sale_per_day_unit:
+                cumulative_contribution = (sum_avg_more_sales / total_avg_sale_per_day_unit) * 100
             if cumulative_contribution <= 40:
                 classification = 'Fast'
             elif cumulative_contribution > 80:

@@ -3490,7 +3490,7 @@ def ba_to_sa_calculate_now(request, user=''):
             sku_avg_sale_per_day_value = sku_avg_sale_mapping_data['avg_sale_per_day_value']
             sku_avail_qty = sku_avg_sale_mapping_data['avail_qty']
             peak = sku_avg_sale_mapping_data['peak']
-            avg_more_sales = filter(lambda person: person['sku_avg_sale_per_day_units'] >= sku_avg_sale_per_day_units,
+            avg_more_sales = filter(lambda person: person['avg_sale_per_day_units'] >= sku_avg_sale_per_day_units,
                                     sku_avg_sale_mapping.values())
             sum_avg_more_sales = 0
             for avg_more_sale in avg_more_sales:

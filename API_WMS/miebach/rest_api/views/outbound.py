@@ -11812,7 +11812,7 @@ def generate_customer_invoice_tab(request, user=''):
                 order = seller_summary[0].order
 
             invoice_date = seller_summary.order_by('-creation_date')[0].creation_date
-        invoice_date = get_local_date(user, invoice_date, send_date='true')
+        # invoice_date = get_local_date(user, invoice_date, send_date='true')
         inv_month_year = invoice_date.strftime("%m-%y")
         invoice_data['invoice_time'] = invoice_date.strftime("%H:%M")
         invoice_date = invoice_date.strftime("%d %b %Y")

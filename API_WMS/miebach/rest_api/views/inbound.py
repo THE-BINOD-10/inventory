@@ -1038,6 +1038,7 @@ def switches(request, user=''):
                        'calculate_customer_price': 'calculate_customer_price',
                        'shipment_sku_scan': 'shipment_sku_scan',
                        'extra_view_order_status':'extra_view_order_status',
+                       'bank_option_fields':'bank_option_fields',
                        'disable_brands_view':'disable_brands_view',
                        'invoice_types': 'invoice_types',
                        'sellable_segregation': 'sellable_segregation',

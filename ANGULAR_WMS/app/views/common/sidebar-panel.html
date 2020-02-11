@@ -381,7 +381,7 @@
             <span>Shipment Info</span>
           </a>
         </li>
-        <li show_tab('add_stocktransfer') ui-sref-active="active">
+        <li   ng-show="show_tab('add_stocktransfer')" ui-sref-active="active">
           <a ui-sref="app.outbound.CreateStockTransfer">
             <span>Create Stock Transfer</span>
           </a>

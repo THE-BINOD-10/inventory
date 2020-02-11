@@ -326,7 +326,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
-      name: "Generic Wharehouse Level",
+      name: "Generic Warehouse Level",
       model_name: "generic_wh_level",
       param_no: 49,
       class_name: "fa fa-server",
@@ -431,7 +431,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
-     name: "Invoice Based Payment Tracker Enable/Disable",
+     name: "Order Based Payment Tracker Enable/Disable",
      model_name: "invoice_based_payment_tracker",
      param_no: 66,
      class_name: "fa fa-server",
@@ -809,6 +809,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $(".rtv_reasons").importTags(vm.model_data.rtv_reasons);
       vm.model_data.all_order_fields_list = vm.model_data.all_order_fields.split(",")
       $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
+      $(".bank_option_fields").importTags(vm.model_data.bank_option_fields);
       $(".invoice_types").importTags(vm.model_data.invoice_types);
       $(".mode_of_transport").importTags(vm.model_data.mode_of_transport||'');
       $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
@@ -871,6 +872,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.update_extra_order_status = function() {
     var data = $(".extra_view_order_status").val();
     vm.service.apiCall("switches?extra_view_order_status="+data).then(function(data){
+      if(data.message) {
+        msg = data.data;
+        $scope.showNoty();
+        Auth.status();
+      }
+    });
+  }
+
+  vm.update_bank_option_fields = function() {
+    var data = $(".bank_option_fields").val();
+    vm.service.apiCall("switches?bank_option_fields="+data).then(function(data){
       if(data.message) {
         msg = data.data;
         $scope.showNoty();

@@ -248,14 +248,14 @@
 	          <input type="text" autocomplete="off" placeholder="Search WMS Code"
 	          typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')"
 	          typeahead-loading="loadingLocations" class="form-control" name="item_code" ng-model="data.item_code"
-	          typeahead-on-select="showCase.get_sku_data(data, $item)" ng-readonly="data.default_status">
+	          typeahead-on-select="showCase.get_sku_data(data, $item)" ng-readonly="data.default_status" title="{{data.item_code}}">
               <img ng-src="{{data.image_url}}" style="padding-top: 10px;width: 120px;"></img>
 	        </td>
             <td>
-              <input type="text" class="form-control" name="product_title" ng-model="data.product_title" ng-readonly="data.default_status">
+              <input type="text" class="form-control" name="product_title" ng-model="data.product_title" ng-readonly="data.default_status" title="{{data.product_title}}">
             </td>
             <td>
-              <input type="text" ng-if="data.brand" class="form-control" name="sku_brand" ng-model="data.brand" readonly>
+              <input type="text" ng-if="data.brand" class="form-control" name="sku_brand" ng-model="data.brand" readonly title="{{data.brand}}">
             </td>
             <td ng-repeat="sku_headers in showCase.extra_headers">
               <label ng-if="sku_headers">{{data.order_sku_attributes[sku_headers]}}</label>
@@ -264,7 +264,7 @@
               <input type="text" class="form-control" name="quantity" ng-model="data.quantity" ng-change="showCase.changeInvoiceAmt(data)" ng-readonly="showCase.input_status">
             </td>
 	    <td>
-              <input type="text" class="form-control" name="mrp" ng-model="data.mrp" readonly>
+              <input type="text" class="form-control" name="mrp" ng-model="data.mrp" readonly title="{{data.mrp}}" style="width: 100%">
             </td>
             <td>
               <input type="text" class="form-control" name="unit_price" ng-model="data.unit_price" ng-change="showCase.changeInvoiceAmt(data, true)" ng-class="service.get_decimal_perm()" ng-readonly="showCase.input_status">
@@ -283,7 +283,7 @@
               <input type="text" class="form-control" ng-class="service.get_decimal_perm()" name="igst" ng-model="data.igst" ng-change="showCase.changeInvoiceAmt(data)" readonly>
             </td>
             <td>
-              <input type="text" class="form-control" name="invoice_amount" ng-model="data.invoice_amount" ng-readonly="data.default_status">
+              <input type="text" class="form-control" name="invoice_amount" ng-model="data.invoice_amount" ng-readonly="data.default_status" title="{{data.invoice_amount}}">
             </td>
             <td>
               <input type="text" class="form-control" name="remarks" ng-model="data.remarks" ng-readonly="showCase.input_status">

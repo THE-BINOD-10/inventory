@@ -3134,7 +3134,6 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
                          ('DT_RowAttr', {'data_id': data['sku__sku_code']}))))
 
 
-
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -3226,6 +3225,7 @@ def save_ba_to_sa_remarks(sku_classification_dict1, sku_classification_objs, rem
         if not exist_obj.exists():
             sku_classification_objs.append(SkuClassification(**sku_classification_dict1))
             remarks_sku_ids.append(sku_classification_dict1['sku_id'])
+
 
 
 @csrf_exempt

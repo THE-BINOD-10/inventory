@@ -47,7 +47,7 @@
 		          </div>
 		          <div class="col-md-12 text-center">
 		            <div class="filter-controls">
-		              <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.resetFilters(showCase.model_data.filters)"> Reset </button>
+		              <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.resetFilters(showCase.model_data.filters);showCase.service.generate_report(showCase.dtInstance, showCase.model_data.filters)"> Reset </button>
 		              <button type="button" class="btn btn-success" id="add-shippment-btn" data-toggle="modal" data-target="#myModal" ng-click="showCase.service.generate_report(showCase.dtInstance, showCase.model_data.filters)" ng-disabled="!showCase.model_data.filters.from_date"> Search </button>
 		            </div>
 		          </div>
@@ -55,9 +55,9 @@
 		      </form>
 		  </div>
 
-		  <!-- <div class="panel-header">
+		  <div class="panel-header">
 		  	<div ng-include="'views/common/excel.html'"></div>
-		  </div> -->
+		  </div>
 
 	  	</div>
       <div ng-include="'views/common/datatable.html'"></div>

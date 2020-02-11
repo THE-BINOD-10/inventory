@@ -1038,6 +1038,7 @@ def switches(request, user=''):
                        'calculate_customer_price': 'calculate_customer_price',
                        'shipment_sku_scan': 'shipment_sku_scan',
                        'extra_view_order_status':'extra_view_order_status',
+                       'bank_option_fields':'bank_option_fields',
                        'disable_brands_view':'disable_brands_view',
                        'invoice_types': 'invoice_types',
                        'sellable_segregation': 'sellable_segregation',
@@ -8425,12 +8426,12 @@ def get_inv_based_po_payment_data(start_index, stop_index, temp_data, search_ter
             order_by = '-%s' % lis[col_num]
         master_data = SellerPOSummary.objects.filter(**user_filter).values(*result_values).distinct()\
                                      .annotate(payment_received=Sum('purchase_order__payment_received'))\
-                                     .order_by('-%s' % lis[col_num])
+                                     .order_by(order_by)
     else:
         master_data = SellerPOSummary.objects.filter(**user_filter)\
                                  .values(*result_values).distinct().annotate(payment_received=Sum('purchase_order__payment_received'))
 
-    #master_data = master_data.exclude(invoice_amount=F('payment_received'))
+    # master_data = master_data.exclude(invoice_amount=F('payment_received'))
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for data in master_data[start_index:stop_index]:
@@ -8476,7 +8477,7 @@ def po_get_invoice_payment_tracker(request, user=''):
     if not invoice_number:
         return "Invoice number is missing"
     user_filter = {'purchase_order__open_po__sku__user': user.id, "invoice_number": invoice_number, "purchase_order__open_po__supplier__id": supplier_id}
-    result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier__name', 'purchase_order__open_po__supplier__id']
+    result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier__name', 'purchase_order__open_po__supplier__id', 'invoice_number']
     master_data = SellerPOSummary.objects.filter(**user_filter).values(*result_values).distinct()\
                                  .annotate(tot_price = Sum(F('purchase_order__open_po__price')*F('quantity')),\
                                  tot_tax_perc = Sum(F('purchase_order__open_po__cgst_tax') +\
@@ -8484,12 +8485,24 @@ def po_get_invoice_payment_tracker(request, user=''):
                                  paynemt_received = Sum('purchase_order__payment_received'))
     order_data = []
     for data in master_data:
+        seller_summary_obj = SellerPOSummary.objects.filter(invoice_number=data['invoice_number'],\
+                                             purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
+        tot_amt = 0
+        for seller_sum in seller_summary_obj:
+            price = seller_sum.purchase_order.open_po.price
+            quantity = seller_sum.quantity
+            tot_price = price * quantity
+            tot_tax_perc = seller_sum.purchase_order.open_po.cgst_tax +\
+                           seller_sum.purchase_order.open_po.sgst_tax + seller_sum.purchase_order.open_po.igst_tax
+            tot_tax = float(tot_price * tot_tax_perc) / 100
+            tot_amt += (tot_price + tot_tax)
+        payment_receivable = tot_amt - data['paynemt_received']
         order_data.append(
                 {'order_id': data['purchase_order__order_id'],
                  'display_order': data['purchase_order__order_id'],
-                 'inv_amount': data['tot_price']+(data['tot_price']*data['tot_tax_perc']),
+                 'inv_amount': tot_amt,
                  'received': data['paynemt_received'],
-                 'receivable': (data['tot_price']+(data['tot_price']*data['tot_tax_perc'])) - data['paynemt_received']})
+                 'receivable': payment_receivable})
     response["data"] = order_data
     return HttpResponse(json.dumps(response))
 
@@ -8514,7 +8527,7 @@ def po_update_payment_status(request, user=''):
             continue
         payment = float(data_dict['amount'][i])
         seller_summary_obj = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=user.id,\
-                                                    purchase_order__order_id=data_dict['order_id'][i])
+                                                            invoice_number=invoice_number)
         invoice_amt = 0
         for seller_sum in seller_summary_obj:
             price = seller_sum.purchase_order.open_po.price
@@ -8538,6 +8551,7 @@ def po_update_payment_status(request, user=''):
             tot_tax = float(tot_price * tot_tax_perc) / 100
             invoice_amt = tot_price + tot_tax
 
+
             if float(invoice_amt) > float(order.payment_received):
                 diff = float(invoice_amt) - float(order.payment_received)
                 bank = request.GET.get('bank', '')
@@ -8548,11 +8562,11 @@ def po_update_payment_status(request, user=''):
                     payment -= diff
                     POPaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
                                                   payment_received=diff, bank=bank, mode_of_pay=mode_of_pay,\
-                                                  remarks=remarks)
+                                                  remarks=remarks, invoice_number=invoice_number)
                 else:
                     POPaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
                                                   payment_received=payment, bank=bank,\
-                                                  mode_of_pay=mode_of_pay, remarks=remarks)
+                                                  mode_of_pay=mode_of_pay, remarks=remarks, invoice_number=invoice_number)
                     order.payment_received = float(order.payment_received) + float(payment)
                     payment = 0
                 order.save()

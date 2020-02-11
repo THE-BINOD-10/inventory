@@ -16,9 +16,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.checked_items = {};
     vm.title = "Payments";
     vm.model_data = {'payment':'', 'balance':'', 'date':'', 'update_tds':'', 'bank_name':'', 'mode_of_pay':'', 'neft_cheque':''};
-    vm.bank_names = {'abc': 'abc',
-                     'xyz': 'xyz',
-                     'pqr': 'pqr'};
+    vm.bank_names = vm.permissions.bank_option_fields.split(',');
 
     vm.mode_of_pay = ['NEFT', 'CHEQUE'];
 

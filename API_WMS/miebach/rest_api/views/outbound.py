@@ -8047,7 +8047,7 @@ def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, 
     data_dict = OrderedDict()
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
-    lis = ['invoice_number', 'order__customer_name', 'invoice_number', 'invoice_number','invoice_number', 'invoice_number', 'invoice_number', 'invoice_number']#for filter purpose
+    lis = ['invoice_number', 'order__customer_name', 'invoice_number', 'invoice_number','invoice_number', 'invoice_number', 'creation_date', 'invoice_number']#for filter purpose
     user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
     result_values = ['invoice_number', 'order__customer_name', 'order__customer_id']#to make distinct grouping
     cust_ids = request.POST.get("customer_ids", '')
@@ -8458,14 +8458,13 @@ def get_outbound_payment_report(start_index, stop_index, temp_data, search_term,
                             .filter(**user_filter)\
                             .values(*result_values).distinct()\
                             .annotate(payments_received = Sum('payment_received'))
-
     for data in master_data:
         seller_order_summary = SellerOrderSummary.objects.filter(invoice_number=data['invoice_number'], order__user=user.id)
         picked_amount = seller_order_summary.values('order__invoice_amount', 'order__quantity')\
                                                .distinct().annotate(pic_qty=Sum('quantity'))\
                                                .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
                                                .aggregate(Sum('cur_amt'))['cur_amt__sum']
-        grouping_key = data['invoice_number']
+        grouping_key = data['payment_id']
         payment_date = data['payment_date'].strftime("%d %b %Y") if data['payment_date'] else ''
         data_dict.setdefault(grouping_key, {'payment_id': data['payment_id'],
                                             'payment_date': payment_date,

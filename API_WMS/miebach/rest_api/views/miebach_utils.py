@@ -460,7 +460,7 @@ ORDER_SUMMARY_DICT = {
                 {'label': 'Order ID', 'name': 'order_id', 'type': 'input'}],
     'dt_headers': ['Order Date','Order ID', 'Customer ID','Customer Name', 'SKU Brand', 'SKU Category', 'SKU Sub Category', 'SKU Class', 'SKU Size',
                    'SKU Description', 'SKU Code', 'Vehicle Number', 'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Order Tax Amt', 'Order Amt(w/o tax)','Tax Percent', 'City',
-                   'State', 'Marketplace', 'Total Order Amt','Status', 'Order Status', 'Remarks','Customer GST Number','Payment Type','Reference Number', 'Advance Amount', 'HSN Code','Order Reference'],
+                   'State', 'Marketplace', 'Total Order Amt','Status', 'Order Status', 'Remarks','Customer GST Number','Payment Type','Reference Number', 'Payment Received', 'HSN Code','Order Reference'],
     'mk_dt_headers': ['Order Date','Order ID', 'Customer Name', 'SKU Brand', 'SKU Category', 'SKU Sub Category', 'SKU Class', 'SKU Size',
                    'SKU Description', 'SKU Code', 'Manufacturer', 'Searchable', 'Bundle',
                     'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Tax', 'Taxable Amount', 'City',
@@ -4718,7 +4718,7 @@ def get_order_summary_data(search_params, user, sub_user):
     ('Serial Number',''),('Invoice Number',''),('Challan Number', ''),('Invoice Qty',''),('Payment Type' ,''),('Reference Number',''),
     ('Order Amt(w/o tax)',''), ('Tax Percent',''), ('HSN Code', ''), ('Order Tax Amt', ''),('City', ''), ('State', ''), ('Marketplace', 'TotalOrderAmount='),('Invoice Amount',''),('Total Order Amt', temp_data['totalSellingPrice']),
     ('Price', ''),('Status', ''), ('Order Status', ''),('Invoice Tax Amt', ''),('Customer GST Number',''),('Remarks', ''), ('Order Taken By', ''),('Invoice Amt(w/o tax)', ''),
-    ('Invoice Date',''),('Billing Address',''),('Shipping Address',''),('Payment Cash', ''),('Payment Card', ''),('Payment PhonePe',''),('Payment GooglePay',''),('Payment Paytm',''),('Advance Amount', '')))
+    ('Invoice Date',''),('Billing Address',''),('Shipping Address',''),('Payment Cash', ''),('Payment Card', ''),('Payment PhonePe',''),('Payment GooglePay',''),('Payment Paytm',''),('Payment Received', '')))
     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
         total_row['Manufacturer'] = ''
         total_row['Searchable'] = ''
@@ -4976,7 +4976,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('Remarks', remarks), ('Order Taken By', order_taken_by),
                                                     ('Invoice Date',invoice_date),("Billing Address",billing_address),("Shipping Address",shipping_address),
                                                     ('Payment Cash', payment_cash), ('Payment Card', payment_card),('Payment PhonePe', payment_PhonePe),
-                                                    ('Payment Paytm', payment_Paytm),('Payment GooglePay', payment_GooglePay), ('Advance Amount', data['payment_received']), ('Vehicle Number', vehicle_number)))
+                                                    ('Payment Paytm', payment_Paytm),('Payment GooglePay', payment_GooglePay), ('Payment Received', data['payment_received']), ('Vehicle Number', vehicle_number)))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             aaData['Manufacturer'] = manufacturer
             aaData['Searchable'] = searchable

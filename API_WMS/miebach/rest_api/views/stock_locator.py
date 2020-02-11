@@ -3144,20 +3144,15 @@ def save_ba_to_sa_remarks(sku_classification_dict1, sku_classification_objs, rem
             remarks_sku_ids.append(sku_classification_dict1['sku_id'])
 
 
+
 @csrf_exempt
 @login_required
 @get_admin_user
 @check_process_status
 def ba_to_sa_calculate_now(request, user=''):
-    master_data = SKUMaster.objects.filter(user=user.id, status=1).order_by('id').only('id', 'sku_code')
+    master_data = SKUMaster.objects.filter(user = user.id, status=1).order_by('id').only('id', 'sku_code')
     sellable_zones = get_all_sellable_zones(user)
     total_avg_sale_per_day_value = 0
-    total_avg_sale_per_day_unit = 0
-    sku_avg_sale_per_day_units = 0
-    sku_avg_sale_per_day_value = 0
-    cumulative_contribution = 0
-    classification = 'Slow'
-    peak = 0
     sku_avg_sale_mapping = OrderedDict()
     sku_avail_qty = OrderedDict()
     sku_res_qty = OrderedDict()
@@ -3168,7 +3163,6 @@ def ba_to_sa_calculate_now(request, user=''):
     bulk_zone_name = MILKBASKET_BULK_ZONE
     bulk_zones = get_all_zones(user, zones=[bulk_zone_name])
     locations = LocationMaster.objects.filter(zone__user=user.id, zone__zone__in=zones)
-    last_month_date = get_utc_start_date(datetime.datetime.now() - timedelta(31))
     if not locations:
         return HttpResponse("Sellable Locations not found")
     seller_master = SellerMaster.objects.filter(seller_id=1, user=user.id)
@@ -3176,35 +3170,35 @@ def ba_to_sa_calculate_now(request, user=''):
         return HttpResponse("Seller id 1 not found")
     try:
         seller_master = seller_master[0]
-        all_stocks = StockDetail.objects.exclude(receipt_number=0). \
-            filter(sku__user=user.id, sku__status=1, quantity__gt=0,
-                   location__zone__zone__in=sellable_zones,
-                   sellerstock__seller__seller_id=1). \
-            values('sku_id', 'sellerstock__quantity')
+        all_stocks = StockDetail.objects.exclude(receipt_number=0).\
+                                            filter(sku__user=user.id, sku__status=1, quantity__gt=0,
+                                            location__zone__zone__in=sellable_zones,
+                                                   sellerstock__seller__seller_id=1).\
+                                            values('sku_id', 'sellerstock__quantity')
         for sku_stock in all_stocks:
             sku_avail_qty.setdefault(sku_stock['sku_id'], 0)
             sku_avail_qty[sku_stock['sku_id']] += sku_stock['sellerstock__quantity']
         all_reserved = PicklistLocation.objects.filter(stock__sku__user=user.id, stock__sku__status=1,
                                                        stock__location__zone__zone__in=sellable_zones,
-                                                       stock__sellerstock__seller__seller_id=1, status=1). \
-            only('stock__sku_id', 'reserved')
+                                                       stock__sellerstock__seller__seller_id=1 ,status=1).\
+                                                only('stock__sku_id', 'reserved')
         for all_res in all_reserved:
             sku_res_qty.setdefault(all_res.stock.sku_id, 0)
             sku_res_qty[all_res.stock.sku_id] += all_res.reserved
-        all_ba_stocks = StockDetail.objects.exclude(receipt_number=0). \
-            filter(sku__user=user.id, sku__status=1, quantity__gt=0,
-                   location__zone__zone__in=bulk_zones,
-                   sellerstock__seller__seller_id=1,
-                   sellerstock__quantity__gt=0). \
-            values('sku_id', 'id', 'sellerstock__quantity').order_by('receipt_number')
+        all_ba_stocks = StockDetail.objects.exclude(receipt_number=0).\
+                                            filter(sku__user=user.id, sku__status=1, quantity__gt=0,
+                                            location__zone__zone__in=bulk_zones,
+                                                   sellerstock__seller__seller_id=1,
+                                            sellerstock__quantity__gt=0).\
+                                            values('sku_id', 'id','sellerstock__quantity').order_by('receipt_number')
         for ba_stock in all_ba_stocks:
             ba_sku_avail_qty.setdefault(ba_stock['sku_id'], {'total_quantity': 0, 'stock': OrderedDict()})
             ba_sku_avail_qty[ba_stock['sku_id']]['total_quantity'] += ba_stock['sellerstock__quantity']
             ba_sku_avail_qty[ba_stock['sku_id']]['stock'][ba_stock['id']] = ba_stock['sellerstock__quantity']
         all_ba_reserved = PicklistLocation.objects.filter(stock__sku__user=user.id, stock__sku__status=1,
-                                                          stock__location__zone__zone__in=bulk_zones,
-                                                          stock__sellerstock__seller__seller_id=1, status=1). \
-            only('stock__sku_id', 'stock_id', 'reserved')
+                                                       stock__location__zone__zone__in=bulk_zones,
+                                                       stock__sellerstock__seller__seller_id=1 ,status=1).\
+                                                only('stock__sku_id', 'stock_id', 'reserved')
         for ba_reserved in all_ba_reserved:
             temp_ba_avail = ba_sku_avail_qty.get(ba_reserved.stock.sku_id, {})
             if ba_reserved.stock_id in temp_ba_avail['stock'].keys():
@@ -3212,61 +3206,33 @@ def ba_to_sa_calculate_now(request, user=''):
                 ba_sku_avail_qty[ba_reserved.stock.sku_id]['total_quantity'] -= ba_reserved.reserved
 
         log.info("BA to SA calculating segregation for user %s started at %s" % (
-            user.username, str(datetime.datetime.now())))
+        user.username, str(datetime.datetime.now())))
         for data in master_data:
             stock_qty = sku_avail_qty.get(data.id, 0)
             res_qty = sku_res_qty.get(data.id, 0)
             avail_qty = stock_qty - res_qty
-            no_stock_days = list(StockStats.objects.filter(sku_id=data.id, closing_stock=0). \
-                                 annotate(creation_date_only=Cast('creation_date', DateField())).values(
-                'creation_date_only').distinct(). \
-                                 order_by('-creation_date_only').values_list('creation_date_only', flat=True)[:7])
-            order_detail_objs = OrderDetail.objects.filter(user=user.id, sku_id=data.id,
-                                                           creation_date__gte=last_month_date). \
-                                    annotate(creation_date_only=Cast('creation_date', DateField())). \
-                                    exclude(creation_date_only__in=no_stock_days).values(
-                'creation_date_only').distinct(). \
-                                    order_by('-creation_date_only').annotate(quantity_sum=Sum('quantity'),
-                                                                             value_sum=Sum(
-                                                                                 F('quantity') * F('unit_price')))[:7]
+            no_stock_days = list(StockStats.objects.filter(sku_id = data.id, closing_stock=0).\
+                                    annotate(creation_date_only=Cast('creation_date', DateField())).values('creation_date_only').distinct().\
+                                    order_by('-creation_date_only').values_list('creation_date_only', flat=True)[:7])
+            order_detail_objs = OrderDetail.objects.filter(user = user.id, sku_id = data.id).\
+                                   annotate(creation_date_only=Cast('creation_date', DateField())).\
+                                   exclude(creation_date_only__in=no_stock_days).values('creation_date_only').distinct().\
+                                   order_by('-creation_date_only').annotate(quantity_sum=Sum('quantity'),
+                                    value_sum=Sum(F('quantity') * F('unit_price')))[:7]
             sku_sales_value = 0
             sku_sales_units = 0
-            if len(order_detail_objs) >= 3:
-                peak = 0
-                sales_objs = []
-                for order_detail_obj in order_detail_objs:
-                    quantity_sum = order_detail_obj['quantity_sum']
-                    sales_objs.append(quantity_sum)
-                    if peak < quantity_sum:
-                        peak = quantity_sum
-                    value_sum = order_detail_obj['value_sum']
-                    sku_sales_value += value_sum
-                    sku_sales_units += quantity_sum
+            for order_detail_obj in order_detail_objs:
+                quantity_sum = order_detail_obj['quantity_sum']
+                value_sum = order_detail_obj['value_sum']
+                sku_sales_value += value_sum
+                sku_sales_units += quantity_sum
+            avg_sale_per_day_value = sku_sales_value/7
+            avg_sale_per_day_units = sku_sales_units/7
+            total_avg_sale_per_day_value += avg_sale_per_day_value
+            sku_avg_sale_mapping[data.id] = {'avg_sale_per_day_value': avg_sale_per_day_value, 'avail_qty': avail_qty,
+                                             'avg_sale_per_day_units': avg_sale_per_day_units}
 
-                avg_sale_per_day_value = sku_sales_value / 7
-                # avg_sale_per_day_units = sku_sales_units / len(order_detail_objs)
-                n = len(order_detail_objs)
-                sales_objs.sort()
-                if n % 2 == 0:
-                    median1 = sales_objs[n // 2]
-                    median2 = sales_objs[n // 2 - 1]
-                    avg_sale_per_day_units = (median1 + median2) / 2
-                else:
-                    avg_sale_per_day_units = sales_objs[n // 2]
-
-                total_avg_sale_per_day_unit += avg_sale_per_day_units
-                sku_avg_sale_mapping[data.id] = {'avg_sale_per_day_value': avg_sale_per_day_value,
-                                                 'avail_qty': avail_qty,
-                                                 'peak': peak,
-                                                 'avg_sale_per_day_units': avg_sale_per_day_units}
-            else:
-                sku_avg_sale_mapping[data.id] = {'avg_sale_per_day_value': 0,
-                                                 'avail_qty': 0,
-                                                 'peak': 30,
-                                                 'avg_sale_per_day_units': 30}
-
-        log.info(
-            "BA to SA calculating segregation for user %s ended at %s" % (user.username, str(datetime.datetime.now())))
+        log.info("BA to SA calculating segregation for user %s ended at %s" % (user.username, str(datetime.datetime.now())))
         sku_classification_objs = []
         # Removing of older objects, change the datetime update while changing the below 3 lines
         older_objs = SkuClassification.objects.filter(sku__user=user.id, status=1)
@@ -3281,63 +3247,54 @@ def ba_to_sa_calculate_now(request, user=''):
         log.info(
             "BA to SA calculating saving for user %s started at %s" % (user.username, str(datetime.datetime.now())))
         for data in master_data:
-            required_inventory = 0
-            # if not total_avg_sale_per_day_unit:
-            #     min_stock = 20
-            #     max_stock = 30
-            # else:
-            sku_avg_sale_mapping_data = sku_avg_sale_mapping[data.id]
-            sku_avg_sale_per_day_units = sku_avg_sale_mapping_data['avg_sale_per_day_units']
-            sku_avg_sale_per_day_value = sku_avg_sale_mapping_data['avg_sale_per_day_value']
-            sku_avail_qty = sku_avg_sale_mapping_data['avail_qty']
-            peak = sku_avg_sale_mapping_data['peak']
-            avg_more_sales = filter(lambda person: person['avg_sale_per_day_units'] >= sku_avg_sale_per_day_units,
-                                    sku_avg_sale_mapping.values())
-            sum_avg_more_sales = 0
-            for avg_more_sale in avg_more_sales:
-                sum_avg_more_sales += avg_more_sale['avg_sale_per_day_units']
-            cumulative_contribution = 0
-            if total_avg_sale_per_day_unit:
-                cumulative_contribution = (sum_avg_more_sales / total_avg_sale_per_day_unit) * 100
-            if cumulative_contribution <= 40:
-                classification = 'Fast'
-            elif cumulative_contribution > 80:
-                classification = 'Slow'
-            else:
-                classification = 'Medium'
-            # replenishment_obj = ReplenushmentMaster.objects.filter(user_id=user.id, classification=classification,
-            #                                                       size=data.sku_size)
-            remarks = ''
-            sku_rep_dict = replenish_dict.get((data.sku_size, classification), {})
-            if not sku_rep_dict:
-                # if not replenishment_obj.exists():
-                # remarks = 'Replenushment Master Not Found'
-                # min_days, max_days, min_stock, max_stock = 0, 0, 0, 0
+            if not total_avg_sale_per_day_value:
                 min_stock = 20
                 max_stock = 30
             else:
-                min_days = sku_rep_dict['min_days']  # replenishment_obj[0].min_days
-                max_days = sku_rep_dict['max_days']  # replenishment_obj[0].max_days
-                min_stock = min_days * sku_avg_sale_per_day_units
-                max_stock = max_days * sku_avg_sale_per_day_units
-                required_inventory = ((max_days - 1) * sku_avg_sale_per_day_units + (2 * peak))
+                sku_avg_sale_mapping_data = sku_avg_sale_mapping[data.id]
+                sku_avg_sale_per_day_units = sku_avg_sale_mapping_data['avg_sale_per_day_units']
+                sku_avg_sale_per_day_value = sku_avg_sale_mapping_data['avg_sale_per_day_value']
+                sku_avail_qty = sku_avg_sale_mapping_data['avail_qty']
+                avg_more_sales = filter(lambda person: person['avg_sale_per_day_value'] >= sku_avg_sale_per_day_value, sku_avg_sale_mapping.values())
+                sum_avg_more_sales = 0
+                for avg_more_sale in avg_more_sales:
+                    sum_avg_more_sales += avg_more_sale['avg_sale_per_day_value']
+                cumulative_contribution = (sum_avg_more_sales/total_avg_sale_per_day_value) * 100
+                if cumulative_contribution <= 40:
+                    classification = 'Fast'
+                elif cumulative_contribution > 80:
+                    classification = 'Slow'
+                else:
+                    classification = 'Medium'
+                #replenishment_obj = ReplenushmentMaster.objects.filter(user_id=user.id, classification=classification,
+                #                                                       size=data.sku_size)
+                remarks = ''
+                sku_rep_dict = replenish_dict.get((data.sku_size, classification), {})
+                if not sku_rep_dict:
+                #if not replenishment_obj.exists():
+                    #remarks = 'Replenushment Master Not Found'
+                    # min_days, max_days, min_stock, max_stock = 0, 0, 0, 0
+                    min_stock = 20
+                    max_stock = 30
+                else:
+                    min_days = sku_rep_dict['min_days'] #replenishment_obj[0].min_days
+                    max_days = sku_rep_dict['max_days'] #replenishment_obj[0].max_days
+                    min_stock = min_days * sku_avg_sale_per_day_units
+                    max_stock = max_days * sku_avg_sale_per_day_units
             sku_classification_dict1 = {'sku_id': data.id, 'avg_sales_day': sku_avg_sale_per_day_units,
                                         'avg_sales_day_value': sku_avg_sale_per_day_value,
-                                        'cumulative_contribution': cumulative_contribution,
-                                        'classification': classification, 'source_stock': None,
-                                        'replenushment_qty': 0, 'reserved': 0, 'suggested_qty': 0, 'avail_quantity': 0,
-                                        'sku_avail_qty': sku_avail_qty,
-                                        'dest_location': None, 'seller_id': seller_master.id,
-                                        'min_stock_qty': min_stock,
+                                        'cumulative_contribution': cumulative_contribution, 'classification': classification, 'source_stock': None,
+                                        'replenushment_qty': 0, 'reserved': 0, 'suggested_qty': 0, 'avail_quantity': 0, 'sku_avail_qty': sku_avail_qty,
+                                        'dest_location': None, 'seller_id': seller_master.id, 'min_stock_qty': min_stock,
                                         'max_stock_qty': max_stock, 'status': 1}
 
-            if sku_avail_qty < 1.5 * peak:
+            if sku_avail_qty > min_stock:
                 remarks = 'Available Quantity is more than Min Stock'
                 replenishment_qty = 0
                 ba_stock_objs = []
                 needed_qty = 0
             else:
-                replenishment_qty = required_inventory - sku_avail_qty
+                replenishment_qty = max_stock - sku_avail_qty
                 replenishment_qty = int(replenishment_qty)
                 needed_qty = replenishment_qty
             sku_classification_dict1['replenushment_qty'] = replenishment_qty
@@ -3346,28 +3303,25 @@ def ba_to_sa_calculate_now(request, user=''):
             if remarks:
                 sku_classification_dict1['remarks'] = remarks
                 save_ba_to_sa_remarks(sku_classification_dict1, sku_classification_objs,
-                                      remarks_sku_ids)
+                                                                remarks_sku_ids)
                 continue
             ba_stock_dict = ba_sku_avail_qty.get(data.id, {})
-            if replenishment_qty < 20:
+            if replenishment_qty < 20 :
                 replenishment_qty = 20
 
             if data.sku_code:
                 sku_attr_obj = SKUAttributes.objects.filter(sku__user=user.id, sku__sku_code=data.sku_code,
-                                                            attribute_name='Carton/Case Size').only('attribute_value')
+                                                        attribute_name='Carton/Case Size').only('attribute_value')
                 if sku_attr_obj:
                     try:
                         round_of_value = int(sku_attr_obj[0].attribute_value)
                     except:
                         round_of_value = 0
                     if round_of_value:
-                        replenishment_qty = int(
-                            (replenishment_qty + (round_of_value - 1)) // round_of_value * round_of_value)
+                        replenishment_qty = int((replenishment_qty+(round_of_value-1))//round_of_value * round_of_value)
 
             if ba_stock_dict:
-                total_ba_stock = ba_stock_dict[
-                    'total_quantity']  # ba_stock_objs.aggregate(Sum('sellerstock__quantity'))[
-                # 'sellerstock__quantity__sum']
+                total_ba_stock = ba_stock_dict['total_quantity'] #ba_stock_objs.aggregate(Sum('sellerstock__quantity'))['sellerstock__quantity__sum']
                 if total_ba_stock <= replenishment_qty:
                     needed_qty = total_ba_stock
                 else:
@@ -3379,12 +3333,12 @@ def ba_to_sa_calculate_now(request, user=''):
                         continue
                     if ba_stock_qty < needed_qty:
                         suggested_qty = ba_stock_qty
-                        needed_qty -= ba_stock_qty
+                        needed_qty -=  ba_stock_qty
                     else:
                         suggested_qty = needed_qty
                         needed_qty = 0
                     sku_classification_dict = {'sku_id': data.id, 'avg_sales_day': sku_avg_sale_per_day_units,
-                                               'avg_sales_day_value': sku_avg_sale_per_day_value,
+                                                'avg_sales_day_value': sku_avg_sale_per_day_value,
                                                'cumulative_contribution': cumulative_contribution,
                                                'classification': classification, 'source_stock_id': ba_stock_id,
                                                'replenushment_qty': replenishment_qty, 'reserved': suggested_qty,
@@ -3394,16 +3348,16 @@ def ba_to_sa_calculate_now(request, user=''):
                                                'dest_location_id': locations[0].id, 'seller_id': seller_master.id,
                                                'min_stock_qty': min_stock, 'max_stock_qty': max_stock,
                                                'status': 1}
-                    # exist_obj = SkuClassification.objects.filter(sku_id=data.id, classification=classification,
+                    #exist_obj = SkuClassification.objects.filter(sku_id=data.id, classification=classification,
                     #                                             source_stock_id=ba_stock_id, status=1,
                     #                                             seller_id=seller_master.id)
-                    # if not exist_obj:
+                    #if not exist_obj:
                     sku_classification_objs.append(SkuClassification(**sku_classification_dict))
             else:
                 remarks = 'BA Stock Not Found'
                 sku_classification_dict1['remarks'] = remarks
                 save_ba_to_sa_remarks(sku_classification_dict1, sku_classification_objs,
-                                      remarks_sku_ids)
+                                                                remarks_sku_ids)
         if sku_classification_objs:
             SkuClassification.objects.bulk_create(sku_classification_objs)
             # Updating the same datetime for all the created objects
@@ -3416,7 +3370,7 @@ def ba_to_sa_calculate_now(request, user=''):
         import traceback
         log.debug(traceback.format_exc())
         log.info('BA to SA Suggestion failed for %s and error statement is %s' % (
-            str(user.username), str(e)))
+        str(user.username), str(e)))
         return HttpResponse("Calculate BA to SA Failed")
 
     return HttpResponse('Calculated Successfully')

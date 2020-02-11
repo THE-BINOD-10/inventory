@@ -3443,8 +3443,10 @@ def ba_to_sa_calculate_now(request, user=''):
             sku_sales_units = 0
             if len(order_detail_objs) >= 3:
                 peak = 0
+                sales_objs = []
                 for order_detail_obj in order_detail_objs:
                     quantity_sum = order_detail_obj['quantity_sum']
+                    sales_objs.append(quantity_sum)
                     if peak < quantity_sum:
                         peak = quantity_sum
                     value_sum = order_detail_obj['value_sum']
@@ -3452,7 +3454,16 @@ def ba_to_sa_calculate_now(request, user=''):
                     sku_sales_units += quantity_sum
 
                 avg_sale_per_day_value = sku_sales_value / 7
-                avg_sale_per_day_units = sku_sales_units / len(order_detail_objs)
+                # avg_sale_per_day_units = sku_sales_units / len(order_detail_objs)
+                n = len(order_detail_objs)
+                sales_objs.sort()
+                if n % 2 == 0:
+                    median1 = sales_objs[n // 2]
+                    median2 = sales_objs[n // 2 - 1]
+                    avg_sale_per_day_units = (median1 + median2) / 2
+                else:
+                    avg_sale_per_day_units = sales_objs[n // 2]
+
                 total_avg_sale_per_day_unit += avg_sale_per_day_units
                 sku_avg_sale_mapping[data.id] = {'avg_sale_per_day_value': avg_sale_per_day_value,
                                                  'avail_qty': avail_qty,
@@ -3461,8 +3472,8 @@ def ba_to_sa_calculate_now(request, user=''):
             else:
                 sku_avg_sale_mapping[data.id] = {'avg_sale_per_day_value': 0,
                                                  'avail_qty': 0,
-                                                 'peak': 0,
-                                                 'avg_sale_per_day_units': 0}
+                                                 'peak': 30,
+                                                 'avg_sale_per_day_units': 30}
 
         log.info(
             "BA to SA calculating segregation for user %s ended at %s" % (user.username, str(datetime.datetime.now())))

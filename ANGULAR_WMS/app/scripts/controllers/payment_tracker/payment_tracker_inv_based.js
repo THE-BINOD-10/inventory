@@ -132,7 +132,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.filter_enable = true;
     vm.update = false;
     vm.model_data = {};
-    vm.bank_names=vm.permissions.bank_option_fields.split(',');
+     vm.bank_names = ''
+    if (vm.permissions.bank_option_fields){
+      vm.bank_names=vm.permissions.bank_option_fields.split(',');
+    }
     // vm.bank_names = {'abc': 'abc',
     //                  'xyz': 'xyz',
     //                  'pqr': 'pqr'};

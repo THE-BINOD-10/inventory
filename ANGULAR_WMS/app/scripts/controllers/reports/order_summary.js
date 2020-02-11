@@ -51,7 +51,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Date').withTitle('Invoice Date'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Amt(w/o tax)').withTitle('Invoice Amt(w/o tax)'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Amount').withTitle('Invoice Amount'))
-      vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Tax').withTitle('Invoice Tax'))
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Tax Amt').withTitle('Invoice Tax Amt'))
       vm.model_data.invoice = "true"
      } else{
        vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Number').withTitle('Invoice Number'))

@@ -1786,7 +1786,7 @@ PERMISSION_DICT = OrderedDict((
                         )),
 
     # Shipment Info
-    ("SHIPMENT_LABEL", (("Shipment Info", "add_shipmentinfo"))),
+    ("SHIPMENT_LABEL", ("Shipment Info", "add_shipmentinfo")),
 
     # Others
     ("OTHERS_LABEL", (("Raise Stock Transfer", "add_openst"), ("Create Stock Transfer", "add_stocktransfer"))),
@@ -4717,7 +4717,7 @@ def get_order_summary_data(search_params, user, sub_user):
     ('SKU Code', 'TotalQuantity='), ('Vehicle Number', ''),('Order Qty',temp_data['totalOrderQuantity']),('MRP', ''), ('Unit Price',''),('Discount', ''),
     ('Serial Number',''),('Invoice Number',''),('Challan Number', ''),('Invoice Qty',''),('Payment Type' ,''),('Reference Number',''),
     ('Order Amt(w/o tax)',''), ('Tax Percent',''), ('HSN Code', ''), ('Order Tax Amt', ''),('City', ''), ('State', ''), ('Marketplace', 'TotalOrderAmount='),('Invoice Amount',''),('Total Order Amt', temp_data['totalSellingPrice']),
-    ('Price', ''),('Status', ''), ('Order Status', ''),('Invoice Tax Amt', ''),('Customer GST Number',''),('Remarks', ''), ('Order Taken By', ''),
+    ('Price', ''),('Status', ''), ('Order Status', ''),('Invoice Tax Amt', ''),('Customer GST Number',''),('Remarks', ''), ('Order Taken By', ''),('Invoice Amt(w/o tax)', ''),
     ('Invoice Date',''),('Billing Address',''),('Shipping Address',''),('Payment Cash', ''),('Payment Card', ''),('Payment PhonePe',''),('Payment GooglePay',''),('Payment Paytm',''),('Advance Amount', '')))
     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
         total_row['Manufacturer'] = ''

@@ -132,13 +132,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.filter_enable = true;
     vm.update = false;
     vm.model_data = {};
-    vm.bank_names = {'abc': 'abc',
-                     'xyz': 'xyz',
-                     'pqr': 'pqr'};
-    vm.payment_modes = {'cheque': 'cheque',
-                        'NEFT': 'NEFT'};
-    vm.default_bank = "abc";
-    vm.default_mode = "cheque";
+     vm.bank_names = ''
+    if (vm.permissions.bank_option_fields){
+      vm.bank_names=vm.permissions.bank_option_fields.split(',');
+    }
+    // vm.bank_names = {'abc': 'abc',
+    //                  'xyz': 'xyz',
+    //                  'pqr': 'pqr'};
+    vm.payment_modes = {'cheque': 'Cheque',
+                        'NEFT': 'NEFT',
+                        'online': 'Online',
+                        'cash': 'Cash'};
+    vm.default_bank = vm.bank_names[0];
+    vm.default_mode = "cash";
 
   vm.change_amount = function(data, flag='') {
 
@@ -206,9 +212,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           // customer.payment_received = Number(customer.payment_received) + Number(value);
           // vm.payment_data.total_payment_receivable = Number(vm.payment_data.total_payment_receivable) - Number(value);
           // vm.payment_data.total_payment_received = Number(vm.payment_data.total_payment_received) + Number(value);
-          if(order.inv_amount == order.received) {
-            vm.model_data.data.splice(index, 1);
-          }
+          // if(order.inv_amount == order.received) {
+          //   vm.model_data.data.splice(index, 1);
+          // }
           // if (customer.payment_received == customer.invoice_amount) {
           //   vm.payment_data.payments.splice(index2, 1);
           // }

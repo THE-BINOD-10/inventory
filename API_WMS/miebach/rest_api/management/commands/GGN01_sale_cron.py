@@ -360,7 +360,7 @@ class Command(BaseCommand):
     help = "Auto Confirm Picklists"
 
     def handle(self, *args, **options):
-        self.stdout.write("Started Updating")
+        self.stdout.write("Started Updating for GGN01")
         users = User.objects.filter(username__in=['GGN01'])
         log.info(str(datetime.datetime.now()))
         for user in users:

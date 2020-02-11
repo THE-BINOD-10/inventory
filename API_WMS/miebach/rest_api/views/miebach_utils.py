@@ -491,9 +491,7 @@ SKU_WISE_PO_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'typ
                                 {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
                                 {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
                                 ],
-                    'dt_headers': ['PO Number', 'PO Date', 'Supplier', 'SKU Code', 'Order Quantity', 'Received Quantity',
-                                   'Receivable Quantity', 'Rejected Quantity', 'Receipt Date', 'Status'],
-                    'mk_dt_headers': ['PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'SKU Code',
+                    'dt_headers': ['PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'SKU Code',
                                       'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
                                       'Sub Category','Manufacturer','Searchable','Bundle',
                                       'PO Qty',  'Unit Price without tax', 'Unit Price with tax', 'MRP',
@@ -3151,19 +3149,13 @@ def sku_wise_purchase_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     user_profile = UserProfile.objects.get(user_id=user.id)
-
-    if not user_profile.user_type == 'marketplace_user':
-        lis = ['open_po__order_quantity', 'po_date', 'open_po__supplier__name', 'open_po__sku__sku_code', 'open_po__order_quantity',
-               'received_quantity', 'open_po__order_quantity', 'id', 'updation_date', 'id']
-        columns = SKU_WISE_PO_DICT['dt_headers']
-    else:
-        lis = ['po_date', 'order_id', 'open_po__supplier_id', 'open_po__supplier__name',
-               'open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__sku__sku_class',
-               'open_po__sku__style_name', 'open_po__sku__sku_brand', 'open_po__sku__sku_category',
-               'open_po__sku__sub_category',
-               'open_po__order_quantity', 'open_po__price', 'open_po__price', 'open_po__mrp', 'id', 'id', 'id',
-               'received_quantity', 'id', 'id', 'id', 'id', 'id', 'id']
-        columns = SKU_WISE_PO_DICT['mk_dt_headers']
+    lis = ['po_date', 'order_id', 'open_po__supplier_id', 'open_po__supplier__name',
+           'open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__sku__sku_class',
+           'open_po__sku__style_name', 'open_po__sku__sku_brand', 'open_po__sku__sku_category',
+           'open_po__sku__sub_category',
+           'open_po__order_quantity', 'open_po__price', 'open_po__price', 'open_po__mrp', 'id', 'id', 'id',
+           'received_quantity', 'id', 'id', 'id', 'id', 'id', 'id']
+    columns = SKU_WISE_PO_DICT['dt_headers']
     if 'sku_code' in search_params:
         search_parameters['open_po__sku__sku_code'] = search_params['sku_code']
     if 'sku_category' in search_params:
@@ -3243,63 +3235,47 @@ def sku_wise_purchase_data(search_params, user, sub_user):
                     searchable = attribute.attribute_value
                 if attribute.attribute_name == 'Bundle':
                     bundle = attribute.attribute_value
-        if not user_profile.user_type == 'marketplace_user':
-            po_reference = get_po_reference(data)
-            receivable_quantity = int(order_data['order_quantity'] - data.received_quantity)
-            if receivable_quantity < 0 or status == 'Closed PO':
-                receivable_quantity = 0
-            temp = OrderedDict((('PO Number', po_reference), ('PO Date', get_local_date(user, data.po_date)), ('Supplier', order_data['supplier_name']),
-                                ('SKU Code', order_data['wms_code']), ('Order Quantity', order_data['order_quantity']),
-                                ('Received Quantity', data.received_quantity), ('Receivable Quantity', receivable_quantity), ('Receipt Date', receipt_date),
-                                ('Status', status)))
-            temp['Rejected Quantity'] = 0
-            if int(data.id) in qc_po_ids:
-                temp['Rejected Quantity'] = qc_reject_sums[qc_po_ids.index(int(data.id))]
-            if status == 'Received':
-                received_list.append(temp)
-            else:
-                data_list.append(temp)
+
+        po_number = '%s%s_%s' % (data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), data.order_id)
+        tax = 0
+        price = order_data['price']
+        if data.open_po:
+            tax = float(data.open_po.cgst_tax) + float(data.open_po.sgst_tax) + float(data.open_po.igst_tax) + \
+                  float(data.open_po.cess_tax) + float(data.open_po.apmc_tax)
+            aft_price = price + ((price / 100) * tax)
+        pre_amount = float(order_data['order_quantity']) * float(price)
+        aft_amount = float(order_data['order_quantity']) * float(aft_price)
+        temp = OrderedDict((('PO Date', get_local_date(user, data.creation_date)), ('PO Number', po_number),
+                            ('Supplier ID', order_data['supplier_id']),
+                            ('Supplier Name', order_data['supplier_name']),
+                            ('SKU Code', order_data['sku_code']),
+                            ('SKU Description', order_data['sku_desc']),
+                            ('SKU Class', order_data['sku'].sku_class),
+                            ('SKU Style Name', order_data['sku'].style_name),
+                            ('SKU Brand', order_data['sku'].sku_brand),
+                            ('SKU Category', order_data['sku'].sku_category),
+                            ('Sub Category', order_data['sku'].sub_category),
+                            ('Manufacturer', manufacturer),
+                            ('Searchable', searchable),
+                            ('Bundle', bundle),
+                            ('PO Qty', order_data['order_quantity']),
+                            ('Unit Price without tax', order_data['price']),
+                            ('Unit Price with tax', "%.2f" % aft_price),
+                            ('MRP', order_data['mrp']),
+                            ('Pre-Tax PO Amount', "%.2f" % pre_amount), ('Tax', tax),
+                            ('After Tax PO Amount', "%.2f" % aft_amount),
+                            ('Qty received', data.received_quantity), ('Status', status),
+                            ('Warehouse Name', user.username),
+                            ('Report Generation Time', time)
+                            ))
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            temp['Manufacturer'] = manufacturer
+            temp['Searchable'] = searchable
+            temp['Bundle'] = bundle
+        if status == 'Received':
+            received_list.append(temp)
         else:
-            po_number = '%s%s_%s' % (data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), data.order_id)
-            tax = 0
-            price = order_data['price']
-            if data.open_po:
-                tax = float(data.open_po.cgst_tax) + float(data.open_po.sgst_tax) + float(data.open_po.igst_tax) + \
-                      float(data.open_po.cess_tax) + float(data.open_po.apmc_tax)
-                aft_price = price + ((price / 100) * tax)
-            pre_amount = float(order_data['order_quantity']) * float(price)
-            aft_amount = float(order_data['order_quantity']) * float(aft_price)
-            temp = OrderedDict((('PO Date', get_local_date(user, data.creation_date)), ('PO Number', po_number),
-                                ('Supplier ID', order_data['supplier_id']),
-                                ('Supplier Name', order_data['supplier_name']),
-                                ('SKU Code', order_data['sku_code']),
-                                ('SKU Description', order_data['sku_desc']),
-                                ('SKU Class', order_data['sku'].sku_class),
-                                ('SKU Style Name', order_data['sku'].style_name),
-                                ('SKU Brand', order_data['sku'].sku_brand),
-                                ('SKU Category', order_data['sku'].sku_category),
-                                ('Sub Category', order_data['sku'].sub_category),
-                                ('Manufacturer', manufacturer),
-                                ('Searchable', searchable),
-                                ('Bundle', bundle),
-                                ('PO Qty', order_data['order_quantity']),
-                                ('Unit Price without tax', order_data['price']),
-                                ('Unit Price with tax', "%.2f" % aft_price),
-                                ('MRP', order_data['mrp']),
-                                ('Pre-Tax PO Amount', "%.2f" % pre_amount), ('Tax', tax),
-                                ('After Tax PO Amount', "%.2f" % aft_amount),
-                                ('Qty received', data.received_quantity), ('Status', status),
-                                ('Warehouse Name', user.username),
-                                ('Report Generation Time', time)
-                                ))
-            if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-                temp['Manufacturer'] = manufacturer
-                temp['Searchable'] = searchable
-                temp['Bundle'] = bundle
-            if status == 'Received':
-                received_list.append(temp)
-            else:
-                data_list.append(temp)
+            data_list.append(temp)
 
     data_list = list(chain(data_list, received_list))
     if custom_search:

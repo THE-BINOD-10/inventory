@@ -3134,6 +3134,89 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
                          ('DT_RowAttr', {'data_id': data['sku__sku_code']}))))
 
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def cal_ba_to_sa(request, user=''):
+    """ Confirm BA to SA Stock Update"""
+    data_dict = dict(request.POST.iterlists())
+    confirm_data_list = []
+    for ind in range(0, len(data_dict['data_id'])):
+        classification_objs = SkuClassification.objects.filter(sku__sku_code=data_dict['sku_code'][ind],
+                                                              source_stock__batch_detail__mrp=data_dict['mrp'][ind],
+                                                              source_stock__batch_detail__weight=data_dict['weight'][ind],
+                                                              source_stock__location__location=data_dict['source_location'][ind],
+                                                              classification=data_dict['classification'][ind],
+                                                              sku__user=user.id, status=1)
+        if not classification_objs:
+            continue
+        try:
+            total_reserved = classification_objs.aggregate(Sum('reserved'))['reserved__sum']
+            dest_location = data_dict['dest_location'][ind]
+            remarks = data_dict['remarks'][ind]
+            if remarks:
+                continue
+            dest_loc_obj = LocationMaster.objects.filter(zone__user=user.id, location=dest_location)
+            if not dest_loc_obj.exists():
+                return HttpResponse("Invalid Location for SKU Code %s" % str(data_dict['sku_code'][ind]))
+            try:
+                suggested_qty = float(data_dict['suggested_qty'][ind])
+            except:
+                suggested_qty = 0
+            if not suggested_qty:
+                continue
+            if total_reserved < suggested_qty:
+                return HttpResponse("Entered Quantity exceeding the suggested quantity for SKU Code %s" % str(
+                    data_dict['sku_code'][ind]))
+            for classification_obj in classification_objs:
+                if not suggested_qty:
+                    continue
+                seller = classification_obj.seller
+                if suggested_qty > classification_obj.reserved:
+                    reserved_quantity = classification_obj.reserved
+                    suggested_qty -= reserved_quantity
+                else:
+                    reserved_quantity = suggested_qty
+                    suggested_qty = 0
+                confirm_data_list.append({'classification_obj': classification_obj, 'dest_loc': dest_loc_obj[0],
+                                          'reserved_quantity': reserved_quantity, 'seller': seller})
+            # data = CycleCount.objects.filter(sku__user=user.id).aggregate(Max('cycle'))['cycle__max']
+            # if not data:
+            #     cycle_id = 1
+            # else:
+            #     cycle_id = data + 1
+            for final_data in confirm_data_list:
+                classification_obj = final_data['classification_obj']
+                wms_code = classification_obj.source_stock.sku.sku_code
+                source_loc = classification_obj.source_stock.location.location
+                dest_loc = final_data['dest_loc'].location
+                quantity = final_data['reserved_quantity']
+                seller_id = classification_obj.seller.seller_id
+                batch_no = ''
+                mrp = 0
+                weight = ''
+                if classification_obj.source_stock.batch_detail:
+                    batch_no = classification_obj.source_stock.batch_detail.batch_no
+                    mrp = classification_obj.source_stock.batch_detail.mrp
+                    weight = classification_obj.source_stock.batch_detail.weight
+                status = move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id,
+                                             batch_no=batch_no, mrp=mrp,
+                                             weight=weight)
+                if 'success' in status.lower():
+                    update_filled_capacity([source_loc, dest_loc], user.id)
+                    classification_obj.reserved = classification_obj.reserved - quantity
+                    if classification_obj.reserved <= 0:
+                        classification_obj.status = 0
+                    classification_obj.save()
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('BA to SA Confirmation failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(data_dict), str(e)))
+
+     return HttpResponse('Confirmed Successfully')
+
+
 def save_ba_to_sa_remarks(sku_classification_dict1, sku_classification_objs, remarks_sku_ids):
     if sku_classification_dict1['sku_id'] not in remarks_sku_ids:
         exist_obj = SkuClassification.objects.filter(sku_id=sku_classification_dict1['sku_id'],

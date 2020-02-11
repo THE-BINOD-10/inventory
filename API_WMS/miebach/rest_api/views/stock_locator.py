@@ -3214,7 +3214,7 @@ def cal_ba_to_sa(request, user=''):
             log.info('BA to SA Confirmation failed for %s and params are %s and error statement is %s' % (
             str(user.username), str(data_dict), str(e)))
 
-     return HttpResponse('Confirmed Successfully')
+    return HttpResponse('Confirmed Successfully')
 
 
 def save_ba_to_sa_remarks(sku_classification_dict1, sku_classification_objs, remarks_sku_ids):

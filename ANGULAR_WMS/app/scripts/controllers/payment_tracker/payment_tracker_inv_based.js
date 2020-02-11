@@ -132,12 +132,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.filter_enable = true;
     vm.update = false;
     vm.model_data = {};
-    vm.bank_names = {'abc': 'abc',
-                     'xyz': 'xyz',
-                     'pqr': 'pqr'};
-    vm.payment_modes = {'cheque': 'cheque',
-                        'NEFT': 'NEFT'};
-    vm.default_bank = "abc";
+    vm.bank_names=vm.permissions.bank_option_fields.split(',');
+    // vm.bank_names = {'abc': 'abc',
+    //                  'xyz': 'xyz',
+    //                  'pqr': 'pqr'};
+    vm.payment_modes = {'cheque': 'Cheque',
+                        'NEFT': 'NEFT',
+                        'online': 'Online'};
+    vm.default_bank = vm.bank_names[0];
     vm.default_mode = "cheque";
 
   vm.change_amount = function(data, flag='') {

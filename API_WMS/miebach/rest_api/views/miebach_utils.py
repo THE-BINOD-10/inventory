@@ -483,8 +483,8 @@ OPEN_JO_REP_DICT = {
     'dt_url': 'get_openjo_report_details', 'excel_name': 'open_jo_report', 'print_url': 'print_open_jo_report',
     }
 
-SKU_WISE_PO_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'},
-                                {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+SKU_WISE_PO_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': 'date'},
+                                {'label': 'PO To Date', 'name': 'to_date', 'type': 'date'},
                                 {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                                 {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
                                 {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
@@ -504,8 +504,8 @@ SKU_WISE_PO_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'typ
                     }
 
 
-GRN_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'},
-                        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': 'date'},
+                        {'label': 'PO To Date', 'name': 'to_date', 'type': 'date'},
                         {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
                         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
                         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
@@ -2318,6 +2318,7 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'raisepo_terms_conditions':'raisepo_terms_conditions',
                      'invoice_marketplaces': 'invoice_marketplaces', 'serial_limit': 'serial_limit',
                      'extra_view_order_status': 'extra_view_order_status',
+                     'bank_option_fields':'bank_option_fields',
                      'invoice_types': 'invoice_types',
                      'mode_of_transport': 'mode_of_transport',
                      'shelf_life_ratio': 'shelf_life_ratio',
@@ -3059,9 +3060,13 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Selling Price', data.order.unit_price), ('Sale Tax Percent', tax_percent),
                                                             ('Cost Price', cost_price), ('Cost Tax Percent', cost_tax_percent),
                                                             ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])), ('Customer Name', customer_name),
-                                                            ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
-                                                            ('Manufactured Date', batchDetail_mfgdate), ('Expiry Date', batchDetail_expdate),
-                                                            ('Warehouse', warehouse_users.get(data.order.user))))
+                                            ))
+                    if user.userprofile.industry_type == 'FMCG':
+                        ord_dict['Batch Number'] = batch_number
+                        ord_dict['MRP'] = batchDetail_mrp
+                        ord_dict['Manufactured Date'] = batchDetail_mfgdate
+                        ord_dict['Expiry Date'] = batchDetail_expdate
+                    ord_dict['Warehouse'] = warehouse_users.get(data.order.user)
                     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
                         ord_dict['Manufacturer'] = manufacturer
                         ord_dict['Searchable'] = searchable
@@ -4846,7 +4851,7 @@ def get_order_summary_data(search_params, user, sub_user):
                 #if not unit_price:
                 tax_percent = tax * (100/(data['original_quantity'] * data['unit_price']))
             else:
-                amt = unit_price_inclusive_tax * float(data['original_quantity'])
+                amt = unit_price_inclusive_tax * float(data['original_quantity']) - discount
                 tax_percent = order_summary[0].cgst_tax + order_summary[0].sgst_tax + order_summary[0].igst_tax + order_summary[0].utgst_tax
                 cgst_amt = float(order_summary[0].cgst_tax) * (float(amt) / 100)
                 sgst_amt = float(order_summary[0].sgst_tax) * (float(amt) / 100)

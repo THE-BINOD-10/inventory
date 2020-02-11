@@ -3134,7 +3134,6 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
                          ('DT_RowAttr', {'data_id': data['sku__sku_code']}))))
 
 
-
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -3215,7 +3214,7 @@ def cal_ba_to_sa(request, user=''):
             log.info('BA to SA Confirmation failed for %s and params are %s and error statement is %s' % (
             str(user.username), str(data_dict), str(e)))
 
-    return HttpResponse('Confirmed Successfully')
+     return HttpResponse('Confirmed Successfully')
 
 
 def save_ba_to_sa_remarks(sku_classification_dict1, sku_classification_objs, remarks_sku_ids):
@@ -3226,6 +3225,7 @@ def save_ba_to_sa_remarks(sku_classification_dict1, sku_classification_objs, rem
         if not exist_obj.exists():
             sku_classification_objs.append(SkuClassification(**sku_classification_dict1))
             remarks_sku_ids.append(sku_classification_dict1['sku_id'])
+
 
 
 @csrf_exempt

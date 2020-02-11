@@ -20,7 +20,7 @@ longerusername==0.4
 south==1.0.2
 #pythonnet==2.3.0
 Pillow==4.0.0
-pyBarcode==0.7
+pyBarcode==0.8b1
 django-oauth-toolkit==1.0.0
 oauthlib==2.0.1
 django-admin-view-permission==1.9

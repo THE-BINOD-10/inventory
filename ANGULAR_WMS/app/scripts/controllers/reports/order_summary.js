@@ -36,8 +36,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       {
         vm.dtColumns.push(DTColumnBuilder.newColumn('Serial Number').withTitle('Serial Number'))
       }
-      vm.dtColumns.push(DTColumnBuilder.newColumn('Order Number').withTitle('Order Number'))
-
       vm.datatable = true;
       vm.dtInstance = {};
     })
@@ -49,18 +47,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
      {
       vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Number').withTitle('Invoice Number'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('Challan Number').withTitle('Challan Number'))
-      vm.dtColumns.push(DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'))
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Qty').withTitle('Invoice Qty'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Date').withTitle('Invoice Date'))
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Amt(w/o tax)').withTitle('Invoice Amt(w/o tax)'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Amount').withTitle('Invoice Amount'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Tax').withTitle('Invoice Tax'))
       vm.model_data.invoice = "true"
      } else{
        vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Number').withTitle('Invoice Number'))
        vm.dtColumns.push(DTColumnBuilder.newColumn('Challan Number').withTitle('Challan Number'))
-       vm.dtColumns.pop(DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'))
+       vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Qty').withTitle('Invoice Qty'))
        vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Date').withTitle('Invoice Date'))
+       vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Amt(w/o tax)').withTitle('Invoice Amt(w/o tax)'))
        vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Amount').withTitle('Invoice Amount'))
-       vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Tax').withTitle('Invoice Tax'))
+       vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Tax Amt').withTitle('Invoice Tax Amt'))
        vm.model_data.invoice = "false"
      }
   }

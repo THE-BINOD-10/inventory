@@ -4940,7 +4940,7 @@ def get_order_summary_data(search_params, user, sub_user):
         billing_address = shipping_address =  ''
         if order_summary.exists():
             shipping_address = order_summary[0].consignee
-        customer_master_obj = CustomerMaster.objects.filter(user = user.id, name  = customer_name)
+        customer_master_obj = CustomerMaster.objects.filter(user = user.id, customer_id  = data['customer_id'])
         gst_number = ''
         if customer_master_obj.exists():
             gst_number = customer_master_obj[0].tin_number

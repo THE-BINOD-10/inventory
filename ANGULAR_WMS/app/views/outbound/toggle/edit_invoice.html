@@ -114,18 +114,18 @@
         <td class="text-right">{{record.discount | number:2}}<br><span class="tax-percentage">@{{record.discount_percentage}}%</span></td>
         <td> {{record.amt | number:2}} </td>
         <td class="text-right">
-          <input type="text" name="cgst_tax" ng-if="pop.parent_user" ng-model="record.taxes.cgst_tax" value="{{record.taxes.cgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width" ng-readonly="record.is_igst_tax_flag">
-          <input type="text" name="cgst_tax"  ng-if="!pop.parent_user" ng-model="record.taxes.cgst_tax" value="{{record.taxes.cgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width" ng-readonly="record.is_igst_tax_flag">
+          <input type="text" name="cgst_tax" ng-if="pop.parent_user" ng-model="record.taxes.cgst_tax" value="{{record.taxes.cgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width" ng-readonly="pop.model_data.is_igst_tax_flag=='true'">
+          <input type="text" name="cgst_tax"  ng-if="!pop.parent_user" ng-model="record.taxes.cgst_tax" value="{{record.taxes.cgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width" ng-readonly="pop.model_data.is_igst_tax_flag=='true'">
 
           <!-- {{record.taxes.cgst_amt | number:2}} --><br><span class="tax-percentage">{{record.taxes.cgst_tax}}%</span></td>
         <td class="text-right">
-          <input type="text" name="sgst_tax" ng-if="pop.parent_user"  ng-model="record.taxes.sgst_tax" value="{{record.taxes.sgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width" ng-readonly="record.is_igst_tax_flag">
-          <input type="text" name="sgst_tax" ng-if="!pop.parent_user" ng-model="record.taxes.sgst_tax" value="{{record.taxes.sgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width" ng-readonly="record.is_igst_tax_flag">
+          <input type="text" name="sgst_tax" ng-if="pop.parent_user"  ng-model="record.taxes.sgst_tax" value="{{record.taxes.sgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width" ng-readonly="pop.model_data.is_igst_tax_flag=='true'">
+          <input type="text" name="sgst_tax" ng-if="!pop.parent_user" ng-model="record.taxes.sgst_tax" value="{{record.taxes.sgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width" ng-readonly="pop.model_data.is_igst_tax_flag=='true'">
 
           <!-- {{record.taxes.sgst_amt | number:2}} --><br><span class="tax-percentage">{{record.taxes.sgst_tax}}%</span></td>
         <td class="text-right">
-          <input type="text" name="igst_tax"  ng-if="pop.parent_user" ng-model="record.taxes.igst_tax" value="{{record.taxes.igst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width" ng-readonly="!record.is_igst_tax_flag">
-          <input type="text" name="igst_tax" ng-if="!pop.parent_user" ng-model="record.taxes.igst_tax" value="{{record.taxes.igst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width" ng-readonly="!record.is_igst_tax_flag">
+          <input type="text" name="igst_tax"  ng-if="pop.parent_user" ng-model="record.taxes.igst_tax" value="{{record.taxes.igst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width" ng-readonly="pop.model_data.is_igst_tax_flag=='false'">
+          <input type="text" name="igst_tax" ng-if="!pop.parent_user" ng-model="record.taxes.igst_tax" value="{{record.taxes.igst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width" ng-readonly="pop.model_data.is_igst_tax_flag=='false'">
 
           <!-- {{record.taxes.igst_amt | number:2}} --><br><span class="tax-percentage">{{record.taxes.igst_tax}}%</span></td>
         <!-- <td ng-init="pop.gst_calculate(record)"> -->

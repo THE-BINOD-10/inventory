@@ -3519,6 +3519,14 @@ def check_returns(request, user=''):
         for picklist in picklists:
             wms_code = picklist.order.sku.wms_code
             sku_desc = picklist.order.sku.sku_desc
+            unit_price = picklist.order.unit_price
+            cod = picklist.order.customerordersummary_set.filter()
+            taxes = {'cgst': 0, 'sgst': 0, 'igst': 0}
+            if cod.exists():
+                cod = cod[0]
+                taxes['cgst'] = cod.cgst_tax
+                taxes['sgst'] = cod.sgst_tax
+                taxes['igst'] = cod.igst_tax
             if picklist.stock:
                 wms_code = picklist.stock.sku.wms_code
                 sku_desc = picklist.stock.sku.sku_desc
@@ -3526,22 +3534,27 @@ def check_returns(request, user=''):
             if not order_id:
                 order_id = picklist.order.order_code + str(picklist.order.order_id)
             cond = (order_id, wms_code, sku_desc, picklist.order.id)
-            all_data.setdefault(cond, 0)
-            all_data[cond] += picklist.picked_quantity
+            all_data.setdefault(cond, {'picked_quantity': 0, 'unit_price': unit_price, 'taxes': taxes})
+            all_data[cond]['picked_quantity'] += picklist.picked_quantity
         for key, value in all_data.iteritems():
             order_track_obj = OrderTracking.objects.filter(order_id=key[3], status='returned')
             if order_track_obj:
                 order_track_quantity = int(order_track_obj.aggregate(Sum('quantity'))['quantity__sum'])
-                if value == order_track_quantity:
+                if value['picked_quantity'] == order_track_quantity:
                     continue
                 else:
-                    remaining_return = int(value) - int(order_track_quantity)
-                    data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'order_detail_id': key[3],
+                    remaining_return = int(value['picked_quantity']) - int(order_track_quantity)
+                    dict_data = {'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'order_detail_id': key[3],
                                  'ship_quantity': remaining_return, 'return_quantity': remaining_return,
-                                 'damaged_quantity': 0})
+                                 'damaged_quantity': 0, 'unit_price': value['unit_price'] }
+                    dict_data.update(taxes)
+                    data.append(dict_data)
             else:
-                data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'order_detail_id': key[3],
-                             'ship_quantity': value, 'return_quantity': value, 'damaged_quantity': 0})
+                dict_data = {'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'order_detail_id': key[3],
+                             'ship_quantity': value['picked_quantity'], 'return_quantity': value['picked_quantity'],
+                             'damaged_quantity': 0, 'unit_price': value['unit_price']}
+                dict_data.update(taxes)
+                data.append(dict_data)
         if not data:
             status = str(key[0]) + ' Order ID Already Returned'
             return HttpResponse(status)
@@ -5959,6 +5972,11 @@ def returns_putaway_data(request, user=''):
             sku_id = returns_data.returns.sku_id
             return_wms_codes.append(returns_data.returns.sku.wms_code)
             seller_id = ''
+            unit_price = returns_data.returns.sku.cost_price
+            if returns_data.returns.order:
+                picklist = returns_data.returns.order.picklist_set.filter(stock__isnull=False)
+                if picklist:
+                    unit_price = picklist[0].stock.unit_price
             if user.username in MILKBASKET_USERS:
                 seller_obj = SellerMaster.objects.filter(seller_id=1, user=user.id).only('id')
                 if seller_obj.exists():
@@ -6002,7 +6020,7 @@ def returns_putaway_data(request, user=''):
                               'receipt_date': datetime.datetime.now(),
                               'sku_id': sku_id, 'quantity': quantity, 'status': 1,
                               'creation_date': datetime.datetime.now(), 'updation_date': datetime.datetime.now(),
-                              'receipt_type': 'return'}
+                              'receipt_type': 'return', 'unit_price': unit_price}
                 if batch_detail:
                     stock_dict['batch_detail_id'] = batch_detail[0].id
                 new_stock = StockDetail(**stock_dict)

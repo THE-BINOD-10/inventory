@@ -138,9 +138,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     //                  'pqr': 'pqr'};
     vm.payment_modes = {'cheque': 'Cheque',
                         'NEFT': 'NEFT',
-                        'online': 'Online'};
+                        'online': 'Online',
+                        'cash': 'Cash'};
     vm.default_bank = vm.bank_names[0];
-    vm.default_mode = "cheque";
+    vm.default_mode = "cash";
 
   vm.change_amount = function(data, flag='') {
 

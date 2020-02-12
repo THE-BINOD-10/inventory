@@ -7856,6 +7856,7 @@ def get_view_order_details(request, user=''):
         cess_tax = 0
         payment_status = ''
         discount_percentage = 0
+        discount = 0
         mrp = 0
         if customer_order:
             client_name = customer_order[0].client_name

@@ -678,7 +678,7 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
                          ('description', data.sku.sku_desc)))
             if user.userprofile.industry_type == 'FMCG':
                 temp['manufactured_date'], temp['expiry_date'], temp['batch_no'], temp['mrp'] = '', '', '', ''
-                batch_detail_list = list(ReturnsLocation.objects.filter(returns_id=data.id, status=1).values_list('id', flat=True))
+                batch_detail_list = list(ReturnsLocation.objects.filter(returns_id=data.id).values_list('id', flat=True))
                 if batch_detail_list:
                     batch_data = BatchDetail.objects.filter(transact_id__in=batch_detail_list, transact_type='return_loc')
                     if batch_data.exists():

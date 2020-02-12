@@ -4355,6 +4355,23 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                 if isinstance(cell_data, float):
                     get_decimal_data(cell_data, index_status, row_idx, user)
 
+            elif key in ['mrp', 'buy_price']:
+                if cell_data and isinstance(cell_data, (int, float)):
+                    if int(cell_data) < 0:
+                        index_status.setdefault(row_idx, set()).add(key + ' should not be in negative')
+                if isinstance(cell_data, float):
+                    get_decimal_data(cell_data, index_status, row_idx, user)
+
+            elif key in ['manufactured_date', 'expiry_date']:
+                if cell_data:
+                    try:
+                        if isinstance(cell_data, str):
+                            datetime.datetime.strptime(cell_data, "%Y-%m-%d")
+                        else:
+                            xldate_as_tuple(cell_data, 0)
+                    except:
+                        index_status.setdefault(row_idx, set()).add(key + ' in wrong format')
+
             elif key == 'return_id':
                 sku_cod = get_cell_data(row_idx, order_mapping['sku_id'], reader, file_type)
                 return_cod = get_cell_data(row_idx, order_mapping['return_id'], reader, file_type)
@@ -4413,6 +4430,7 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
     for row_idx in range(1, no_of_rows):
         all_data = []
         order_data = copy.deepcopy(UPLOAD_SALES_ORDER_DATA)
+        batch_data = {}
         if not order_mapping:
             break
         for key, value in order_mapping.iteritems():
@@ -4464,7 +4482,21 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                             order_data[key] = datetime.datetime.now()
                     else:
                         order_data[key] = xldate_as_tuple(cell_data, 0)
-
+            elif key in ['manufactured_date', 'expiry_date']:
+                cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+                if cell_data:
+                    if isinstance(cell_data, str):
+                        try:
+                            batch_data[key] = datetime.datetime.strptime(cell_data, "%d-%m-%Y %H:%M")
+                        except:
+                            batch_data[key] = datetime.datetime.now()
+                    else:
+                        year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
+                        batch_data[key] = (datetime.datetime(year, month, day, hour, minute, second)).strftime("%m/%d/%Y")
+            elif key in ['batch_no', 'mrp', 'weight', 'buy_price']:
+                cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+                if cell_data:
+                    batch_data[key] = cell_data
             elif key == 'marketplace':
                 order_data[key] = value
             elif key == 'channel':
@@ -4503,9 +4535,10 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
             if not returns.return_id:
                 returns.return_id = 'MN%s' % returns.id
             returns.save()
-
+            if not batch_data:
+                batch_data = False
             if not order_data.get('seller_order_id', ''):
-                save_return_locations([returns], all_data, order_data['damaged_quantity'], request, user)
+                save_return_locations([returns], all_data, order_data['damaged_quantity'], request, user, batch_dict = batch_data)
     return 'Success'
 
 

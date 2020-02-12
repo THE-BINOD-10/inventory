@@ -8824,7 +8824,9 @@ def get_debit_note_data(rtv_number, user):
         data_dict['pan'] = get_po.supplier.pan_number
         data_dict.setdefault('item_details', [])
         data_dict_item = {'sku_code': get_po.sku.sku_code, 'sku_desc': get_po.sku.sku_desc,
-                          'hsn_code': get_po.sku.hsn_code, 'order_qty': obj.quantity}
+                          'hsn_code': get_po.sku.hsn_code, 'order_qty': obj.quantity, 'mrp':get_po.sku.mrp}
+        if obj.seller_po_summary.batch_detail:
+            data_dict_item['mrp'] = obj.seller_po_summary.batch_detail.mrp
         if user.username in MILKBASKET_USERS:
             data_dict_item['price'] = 0
         else:

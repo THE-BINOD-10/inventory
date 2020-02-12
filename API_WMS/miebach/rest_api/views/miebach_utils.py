@@ -493,8 +493,7 @@ SKU_WISE_PO_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'typ
                                 ],
                     'dt_headers': ['PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'SKU Code',
                                       'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
-                                      'Sub Category','Manufacturer','Searchable','Bundle',
-                                      'PO Qty',  'Unit Price without tax', 'Unit Price with tax', 'MRP',
+                                      'Sub Category','PO Qty',  'Unit Price without tax', 'Unit Price with tax', 'MRP',
                                       'Pre-Tax PO Amount', 'Tax', 'After Tax PO Amount',
                                       'Qty received', 'Status', 'Warehouse Name', 'Report Generation Time'],
                     'dt_url': 'get_sku_purchase_filter', 'excel_name': 'sku_wise_purchases',
@@ -3268,10 +3267,6 @@ def sku_wise_purchase_data(search_params, user, sub_user):
                             ('Warehouse Name', user.username),
                             ('Report Generation Time', time)
                             ))
-        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-            temp['Manufacturer'] = manufacturer
-            temp['Searchable'] = searchable
-            temp['Bundle'] = bundle
         if status == 'Received':
             received_list.append(temp)
         else:

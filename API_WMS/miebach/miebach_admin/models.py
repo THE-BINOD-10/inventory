@@ -1920,6 +1920,8 @@ class PaymentSummary(models.Model):
 
 class POPaymentSummary(models.Model):
     id = BigAutoField(primary_key=True)
+    payment_id = models.CharField(max_length=60, default='')
+    invoice_number = models.CharField(max_length=128, default='')
     order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
     payment_received = models.FloatField(default=0)
     bank = models.CharField(max_length=64, default='')

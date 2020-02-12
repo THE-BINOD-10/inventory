@@ -1107,7 +1107,7 @@ MOVE_TO_INVENTORY_REPORT_DICT = {
     ],
     'dt_headers': ['SKU Code', 'SKU Description','Source Location', 'SKU Category',
                    'Sub Category', 'SKU Brand', 'Manufacturer', 'Searchable', 'Bundle',
-                   'Destination Location','Quantity','Transaction Date', 'Updated User'],
+                   'Destination Location','Quantity','Transaction Date', 'Updated User','Reason'],
     'dt_url': 'get_move_inventory_report', 'excel_name': 'get_move_inventory_report',
     'print_url': 'print_move_inventory_report',
 }
@@ -9185,6 +9185,7 @@ def get_move_inventory_report_data(search_params, user, sub_user):
                                                 ('Manufacturer', manufacturer),
                                                 ('Searchable', searchable),
                                                 ('Bundle', bundle),
+                                                ('Reason', sku_data.reason),
                                                 ('Source Location',sku_data.source_location.location),
                                                 ('Destination Location',sku_data.dest_location.location),
                                                 ('Quantity',sku_data.quantity),('Weight',weight),('MRP',mrp),

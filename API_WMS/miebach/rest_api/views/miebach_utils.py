@@ -455,6 +455,7 @@ ORDER_SUMMARY_DICT = {
                 {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'},
                 {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'},
                 {'label': 'SKU Size', 'name': 'sku_size', 'type': 'input'},
+                {'label': 'Customer ID', 'name': 'customer_id', 'type': 'input'},
                 {'label': 'Status', 'name': 'order_report_status', 'type': 'select'},
                 {'label': 'Order Reference', 'name': 'order_reference', 'type': 'input'},
                 {'label': 'Order ID', 'name': 'order_id', 'type': 'input'}],
@@ -4584,7 +4585,7 @@ def get_order_summary_data(search_params, user, sub_user):
     filter_dict = {'sku_code':'sku_code', 'marketplace':'marketplace','sku_category':'sku__sku_category',
                     'sub_category': 'sku__sub_category','sku_brand':'sku__sku_brand','sku_size':'sku__sku_size',
                     'sku_class':'sku__sku_class','city':'city', 'state':'state','order_reference':'order_reference',
-                     'invoice_date': 'sellerordersummary__creation_date__icontains',
+                     'invoice_date': 'sellerordersummary__creation_date__icontains','customer_id':'customer_id',
                     'invoice_number': 'sellerordersummary__invoice_number', 'manufacturer':'sku__skuattributes__attribute_value__iexact',
                     'searchable': 'sku__skuattributes__attribute_value__iexact', 'bundle': 'sku__skuattributes__attribute_value__iexact',
                    }
@@ -4817,7 +4818,8 @@ def get_order_summary_data(search_params, user, sub_user):
         if order_summary.exists():
             mrp_price = order_summary[0].mrp
             discount = order_summary[0].discount
-            unit_discount = float(discount)/float(data['original_quantity'])
+            if data['original_quantity']:
+                unit_discount = float(discount)/float(data['original_quantity'])
             order_status = order_summary[0].status
             remarks = order_summary[0].central_remarks
             order_taken_by = order_summary[0].order_taken_by

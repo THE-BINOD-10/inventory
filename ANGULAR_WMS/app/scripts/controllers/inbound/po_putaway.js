@@ -45,6 +45,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
             $scope.$apply(function() {
+                vm.message = "";
                 vm.service.apiCall('get_received_orders/', 'GET', {supplier_id: aData.DT_RowAttr["data-id"]}).then(function(data){
                   if(data.message) {
                     
@@ -107,6 +108,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
             vm.close();
             reloadData();
           } else {
+            $state.go('app.inbound.PutAwayConfirmation.confirmation');
             pop_msg(data.data);
           }
         }
@@ -114,11 +116,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     }
 
     function pop_msg(msg) {
+      vm.message = "";
       vm.message = msg;
-      $timeout(function () {
-        vm.message = "";
-      }, 2000);
-    }
+     }
 
   vm.isLast = isLast;
   function isLast(check) {

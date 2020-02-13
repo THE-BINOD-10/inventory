@@ -4158,6 +4158,7 @@ def validate_putaway(all_data, user):
     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
     validate_po_id = ''
     validate_seller_id = ''
+    error_skus = []
     if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
         get_values = all_data.keys()
         if get_values:
@@ -4219,10 +4220,11 @@ def validate_putaway(all_data, user):
             data_dict = {'sku_code':key[4], 'mrp':key[5], 'weight':key[6], 'seller_id':validate_seller_id, 'location': key[1]}
             validation_status = validate_mrp_weight(data_dict,user)
             if validation_status:
+                error_skus.append(data_dict['sku_code'])
                 mrp_putaway_status.append(validation_status)
     if mrp_putaway_status:
         status += ', '.join(mrp_putaway_status)
-    return status
+    return status, error_skus
 
 
 def consume_bayarea_stock(sku_code, zone, quantity, user):
@@ -4404,9 +4406,12 @@ def putaway_data(request, user=''):
                     myDict['quantity'][i] = 0
                 all_data[cond] += float(myDict['quantity'][i])
         all_data = OrderedDict(sorted(all_data.items(), reverse=True))
-        status = validate_putaway(all_data, user)
+        status, error_skus = validate_putaway(all_data, user)
         if status:
-            return HttpResponse(status)
+            if error_skus:
+                return HttpResponse(status, error_skus)
+            else:
+                return HttpResponse(status)
         for key, value in all_data.iteritems():
             loc = LocationMaster.objects.get(location=key[1], zone__user=user.id)
             loc1 = loc

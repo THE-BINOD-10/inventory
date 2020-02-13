@@ -9,6 +9,7 @@ import logging
 import datetime
 import copy
 import django
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "miebach.settings")
 django.setup()
 from itertools import chain
@@ -18,6 +19,7 @@ from rest_api.views.common import get_exclude_zones, get_misc_value, get_picklis
     update_stocks_data, get_max_seller_transfer_id, get_financial_year, get_stock_receipt_number
 from rest_api.views.outbound import get_seller_pick_id
 from rest_api.views.miebach_utils import MILKBASKET_USERS, PICKLIST_FIELDS, ST_ORDER_FIELDS
+
 
 def init_logger(log_file):
     log = logging.getLogger(log_file)
@@ -34,11 +36,11 @@ def init_logger(log_file):
 
 log = init_logger('logs/auto_process_picklists.log')
 
-def prepare_picklist_val_dict(user, sku_id_stocks,  is_seller_order, add_mrp_filter):
-    val_dict = {}
-    val_dict['sku_ids'] = map(lambda d: d['sku_id'], sku_id_stocks)
-    val_dict['stock_ids'] = map(lambda d: d['id'], sku_id_stocks)
-    val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)
+
+def prepare_picklist_val_dict(user, sku_id_stocks, is_seller_order, add_mrp_filter):
+    val_dict = {'sku_ids': map(lambda d: d['sku_id'], sku_id_stocks),
+                'stock_ids': map(lambda d: d['id'], sku_id_stocks),
+                'stock_totals': map(lambda d: d['total'], sku_id_stocks)}
     pc_loc_filter = {'status': 1}
     if is_seller_order or add_mrp_filter:
         pc_loc_filter['stock_id__in'] = val_dict['stock_ids']
@@ -48,6 +50,7 @@ def prepare_picklist_val_dict(user, sku_id_stocks,  is_seller_order, add_mrp_fil
     val_dict['pic_res_ids'] = map(lambda d: d['stock__sku_id'], pick_res_locat)
     val_dict['pic_res_quans'] = map(lambda d: d['total'], pick_res_locat)
     return val_dict
+
 
 def execute_picklist_confirm_process(order_data, picklist_number, user,
                                      sku_combos, sku_stocks, switch_vals, receipt_number,
@@ -84,8 +87,7 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
     picklist_data['remarks'] = 'Auto Confirmed Picklist'
     financial_year = get_financial_year(datetime.datetime.now())
 
-
-    combo_sku_ids = list(sku_combos.filter(parent_sku_id=order.sku_id).\
+    combo_sku_ids = list(sku_combos.filter(parent_sku_id=order.sku_id). \
                          values_list('member_sku_id', flat=True))
     combo_sku_ids.append(order.sku_id)
     sku_id_stock_filter = {'sku_id__in': combo_sku_ids}
@@ -113,7 +115,7 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
         sku_id_stocks_dict = OrderedDict()
         for seller_id_stock in seller_id_stocks:
             sku_id_stocks_dict.setdefault(seller_id_stock.stock_id, {'total': 0, 'sku_id': seller_id_stock.stock.sku_id,
-                                  'id': seller_id_stock.stock_id})
+                                                                     'id': seller_id_stock.stock_id})
             sku_id_stocks_dict[seller_id_stock.stock_id]['total'] += seller_id_stock.quantity
         sku_id_stocks = sku_id_stocks_dict.values()
         # sku_id_stocks = sku_stocks.filter(sellerstock__seller_id=seller_master_id, **sku_id_stock_filter).values('id', 'sku_id'). \
@@ -121,7 +123,7 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
     else:
         sku_id_stocks = sku_stocks.filter(**sku_id_stock_filter).values('id', 'sku_id'). \
             annotate(total=Sum('quantity')).order_by(order_by)
-    val_dict = prepare_picklist_val_dict(user, sku_id_stocks,  is_seller_order, add_mrp_filter)
+    val_dict = prepare_picklist_val_dict(user, sku_id_stocks, is_seller_order, add_mrp_filter)
 
     if not seller_order:
         order_check_quantity = float(order.quantity)
@@ -146,7 +148,8 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
             if stock_quantity < float(member_check_quantity):
                 if not no_stock_switch:
                     if user.userprofile.user_type == 'marketplace_user':
-                        src_stocks = temp_sku_stocks.filter(sellerstock__seller__seller_id=1, sku_id=combo.member_sku_id,
+                        src_stocks = temp_sku_stocks.filter(sellerstock__seller__seller_id=1,
+                                                            sku_id=combo.member_sku_id,
                                                             **sku_id_stock_filter).distinct()
                         if src_stocks:
                             # src_sku_id_stocks = src_stocks.values('id', 'sku_id').annotate(
@@ -161,13 +164,14 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
                             src_sku_id_stocks_dict = OrderedDict()
                             for seller_id_stock in seller_id_stocks:
                                 src_sku_id_stocks_dict.setdefault(seller_id_stock.stock_id,
-                                                              {'total': 0, 'sku_id': seller_id_stock.stock.sku_id,
-                                                               'id': seller_id_stock.stock_id})
+                                                                  {'total': 0, 'sku_id': seller_id_stock.stock.sku_id,
+                                                                   'id': seller_id_stock.stock_id})
                                 src_sku_id_stocks_dict[seller_id_stock.stock_id]['total'] += seller_id_stock.quantity
                             src_sku_id_stocks = src_sku_id_stocks_dict.values()
                             src_val_dict = prepare_picklist_val_dict(user, src_sku_id_stocks,
                                                                      is_seller_order, add_mrp_filter)
-                            src_stock_detail, src_stock_quantity, src_sku_code = get_sku_stock(combo.member_sku, src_stocks,
+                            src_stock_detail, src_stock_quantity, src_sku_code = get_sku_stock(combo.member_sku,
+                                                                                               src_stocks,
                                                                                                user, src_val_dict,
                                                                                                src_sku_id_stocks)
                             total_sellers_qty = src_stock_quantity + stock_quantity
@@ -205,13 +209,14 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
         elif order.sku.relation_type == 'combo' and not combo_allocate_stock:
             stock_detail, stock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
                                                                    sku_id_stocks, add_mrp_filter=add_mrp_filter,
-                                                               needed_mrp_filter=needed_mrp_filter)
+                                                                   needed_mrp_filter=needed_mrp_filter)
 
         order_quantity = member_qty
         if stock_quantity < float(order_quantity):
             is_seller_stock_updated = False
             if seller_order:
-                src_stocks = temp_sku_stocks.filter(sellerstock__seller__seller_id=1, sku_id=member.id,**sku_id_stock_filter).distinct()
+                src_stocks = temp_sku_stocks.filter(sellerstock__seller__seller_id=1, sku_id=member.id,
+                                                    **sku_id_stock_filter).distinct()
                 if src_stocks:
                     seller_id_stocks = SellerStock.objects.filter(
                         stock_id__in=src_stocks.values_list('id', flat=True),
@@ -243,8 +248,10 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
                                            src_seller_id=source_seller.id, dest_seller_id=seller_order.seller_id,
                                            receipt_type='auto seller-seller transfer', receipt_number=receipt_number)
                         trans_id = get_max_seller_transfer_id(user)
-                        exist_seller_transfer = SellerTransfer.objects.filter(source_seller_id=source_seller.id, dest_seller_id=seller_order.seller.id,
-                                                                            transact_id=trans_id, transact_type='stock_transfer')
+                        exist_seller_transfer = SellerTransfer.objects.filter(source_seller_id=source_seller.id,
+                                                                              dest_seller_id=seller_order.seller.id,
+                                                                              transact_id=trans_id,
+                                                                              transact_type='stock_transfer')
                         if not exist_seller_transfer.exists():
                             seller_transfer = SellerTransfer.objects.create(source_seller_id=source_seller.id,
                                                                             dest_seller_id=seller_order.seller.id,
@@ -282,10 +289,10 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
             stock_zones3 = stock_detail.filter(location__zone_id__in=rem_zone_map_ids).order_by(order_by)
             stock_detail = stock_zones1.union(stock_zones2, stock_zones3)
         elif fefo_enabled:
-            stock_detail1 = stock_detail.filter(batch_detail__expiry_date__isnull=False).\
-                                            order_by('batch_detail__expiry_date')
-            stock_detail2 = stock_detail.exclude(batch_detail__expiry_date__isnull=False).\
-                                            order_by(order_by)
+            stock_detail1 = stock_detail.filter(batch_detail__expiry_date__isnull=False). \
+                order_by('batch_detail__expiry_date')
+            stock_detail2 = stock_detail.exclude(batch_detail__expiry_date__isnull=False). \
+                order_by(order_by)
             stock_detail = list(chain(stock_detail1, stock_detail2))
         if seller_order and seller_order.order_status == 'DELIVERY_RESCHEDULED':
             rto_stocks = stock_detail.filter(location__zone__zone='RTO_ZONE')
@@ -295,7 +302,8 @@ def execute_picklist_confirm_process(order_data, picklist_number, user,
             seller_master_id = ''
             if seller_order:
                 seller_master_id = seller_order.seller_id
-            stock_count, stock_diff = get_stock_count(order, stock, stock_diff, user, order_quantity, seller_master_id=seller_master_id)
+            stock_count, stock_diff = get_stock_count(order, stock, stock_diff, user, order_quantity,
+                                                      seller_master_id=seller_master_id)
             if not stock_count:
                 continue
 
@@ -351,17 +359,21 @@ class Command(BaseCommand):
     """
     help = "Auto Confirm Picklists"
 
+    def add_arguments(self, parser):
+        parser.add_argument('user', type=str)
+
     def handle(self, *args, **options):
+        username = options['user']
         self.stdout.write("Started Updating")
-        users = User.objects.filter(username__in=['NOIDA02', 'NOIDA01', 'BLR01', 'HYD01', 'GGN01'])
-        #users = User.objects.filter(username__in=['NOIDA02'])
+        users = User.objects.filter(username__in=[username])
         log.info(str(datetime.datetime.now()))
         for user in users:
+            log.info('Sale Cron Started for {} at {}'.format(username, str(datetime.datetime.now())))
             picklist_exclude_zones = get_exclude_zones(user)
             receipt_number = get_stock_receipt_number(user)
-            open_orders = OrderDetail.objects.prefetch_related('sku').\
-                                            filter(user=user.id, status=1, sellerorder__isnull=False,
-                                                                             quantity__gt=0, sellerorder__seller__seller_id=2)
+            open_orders = OrderDetail.objects.prefetch_related('sku'). \
+                filter(user=user.id, status=1, sellerorder__isnull=False,
+                       quantity__gt=0, sellerorder__seller__seller_id=2)
             picklist_number = ''
             if open_orders.exists():
                 picklist_number = get_picklist_number(user)
@@ -389,19 +401,22 @@ class Command(BaseCommand):
                 if seller_orders:
                     for seller_order in seller_orders:
                         sku_stocks = all_sku_stocks
-                        #sku_stocks = all_sku_stocks.filter(sellerstock__seller_id=seller_order.seller_id)
+                        # sku_stocks = all_sku_stocks.filter(sellerstock__seller_id=seller_order.seller_id)
                         try:
                             execute_picklist_confirm_process(seller_order, picklist_number, user, sku_combos,
-                                                             sku_stocks, switch_vals, receipt_number, is_seller_order=True)
+                                                             sku_stocks, switch_vals, receipt_number,
+                                                             is_seller_order=True)
                         except Exception as e:
                             import traceback
                             log.debug(traceback.format_exc())
-                            log.info('Order Processing failed for user %s and order id %s' % (str(user.username), str(open_order.original_order_id)))
+                            log.info('Order Processing failed for user %s and order id %s' % (
+                                str(user.username), str(open_order.original_order_id)))
                 else:
                     log.info("Not Auto Processing %s" % str(open_order.original_order_id))
-                    #execute_picklist_confirm_process(seller_order, picklist_number, user, sku_combos,
+                    # execute_picklist_confirm_process(seller_order, picklist_number, user, sku_combos,
                     #                                 sku_stocks, switch_vals, is_seller_order=False)
             if picklist_number:
                 check_picklist_number_created(user, picklist_number + 1)
         log.info(str(datetime.datetime.now()))
+        log.info('Sale Cron Completed for {} at {}'.format(username, str(datetime.datetime.now())))
         self.stdout.write("Updating Completed")

@@ -87,9 +87,11 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     if(item.tax_type) {
 
       vm.model_data["tax_type"] = item.tax_type;
+      vm.tax_type_readonly = true;
     } else {
 
       vm.model_data["tax_type"] = '';
+      vm.tax_type_readonly = false;
     }
     vm.add_customer = false;
     angular.copy(item, vm.selected)

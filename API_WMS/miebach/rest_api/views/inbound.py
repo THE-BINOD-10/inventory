@@ -1038,6 +1038,7 @@ def switches(request, user=''):
                        'calculate_customer_price': 'calculate_customer_price',
                        'shipment_sku_scan': 'shipment_sku_scan',
                        'extra_view_order_status':'extra_view_order_status',
+                       'bank_option_fields':'bank_option_fields',
                        'disable_brands_view':'disable_brands_view',
                        'invoice_types': 'invoice_types',
                        'sellable_segregation': 'sellable_segregation',
@@ -3085,15 +3086,15 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 else:
                     seller_receipt_id = get_st_seller_receipt_id(data)
 
-        if 'batch_no' in myDict.keys():
-            batch_dict['receipt_number'] = seller_receipt_id
-            add_ean_weight_to_batch_detail(purchase_data['sku'], batch_dict)
-
             seller_received_list = update_seller_po(data, value, user, myDict, i, receipt_id=seller_receipt_id,
                                                     invoice_number=invoice_number, invoice_date=bill_date,
                                                     challan_number=challan_number, challan_date=challan_date,
                                                     dc_level_grn=dc_level_grn, round_off_total=round_off_total,
                                                     batch_dict=batch_dict, po_type=po_type)
+        if 'batch_no' in myDict.keys():
+            batch_dict['receipt_number'] = seller_receipt_id
+            add_ean_weight_to_batch_detail(purchase_data['sku'], batch_dict)
+
         if 'wms_code' in myDict.keys():
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
@@ -3519,6 +3520,14 @@ def check_returns(request, user=''):
         for picklist in picklists:
             wms_code = picklist.order.sku.wms_code
             sku_desc = picklist.order.sku.sku_desc
+            unit_price = picklist.order.unit_price
+            cod = picklist.order.customerordersummary_set.filter()
+            taxes = {'cgst': 0, 'sgst': 0, 'igst': 0}
+            if cod.exists():
+                cod = cod[0]
+                taxes['cgst'] = cod.cgst_tax
+                taxes['sgst'] = cod.sgst_tax
+                taxes['igst'] = cod.igst_tax
             if picklist.stock:
                 wms_code = picklist.stock.sku.wms_code
                 sku_desc = picklist.stock.sku.sku_desc
@@ -3526,22 +3535,27 @@ def check_returns(request, user=''):
             if not order_id:
                 order_id = picklist.order.order_code + str(picklist.order.order_id)
             cond = (order_id, wms_code, sku_desc, picklist.order.id)
-            all_data.setdefault(cond, 0)
-            all_data[cond] += picklist.picked_quantity
+            all_data.setdefault(cond, {'picked_quantity': 0, 'unit_price': unit_price, 'taxes': taxes})
+            all_data[cond]['picked_quantity'] += picklist.picked_quantity
         for key, value in all_data.iteritems():
             order_track_obj = OrderTracking.objects.filter(order_id=key[3], status='returned')
             if order_track_obj:
                 order_track_quantity = int(order_track_obj.aggregate(Sum('quantity'))['quantity__sum'])
-                if value == order_track_quantity:
+                if value['picked_quantity'] == order_track_quantity:
                     continue
                 else:
-                    remaining_return = int(value) - int(order_track_quantity)
-                    data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'order_detail_id': key[3],
+                    remaining_return = int(value['picked_quantity']) - int(order_track_quantity)
+                    dict_data = {'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'order_detail_id': key[3],
                                  'ship_quantity': remaining_return, 'return_quantity': remaining_return,
-                                 'damaged_quantity': 0})
+                                 'damaged_quantity': 0, 'unit_price': value['unit_price'] }
+                    dict_data.update(taxes)
+                    data.append(dict_data)
             else:
-                data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'order_detail_id': key[3],
-                             'ship_quantity': value, 'return_quantity': value, 'damaged_quantity': 0})
+                dict_data = {'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'order_detail_id': key[3],
+                             'ship_quantity': value['picked_quantity'], 'return_quantity': value['picked_quantity'],
+                             'damaged_quantity': 0, 'unit_price': value['unit_price']}
+                dict_data.update(taxes)
+                data.append(dict_data)
         if not data:
             status = str(key[0]) + ' Order ID Already Returned'
             return HttpResponse(status)
@@ -5965,6 +5979,11 @@ def returns_putaway_data(request, user=''):
             sku_id = returns_data.returns.sku_id
             return_wms_codes.append(returns_data.returns.sku.wms_code)
             seller_id = ''
+            unit_price = returns_data.returns.sku.cost_price
+            if returns_data.returns.order:
+                picklist = returns_data.returns.order.picklist_set.filter(stock__isnull=False)
+                if picklist:
+                    unit_price = picklist[0].stock.unit_price
             if user.username in MILKBASKET_USERS:
                 seller_obj = SellerMaster.objects.filter(seller_id=1, user=user.id).only('id')
                 if seller_obj.exists():
@@ -6008,7 +6027,7 @@ def returns_putaway_data(request, user=''):
                               'receipt_date': datetime.datetime.now(),
                               'sku_id': sku_id, 'quantity': quantity, 'status': 1,
                               'creation_date': datetime.datetime.now(), 'updation_date': datetime.datetime.now(),
-                              'receipt_type': 'return'}
+                              'receipt_type': 'return', 'unit_price': unit_price}
                 if batch_detail:
                     stock_dict['batch_detail_id'] = batch_detail[0].id
                 new_stock = StockDetail(**stock_dict)
@@ -8413,15 +8432,14 @@ def get_inv_based_po_payment_data(start_index, stop_index, temp_data, search_ter
             order_by = '-%s' % lis[col_num]
         master_data = SellerPOSummary.objects.filter(**user_filter).values(*result_values).distinct()\
                                      .annotate(payment_received=Sum('purchase_order__payment_received'))\
-                                     .order_by('-%s' % lis[col_num])
+                                     .order_by(order_by)
     else:
         master_data = SellerPOSummary.objects.filter(**user_filter)\
                                  .values(*result_values).distinct().annotate(payment_received=Sum('purchase_order__payment_received'))
 
-    #master_data = master_data.exclude(invoice_amount=F('payment_received'))
+    # master_data = master_data.exclude(invoice_amount=F('payment_received'))
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-
     for data in master_data[start_index:stop_index]:
         seller_summary_obj = SellerPOSummary.objects.filter(invoice_number=data['invoice_number'],\
                                              purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
@@ -8444,7 +8462,7 @@ def get_inv_based_po_payment_data(start_index, stop_index, temp_data, search_ter
             due_date = (invoice_date + datetime.timedelta(days=credit_period)).strftime("%d %b %Y")
             invoice_date = invoice_date.strftime("%d %b %Y")
             data_dict = OrderedDict((('invoice_number', data['invoice_number']),
-                                     ('invoice_date', invoice_date), ('due_date', due_date),
+                                     ('invoicee_date', invoice_date), ('due_date', due_date),
                                      ('supplier_name', data['purchase_order__open_po__supplier__name']),
                                      ('supplier_id', data['purchase_order__open_po__supplier__id']),
                                      ('invoice_amount', "%.2f" % tot_amt),
@@ -8465,7 +8483,7 @@ def po_get_invoice_payment_tracker(request, user=''):
     if not invoice_number:
         return "Invoice number is missing"
     user_filter = {'purchase_order__open_po__sku__user': user.id, "invoice_number": invoice_number, "purchase_order__open_po__supplier__id": supplier_id}
-    result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier__name', 'purchase_order__open_po__supplier__id']
+    result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier__name', 'purchase_order__open_po__supplier__id', 'invoice_number']
     master_data = SellerPOSummary.objects.filter(**user_filter).values(*result_values).distinct()\
                                  .annotate(tot_price = Sum(F('purchase_order__open_po__price')*F('quantity')),\
                                  tot_tax_perc = Sum(F('purchase_order__open_po__cgst_tax') +\
@@ -8473,12 +8491,24 @@ def po_get_invoice_payment_tracker(request, user=''):
                                  paynemt_received = Sum('purchase_order__payment_received'))
     order_data = []
     for data in master_data:
+        seller_summary_obj = SellerPOSummary.objects.filter(invoice_number=data['invoice_number'],\
+                                             purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
+        tot_amt = 0
+        for seller_sum in seller_summary_obj:
+            price = seller_sum.purchase_order.open_po.price
+            quantity = seller_sum.quantity
+            tot_price = price * quantity
+            tot_tax_perc = seller_sum.purchase_order.open_po.cgst_tax +\
+                           seller_sum.purchase_order.open_po.sgst_tax + seller_sum.purchase_order.open_po.igst_tax
+            tot_tax = float(tot_price * tot_tax_perc) / 100
+            tot_amt += (tot_price + tot_tax)
+        payment_receivable = tot_amt - data['paynemt_received']
         order_data.append(
                 {'order_id': data['purchase_order__order_id'],
                  'display_order': data['purchase_order__order_id'],
-                 'inv_amount': data['tot_price']+(data['tot_price']*data['tot_tax_perc']),
+                 'inv_amount': tot_amt,
                  'received': data['paynemt_received'],
-                 'receivable': (data['tot_price']+(data['tot_price']*data['tot_tax_perc'])) - data['paynemt_received']})
+                 'receivable': payment_receivable})
     response["data"] = order_data
     return HttpResponse(json.dumps(response))
 
@@ -8503,7 +8533,7 @@ def po_update_payment_status(request, user=''):
             continue
         payment = float(data_dict['amount'][i])
         seller_summary_obj = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=user.id,\
-                                                    purchase_order__order_id=data_dict['order_id'][i])
+                                                            invoice_number=invoice_number)
         invoice_amt = 0
         for seller_sum in seller_summary_obj:
             price = seller_sum.purchase_order.open_po.price
@@ -8527,6 +8557,7 @@ def po_update_payment_status(request, user=''):
             tot_tax = float(tot_price * tot_tax_perc) / 100
             invoice_amt = tot_price + tot_tax
 
+
             if float(invoice_amt) > float(order.payment_received):
                 diff = float(invoice_amt) - float(order.payment_received)
                 bank = request.GET.get('bank', '')
@@ -8537,11 +8568,11 @@ def po_update_payment_status(request, user=''):
                     payment -= diff
                     POPaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
                                                   payment_received=diff, bank=bank, mode_of_pay=mode_of_pay,\
-                                                  remarks=remarks)
+                                                  remarks=remarks, invoice_number=invoice_number)
                 else:
                     POPaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
                                                   payment_received=payment, bank=bank,\
-                                                  mode_of_pay=mode_of_pay, remarks=remarks)
+                                                  mode_of_pay=mode_of_pay, remarks=remarks, invoice_number=invoice_number)
                     order.payment_received = float(order.payment_received) + float(payment)
                     payment = 0
                 order.save()

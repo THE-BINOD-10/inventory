@@ -489,7 +489,7 @@ def get_search_params(request, user=''):
                     'aging_period': 'aging_period', 'source_sku_code': 'source_sku_code',
                     'destination_sku_code': 'destination_sku_code',
                     'destination_sku_category': 'destination_sku_category',
-                    'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name'}
+                    'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name', 'customer':'customer'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -1047,7 +1047,7 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
         for i in range(0, len(data)):
             index = i + 1
             for ind, header_name in enumerate(excel_headers):
-                ws.write(index, excel_headers.index(header_name), data[i][header_name])
+                ws.write(index, excel_headers.index(header_name), data[i].get(header_name, ''))
 
         # for data in temp_data['aaData']:
         #     data_count += 1
@@ -3576,6 +3576,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
 def common_calculations(arg_data):
     for key,val in arg_data.items():
         exec(key + '=val')
+    order_discount = discount
+    unit_discount = float(order_discount)/dat.original_quantity
+    discount = unit_discount * quantity
     amt = (unit_price * quantity) - discount
     base_price = "%.2f" % (unit_price * quantity)
     hsn_code = ''
@@ -6707,8 +6710,8 @@ def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, i
     elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('quantity'):
         final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name]['quantity'] + \
                                                               adding_dat.get('quantity', 0)
-    elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('invoice_amount'):
-        final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name][
+    # elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('invoice_amount'):
+        final_data_dict[grouping_key][key_name]['invoice_amount'] = final_data_dict[grouping_key][key_name][
                                                                   'invoice_amount'] + \
                                                               adding_dat.get('invoice_amount', 0)
     else:

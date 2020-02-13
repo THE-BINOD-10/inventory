@@ -1911,6 +1911,7 @@ class PaymentSummary(models.Model):
     entered_amount = models.FloatField(default=0)
     balance_amount = models.FloatField(default=0)
     tds_amount = models.FloatField(default=0)
+    invoice_number = models.CharField(max_length=128, default='')
     payment_date = models.DateField(blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

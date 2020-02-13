@@ -3152,6 +3152,9 @@ def sku_wise_purchase_data(search_params, user, sub_user):
     data_list = []
     received_list = []
     temp_data = copy.deepcopy(AJAX_DATA)
+    fmcg_marketplace = False
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        fmcg_marketplace = True
     search_parameters = {}
     user_profile = UserProfile.objects.get(user_id=user.id)
     lis = ['po_date', 'order_id', 'open_po__supplier_id', 'open_po__supplier__name',
@@ -3160,7 +3163,11 @@ def sku_wise_purchase_data(search_params, user, sub_user):
            'open_po__sku__sub_category',
            'open_po__order_quantity', 'open_po__price', 'open_po__price', 'open_po__mrp', 'id', 'id', 'id',
            'received_quantity', 'id', 'id', 'id', 'id', 'id', 'id']
+
     columns = SKU_WISE_PO_DICT['dt_headers']
+    if fmcg_marketplace:
+        lis+=['id']*3
+        columns+=['id']*3
     if 'sku_code' in search_params:
         search_parameters['open_po__sku__sku_code'] = search_params['sku_code']
     if 'sku_category' in search_params:
@@ -3178,7 +3185,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
         search_parameters['creation_date__lte'] = search_params['to_date']
-    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+    if fmcg_marketplace:
         if 'manufacturer' in search_params:
             search_parameters['open_po__sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
         if 'searchable' in search_params:
@@ -3260,9 +3267,6 @@ def sku_wise_purchase_data(search_params, user, sub_user):
                             ('SKU Brand', order_data['sku'].sku_brand),
                             ('SKU Category', order_data['sku'].sku_category),
                             ('Sub Category', order_data['sku'].sub_category),
-                            ('Manufacturer', manufacturer),
-                            ('Searchable', searchable),
-                            ('Bundle', bundle),
                             ('PO Qty', order_data['order_quantity']),
                             ('Unit Price without tax', order_data['price']),
                             ('Unit Price with tax', "%.2f" % aft_price),
@@ -3273,6 +3277,10 @@ def sku_wise_purchase_data(search_params, user, sub_user):
                             ('Warehouse Name', user.username),
                             ('Report Generation Time', time)
                             ))
+        if fmcg_marketplace:
+            temp['Manufacturer'] = manufacturer
+            temp['Searchable'] = searchable
+            temp['Bundle'] = bundle
         if status == 'Received':
             received_list.append(temp)
         else:

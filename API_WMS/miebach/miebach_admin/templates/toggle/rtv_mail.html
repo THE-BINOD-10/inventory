@@ -1,9 +1,18 @@
       {% load tag_extras %}
 
 <div>
-  <style>
-    {% include 'toggle/page1.css' %}
-  </style>
+<style>
+   {% include 'toggle/page1.css' %}
+/* @media print{
+table{
+  border-collapse: collapse;
+}
+tr,td{
+  page-break-inside: avoid;
+  white-space:nowrap;
+}
+} */
+</style>
   {% for page in show_data_invoice %}
   <div class="print-invoice2 mb20">
     <div class="invoice-body">

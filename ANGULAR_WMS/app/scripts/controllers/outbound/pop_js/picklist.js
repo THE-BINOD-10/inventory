@@ -993,7 +993,7 @@ function pull_confirmation() {
                   angular.copy(data.data, vm.model_data);
                   for(var i=0; i<vm.model_data.data.length; i++){
                     vm.model_data.data[i]['sub_data'] = [];
-                    var value = (vm.permissions.use_imei)? 0: vm.model_data.data[i].picked_quantity;
+                    var value = (vm.permissions.scan_picklist_option != 'scan_none')? 0: vm.model_data.data[i].picked_quantity;
                     var temp = {zone: vm.model_data.data[i].zone,
                                 location: vm.model_data.data[i].location,
                                 orig_location: vm.model_data.data[i].location,

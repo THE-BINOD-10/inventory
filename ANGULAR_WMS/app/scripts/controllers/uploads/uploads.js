@@ -382,6 +382,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
     var file = $scope.files[0];
     console.log('file is ' );
     console.dir(file);
+    $scope.files = [];
     var uploadUrl = Session.url+data;
     var fd = new FormData();
     fd.append('files', file);
@@ -419,11 +420,13 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
               $(".preloader").removeClass("ng-show").addClass("ng-hide");
               $("input").val('');
               vm.service.showNoty('Success');
+              selectedItem['datum'] = ''
             })
           } else {
             $(".preloader").removeClass("ng-show").addClass("ng-hide");
             $("input").val('');
             vm.service.showNoty('Upload Cancelled !');
+            selectedItem['datum'] = ''
           }
         });
       } else {
@@ -443,6 +446,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
     .error(function(){
       vm.service.showNoty("Upload Fail");
       $("input").val('');
+      $scope.files = [];
       $scope.disable = false;
     });
   };

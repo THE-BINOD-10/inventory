@@ -97,9 +97,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.g_data.view = "SellerOrderView";
       }
     }
+    if(vm.g_data.view == "CustomerOrderView"){
+      vm.datatable_sort_key = [7, 'desc']
+    }
 
 
-    vm.get_data_table = function() {
+  // vm.get_data_table = function() {
     vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'special_key': JSON.stringify(vm.special_key)}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -135,7 +138,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
        });
        var table_headers_dict = vm.g_data.tb_headers[vm.g_data.view]
        vm.dtColumns = vm.service.build_colums2(table_headers_dict)
-
+       if (vm.permissions.display_order_reference && vm.g_data.view == "CustomerOrderView") {
+          vm.dtColumns.push({
+            'mData': 'Order Reference',
+            'sTitle': 'Order Reference'
+          })
+       }
        vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
       .renderWith(function(data, type, full, meta) {
         if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
@@ -144,18 +152,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.selected[meta.row] = vm.selectAll;
         return vm.service.frontHtml + meta.row + vm.service.endHtml;
     }))
+
     vm.pop_buttons = false;
     if (["OrderView", "CustomerOrderView"].indexOf(vm.g_data.view) != -1) {
       vm.pop_buttons = true;
     }
 
-    vm.datatable_sort_key = [0, 'asc']
-
-    if(vm.g_data.view == "CustomerOrderView"){
-      vm.datatable_sort_key = [7, 'desc']
-    }
-    }
-    vm.get_data_table()
+    // vm.datatable_sort_key = [0, 'desc']
+    // }
+    // vm.get_data_table()
 
     if (vm.permissions.dispatch_qc_check) {
       for (var i = 0; i < vm.dtColumns.length; i++) {
@@ -294,7 +299,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
 	      console.log(aData);
           $state.go('app.outbound.ViewOrders.OrderDetails');
-
+          if (vm.permissions.extra_order_sku_fields != '' && vm.permissions.extra_order_sku_fields) {
+            vm.extra_headers = vm.permissions.extra_order_sku_fields.split(',');
+          }
          //vm.market_place = aData['Market Place'];
           var data = {};
           var url = "get_view_order_details/";
@@ -360,10 +367,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             vm.igst = value.igst_tax;
             vm.cess = value.cess_tax;
             vm.taxes = value.taxes;
-	    vm.mrp = value.mrp;
+            vm.brand = value.sku_brand;
+            vm.order_sku_attributes = {}
+            angular.forEach(value.order_sku_attributes, function(datum){
+              if (datum) {
+                vm.order_sku_attributes[Object.keys(datum)[0]] = datum[Object.keys(datum)[0]];
+              }
+            })
+            vm.mrp = value.mrp;
             vm.order_charges = value.order_charges;
             vm.client_name = value.client_name;
-	    vm.invoice_amount = value.invoice_amount;
+            vm.invoice_amount = value.invoice_amount;
             if (!vm.client_name) {
               vm.show_client_details = false;
             }
@@ -388,7 +402,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
               var record = vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity,
               image_url: vm.img_url, remarks: vm.remarks, unit_price: vm.unit_price, taxes: vm.taxes,
-              discount: vm.discount,
+              discount: vm.discount, brand: vm.brand, order_sku_attributes: vm.order_sku_attributes,
               discount_per: vm.discount_per, sgst:vm.sgst, cgst:vm.cgst, igst:vm.igst, cess:vm.cess,default_status: true, sku_status: value.sku_status, mrp:vm.mrp, invoice_amount:vm.invoice_amount})
               var record = vm.model_data.data[index]
               //vm.changeInvoiceAmt(record);
@@ -877,14 +891,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }, 1000);
     }
   });
-  vm.service.apiCall('get_value_for_misc_type/?misc_type=view_order_selection').then(function(data){
-    if(vm.g_data.views.indexOf(data.data.selected_view)== -1){
-        vm.g_data.view = vm.g_data.views[0]
-    } else {
-        vm.g_data.view = data.data.selected_view
-    }
-    vm.get_data_table()
-  });
+  // vm.service.apiCall('get_value_for_misc_type/?misc_type=view_order_selection').then(function(data){
+  //   if(vm.g_data.views.indexOf(data.data.selected_view)== -1){
+  //       vm.g_data.view = vm.g_data.views[0]
+  //   } else {
+  //       vm.g_data.view = data.data.selected_view
+  //   }
+  //   // vm.get_data_table()
+  // });
 
   vm.address_change = function(switch_value) {
     vm.service.apiCall("switches/?picklist_display_address="+String(switch_value)).then(function(data) {

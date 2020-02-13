@@ -108,6 +108,7 @@ urlpatterns = [
     url(r'^get_terms_and_conditions/$', get_terms_and_conditions),
     url(r'^insert_update_terms/$', insert_update_terms),
     url(r'^delete_terms/$', delete_terms),
+    url(r'^insert_po_terms/$', insert_po_terms),
     url(r'^insert_staff/$', insert_staff),
     url(r'^update_staff_values/$', update_staff_values),
     url(r'^get_user_attributes_list/$', get_user_attributes_list),
@@ -662,6 +663,7 @@ urlpatterns += [
     url(r'delete_temp_json/$', delete_temp_json),
     url(r'^search_batches/$', search_batches),
     url(r'^save_order_extra_fields/$', save_order_extra_fields),
+    url(r'^save_order_sku_extra_fields/$', save_order_sku_extra_fields),
     url(r'^get_sku_mrp/$', get_sku_mrp),
     url(r'^get_current_weight/$', get_current_weight),
     url(r'^get_decimal_data/$', get_decimal_data),
@@ -698,6 +700,7 @@ urlpatterns += [
     url('^get_extra_fields/$', get_extra_fields),
     url('^get_staff_members_list/$', get_staff_members_list),
     url(r'^pos_tax_inclusive/$', pos_tax_inclusive),
+    url(r'^pos_mrp_discount/$', pos_mrp_discount),
     url(r'^stock_transfer_invoice_data/$', stock_transfer_invoice_data),
     url(r'^pos_send_mail/$', pos_send_mail),
 

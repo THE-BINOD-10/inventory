@@ -1899,7 +1899,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Invoice Amount'
+            title: 'Payments'
           }
         })
 

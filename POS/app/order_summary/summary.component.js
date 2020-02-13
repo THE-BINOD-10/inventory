@@ -19,6 +19,7 @@
                 data=data.data;
                 if (data.status == "Success"){
                   console.log(data);
+                  self.user = data
                   urlService.userData = data;
                   urlService.VAT = data.VAT;
                   self.VAT = data.VAT;
@@ -176,9 +177,9 @@
       //discount modal
       self.discount_modal = discount_modal;
       function discount_modal(){
-        self.total_amount = self.order.total_amount;
-        self.discount = self.order.total_discount;
-        self.disc_percent = parseFloat(((self.order.total_discount * 100)/(self.order.total_amount +
+        self.total_amount = self.order.subtotal;
+        self.discount = 0;
+        self.disc_percent = parseFloat(((self.order.total_discount * 100)/(self.order.subtotal +
                                          self.order.total_discount)).toFixed(2));
         $("#discountModal").modal("show");
       }
@@ -187,8 +188,8 @@
       self.change_disc = change_disc;
       function change_disc(disc) {
         disc = parseFloat(disc);
-        var perc = parseFloat(((disc * 100)/(self.order.total_amount + self.order.total_discount)).toFixed(2));
-        self.total_amount = parseFloat((self.order.total_amount + self.order.total_discount - disc).toFixed(2));
+        var perc = parseFloat(((disc * 100)/(self.order.subtotal + self.order.total_discount)).toFixed(2));
+        self.total_amount = parseFloat((self.order.subtotal + self.order.total_discount - disc).toFixed(2));
         self.disc_percent = perc;
       }
 
@@ -196,8 +197,8 @@
       self.change_disc_perc = change_disc_perc;
       function change_disc_perc(perc) {
         perc = parseFloat(perc);
-        var amnt = parseFloat((((self.order.total_amount + self.order.total_discount) * perc)/100).toFixed(2));
-        self.total_amount = parseFloat((self.order.total_amount + self.order.total_discount - amnt).toFixed(2));
+        var amnt = parseFloat((((self.order.subtotal) * perc)/100).toFixed(2));
+        self.total_amount = parseFloat((self.order.subtotal - amnt).toFixed(2));
         self.discount = amnt;
       }
     

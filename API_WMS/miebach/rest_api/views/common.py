@@ -251,6 +251,7 @@ def add_user_permissions(request, response_data, user=''):
                                              'registered_date': get_local_date(request.user,
                                                                                user_profile.creation_date),
                                              'email': request.user.email,
+                                             'state': user_profile.state,
                                              'trail_user': status_dict[int(user_profile.is_trail)],
                                              'company_name': user_profile.company_name,
                                              'industry_type': user_profile.industry_type,
@@ -488,7 +489,7 @@ def get_search_params(request, user=''):
                     'aging_period': 'aging_period', 'source_sku_code': 'source_sku_code',
                     'destination_sku_code': 'destination_sku_code',
                     'destination_sku_category': 'destination_sku_category',
-                    'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name'}
+                    'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name', 'customer':'customer'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -855,6 +856,11 @@ def configurations(request, user=''):
         config_dict['all_order_fields'] = ''
     else:
         config_dict['all_order_fields'] = extra_order_fields
+    extra_order_sku_fields = get_misc_value('extra_order_sku_fields', user.id)
+    if extra_order_sku_fields == 'false' :
+        config_dict['all_order_sku_fields'] = ''
+    else:
+        config_dict['all_order_sku_fields'] = extra_order_sku_fields
     grn_fields = get_misc_value('grn_fields', user.id)
     if grn_fields == 'false' :
         config_dict['grn_fields'] = ''
@@ -1036,7 +1042,7 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
         for i in range(0, len(data)):
             index = i + 1
             for ind, header_name in enumerate(excel_headers):
-                ws.write(index, excel_headers.index(header_name), data[i][header_name])
+                ws.write(index, excel_headers.index(header_name), data[i].get(header_name, ''))
 
         # for data in temp_data['aaData']:
         #     data_count += 1
@@ -1055,22 +1061,22 @@ def po_message(po_data, phone_no, user_name, f_name, order_date, ean_flag, table
     total_amount = 0
     if ean_flag:
         for po in po_data:
-            data += '\nD.NO: %s, Qty: %s' % (po[2], po[4])
+            data += '\nD.NO: %s, Qty: %s' % (po[2], po[5])
+            if table_headers:
+                total_quantity += int(po[table_headers.index('Qty')])
+                total_amount += float(po[table_headers.index('Amt')])
+            else:
+                total_quantity += int(po[5])
+                total_amount += float(po[7])
+    else:
+        for po in po_data:
+            data += '\nD.NO: %s, Qty: %s' % (po[1], po[4])
             if table_headers:
                 total_quantity += int(po[table_headers.index('Qty')])
                 total_amount += float(po[table_headers.index('Amt')])
             else:
                 total_quantity += int(po[4])
                 total_amount += float(po[6])
-    else:
-        for po in po_data:
-            data += '\nD.NO: %s, Qty: %s' % (po[1], po[3])
-            if table_headers:
-                total_quantity += int(po[table_headers.index('Qty')])
-                total_amount += float(po[table_headers.index('Amt')])
-            else:
-                total_quantity += int(po[3])
-                total_amount += float(po[5])
     data += '\nTotal Qty: %s, Total Amount: %s\nPlease check WhatsApp for Images' % (total_quantity, total_amount)
     send_sms(phone_no, data)
 
@@ -1080,9 +1086,9 @@ def grn_message(po_data, phone_no, user_name, f_name, order_date):
     total_quantity = 0
     total_amount = 0
     for po in po_data:
-        data += '\nD.NO: %s, Qty: %s' % (po[0], po[4])
-        total_quantity += int(po[4])
-        total_amount += int(po[5])
+        data += '\nD.NO: %s, Qty: %s' % (po[0], po[5])
+        total_quantity += int(po[5])
+        total_amount += int(po[6])
     data += '\nTotal Qty: %s, Total Amount: %s' % (total_quantity, total_amount)
     send_sms(phone_no, data)
 
@@ -2029,7 +2035,9 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                                                     exclude(batch_detail__isnull=True)
             if latest_batch.exists():
                 batch_obj = latest_batch.latest('id').batch_detail
-                stock_dict["batch_detail_id"] = batch_obj.id
+                batch_dict['buy_price'] = batch_obj.buy_price
+                batch_dict['tax_percent'] = batch_obj.tax_percent
+                add_ean_weight_to_batch_detail(sku[0], batch_dict)
 
             #latest_stock = StockDetail.objects.filter(**stock_dict1)
             #if latest_stock.exists():
@@ -2039,7 +2047,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                 #batch_obj = latest_stock_obj.batch_detail
                 #if batch_obj:
                 #    stock_dict["batch_detail_id"] = batch_obj.id
-            elif batch_dict.keys():
+            if batch_dict.keys():
                 batch_obj = BatchDetail.objects.create(**batch_dict)
                 stock_dict["batch_detail_id"] = batch_obj.id
             if pallet:
@@ -2423,6 +2431,35 @@ def save_order_extra_fields(request, user=''):
                         record.delete()
             misc_detail_obj = misc_detail[0]
             misc_detail_obj.misc_value = order_extra_fields
+            misc_detail_obj.save()
+    except:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Issue for ' + request)
+        return HttpResponse("Something Went Wrong")
+
+    return HttpResponse("Saved Successfully")
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_order_sku_extra_fields(request, user=''):
+    extra_order_sku_fields = request.GET.get('extra_order_sku_fields', '')
+    misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='extra_order_sku_fields')
+    try:
+        if not misc_detail.exists():
+             MiscDetail.objects.create(user=user.id,misc_type='extra_order_sku_fields',misc_value=extra_order_sku_fields)
+        else:
+            misc_order_option_list = list(MiscDetailOptions.objects.filter(misc_detail__user=user.id).values_list('misc_key',flat=True))
+            order_extra_list = extra_order_sku_fields.split(',')
+            diff_list = list(set(misc_order_option_list)- set(order_extra_list))
+            if len(diff_list) > 0 :
+                for key in diff_list :
+                    misc_records = MiscDetailOptions.objects.filter(misc_detail__user= user.id,misc_key = key)
+                    for record in misc_records :
+                        record.delete()
+            misc_detail_obj = misc_detail[0]
+            misc_detail_obj.misc_value = extra_order_sku_fields
             misc_detail_obj.save()
     except:
         import traceback
@@ -3028,12 +3065,12 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                     invoice_ins = SellerOrderSummary.objects.filter(**sell_ids).exclude(invoice_number='')
                 else:
                     invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
-            if user.userprofile.multi_level_system == 1 and user.userprofile.warehouse_level == 1:
-                admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
-                admin_user = User.objects.get(id=admin_user_id)
-                invoice_sequence = get_invoice_sequence_obj(admin_user, order.marketplace)
-            else:
-                invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
+            #if user.userprofile.multi_level_system == 1 and user.userprofile.warehouse_level == 1:
+            #    admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
+            #    admin_user = User.objects.get(id=admin_user_id)
+            #    invoice_sequence = get_invoice_sequence_obj(admin_user, order.marketplace)
+            #else:
+            invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
             if invoice_ins:
                 order_no = invoice_ins[0].invoice_number
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
@@ -3049,12 +3086,12 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                     invoice_seq.save()
             else:
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
-    if user.userprofile.multi_level_system == 1 and user.userprofile.warehouse_level == 1:
-        admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
-        admin_user = User.objects.get(id=admin_user_id)
-        invoice_number = get_full_invoice_number(admin_user, order_no, order, invoice_date=invoice_date, pick_number='')
-    else:
-        invoice_number = get_full_invoice_number(user, order_no, order, invoice_date=invoice_date, pick_number='')
+    #if user.userprofile.multi_level_system == 1 and user.userprofile.warehouse_level == 1:
+    #    admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
+    #    admin_user = User.objects.get(id=admin_user_id)
+    #    invoice_number = get_full_invoice_number(admin_user, order_no, order, invoice_date=invoice_date, pick_number='')
+    #else:
+    invoice_number = get_full_invoice_number(user, order_no, order, invoice_date=invoice_date, pick_number='')
     # if invoice_sequence:
     #     invoice_sequence = invoice_sequence[0]
     #     inv_num_lis = []
@@ -3543,6 +3580,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
 def common_calculations(arg_data):
     for key,val in arg_data.items():
         exec(key + '=val')
+    order_discount = discount
+    unit_discount = float(order_discount)/dat.original_quantity
+    discount = unit_discount * quantity
     amt = (unit_price * quantity) - discount
     base_price = "%.2f" % (unit_price * quantity)
     hsn_code = ''
@@ -5938,7 +5978,7 @@ def get_purchase_order_data(order):
         order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group,
                       'sku': order.product_code,
                       'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle,
-                      'sku_desc': order.product_code.sku_desc,
+                      'sku_desc': order.product_code.sku_desc,'sku_brand':order.product_code.sku_brand,
                       'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0, 'apmc_tax': 0, 'tin_number': '',
                       'intransit_quantity': intransit_quantity, 'shelf_life': order.product_code.shelf_life,
                       'show_imei': order.product_code.enable_serial_based}
@@ -6011,7 +6051,7 @@ def get_purchase_order_data(order):
         apmc_tax = 0
         tin_number = ''
     order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp,'wms_code': sku.wms_code,
-                  'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
+                  'sku_code': sku.sku_code, 'sku_brand':sku.sku_brand,'supplier_id': user_data.id, 'zone': sku.zone,
                   'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
                   'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,
                   'phone_number': user_data.phone_number, 'email_id': email_id,
@@ -6671,8 +6711,8 @@ def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, i
     elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('quantity'):
         final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name]['quantity'] + \
                                                               adding_dat.get('quantity', 0)
-    elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('invoice_amount'):
-        final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name][
+    # elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('invoice_amount'):
+        final_data_dict[grouping_key][key_name]['invoice_amount'] = final_data_dict[grouping_key][key_name][
                                                                   'invoice_amount'] + \
                                                               adding_dat.get('invoice_amount', 0)
     else:
@@ -7085,9 +7125,9 @@ def get_shipment_quantity(user, all_orders, sku_grouping=False):
 
 def get_marketplace_names(user, status_type):
     userIds = [user.id]
-    if user.userprofile.multi_level_system == 1:
-        sameGroupWhs = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
-        userIds = UserProfile.objects.filter(user_id__in=sameGroupWhs, warehouse_level=1).values_list('user_id', flat=True)
+    #if user.userprofile.multi_level_system == 1:
+    #    sameGroupWhs = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
+    #    userIds = UserProfile.objects.filter(user_id__in=sameGroupWhs, warehouse_level=1).values_list('user_id', flat=True)
 
     if status_type == 'picked':
         marketplace = list(
@@ -10065,11 +10105,11 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
                             tax=tax_list.get('cgst_tax',0)+tax_list.get('sgst_tax',0)+tax_list.get('apmc_tax',0)+tax_list.get('cess_tax',0)
 
                 prefill_unit_price = (prefill_unit_price * 100) / (100 + tax)
-                data['price'] = prefill_unit_price
+                data['price'] = float("%.2f" % prefill_unit_price)
             elif sku_supplier[0].costing_type == 'Markup Based':
                  markup_percentage = sku_supplier[0].markup_percentage
                  prefill_unit_price = mrp_value / (1+(markup_percentage/100))
-                 data['price'] = prefill_unit_price
+                 data['price'] = float("%.2f" % prefill_unit_price)
             else:
                 data['price'] = sku_supplier[0].price
             data['supplier_code'] = sku_supplier[0].supplier_code

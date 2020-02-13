@@ -46,6 +46,7 @@ def validate_sales_person(request):
 @get_admin_user
 def get_pos_user_data(request, user=''):
     user_id = user.id
+    admin = get_admin(user)
     status = subprocess.check_output(['pgrep -lf sku_master_file_creator'], \
                                      stderr=subprocess.STDOUT, shell=True)
     if "python" not in status:
@@ -76,6 +77,7 @@ def get_pos_user_data(request, user=''):
         response_data['address'] = user.address
         response_data['phone'] = user.phone_number
         response_data['gstin'] = user.gst_number
+        response_data['admin'] = {"username":admin.username, 'user_id':admin.id}
         return HttpResponse(json.dumps(response_data))
     return HttpResponse("fail")
 
@@ -399,7 +401,7 @@ def customer_order(request):
 
         picklist_number = get_picklist_number(user) + 1
         if customer_data:
-            customer_id = customer_data[0].id
+            customer_id = customer_data[0].customer_id
             customer_name = customer_data[0].name
         else:
             customer_id = 0
@@ -597,6 +599,7 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
     user = User.objects.get(id=user_id)
     order_date = get_local_date(user, NOW)
     #check where discount is saved
+    tax_inclusive = MiscDetail.objects.filter(misc_type='tax_inclusive', user=user_id).values_list('misc_value', flat=True)[0]
     order_detail = OrderDetail.objects.filter(original_order_id__icontains=order_id, \
                                               user=user_id, quantity__gt=0)
     payment_type = ''
@@ -655,22 +658,23 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
                          'quantity': float(order.quantity),
                          'sku_code': order.sku.sku_code,
                          'price': order.invoice_amount,
-                         'unit_price': selling_price,
+                         'unit_price': order.unit_price,
                          'selling_price': original_selling_price,
                          'discount': discount_percentage,
                          'sgst': item_sgst,
                          'cgst': item_cgst
                          })
         total_quantity += float(order.quantity)
-        #total_amount += (float(order.invoice_amount) + discount + \
-        #                 (float(order.invoice_amount) * tax_master["sgst_tax"] / 100) + \
-        #                 (float(order.invoice_amount) * tax_master["cgst_tax"] / 100) );
+        if tax_inclusive != 'true':
+          total_amount += (float(order.invoice_amount) + \
+                          (float(order.invoice_amount) * tax_master["sgst_tax"] / 100) + \
+                          (float(order.invoice_amount) * tax_master["cgst_tax"] / 100) );
+        else:
+          total_amount += (float(order.invoice_amount))
         if order_summary[0].issue_type == "Delivery Challan":
             sgst_temp = (float(order.unit_price) * tax_master["sgst_tax"] / 100)*order.quantity;
             cgst_temp = (float(order.unit_price) * tax_master["cgst_tax"] / 100)*order.quantity;
-            total_amount += (float(order.invoice_amount) - sgst_temp - cgst_temp)
-        else:
-            total_amount += (float(order.invoice_amount))
+            subtotal += (float(order.unit_price))
     if order_detail:
         status = 'success'
         order = order_detail[0]
@@ -701,7 +705,7 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
             summary = {'total_quantity': total_quantity,
                        'total_amount': total_amount,
                        'total_discount': total_discount,
-                       'subtotal': total_amount,
+                       'subtotal': subtotal ,
                        'cgst': tot_cgst,
                        'sgst': tot_sgst,
                        'gst_based': gst_based,
@@ -908,6 +912,15 @@ def pos_tax_inclusive(request, user=''):
     data = {}
     tax_inclusive = get_misc_value('tax_inclusive', user.id)
     data['tax_inclusive_switch'] = json.loads(tax_inclusive)
+    return HttpResponse(json.dumps(data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def pos_mrp_discount(request, user=''):
+    data = {}
+    mrp_discount = get_misc_value('mrp_discount', user.id)
+    data['mrp_discount'] = json.loads(mrp_discount)
     return HttpResponse(json.dumps(data), content_type='application/json')
 
 

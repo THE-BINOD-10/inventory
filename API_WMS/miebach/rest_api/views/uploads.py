@@ -519,7 +519,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
 
 
 def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
-    log.info("order upload started")
+    log.info("order upload started for %s" % str(user.username))
     order_code_prefix = get_order_prefix(user.id)
     st_time = datetime.datetime.now()
     index_status = {}
@@ -894,6 +894,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
     if len(collect_order_obj_list):
         collect_order_obj_list = list(set(collect_order_obj_list))
         create_order_pos(user, collect_order_obj_list)
+    log.info("order upload ended for %s" % str(user.username))
     return 'success'
 
 
@@ -2862,7 +2863,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         if show_cess_tax and show_apmc_tax and ean_flag:
             break
     if user_profile.industry_type == 'FMCG':
-        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt(with out tax)',
+        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total(with tax)']
         if user.username in MILKBASKET_USERS:
             table_headers.insert(4, 'Weight')
@@ -3015,7 +3016,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                             ]
         if ean_flag:
             ean_number = ''
-            eans = get_sku_ean_list(data1.sku)
+            eans = get_sku_ean_list(data1.sku, order_by_val='desc')
             if eans:
                 ean_number = eans[0]
             po_temp_data.insert(1, ean_number)
@@ -3746,14 +3747,14 @@ def validate_bom_form(open_sheet, user, bom_excel):
                 product_sku = open_sheet.cell(row_idx, bom_excel[key]).value
                 if isinstance(product_sku, (int, float)):
                     product_sku = int(product_sku)
-                sku_code = SKUMaster.objects.filter(sku_code=product_sku, user=user)
+                sku_code = SKUMaster.objects.filter(sku_code=product_sku, user=user.id)
                 if not sku_code:
                     index_status.setdefault(row_idx, set()).add('Invalid SKU Code %s' % product_sku)
             if key == 'material_sku':
                 material_sku = open_sheet.cell(row_idx, bom_excel[key]).value
                 if isinstance(material_sku, (int, float)):
                     material_sku = int(material_sku)
-                sku_code = SKUMaster.objects.filter(sku_code=material_sku, user=user)
+                sku_code = SKUMaster.objects.filter(sku_code=material_sku, user=user.id)
                 if not sku_code:
                     index_status.setdefault(row_idx, set()).add('Invalid SKU Code %s' % material_sku)
             elif key == 'material_quantity':
@@ -3781,7 +3782,7 @@ def validate_bom_form(open_sheet, user, bom_excel):
     if not index_status:
         return 'Success'
 
-    f_name = '%s.bom_form.xls' % user
+    f_name = '%s.bom_form.xls' % user.id
     write_error_file(f_name, index_status, open_sheet, BOM_UPLOAD_EXCEL_HEADERS, 'BOM')
     return f_name
 
@@ -3799,7 +3800,7 @@ def bom_upload(request, user=''):
         open_sheet = open_book.sheet_by_index(0)
     except:
         return HttpResponse("Invalid File")
-    status = validate_bom_form(open_sheet, str(user.id), bom_excel)
+    status = validate_bom_form(open_sheet, user, bom_excel)
 
     if status != 'Success':
         return HttpResponse(status)

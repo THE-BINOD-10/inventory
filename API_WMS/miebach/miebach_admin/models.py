@@ -410,6 +410,7 @@ class OrderFields(models.Model):
     name = models.CharField(max_length=256, default='')
     value = models.CharField(max_length=256, default='')
     order_type = models.CharField(max_length=256, default='order')
+    extra_fields = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -604,6 +605,7 @@ class BatchDetail(models.Model):
     tax_percent = models.FloatField(default=0)
     transact_id = models.IntegerField(default=0)
     transact_type = models.CharField(max_length=36, default='')
+    receipt_number = models.PositiveIntegerField(default=0)
     weight = models.CharField(max_length=64, default='')
     ean_number = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -1908,6 +1910,7 @@ class PaymentSummary(models.Model):
     entered_amount = models.FloatField(default=0)
     balance_amount = models.FloatField(default=0)
     tds_amount = models.FloatField(default=0)
+    invoice_number = models.CharField(max_length=128, default='')
     payment_date = models.DateField(blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

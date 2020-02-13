@@ -337,12 +337,12 @@ class Command(BaseCommand):
                 row_count += 1
             wb.save(path)
             report_file_names.append({'name': file_name, 'path': path})'''
-            send_to = ['avadhani@mieone.com']
-            # send_to = ['shishir.sharma@milkbasket.com', 'gaurav.srivastava@milkbasket.com',
-            #            'anubhav.gupta@milkbasket.com',
-            #            'anubhavsood@milkbasket.com', 'tapasya.tibrewal@milkbasket.com', 'prijil.d@milkbasket.com',
-            #            'sahil.madan@milkbasket.com', 'anurag@milkbasket.com', 'rajiv.joshi@milkbasket.com',
-            #            'saurabh.kumar@milkbasket.com', 'naveen.panwar@milkbasket.com']
+            #send_to = ['avadhani@mieone.com']
+            send_to = ['shushant.yadav@milkbasket.com', 'gaurav.srivastava@milkbasket.com',
+                       'anubhav.gupta@milkbasket.com',
+                       'ritesh.shah@milkbasket.com', 'tapasya.tibrewal@milkbasket.com', 'prijil.d@milkbasket.com',
+                       'sahil.madan@milkbasket.com', 'anurag@milkbasket.com', 'rajiv.joshi@milkbasket.com',
+                       'saurabh.kumar@milkbasket.com', 'naveen.panwar@milkbasket.com', 'jatin.khurana@milkbasket.com']
             subject = '%s Reports dated %s' % ('Milkbasket', datetime.now().date())
             text = 'Please find the scheduled reports in the attachment dated: %s' % str(
                 datetime.now().date())

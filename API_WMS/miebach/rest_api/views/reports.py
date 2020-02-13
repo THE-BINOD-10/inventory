@@ -1283,6 +1283,14 @@ def excel_reports(request, user=''):
         file_type = 'csv'
     if temp[1] in ['dispatch_summary'] and len(report_data['aaData']) > 0:
         headers = report_data['aaData'][0].keys()
+    if temp[1] in ['order_summary_report']:
+        headers.extend(["Billing Address" ,"Shipping Address"])
+        headers.extend(["Order Taken By", "Payment Cash", "Payment Card","Payment PhonePe","Payment GooglePay","Payment Paytm"])
+        extra_fields_obj = MiscDetail.objects.filter(user=user.id, misc_type__icontains="pos_extra_fields")
+        for field in extra_fields_obj:
+            tmp = field.misc_value.split(',')
+            for i in tmp:
+                headers.append(str(i))
     excel_data = print_excel(request, report_data, headers, excel_name, file_type=file_type)
     return excel_data
 
@@ -1876,6 +1884,9 @@ def print_purchase_order_form(request, user=''):
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
     left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO , request)
+    tc_master = UserTextFields.objects.filter(user=user.id, field_type='terms_conditions')
+    if tc_master.exists():
+        terms_condition = tc_master[0].text_field
     if open_po.supplier.lead_time:
         lead_time_days = open_po.supplier.lead_time
         replace_date = get_local_date(request.user,open_po.creation_date + datetime.timedelta(days=int(lead_time_days)),send_date='true')
@@ -1883,7 +1894,6 @@ def print_purchase_order_form(request, user=''):
         terms_condition= terms_condition.replace("%^PO_DATE^%", date_replace_terms)
     else:
         terms_condition= terms_condition.replace("%^PO_DATE^%", '')
-
     # if receipt_type == 'Hosted Warehouse':
     #if request.POST.get('seller_id', ''):
     #    title = 'Stock Transfer Note'

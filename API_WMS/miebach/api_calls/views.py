@@ -1036,20 +1036,38 @@ def get_skufilters(request):
             request_data = json.loads(request_data)
         except:
             request_data = {}
-    sku_model = [field.name for field in SKUMaster._meta.get_fields()]
-    attributes = get_user_attributes(user, 'sku')
-    attr_list = []
-    attr_filter_ids = []
-    if attributes:
-        attr_list = list(attributes.values_list('attribute_name', flat=True))
-    if request_data.get('key'):
-        search_param = request_data['key']
-        if search_param in sku_model:
-            query_list = list(SKUMaster.objects.filter(user = user.id).values_list(search_param, flat=True).distinct())
-        elif search_param in attr_list:
-            query_list = list(SKUAttributes.objects.filter(sku__user=user.id, attribute_name=search_param).values_list('attribute_value', flat=True).distinct())
-        else:
-            status['status'] = 400
+        sku_model = [field.name for field in SKUMaster._meta.get_fields()]
+        attributes = get_user_attributes(user, 'sku')
+        attr_list = []
+        attr_filter_ids = []
+        sku_attribute = SKUAttributes.objects.filter(sku__user=user.id)
+        sku_master = SKUMaster.objects.filter(user = user.id)
+        if attributes:
+            attr_list = list(attributes.values_list('attribute_name', flat=True))
+        if request_data.get('key'):
+            search_param = request_data['key']
+            if search_param in sku_model:
+                if request_data.get('name_search'):
+                    search_query = build_search_term_query([search_param], request_data['name_search'])
+                    if search_query:
+                        sku_master = sku_master.filter(search_query)
+                query_list = list(sku_master.values_list(search_param, flat=True).distinct())
+            elif search_param in attr_list:
+                query_list = list(sku_attribute.filter(attribute_name=search_param).values_list('attribute_value', flat=True).distinct())
+            else:
+                status['status'] = 400
+        #Attribute filter for go_mech
+        if request_data.get('sku_brand') and request_data.get('attribute'):
+            sku_brand = request_data['sku_brand']
+            attribute_name = request_data['attribute']
+            if attribute_name in attr_list:
+                if request_data.get('attribute_search'):
+                    search_query = build_search_term_query(['attribute_value'], request_data['attribute_search'])
+                    if search_query:
+                        sku_attribute = sku_attribute.filter(search_query)
+                query_list = list(sku_attribute.filter(attribute_name=attribute_name, sku__sku_brand=sku_brand).values_list('attribute_value', flat=True).distinct())
+            else:
+                status['status'] = 400
     status['data'] = query_list
     if status['status'] == 400:
         status['message'] = 'Key error'
@@ -1333,7 +1351,7 @@ def get_orders(request):
                                                              datetime.time())
         search_parameters['creation_date__lt'] = search_params['to_date']
     if 'order_id' in search_params:
-        search_parameters['original_order_id'] = search_params['order_id']
+        search_parameters['original_order_id__in'] = search_params['order_id'].split(',')
     search_parameters['user'] = request.user.id
     order_records = OrderDetail.objects.filter(**search_parameters).values_list('original_order_id',flat= True).distinct()
     page_info = scroll_data(request, order_records, limit=limit)
@@ -2008,6 +2026,8 @@ def get_customers(request, user=''):
             search_params['customer_id'] = request_data['customer_id']
         if request_data.get('limit'):
             limit = request_data['limit']
+        if request_data.get('customer_type'):
+            search_params['customer_type'] = request_data['customer_type']
     total_data = []
     master_data = CustomerMaster.objects.filter(**search_params)
     page_info = scroll_data(request, master_data, limit=limit, request_type='body')
@@ -2017,6 +2037,7 @@ def get_customers(request, user=''):
             data.phone_number = int(float(data.phone_number))
         total_data.append({'customer_id': data.customer_id, 'first_name': data.name,
                            'last_name': data.last_name, 'address': data.address,
-                           'phone_number': str(data.phone_number), 'email': data.email_id})
+                           'phone_number': str(data.phone_number), 'email': data.email_id,
+                           'customer_type':data.customer_type})
     page_info['data'] = total_data
     return HttpResponse(json.dumps(page_info))

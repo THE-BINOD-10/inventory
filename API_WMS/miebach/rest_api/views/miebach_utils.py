@@ -13,7 +13,7 @@ from reversion.models import Version
 from miebach_admin.models import *
 from itertools import chain
 from operator import itemgetter
-from django.db.models import Q, F, FloatField
+from django.db.models import Q, F, FloatField, Case, When
 from django.db.models.functions import Cast, Concat
 from django.db.models.fields import DateField, CharField
 from django.db.models import Value

@@ -1042,7 +1042,7 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
         for i in range(0, len(data)):
             index = i + 1
             for ind, header_name in enumerate(excel_headers):
-                ws.write(index, excel_headers.index(header_name), data[i][header_name])
+                ws.write(index, excel_headers.index(header_name), data[i].get(header_name, ''))
 
         # for data in temp_data['aaData']:
         #     data_count += 1

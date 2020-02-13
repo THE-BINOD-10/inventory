@@ -519,7 +519,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
 
 
 def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
-    log.info("order upload started")
+    log.info("order upload started for %s" % str(user.username))
     order_code_prefix = get_order_prefix(user.id)
     st_time = datetime.datetime.now()
     index_status = {}
@@ -894,6 +894,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
     if len(collect_order_obj_list):
         collect_order_obj_list = list(set(collect_order_obj_list))
         create_order_pos(user, collect_order_obj_list)
+    log.info("order upload ended for %s" % str(user.username))
     return 'success'
 
 

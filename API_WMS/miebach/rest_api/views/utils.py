@@ -1,10 +1,11 @@
 import logging
+import os
 import locale  # To convert numbers into Currency
 
 def init_logger(log_file):
-    log = logging.getLogger(log_file)
-
-    handler = logging.handlers.RotatingFileHandler(log_file, maxBytes=10485760, backupCount=25)
+    logfile = os.path.abspath(log_file)
+    log = logging.getLogger(logfile)
+    handler = logging.handlers.RotatingFileHandler(logfile, maxBytes=20971520, backupCount=50)
     formatter = logging.Formatter(
         '%(asctime)s.%(msecs)d: %(filename)s: %(lineno)d: %(funcName)s: %(levelname)s: %(message)s', "%Y%m%dT%H%M%S")
     handler.setFormatter(formatter)

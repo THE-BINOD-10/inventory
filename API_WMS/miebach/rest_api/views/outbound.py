@@ -2720,7 +2720,7 @@ def update_invoice(request, user=''):
             cust_obj = order_id.customerordersummary_set.all()
             if cust_obj:
                 cust_obj = cust_obj[0]
-                if (order_id.quantity * order_id.unit_price):
+                if order_id.quantity * order_id.unit_price:
                     discount_percentage = "%.1f" % (float((cust_obj.discount * 100) / (order_id.quantity * order_id.unit_price)))
             order_id.unit_price = float(myDict['unit_price'][unit_price_index])
             #order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index].replace(',',''))
@@ -6102,7 +6102,7 @@ def insert_shipment_info(request, user=''):
                     data = order_pack_instance[0]
                 picked_orders = Picklist.objects.filter(order_id=order_id, status__icontains='picked',
                                                         order__user=user.id)
-                order_quantity = int(order_detail.quantity)
+                order_quantity = int(order_detail.original_quantity)
                 customers_name = order_detail.customer_name
                 if order_quantity == 0:
                     continue
@@ -6148,7 +6148,7 @@ def insert_shipment_info(request, user=''):
                 log.info('Shipemnt Info dict is ' + str(shipment_data))
                 ship_quantity = ShipmentInfo.objects.filter(order_id=order_id). \
                     aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
-                if ship_quantity >= int(order_detail.quantity):
+                if ship_quantity >= int(order_detail.original_quantity):
                     order_detail.status = 2
                     order_detail.save()
                     for pick_order in picked_orders:
@@ -9464,7 +9464,7 @@ def picklist_delete(request, user=""):
                 for order in order_objs:
                     if picklist_objs.filter(order_type='combo', order_id=order.id):
                         is_picked = picklist_objs.filter(picked_quantity__gt=0, order_id=order.id)
-                        remaining_qty = order.quantity
+                        #remaining_qty = order.quantity
                         if is_picked:
                             status_message = 'Partial Picked Picklist not allowed to cancel'
                             continue
@@ -9473,10 +9473,9 @@ def picklist_delete(request, user=""):
                     else:
                         all_seller_orders = SellerOrder.objects.filter(order__user=user.id,
                                                                        order_id__in=order_objs.values_list('id', flat=True))
-                        picked_qty = picklist_objs.filter(order_id=order).aggregate(Sum('picked_quantity'))[
+                        picked_qty = Picklist.objects.filter(order_id=order.id).aggregate(Sum('picked_quantity'))[
                             'picked_quantity__sum']
-                        pick_order = picklist_objs.filter(order_id=order)
-                        remaining_qty = pick_order.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
+                        pick_order = Picklist.objects.filter(order_id=order)
                         pick_status = 'picked'
                         if pick_order.filter(status__icontains='batch'):
                             pick_status = 'batch_picked'
@@ -9486,28 +9485,27 @@ def picklist_delete(request, user=""):
                             cancelled_orders_dict[seller_order[0].id].setdefault('quantity', 0)
                             cancelled_orders_dict[seller_order[0].id]['quantity'] = float(
                                 cancelled_orders_dict[seller_order[0].id]['quantity']) + \
-                                                                                    float(remaining_qty)
+                                                                                    float(picked_qty)
 
                         if picked_qty <= 0 and not seller_order:
                             order.delete()
                             continue
-                        save_order_tracking_data(order, quantity=remaining_qty, status='cancelled', imei='')
-                        temp_order_quantity = float(order.quantity) - float(remaining_qty)
+                        save_order_tracking_data(order, quantity=picked_qty, status='cancelled', imei='')
+                        temp_order_quantity = float(order.original_quantity) - float(picked_qty)
                         if temp_order_quantity > 0:
                             order.quantity = temp_order_quantity
-                        else:
-                            order.status = 3
-                        shipped = ShipmentInfo.objects.filter(order_id=order.id).aggregate(Sum('shipping_quantity'))[
-                            'shipping_quantity__sum']
-                        proc_pick_obj = Picklist.objects.filter(order_id=order.id, status='dispatched', order__user=user.id)
-                        proc_pick_qty = 0
-                        if proc_pick_obj and proc_pick_obj[0].order:
-                            proc_pick_qty = float(proc_pick_obj[0].order.quantity)
-                        if shipped:
-                            shipped = float(shipped) - float(proc_pick_qty)
-                            if float(shipped) == float(order.quantity):
-                                order.status = 2
-                                pick_status = 'dispatched'
+                        order.status = 3
+                        # shipped = ShipmentInfo.objects.filter(order_id=order.id).aggregate(Sum('shipping_quantity'))[
+                        #     'shipping_quantity__sum']
+                        # proc_pick_obj = Picklist.objects.filter(order_id=order.id, status='dispatched', order__user=user.id)
+                        # proc_pick_qty = 0
+                        # if proc_pick_obj and proc_pick_obj[0].order:
+                        #     proc_pick_qty = float(proc_pick_obj[0].order.quantity)
+                        # if shipped:
+                        #     shipped = float(shipped) - float(proc_pick_qty)
+                        #     if float(shipped) == float(order.original_quantity):
+                        #         order.status = 2
+                        #         pick_status = 'dispatched'
                         del_seller_order = all_seller_orders.filter(order_id=order.id, order_status='DELIVERY_RESCHEDULED')
                         if del_seller_order and not pick_status == 'dispatched':
                             order.status = 5
@@ -9610,13 +9608,13 @@ def order_delete(request, user=""):
                 order_detail_ids = list(set(order_detail_ids) - set(seller_orders))
             if order_detail_ids:
                 for order_detail_id in order_detail_ids:
-                    picked_qty_check = Picklist.objects.filter(order_id=order_detail_id).annotate(total_quantity=Sum('picked_quantity'))
-                    if not picked_qty_check.exists():
-                        OrderDetail.objects.filter(id=order_detail_id).update(status = 3)
-                        if admin_user:
-                            OrderFields.objects.filter(user=admin_user.id, original_order_id=complete_id).delete()
-                    else:
-                        OrderDetail.objects.filter(id=order_detail_id).update(quantity=picked_qty_check[0].total_quantity,status = 3)
+                    # picked_qty_check = Picklist.objects.filter(order_id=order_detail_id).annotate(total_quantity=Sum('picked_quantity'))
+                    # if not picked_qty_check.exists():
+                    OrderDetail.objects.filter(id=order_detail_id).update(status = 3)
+                    if admin_user:
+                        OrderFields.objects.filter(user=admin_user.id, original_order_id=complete_id).delete()
+                    # else:
+                    #     OrderDetail.objects.filter(id=order_detail_id).update(quantity=picked_qty_check[0].total_quantity,status = 3)
 
 
     except Exception as e:
@@ -11049,8 +11047,13 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
                     invoice_number = invoice_number[0]
                 else:
                     invoice_number = ''
-                ordered_quantity = orders.filter(original_order_id=data['order__original_order_id'])\
-                                         .aggregate(Sum('quantity'))['quantity__sum']
+                #ordered_quantity = orders.filter(original_order_id=data['order__original_order_id'])\
+                #                         .aggregate(Sum('original_quantity'))['original_quantity__sum']
+                ordered_quantity = orders.filter(original_order_id=data['order__original_order_id']) \
+                                    .aggregate(order_qty=Sum(Case(
+                                        When(status=3, then=(F('original_quantity')-F('quantity'))),
+                                        default=F('original_quantity')
+                                             )))['order_qty']
                 picked_amount = order_summaries.filter(order__original_order_id=data['order__original_order_id'])\
                                                .values('order__sku_id', 'order__invoice_amount', 'order__quantity', 'delivered_flag')\
                                                .distinct().annotate(pic_qty=Sum('quantity'))\

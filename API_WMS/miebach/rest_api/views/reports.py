@@ -106,9 +106,7 @@ def get_report_data(request, user=''):
             data_index = data['filters'].index(filter(lambda person: 'category' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = list(sku_master.exclude(sku_category='').filter(**filter_params)
                                                          .values_list('sku_category', flat=True).distinct())
-    elif report_name in ['sku_wise_po_report', 'move_inventory_report']:
-        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-            data['dt_headers'].append(['Manufacturer', 'Searchable', 'Bundle'])
+
     return HttpResponse(json.dumps({'data': data}))
 
 

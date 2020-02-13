@@ -1107,7 +1107,7 @@ MOVE_TO_INVENTORY_REPORT_DICT = {
         {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
     ],
     'dt_headers': ['SKU Code', 'SKU Description','Source Location', 'SKU Category',
-                   'Sub Category', 'SKU Brand', 'Manufacturer', 'Searchable', 'Bundle',
+                   'Sub Category', 'SKU Brand',
                    'Destination Location','Quantity','Transaction Date', 'Updated User','Reason'],
     'dt_url': 'get_move_inventory_report', 'excel_name': 'get_move_inventory_report',
     'print_url': 'print_move_inventory_report',

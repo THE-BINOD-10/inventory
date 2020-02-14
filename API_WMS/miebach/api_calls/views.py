@@ -934,6 +934,11 @@ def get_skus(request):
     error_status = []
     skus = []
     search_params = {'user': user.id}
+    sister_whs = []
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    sister_whs1.append(user.username)
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
     request_data = request.body
     search_query = Q()
     if request_data:
@@ -941,6 +946,11 @@ def get_skus(request):
             request_data = json.loads(request_data)
         except:
             request_data = {}
+        if request_data.has_key('warehouse'):
+            warehouse = request_data['warehouse']
+            if warehouse.lower() in sister_whs:
+                user = User.objects.get(username=warehouse)
+        search_params = {'user': user.id}
         attributes = get_user_attributes(user, 'sku')
         if request_data.get('limit'):
             limit = request_data['limit']
@@ -1031,11 +1041,20 @@ def get_skufilters(request):
     request_data = request.body
     sku_model = []
     query_list = []
+    sister_whs = []
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    sister_whs1.append(user.username)
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
     if request_data:
         try:
             request_data = json.loads(request_data)
         except:
             request_data = {}
+        if request_data.has_key('warehouse'):
+            warehouse = request_data['warehouse']
+            if warehouse.lower() in sister_whs:
+                user = User.objects.get(username=warehouse)
         sku_model = [field.name for field in SKUMaster._meta.get_fields()]
         attributes = get_user_attributes(user, 'sku')
         attr_list = []
@@ -2008,11 +2027,21 @@ def get_customers(request, user=''):
     search_params = {'user': user.id}
     request_data = request.body
     limit = 30
+    sister_whs = []
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    sister_whs1.append(user.username)
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
     if request_data:
         try:
             request_data = json.loads(request_data)
         except:
             return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Json', 'data': []}))
+        if request_data.has_key('warehouse'):
+            warehouse = request_data['warehouse']
+            if warehouse.lower() in sister_whs:
+                user = User.objects.get(username=warehouse)
+        search_params = {'user': user.id}
         if request_data.get('name_search', ''):
             search_params['name__icontains'] = request_data['name_search']
         elif request_data.get('name', ''):

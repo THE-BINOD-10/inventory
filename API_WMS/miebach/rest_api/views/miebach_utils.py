@@ -3167,7 +3167,6 @@ def sku_wise_purchase_data(search_params, user, sub_user):
     columns = SKU_WISE_PO_DICT['dt_headers']
     if fmcg_marketplace:
         lis+=['id']*3
-        columns+=['id']*3
     if 'sku_code' in search_params:
         search_parameters['open_po__sku__sku_code'] = search_params['sku_code']
     if 'sku_category' in search_params:

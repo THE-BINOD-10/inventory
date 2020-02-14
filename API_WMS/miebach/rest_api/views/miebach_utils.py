@@ -3171,7 +3171,6 @@ def sku_wise_purchase_data(search_params, user, sub_user):
     columns = SKU_WISE_PO_DICT['dt_headers']
     if fmcg_marketplace:
         lis+=['id']*3
-        columns+=['id']*3
     if 'sku_code' in search_params:
         search_parameters['open_po__sku__sku_code'] = search_params['sku_code']
     if 'sku_category' in search_params:
@@ -3218,9 +3217,10 @@ def sku_wise_purchase_data(search_params, user, sub_user):
     if order_term == 'desc':
         order_data = '-%s' % order_data
     purchase_orders = purchase_orders.order_by(order_data)
-    if columns[order_index] in ['Status', 'Rejected Quantity', 'Pre-Tax PO Amount', 'Tax',
+    if len(columns) > order_index :
+        if columns[order_index] in ['Status', 'Rejected Quantity', 'Pre-Tax PO Amount', 'Tax',
                                 'After Tax PO Amount']:
-        custom_search = True
+            custom_search = True
     if not custom_search:
         if stop_index:
             purchase_orders = purchase_orders[start_index:stop_index]

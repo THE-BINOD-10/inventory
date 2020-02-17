@@ -4177,6 +4177,7 @@ def validate_putaway(all_data, user):
     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
     validate_po_id = ''
     validate_seller_id = ''
+    wrong_skus = []
     if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
         get_values = all_data.keys()
         if get_values:
@@ -4187,28 +4188,34 @@ def validate_putaway(all_data, user):
                 validate_seller_id = pol.purchase_order.open_po.sellerpo_set.filter()[0].seller_id
     mrp_putaway_status = []
     for key, value in all_data.iteritems():
+
         if not validate_seller_id:
             continue
         if not key[1]:
             status = 'Location is Empty, Enter Location'
+            wrong_skus.append(key[4])
         if key[1]:
             loc = LocationMaster.objects.filter(location=key[1], zone__user=user.id)
             if loc:
                 loc = LocationMaster.objects.get(location=key[1], zone__user=user.id)
                 if 'Inbound' in loc.lock_status or 'Inbound and Outbound' in loc.lock_status:
                     status = 'Entered Location is locked for %s operations' % loc.lock_status
+                    wrong_skus.append(key[4])
 
                 if key[0]:
                     data = POLocation.objects.filter(id=key[0], location__zone__user=user.id, status=1)
                     if not data:
                         status = 'Data not Found or Already processed'
+                        wrong_skus.append(key[4])
                         continue
                     data = data[0]
                     if data.quantity < value:
                         status = 'Putaway quantity should be less than the Received Quantity'
+                        wrong_skus.append(key[4])
                     order_data = get_purchase_order_data(data.purchase_order)
                     if (float(data.purchase_order.received_quantity) - value) < 0:
                         status = 'Putaway quantity should be less than the Received Quantity'
+                        wrong_skus.append(key[4])
 
                 if back_order == "true":
                     sku_code = key[4]
@@ -4230,18 +4237,21 @@ def validate_putaway(all_data, user):
                     if diff and diff < value:
                         status = 'Bay Area Stock %s is reserved for %s in Picklist.You cannot putaway this stock.' % (
                         pick_res_quantity, sku_code)
+                        wrong_skus.append(key[4])
 
             else:
                 status = 'Enter Valid Location'
-
-        if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                wrong_skus.append(key[4])
+        if unique_mrp == 'true':
+        # if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             data_dict = {'sku_code':key[4], 'mrp':key[5], 'weight':key[6], 'seller_id':validate_seller_id, 'location': key[1]}
             validation_status = validate_mrp_weight(data_dict,user)
             if validation_status:
+                wrong_skus.append(key[4])
                 mrp_putaway_status.append(validation_status)
     if mrp_putaway_status:
         status += ', '.join(mrp_putaway_status)
-    return status
+    return status, wrong_skus
 
 
 def consume_bayarea_stock(sku_code, zone, quantity, user):
@@ -4423,9 +4433,9 @@ def putaway_data(request, user=''):
                     myDict['quantity'][i] = 0
                 all_data[cond] += float(myDict['quantity'][i])
         all_data = OrderedDict(sorted(all_data.items(), reverse=True))
-        status = validate_putaway(all_data, user)
+        status , wrong_skus = validate_putaway(all_data, user)
         if status:
-            return HttpResponse(status)
+            return HttpResponse(json.dumps({'status': status, 'wrong_skus': wrong_skus}))
         for key, value in all_data.iteritems():
             loc = LocationMaster.objects.get(location=key[1], zone__user=user.id)
             loc1 = loc

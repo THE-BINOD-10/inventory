@@ -10451,14 +10451,15 @@ def validate_mrp_weight(data_dict, user):
                             exclude(batch_detail__mrp=data_dict['mrp'], batch_detail__weight=data_dict['weight']).values_list('sku__wms_code', 'batch_detail__mrp', 'batch_detail__weight').distinct()
         if sku_mrp_weight_map:
             for sku_code, mrp, weight_dict in sku_mrp_weight_map:
-                mrp_weight_dict = {'mrp':mrp, 'weight':weight_dict}
+                mrp_weight_dict = {'mrp':[str(mrp)], 'weight':[weight_dict]}
                 if sku_code in collect_dict_form.keys():
-                    collect_dict_form[sku_code].append(mrp_weight_dict)
+                    collect_dict_form[sku_code]['mrp'].append(mrp_weight_dict['mrp'][0])
+                    collect_dict_form[sku_code]['weight'].append(mrp_weight_dict['weight'][0])
                 else:
                     collect_dict_form[sku_code] = mrp_weight_dict
             if data_dict['sku_code'] in collect_dict_form.keys():
                 if not str(data_dict['mrp']) in str(collect_dict_form[data_dict['sku_code']]["mrp"]) or not str(data_dict['weight']) in str(collect_dict_form[data_dict['sku_code']]["weight"]):
-                    status = 'For SKU '+str(data_dict['sku_code'])+', MRP '+str(collect_dict_form[data_dict['sku_code']]["mrp"])+' and WEIGHT '+str(collect_dict_form[data_dict['sku_code']]["weight"])+' are only accepted.'
+                    status = 'For SKU '+str(data_dict['sku_code'])+', MRP '+str(",".join(collect_dict_form[data_dict['sku_code']]["mrp"]))+' and WEIGHT '+str(",".join(collect_dict_form[data_dict['sku_code']]["weight"]))+' are only accepted.'
     return status
 
 def mb_weight_correction(weight):

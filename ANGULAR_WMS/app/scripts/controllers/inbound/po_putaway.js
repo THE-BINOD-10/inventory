@@ -100,6 +100,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
 
     vm.submit = function() {
       var elem = angular.element($('form'));
+      vm.model_data.data.forEach(function(item){
+           item.wrong_sku = false;
+       });
       elem = elem[0];
       elem = $(elem).serializeArray();
       vm.service.apiCall('putaway_data/', 'POST', elem, true).then(function(data){
@@ -109,7 +112,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
             reloadData();
           } else {
             $state.go('app.inbound.PutAwayConfirmation.confirmation');
-            pop_msg(data.data);
+            vm.model_data.data.forEach(function(item){
+              if (data.data.wrong_skus.indexOf(item.wms_code) != -1) {
+                    item.wrong_sku = true;
+              }
+             });
+            pop_msg(data.data.status);
           }
         }
       }); 

@@ -3594,6 +3594,12 @@ def ba_to_sa_calculate_now(request, user=''):
 @get_admin_user
 def get_move_inventory_reasons(request, user=''):
     move_inventory_reasons = []
+    reasons_available = 0
     if get_misc_value('move_inventory_reasons', user.id) != 'false':
         move_inventory_reasons = get_misc_value('move_inventory_reasons', user.id).split(',')
-    return HttpResponse(json.dumps({'move_inventory_reasons': move_inventory_reasons}))
+        if len(move_inventory_reasons) > 0:
+            if move_inventory_reasons[0] != '':
+                reasons_available = 1
+    return HttpResponse(json.dumps({'move_inventory_reasons': move_inventory_reasons,
+                                    'reasons_available': reasons_available,
+                                    }))

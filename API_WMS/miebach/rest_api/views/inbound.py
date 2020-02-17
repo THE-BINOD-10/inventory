@@ -4242,8 +4242,7 @@ def validate_putaway(all_data, user):
             else:
                 status = 'Enter Valid Location'
                 wrong_skus.append(key[4])
-        if unique_mrp == 'true':
-        # if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' :
             data_dict = {'sku_code':key[4], 'mrp':key[5], 'weight':key[6], 'seller_id':validate_seller_id, 'location': key[1]}
             validation_status = validate_mrp_weight(data_dict,user)
             if validation_status:

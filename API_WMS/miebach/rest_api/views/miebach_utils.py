@@ -4530,11 +4530,12 @@ def get_financial_report_data(search_params, user, sub_user):
 def get_order_summary_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
-    from common import get_misc_value
+    from common import get_misc_value, get_admin
 
     from rest_api.views.common import get_sku_master, get_order_detail_objs, get_local_date, get_utc_start_date
     milkbasket_user = False
     milkbasket_users = copy.deepcopy(MILKBASKET_USERS)
+    admin_user = get_admin(user)
     if user.username in milkbasket_users :
         milkbasket_user = True
     lis = ['creation_date', 'order_id', 'customer_id','customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
@@ -4978,6 +4979,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('Invoice Date',invoice_date),("Billing Address",billing_address),("Shipping Address",shipping_address),
                                                     ('Payment Cash', payment_cash), ('Payment Card', payment_card),('Payment PhonePe', payment_PhonePe),
                                                     ('Payment Paytm', payment_Paytm),('Payment GooglePay', payment_GooglePay), ('Advance Amount', data['payment_received']), ('Vehicle Number', vehicle_number)))
+        
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             aaData['Manufacturer'] = manufacturer
             aaData['Searchable'] = searchable
@@ -4986,6 +4988,36 @@ def get_order_summary_data(search_params, user, sub_user):
         if milkbasket_user :
             aaData.update(OrderedDict(cost_price_dict))
         aaData.update(OrderedDict(order_extra_fields))
+        if admin_user.username.lower() == 'demo' and search_params.get('tally_report'):
+            aaData = OrderedDict()
+            aaData = OrderedDict((('Voucher Type', 'SPARE PARTS'),
+                                                    ('Party Name',customer_name),
+                                                    ('Address1', billing_address),
+                                                    ('Address1', billing_address),
+                                                    ('Address1', billing_address),
+                                                    ('State Name', data['state']),
+                                                    ('GSTIN', gst_number),
+                                                    ('Main Location', 'Main Location'),
+                                                    ('Stock item', 'MS WIRE'),
+                                                    ('Qty', quantity),
+                                                    ('Rate', float(data['unit_price'])),
+                                                    ('Disc%', unit_discount),
+                                                    ('Sales Ledger', 'Sales'),
+                                                    ('Sales Amount', float(taxable_amount)),
+                                                    ('Sgst Ledger', 'SGST'),
+                                                    ('SGST Amt', sgst_amt),
+                                                    ('CGST Ledger', 'CGST'),
+                                                    ('CGST Amount',cgst_amt),
+                                                    ('Igst Ledger', 'IGST'),
+                                                    ('IGST Amount', igst_amt),
+                                                    ('Part Number', data['sku__sku_code']),
+                                                    ('Unit', 'PC'),
+                                                    ('Group', 'Roche'),
+                                                    ('MRP', mrp_price),
+                                                    ('Selling price(inc Tax)', float(unit_price_inclusive_tax)),
+                                                    ('Cost price (Inc Tax)', 0),
+                                                    ('HSN Code', data['sku__hsn_code']),
+                                                    ('GST', gst_number)))
         temp_data['aaData'].append(aaData)
     return temp_data
 

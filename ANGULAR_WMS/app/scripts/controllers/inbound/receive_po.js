@@ -2427,7 +2427,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
    vm.validate_weight = function(event, data) {
      if(vm.milkbasket_users.indexOf(vm.parent_username) >= 0){
-       data.weight = data.weight.toUpperCase().replace(/\s\s+/g, ' ').trim().replace('UNITS', 'Units').replace('PCS', 'Pcs').replace('UNIT', 'Unit').replace('INCHES', 'Inches').replace('INCH', 'Inch');
+       data.weight = data.weight.toUpperCase().replace('UNITS', 'Units').replace(/\s\s+/g, ' ').replace('PCS', 'Pcs').replace('UNIT', 'Unit').replace('INCHES', 'Inches').replace('INCH', 'Inch');
+       setTimeout(() => { data.weight = data.weight.trim(); }, 100);
      }
    }
 

@@ -3510,9 +3510,9 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                     else:
                         data_dict[key] = cell_data
             if user.username in MILKBASKET_USERS and unique_mrp == 'true' and not index_status:
-            data_dict['sku_code'] = data_dict['wms_code']
-            data_dict['location'] = dest_location[0].location
-            status = validate_mrp_weight(data_dict,user)
+                data_dict['sku_code'] = data_dict['wms_code']
+                data_dict['location'] = dest_location[0].location
+                status = validate_mrp_weight(data_dict,user)
             if status:
                 index_status.setdefault(row_idx, set()).add(status)
 

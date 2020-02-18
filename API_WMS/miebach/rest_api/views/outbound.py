@@ -2720,7 +2720,7 @@ def update_invoice(request, user=''):
             cust_obj = order_id.customerordersummary_set.all()
             if cust_obj:
                 cust_obj = cust_obj[0]
-                if (order_id.quantity * order_id.unit_price):
+                if order_id.quantity * order_id.unit_price:
                     discount_percentage = "%.1f" % (float((cust_obj.discount * 100) / (order_id.quantity * order_id.unit_price)))
             order_id.unit_price = float(myDict['unit_price'][unit_price_index])
             #order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index].replace(',',''))

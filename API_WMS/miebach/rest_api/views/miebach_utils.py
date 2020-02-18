@@ -4997,7 +4997,7 @@ def get_order_summary_data(search_params, user, sub_user):
             aaData = OrderedDict()
             if quantity:
                 discount_percent = (discount*100)/(quantity*float(data['unit_price']))
-            selling_price = (float(data['unit_price'])+(float(data['unit_price'])*(tax_percent/100))) - discount
+            selling_price = (float(data['unit_price']) - discount)+((float(data['unit_price'])*(tax_percent/100)))
             if invoice_number:
                 aaData = OrderedDict((('Voucher Type', 'SPARE PARTS'),
                                       ('Invoice Number', invoice_number),

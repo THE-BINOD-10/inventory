@@ -999,7 +999,7 @@ def get_extra_data(excel_headers, result_data, user):
 @csrf_exempt
 @login_required
 @get_admin_user
-def print_excel(request, temp_data, headers, excel_name='', user='', file_type=''):
+def print_excel(request, temp_data, headers, excel_name='', user='', file_type='', tally_report=0):
     excel_headers = ''
     if temp_data['aaData']:
         excel_headers = temp_data['aaData'][0].keys()
@@ -1009,6 +1009,8 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
         excel_headers = headers
     for i in set(excel_headers) - set(headers):
         excel_headers.remove(i)
+    if tally_report ==1:
+        excel_headers = headers
     excel_headers, temp_data['aaData'] = get_extra_data(excel_headers, temp_data['aaData'], user)
     if not excel_name:
         excel_name = request.POST.get('serialize_data', '')
@@ -1044,6 +1046,8 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
             wb, ws = get_work_sheet('skus', excel_headers)
         data_count = 0
         data = temp_data['aaData']
+        if tally_report ==1:
+            data = temp_data['aaData'][1:]
         for i in range(0, len(data)):
             index = i + 1
             for ind, header_name in enumerate(excel_headers):

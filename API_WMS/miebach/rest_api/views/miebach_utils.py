@@ -4830,6 +4830,10 @@ def get_order_summary_data(search_params, user, sub_user):
                 tax = order_summary[0].tax_value
                 vat = order_summary[0].vat
                 #if not unit_price:
+                cgst_amt = float(order_summary[0].cgst_tax) * (float(amt) / 100)
+                sgst_amt = float(order_summary[0].sgst_tax) * (float(amt) / 100)
+                igst_amt = float(order_summary[0].igst_tax) * (float(amt) / 100)
+                utgst_amt = float(order_summary[0].utgst_tax) * (float(amt) / 100)
                 tax_percent = tax * (100/(data['original_quantity'] * data['unit_price']))
             else:
                 amt = unit_price_inclusive_tax * float(data['original_quantity']) - discount
@@ -4994,37 +4998,38 @@ def get_order_summary_data(search_params, user, sub_user):
             if quantity:
                 discount_percent = (discount*100)/(quantity*float(data['unit_price']))
             selling_price = (float(data['unit_price'])+(float(data['unit_price'])*(tax_percent/100))) - discount
-            aaData = OrderedDict((('Voucher Type', 'SPARE PARTS'),
-                                  ('Invoice Number', invoice_number),
-                                  ('Invoice Date', invoice_date),
-                                  ('Party Name',customer_name),
-                                  ('Address1', billing_address),
-                                  ('Address2', billing_address),
-                                  ('Address3', billing_address),
-                                  ('State Name', data['state']),
-                                  ('GSTIN', gst_number),
-                                  ('Main Location', 'Main Location'),
-                                  ('Stock item', 'MS WIRE'),
-                                  ('Qty', quantity),
-                                  ('Rate', float(data['unit_price'])),
-                                  ('Disc%', discount_percent),
-                                  ('Sales Ledger', 'Sales'),
-                                  ('Sales Amount', float(taxable_amount)),
-                                  ('Sgst Ledger', 'SGST'),
-                                  ('SGST Amt', sgst_amt),
-                                  ('CGST Ledger', 'CGST'),
-                                  ('CGST Amount',cgst_amt),
-                                  ('Igst Ledger', 'IGST'),
-                                  ('IGST Amount', igst_amt),
-                                  ('Part Number', data['sku__sku_code']),
-                                  ('Unit', 'PC'),
-                                  ('Group', 'Roche'),
-                                  ('MRP', mrp_price),
-                                  ('Selling price(inc Tax)', round(selling_price)),
-                                  ('Cost price (Inc Tax)', 0),
-                                  ('Invoice Amount', invoice_amount_picked),
-                                  ('HSN Code', data['sku__hsn_code']),
-                                  ('GST', tax_percent)))
+            if invoice_number:
+                aaData = OrderedDict((('Voucher Type', 'SPARE PARTS'),
+                                      ('Invoice Number', invoice_number),
+                                      ('Invoice Date', invoice_date),
+                                      ('Party Name',customer_name),
+                                      ('Address1', billing_address),
+                                      ('Address2', billing_address),
+                                      ('Address3', billing_address),
+                                      ('State Name', data['state']),
+                                      ('GSTIN', gst_number),
+                                      ('Main Location', 'Main Location'),
+                                      ('Stock item', 'MS WIRE'),
+                                      ('Qty', quantity),
+                                      ('Rate', float(data['unit_price'])),
+                                      ('Disc%', discount_percent),
+                                      ('Sales Ledger', 'Sales'),
+                                      ('Sales Amount', float(taxable_amount)),
+                                      ('Sgst Ledger', 'SGST'),
+                                      ('SGST Amt', sgst_amt),
+                                      ('CGST Ledger', 'CGST'),
+                                      ('CGST Amount',cgst_amt),
+                                      ('Igst Ledger', 'IGST'),
+                                      ('IGST Amount', igst_amt),
+                                      ('Part Number', data['sku__sku_code']),
+                                      ('Unit', 'PC'),
+                                      ('Group', 'Roche'),
+                                      ('MRP', mrp_price),
+                                      ('Selling price(inc Tax)', round(selling_price)),
+                                      ('Cost price (Inc Tax)', 0),
+                                      ('Invoice Amount', invoice_amount_picked),
+                                      ('HSN Code', data['sku__hsn_code']),
+                                      ('GST', tax_percent)))
         temp_data['aaData'].append(aaData)
     return temp_data
 

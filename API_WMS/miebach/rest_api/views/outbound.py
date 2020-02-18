@@ -11191,9 +11191,9 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                                                        financial_year=data['financial_year'])\
                                                .values('seller_order__order__sku_id',
                                                        'seller_order__order__invoice_amount',
-                                                       'seller_order__order__quantity').distinct()\
+                                                       'seller_order__order__original_quantity').distinct()\
                                                .annotate(pic_qty=Sum('quantity'))\
-                                               .annotate(cur_amt=(F('seller_order__order__invoice_amount')/F('seller_order__order__quantity'))* F('pic_qty'))\
+                                               .annotate(cur_amt=(F('seller_order__order__invoice_amount')/F('seller_order__order__original_quantity'))* F('pic_qty'))\
                                                .aggregate(Sum('cur_amt'))['cur_amt__sum']
                 data['ordered_quantity'] = seller_orders.get(data['seller_order__sor_id'], 0)
             else:
@@ -11221,9 +11221,9 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                                          #.exclude(status=3).aggregate(Sum('quantity'))['quantity__sum']
                 picked_amount = order_summaries.filter(invoice_number=data['invoice_number'],
                                                 financial_year=data['financial_year'])\
-                                               .values('order__sku_id', 'order__invoice_amount', 'order__quantity')\
+                                               .values('order__sku_id', 'order__invoice_amount', 'order__original_quantity')\
                                                .distinct().annotate(pic_qty=Sum('quantity'))\
-                                               .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
+                                               .annotate(cur_amt=(F('order__invoice_amount')/F('order__original_quantity'))* F('pic_qty'))\
                                                .aggregate(Sum('cur_amt'))['cur_amt__sum']
             order_id = order.order_code + str(order.order_id)
             if order.original_order_id:

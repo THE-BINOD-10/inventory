@@ -4830,10 +4830,6 @@ def get_order_summary_data(search_params, user, sub_user):
                 tax = order_summary[0].tax_value
                 vat = order_summary[0].vat
                 #if not unit_price:
-                cgst_amt = float(order_summary[0].cgst_tax) * (float(amt) / 100)
-                sgst_amt = float(order_summary[0].sgst_tax) * (float(amt) / 100)
-                igst_amt = float(order_summary[0].igst_tax) * (float(amt) / 100)
-                utgst_amt = float(order_summary[0].utgst_tax) * (float(amt) / 100)
                 tax_percent = tax * (100/(data['original_quantity'] * data['unit_price']))
             else:
                 amt = unit_price_inclusive_tax * float(data['original_quantity']) - discount
@@ -4996,8 +4992,15 @@ def get_order_summary_data(search_params, user, sub_user):
             discount_percent, selling_price = 0, 0
             aaData = OrderedDict()
             if quantity:
+                if int(data['original_quantity']) != quantity:
+                    discount = discount*quantity
                 discount_percent = (discount*100)/(quantity*float(data['unit_price']))
             selling_price = (float(data['unit_price']) - discount)+((float(data['unit_price'])*(tax_percent/100)))
+            amt = unit_price_inclusive_tax * float(quantity) - discount
+            cgst_amount = float(order_summary[0].cgst_tax) * (float(amt) / 100)
+            sgst_amount = float(order_summary[0].sgst_tax) * (float(amt) / 100)
+            igst_amount = float(order_summary[0].igst_tax) * (float(amt) / 100)
+            utgst_amount = float(order_summary[0].utgst_tax) * (float(amt) / 100)
             if invoice_number:
                 aaData = OrderedDict((('Voucher Type', 'SPARE PARTS'),
                                       ('Invoice Number', invoice_number),
@@ -5012,15 +5015,15 @@ def get_order_summary_data(search_params, user, sub_user):
                                       ('Stock item', 'MS WIRE'),
                                       ('Qty', quantity),
                                       ('Rate', float(data['unit_price'])),
-                                      ('Disc%', discount_percent),
+                                      ('Disc%', round(discount_percent)),
                                       ('Sales Ledger', 'Sales'),
                                       ('Sales Amount', float(taxable_amount)),
                                       ('Sgst Ledger', 'SGST'),
-                                      ('SGST Amt', sgst_amt),
+                                      ('SGST Amt', sgst_amount),
                                       ('CGST Ledger', 'CGST'),
-                                      ('CGST Amount',cgst_amt),
+                                      ('CGST Amount',cgst_amount),
                                       ('Igst Ledger', 'IGST'),
-                                      ('IGST Amount', igst_amt),
+                                      ('IGST Amount', igst_amount),
                                       ('Part Number', data['sku__sku_code']),
                                       ('Unit', 'PC'),
                                       ('Group', 'Roche'),

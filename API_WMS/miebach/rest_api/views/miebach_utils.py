@@ -455,7 +455,6 @@ ORDER_SUMMARY_DICT = {
                 {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'},
                 {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'},
                 {'label': 'SKU Size', 'name': 'sku_size', 'type': 'input'},
-                {'label': 'Customer ID', 'name': 'customer_id', 'type': 'input'},
                 {'label': 'Status', 'name': 'order_report_status', 'type': 'select'},
                 {'label': 'Order Reference', 'name': 'order_reference', 'type': 'input'},
                 {'label': 'Order ID', 'name': 'order_id', 'type': 'input'}],

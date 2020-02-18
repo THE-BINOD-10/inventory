@@ -1292,13 +1292,13 @@ def excel_reports(request, user=''):
         file_type = 'csv'
     if temp[1] in ['dispatch_summary'] and len(report_data['aaData']) > 0:
         headers = report_data['aaData'][0].keys()
-    if temp[1] in ['order_summary_report']:
+    if temp[1] in ['order_summary_report'] or 'tally_report' in excel_name:
         headers.extend(["Billing Address" ,"Shipping Address"])
         headers.extend(["Order Taken By", "Payment Cash", "Payment Card","Payment PhonePe","Payment GooglePay","Payment Paytm"])
-        if admin_user.username.lower() == 'demo':
-            headers = ['Voucher Type', 'Party Name','Address1','State Name',
+        if admin_user.username.lower() == 'gomechanic_admin' and search_params.get('tally_report'):
+            headers = ['Voucher Type', 'Invoice Number','Invoice Date','Party Name','Address1','Address2','Address3','State Name',
                         'GSTIN','Main Location','Stock item','Qty','Rate','Disc%','Sales Ledger',
-                        'Sgst Ledger','SGST Amt','CGST Ledger','CGST Amount','Igst Ledger','IGST Amount',
+                        'Sgst Ledger','SGST Amt','CGST Ledger','CGST Amount','Igst Ledger','IGST Amount','Invoice Amount',
                         'Part Number','Unit','Group','MRP','Selling price(inc Tax)','Cost price (Inc Tax)','HSN Code','GST']
         extra_fields_obj = MiscDetail.objects.filter(user=user.id, misc_type__icontains="pos_extra_fields")
         for field in extra_fields_obj:

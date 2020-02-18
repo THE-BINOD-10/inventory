@@ -4989,8 +4989,10 @@ def get_order_summary_data(search_params, user, sub_user):
             aaData.update(OrderedDict(cost_price_dict))
         aaData.update(OrderedDict(order_extra_fields))
         if admin_user.username.lower() == 'gomechanic_admin' and search_params.get('tally_report'):
+            discount_percent, selling_price = 0, 0
             aaData = OrderedDict()
-            discount_percent = (discount*100)/(quantity*float(data['unit_price']))
+            if quantity:
+                discount_percent = (discount*100)/(quantity*float(data['unit_price']))
             selling_price = (float(data['unit_price'])+(float(data['unit_price'])*(tax_percent/100))) - discount
             aaData = OrderedDict((('Voucher Type', 'SPARE PARTS'),
                                   ('Invoice Number', invoice_number),

@@ -7363,6 +7363,8 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         combo_sku_ids.append(order.sku_id)
         sku_id_stock_filter = {'sku_id__in': combo_sku_ids}
         needed_mrp_filter = 0
+        if order.sku.relation_type == 'combo':
+            add_mrp_filter = False
         if add_mrp_filter:
             if 'st_po' not in dir(order) and order.customerordersummary_set.filter().exists():
                 needed_mrp_filter = order.customerordersummary_set.filter()[0].mrp
@@ -7385,10 +7387,9 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         else:
             sku_id_stocks = sku_stocks.filter(**sku_id_stock_filter).values('id', 'sku_id').\
                                         annotate(total=Sum('quantity')).order_by(order_by)
-        val_dict = {}
-        val_dict['sku_ids'] = map(lambda d: d['sku_id'], sku_id_stocks)
-        val_dict['stock_ids'] = map(lambda d: d['id'], sku_id_stocks)
-        val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)
+        val_dict = {'sku_ids': map(lambda d: d['sku_id'], sku_id_stocks),
+                    'stock_ids': map(lambda d: d['id'], sku_id_stocks),
+                    'stock_totals': map(lambda d: d['total'], sku_id_stocks)}
         pc_loc_filter = OrderedDict()
         pc_loc_filter['picklist__order__user'] = user.id
         #if is_seller_order or add_mrp_filter:

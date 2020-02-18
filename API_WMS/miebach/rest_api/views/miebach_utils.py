@@ -4992,8 +4992,7 @@ def get_order_summary_data(search_params, user, sub_user):
             discount_percent, selling_price = 0, 0
             aaData = OrderedDict()
             if quantity:
-                if int(data['original_quantity']) != quantity:
-                    discount = discount*quantity
+                discount = unit_discount*quantity
                 discount_percent = (discount*100)/(quantity*float(data['unit_price']))
             selling_price = (float(data['unit_price']) - discount)+((float(data['unit_price'])*(tax_percent/100)))
             amt = unit_price_inclusive_tax * float(quantity) - discount

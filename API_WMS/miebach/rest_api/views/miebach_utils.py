@@ -4593,7 +4593,7 @@ def get_order_summary_data(search_params, user, sub_user):
     for param in filter_parameter_list:
         search_parameters[filter_dict[param]] = search_params[param]
     if 'order_id' in search_params:
-        order_detail = gorder_idet_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])
+        order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])
         search_parameters['id__in'] = order_detail.values_list('id', flat=True)
 
     status_search = search_params.get('order_report_status', "")

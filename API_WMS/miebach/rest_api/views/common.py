@@ -476,7 +476,7 @@ def get_search_params(request, user=''):
                     'marketplace': 'marketplace','central_order_id':'central_order_id',
                     'marketplace': 'marketplace','source_location':'source_location','destination_location':'destination_location',
                     'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage', 'jo_code': 'jo_code',
-                    'sku_class': 'sku_class', 'sku_size': 'sku_size',
+                    'sku_class': 'sku_class', 'sku_size': 'sku_size','order_reference':'order_reference',
                     'order_report_status': 'order_report_status', 'customer_id': 'customer_id',
                     'imei_number': 'imei_number','creation_date':'creation_date',
                     'order_id': 'order_id', 'job_code': 'job_code', 'job_order_code': 'job_order_code',

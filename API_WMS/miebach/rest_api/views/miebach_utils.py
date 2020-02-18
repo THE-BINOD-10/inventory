@@ -4990,16 +4990,18 @@ def get_order_summary_data(search_params, user, sub_user):
         aaData.update(OrderedDict(order_extra_fields))
         if admin_user.username.lower() == 'gomechanic_admin' and search_params.get('tally_report'):
             discount_percent, selling_price = 0, 0
+            cgst_amount, sgst_amount, igst_amount = 0,0,0
             aaData = OrderedDict()
             if quantity:
                 discount = unit_discount*quantity
                 discount_percent = (discount*100)/(quantity*float(data['unit_price']))
             selling_price = (float(data['unit_price']) - discount)+((float(data['unit_price'])*(tax_percent/100)))
             amt = unit_price_inclusive_tax * float(quantity) - discount
-            cgst_amount = float(order_summary[0].cgst_tax) * (float(amt) / 100)
-            sgst_amount = float(order_summary[0].sgst_tax) * (float(amt) / 100)
-            igst_amount = float(order_summary[0].igst_tax) * (float(amt) / 100)
-            utgst_amount = float(order_summary[0].utgst_tax) * (float(amt) / 100)
+            if order_summary:
+              cgst_amount = float(order_summary[0].cgst_tax) * (float(amt) / 100)
+              sgst_amount = float(order_summary[0].sgst_tax) * (float(amt) / 100)
+              igst_amount = float(order_summary[0].igst_tax) * (float(amt) / 100)
+              utgst_amount = float(order_summary[0].utgst_tax) * (float(amt) / 100)
             if invoice_number:
                 aaData = OrderedDict((('Voucher Type', 'SPARE PARTS'),
                                       ('Invoice Number', invoice_number),

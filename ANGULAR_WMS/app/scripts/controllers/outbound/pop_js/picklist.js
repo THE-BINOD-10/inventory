@@ -543,7 +543,8 @@ function pull_confirmation() {
     var field = field;
     vm.service.scan(event, field).then(function(data){
       if(data) {
-        vm.service.apiCall('check_sku/', 'GET',{'sku_code': field}).then(function(data){
+        var sku_brand = vm.model_data.data[0].sku_brand;
+        vm.service.apiCall('check_sku/', 'GET',{'sku_code': field, 'sku_brand': sku_brand}).then(function(data){
           if(data.message) {
             if(typeof(data.data) == 'string') {
               alert(data.data);
@@ -711,7 +712,8 @@ function pull_confirmation() {
     vm.service.scan(event, field).then(function(data){
       if(data) {
         if(vm.model_data.scan_location) {
-          vm.service.apiCall('check_sku/', 'GET',{'sku_code': field}).then(function(data){
+          var sku_brand = vm.model_data.data[0].sku_brand;
+          vm.service.apiCall('check_sku/', 'GET',{'sku_code': field, 'sku_brand': sku_brand}).then(function(data){
             if(data.message) {
               if(typeof(data.data) == 'string') {
                 alert(data.data);

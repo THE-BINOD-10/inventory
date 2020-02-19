@@ -874,7 +874,7 @@ def validate_wms(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def modify_po_update(request, user=''):
     reversion.set_user(request.user)
     myDict = dict(request.POST.iterlists())
@@ -1164,7 +1164,7 @@ def delete_tax(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def confirm_po(request, user=''):
     reversion.set_user(request.user)
     sku_id = ''
@@ -1634,7 +1634,7 @@ def get_raisepo_group_data(user, myDict):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def add_po(request, user=''):
     reversion.set_user(request.user)
     status = 'Failed to Add PO'
@@ -1731,7 +1731,7 @@ def add_po(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def insert_inventory_adjust(request, user=''):
     reversion.set_user(request.user)
     cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
@@ -1780,7 +1780,7 @@ def insert_inventory_adjust(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def delete_po(request, user=''):
     reversion.set_user(request.user)
     for key, value in request.GET.iteritems():
@@ -3239,7 +3239,7 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def confirm_grn(request, confirm_returns='', user=''):
     reversion.set_user(request.user)
     data_dict = ''
@@ -4377,7 +4377,7 @@ def create_update_seller_stock(data, value, user, stock_obj, exc_loc, use_value=
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def putaway_data(request, user=''):
     reversion.set_user(request.user)
     purchase_order_id = ''
@@ -5213,7 +5213,7 @@ def order_status(request):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def confirm_add_po(request, sales_data='', user=''):
     reversion.set_user(request.user)
     ean_flag = False
@@ -5633,7 +5633,7 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def confirm_po1(request, user=''):
     reversion.set_user(request.user)
     data = copy.deepcopy(PO_DATA)
@@ -6758,7 +6758,7 @@ def check_qc_serial_numbers(user, po_id, wms_code, passed_serial_number, failed_
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def confirm_receive_qc(request, user=''):
     reversion.set_user(request.user)
     data_dict = ''
@@ -7354,7 +7354,7 @@ def get_po_segregation_data(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=True)
+@reversion.create_revision(atomic=True, using='reversion')
 def confirm_primary_segregation(request, user=''):
     reversion.set_user(request.user)
     data_dict = dict(request.POST.iterlists())
@@ -7839,7 +7839,7 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
 
 @csrf_exempt
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def move_to_poc(request, user=''):
     reversion.set_user(request.user)
     sell_ids = {}
@@ -7872,7 +7872,7 @@ def move_to_poc(request, user=''):
 
 @csrf_exempt
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def move_to_invoice(request, user=''):
     reversion.set_user(request.user)
     sell_ids = {}
@@ -9022,7 +9022,7 @@ def save_update_rtv(data_list, return_type=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def save_rtv(request, user=''):
     reversion.set_user(request.user)
     request_data = dict(request.POST.iterlists())
@@ -9049,7 +9049,7 @@ def save_rtv(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def create_rtv(request, user=''):
     reversion.set_user(request.user)
     request_data = dict(request.POST.iterlists())
@@ -9606,7 +9606,7 @@ def get_grn_level_data(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def update_existing_grn(request, user=''):
     reversion.set_user(request.user)
     data_dict = ''

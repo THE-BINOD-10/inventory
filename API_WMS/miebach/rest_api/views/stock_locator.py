@@ -1181,7 +1181,7 @@ def confirm_move_location_inventory(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def insert_move_inventory(request, user=''):
     # data = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
     # if not data:

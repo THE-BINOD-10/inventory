@@ -10438,3 +10438,9 @@ def get_distinct_price_types(user):
     price_types = list(chain(price_types1, price_types2))
     return price_types
 
+
+def update_multiple_records(records, updating_dict):
+    for record in records:
+        for key, value in updating_dict.items():
+            setattr(record, key, value)
+        record.save()

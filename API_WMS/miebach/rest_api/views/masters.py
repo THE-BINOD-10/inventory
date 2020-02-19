@@ -1031,14 +1031,13 @@ def check_update_hot_release(data, value):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def update_sku(request, user=''):
     """ Update SKU Details"""
     reversion.set_user(request.user)
     log.info('Update SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     today = datetime.datetime.now().strftime("%Y%m%d")
-    storehippo_fulfillments_log = init_logger('logs/storehippo_fulfillments_log_' + today + '.log')
     try:
         number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'max_norm_quantity',
                          'hsn_code', 'shelf_life']
@@ -2486,7 +2485,7 @@ def get_zones_list(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def insert_sku(request, user=''):
     """ Insert New SKU Details """
     log.info('Insert SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))

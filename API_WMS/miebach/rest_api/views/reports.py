@@ -811,7 +811,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
             qty = data['quantity']
             updated_user_name = user.username
             avg_cost = 0
-            version_obj = Version.objects.get_for_object(data['cycle'])
+            version_obj = Version.objects.using('reversion').get_for_object(data['cycle'])
             if version_obj.exists():
                 updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
             if amount and qty:

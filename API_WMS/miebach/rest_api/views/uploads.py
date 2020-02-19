@@ -900,7 +900,9 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def order_upload(request, user=''):
+    reversion.set_user(request.user)
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
@@ -1763,7 +1765,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def sku_upload(request, user=''):
     try:
         reversion.set_user(request.user)
@@ -3227,7 +3229,7 @@ def purchase_upload_mail(request, data_to_send, user):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def purchase_order_upload(request, user=''):
     reversion.set_user(request.user)
     purchase_order_view = get_misc_value('purchase_order_preview', user.id)
@@ -3552,7 +3554,7 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def move_inventory_upload(request, user=''):
     reversion.set_user(request.user)
     fname = request.FILES['files']
@@ -4008,7 +4010,7 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def inventory_adjust_upload(request, user=''):
     reversion.set_user(request.user)
     try:

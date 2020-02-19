@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User, Group
 from miebach_utils import BigAutoField
 from datetime import date
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 import reversion
 from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, CUSTOMIZATION_TYPES, ROLE_TYPE_CHOICES, \
@@ -287,11 +287,11 @@ class SKUSupplier(models.Model):
     def __unicode__(self):
         return str(self.sku) + " : " + str(self.supplier)
 
-
+@reversion.register()
 class OrderDetail(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
-    order_id = models.DecimalField(max_digits=50, decimal_places=0, primary_key=True)
+    order_id = models.DecimalField(max_digits=50, decimal_places=0)
     original_order_id = models.CharField(max_length=128, default='')
     customer_id = models.PositiveIntegerField(default=0)
     customer_name = models.CharField(max_length=256, default='')
@@ -655,7 +655,7 @@ class ASNStockDetail(models.Model):
         db_table = 'ASN_STOCK_DETAIL'
         unique_together = ('asn_po_num', 'sku', 'status')
 
-
+@reversion.register()
 class Picklist(models.Model):
     id = BigAutoField(primary_key=True)
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
@@ -680,7 +680,7 @@ class Picklist(models.Model):
     def __unicode__(self):
         return str(self.picklist_number)
 
-
+@reversion.register()
 class PicklistLocation(models.Model):
     id = BigAutoField(primary_key=True)
     picklist = models.ForeignKey(Picklist)
@@ -940,6 +940,7 @@ class SKUStock(models.Model):
         db_table = 'SKU_STOCK'
 
 
+@reversion.register()
 class CustomerMaster(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
@@ -1501,6 +1502,7 @@ class STOrder(models.Model):
         return str(self.picklist_id) + ":" + str(self.stock_transfer)
 
 
+@reversion.register()
 class CustomerOrderSummary(models.Model):
     order = models.ForeignKey(OrderDetail)
     discount = models.FloatField(default=0)
@@ -2150,7 +2152,7 @@ class SellerOrderDetail(models.Model):
         unique_together = ('seller_order', 'picklist')
         index_together = ('seller_order', 'picklist')
 
-
+@reversion.register()
 class SellerOrderSummary(models.Model):
     id = BigAutoField(primary_key=True)
     pick_number = models.PositiveIntegerField(default=0)
@@ -3440,9 +3442,24 @@ class ProccessRunning(models.Model):
         unique_together = ('user', 'process_name')
 
 
-
+#Signals
 @receiver(post_save, sender=OrderDetail)
 def save_order_original_quantity(sender, instance, created, **kwargs):
     if created:
         instance.original_quantity = instance.quantity
         instance.save()
+
+
+@receiver(post_save, sender=User)
+def save_user_to_reversion(sender, instance, created, **kwargs):
+    import copy
+    print kwargs.get('update_fields')
+    if kwargs.get('using') =='default' and (kwargs.get('update_fields') or created):
+        instance_copy = copy.deepcopy(User.objects.filter(id=instance.id).values()[0])
+        User.objects.db_manager('reversion').update_or_create(id=instance.id, defaults=instance_copy)
+
+
+@receiver(post_delete, sender=User)
+def delete_user_in_reversion(sender, instance, **kwargs):
+    if kwargs.get('using') =='default':
+        User.objects.using('reversion').filter(id=instance.id).delete()

@@ -9539,6 +9539,7 @@ def get_grn_level_data(request, user=''):
                         po_data_dict['buy_price'] = seller_summary_obj.batch_detail.buy_price
                         po_data_dict['batch_no'] = seller_summary_obj.batch_detail.batch_no
                         po_data_dict['mrp'] = seller_summary_obj.batch_detail.mrp
+                        po_data_dict['weight'] = seller_summary_obj.batch_detail.weight
                         po_data_dict['mfg_date'] = ''
                         po_data_dict['exp_date'] = ''
                         if seller_summary_obj.batch_detail.manufactured_date:
@@ -9563,20 +9564,14 @@ def get_grn_level_data(request, user=''):
 
             else:
                 open_data = data.open_po
-                po_data_dict = {}
-                po_data_dict['sku_code'] = data.open_po.sku.sku_code
-                po_data_dict['sku_desc'] = data.open_po.sku.sku_desc
-                po_data_dict['quantity'] = data.received_quantity
-                po_data_dict['price'] = open_data.price
-                po_data_dict['cgst_tax'] = open_data.cgst_tax
-                po_data_dict['sgst_tax'] = open_data.sgst_tax
-                po_data_dict['igst_tax'] = open_data.igst_tax
-                po_data_dict['utgst_tax'] = open_data.utgst_tax
-                po_data_dict['cess_percent'] = open_data.cess_tax
-                po_data_dict['tax_percent'] = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + \
-                                              open_data.utgst_tax
-                po_data_dict['confirm_key'] = 'purchase_order_id'
-                po_data_dict['confirm_id'] = data.id
+                po_data_dict = {'sku_code': data.open_po.sku.sku_code, 'sku_desc': data.open_po.sku.sku_desc,
+                                'quantity': data.received_quantity, 'price': open_data.price,
+                                'cgst_tax': open_data.cgst_tax, 'sgst_tax': open_data.sgst_tax,
+                                'igst_tax': open_data.igst_tax, 'utgst_tax': open_data.utgst_tax,
+                                'cess_percent': open_data.cess_tax,
+                                'tax_percent': open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + \
+                                               open_data.utgst_tax, 'confirm_key': 'purchase_order_id',
+                                'confirm_id': data.id}
                 amount = float(po_data_dict['quantity']) * float(po_data_dict['price'])
                 po_data.append([po_data_dict])
         if results:
@@ -9659,7 +9654,7 @@ def update_existing_grn(request, user=''):
     log.info('Request params for Update GRN for request user ' + request.user.username +' user ' + user.username + ' is ' + str(myDict))
     try:
         field_mapping = {'exp_date': 'expiry_date', 'mfg_date': 'manufactured_date', 'quantity': 'quantity',
-                         'discount_percentage': 'discount_percent', 'batch_no': 'batch_no',
+                         'discount_percentage': 'discount_percent', 'batch_no': 'batch_no', 'weight':'weight',
                          'mrp': 'mrp', 'buy_price': 'buy_price', 'invoice_number': 'invoice_number',
                          'invoice_date': 'invoice_date', 'dc_date': 'challan_date', 'dc_number': 'challan_number',
                          'tax_percent': 'tax_percent', 'cess_percent': 'cess_tax'}
@@ -9733,7 +9728,7 @@ def update_existing_grn(request, user=''):
                             model_obj.purchase_order.open_po.cess_tax = 0
                             model_obj.purchase_order.open_po.save()
 
-                elif key == 'batch_no':
+                elif key in  ['batch_no','weight'] :
                     if model_obj.batch_detail:
                         prev_val = getattr(model_obj.batch_detail, field_mapping[key])
                         if prev_val != value:
@@ -9785,6 +9780,7 @@ def update_existing_grn(request, user=''):
                                            receipt_number=model_obj.batch_detail.receipt_number)\
                                     .update(mrp=update_batch_dict.get('mrp',0),
                                             batch_no=update_batch_dict.get('batch_no'),
+                                            weight=update_batch_dict.get('weight'),
                                             buy_price=update_batch_dict.get('buy_price'),
                                             manufactured_date=update_batch_dict.get('manufactured_date'),
                                             expiry_date=update_batch_dict.get('expiry_date'),

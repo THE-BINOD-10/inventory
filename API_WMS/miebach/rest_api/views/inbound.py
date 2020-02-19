@@ -3591,8 +3591,12 @@ def check_returns(request, user=''):
 def check_sku(request, user=''):
     data = {}
     sku_code = request.GET.get('sku_code')
+    sku_brand = request.GET.get('sku_brand')
     allocate_order = request.GET.get('allocate_order', 'false')
     check = False
+    print("SKUCode Before Change::%s" %sku_code)
+    sku_code = check_and_return_barcodeconfig_sku(user, sku_code, sku_brand)
+    print("SKUCode After Change::%s" %sku_code)
     sku_id = check_and_return_mapping_id(sku_code, '', user, check)
     if not sku_id:
         try:

@@ -2494,7 +2494,7 @@ var app = angular.module('urbanApp')
       // configuration route
       .state('app.configurations', {
           url: '/configurations',
-          templateUrl: 'views/configurations.html',
+          templateUrl: 'views/configurations/all_configurations.html',
           authRequired: true,
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -2516,9 +2516,14 @@ var app = angular.module('urbanApp')
                 return $ocLazyLoad.load([
                     'scripts/controllers/configs/classification.js'
                   ])
+                })
+                .then(function(){
+                  return $ocLazyLoad.load([
+                      'scripts/controllers/configs/barcode_configurations.js'
+                    ])
+                  });
                 });
-              });
-                    }]
+            }]
           },
           data: {
             title: 'Configurations'

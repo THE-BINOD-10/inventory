@@ -666,6 +666,8 @@ urlpatterns += [
     url(r'^get_sku_mrp/$', get_sku_mrp),
     url(r'^get_current_weight/$', get_current_weight),
     url(r'^get_decimal_data/$', get_decimal_data),
+    url(r'^update_barcode_configuration/$', update_barcode_configuration),
+    url(r'^get_barcode_configurations/$', get_barcode_configurations),
 
 
     # Retailone

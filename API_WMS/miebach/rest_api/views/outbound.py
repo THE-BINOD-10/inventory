@@ -950,6 +950,7 @@ def get_picklist_data(data_id, user_id):
             sequence = 0
             location = 'NO STOCK'
             image = ''
+            sku_brand = ''
             if order.order and order.order.sku:
                 image = order.order.sku.image_url
             if stock_id:
@@ -1104,6 +1105,7 @@ def get_picklist_data(data_id, user_id):
             sequence = 0
             location = 'NO STOCK'
             image = ''
+            sku_brand = ''
             if stock_id:
                 zone = stock_id.location.zone.zone
                 st_id = order.stock_id

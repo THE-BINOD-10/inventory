@@ -4995,7 +4995,8 @@ def get_order_summary_data(search_params, user, sub_user):
             if quantity:
                 discount = unit_discount*quantity
                 discount_percent = (discount*100)/(quantity*float(data['unit_price']))
-            selling_price = (float(data['unit_price']) - discount)+((float(data['unit_price'])*(tax_percent/100)))
+            unit_min_dis = float(data['unit_price']) - discount
+            selling_price = (unit_min_dis)+((unit_min_dis)*(tax_percent/100))
             amt = unit_price_inclusive_tax * float(quantity) - discount
             if order_summary:
               cgst_amount = float(order_summary[0].cgst_tax) * (float(amt) / 100)

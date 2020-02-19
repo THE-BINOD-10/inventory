@@ -936,7 +936,6 @@ def get_skus(request):
     search_params = {'user': user.id}
     sister_whs = []
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
-    sister_whs1.append(user.username)
     for sister_wh1 in sister_whs1:
         sister_whs.append(str(sister_wh1).lower())
     request_data = request.body
@@ -1043,7 +1042,6 @@ def get_skufilters(request):
     query_list = []
     sister_whs = []
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
-    sister_whs1.append(user.username)
     for sister_wh1 in sister_whs1:
         sister_whs.append(str(sister_wh1).lower())
     if request_data:
@@ -2029,7 +2027,6 @@ def get_customers(request, user=''):
     limit = 30
     sister_whs = []
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
-    sister_whs1.append(user.username)
     for sister_wh1 in sister_whs1:
         sister_whs.append(str(sister_wh1).lower())
     if request_data:

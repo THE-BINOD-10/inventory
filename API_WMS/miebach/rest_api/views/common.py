@@ -999,7 +999,7 @@ def get_extra_data(excel_headers, result_data, user):
 @csrf_exempt
 @login_required
 @get_admin_user
-def print_excel(request, temp_data, headers, excel_name='', user='', file_type=''):
+def print_excel(request, temp_data, headers, excel_name='', user='', file_type='', tally_report=0):
     excel_headers = ''
     if temp_data['aaData']:
         excel_headers = temp_data['aaData'][0].keys()
@@ -1009,6 +1009,8 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
         excel_headers = headers
     for i in set(excel_headers) - set(headers):
         excel_headers.remove(i)
+    if tally_report ==1:
+        excel_headers = headers
     excel_headers, temp_data['aaData'] = get_extra_data(excel_headers, temp_data['aaData'], user)
     if not excel_name:
         excel_name = request.POST.get('serialize_data', '')
@@ -1044,6 +1046,8 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
             wb, ws = get_work_sheet('skus', excel_headers)
         data_count = 0
         data = temp_data['aaData']
+        if tally_report ==1:
+            data = temp_data['aaData'][1:]
         for i in range(0, len(data)):
             index = i + 1
             for ind, header_name in enumerate(excel_headers):
@@ -7918,6 +7922,81 @@ def update_profile_shipment_address(request, user=''):
         import traceback
         log.debug(traceback.format_exc())
         log.info('updation of user shipment Address Failed %s ' % (str(user.username)))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_barcode_configuration(request, user=''):
+    "Different BarCode Configurations will be stored based"
+    scanning_type = request.POST.get('scanning_type', 'sku_based')
+    config_name = request.POST.get('configuration_title', '')
+    removeAfterSpacesFlag = request.POST.get('remove_after_spaces', 'false')
+    condition1 = request.POST.get('condition1', '')
+    expression1 = request.POST.get('expression1', '')
+    condition2 = request.POST.get('condition2', '')
+    expression2 = request.POST.get('expression2', '')
+    miscOptionsDict = {'scanning_type': scanning_type, 'remove_after_spaces': removeAfterSpacesFlag}
+    if condition1 and expression1:
+        miscOptionsDict.update({'condition1': condition1, 'expression1': expression1})
+    if condition2 and expression2:
+        miscOptionsDict.update({'condition2': condition2, 'expression2': expression2})
+
+    miscExistingObj = MiscDetail.objects.filter(misc_type__contains='barcode_configuration', user=user.id, misc_value=config_name)
+    configId = 1
+    if not miscExistingObj.exists():
+        dbMaxConfigId = MiscDetail.objects.filter(misc_type__contains='barcode_configuration', 
+                    user=user.id).order_by('-id').values_list('misc_type', flat=True)
+        if dbMaxConfigId:
+            configId = int(dbMaxConfigId[0].split('_')[-1])+1
+        miscObj = MiscDetail.objects.create(misc_type='barcode_configuration_%s'%configId, misc_value=config_name, user=user.id)
+    else:
+        miscObj = miscExistingObj[0]
+    for k, v in miscOptionsDict.items():
+        MiscDetailOptions.objects.create(misc_detail=miscObj, misc_key=k, misc_value=v)
+    return HttpResponse('Success')
+
+
+@login_required
+@get_admin_user
+def get_barcode_configurations(request, user=''):
+    barcode_configs = []
+    barcodeConfigs = MiscDetail.objects.filter(user=user.id, misc_type__contains='barcode_configuration')
+    if barcodeConfigs.exists():
+        for eachConfig in barcodeConfigs:
+            configDict = {'title': eachConfig.misc_value}
+            for configData in eachConfig.miscdetailoptions_set.values():
+                configDict.update({configData['misc_key']: configData['misc_value']})
+            barcode_configs.append(configDict)
+        return HttpResponse(json.dumps({'msg':1, 'data': barcode_configs}))
+    else:
+        return HttpResponse(json.dumps({'msg':1, 'data': 'null'}))
+
+
+def check_and_return_barcodeconfig_sku(user, sku_code, sku_brand):
+    configName = ''
+    conditions = {}
+    configMappingObj = BarCodeBrandMappingMaster.objects.filter(sku_brand=sku_brand, user=user)
+    if configMappingObj.exists():
+        configName = configMappingObj[0].configName
+    brandConfigObj = MiscDetail.objects.filter(user=user.id, misc_type__contains='barcode_configuration', misc_value=configName)
+    if brandConfigObj.exists():
+        conditions = dict(brandConfigObj[0].miscdetailoptions_set.values_list('misc_key', 'misc_value'))
+    for k, v in conditions.items():
+        if k == 'remove_after_spaces' and v == 'true':
+            sku_code = sku_code.split(' ')[0]
+        elif k == 'condition1':
+            vThChar = sku_code[int(v)-1]
+            if sku_code[int(v)-1].isdigit():
+                expression1Char = int(conditions.get('expression1'))
+                sku_code = sku_code[:expression1Char]
+        elif k == 'condition2':
+            vThChar = sku_code[int(v)-1]
+            if sku_code[int(v)-1].isalpha():
+                expression2Char = int(conditions.get('expression2'))
+                sku_code = sku_code[:expression2Char]
+    return sku_code
+
 
 def get_purchase_company_address(profile):
     """ Returns Company address for purchase order"""

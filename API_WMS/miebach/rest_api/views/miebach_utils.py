@@ -4989,55 +4989,61 @@ def get_order_summary_data(search_params, user, sub_user):
             aaData.update(OrderedDict(cost_price_dict))
         aaData.update(OrderedDict(order_extra_fields))
         if admin_user.username.lower() == 'gomechanic_admin' and search_params.get('tally_report'):
-            discount_percent, selling_price = 0, 0
-            cgst_amount, sgst_amount, igst_amount = 0,0,0
-            aaData = OrderedDict()
-            if quantity:
-                discount = unit_discount*quantity
-                discount_percent = (discount*100)/(quantity*float(data['unit_price']))
-            unit_min_dis = float(data['unit_price']) - discount
-            selling_price = (unit_min_dis)+((unit_min_dis)*(tax_percent/100))
-            amt = unit_price_inclusive_tax * float(quantity) - discount
-            if order_summary:
-              cgst_amount = float(order_summary[0].cgst_tax) * (float(amt) / 100)
-              sgst_amount = float(order_summary[0].sgst_tax) * (float(amt) / 100)
-              igst_amount = float(order_summary[0].igst_tax) * (float(amt) / 100)
-              utgst_amount = float(order_summary[0].utgst_tax) * (float(amt) / 100)
-            if invoice_number:
-                aaData = OrderedDict((('Voucher Type', 'SPARE PARTS'),
-                                      ('Invoice Number', invoice_number),
-                                      ('Invoice Date', invoice_date),
-                                      ('Party Name',customer_name),
-                                      ('Address1', billing_address),
-                                      ('Address2', billing_address),
-                                      ('Address3', billing_address),
-                                      ('State Name', data['state']),
-                                      ('GSTIN', gst_number),
-                                      ('Main Location', 'Main Location'),
-                                      ('Stock item', 'MS WIRE'),
-                                      ('Qty', quantity),
-                                      ('Rate', float(data['unit_price'])),
-                                      ('Disc%', round(discount_percent)),
-                                      ('Sales Ledger', 'Sales'),
-                                      ('Sales Amount', float(taxable_amount)),
-                                      ('Sgst Ledger', 'SGST'),
-                                      ('SGST Amt', sgst_amount),
-                                      ('CGST Ledger', 'CGST'),
-                                      ('CGST Amount',cgst_amount),
-                                      ('Igst Ledger', 'IGST'),
-                                      ('IGST Amount', igst_amount),
-                                      ('Part Number', data['sku__sku_code']),
-                                      ('Unit', 'PC'),
-                                      ('Group', 'Roche'),
-                                      ('MRP', mrp_price),
-                                      ('Selling price(inc Tax)', round(selling_price)),
-                                      ('Cost price (Inc Tax)', 0),
-                                      ('Invoice Amount', invoice_amount_picked),
-                                      ('HSN Code', data['sku__hsn_code']),
-                                      ('GST', tax_percent)))
-        temp_data['aaData'].append(aaData)
+            tally_report = tally_dump(invoice_amount_picked,unit_price_inclusive_tax, gst_number,unit_discount,discount, taxable_amount, tax_percent, mrp_price, data,billing_address,customer_name,invoice_number, invoice_date, quantity, order_summary)
+            if tally_report:
+              temp_data['aaData'].append(tally_report)
+        else:
+            temp_data['aaData'].append(aaData)
     return temp_data
 
+def tally_dump(invoice_amount_picked,unit_price_inclusive_tax, gst_number,unit_discount,discount, taxable_amount, tax_percent, mrp_price, data,billing_address,customer_name,invoice_number, invoice_date, quantity, order_summary):
+    discount_percent, selling_price = 0, 0
+    cgst_amount, sgst_amount, igst_amount = 0,0,0
+    tally_Data = OrderedDict()
+    if quantity:
+        discount = unit_discount*quantity
+        discount_percent = (discount*100)/(quantity*float(data['unit_price']))
+    unit_min_dis = float(data['unit_price']) - unit_discount
+    selling_price = (unit_min_dis)+((unit_min_dis)*(tax_percent/100))
+    amt = unit_price_inclusive_tax * float(quantity) - discount
+    if order_summary:
+      cgst_amount = float(order_summary[0].cgst_tax) * (float(amt) / 100)
+      sgst_amount = float(order_summary[0].sgst_tax) * (float(amt) / 100)
+      igst_amount = float(order_summary[0].igst_tax) * (float(amt) / 100)
+      utgst_amount = float(order_summary[0].utgst_tax) * (float(amt) / 100)
+    if invoice_number:
+        tally_Data = OrderedDict((('Voucher Type', 'SPARE PARTS'),
+                              ('Invoice Number', invoice_number),
+                              ('Invoice Date', invoice_date),
+                              ('Party Name',customer_name),
+                              ('Address1', billing_address),
+                              ('Address2', billing_address),
+                              ('Address3', billing_address),
+                              ('State Name', data['state']),
+                              ('GSTIN', gst_number),
+                              ('Main Location', 'Main Location'),
+                              ('Stock item', 'MS WIRE'),
+                              ('Qty', quantity),
+                              ('Rate', float(data['unit_price'])),
+                              ('Disc%', round(discount_percent)),
+                              ('Sales Ledger', 'Sales'),
+                              ('Sales Amount', float(taxable_amount)),
+                              ('Sgst Ledger', 'SGST'),
+                              ('SGST Amt', sgst_amount),
+                              ('CGST Ledger', 'CGST'),
+                              ('CGST Amount',cgst_amount),
+                              ('Igst Ledger', 'IGST'),
+                              ('IGST Amount', igst_amount),
+                              ('Part Number', data['sku__sku_code']),
+                              ('Unit', 'PC'),
+                              ('Group', 'Roche'),
+                              ('MRP', mrp_price),
+                              ('Selling price(inc Tax)', round(selling_price)),
+                              ('Cost price (Inc Tax)', 0),
+                              ('Invoice Amount', invoice_amount_picked),
+                              ('HSN Code', data['sku__hsn_code']),
+                              ('GST', tax_percent)))
+    return tally_Data
 
 def html_excel_data(data, fname):
     from miebach_admin.views import *

@@ -13,6 +13,7 @@ from miebach_admin.models import *
 from common import *
 from miebach_utils import *
 from utils import *
+from datetime import timedelta
 
 log = init_logger('logs/stock_locator.log')
 
@@ -3349,7 +3350,7 @@ def save_ba_to_sa_remarks(sku_classification_dict1, sku_classification_objs, rem
 def ba_to_sa_calculate_now(request, user=''):
     master_data = SKUMaster.objects.filter(user=user.id, status=1).order_by('id').only('id', 'sku_code')
     sellable_zones = get_all_sellable_zones(user)
-    total_avg_sale_per_day_value = 0
+    total_avg_sale_per_day_value, total_avg_sale_per_day_units = 0, 0
     sku_avg_sale_mapping = OrderedDict()
     sku_avail_qty = OrderedDict()
     sku_res_qty = OrderedDict()
@@ -3524,7 +3525,7 @@ def ba_to_sa_calculate_now(request, user=''):
             if not sku_avg_sale_per_day_units:
                 replenishment_qty = 30
                 remarks = 'No Sales Data Found for in last 31 Days'
-            elif sku_avail_qty < 1.5 (peak) :
+            elif float(sku_avail_qty) < 1.5 * float(peak) :
                 replenishment_qty = max_stock - sku_avail_qty
                 replenishment_qty = int(replenishment_qty)
                 needed_qty = replenishment_qty
@@ -3604,7 +3605,7 @@ def ba_to_sa_calculate_now(request, user=''):
             SkuClassification.objects.filter(sku__user=user.id, status=1).update(creation_date=creation_date)
 
         log.info(
-            "BA to SA calculation ended for user %s at %s" % (user.username, str(datetime.datetime.now())))
+            "BA to SA calculation ended for user %s" % (user.username))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

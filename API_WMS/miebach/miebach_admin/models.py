@@ -2504,6 +2504,15 @@ class BarcodeSettings(models.Model):
         return "%s, %s %s" % (self.user, self.show_fields, self.rows_columns)
 
 
+class BarCodeBrandMappingMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    configName = models.CharField(max_length=256, blank=True, null=True)
+    sku_brand = models.CharField(max_length=64, default='')
+    class Meta:
+        db_table = 'BARCODE_BRAND_MAPPING_MASTER'
+
+
 class InvoiceSequence(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)

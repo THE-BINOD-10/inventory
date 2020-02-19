@@ -961,7 +961,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             vm.scan_sku_disable = false;
           })
         } else {
-          vm.service.apiCall('check_sku/', 'GET',{'sku_code': field}).then(function(data){
+          var sku_brand = vm.model_data.data[0][0].sku_brand;
+          vm.service.apiCall('check_sku/', 'GET',{'sku_code': field, 'sku_brand':sku_brand}).then(function(data){
             if(data.message) {
               vm.field = data.data.sku_code;
               vm.sort_flag = false;

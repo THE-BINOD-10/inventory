@@ -2432,7 +2432,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
      }
    }
 
-    vm.send_for_approval_check = function(event, data) {
+    vm.send_for_approval_check = function(event, data, innerindex, outerindex) {
     if(vm.milkbasket_users.indexOf(vm.parent_username) < 0){
       return
     }
@@ -2460,6 +2460,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           price_tolerence = ((buy_price-price)/price)*100;
           if(price_tolerence > 2){
             vm.display_approval_button = true;
+            if (outerindex != undefined){
+               vm.model_data.data[outerindex][innerindex].wrong_sku = 1
+            }
             break;
           }
         }
@@ -2472,10 +2475,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
         if(sku_row_data[i].tax_percent != sku_row_data[i].tax_percent_copy){
           vm.display_approval_button = true;
+          if (outerindex != undefined){
+           vm.model_data.data[outerindex][innerindex].wrong_sku = 1
+          }
           break;
         }
         if(sku_row_data[i].weight != sku_row_data[i].weight_copy){
           vm.display_approval_button = true;
+          if (outerindex != undefined){
+           vm.model_data.data[outerindex][innerindex].wrong_sku = 1
+          }
           break;
         }
       }
@@ -2488,6 +2497,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         console.log(abs_qty_value);
         if(tot_qty > abs_qty_value) {
           vm.display_approval_button = true;
+          if (outerindex != undefined ){
+           vm.model_data.data[outerindex][innerindex].wrong_sku = 1
+          }
         }
       }
     })

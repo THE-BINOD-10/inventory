@@ -3667,6 +3667,14 @@ def create_return_order(data, user):
         return "", "", "SKU Code doesn't exist"
     return_details = copy.deepcopy(RETURN_DATA)
     user_obj = User.objects.get(id=user)
+    try:
+        data['return'] = float(data['return'])
+    except:
+        data['return'] = 0
+    try:
+        data['damaged'] = float(data['damaged'])
+    except:
+        data['damaged'] = 0
     if (data['return'] or data['damaged']) and sku_id:
         # order_details = OrderReturns.objects.filter(return_id = data['return_id'][i])
         quantity = data['return']
@@ -3969,6 +3977,8 @@ def confirm_sales_return(request, user=''):
             check_seller_order = True
             if not return_dict['id']:
                 return_dict['id'], status, seller_order_ids = create_return_order(return_dict, user.id)
+                if not return_dict['id']:
+                    continue
                 if seller_order_ids:
                     imeis = (return_dict['returns_imeis']).split(',')
                     for imei in imeis:

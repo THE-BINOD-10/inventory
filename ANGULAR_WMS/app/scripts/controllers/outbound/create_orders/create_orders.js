@@ -92,6 +92,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 
       vm.model_data["tax_type"] = '';
       vm.tax_type_readonly = false;
+      vm.service.showNotyNotHide("Tax Type is Missing in Customer Master, Please Select Manually");
     }
     vm.add_customer = false;
     angular.copy(item, vm.selected)

@@ -2869,10 +2869,10 @@ def check_and_update_marketplace_stock(sku_codes, user):
         try:
             sku_tupl = (user.username, sku_codes)
             log.info('Update for stock sync of'+str(sku_tupl))
-            response = obj.update_stock_count(sku_tupl, user=user)
             log_mb_sync = ('Updating for stock sync of skus %s from the user %s ' %
                                         (str(sku_codes), str(user.username)))
             mb_stock_sycn_log(log_mb_sync, user)
+            response = obj.update_stock_count(sku_tupl, user=user)
         except Exception as e:
             log.info('Stock sync failed for %s and skus are %s and error statement is %s'%
                         (str(user.username),str(sku_codes), str(e)))
@@ -7367,6 +7367,8 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         combo_sku_ids.append(order.sku_id)
         sku_id_stock_filter = {'sku_id__in': combo_sku_ids}
         needed_mrp_filter = 0
+        if order.sku.relation_type == 'combo':
+            add_mrp_filter = False
         if add_mrp_filter:
             if 'st_po' not in dir(order) and order.customerordersummary_set.filter().exists():
                 needed_mrp_filter = order.customerordersummary_set.filter()[0].mrp
@@ -7389,10 +7391,9 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         else:
             sku_id_stocks = sku_stocks.filter(**sku_id_stock_filter).values('id', 'sku_id').\
                                         annotate(total=Sum('quantity')).order_by(order_by)
-        val_dict = {}
-        val_dict['sku_ids'] = map(lambda d: d['sku_id'], sku_id_stocks)
-        val_dict['stock_ids'] = map(lambda d: d['id'], sku_id_stocks)
-        val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)
+        val_dict = {'sku_ids': map(lambda d: d['sku_id'], sku_id_stocks),
+                    'stock_ids': map(lambda d: d['id'], sku_id_stocks),
+                    'stock_totals': map(lambda d: d['total'], sku_id_stocks)}
         pc_loc_filter = OrderedDict()
         pc_loc_filter['picklist__order__user'] = user.id
         #if is_seller_order or add_mrp_filter:
@@ -10515,4 +10516,34 @@ def get_distinct_price_types(user):
                        distinct())
     price_types = list(chain(price_types1, price_types2))
     return price_types
+
+def validate_mrp_weight(data_dict, user):
+    collect_dict_form = {}
+    status = ''
+    collect_all_sellable_location = list(LocationMaster.objects.filter(zone__segregation='sellable',  zone__user=user.id, status=1).values_list('location', flat=True))
+    bulk_zones= get_all_zones(user ,zones=[MILKBASKET_BULK_ZONE])
+    bulk_locations=list(LocationMaster.objects.filter(zone__zone__in=bulk_zones, zone__user=user.id, status=1).values_list('location', flat=True))
+    sellable_bulk_locations=list(chain(collect_all_sellable_location ,bulk_locations))
+    if data_dict['location'] in sellable_bulk_locations:
+        sku_mrp_weight_map = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku__wms_code=data_dict['sku_code'],
+                                             location__location__in=sellable_bulk_locations).\
+                            exclude(batch_detail__mrp=data_dict['mrp'], batch_detail__weight=data_dict['weight']).values_list('sku__wms_code', 'batch_detail__mrp', 'batch_detail__weight').distinct()
+        if sku_mrp_weight_map:
+            for sku_code, mrp, weight_dict in sku_mrp_weight_map:
+                mrp_weight_dict = {'mrp':[str(mrp)], 'weight':[weight_dict]}
+                if sku_code in collect_dict_form.keys():
+                    collect_dict_form[sku_code]['mrp'].append(mrp_weight_dict['mrp'][0])
+                    collect_dict_form[sku_code]['weight'].append(mrp_weight_dict['weight'][0])
+                else:
+                    collect_dict_form[sku_code] = mrp_weight_dict
+            if data_dict['sku_code'] in collect_dict_form.keys():
+                if not str(data_dict['mrp']) in str(collect_dict_form[data_dict['sku_code']]["mrp"]) or not str(data_dict['weight']) in str(collect_dict_form[data_dict['sku_code']]["weight"]):
+                    status = 'For SKU '+str(data_dict['sku_code'])+', MRP '+str(",".join(collect_dict_form[data_dict['sku_code']]["mrp"]))+' and WEIGHT '+str(",".join(collect_dict_form[data_dict['sku_code']]["weight"]))+' are only accepted.'
+    return status
+
+def mb_weight_correction(weight):
+    if weight:
+        weight = re.sub("\s\s+" , " ", weight).upper().replace('UNITS', 'Units').replace('PCS', 'Pcs').\
+                replace('UNIT', 'Unit').replace('INCHES', 'Inches').replace('INCH', 'Inch').strip()
+    return weight
 

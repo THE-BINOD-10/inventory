@@ -5024,7 +5024,7 @@ def tally_dump(invoice_amount_picked,unit_price_inclusive_tax, gst_number,unit_d
                               ('State Name', data['state']),
                               ('GSTIN', gst_number),
                               ('Main Location', 'Main Location'),
-                              ('Stock item', 'MS WIRE'),
+                              ('Stock item', data['sku__sku_desc']),
                               ('Qty', quantity),
                               ('Rate', float(data['unit_price'])),
                               ('Disc%', round(discount_percent)),

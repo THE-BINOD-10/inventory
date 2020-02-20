@@ -5001,10 +5001,12 @@ def tally_dump(invoice_amount_picked,unit_price_inclusive_tax, gst_number,unit_d
     cgst_amount, sgst_amount, igst_amount = 0,0,0
     tally_Data = OrderedDict()
     discount = unit_discount*quantity
-    if data['unit_price']:
+    unit_min_dis = float(data['unit_price']) - unit_discount
+    selling_price = (unit_min_dis)+((unit_min_dis)*(tax_percent/100))
+    try:
         discount_percent = (discount*100)/(quantity*float(data['unit_price']))
-        unit_min_dis = float(data['unit_price']) - unit_discount
-        selling_price = (unit_min_dis)+((unit_min_dis)*(tax_percent/100))
+    except:
+        discount_percent= 0
     amt = unit_price_inclusive_tax * float(quantity) - discount
     if order_summary:
       cgst_amount = float(order_summary[0].cgst_tax) * (float(amt) / 100)

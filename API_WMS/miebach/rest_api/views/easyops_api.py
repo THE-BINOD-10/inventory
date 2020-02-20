@@ -85,9 +85,9 @@ class EasyopsAPI:
             if not isinstance(response, dict):
                 if response.status_code == 204:
                     response = {}
-                elif self.company_name == 'milkbasket' and response.status_code == 401:
+                elif self.company_name == 'milkbasket' and response.status_code == 401 and is_first:
                     self.get_access_token(self.user)
-                    response = self.get_response(url, data, put)
+                    response = self.get_response(url, data, put, is_first=False)
                     response = {}
                 else:
                     response = response.json()

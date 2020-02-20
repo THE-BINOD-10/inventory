@@ -267,6 +267,27 @@ def get_stock_summary_report(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_bulk_stock_update(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_bulk_stock_update_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@get_admin_user
+def print_bulk_stock_update(request, user=''):
+    html_data = {}
+    search_parameters = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_bulk_stock_update_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def get_order_flow_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_orderflow_data(search_params, user, request.user)

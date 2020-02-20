@@ -70,7 +70,16 @@
                     <input type="hidden" value="{{data.orig_loc_id}}" name="orig_loc_id">
                     <input type="hidden" value="{{showCase.model_data.order_id}}" name="po_id">
                     <input type="hidden" name="orig_data" value="{{data.pallet_group_data}}">
-                    <td><input type="text" name="wms_code" class="form-control" value="{{data.wms_code}}" readonly=""></td>
+                    <td><input type="text" name="wms_code" class="form-control"
+                               value="{{data.wms_code}}"
+                               ng-if="data.wrong_sku"
+                               style="color:red;"
+                               readonly="">
+                        <input type="text" name="wms_code"
+                               class="form-control"
+                               ng-if="!data.wrong_sku"
+                               value="{{data.wms_code}}" readonly="">
+                    </td>
                     <td><input type="text" class="form-control" value="{{data.sku_desc}}" size="60" readonly="" title="{{data.sku_desc}}"></td>
                     <td><input type="text" name="loc" class="form-control" size="60" ng-model="sku.loc" title="{{sku.loc}}"></td>
                     <td ng-if="showCase.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" type="text" name="pallet_number" class="form-control" value="{{data.pallet_number}}" readonly="" style="width:90%"></td>

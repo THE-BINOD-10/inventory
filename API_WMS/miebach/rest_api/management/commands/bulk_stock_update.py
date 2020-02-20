@@ -49,7 +49,7 @@ class Command(BaseCommand):
                 for sku in stock_zero_skus:
                     sku_id = sku[0]
                     sku_code = SKUMaster.objects.filter(id = sku_id)[0].sku_code
-                    validate_data = mrp_offer_change_data.filter(sku = sku_id)
+                    validate_data = mrp_offer_change_data.filter(sku = sku_id).order_by('receipt_date')
                     stocks = validate_data.filter(batch_detail__mrp = validate_data[0].batch_detail.mrp, batch_detail__weight=validate_data[0].batch_detail.weight)
                     quantity = stocks.aggregate(Sum("quantity"))
                     quantity = quantity['quantity__sum']

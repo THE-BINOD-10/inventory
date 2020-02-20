@@ -1270,9 +1270,11 @@ def excel_sales_return_report(request, user=''):
 @csrf_exempt
 @get_admin_user
 def excel_reports(request, user=''):
+    admin_user = get_admin(user)
     excel_name = ''
     func_name = ''
     file_type = 'xls'
+    tally_report = 0
     headers, search_params, filter_params = get_search_params(request, user)
     if '&' in request.POST['serialize_data']:
         form_data = request.POST['serialize_data'].split('&')
@@ -1282,6 +1284,8 @@ def excel_reports(request, user=''):
         temp = dat.split('=')
         if 'excel_name' in dat:
             excel_name = dat
+            if temp[1] == 'tally_report':
+                temp[1] = 'order_summary_report'
             func_name = eval(EXCEL_REPORT_MAPPING[temp[1]])
             continue
         if len(temp) > 1 and temp[1]:
@@ -1291,6 +1295,9 @@ def excel_reports(request, user=''):
                     temp[1] = temp[1].replace('%2F', '/')
                 temp[1] = datetime.datetime.strptime(temp[1], '%m/%d/%Y')
             search_params[temp[0]] = temp[1]
+    if 'tally_report' in excel_name:
+        search_params['tally_report'] = True
+        tally_report =1
     params = [search_params, user, request.user]
     if 'datatable=serialView' in form_data:
         params.append(True)
@@ -1306,15 +1313,20 @@ def excel_reports(request, user=''):
         file_type = 'csv'
     if temp[1] in ['dispatch_summary'] and len(report_data['aaData']) > 0:
         headers = report_data['aaData'][0].keys()
-    if temp[1] in ['order_summary_report']:
+    if temp[1] in ['order_summary_report'] or 'tally_report' in excel_name:
         headers.extend(["Billing Address" ,"Shipping Address"])
         headers.extend(["Order Taken By", "Payment Cash", "Payment Card","Payment PhonePe","Payment GooglePay","Payment Paytm"])
+        if admin_user.username.lower() == 'gomechanic_admin' and search_params.get('tally_report'):
+            headers = ['Voucher Type', 'Invoice Number','Invoice Date','Party Name','Address1','Address2','Address3','State Name',
+                        'GSTIN','Main Location','Stock item','Qty','Rate','Disc%','Sales Ledger',
+                        'Sgst Ledger','SGST Amt','CGST Ledger','CGST Amount','Igst Ledger','IGST Amount','Invoice Amount',
+                        'Part Number','Unit','Group','MRP','Selling price(inc Tax)','Cost price (Inc Tax)','HSN Code','GST']
         extra_fields_obj = MiscDetail.objects.filter(user=user.id, misc_type__icontains="pos_extra_fields")
         for field in extra_fields_obj:
             tmp = field.misc_value.split(',')
             for i in tmp:
                 headers.append(str(i))
-    excel_data = print_excel(request, report_data, headers, excel_name, file_type=file_type)
+    excel_data = print_excel(request, report_data, headers, excel_name, file_type=file_type, tally_report=tally_report)
     return excel_data
 
 

@@ -3538,6 +3538,7 @@ def check_returns(request, user=''):
         except ObjectDoesNotExist:
             request_order_id = None
     if request_order_id:
+        key = [request_order_id]
         filter_params = {}
         order_id = re.findall('\d+', request_order_id)
         order_code = re.findall('\D+', request_order_id)
@@ -3591,7 +3592,7 @@ def check_returns(request, user=''):
                 dict_data.update(taxes)
                 data.append(dict_data)
         if not data:
-            status = str(key[0]) + ' Order ID Already Returned'
+            status = str(key[0]) + ' Order ID Already Returned or Invalid'
             return HttpResponse(status)
     elif request_return_id:
         order_returns = OrderReturns.objects.filter(return_id=request_return_id, sku__user=user.id)

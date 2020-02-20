@@ -274,6 +274,7 @@ urlpatterns = [
     url(r'^confirm_combo_allocation/$', confirm_combo_allocation),
     url(r'^cal_ba_to_sa/$',cal_ba_to_sa),
     url(r'^ba_to_sa_calculate_now/$',ba_to_sa_calculate_now),
+    url(r'^get_move_inventory_reasons/$',get_move_inventory_reasons),
 
     # OutBound
     url(r'^batch_generate_picklist/$', batch_generate_picklist),
@@ -529,6 +530,8 @@ urlpatterns = [
     url(r'^get_move_inventory_report/$', get_move_inventory_report),
     url(r'^get_financial_report/$', get_financial_report),
     url(r'^print_financial_report_report/$', print_financial_report_report),
+    url(r'^get_bulk_stock_update/$', get_bulk_stock_update),
+    url(r'^print_bulk_stock_update/$', print_bulk_stock_update),
 ]
 
 # urlpatterns += patterns('rest_api.views',
@@ -624,7 +627,7 @@ urlpatterns += [
     url(r'^update_dc_sequence/$', update_dc_sequence),
     url(r'^update_mail_alerts/$', update_mail_alerts),
     url(r'^pos_extra_fields/$',pos_extra_fields),
-    url(r'^save_grn_fields/$',save_grn_fields),
+    url(r'^save_config_extra_fields/$',save_config_extra_fields),
     url(r'^save_extra_order_options/$',save_extra_order_options),
     url(r'^get_classfication_settings/$',get_classfication_settings),
     url(r'^save_update_classification/$',save_update_classification),
@@ -665,6 +668,8 @@ urlpatterns += [
     url(r'^get_sku_mrp/$', get_sku_mrp),
     url(r'^get_current_weight/$', get_current_weight),
     url(r'^get_decimal_data/$', get_decimal_data),
+    url(r'^update_barcode_configuration/$', update_barcode_configuration),
+    url(r'^get_barcode_configurations/$', get_barcode_configurations),
 
 
     # Retailone

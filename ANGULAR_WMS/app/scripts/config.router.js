@@ -1899,7 +1899,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Invoice Amount'
+            title: 'Payments'
           }
         })
 
@@ -2491,10 +2491,22 @@ var app = angular.module('urbanApp')
             title: 'BASA Report',
           }
         })
+        .state('app.reports.BulkStockUpdate', {
+          url: '/BulkStockUpdate',
+          templateUrl: 'views/reports/bulk_stock_update.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/bulk_stock_update.js');
+              }]
+          },
+          data: {
+            title: 'Bulk Stock Update',
+          }
+        })
       // configuration route
       .state('app.configurations', {
           url: '/configurations',
-          templateUrl: 'views/configurations.html',
+          templateUrl: 'views/configurations/all_configurations.html',
           authRequired: true,
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -2516,9 +2528,14 @@ var app = angular.module('urbanApp')
                 return $ocLazyLoad.load([
                     'scripts/controllers/configs/classification.js'
                   ])
+                })
+                .then(function(){
+                  return $ocLazyLoad.load([
+                      'scripts/controllers/configs/barcode_configurations.js'
+                    ])
+                  });
                 });
-              });
-                    }]
+            }]
           },
           data: {
             title: 'Configurations'

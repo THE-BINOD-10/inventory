@@ -220,6 +220,8 @@
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{outerIndex}}">
                       <input type="hidden" name="supplier_id" value="{{showCase.model_data.supplier_id}}">
                       <input type="hidden" name="pack_id" value="{{data.pack_id}}">
+                      <input type="hidden"  ng-if="showCase.industry_type=='FMCG'" name="tax_percent_copy" value="{{data.tax_percent_copy}}">
+                      <input type="hidden" ng-if="showCase.industry_type=='FMCG'" name="weight_copy" value="{{data.weight_copy}}">
                       <input type="hidden" name="num_packs" value="{{data.num_packs}}">
                       <input type="hidden" name="id" value="{{data.order_id}}" ng-model="data.order_id">
                       <input type="hidden" name="new_sku" value="{{data.is_new}}">

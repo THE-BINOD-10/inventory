@@ -2441,6 +2441,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       return
     }
     vm.display_approval_button = false;
+    if (outerindex != undefined) {
+      vm.model_data.data[outerindex][innerindex].wrong_sku = 0
+    }
     var total_po_data = [];
     angular.copy(data.data, total_po_data);
     angular.forEach(total_po_data, function(sku_row_data) {

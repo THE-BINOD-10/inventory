@@ -4703,19 +4703,40 @@ def get_order_summary_data(search_params, user, sub_user):
 
     temp_data['recordsTotal'] = orders.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-
-    try:
-        temp_data['totalOrderQuantity'] = int(orders.values('id').distinct().aggregate(Sum('original_quantity', distinct=True))['original_quantity__sum'])
-    except:
-        temp_data['totalOrderQuantity'] = 0
-    try:
-        temp_data['totalSellingPrice'] = int(orders.values('id').distinct().aggregate(Sum('invoice_amount', distinct=True))['invoice_amount__sum'])
-    except:
-        temp_data['totalSellingPrice'] = 0
-    try:
-        temp_data['totalMRP'] = int(orders.aggregate(Sum('sku__mrp'))['sku__mrp__sum'])
-    except:
-        temp_data['totalMRP'] = 0
+    if not search_params.has_key('tally_report'):
+        try:
+            temp_data['totalOrderQuantity'] = int(orders.values('id').distinct().aggregate(Sum('original_quantity', distinct=True))['original_quantity__sum'])
+        except:
+            temp_data['totalOrderQuantity'] = 0
+        try:
+            temp_data['totalSellingPrice'] = int(orders.values('id').distinct().aggregate(Sum('invoice_amount', distinct=True))['invoice_amount__sum'])
+        except:
+            temp_data['totalSellingPrice'] = 0
+        try:
+            temp_data['totalMRP'] = int(orders.aggregate(Sum('sku__mrp'))['sku__mrp__sum'])
+        except:
+            temp_data['totalMRP'] = 0
+        
+        total_row = {}
+        total_row = OrderedDict((('Order Date', ''), ('Order ID', ""), ("Customer ID", ""), ('Customer Name', ""),('Order Number' ,""),
+        ('SKU Brand', ""),('SKU Category', ''),('SKU Class', ''),('SKU Size', ''), ('SKU Description', ''),('SKU Sub Category', ''),
+        ('SKU Code', 'TotalQuantity='), ('Vehicle Number', ''),('Order Qty',temp_data['totalOrderQuantity']),('MRP', ''), ('Unit Price',''),('Discount', ''),
+        ('Serial Number',''),('Invoice Number',''),('Challan Number', ''),('Quantity',''),('Payment Type' ,''),('Reference Number',''),
+        ('Taxable Amount',''), ('Tax Percent',''), ('HSN Code', ''), ('Tax', ''),('City', ''), ('State', ''), ('Marketplace', 'TotalOrderAmount='),('Invoice Amount',''),('Order Amount', temp_data['totalSellingPrice']),
+        ('Price', ''),('Status', ''), ('Order Status', ''),('Invoice Tax', ''),('Customer GST Number',''),('Remarks', ''), ('Order Taken By', ''),
+        ('Invoice Date',''),('Billing Address',''),('Shipping Address',''),('Payment Cash', ''),('Payment Card', ''),('Payment PhonePe',''),('Payment GooglePay',''),('Payment Paytm',''),('Advance Amount', '')))
+        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            total_row['Manufacturer'] = ''
+            total_row['Searchable'] = ''
+            total_row['Bundle'] = ''
+        temp_data['aaData'].append(total_row)
+        order_extra_fields ={}
+        for extra in extra_order_fields :
+            order_extra_fields[extra] = ''
+        if  milkbasket_user :
+            cost_price_dict = {'Cost Price': ''}
+            temp_data['aaData'][0].update(OrderedDict(cost_price_dict))
+        temp_data['aaData'][0].update(OrderedDict(order_extra_fields))
     if stop_index:
         orders = orders[start_index:stop_index]
     status = ''
@@ -4727,27 +4748,6 @@ def get_order_summary_data(search_params, user, sub_user):
         for i in tmp:
             extra_fields.append(str(i))
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
-
-    total_row = {}
-    total_row = OrderedDict((('Order Date', ''), ('Order ID', ""), ("Customer ID", ""), ('Customer Name', ""),('Order Number' ,""),
-    ('SKU Brand', ""),('SKU Category', ''),('SKU Class', ''),('SKU Size', ''), ('SKU Description', ''),('SKU Sub Category', ''),
-    ('SKU Code', 'TotalQuantity='), ('Vehicle Number', ''),('Order Qty',temp_data['totalOrderQuantity']),('MRP', ''), ('Unit Price',''),('Discount', ''),
-    ('Serial Number',''),('Invoice Number',''),('Challan Number', ''),('Quantity',''),('Payment Type' ,''),('Reference Number',''),
-    ('Taxable Amount',''), ('Tax Percent',''), ('HSN Code', ''), ('Tax', ''),('City', ''), ('State', ''), ('Marketplace', 'TotalOrderAmount='),('Invoice Amount',''),('Order Amount', temp_data['totalSellingPrice']),
-    ('Price', ''),('Status', ''), ('Order Status', ''),('Invoice Tax', ''),('Customer GST Number',''),('Remarks', ''), ('Order Taken By', ''),
-    ('Invoice Date',''),('Billing Address',''),('Shipping Address',''),('Payment Cash', ''),('Payment Card', ''),('Payment PhonePe',''),('Payment GooglePay',''),('Payment Paytm',''),('Advance Amount', '')))
-    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-        total_row['Manufacturer'] = ''
-        total_row['Searchable'] = ''
-        total_row['Bundle'] = ''
-    temp_data['aaData'].append(total_row)
-    order_extra_fields ={}
-    for extra in extra_order_fields :
-        order_extra_fields[extra] = ''
-    if  milkbasket_user :
-        cost_price_dict = {'Cost Price': ''}
-        temp_data['aaData'][0].update(OrderedDict(cost_price_dict))
-    temp_data['aaData'][0].update(OrderedDict(order_extra_fields))
 
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in orders.iterator():
@@ -5003,7 +5003,7 @@ def get_order_summary_data(search_params, user, sub_user):
         if milkbasket_user :
             aaData.update(OrderedDict(cost_price_dict))
         aaData.update(OrderedDict(order_extra_fields))
-        if admin_user.username.lower() == 'gomechanic_admin' and search_params.get('tally_report'):
+        if admin_user.username.lower() == 'gomechanic_admin' and search_params.has_key('tally_report'):
             tally_report = tally_dump(invoice_amount_picked,unit_price_inclusive_tax, gst_number,unit_discount,discount, taxable_amount, tax_percent, mrp_price, data,billing_address,customer_name,invoice_number, invoice_date, quantity, order_summary)
             if tally_report:
               temp_data['aaData'].append(tally_report)

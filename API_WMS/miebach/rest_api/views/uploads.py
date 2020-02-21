@@ -1888,6 +1888,10 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 data_dict['mrp'] = cell_data
                 if user.username in MILKBASKET_USERS and not cell_data:
                     index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
+            elif key == 'price':
+                data_dict['price'] = cell_data
+                if not isinstance(cell_data, float):
+                    index_status.setdefault(row_idx, set()).add('Price should be number')
             elif key in number_fields:
                 try:
                     if key == 'quantity':
@@ -1984,7 +1988,7 @@ def inventory_excel_upload(request, user, data_list):
                 pallet_detail.save()
                 stock_query_filter['pallet_detail_id'] = pallet_detail.id
                 inventory_data['pallet_detail_id'] = pallet_detail.id
-            if mrp or batch_no or mfg_date or exp_date or weight:
+            if mrp or batch_no or mfg_date or exp_date or weight or price:
                 try:
                     mrp = float(mrp)
                 except:
@@ -1998,6 +2002,8 @@ def inventory_excel_upload(request, user, data_list):
                     batch_dict['expiry_date'] = exp_date
                 if weight:
                     batch_dict['weight'] = weight
+                if price:
+                    batch_dict["price"] = price
                 add_ean_weight_to_batch_detail(SKUMaster.objects.get(id=inventory_data['sku_id']), batch_dict)
                 batch_obj = BatchDetail(**batch_dict)
                 batch_obj.save()

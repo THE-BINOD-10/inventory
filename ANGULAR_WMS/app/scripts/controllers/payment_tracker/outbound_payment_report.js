@@ -71,7 +71,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.po_qc = (vm.permissions.receive_process == "receipt-qc")? true: false;
     vm.g_data = Data.payment_based_invoice;
 
-    var sort_no = (vm.g_data.style_view)? 1: 0;
+    var sort_no = 1;
     vm.filters = {'datatable': 'OutboundPaymentReport', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
     				'search4': '', 'search5': '', 'search6': '', 'search7': ''/*, 'search8': ''*/};
 
@@ -107,7 +107,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.dtColumns = [
         DTColumnBuilder.newColumn('payment_id').withTitle('Payment ID'),
         DTColumnBuilder.newColumn('payment_date').withTitle('Payment Date'),
-        DTColumnBuilder.newColumn('invoice_number').withTitle('Invoice Number'),
+        DTColumnBuilder.newColumn('invoicee_number').withTitle('Invoice Number'),
         DTColumnBuilder.newColumn('customer_name').withTitle('Customer Name'),
         DTColumnBuilder.newColumn('invoice_amount').withTitle('Invoice Amount'),
         DTColumnBuilder.newColumn('payment_received').withTitle('Payment Received'),
@@ -195,7 +195,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.resetFilters = function(filters){
 
-    filters.from_date = vm.date;
+    filters.from_date = '';
     filters.to_date = '';
     filters.customer = '';
     filters.invoice_number = '';

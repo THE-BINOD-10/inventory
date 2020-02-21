@@ -961,7 +961,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             vm.scan_sku_disable = false;
           })
         } else {
-          vm.service.apiCall('check_sku/', 'GET',{'sku_code': field}).then(function(data){
+          var sku_brand = vm.model_data.data[0][0].sku_brand;
+          vm.service.apiCall('check_sku/', 'GET',{'sku_code': field, 'sku_brand':sku_brand}).then(function(data){
             if(data.message) {
               vm.field = data.data.sku_code;
               vm.sort_flag = false;
@@ -2424,14 +2425,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
   }
 
-    vm.send_for_approval_check = function(event, data) {
+
+   vm.validate_weight = function(event, data) {
+     if(vm.milkbasket_users.indexOf(vm.parent_username) >= 0){
+       data.weight = data.weight.toUpperCase().replace('UNITS', 'Units').replace(/\s\s+/g, ' ').replace('PCS', 'Pcs').replace('UNIT', 'Unit').replace('INCHES', 'Inches').replace('INCH', 'Inch');
+       setTimeout(() => { data.weight = data.weight.trim(); }, 100);
+     }
+   }
+
+    vm.send_for_approval_check = function(event, data, innerindex, outerindex) {
     if(vm.milkbasket_users.indexOf(vm.parent_username) < 0){
       return
     }
+
     if(vm.permissions.change_purchaseorder) {
       return
     }
     vm.display_approval_button = false;
+    if (outerindex != undefined) {
+      vm.model_data.data[outerindex][innerindex].wrong_sku = 0
+    }
     var total_po_data = [];
     angular.copy(data.data, total_po_data);
     angular.forEach(total_po_data, function(sku_row_data) {
@@ -2451,6 +2464,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           price_tolerence = ((buy_price-price)/price)*100;
           if(price_tolerence > 2){
             vm.display_approval_button = true;
+            if (outerindex != undefined){
+               vm.model_data.data[outerindex][innerindex].wrong_sku = 1
+            }
             break;
           }
         }
@@ -2463,6 +2479,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
         if(sku_row_data[i].tax_percent != sku_row_data[i].tax_percent_copy){
           vm.display_approval_button = true;
+          if (outerindex != undefined){
+           vm.model_data.data[outerindex][innerindex].wrong_sku = 1
+          }
+          break;
+        }
+        if(sku_row_data[i].weight != sku_row_data[i].weight_copy){
+          vm.display_approval_button = true;
+          if (outerindex != undefined){
+           vm.model_data.data[outerindex][innerindex].wrong_sku = 1
+          }
           break;
         }
       }
@@ -2475,6 +2501,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         console.log(abs_qty_value);
         if(tot_qty > abs_qty_value) {
           vm.display_approval_button = true;
+          if (outerindex != undefined ){
+           vm.model_data.data[outerindex][innerindex].wrong_sku = 1
+          }
         }
       }
     })

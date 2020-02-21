@@ -903,6 +903,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 @reversion.create_revision(atomic=False, using='reversion')
 def order_upload(request, user=''):
     reversion.set_user(request.user)
+    reversion.set_comment("upload_order")
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
@@ -1769,6 +1770,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
 def sku_upload(request, user=''):
     try:
         reversion.set_user(request.user)
+        reversion.set_comment("upload_sku")
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
         if ex_status:
@@ -3232,6 +3234,7 @@ def purchase_upload_mail(request, data_to_send, user):
 @reversion.create_revision(atomic=False, using='reversion')
 def purchase_order_upload(request, user=''):
     reversion.set_user(request.user)
+    reversion.set_comment("upload_po")
     purchase_order_view = get_misc_value('purchase_order_preview', user.id)
     try:
         fname = request.FILES['files']
@@ -3253,7 +3256,10 @@ def purchase_order_upload(request, user=''):
 @login_required
 @get_admin_user
 @csrf_exempt
+@reversion.create_revision(atomic=False, using='reversion')
 def purchase_order_upload_preview(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("upload_po")
     data_list = json.loads(request.POST.get('data_list', ''))
     purchase_order_excel_upload(request, user, data_list)
     return HttpResponse('Success')
@@ -3557,6 +3563,7 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
 @reversion.create_revision(atomic=False, using='reversion')
 def move_inventory_upload(request, user=''):
     reversion.set_user(request.user)
+    reversion.set_comment("upload_move_inv")
     fname = request.FILES['files']
     try:
         fname = request.FILES['files']
@@ -4013,6 +4020,7 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
 @reversion.create_revision(atomic=False, using='reversion')
 def inventory_adjust_upload(request, user=''):
     reversion.set_user(request.user)
+    reversion.set_comment("upload_inv_adj")
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)

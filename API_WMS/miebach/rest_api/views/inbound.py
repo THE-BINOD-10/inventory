@@ -877,6 +877,7 @@ def validate_wms(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def modify_po_update(request, user=''):
     reversion.set_user(request.user)
+    reversion.set_comment("update_po")
     myDict = dict(request.POST.iterlists())
     terms_condition = request.POST.get('terms_condition','')
     wrong_wms = []
@@ -1167,6 +1168,7 @@ def delete_tax(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def confirm_po(request, user=''):
     reversion.set_user(request.user)
+    reversion.set_comment("raise_po")
     sku_id = ''
     ean_flag = False
     data = copy.deepcopy(PO_DATA)
@@ -1637,6 +1639,7 @@ def get_raisepo_group_data(user, myDict):
 @reversion.create_revision(atomic=False, using='reversion')
 def add_po(request, user=''):
     reversion.set_user(request.user)
+    reversion.set_comment("raise_po")
     status = 'Failed to Add PO'
     terms_condition = request.POST.get('terms_condition','')
     myDict = dict(request.POST.iterlists())
@@ -1734,6 +1737,7 @@ def add_po(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def insert_inventory_adjust(request, user=''):
     reversion.set_user(request.user)
+    reversion.set_comment("insert_inv_adj")
     cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
     #CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
     if not cycle_count:
@@ -3242,6 +3246,7 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
 @reversion.create_revision(atomic=False, using='reversion')
 def confirm_grn(request, confirm_returns='', user=''):
     reversion.set_user(request.user)
+    reversion.set_comment("generate_grn")
     data_dict = ''
     headers = (
             'WMS CODE','Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
@@ -4380,6 +4385,7 @@ def create_update_seller_stock(data, value, user, stock_obj, exc_loc, use_value=
 @reversion.create_revision(atomic=False, using='reversion')
 def putaway_data(request, user=''):
     reversion.set_user(request.user)
+    reversion.set_comment("confirm_putaway")
     purchase_order_id = ''
     diff_quan = 0
     all_data = {}
@@ -5216,6 +5222,7 @@ def order_status(request):
 @reversion.create_revision(atomic=False, using='reversion')
 def confirm_add_po(request, sales_data='', user=''):
     reversion.set_user(request.user)
+    reversion.set_comment("raise_po")
     ean_flag = False
     po_order_id = ''
     status = ''
@@ -5636,6 +5643,7 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
 @reversion.create_revision(atomic=False, using='reversion')
 def confirm_po1(request, user=''):
     reversion.set_user(request.user)
+    reversion.set_comment("raise_po")
     data = copy.deepcopy(PO_DATA)
     po_id = get_purchase_order_id(user)
     po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
@@ -7357,6 +7365,7 @@ def get_po_segregation_data(request, user=''):
 @reversion.create_revision(atomic=True, using='reversion')
 def confirm_primary_segregation(request, user=''):
     reversion.set_user(request.user)
+    reversion.set_comment("confirm_primary_seg")
     data_dict = dict(request.POST.iterlists())
     log.info('Request params for ' + user.username + ' is ' + str(data_dict))
     try:

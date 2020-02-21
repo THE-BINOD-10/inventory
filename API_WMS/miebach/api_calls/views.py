@@ -21,6 +21,7 @@ import os
 from django.db.models import Q, F
 from django.core.serializers.json import DjangoJSONEncoder
 from rest_api.views.utils import *
+import reversion
 
 today = datetime.datetime.now().strftime("%Y%m%d")
 log = init_logger('logs/integrations_' + today + '.log')
@@ -1159,7 +1160,10 @@ def update_order(request):
 
 @csrf_exempt
 @login_required
+@reversion.create_revision(atomic=False, using='reversion')
 def create_orders(request):
+    reversion.set_user(request.user)
+    reversion.set_comment("order_api")
     try:
         orders = json.loads(request.body)
     except:
@@ -1188,7 +1192,10 @@ def create_orders(request):
 
 @csrf_exempt
 @login_required
+@reversion.create_revision(atomic=False, using='reversion')
 def update_sku(request):
+    reversion.set_user(request.user)
+    reversion.set_comment("update_sku_api")
     skus = ''
     try:
         skus = json.loads(request.body)
@@ -1305,7 +1312,10 @@ def update_return(request):
 
 @csrf_exempt
 @login_required
+@reversion.create_revision(atomic=False, using='reversion')
 def update_orders(request):
+    reversion.set_user(request.user)
+    reversion.set_comment("order_api")
     try:
         orders = json.loads(request.body)
     except:

@@ -1035,6 +1035,7 @@ def check_update_hot_release(data, value):
 def update_sku(request, user=''):
     """ Update SKU Details"""
     reversion.set_user(request.user)
+    reversion.set_comment("update_sku")
     log.info('Update SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     today = datetime.datetime.now().strftime("%Y%m%d")
@@ -2490,6 +2491,7 @@ def insert_sku(request, user=''):
     """ Insert New SKU Details """
     log.info('Insert SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     reversion.set_user(request.user)
+    reversion.set_comment("insert_sku")
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     try:
         wms = request.POST['wms_code']

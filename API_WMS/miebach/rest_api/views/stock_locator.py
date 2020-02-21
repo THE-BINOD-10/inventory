@@ -1190,6 +1190,7 @@ def insert_move_inventory(request, user=''):
     #     cycle_id = data[0].cycle + 1
 
     reversion.set_user(request.user)
+    reversion.set_comment("insert_move_inv")
     now = str(datetime.datetime.now())
     wms_code = request.GET['wms_code']
     check = False

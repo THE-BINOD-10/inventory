@@ -3555,7 +3555,8 @@ def ba_to_sa_calculate_now(request, user=''):
                 sku_classification_dict1['remarks'] = remarks
                 save_ba_to_sa_remarks(sku_classification_dict1, sku_classification_objs,
                                       remarks_sku_ids)
-                continue
+                if sku_avail_qty:
+                    continue
             ba_stock_dict = ba_sku_avail_qty.get(data.id, {})
             if replenishment_qty < 20:
                 replenishment_qty = 20

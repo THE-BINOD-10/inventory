@@ -271,6 +271,9 @@ BRAND_LEVEL_PRICING_EXCEL_MAPPING =  OrderedDict((('SKU Attribute Type(Brand, Ca
                                                   ('Min Range', 'min_unit_range'), ('Max Range', 'max_unit_range'),
                                                   ('Price', 'price'), ('Discount', 'discount')))
 
+BRAND_LEVEL_BARCODE_CONFIGURATION_MAPPING =  OrderedDict((('Configuration Name', 'configName'),
+                                                  ('SKU Brand', 'sku_brand')))
+
 
 SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'GSTIN Number', 'PAN Number',
                     'PIN Code', 'City', 'State', 'Country', 'Days required to supply', 'Fulfillment Amount',

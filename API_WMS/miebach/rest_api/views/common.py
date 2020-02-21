@@ -319,11 +319,11 @@ def add_user_type_permissions(user_profile):
     if user_profile.user_type == 'warehouse_user':
         exc_perms = ['qualitycheck', 'qcserialmapping', 'palletdetail', 'palletmapping', 'ordershipment',
                      'shipmentinfo', 'shipmenttracking', 'networkmaster', 'tandcmaster', 'enquirymaster',
-                     'corporatemaster', 'corpresellermapping', 'staffmaster']
+                     'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster']
         update_perm = True
     elif user_profile.user_type == 'marketplace_user':
         exc_perms = ['productproperties', 'sizemaster', 'pricemaster', 'networkmaster', 'tandcmaster', 'enquirymaster',
-                    'corporatemaster', 'corpresellermapping', 'staffmaster']
+                    'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster']
         update_perm = True
     if update_perm:
         exc_perms = exc_perms + PERMISSION_IGNORE_LIST

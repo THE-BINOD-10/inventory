@@ -865,6 +865,10 @@ var app = angular.module('urbanApp')
             url: '/Confirmation',
             templateUrl: 'views/inbound/toggle/putaway_confirm.html'
           })
+          .state('app.stockLocator.StockDetail.batch_detail', {
+            url: '/Confirmation',
+            templateUrl: 'views/stockLocator/toggles/batch_details.html'
+          })
         .state('app.inbound.rtv', {
           url: '/rtv',
           // permission: 'add_polocation',

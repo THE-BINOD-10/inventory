@@ -2483,7 +2483,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
     lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'sku__sku_category',
            'batch_detail__batch_no',
            'batch_detail__mrp', 'batch_detail__weight', 'batch_detail__buy_price', 'batch_detail__tax_percent',
-           'batch_detail__manufactured_date', 'batch_detail__expiry_date',
+           'batch_detail__manufactured_date', 'batch_detail__expiry_date','batch_detail__id',
            'location__zone__zone', 'location__zone__zone', 'location__location',
            'pallet_detail__pallet_code',
            'quantity', 'receipt_type']
@@ -2529,15 +2529,25 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
         weight = ''
         price = 0
         tax = 0
+        batch_id = ''
         if data.batch_detail:
             batch_no = data.batch_detail.batch_no
             mrp = data.batch_detail.mrp
             weight = data.batch_detail.weight
             price = data.batch_detail.buy_price
             tax = data.batch_detail.tax_percent
-            manufactured_date = data.batch_detail.manufactured_date.strftime(
-                "%d %b %Y") if data.batch_detail.manufactured_date else ''
-            expiry_date = data.batch_detail.expiry_date.strftime("%d %b %Y") if data.batch_detail.expiry_date else ''
+            batch_id = data.batch_detail.id
+            mfg_date,exp_date = '',''
+            if data.batch_detail.manufactured_date:
+                manufactured_date = data.batch_detail.manufactured_date.strftime("%d %b %Y")
+                mfg_date = data.batch_detail.manufactured_date.strftime("%m/%d/%Y")
+            else:
+                manufactured_date = ''
+            if data.batch_detail.expiry_date:
+                expiry_date = data.batch_detail.expiry_date.strftime("%d %b %Y")
+                exp_date = data.batch_detail.expiry_date.strftime("%m/%d/%Y")
+            else:
+                expiry_date = ''
         pallet_code, sub_zone = '', ''
         zone = data.location.zone.zone
         if data.pallet_detail:
@@ -2553,7 +2563,8 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                 ('WMS Code', data.sku.wms_code),
                                 ('Product Description', data.sku.sku_desc),
                                 ('SKU Category', data.sku.sku_category),
-                                ('Batch Number', batch_no),
+                                ('Batch Number', batch_no), ('exp_date', exp_date),
+                                ('Batch ID', batch_id), ('mfg_date', mfg_date),
                                 ('MRP', mrp), ('Weight', weight),
                                 ('Price', price), ('Tax Percent', tax),
                                 ('Manufactured Date', manufactured_date), ('Expiry Date', expiry_date),
@@ -3644,3 +3655,57 @@ def get_move_inventory_reasons(request, user=''):
     return HttpResponse(json.dumps({'move_inventory_reasons': move_inventory_reasons,
                                     'reasons_available': reasons_available,
                                     }))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def stock_detail_update(request, user=''):
+    try:
+        data = request.POST
+        id = request.POST['id']
+        if user.username in MILKBASKET_USERS:
+            if not data['mrp'] or not data['weight']:
+                return HttpResponse(json.dumps({'status': 0, 'message': 'Weight and MRP Should not be Empty'}))
+        batch_detail_obj = BatchDetail.objects.filter(id=id)
+        updated_batch_dict = {}
+        if data['manufactured_date']:
+            manufactured_date = datetime.datetime.strptime(data['manufactured_date'], '%m/%d/%Y')
+            updated_batch_dict['manufactured_date'] = manufactured_date
+        if data["expiry_date"]:
+                expiry_date = datetime.datetime.strptime(data["expiry_date"], '%m/%d/%Y')
+                if expiry_date < manufactured_date:
+                    return HttpResponse(
+                        json.dumps({'status': 0, 'message': 'Expiry Date must be greater than the Manufacture Date '}))
+                updated_batch_dict['expiry_date'] = expiry_date
+        if batch_detail_obj.exists():
+            new_batch_dict = {key:value for key, value in data.items()}
+            old_batch_dict = batch_detail_obj.values()[0]
+            old_batch_dict['expiry_date'] = old_batch_dict['expiry_date'].strftime('%m/%d/%Y') if old_batch_dict['expiry_date'] else ''
+            old_batch_dict['manufactured_date'] = old_batch_dict['manufactured_date'].strftime('%m/%d/%Y') if old_batch_dict['manufactured_date'] else ''
+            batch_list = ['manufactured_date', 'expiry_date', 'buy_price', 'weight', 'batch_no', 'tax_percent', 'mrp']
+            for key in batch_list:
+                if key in ['mrp', 'buy_price', 'tax_percent']:
+                    old_batch_dict[key] = float(old_batch_dict[key]) if old_batch_dict[key] else 0
+                    new_batch_dict[key] = float(new_batch_dict[key]) if new_batch_dict[key] else 0
+                elif key in ['manufactured_date', 'expiry_date']:
+                     if old_batch_dict[key] != new_batch_dict[key]:
+                         create_update_table_history(user, id, 'Batch_Detail', key, old_batch_dict[key],
+                                                     new_batch_dict[key])
+                     continue
+                if old_batch_dict[key] != new_batch_dict[key]:
+                    updated_batch_dict[key] = new_batch_dict[key]
+                    create_update_table_history(user, id, 'Batch_Detail', key, old_batch_dict[key], new_batch_dict[key])
+            BatchDetail.objects.filter(id=id).update(**updated_batch_dict)
+            return HttpResponse(json.dumps({'status': 1, 'message': 'Successfully Updated'}))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Batch Detail Stock Updation  failed for %s and error statement is %s' % (
+            str(user.username), str(e)))
+        return HttpResponse(json.dumps({'status': 0, 'message': 'Something Went Wrong'}))
+
+
+
+
+

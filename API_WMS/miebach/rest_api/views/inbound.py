@@ -1038,6 +1038,7 @@ def switches(request, user=''):
                        'calculate_customer_price': 'calculate_customer_price',
                        'shipment_sku_scan': 'shipment_sku_scan',
                        'extra_view_order_status':'extra_view_order_status',
+                       'bank_option_fields':'bank_option_fields',
                        'disable_brands_view':'disable_brands_view',
                        'invoice_types': 'invoice_types',
                        'sellable_segregation': 'sellable_segregation',
@@ -1733,6 +1734,7 @@ def add_po(request, user=''):
 @reversion.create_revision(atomic=False)
 def insert_inventory_adjust(request, user=''):
     reversion.set_user(request.user)
+    unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
     cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
     #CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
     if not cycle_count:
@@ -1755,6 +1757,12 @@ def insert_inventory_adjust(request, user=''):
     if user.username in MILKBASKET_USERS :
         if not mrp or not weight :
             return HttpResponse("MRP and Weight are Mandatory")
+        if unique_mrp == 'true' and quantity not in ['0', 0]:
+            location_obj = LocationMaster.objects.filter(zone__user=user.id, location=loc)
+            data_dict = {'sku_code':wmscode, 'mrp':mrp, 'weight':weight, 'seller_id':seller_id, 'location':location_obj[0].location}
+            status =  validate_mrp_weight(data_dict,user)
+            if status:
+                return HttpResponse(status)
     if seller_id:
         seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
         if not seller_master:
@@ -1880,6 +1888,8 @@ def get_supplier_data(request, user=''):
                 weight = skuattributes[0].attribute_value
             tax_percent = order_data['cgst_tax'] + order_data['sgst_tax'] + order_data['igst_tax'] +\
                           order_data['utgst_tax']
+
+
             tax_percent_copy = tax_percent
             extra_po_fields = Pofields.objects.filter(user= user.id,po_number = order.order_id,field_type='po_field').values('name','value')
             if extra_po_fields:
@@ -1894,18 +1904,21 @@ def get_supplier_data(request, user=''):
             if temp_jsons.exists():
                 for temp_json_obj in temp_jsons:
                     temp_json = json.loads(temp_json_obj.model_json)
-                    orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'], 'sku_brand': order_data['sku'].sku_brand,
-                                    'sku_desc': order_data['sku_desc'], 'weight': temp_json.get('weight', 0),
+                    orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'],
+                                    'sku_desc': order_data['sku_desc'],
+                                    'weight': temp_json.get('weight', 0),
                                     'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
                                     'name': str(order.order_id) + '-' + str(
                                         re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
                                     'value': temp_json.get('quantity', 0),
+                                    'wrong_sku': temp_json.get('wrong_sku', 0),
                                     'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
                                     'price': order_data['price'],
                                     'mrp': temp_json.get('mrp', 0),
                                     'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
                                     'unit': order_data['unit'],
-                                    'dis': True,
+                                    'dis': True, 'weight_copy':temp_json.get('weight_copy', 0),
+                                    'tax_percent_copy':temp_json.get('tax_percent_copy', 0),
                                     'sku_extra_data': sku_extra_data, 'product_images': product_images,
                                     'sku_details': sku_details, 'shelf_life': order_data['shelf_life'],
                                     'tax_percent': temp_json.get('tax_percent', 0),
@@ -1924,6 +1937,7 @@ def get_supplier_data(request, user=''):
             else:
                 orders.append([{ 'order_id': order.id, 'wms_code': order_data['wms_code'], 'sku_brand': order_data['sku'].sku_brand,
                                 'sku_desc': order_data['sku_desc'], 'weight': weight,
+                                 'weight_copy':weight,
                                 'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
                                 'name': str(order.order_id) + '-' + str(
                                     re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
@@ -1934,7 +1948,7 @@ def get_supplier_data(request, user=''):
                                 'mrp': order_data['mrp'],
                                 'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
                                 'unit': order_data['unit'],
-                                'dis': True,
+                                'dis': True,'wrong_sku':0,
                                 'sku_extra_data': sku_extra_data, 'product_images': product_images,
                                 'sku_details': sku_details, 'shelf_life': order_data['shelf_life'],
                                 'tax_percent': tax_percent, 'cess_percent': order_data['cess_tax'],
@@ -1974,6 +1988,7 @@ def get_supplier_data(request, user=''):
             if master_docs.exists():
                 uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
                                       'file_url': '/' + master_docs[0].uploaded_file.name}
+        orders =  sorted(orders, key = lambda i: i[0]['wrong_sku'],reverse=True)
     return HttpResponse(json.dumps({'data': orders, 'po_id': order_id, 'options': REJECT_REASONS, \
                                     'supplier_id': order_data['supplier_id'], 'use_imei': use_imei, \
                                     'temp': temp, 'po_reference': po_reference, 'order_ids': order_ids, \
@@ -2008,7 +2023,7 @@ def update_putaway(request, user=''):
             expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
         data_dict = dict(request.POST.iterlists())
         zero_index_keys = ['scan_sku', 'lr_number', 'remainder_mail', 'carrier_name', 'expected_date', 'invoice_date',
-                           'remarks', 'invoice_number', 'dc_level_grn', 'dc_number', 'dc_date',
+                           'remarks', 'invoice_number', 'dc_level_grn', 'dc_number', 'dc_date','scan_pack',
                            'display_approval_button', 'invoice_value', 'overall_discount']
         for i in range(0, len(data_dict['id'])):
             po_data = {}
@@ -2687,7 +2702,7 @@ def create_update_primary_segregation(data, quantity, temp_dict, batch_obj=None,
 
 def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number='', invoice_date=None,
                      challan_number='', challan_date=None, dc_level_grn='', round_off_total=0,
-                     batch_dict=None, po_type='po'):
+                     batch_dict=None, po_type='po', update_mrp_on_grn='false'):
     try:
         if not receipt_id:
             return
@@ -2728,11 +2743,12 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
             if myDict.get('mrp', '') and myDict['mrp'][i]:
                 if float(data.open_po.sku.mrp) != float(myDict['mrp'][i]):
                     remarks_list.append("mrp_change")
-            if 'mrp_change' not in remarks_list and seller_pos:
+            if seller_pos:
                 if batch_dict and batch_dict.get('mrp', ''):
                     mrp = float(batch_dict['mrp'])
-                    if float(data.open_po.sku.mrp) != mrp:
-                        remarks_list.append("mrp_change")
+                    #if float(data.open_po.sku.mrp) != mrp:
+                    #    remarks_list.append("mrp_change")
+
                     # other_mrp_stock = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0,
                     #                                              sku_id=data.open_po.sku_id,
                     #                            sellerstock__seller_id=seller_pos[0].seller_id).\
@@ -2741,6 +2757,25 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                     # if other_mrp_stock.exists():
                     #     #mrp_change_check = ZoneMaster.objects.filter(zone='MRP Change', user=user.id)
                     #     #if mrp_change_check.exists():
+                    zones  = get_all_sellable_zones(user)
+                    bulk_zone_name = MILKBASKET_BULK_ZONE
+                    bulk_zones = get_all_zones(user, zones=[bulk_zone_name])
+                    zones = list(chain(zones, bulk_zones))
+                    stock_found = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0,sku_id=data.open_po.sku_id,
+                                                                sellerstock__seller_id=seller_pos[0].seller_id).\
+                                                        filter(location__zone__zone__in=zones).exclude(batch_detail__mrp=mrp)
+                    if not stock_found.exists():
+                        if 'mrp_change' in remarks_list:
+                            del remarks_list[remarks_list.index('mrp_change')]
+                        if update_mrp_on_grn == 'true':
+                            sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
+                            if sku_master.exists():
+                                if float(sku_master[0].mrp) != float(myDict['mrp'][i]):
+                                    sku_master.update(mrp=float(myDict['mrp'][i]))
+                                if myDict['weight'][i] and myDict['weight'][i] != get_sku_weight(sku_master[0]):
+                                    attr_obj = sku_master[0].skuattributes_set.filter(attribute_name='weight')
+                                    if attr_obj:
+                                        attr_obj.update(attribute_value=myDict['weight'][i])
 
         if 'offer_applicable' in myDict.keys() :
             offer_applicable = myDict['offer_applicable'][i]
@@ -2972,10 +3007,10 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             value = 0
         if not value:
             continue
-        if 'mrp' in myDict.keys() and update_mrp_on_grn == 'true' and myDict['mrp'][i]:
-            sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
-            if sku_master:
-                sku_master.update(mrp=float(myDict['mrp'][i]))
+        #if 'mrp' in myDict.keys() and update_mrp_on_grn == 'true' and myDict['mrp'][i]:
+        #    sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
+        #    if sku_master:
+        #        sku_master.update(mrp=float(myDict['mrp'][i]))
         if 'po_quantity' in myDict.keys() and 'price' in myDict.keys() and not myDict['id'][i]:
             if myDict['wms_code'][i] and myDict['quantity'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
@@ -3503,6 +3538,7 @@ def check_returns(request, user=''):
         except ObjectDoesNotExist:
             request_order_id = None
     if request_order_id:
+        key = [request_order_id]
         filter_params = {}
         order_id = re.findall('\d+', request_order_id)
         order_code = re.findall('\D+', request_order_id)
@@ -3519,6 +3555,14 @@ def check_returns(request, user=''):
         for picklist in picklists:
             wms_code = picklist.order.sku.wms_code
             sku_desc = picklist.order.sku.sku_desc
+            unit_price = picklist.order.unit_price
+            cod = picklist.order.customerordersummary_set.filter()
+            taxes = {'cgst': 0, 'sgst': 0, 'igst': 0}
+            if cod.exists():
+                cod = cod[0]
+                taxes['cgst'] = cod.cgst_tax
+                taxes['sgst'] = cod.sgst_tax
+                taxes['igst'] = cod.igst_tax
             if picklist.stock:
                 wms_code = picklist.stock.sku.wms_code
                 sku_desc = picklist.stock.sku.sku_desc
@@ -3526,24 +3570,29 @@ def check_returns(request, user=''):
             if not order_id:
                 order_id = picklist.order.order_code + str(picklist.order.order_id)
             cond = (order_id, wms_code, sku_desc, picklist.order.id)
-            all_data.setdefault(cond, 0)
-            all_data[cond] += picklist.picked_quantity
+            all_data.setdefault(cond, {'picked_quantity': 0, 'unit_price': unit_price, 'taxes': taxes})
+            all_data[cond]['picked_quantity'] += picklist.picked_quantity
         for key, value in all_data.iteritems():
             order_track_obj = OrderTracking.objects.filter(order_id=key[3], status='returned')
             if order_track_obj:
                 order_track_quantity = int(order_track_obj.aggregate(Sum('quantity'))['quantity__sum'])
-                if value == order_track_quantity:
+                if value['picked_quantity'] == order_track_quantity:
                     continue
                 else:
-                    remaining_return = int(value) - int(order_track_quantity)
-                    data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'order_detail_id': key[3],
+                    remaining_return = int(value['picked_quantity']) - int(order_track_quantity)
+                    dict_data = {'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'order_detail_id': key[3],
                                  'ship_quantity': remaining_return, 'return_quantity': remaining_return,
-                                 'damaged_quantity': 0})
+                                 'damaged_quantity': 0, 'unit_price': value['unit_price'] }
+                    dict_data.update(taxes)
+                    data.append(dict_data)
             else:
-                data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'order_detail_id': key[3],
-                             'ship_quantity': value, 'return_quantity': value, 'damaged_quantity': 0})
+                dict_data = {'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'order_detail_id': key[3],
+                             'ship_quantity': value['picked_quantity'], 'return_quantity': value['picked_quantity'],
+                             'damaged_quantity': 0, 'unit_price': value['unit_price']}
+                dict_data.update(taxes)
+                data.append(dict_data)
         if not data:
-            status = str(key[0]) + ' Order ID Already Returned'
+            status = str(key[0]) + ' Order ID Already Returned or Invalid'
             return HttpResponse(status)
     elif request_return_id:
         order_returns = OrderReturns.objects.filter(return_id=request_return_id, sku__user=user.id)
@@ -3577,8 +3626,12 @@ def check_returns(request, user=''):
 def check_sku(request, user=''):
     data = {}
     sku_code = request.GET.get('sku_code')
+    sku_brand = request.GET.get('sku_brand')
     allocate_order = request.GET.get('allocate_order', 'false')
     check = False
+    print("SKUCode Before Change::%s" %sku_code)
+    sku_code = check_and_return_barcodeconfig_sku(user, sku_code, sku_brand)
+    print("SKUCode After Change::%s" %sku_code)
     sku_id = check_and_return_mapping_id(sku_code, '', user, check)
     if not sku_id:
         try:
@@ -3649,6 +3702,14 @@ def create_return_order(data, user):
         return "", "", "SKU Code doesn't exist"
     return_details = copy.deepcopy(RETURN_DATA)
     user_obj = User.objects.get(id=user)
+    try:
+        data['return'] = float(data['return'])
+    except:
+        data['return'] = 0
+    try:
+        data['damaged'] = float(data['damaged'])
+    except:
+        data['damaged'] = 0
     if (data['return'] or data['damaged']) and sku_id:
         # order_details = OrderReturns.objects.filter(return_id = data['return_id'][i])
         quantity = data['return']
@@ -3941,7 +4002,7 @@ def confirm_sales_return(request, user=''):
     return_type = request.POST.get('return_type', '')
     return_process = request.POST.get('return_process')
     mp_return_data = {}
-    created_return_ids = []
+    created_return_ids = OrderedDict()
     log.info('Request params for Confirm Sales Return for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         # Group the Input Data Based on the Group Type
@@ -3951,6 +4012,8 @@ def confirm_sales_return(request, user=''):
             check_seller_order = True
             if not return_dict['id']:
                 return_dict['id'], status, seller_order_ids = create_return_order(return_dict, user.id)
+                if not return_dict['id']:
+                    continue
                 if seller_order_ids:
                     imeis = (return_dict['returns_imeis']).split(',')
                     for imei in imeis:
@@ -3964,7 +4027,10 @@ def confirm_sales_return(request, user=''):
             if not order_returns:
                 continue
             if order_returns[0].order:
-                created_return_ids.append(order_returns[0].return_id)
+                original_order_id = order_returns[0].order.original_order_id
+                created_return_ids.setdefault(original_order_id, [])
+                created_return_ids[original_order_id].append(order_returns[0].return_id)
+                #created_return_ids.append(order_returns[0].return_id)
             if return_dict.get('reason', ''):
                 update_return_reasons(order_returns[0], return_dict['reason'])
             if data_dict.get('returns_imeis', ''):
@@ -4026,11 +4092,12 @@ def confirm_sales_return(request, user=''):
         log.debug(traceback.format_exc())
         log.info('Confirm Sales return for ' + str(user.username) + ' is failed for ' + str(
             request.POST.dict()) + ' error statement is ' + str(e))
-    created_return_ids = list(set(created_return_ids))
+
     if created_return_ids:
         return_sales_print = []
-        for created_return_id in created_return_ids:
-            return_json = get_sales_return_print_json(created_return_id, user)
+        for original_order_id, created_return_id_list in created_return_ids.items():
+            created_return_id_list = list(set(created_return_id_list))
+            return_json = get_sales_return_print_json(created_return_id_list, user)
             return_sales_print.append(return_json)
 
         return render(request, 'templates/toggle/sales_return_print.html',
@@ -4132,6 +4199,7 @@ def validate_putaway(all_data, user):
     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
     validate_po_id = ''
     validate_seller_id = ''
+    wrong_skus = []
     if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
         get_values = all_data.keys()
         if get_values:
@@ -4142,28 +4210,34 @@ def validate_putaway(all_data, user):
                 validate_seller_id = pol.purchase_order.open_po.sellerpo_set.filter()[0].seller_id
     mrp_putaway_status = []
     for key, value in all_data.iteritems():
+
         if not validate_seller_id:
             continue
         if not key[1]:
             status = 'Location is Empty, Enter Location'
+            wrong_skus.append(key[4])
         if key[1]:
             loc = LocationMaster.objects.filter(location=key[1], zone__user=user.id)
             if loc:
                 loc = LocationMaster.objects.get(location=key[1], zone__user=user.id)
                 if 'Inbound' in loc.lock_status or 'Inbound and Outbound' in loc.lock_status:
                     status = 'Entered Location is locked for %s operations' % loc.lock_status
+                    wrong_skus.append(key[4])
 
                 if key[0]:
                     data = POLocation.objects.filter(id=key[0], location__zone__user=user.id, status=1)
                     if not data:
                         status = 'Data not Found or Already processed'
+                        wrong_skus.append(key[4])
                         continue
                     data = data[0]
                     if data.quantity < value:
                         status = 'Putaway quantity should be less than the Received Quantity'
+                        wrong_skus.append(key[4])
                     order_data = get_purchase_order_data(data.purchase_order)
                     if (float(data.purchase_order.received_quantity) - value) < 0:
                         status = 'Putaway quantity should be less than the Received Quantity'
+                        wrong_skus.append(key[4])
 
                 if back_order == "true":
                     sku_code = key[4]
@@ -4185,39 +4259,20 @@ def validate_putaway(all_data, user):
                     if diff and diff < value:
                         status = 'Bay Area Stock %s is reserved for %s in Picklist.You cannot putaway this stock.' % (
                         pick_res_quantity, sku_code)
+                        wrong_skus.append(key[4])
 
             else:
                 status = 'Enter Valid Location'
-
-        if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-            collect_sku_mrp_map = []
-            collect_dict_form = {}
-            collect_all_sellable_location = list(LocationMaster.objects.filter(zone__segregation='sellable',  zone__user=user.id, status=1).values_list('location', flat=True))
-            bulk_zones= get_all_zones(user ,zones=[MILKBASKET_BULK_ZONE])
-            bulk_locations=list(LocationMaster.objects.filter(zone__zone__in=bulk_zones, zone__user=user.id, status=1).values_list('location', flat=True))
-            sellable_bulk_locations=list(chain(collect_all_sellable_location ,bulk_locations))
-
-            if key[1] in sellable_bulk_locations:
-                sku_mrp_map = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku__wms_code=key[4],
-                                                         location__location__in=sellable_bulk_locations).\
-                                                    filter(sellerstock__seller_id=validate_seller_id).\
-                    exclude(batch_detail__mrp=None).values_list('sku__wms_code', 'batch_detail__mrp').distinct()
-
-                if sku_mrp_map:
-                    collect_sku_mrp_map = ['<#>'.join([str(one), str(two)]) for one, two in sku_mrp_map]
-                    for one, two in sku_mrp_map:
-                        sku_code = str(one)
-                        mrp = str(two)
-                        if sku_code in collect_dict_form.keys():
-                            collect_dict_form[sku_code].append(mrp)
-                        else:
-                            collect_dict_form[sku_code] = [mrp]
-                    if key[4] in collect_dict_form.keys():
-                        if not str(float(key[5])) in collect_dict_form[key[4]]:
-                            mrp_putaway_status.append('For SKU '+ key[4] +', MRPs ' + ','.join(collect_dict_form[key[4]]) + ' are only accepted')
+                wrong_skus.append(key[4])
+        if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' :
+            data_dict = {'sku_code':key[4], 'mrp':key[5], 'weight':key[6], 'seller_id':validate_seller_id, 'location': key[1]}
+            validation_status = validate_mrp_weight(data_dict,user)
+            if validation_status:
+                wrong_skus.append(key[4])
+                mrp_putaway_status.append(validation_status)
     if mrp_putaway_status:
         status += ', '.join(mrp_putaway_status)
-    return status
+    return status, wrong_skus
 
 
 def consume_bayarea_stock(sku_code, zone, quantity, user):
@@ -4384,14 +4439,14 @@ def putaway_data(request, user=''):
                 myDict['orig_data'][i] = eval(myDict['orig_data'][i])
                 for orig_data in myDict['orig_data'][i]:
                     if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-                        cond = (orig_data['orig_id'], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i], myDict['mrp'][i])
+                        cond = (orig_data['orig_id'], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i], myDict['mrp'][i], myDict['weight'][i])
                     else:
                         cond = (orig_data['orig_id'], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
                     all_data.setdefault(cond, 0)
                     all_data[cond] += float(orig_data['orig_quantity'])
             else:
                 if unique_mrp == 'true' and user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-                    cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i], myDict['mrp'][i])
+                    cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i], myDict['mrp'][i], myDict['weight'][i])
                 else:
                     cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
                 all_data.setdefault(cond, 0)
@@ -4399,9 +4454,9 @@ def putaway_data(request, user=''):
                     myDict['quantity'][i] = 0
                 all_data[cond] += float(myDict['quantity'][i])
         all_data = OrderedDict(sorted(all_data.items(), reverse=True))
-        status = validate_putaway(all_data, user)
+        status , wrong_skus = validate_putaway(all_data, user)
         if status:
-            return HttpResponse(status)
+            return HttpResponse(json.dumps({'status': status, 'wrong_skus': wrong_skus}))
         for key, value in all_data.iteritems():
             loc = LocationMaster.objects.get(location=key[1], zone__user=user.id)
             loc1 = loc
@@ -5596,8 +5651,14 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         email_body = 'pls find the attachment'
         email_subject = 'pos order'
     if report_type == 'rtv_mail':
-        email_body = 'Please Find the attachment'
-        email_subject = 'Returned To Vedor Form'
+        t = loader.get_template('templates/toggle/auto_rtv_mail_format.html')
+        email_body = t.render(data_dict_po)
+        extra_data = ''
+        if user.username in MILKBASKET_USERS:
+            extra_data = 'ASPL'
+        email_subject = 'Debit Note {} from {} {} to  {}'.format(data_dict_po.get('rtv_number',''),
+                                                                 extra_data,user.username,data_dict_po.get('supplier_name',''))
+
     if report_type == 'Purchase Order' and data_dict_po and user.username in MILKBASKET_USERS:
         milkbasket_mail_credentials = {'username':'Procurement@milkbasket.com', 'password':'codwtmtnjmvarvip'}
         t = loader.get_template('templates/toggle/auto_po_mail_format.html')
@@ -5939,6 +6000,7 @@ def returns_putaway_data(request, user=''):
     mod_locations = []
     marketplace_data = []
     seller_receipt_mapping = {}
+    unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
     for i in range(0, len(myDict['id'])):
         status = ''
         data_id = myDict['id'][i]
@@ -5959,6 +6021,11 @@ def returns_putaway_data(request, user=''):
             sku_id = returns_data.returns.sku_id
             return_wms_codes.append(returns_data.returns.sku.wms_code)
             seller_id = ''
+            unit_price = returns_data.returns.sku.cost_price
+            if returns_data.returns.order:
+                picklist = returns_data.returns.order.picklist_set.filter(stock__isnull=False)
+                if picklist:
+                    unit_price = picklist[0].stock.unit_price
             if user.username in MILKBASKET_USERS:
                 seller_obj = SellerMaster.objects.filter(seller_id=1, user=user.id).only('id')
                 if seller_obj.exists():
@@ -5975,6 +6042,12 @@ def returns_putaway_data(request, user=''):
             stock_filter_params = {'location_id': location_id[0].id, 'receipt_number': receipt_number,
                                    'sku_id': sku_id, 'sku__user': user.id, 'receipt_type': 'return'}
             if batch_detail:
+                if user.username in MILKBASKET_USERS and unique_mrp == 'true':
+                    data_dict = {'sku_code':returns_data.returns.sku.wms_code, 'mrp':batch_detail[0].mrp, 'weight':batch_detail[0].weight,
+                                 'seller_id':seller_id, 'location':location_id[0].location}
+                    status = validate_mrp_weight(data_dict, user)
+                    if status:
+                        return HttpResponse(status)
                 stock_filter_params['batch_detail_id'] = batch_detail[0].id
             stock_data = StockDetail.objects.filter(**stock_filter_params)
             seller_stock = None
@@ -6002,7 +6075,7 @@ def returns_putaway_data(request, user=''):
                               'receipt_date': datetime.datetime.now(),
                               'sku_id': sku_id, 'quantity': quantity, 'status': 1,
                               'creation_date': datetime.datetime.now(), 'updation_date': datetime.datetime.now(),
-                              'receipt_type': 'return'}
+                              'receipt_type': 'return', 'unit_price': unit_price}
                 if batch_detail:
                     stock_dict['batch_detail_id'] = batch_detail[0].id
                 new_stock = StockDetail(**stock_dict)
@@ -6031,7 +6104,7 @@ def returns_putaway_data(request, user=''):
             returns_data.save()
             status = 'Updated Successfully'
     return_wms_codes = list(set(return_wms_codes))
-    if user_profile.user_type == 'marketplace_user':
+    if user.username in MILKBASKET_USERS:
         check_and_update_marketplace_stock(return_wms_codes, user)
     else:
         check_and_update_stock(return_wms_codes, user)
@@ -8407,12 +8480,12 @@ def get_inv_based_po_payment_data(start_index, stop_index, temp_data, search_ter
             order_by = '-%s' % lis[col_num]
         master_data = SellerPOSummary.objects.filter(**user_filter).values(*result_values).distinct()\
                                      .annotate(payment_received=Sum('purchase_order__payment_received'))\
-                                     .order_by('-%s' % lis[col_num])
+                                     .order_by(order_by)
     else:
         master_data = SellerPOSummary.objects.filter(**user_filter)\
                                  .values(*result_values).distinct().annotate(payment_received=Sum('purchase_order__payment_received'))
 
-    #master_data = master_data.exclude(invoice_amount=F('payment_received'))
+    # master_data = master_data.exclude(invoice_amount=F('payment_received'))
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for data in master_data[start_index:stop_index]:
@@ -8458,7 +8531,7 @@ def po_get_invoice_payment_tracker(request, user=''):
     if not invoice_number:
         return "Invoice number is missing"
     user_filter = {'purchase_order__open_po__sku__user': user.id, "invoice_number": invoice_number, "purchase_order__open_po__supplier__id": supplier_id}
-    result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier__name', 'purchase_order__open_po__supplier__id']
+    result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier__name', 'purchase_order__open_po__supplier__id', 'invoice_number']
     master_data = SellerPOSummary.objects.filter(**user_filter).values(*result_values).distinct()\
                                  .annotate(tot_price = Sum(F('purchase_order__open_po__price')*F('quantity')),\
                                  tot_tax_perc = Sum(F('purchase_order__open_po__cgst_tax') +\
@@ -8466,12 +8539,24 @@ def po_get_invoice_payment_tracker(request, user=''):
                                  paynemt_received = Sum('purchase_order__payment_received'))
     order_data = []
     for data in master_data:
+        seller_summary_obj = SellerPOSummary.objects.filter(invoice_number=data['invoice_number'],\
+                                             purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
+        tot_amt = 0
+        for seller_sum in seller_summary_obj:
+            price = seller_sum.purchase_order.open_po.price
+            quantity = seller_sum.quantity
+            tot_price = price * quantity
+            tot_tax_perc = seller_sum.purchase_order.open_po.cgst_tax +\
+                           seller_sum.purchase_order.open_po.sgst_tax + seller_sum.purchase_order.open_po.igst_tax
+            tot_tax = float(tot_price * tot_tax_perc) / 100
+            tot_amt += (tot_price + tot_tax)
+        payment_receivable = tot_amt - data['paynemt_received']
         order_data.append(
                 {'order_id': data['purchase_order__order_id'],
                  'display_order': data['purchase_order__order_id'],
-                 'inv_amount': data['tot_price']+(data['tot_price']*data['tot_tax_perc']),
+                 'inv_amount': tot_amt,
                  'received': data['paynemt_received'],
-                 'receivable': (data['tot_price']+(data['tot_price']*data['tot_tax_perc'])) - data['paynemt_received']})
+                 'receivable': payment_receivable})
     response["data"] = order_data
     return HttpResponse(json.dumps(response))
 
@@ -8496,7 +8581,7 @@ def po_update_payment_status(request, user=''):
             continue
         payment = float(data_dict['amount'][i])
         seller_summary_obj = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=user.id,\
-                                                    purchase_order__order_id=data_dict['order_id'][i])
+                                                            invoice_number=invoice_number)
         invoice_amt = 0
         for seller_sum in seller_summary_obj:
             price = seller_sum.purchase_order.open_po.price
@@ -8520,6 +8605,7 @@ def po_update_payment_status(request, user=''):
             tot_tax = float(tot_price * tot_tax_perc) / 100
             invoice_amt = tot_price + tot_tax
 
+
             if float(invoice_amt) > float(order.payment_received):
                 diff = float(invoice_amt) - float(order.payment_received)
                 bank = request.GET.get('bank', '')
@@ -8530,11 +8616,11 @@ def po_update_payment_status(request, user=''):
                     payment -= diff
                     POPaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
                                                   payment_received=diff, bank=bank, mode_of_pay=mode_of_pay,\
-                                                  remarks=remarks)
+                                                  remarks=remarks, invoice_number=invoice_number)
                 else:
                     POPaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
                                                   payment_received=payment, bank=bank,\
-                                                  mode_of_pay=mode_of_pay, remarks=remarks)
+                                                  mode_of_pay=mode_of_pay, remarks=remarks, invoice_number=invoice_number)
                     order.payment_received = float(order.payment_received) + float(payment)
                     payment = 0
                 order.save()
@@ -8736,18 +8822,8 @@ def get_po_putaway_summary(request, user=''):
         if quantity <= 0:
             continue
         data_dict = {'summary_id': seller_summary.id, 'order_id': order.id, 'sku_code': sku.sku_code,
-                     'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price']}
-        data_dict['tax_percent'] = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax + open_po.cess_tax
-        d_zone_obj = StockDetail.objects.filter(sku_id =seller_summary.purchase_order.open_po.sku.id,sku__user = seller_summary.purchase_order.open_po.sku.user,location__zone__zone = 'DAMAGED_ZONE').exclude(quantity=0)
-        if d_zone_obj:
-            po_loc = POLocation.objects.filter(purchase_order_id=seller_summary.purchase_order_id,location__zone__user=seller_summary.purchase_order.open_po.sku.user,location__zone__zone= 'DAMAGED_ZONE')
-            if po_loc.exists():
-                quantity = po_loc[0].original_quantity
-            d_zone_qty = d_zone_obj[0].quantity
-            d_zone_loc = d_zone_obj[0].location.location
-            if quantity <= d_zone_qty:
-                data_dict['return_qty'] = d_zone_qty
-                data_dict['location'] = d_zone_loc
+                     'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price'],
+                     'tax_percent': open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax + open_po.cess_tax}
         if seller_summary.batch_detail:
             batch_detail = seller_summary.batch_detail
             data_dict['batch_no'] = batch_detail.batch_no
@@ -8816,11 +8892,10 @@ def get_debit_note_data(rtv_number, user):
         data_dict['pincode'] = get_po.supplier.pincode
         data_dict['pan'] = get_po.supplier.pan_number
         data_dict.setdefault('item_details', [])
-        data_dict_item = {}
-        data_dict_item['sku_code'] = get_po.sku.sku_code
-        data_dict_item['sku_desc'] = get_po.sku.sku_desc
-        data_dict_item['hsn_code'] = get_po.sku.hsn_code
-        data_dict_item['order_qty'] = obj.quantity
+        data_dict_item = {'sku_code': get_po.sku.sku_code, 'sku_desc': get_po.sku.sku_desc,
+                          'hsn_code': get_po.sku.hsn_code, 'order_qty': obj.quantity, 'mrp':get_po.sku.mrp}
+        if obj.seller_po_summary.batch_detail:
+            data_dict_item['mrp'] = obj.seller_po_summary.batch_detail.mrp
         if user.username in MILKBASKET_USERS:
             data_dict_item['price'] = 0
         else:
@@ -9042,28 +9117,40 @@ def create_rtv(request, user=''):
             date_val = get_financial_year(datetime.datetime.now())
             date_val = date_val.replace('-', '')
             rtv_number = '%s%s-%s' % (rtv_prefix_code, date_val, rtv_no)
+            invoice_number= ''
+            send_rtv_mail = False
+            if get_misc_value('rtv_mail', user.id) == 'true':
+                send_rtv_mail = True
             for final_dict in data_list:
                 update_stock_detail(final_dict['stocks'], float(final_dict['quantity']), user, final_dict['rtv_id'])
                 #ReturnToVendor.objects.create(rtv_number=rtv_number, seller_po_summary_id=final_dict['summary_id'],
                 #                              quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
                 rtv_reason = final_dict.get('rtv_reasons', '')
                 rtv_obj = ReturnToVendor.objects.get(id=final_dict['rtv_id'])
+                if send_rtv_mail:
+                    if not invoice_number:
+                        invoice_number = rtv_obj.seller_po_summary.invoice_number
                 rtv_obj.rtv_number = rtv_number
                 rtv_obj.return_type = return_type
                 rtv_obj.status=0
                 rtv_obj.return_reason = rtv_reason
                 rtv_obj.save()
-            report_data_dict = {}
             show_data_invoice = get_debit_note_data(rtv_number, user)
-            if get_misc_value('rtv_mail', user.id) == 'true':
+            if send_rtv_mail:
                 supplier_email = show_data_invoice.get('supplier_email', '')
+                data_dict_po = {'po_date': show_data_invoice.get('grn_date',''),
+                                'po_reference': show_data_invoice.get('grn_no',''),
+                                'invoice_number': invoice_number,
+                                'supplier_name':show_data_invoice.get('supplier_name',''),
+                                'rtv_number':show_data_invoice.get('rtv_number',''),
+                                 }
                 t = loader.get_template('templates/toggle/rtv_mail.html')
                 rendered_mail = t.render({'show_data_invoice': [show_data_invoice]})
                 supplier_phone_number = show_data_invoice.get('phone_number', '')
                 company_name = show_data_invoice.get('warehouse_details', '').get('company_name', '')
                 write_and_mail_pdf('Return_to_Vendor', rendered_mail, request, user,
                                    supplier_email, supplier_phone_number, company_name + 'Return to vendor order',
-                                   '', False, False, 'rtv_mail')
+                                   '', False, False, 'rtv_mail' ,data_dict_po )
             if user.username in MILKBASKET_USERS:
                 check_and_update_marketplace_stock(sku_codes, user)
             return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
@@ -9077,9 +9164,7 @@ def create_rtv(request, user=''):
 
 def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, col_filters={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    search_params = {}
-    search_params['status'] = 1
-    search_params['seller_po_summary__purchase_order__open_po__sku_id__in'] = sku_master_ids
+    search_params = {'status': 1, 'seller_po_summary__purchase_order__open_po__sku_id__in': sku_master_ids}
     lis = ['seller_po_summary__purchase_order__open_po__supplier_id',
            'seller_po_summary__purchase_order__open_po__supplier_id',
            'seller_po_summary__purchase_order__open_po__supplier__name',
@@ -9302,9 +9387,9 @@ def render_st_html_data(request, user, warehouse, all_data):
     html_data = t.render(data_dict)
     return html_data
 
-def get_sales_return_print_json(return_id, user):
+def get_sales_return_print_json(return_ids, user):
     sales_returns = OrderReturns.objects.select_related('sku', 'order', 'seller_order').\
-                                                        filter(return_id=return_id, sku__user=user.id)
+                                                        filter(return_id__in=return_ids, sku__user=user.id)
     data_dict = {}
     total_invoice_value = 0
     total_qty = 0
@@ -9398,7 +9483,7 @@ def get_sales_return_print_json(return_id, user):
     data_dict['total_utgst_value'] = total_utgst_value
     data_dict['total_with_gsts'] = total_with_gsts
     data_dict['total_invoice_value'] = total_invoice_value
-    data_dict['return_id'] = return_id
+    data_dict['return_id'] = return_ids[0]
     return data_dict
 
 
@@ -9612,7 +9697,7 @@ def update_existing_grn(request, user=''):
                          'mrp': 'mrp', 'buy_price': 'buy_price', 'invoice_number': 'invoice_number',
                          'invoice_date': 'invoice_date', 'dc_date': 'challan_date', 'dc_number': 'challan_number',
                          'tax_percent': 'tax_percent', 'cess_percent': 'cess_tax'}
-        zero_index_keys = ['invoice_number', 'invoice_date', 'dc_number', 'dc_date']
+        zero_index_keys = ['invoice_number', 'invoice_date', 'dc_number', 'dc_date','scan_pack']
         for ind in range(0, len(myDict['confirm_key'])):
             model_name = myDict['confirm_key'][ind].strip('_id')
             if myDict['confirm_key'][ind] == 'seller_po_summary_id':

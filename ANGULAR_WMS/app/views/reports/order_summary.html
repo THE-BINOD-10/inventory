@@ -6,6 +6,9 @@
           <div class="pull-left" ng-include="'views/common/title.html'"></div>
         </div>
         <div class="col-md-6 col-sm-6 col-xs-12">
+          <div ng-if="showCase.parent_username == 'gomechanic_admin'">
+            <button ng-if="showCase.report_data.excel_name" type="button" style="margin-left: 10px" class="btn btn-primary pull-right" ng-click="showCase.service.print_excel(showCase.model_data, showCase.dtInstance, showCase.dtColumns, 'tally_report', true)" ng-disabled="showCase.service.print_enable">Tally Excel</button>
+          </div>
           <div ng-include="'views/common/controls/report_downloads.html'"></div>
         </div>
       </div>

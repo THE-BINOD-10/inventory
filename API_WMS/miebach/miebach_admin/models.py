@@ -826,6 +826,7 @@ class MoveInventory(models.Model):
     batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True)
     pallet_detail = models.ForeignKey(PalletDetail, blank=True, null=True)
     seller = models.ForeignKey(SellerMaster, blank=True, null=True)
+    reason = models.CharField(max_length=256, default='', null=True, blank=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1910,6 +1911,7 @@ class PaymentSummary(models.Model):
     entered_amount = models.FloatField(default=0)
     balance_amount = models.FloatField(default=0)
     tds_amount = models.FloatField(default=0)
+    invoice_number = models.CharField(max_length=128, default='')
     payment_date = models.DateField(blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -2500,6 +2502,15 @@ class BarcodeSettings(models.Model):
 
     def __unicode__(self):
         return "%s, %s %s" % (self.user, self.show_fields, self.rows_columns)
+
+
+class BarCodeBrandMappingMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    configName = models.CharField(max_length=256, blank=True, null=True)
+    sku_brand = models.CharField(max_length=64, default='')
+    class Meta:
+        db_table = 'BARCODE_BRAND_MAPPING_MASTER'
 
 
 class InvoiceSequence(models.Model):

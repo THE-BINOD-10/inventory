@@ -12,6 +12,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.datatable = false;
   vm.industry_type = Session.user_profile.industry_type;
   vm.user_type = Session.user_profile.user_type;
+  vm.parent_username = Session.parent.parent_username
 
   vm.empty_data = {}
   vm.model_data = {};

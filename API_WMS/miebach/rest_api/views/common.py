@@ -878,6 +878,11 @@ def configurations(request, user=''):
         config_dict['rtv_reasons'] = ''
     else:
         config_dict['rtv_reasons'] = rtv_reasons
+    move_inventory_reasons = get_misc_value('move_inventory_reasons', user.id)
+    if move_inventory_reasons == 'false':
+        config_dict['move_inventory_reasons'] = ''
+    else:
+        config_dict['move_inventory_reasons'] = move_inventory_reasons
 
     if config_dict['mail_alerts'] == 'false':
         config_dict['mail_alerts'] = 0
@@ -994,7 +999,7 @@ def get_extra_data(excel_headers, result_data, user):
 @csrf_exempt
 @login_required
 @get_admin_user
-def print_excel(request, temp_data, headers, excel_name='', user='', file_type=''):
+def print_excel(request, temp_data, headers, excel_name='', user='', file_type='', tally_report=0):
     excel_headers = ''
     if temp_data['aaData']:
         excel_headers = temp_data['aaData'][0].keys()
@@ -1004,6 +1009,8 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
         excel_headers = headers
     for i in set(excel_headers) - set(headers):
         excel_headers.remove(i)
+    if tally_report ==1:
+        excel_headers = headers
     excel_headers, temp_data['aaData'] = get_extra_data(excel_headers, temp_data['aaData'], user)
     if not excel_name:
         excel_name = request.POST.get('serialize_data', '')
@@ -1042,7 +1049,7 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
         for i in range(0, len(data)):
             index = i + 1
             for ind, header_name in enumerate(excel_headers):
-                ws.write(index, excel_headers.index(header_name), data[i][header_name])
+                ws.write(index, excel_headers.index(header_name), data[i].get(header_name, ''))
 
         # for data in temp_data['aaData']:
         #     data_count += 1
@@ -1779,7 +1786,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
     return dest_batch
 
 def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp='',
-                        weight='', receipt_number='', receipt_type=''):
+                        weight='', receipt_number='', receipt_type='',reason=''):
     # sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
     try:
         sku = check_and_return_mapping_id(wms_code, "", user, False)
@@ -1861,7 +1868,7 @@ def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_i
 
         dest_batch = update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
                            dest_seller_id=seller_id, receipt_type=receipt_type, receipt_number=receipt_number)
-        move_inventory_dict = {'sku_id': sku_id, 'source_location_id': source[0].id,
+        move_inventory_dict = {'sku_id': sku_id, 'source_location_id': source[0].id,'reason':reason,
                                'dest_location_id': dest[0].id, 'quantity': move_quantity, }
         if seller_id:
             move_inventory_dict['seller_id'] = seller_id
@@ -2472,32 +2479,23 @@ def save_order_sku_extra_fields(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-def save_grn_fields(request, user=''):
-    grn_fields = request.GET.get('grn_fields', '')
-    po_fields = request.GET.get('po_fields', '')
-    rtv_reasons = request.GET.get('rtv_reasons', '')
-    if grn_fields:
-        misc_type = 'grn_fields'
-        fields = grn_fields
-    if po_fields:
-        misc_type = 'po_fields'
-        fields = po_fields
-    if rtv_reasons:
-        misc_type = 'rtv_reasons'
-        fields = rtv_reasons
-    if len(fields.split(',')) <=  4 :
-        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=misc_type)
+def save_config_extra_fields(request, user=''):
+    field_type = request.GET.get('field_type', '')
+    fields = request.GET.get('config_extra_fields', '')
+    field_type =field_type.strip('.')
+    if len(fields.split(',')) <=  4 or field_type == 'move_inventory_reasons' :
+        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=field_type)
         try:
             if not misc_detail.exists():
-                 MiscDetail.objects.create(user=user.id,misc_type=misc_type,misc_value=fields)
+                 MiscDetail.objects.create(user=user.id,misc_type=field_type,misc_value=fields)
             else:
                 misc_detail_obj = misc_detail[0]
                 misc_detail_obj.misc_value = fields
                 misc_detail_obj.save()
-        except:
+        except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
-            log.info('Issue for ' + request)
+            log.info('Issue for {} withe exception {}'.format(request.GET.dict(),str(e)))
             return HttpResponse("Something Went Wrong")
     else:
         return HttpResponse("Limit Exceeded Enter only Four Fields")
@@ -2869,10 +2867,10 @@ def check_and_update_marketplace_stock(sku_codes, user):
         try:
             sku_tupl = (user.username, sku_codes)
             log.info('Update for stock sync of'+str(sku_tupl))
-            response = obj.update_stock_count(sku_tupl, user=user)
             log_mb_sync = ('Updating for stock sync of skus %s from the user %s ' %
                                         (str(sku_codes), str(user.username)))
             mb_stock_sycn_log(log_mb_sync, user)
+            response = obj.update_stock_count(sku_tupl, user=user)
         except Exception as e:
             log.info('Stock sync failed for %s and skus are %s and error statement is %s'%
                         (str(user.username),str(sku_codes), str(e)))
@@ -5740,8 +5738,11 @@ def generate_barcode_dict(pdf_format, myDicts, user):
                     single.update()
                     single['SKUCode'] = sku if sku else label
                     single['Label'] = label if label else sku
-                    if barcode_opt == 'sku_ean' and sku_data.ean_number:
-                        single['Label'] = str(sku_data.ean_number)
+                    if barcode_opt == 'sku_ean' :
+                        if sku_data.ean_number:
+                            single['Label'] = str(sku_data.ean_number)
+                        elif  EANNumbers.objects.filter(sku__id = sku_data.id).exists():
+                            single['Label'] = EANNumbers.objects.filter(sku__id=sku_data.id)[0].ean_number
                     single['SKUPrintQty'] = quant
                     if myDict.get('mfg_date', ''):
                         single['mfg_date'] = myDict['mfg_date'][ind]
@@ -6759,8 +6760,8 @@ def update_order_dicts(orders, user='', company_name=''):
             order['order_summary_dict']['order_id'] = order_detail.id
             customer_order_summary = CustomerOrderSummary.objects.create(**order['order_summary_dict'])
         if order.get('seller_order_dict', {}):
-            trans_mapping = check_create_seller_order(order['seller_order_dict'], order_detail, user,
-                                                      order.get('swx_mappings', []), trans_mapping=trans_mapping)
+            check_create_seller_order(order['seller_order_dict'], order_detail, user,
+                                      order.get('swx_mappings', []), trans_mapping=trans_mapping)
         order_sku = {}
         sku_obj = SKUMaster.objects.filter(id=order_det_dict['sku_id'])
 
@@ -7364,6 +7365,8 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         combo_sku_ids.append(order.sku_id)
         sku_id_stock_filter = {'sku_id__in': combo_sku_ids}
         needed_mrp_filter = 0
+        if order.sku.relation_type == 'combo':
+            add_mrp_filter = False
         if add_mrp_filter:
             if 'st_po' not in dir(order) and order.customerordersummary_set.filter().exists():
                 needed_mrp_filter = order.customerordersummary_set.filter()[0].mrp
@@ -7386,10 +7389,9 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         else:
             sku_id_stocks = sku_stocks.filter(**sku_id_stock_filter).values('id', 'sku_id').\
                                         annotate(total=Sum('quantity')).order_by(order_by)
-        val_dict = {}
-        val_dict['sku_ids'] = map(lambda d: d['sku_id'], sku_id_stocks)
-        val_dict['stock_ids'] = map(lambda d: d['id'], sku_id_stocks)
-        val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)
+        val_dict = {'sku_ids': map(lambda d: d['sku_id'], sku_id_stocks),
+                    'stock_ids': map(lambda d: d['id'], sku_id_stocks),
+                    'stock_totals': map(lambda d: d['total'], sku_id_stocks)}
         pc_loc_filter = OrderedDict()
         pc_loc_filter['picklist__order__user'] = user.id
         #if is_seller_order or add_mrp_filter:
@@ -7919,6 +7921,81 @@ def update_profile_shipment_address(request, user=''):
         import traceback
         log.debug(traceback.format_exc())
         log.info('updation of user shipment Address Failed %s ' % (str(user.username)))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_barcode_configuration(request, user=''):
+    "Different BarCode Configurations will be stored based"
+    scanning_type = request.POST.get('scanning_type', 'sku_based')
+    config_name = request.POST.get('configuration_title', '')
+    removeAfterSpacesFlag = request.POST.get('remove_after_spaces', 'false')
+    condition1 = request.POST.get('condition1', '')
+    expression1 = request.POST.get('expression1', '')
+    condition2 = request.POST.get('condition2', '')
+    expression2 = request.POST.get('expression2', '')
+    miscOptionsDict = {'scanning_type': scanning_type, 'remove_after_spaces': removeAfterSpacesFlag}
+    if condition1 and expression1:
+        miscOptionsDict.update({'condition1': condition1, 'expression1': expression1})
+    if condition2 and expression2:
+        miscOptionsDict.update({'condition2': condition2, 'expression2': expression2})
+
+    miscExistingObj = MiscDetail.objects.filter(misc_type__contains='barcode_configuration', user=user.id, misc_value=config_name)
+    configId = 1
+    if not miscExistingObj.exists():
+        dbMaxConfigId = MiscDetail.objects.filter(misc_type__contains='barcode_configuration', 
+                    user=user.id).order_by('-id').values_list('misc_type', flat=True)
+        if dbMaxConfigId:
+            configId = int(dbMaxConfigId[0].split('_')[-1])+1
+        miscObj = MiscDetail.objects.create(misc_type='barcode_configuration_%s'%configId, misc_value=config_name, user=user.id)
+    else:
+        miscObj = miscExistingObj[0]
+    for k, v in miscOptionsDict.items():
+        MiscDetailOptions.objects.create(misc_detail=miscObj, misc_key=k, misc_value=v)
+    return HttpResponse('Success')
+
+
+@login_required
+@get_admin_user
+def get_barcode_configurations(request, user=''):
+    barcode_configs = []
+    barcodeConfigs = MiscDetail.objects.filter(user=user.id, misc_type__contains='barcode_configuration')
+    if barcodeConfigs.exists():
+        for eachConfig in barcodeConfigs:
+            configDict = {'title': eachConfig.misc_value}
+            for configData in eachConfig.miscdetailoptions_set.values():
+                configDict.update({configData['misc_key']: configData['misc_value']})
+            barcode_configs.append(configDict)
+        return HttpResponse(json.dumps({'msg':1, 'data': barcode_configs}))
+    else:
+        return HttpResponse(json.dumps({'msg':1, 'data': 'null'}))
+
+
+def check_and_return_barcodeconfig_sku(user, sku_code, sku_brand):
+    configName = ''
+    conditions = {}
+    configMappingObj = BarCodeBrandMappingMaster.objects.filter(sku_brand=sku_brand, user=user)
+    if configMappingObj.exists():
+        configName = configMappingObj[0].configName
+    brandConfigObj = MiscDetail.objects.filter(user=user.id, misc_type__contains='barcode_configuration', misc_value=configName)
+    if brandConfigObj.exists():
+        conditions = dict(brandConfigObj[0].miscdetailoptions_set.values_list('misc_key', 'misc_value'))
+    for k, v in conditions.items():
+        if k == 'remove_after_spaces' and v == 'true':
+            sku_code = sku_code.split(' ')[0]
+        elif k == 'condition1':
+            vThChar = sku_code[int(v)-1]
+            if sku_code[int(v)-1].isdigit():
+                expression1Char = int(conditions.get('expression1'))
+                sku_code = sku_code[:expression1Char]
+        elif k == 'condition2':
+            vThChar = sku_code[int(v)-1]
+            if sku_code[int(v)-1].isalpha():
+                expression2Char = int(conditions.get('expression2'))
+                sku_code = sku_code[:expression2Char]
+    return sku_code
+
 
 def get_purchase_company_address(profile):
     """ Returns Company address for purchase order"""
@@ -10437,4 +10514,34 @@ def get_distinct_price_types(user):
                        distinct())
     price_types = list(chain(price_types1, price_types2))
     return price_types
+
+def validate_mrp_weight(data_dict, user):
+    collect_dict_form = {}
+    status = ''
+    collect_all_sellable_location = list(LocationMaster.objects.filter(zone__segregation='sellable',  zone__user=user.id, status=1).values_list('location', flat=True))
+    bulk_zones= get_all_zones(user ,zones=[MILKBASKET_BULK_ZONE])
+    bulk_locations=list(LocationMaster.objects.filter(zone__zone__in=bulk_zones, zone__user=user.id, status=1).values_list('location', flat=True))
+    sellable_bulk_locations=list(chain(collect_all_sellable_location ,bulk_locations))
+    if data_dict['location'] in sellable_bulk_locations:
+        sku_mrp_weight_map = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku__wms_code=data_dict['sku_code'],
+                                             location__location__in=sellable_bulk_locations).\
+                            exclude(batch_detail__mrp=data_dict['mrp'], batch_detail__weight=data_dict['weight']).values_list('sku__wms_code', 'batch_detail__mrp', 'batch_detail__weight').distinct()
+        if sku_mrp_weight_map:
+            for sku_code, mrp, weight_dict in sku_mrp_weight_map:
+                mrp_weight_dict = {'mrp':[str(mrp)], 'weight':[weight_dict]}
+                if sku_code in collect_dict_form.keys():
+                    collect_dict_form[sku_code]['mrp'].append(mrp_weight_dict['mrp'][0])
+                    collect_dict_form[sku_code]['weight'].append(mrp_weight_dict['weight'][0])
+                else:
+                    collect_dict_form[sku_code] = mrp_weight_dict
+            if data_dict['sku_code'] in collect_dict_form.keys():
+                if not str(data_dict['mrp']) in str(collect_dict_form[data_dict['sku_code']]["mrp"]) or not str(data_dict['weight']) in str(collect_dict_form[data_dict['sku_code']]["weight"]):
+                    status = 'For SKU '+str(data_dict['sku_code'])+', MRP '+str(",".join(collect_dict_form[data_dict['sku_code']]["mrp"]))+' and WEIGHT '+str(",".join(collect_dict_form[data_dict['sku_code']]["weight"]))+' are only accepted.'
+    return status
+
+def mb_weight_correction(weight):
+    if weight:
+        weight = re.sub("\s\s+" , " ", weight).upper().replace('UNITS', 'Units').replace('PCS', 'Pcs').\
+                replace('UNIT', 'Unit').replace('INCHES', 'Inches').replace('INCH', 'Inch').strip()
+    return weight
 

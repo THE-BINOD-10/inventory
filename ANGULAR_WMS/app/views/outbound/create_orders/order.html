@@ -132,10 +132,10 @@
             <input name="email_id" class="form-control" type="email" ng-model="showCase.model_data.email_id" readonly>
           </div>
         </div>
-        <div class="col-md-4 col-sm-4 col-xs-6" ng-hide="true">
+        <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
             <label class="control-label">Tax Type</label>
-            <select class="form-control" name="tax_type" ng-model="showCase.model_data.tax_type" ng-change="showCase.change_tax_type();">
+            <select class="form-control" name="tax_type" ng-model="showCase.model_data.tax_type" ng-change="showCase.change_tax_type();" ng-readonly="showCase.tax_type_readonly" ng-style="{'pointer-events': showCase.tax_type_readonly ? 'none' : 'auto' }">
               <option ng-repeat="tax in showCase.create_order_data.taxes" ng-selected="showCase.model_data.tax_type == create_order_data.taxes[0].tax_type" value="{{tax.tax_value}}">{{tax.tax_name}}</option>
             </select>
           </div>

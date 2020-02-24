@@ -37,6 +37,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         if(Session.user_profile.industry_type === 'FMCG'){
           vm.dtColumns.push(DTColumnBuilder.newColumn('Seller').withTitle('Seller'))
         }
+        if (vm.industry_type == "FMCG" && vm.user_type == "marketplace_user") {
+            vm.dtColumns.splice(8, 0, DTColumnBuilder.newColumn('Manufacturer').withTitle('Manufacturer'))
+            vm.dtColumns.splice(9, 0, DTColumnBuilder.newColumn('Searchable').withTitle('Searchable'))
+            vm.dtColumns.splice(10, 0, DTColumnBuilder.newColumn('Bundle').withTitle('Bundle'))
+             }
+
         vm.datatable = true;
         vm.dtInstance = {};
       })

@@ -2320,6 +2320,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'show_mrp_grn': 'show_mrp_grn',
                         'display_dc_invoice': 'display_dc_invoice',
                         'display_order_reference': 'display_order_reference',
+                        'mandate_invoice_number':'mandate_invoice_number',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -3369,7 +3370,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price',
                          'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number','overall_discount',
-                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks','purchase_order__open_po__supplier__tin_number','purchase_order__id']
+                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks','purchase_order__open_po__supplier__tin_number','purchase_order__id','price']
     else:
         unsorted_dict = {16: 'Pre-Tax Received Value', 29: 'Post-Tax Received Value',
                          30: 'Invoiced Unit Rate',
@@ -3417,9 +3418,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'seller_po__margin_percent', 'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price','overall_discount',
                          'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number',
-                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks', 'purchase_order__open_po__supplier__tin_number',
-                         'purchase_order__id'
-                         ]
+                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks', 'purchase_order__open_po__supplier__tin_number','purchase_order__id','price']
     excl_status = {'purchase_order__status': ''}
     ord_quan = 'quantity'
     rec_quan = 'quantity'
@@ -3501,7 +3500,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         po_number = '%s%s_%s/%s' % (data[field_mapping['prefix']],
                                  str(result.creation_date).split(' ')[0].replace('-', ''),
                                  data[field_mapping['order_id']], str(receipt_no))
-        price = data['purchase_order__open_po__price']
+        price = data['price']
         if data.get('batch_detail__buy_price', 0):
             price = data['batch_detail__buy_price']
         mrp = data['purchase_order__open_po__mrp']

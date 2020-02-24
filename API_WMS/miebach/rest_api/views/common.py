@@ -1046,8 +1046,6 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
             wb, ws = get_work_sheet('skus', excel_headers)
         data_count = 0
         data = temp_data['aaData']
-        if tally_report ==1:
-            data = temp_data['aaData'][1:]
         for i in range(0, len(data)):
             index = i + 1
             for ind, header_name in enumerate(excel_headers):

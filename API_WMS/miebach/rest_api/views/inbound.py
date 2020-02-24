@@ -3538,6 +3538,7 @@ def check_returns(request, user=''):
         except ObjectDoesNotExist:
             request_order_id = None
     if request_order_id:
+        key = [request_order_id]
         filter_params = {}
         order_id = re.findall('\d+', request_order_id)
         order_code = re.findall('\D+', request_order_id)
@@ -3591,7 +3592,7 @@ def check_returns(request, user=''):
                 dict_data.update(taxes)
                 data.append(dict_data)
         if not data:
-            status = str(key[0]) + ' Order ID Already Returned'
+            status = str(key[0]) + ' Order ID Already Returned or Invalid'
             return HttpResponse(status)
     elif request_return_id:
         order_returns = OrderReturns.objects.filter(return_id=request_return_id, sku__user=user.id)
@@ -3701,6 +3702,14 @@ def create_return_order(data, user):
         return "", "", "SKU Code doesn't exist"
     return_details = copy.deepcopy(RETURN_DATA)
     user_obj = User.objects.get(id=user)
+    try:
+        data['return'] = float(data['return'])
+    except:
+        data['return'] = 0
+    try:
+        data['damaged'] = float(data['damaged'])
+    except:
+        data['damaged'] = 0
     if (data['return'] or data['damaged']) and sku_id:
         # order_details = OrderReturns.objects.filter(return_id = data['return_id'][i])
         quantity = data['return']
@@ -3993,7 +4002,7 @@ def confirm_sales_return(request, user=''):
     return_type = request.POST.get('return_type', '')
     return_process = request.POST.get('return_process')
     mp_return_data = {}
-    created_return_ids = []
+    created_return_ids = OrderedDict()
     log.info('Request params for Confirm Sales Return for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         # Group the Input Data Based on the Group Type
@@ -4003,6 +4012,8 @@ def confirm_sales_return(request, user=''):
             check_seller_order = True
             if not return_dict['id']:
                 return_dict['id'], status, seller_order_ids = create_return_order(return_dict, user.id)
+                if not return_dict['id']:
+                    continue
                 if seller_order_ids:
                     imeis = (return_dict['returns_imeis']).split(',')
                     for imei in imeis:
@@ -4016,7 +4027,10 @@ def confirm_sales_return(request, user=''):
             if not order_returns:
                 continue
             if order_returns[0].order:
-                created_return_ids.append(order_returns[0].return_id)
+                original_order_id = order_returns[0].order.original_order_id
+                created_return_ids.setdefault(original_order_id, [])
+                created_return_ids[original_order_id].append(order_returns[0].return_id)
+                #created_return_ids.append(order_returns[0].return_id)
             if return_dict.get('reason', ''):
                 update_return_reasons(order_returns[0], return_dict['reason'])
             if data_dict.get('returns_imeis', ''):
@@ -4078,11 +4092,12 @@ def confirm_sales_return(request, user=''):
         log.debug(traceback.format_exc())
         log.info('Confirm Sales return for ' + str(user.username) + ' is failed for ' + str(
             request.POST.dict()) + ' error statement is ' + str(e))
-    created_return_ids = list(set(created_return_ids))
+
     if created_return_ids:
         return_sales_print = []
-        for created_return_id in created_return_ids:
-            return_json = get_sales_return_print_json(created_return_id, user)
+        for original_order_id, created_return_id_list in created_return_ids.items():
+            created_return_id_list = list(set(created_return_id_list))
+            return_json = get_sales_return_print_json(created_return_id_list, user)
             return_sales_print.append(return_json)
 
         return render(request, 'templates/toggle/sales_return_print.html',
@@ -8809,16 +8824,6 @@ def get_po_putaway_summary(request, user=''):
         data_dict = {'summary_id': seller_summary.id, 'order_id': order.id, 'sku_code': sku.sku_code,
                      'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price'],
                      'tax_percent': open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax + open_po.cess_tax}
-        d_zone_obj = StockDetail.objects.filter(sku_id =seller_summary.purchase_order.open_po.sku.id,sku__user = seller_summary.purchase_order.open_po.sku.user,location__zone__zone = 'DAMAGED_ZONE').exclude(quantity=0)
-        if d_zone_obj:
-            po_loc = POLocation.objects.filter(purchase_order_id=seller_summary.purchase_order_id,location__zone__user=seller_summary.purchase_order.open_po.sku.user,location__zone__zone= 'DAMAGED_ZONE')
-            if po_loc.exists():
-                quantity = po_loc[0].original_quantity
-            d_zone_qty = d_zone_obj[0].quantity
-            d_zone_loc = d_zone_obj[0].location.location
-            if quantity <= d_zone_qty:
-                data_dict['return_qty'] = d_zone_qty
-                data_dict['location'] = d_zone_loc
         if seller_summary.batch_detail:
             batch_detail = seller_summary.batch_detail
             data_dict['batch_no'] = batch_detail.batch_no
@@ -9382,9 +9387,9 @@ def render_st_html_data(request, user, warehouse, all_data):
     html_data = t.render(data_dict)
     return html_data
 
-def get_sales_return_print_json(return_id, user):
+def get_sales_return_print_json(return_ids, user):
     sales_returns = OrderReturns.objects.select_related('sku', 'order', 'seller_order').\
-                                                        filter(return_id=return_id, sku__user=user.id)
+                                                        filter(return_id__in=return_ids, sku__user=user.id)
     data_dict = {}
     total_invoice_value = 0
     total_qty = 0
@@ -9478,7 +9483,7 @@ def get_sales_return_print_json(return_id, user):
     data_dict['total_utgst_value'] = total_utgst_value
     data_dict['total_with_gsts'] = total_with_gsts
     data_dict['total_invoice_value'] = total_invoice_value
-    data_dict['return_id'] = return_id
+    data_dict['return_id'] = return_ids[0]
     return data_dict
 
 

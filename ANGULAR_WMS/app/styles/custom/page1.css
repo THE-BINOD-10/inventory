@@ -152,3 +152,6 @@
 .print-height {
   height: fit-content !important;
 }
+.in_header{
+  overflow-x:auto;
+ }

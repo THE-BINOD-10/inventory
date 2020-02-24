@@ -61,7 +61,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                    vm.selected = {};
                  }
                  vm.selected[meta.row] = vm.selectAll;
-                 return vm.service.frontHtml + meta.row + vm.service.endHtml;
+                 return vm.service.frontHtml + meta.row + vm.service.processOrderHtml;
                }))
 
         vm.dtInstance = {};
@@ -75,6 +75,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.display = true;
       }
     });
+
+    vm.invoiceSelectionCheck = function(data){
+      var multiple_check = []
+      angular.forEach(data, function(key, val){
+        if (key){
+          if (multiple_check.length > 0){
+            vm.service.showNoty("Only single invoice selection was allowed");
+            data[val] = false;
+          }
+          else{
+            multiple_check.push(vm.dtInstance.DataTable.context[0].aoData[parseInt(val)]['_aData'])
+          }
+        }
+      });
+    }
 
     vm.generate_invoice = function(click_type, DC=false){
 

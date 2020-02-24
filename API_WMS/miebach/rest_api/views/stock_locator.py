@@ -955,6 +955,18 @@ def get_sku_stock_data(start_index, stop_index, temp_data, search_term, order_te
              'DT_RowAttr': {'data-id': data.id}})
 
 
+def get_aging_bracket(age_days):
+    aging_bracket_dict = {(0, 30): '0 - 30', (31, 60): '31 - 60', (61, 90): '61 - 90',
+                          (91, 120): '91 - 120', (121, 150): '121 - 150',
+                          (151, 180): '151 - 180'}
+    for key, value in aging_bracket_dict.items():
+        if age_days in range(key[0], key[1] + 1):
+            aging_bracket = value
+            break
+    else:
+        aging_bracket = '180 - Above'
+    return aging_bracket
+
 @csrf_exempt
 def get_stock_detail_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                              filters):
@@ -962,6 +974,10 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
     lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'location__zone__zone',
            'location__location', 'quantity',
            'receipt_type', 'stock_value', 'pallet_detail__pallet_code']
+    is_fmcg = True
+    if not user.userprofile.industry_type == 'FMCG':
+        is_fmcg = False
+        lis = lis + ['receipt_date', 'receipt_date', 'sku__user']
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -997,33 +1013,43 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
         _date = _date.strftime("%d %b, %Y")
         stock_quantity = get_decimal_limit(user.id, data.quantity)
         taken_unit_price = data.unit_price
-        # if not taken_unit_price:
-        #    taken_unit_price = data.sku.cost_price
+        # if pallet_switch == 'true':
+        #     pallet_code = ''
+        #     if data.pallet_detail:
+        #         pallet_code = data.pallet_detail.pallet_code
+        #     temp_data['aaData'].append(OrderedDict((('Receipt ID', data.receipt_number), ('DT_RowClass', 'results'),
+        #                                             ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
+        #                                             ('WMS Code', data.sku.wms_code),
+        #                                             ('Product Description', data.sku.sku_desc),
+        #                                             ('Zone', data.location.zone.zone),
+        #                                             ('Location', data.location.location),
+        #                                             ('Quantity', stock_quantity),
+        #                                             ('Pallet Code', pallet_code), ('Receipt Type', data.receipt_type),
+        #                                             ('Stock Value', '%.2f' % (taken_unit_price * stock_quantity))
+        #                                             )))
+        # else:
+        data_dict = OrderedDict((('Receipt ID', data.receipt_number), ('DT_RowClass', 'results'),
+                                                ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
+                                                ('WMS Code', data.sku.wms_code),
+                                                ('Product Description', data.sku.sku_desc),
+                                                ('Zone', data.location.zone.zone),
+                                                ('Location', data.location.location),
+                                                ('Quantity', stock_quantity),
+                                                ('Receipt Type', data.receipt_type),
+                                                ('Stock Value', '%.2f' % (taken_unit_price * stock_quantity))
+                                                ))
         if pallet_switch == 'true':
             pallet_code = ''
             if data.pallet_detail:
                 pallet_code = data.pallet_detail.pallet_code
-            temp_data['aaData'].append(OrderedDict((('Receipt ID', data.receipt_number), ('DT_RowClass', 'results'),
-                                                    ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
-                                                    ('WMS Code', data.sku.wms_code),
-                                                    ('Product Description', data.sku.sku_desc),
-                                                    ('Zone', data.location.zone.zone),
-                                                    ('Location', data.location.location),
-                                                    ('Quantity', stock_quantity),
-                                                    ('Pallet Code', pallet_code), ('Receipt Type', data.receipt_type),
-                                                    ('Stock Value', '%.2f' % (taken_unit_price * stock_quantity))
-                                                    )))
-        else:
-            temp_data['aaData'].append(OrderedDict((('Receipt ID', data.receipt_number), ('DT_RowClass', 'results'),
-                                                    ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
-                                                    ('WMS Code', data.sku.wms_code),
-                                                    ('Product Description', data.sku.sku_desc),
-                                                    ('Zone', data.location.zone.zone),
-                                                    ('Location', data.location.location),
-                                                    ('Quantity', stock_quantity),
-                                                    ('Receipt Type', data.receipt_type),
-                                                    ('Stock Value', '%.2f' % (taken_unit_price * stock_quantity))
-                                                    )))
+            data_dict.update({'Pallet Code': pallet_code})
+        if not is_fmcg:
+            age_days = (datetime.datetime.now().date() - data.receipt_date.date()).days
+            aging_bracket = get_aging_bracket(age_days)
+            data_dict.update({'Aging in Days': age_days})
+            data_dict.update({'Aging Bracket': aging_bracket})
+            data_dict.update({'Warehouse': user.username})
+        temp_data['aaData'].append(data_dict)
 
 
 @csrf_exempt
@@ -3555,7 +3581,8 @@ def ba_to_sa_calculate_now(request, user=''):
                 sku_classification_dict1['remarks'] = remarks
                 save_ba_to_sa_remarks(sku_classification_dict1, sku_classification_objs,
                                       remarks_sku_ids)
-                continue
+                if sku_avail_qty:
+                    continue
             ba_stock_dict = ba_sku_avail_qty.get(data.id, {})
             if replenishment_qty < 20:
                 replenishment_qty = 20

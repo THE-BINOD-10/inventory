@@ -43,11 +43,14 @@
                       <td><input type="text" name="wms_code" class = "form-control" value = "{{showCase.row_data['WMS Code']}}" readonly></td>
                       <td><input type="text" name="product_description" class = "form-control" value = "{{showCase.row_data['Product Description']}}" readonly></td>
                       <td><input type="text" name="sku_category" class = "form-control" value = "{{showCase.row_data['SKU Category']}}" readonly></td>
-                      <td><input type="text" name="batch_number" class = "form-control" value = "{{showCase.row_data['Batch Number']}}" readonly></td>
+                      <td><input type="text" name="batch_no" class = "form-control" value = "{{showCase.row_data['Batch Number']}}"></td>
                       <td><input type="text" name="mrp" class = "form-control" value = "{{showCase.row_data['MRP']}}"></td>
-                      <td><input type="text" name="weight" class = "form-control" ng-keyup="showCase.validate_weight($event, showCase.row_data  )" value = "{{showCase.row_data['Weight']}}"></td>
-                      <td><input type="text" name="price" class = "form-control" value = "{{showCase.row_data['Price']}}"></td>
-                      <td><input type="text" name="tax_percent" class = "form-control" value = "{{showCase.row_data['Tax Percent']}}" readonly></td>
+                      <td><input type="text" name="weight" class = "form-control" ng-keyup="showCase.validate_weight($event, showCase.row_data)"
+                                 value = "{{showCase.row_data['Weight']}}"
+                                 ng-model = "showCase.row_data['Weight']"
+                                 ></td>
+                      <td><input type="text" name="buy_price" class = "form-control" value = "{{showCase.row_data['Price']}}"></td>
+                      <td><input type="text" name="tax_percent" class = "form-control" value = "{{showCase.row_data['Tax Percent']}}"></td>
                       <td><input type="text" name="manufactured_date" ui-jq="datepicker"
                                  class = "form-control" value = "{{showCase.row_data['mfg_date']}}"></td>
                       <td><input type="text" name="expiry_date" ui-jq="datepicker"

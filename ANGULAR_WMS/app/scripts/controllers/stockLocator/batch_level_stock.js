@@ -75,14 +75,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     vm.milkbasket_users = ['milkbasket_test', 'NOIDA02', 'NOIDA01', 'GGN01', 'HYD01', 'BLR01'];
     vm.parent_username = Session.parent.userName;
     vm.validate_weight = function(event, row_data) {
-     if(vm.milkbasket_users.indexOf(vm.parent_username) >= 0){
-       row_data['Weight'] = row_data['Weight'].toUpperCase().replace('UNITS', 'Units').replace(/\s\s+/g, ' ').replace('PCS', 'Pcs').replace('UNIT', 'Unit').replace('INCHES', 'Inches').replace('INCH', 'Inch');
-       setTimeout(() => { row_data['Weight'] = row_data['Weight'].trim(); }, 100);
+     if(vm.milkbasket_users.indexOf(vm.parent_username) >= -1){
+       vm.row_data['Weight'] = vm.row_data['Weight'].toUpperCase().replace('UNITS', 'Units').replace(/\s\s+/g, ' ').replace('PCS', 'Pcs').replace('UNIT', 'Unit').replace('INCHES', 'Inches').replace('INCH', 'Inch');
+       setTimeout(() => { vm.row_data['Weight'] = vm.row_data['Weight'].trim(); }, 100);
      }
    }
     vm.submit = function() {
       var elem = angular.element($('form'));
-      elem = $(elem).serializeArray();
+      elem = $(elem[1]).serializeArray();
       vm.service.apiCall('stock_detail_update/', 'POST', elem, true).then(function(data){
         if(data.data.status==1) {
              pop_msg(data.data.message);

@@ -1013,7 +1013,7 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
     if not excel_name:
         excel_name = request.POST.get('serialize_data', '')
     if excel_name:
-        file_name = "%s.%s" % (user.id, excel_name.split('=')[-1])
+        file_name = "%s.%s" % (user.username, excel_name.split('=')[-1])
     if not file_type:
         file_type = 'xls'
     if len(temp_data['aaData']) > 65535:

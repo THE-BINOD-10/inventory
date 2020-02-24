@@ -1090,6 +1090,7 @@ def switches(request, user=''):
                        'display_dc_invoice': 'display_dc_invoice',
                        'display_order_reference': 'display_order_reference',
                        'mrp_discount':'mrp_discount',
+                       'mandate_invoice_number':'mandate_invoice_number',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

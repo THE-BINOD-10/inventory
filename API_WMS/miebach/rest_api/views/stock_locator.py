@@ -315,7 +315,7 @@ def get_stock_summary_size_excel(filter_params, temp_data, headers, user, reques
     all_size_names = list(all_sizes_obj.values_list('size_name', flat=True))
     all_size_names.append('DEFAULT')
     try:
-        path = 'static/excel_files/' + str(user.id) + 'Stock_Summary_Alternative.xlsx'
+        path = 'static/excel_files/' + str(user.username) + 'Stock_Summary_Alternative.xlsx'
         if not os.path.exists('static/excel_files/'):
             os.makedirs('static/excel_files/')
         workbook = xlsxwriter.Workbook(path)
@@ -1915,7 +1915,7 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
     try:
         headers, search_params, filters = get_search_params(request)
         search_term = search_params.get('search_term', '')
-        path = 'static/excel_files/' + str(user.id) + '.Stock_Summary_Serials.xlsx'
+        path = 'static/excel_files/' + str(user.username) + '.Stock_Summary_Serials.xlsx'
         if not os.path.exists('static/excel_files/'):
             os.makedirs('static/excel_files/')
         user_dict = {}

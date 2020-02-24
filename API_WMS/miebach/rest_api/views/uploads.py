@@ -943,7 +943,7 @@ def order_form(request, user=''):
     for count, header in enumerate(order_headers):
         ws.write(0, count, header, header_style)
 
-    return xls_to_response(wb, '%s.order_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.order_form.xls' % str(user.username))
 
 
 def xls_to_response(xls, fname):
@@ -976,7 +976,7 @@ def sku_form(request, user=''):
 	headers = list(filter(('Block For PO').__ne__, headers))
     wb, ws = get_work_sheet('skus', headers)
 
-    return xls_to_response(wb, '%s.sku_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.sku_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -990,7 +990,7 @@ def sales_returns_form(request, user=''):
     if user.userprofile.user_type == 'marketplace_user':
         sales_retun_mapping.append('SOR ID')
     wb, ws = get_work_sheet('returns', sales_retun_mapping)
-    return xls_to_response(wb, '%s.returns_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.returns_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1002,7 +1002,7 @@ def inventory_form(request, user=''):
         return error_file_download(inventory_file)
     excel_headers = get_inventory_excel_upload_headers(user)
     wb, ws = get_work_sheet('Inventory', excel_headers.keys())
-    return xls_to_response(wb, '%s.inventory_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.inventory_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1015,7 +1015,7 @@ def supplier_form(request, user=''):
     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
         supplier_headers.append('EP Supplier(yes/no)')
     wb, ws = get_work_sheet('supplier', supplier_headers)
-    return xls_to_response(wb, '%s.supplier_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.supplier_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1025,7 +1025,7 @@ def supplier_sku_form(request, user=''):
     if supplier_file:
         return error_file_download(supplier_file)
     wb, ws = get_work_sheet('supplier', SUPPLIER_SKU_HEADERS)
-    return xls_to_response(wb, '%s.supplier_sku_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.supplier_sku_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1036,7 +1036,7 @@ def location_form(request, user=''):
         return error_file_download(loc_file)
 
     wb, ws = get_work_sheet('Locations', LOCATION_HEADERS)
-    return xls_to_response(wb, '%s.location_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.location_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1053,7 +1053,7 @@ def purchase_order_form(request, user=''):
     for count, header in enumerate(excel_headers):
         ws.write(0, count, header, header_style)
 
-    return xls_to_response(wb, '%s.purchase_order_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.purchase_order_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1065,7 +1065,7 @@ def move_inventory_form(request, user=''):
         return error_file_download(inventory_file)
     excel_headers = get_move_inventory_excel_upload_headers(user)
     wb, ws = get_work_sheet('Inventory', excel_headers)
-    return xls_to_response(wb, '%s.move_inventory_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.move_inventory_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1084,7 +1084,7 @@ def marketplace_sku_form(request, user=''):
     market_list = market_list + market_sku + market_desc
 
     wb, ws = get_work_sheet('supplier', market_list)
-    return xls_to_response(wb, '%s.marketplace_sku_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.marketplace_sku_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1095,7 +1095,7 @@ def bom_form(request, user=''):
     if bom_file:
         return error_file_download(bom_file)
     wb, ws = get_work_sheet('BOM', BOM_UPLOAD_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.bom_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.bom_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1106,7 +1106,7 @@ def combo_sku_form(request, user=''):
     if combo_sku_file:
         return error_file_download(combo_sku_file)
     wb, ws = get_work_sheet('COMBO_SKU', COMBO_SKU_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.combo_sku_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.combo_sku_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1118,7 +1118,7 @@ def inventory_adjust_form(request, user=''):
         return error_file_download(inventory_file)
     excel_headers = get_inventory_adjustment_excel_upload_headers(user)
     wb, ws = get_work_sheet('INVENTORY_ADJUST', excel_headers)
-    return xls_to_response(wb, '%s.inventory_adjustment_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.inventory_adjustment_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1129,7 +1129,7 @@ def vendor_form(request, user=''):
         return error_file_download(vendor_file)
 
     wb, ws = get_work_sheet('vendor', VENDOR_HEADERS)
-    return xls_to_response(wb, '%s.vendor_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.vendor_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1140,7 +1140,7 @@ def pricing_master_form(request, user=''):
         return error_file_download(returns_file)
 
     wb, ws = get_work_sheet('Prices', PRICING_MASTER_HEADERS)
-    return xls_to_response(wb, '%s.pricing_master_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.pricing_master_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1151,7 +1151,7 @@ def network_master_form(request, user=''):
         return error_file_download(returns_file)
 
     wb, ws = get_work_sheet('Network', NETWORK_MASTER_HEADERS)
-    return xls_to_response(wb, '%s.network_master_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.network_master_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1162,7 +1162,7 @@ def order_label_mapping_form(request, user=''):
         return error_file_download(label_file)
 
     wb, ws = get_work_sheet('Order Labels', ORDER_LABEL_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.order_label_mapping_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.order_label_mapping_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1173,7 +1173,7 @@ def order_serial_mapping_form(request, user=''):
         return error_file_download(label_file)
 
     wb, ws = get_work_sheet('Order Serials', ORDER_SERIAL_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.order_serial_mapping_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.order_serial_mapping_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1184,7 +1184,7 @@ def po_serial_mapping_form(request, user=''):
         return error_file_download(label_file)
 
     wb, ws = get_work_sheet('PO Serials', PO_SERIAL_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.po_serial_mapping_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.po_serial_mapping_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1195,7 +1195,7 @@ def job_order_form(request, user=''):
         return error_file_download(label_file)
 
     wb, ws = get_work_sheet('Job Order', JOB_ORDER_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.job_order_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.job_order_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1206,7 +1206,7 @@ def marketplace_serial_form(request, user=''):
         return error_file_download(label_file)
 
     wb, ws = get_work_sheet('Marketplace Serial', MARKETPLACE_SERIAL_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.marketplace_serial_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.marketplace_serial_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1217,7 +1217,7 @@ def orderid_awb_mapping_form(request, user=''):
         return error_file_download(label_file)
 
     wb, ws = get_work_sheet('Awb Map', ORDER_ID_AWB_MAP_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.order_id_awb_mapping_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.order_id_awb_mapping_form.xls' % str(user.username))
 
 
 def get_orderid_awb_mapping(reader, file_type):
@@ -4104,7 +4104,7 @@ def customer_form(request, user=''):
         return error_file_download(customer_file)
 
     wb, ws = get_work_sheet('customer', CUSTOMER_HEADERS)
-    return xls_to_response(wb, '%s.customer_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.customer_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -5592,7 +5592,7 @@ def seller_transfer_form(request, user=''):
         return error_file_download(excel_file)
     excel_headers = get_seller_transfer_excel_headers(user)
     wb, ws = get_work_sheet('Inventory', excel_headers.keys())
-    return xls_to_response(wb, '%s.seller_transfer_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.seller_transfer_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -6152,7 +6152,7 @@ def stock_transfer_order_form(request, user=''):
     if error_file:
         return error_file_download(error_file)
     wb, ws = get_work_sheet('stock_transfer_order_form', STOCK_TRANSFER_ORDER_MAPPING.keys())
-    return xls_to_response(wb, '%s.stock_transfer_order_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.stock_transfer_order_form.xls' % str(user.username))
 
 def create_order_fields_entry(interm_order_id, name, value, user, is_bulk_create=False,
                               order_fields_objs=None):
@@ -6836,7 +6836,7 @@ def skupack_master_download(request, user=''):
     if sku_file:
         return error_file_download(sku_file)
     wb, ws = get_work_sheet('sku_pack_form', SKU_PACK_MAPPING.keys())
-    return xls_to_response(wb, '%s.sku_pack_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.sku_pack_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -7805,7 +7805,7 @@ def brand_level_pricing_form(request, user=''):
         return error_file_download(excel_file)
     excel_headers = copy.deepcopy(BRAND_LEVEL_PRICING_EXCEL_MAPPING)
     wb, ws = get_work_sheet('Brand Level Pricing', excel_headers)
-    return xls_to_response(wb, '%s.brand_level_pricing_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.brand_level_pricing_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -7903,7 +7903,7 @@ def supplier_sku_attributes_form(request, user=''):
     if supplier_file:
         return error_file_download(supplier_file)
     wb, ws = get_work_sheet('supplier', SUPPLIER_SKU_ATTRIBUTE_HEADERS)
-    return xls_to_response(wb, '%s.supplier_sku_attributes_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.supplier_sku_attributes_form.xls' % str(user.username))
 
 @csrf_exempt
 def validate_supplier_sku_attributes_form(open_sheet, user_id):

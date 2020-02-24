@@ -456,14 +456,19 @@ ORDER_SUMMARY_DICT = {
                 {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'},
                 {'label': 'SKU Size', 'name': 'sku_size', 'type': 'input'},
                 {'label': 'Status', 'name': 'order_report_status', 'type': 'select'},
+                {'label': 'Order Reference', 'name': 'order_reference', 'type': 'input'},
                 {'label': 'Order ID', 'name': 'order_id', 'type': 'input'}],
-    'dt_headers': ['Order Date','Order ID', 'Customer ID','Customer Name', 'SKU Brand', 'SKU Category', 'SKU Sub Category', 'SKU Class', 'SKU Size',
-                   'SKU Description', 'SKU Code', 'Vehicle Number', 'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Tax', 'Taxable Amount','Tax Percent', 'City',
-                   'State', 'Marketplace', 'Order Amount','Status', 'Order Status', 'Remarks','Customer GST Number','Payment Type','Reference Number', 'Advance Amount', 'HSN Code', 'GST Number'],
+    'dt_headers': ['Order Date','Order ID', 'Customer ID','Customer Name', 'SKU Brand', 'SKU Category',
+                   'SKU Sub Category', 'SKU Class', 'SKU Size', 'SKU Description', 'SKU Code', 'Vehicle Number',
+                   'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Order Tax Amt', 'Order Amt(w/o tax)',
+                   'Tax Percent', 'City', 'State', 'Marketplace', 'Total Order Amt', 'Cancelled Order Qty',
+                   'Cancelled Order Amt', 'Net Order Qty', 'Net Order Amt', 'Status', 'Order Status', 'Remarks',
+                   'Customer GST Number', 'Payment Type','Reference Number', 'Payment Received',
+                   'HSN Code','Order Reference', 'GST Number'],
     'mk_dt_headers': ['Order Date','Order ID', 'Customer Name', 'SKU Brand', 'SKU Category', 'SKU Sub Category', 'SKU Class', 'SKU Size',
                    'SKU Description', 'SKU Code', 'Manufacturer', 'Searchable', 'Bundle',
                     'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Tax', 'Taxable Amount', 'City',
-                   'State', 'Marketplace', 'Order Amount','Status', 'Order Status', 'Remarks','Customer GST Number','Payment Type','Reference Number'],
+                   'State', 'Marketplace', 'Total Order Amount','Status', 'Order Status', 'Remarks','Customer GST Number','Payment Type','Reference Number'],
     'dt_url': 'get_order_summary_filter', 'excel_name': 'order_summary_report',
     'print_url': 'print_order_summary_report',
     }
@@ -1798,7 +1803,7 @@ PERMISSION_DICT = OrderedDict((
                         )),
 
     # Shipment Info
-    ("SHIPMENT_LABEL", (("Shipment Info", "add_shipmentinfo"))),
+    ("SHIPMENT_LABEL", ("Shipment Info", "add_shipmentinfo")),
 
     # Others
     ("OTHERS_LABEL", (("Raise Stock Transfer", "add_openst"), ("Create Stock Transfer", "add_stocktransfer"))),
@@ -4557,8 +4562,9 @@ def get_order_summary_data(search_params, user, sub_user):
         user_gst_number = user.userprofile.gst_number
     lis = ['creation_date', 'order_id', 'customer_id','customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
            'sku__sku_size', 'sku__sku_desc', 'sku__sub_category', 'sku_code', 'sku_code', 'original_quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
-           'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id','order_id',
-           'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','invoice_number', 'order_id', 'quantity','creation_date'];
+           'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id',
+           'quantity', 'quantity', 'quantity', 'quantity','order_id',
+           'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','invoice_number', 'order_id', 'quantity','creation_date']
     if milkbasket_user :
         lis.append('order_id')
     # lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
@@ -4579,40 +4585,19 @@ def get_order_summary_data(search_params, user, sub_user):
                                                              datetime.time())
         search_params['to_date'] = get_utc_start_date(search_params['to_date'])
         search_parameters['creation_date__lt'] = search_params['to_date']
-    if 'sku_code' in search_params:
-        search_parameters['sku__sku_code'] = search_params['sku_code']
-    if 'marketplace' in search_params:
-        search_parameters['marketplace'] = search_params['marketplace']
-    if 'sku_category' in search_params:
-        search_parameters['sku__sku_category'] = search_params['sku_category']
-    if 'sub_category' in search_params:
-        search_parameters['sku__sub_category'] = search_params['sub_category']
-    if 'sku_brand' in search_params:
-        search_parameters['sku__sku_brand'] = search_params['sku_brand']
-    if 'sku_size' in search_params:
-        search_parameters['sku__sku_size'] = search_params['sku_size']
-    if 'sku_class' in search_params:
-        search_parameters['sku__sku_class'] = search_params['sku_class']
-    if 'city' in search_params:
-        search_parameters['city'] = search_params['city']
-    if 'state' in search_params:
-        search_parameters['state'] = search_params['state']
+    filter_dict = {'sku_code':'sku_code', 'marketplace':'marketplace','sku_category':'sku__sku_category',
+                    'sub_category': 'sku__sub_category','sku_brand':'sku__sku_brand','sku_size':'sku__sku_size',
+                    'sku_class':'sku__sku_class','city':'city', 'state':'state','order_reference':'order_reference',
+                     'invoice_date': 'sellerordersummary__creation_date__icontains','customer_id':'customer_id',
+                    'invoice_number': 'sellerordersummary__invoice_number', 'manufacturer':'sku__skuattributes__attribute_value__iexact',
+                    'searchable': 'sku__skuattributes__attribute_value__iexact', 'bundle': 'sku__skuattributes__attribute_value__iexact',
+                   }
+    filter_parameter_list = list(set(filter_dict.keys()).intersection(set(search_params.keys())))
+    for param in filter_parameter_list:
+        search_parameters[filter_dict[param]] = search_params[param]
     if 'order_id' in search_params:
         order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])
         search_parameters['id__in'] = order_detail.values_list('id', flat=True)
-    if 'invoice_number' in search_params :
-        search_parameters['sellerordersummary__invoice_number'] = search_params['invoice_number']
-    if 'invoice_date' in search_params:
-        search_parameters['sellerordersummary__creation_date__icontains'] = search_params['invoice_date']
-    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-        if 'manufacturer' in search_params:
-            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
-        if 'searchable' in search_params:
-            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
-        if 'bundle' in search_params:
-            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
-
-
 
     status_search = search_params.get('order_report_status', "")
 
@@ -4638,13 +4623,13 @@ def get_order_summary_data(search_params, user, sub_user):
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
                                                                     'sku__sku_desc','sku__price','sellerordersummary__invoice_number','sellerordersummary__challan_number','address',
                                                                     'quantity', 'original_quantity', 'original_order_id','order_reference','sku__sku_brand','customer_name','customer_id',
-                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category','sku__hsn_code').exclude(status = 3).distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
+                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category','sku__hsn_code').distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
     else:
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size',
                                                                     'sku__sku_desc','sku__price','address','order_code','payment_mode',
                                                                     'quantity', 'original_quantity', 'original_order_id','order_reference','sku__sku_brand','customer_name','customer_id',
-                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category','sku__hsn_code').exclude(status = 3).distinct()
+                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category','sku__hsn_code').distinct()
     pick_filters = {}
     for key, value in search_parameters.iteritems():
         pick_filters['order__%s' % key] = value
@@ -4718,7 +4703,6 @@ def get_order_summary_data(search_params, user, sub_user):
             temp_data['totalMRP'] = int(orders.aggregate(Sum('sku__mrp'))['sku__mrp__sum'])
         except:
             temp_data['totalMRP'] = 0
-
         total_row = {}
         total_row = OrderedDict((('Order Date', ''), ('Order ID', ""), ("Customer ID", ""), ('Customer Name', ""),('Order Number' ,""),
         ('SKU Brand', ""),('SKU Category', ''),('SKU Class', ''),('SKU Size', ''), ('SKU Description', ''),('SKU Sub Category', ''),
@@ -4726,7 +4710,7 @@ def get_order_summary_data(search_params, user, sub_user):
         ('Serial Number',''),('Invoice Number',''),('Challan Number', ''),('Quantity',''),('Payment Type' ,''),('Reference Number',''),
         ('Taxable Amount',''), ('Tax Percent',''), ('HSN Code', ''), ('Tax', ''),('City', ''), ('State', ''), ('Marketplace', 'TotalOrderAmount='),('Invoice Amount',''),('Order Amount', temp_data['totalSellingPrice']),
         ('Price', ''),('Status', ''), ('Order Status', ''),('Invoice Tax', ''),('Customer GST Number',''),('Remarks', ''), ('Order Taken By', ''),
-        ('Invoice Date',''),('Billing Address',''),('Shipping Address',''),('Payment Cash', ''),('Payment Card', ''),('Payment PhonePe',''),('Payment GooglePay',''),('Payment Paytm',''),('Advance Amount', ''),('GST Number', ''),
+        ('Invoice Date',''),('Billing Address',''),('Shipping Address',''),('Payment Cash', ''),('Payment Card', ''),('Payment PhonePe',''),('Payment GooglePay',''),('Payment Paytm',''),('Payment Received', ''),('GST Number', ''),
         ('Procurement Price',''), ('Margin','')))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             total_row['Manufacturer'] = ''
@@ -4753,6 +4737,7 @@ def get_order_summary_data(search_params, user, sub_user):
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in orders.iterator():
+        cancelled_qty, cancelled_amt, net_qty, net_amt = 0, 0, 0, 0
         count = count + 1
         is_gst_invoice = False
         invoice_date = get_local_date(user, data['creation_date'], send_date='true')
@@ -4837,7 +4822,8 @@ def get_order_summary_data(search_params, user, sub_user):
         if order_summary.exists():
             mrp_price = order_summary[0].mrp
             discount = order_summary[0].discount
-            unit_discount = float(discount)/float(data['original_quantity'])
+            if data['original_quantity']:
+                unit_discount = float(discount)/float(data['original_quantity'])
             order_status = order_summary[0].status
             remarks = order_summary[0].central_remarks
             order_taken_by = order_summary[0].order_taken_by
@@ -4861,7 +4847,8 @@ def get_order_summary_data(search_params, user, sub_user):
             tax = float(float(data['invoice_amount']) / 100) * vat
         if order_status == 'None':
             order_status = ''
-        invoice_amount = "%.2f" % ((float(unit_price) * float(data['original_quantity'])) + tax - discount)
+        invoice_amount = float("%.2f" % ((float(unit_price) * float(data['original_quantity'])) + tax - discount))
+        unit_invoice_amt = invoice_amount/data['original_quantity']
         taxable_amount = "%.2f" % abs(float(invoice_amount) - float(tax))
         unit_price = "%.2f" % unit_price
 
@@ -4953,13 +4940,16 @@ def get_order_summary_data(search_params, user, sub_user):
         if not quantity:
             quantity = 0
 
-        #tax_percent = 0
-        #if float(taxable_amount):
-        #    tax_percent = (tax * 100)/float(taxable_amount)
         amount = (float(unit_price) * float(quantity)) - (unit_discount * float(quantity))
         invoice_tax = "%.2f" % ((amount/100)*(tax_percent))
 
-        invoice_amount_picked = "%.2f" % ((amount) + float(invoice_tax))
+        invoice_amount_picked = "%.2f" % (amount + float(invoice_tax))
+
+        if int(data['status']) == 3:
+            cancelled_qty = data['quantity']
+            cancelled_amt = cancelled_qty * unit_invoice_amt
+        net_qty = data['original_quantity'] - cancelled_qty
+        net_amt = invoice_amount - cancelled_amt
 
         order_extra_fields ={}
         for extra in extra_order_fields :
@@ -4971,7 +4961,7 @@ def get_order_summary_data(search_params, user, sub_user):
         aaData = OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                     ('Customer ID', data['customer_id']),
                                                     ('Customer Name', customer_name),
-                                                    ('Order Number' ,data['order_reference']),
+                                                    ('Order Reference' ,data['order_reference']),
                                                     ('SKU Brand', data['sku__sku_brand']),
                                                     ('SKU Category', data['sku__sku_category']),
                                                     ('SKU Sub Category', data['sku__sub_category']),
@@ -4983,22 +4973,26 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('Serial Number',serial_number),
                                                     ('Invoice Number',invoice_number),
                                                     ('Challan Number', challan_number),
-                                                    ('Quantity',quantity),('HSN Code', data['sku__hsn_code']),
+                                                    ('Invoice Qty',quantity),('HSN Code', data['sku__hsn_code']),
                                                     ('Payment Type' ,payment_type),
                                                     ('Reference Number',reference_number),
-                                                    ('Taxable Amount', float(taxable_amount)),
+                                                    ('Order Amt(w/o tax)', float(taxable_amount)),
+                                                    ('Invoice Amt(w/o tax)', ("%.2f"%amount)),
                                                     ('Tax Percent', tax_percent),
-                                                    ('Invoice Tax', invoice_tax),
-                                                    ('Tax',("%.2f"%tax)),('Invoice Amount', invoice_amount_picked),
+                                                    ('Invoice Tax Amt', invoice_tax),
+                                                    ('Order Tax Amt',("%.2f"%tax)),('Invoice Amount', invoice_amount_picked),
                                                     ('City', data['city']), ('State', data['state']), ('Marketplace', data['marketplace']),
-                                                    ('Order Amount', float(invoice_amount)), ('Price', data['sku__price']),
+                                                    ('Total Order Amt', float(invoice_amount)),
+                                                    ('Cancelled Order Qty', cancelled_qty),
+                                                    ('Cancelled Order Amt', cancelled_amt),
+                                                    ('Net Order Qty', net_qty), ('Net Order Amt', net_amt),
+                                                    ('Price', data['sku__price']),
                                                     ('Status', status), ('Order Status', order_status),('Customer GST Number',gst_number),
                                                     ('Remarks', remarks), ('Order Taken By', order_taken_by),
                                                     ('Invoice Date',invoice_date),("Billing Address",billing_address),("Shipping Address",shipping_address),
                                                     ('Payment Cash', payment_cash), ('Payment Card', payment_card),('Payment PhonePe', payment_PhonePe),
-                                                    ('Payment Paytm', payment_Paytm),('Payment GooglePay', payment_GooglePay), ('Advance Amount', data['payment_received']),
-                                                    ('Vehicle Number', vehicle_number), ('GST Number', user_gst_number), ('Procurement Price',procurement_price), ('Margin',margin)))
-
+                                                    ('Payment Paytm', payment_Paytm),('Payment GooglePay', payment_GooglePay), ('Payment Received', data['payment_received']), ('Vehicle Number', vehicle_number),
+                                                    ('GST Number', user_gst_number), ('Procurement Price',procurement_price), ('Margin',margin)))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             aaData['Manufacturer'] = manufacturer
             aaData['Searchable'] = searchable

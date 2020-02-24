@@ -81,7 +81,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       angular.forEach(data, function(key, val){
         if (key){
           if (multiple_check.length > 0){
-            vm.service.showNoty("Only single invoice selection was allowed");
+            vm.service.showNoty("Please select one invoice only");
             data[val] = false;
           }
           else{

@@ -3514,8 +3514,8 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                 data_dict['sku_code'] = data_dict['wms_code']
                 data_dict['location'] = dest_location[0].location
                 status = validate_mrp_weight(data_dict,user)
-            if status:
-                index_status.setdefault(row_idx, set()).add(status)
+                if status:
+                    index_status.setdefault(row_idx, set()).add(status)
 
             if row_idx not in index_status:
                 stock_dict = {"sku_id": data_dict['sku_id'],

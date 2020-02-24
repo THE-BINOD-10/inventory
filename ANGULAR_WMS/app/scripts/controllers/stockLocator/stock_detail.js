@@ -55,6 +55,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     if (vm.permissions.pallet_switch) {
       vm.dtColumns.push(DTColumnBuilder.newColumn('Pallet Code').withTitle('Pallet Code'))
     }
+    if (vm.industry_type != 'FMCG') {
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Aging in Days').withTitle('Aging in Days')),
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Aging Bracket').withTitle('Aging Bracket')),
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse'))
+    }
 
     $scope.$on('change_filters_data', function(){
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;

@@ -1703,11 +1703,14 @@ def get_mp_inventory(request):
                     mrp_weight_obj = StockDetail.objects.filter(sku=sku['id'], location__location__in=sellable_bulk_locations)
                     if mrp_weight_obj:
                         mrp_weight_obj = mrp_weight_obj.latest('creation_date')
-                    mrp_list = [OrderedDict(( ('mrp', mrp_weight_obj.batch_detail.mrp), ('weight', mrp_weight_obj.batch_detail.weight),
+                        mrp_list = [OrderedDict(( ('mrp', mrp_weight_obj.batch_detail.mrp), ('weight', mrp_weight_obj.batch_detail.weight),
                                                                      ('inventory', OrderedDict((('sellable', 0),
                                                                                                 ('on_hold', 0),
                                                                                                 ('bulk_area', 0))))))]
-                data.append(OrderedDict(( ('sku', sku['sku_code']), ('data', mrp_list))))
+                if mrp_list:
+                    data.append(OrderedDict(( ('sku', sku['sku_code']), ('data', mrp_list))))
+                else:
+                    error_status.append({'sku': sku['sku_code'], 'message': 'Stock Not found', 'status': 5030})
         else:
             stocks = dict(SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone').\
                           filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0).\

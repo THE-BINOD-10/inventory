@@ -273,7 +273,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     vm.titleHtml = '<input type="checkbox" class="data-select" ng-model="showCase.selectAll" ng-change="showCase.bt_disable = showCase.service.toggleAll(showCase.selectAll, showCase.selected, showCase.bt_disable); $event.stopPropagation();">';
     vm.frontHtml = '<input class="data-select" type="checkbox" ng-model="showCase.selected[';
     vm.endHtml = ']" ng-change="showCase.bt_disable = showCase.service.toggleOne(showCase.selectAll, showCase.selected, showCase.bt_disable);$event.stopPropagation();showCase.selectAll = showCase.servce.select_all(showCase.selectAll, showCase.selected)">';
-    vm.processOrderHtml = ']" ng-change="showCase.bt_disable = showCase.service.toggleOne(showCase.selectAll, showCase.selected, showCase.bt_disable);$event.stopPropagation();showCase.selectAll = showCase.servce.select_all(showCase.selectAll, showCase.selected);showCase.invoideSampleCheck(showCase.selected)">';
+    vm.processOrderHtml = ']" ng-change="showCase.bt_disable = showCase.service.toggleOne(showCase.selectAll, showCase.selected, showCase.bt_disable);$event.stopPropagation();showCase.selectAll = showCase.servce.select_all(showCase.selectAll, showCase.selected);showCase.invoiceSelectionCheck(showCase.selected)">';
 
     vm.status = function(data) {
 

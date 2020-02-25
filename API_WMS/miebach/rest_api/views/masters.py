@@ -4275,7 +4275,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
         excel_headers = temp_data['aaData'][0].keys()
     excel_name = request.POST.get('datatable', '')
     if excel_name:
-        file_name = "%s.%s" % (user.id, excel_name.split('=')[-1])
+        file_name = "%s.%s" % (user.username, excel_name.split('=')[-1])
     file_type = 'xls'
     path = ('static/excel_files/%s.%s') % (file_name, file_type)
     if not os.path.exists('static/excel_files/'):

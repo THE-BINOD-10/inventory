@@ -51,26 +51,27 @@ class Command(BaseCommand):
                     sku_id = sku[0]
                     sku_code = SKUMaster.objects.filter(id = sku_id)[0].sku_code
                     validate_data = mrp_offer_change_data.filter(sku = sku_id).order_by('receipt_date')
-                    stocks = validate_data.filter(batch_detail__mrp = validate_data[0].batch_detail.mrp, batch_detail__weight=validate_data[0].batch_detail.weight)
-                    quantity = stocks.aggregate(Sum("quantity"))
-                    quantity = quantity['quantity__sum']
-                    move_quantity = quantity
-                    # dest_stocks = StockDetail.objects.filter(sku__user=user.id, quantity=0, location__location__in=sellable_bulk_locations, sku=sku_id).distinct()
-                    # desc_loc = dest_stocks[0].location.location
-                    dest = LocationMaster.objects.filter(location='BA', zone__user=user.id)
-                    seller_stock = stocks[0].sellerstock_set.filter()
-                    seller_id = seller_stock[0].seller_id
-                    receipt_number = get_stock_receipt_number(user)
-                    dest_batch = update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
-                                       dest_seller_id=seller_id, receipt_type='MRP_to_BA_update', receipt_number=receipt_number)
-                    sub_data = {'source_sku_code_id': sku_id, 'source_location': 'MRP and Offer Change', 'source_quantity': quantity,
-                                'destination_sku_code_id': sku_id, 'destination_location': dest[0].location,
-                                'destination_quantity': quantity, 'source_batch_id':stocks[0].batch_detail_id,
-                                'dest_batch_id': dest_batch.id, 'seller_id': seller_id, 'summary_type': 'bulk_stock_update'}
-                    SubstitutionSummary.objects.create(**sub_data)
-                    sku_codes.append(sku_code)
-                    check_and_update_marketplace_stock(sku_codes, user)
-                    log.info("Bulk Stock Update Done For " + str(json.dumps(sub_data)))
+                    if validate_data:
+                        stocks = validate_data.filter(batch_detail__mrp = validate_data[0].batch_detail.mrp, batch_detail__weight=validate_data[0].batch_detail.weight)
+                        quantity = stocks.aggregate(Sum("quantity"))
+                        quantity = quantity['quantity__sum']
+                        move_quantity = quantity
+                        # dest_stocks = StockDetail.objects.filter(sku__user=user.id, quantity=0, location__location__in=sellable_bulk_locations, sku=sku_id).distinct()
+                        # desc_loc = dest_stocks[0].location.location
+                        dest = LocationMaster.objects.filter(location='BA', zone__user=user.id)
+                        seller_stock = stocks[0].sellerstock_set.filter()
+                        seller_id = seller_stock[0].seller_id
+                        receipt_number = get_stock_receipt_number(user)
+                        dest_batch = update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
+                                           dest_seller_id=seller_id, receipt_type='MRP_to_BA_update', receipt_number=receipt_number)
+                        sub_data = {'source_sku_code_id': sku_id, 'source_location': 'MRP and Offer Change', 'source_quantity': quantity,
+                                    'destination_sku_code_id': sku_id, 'destination_location': dest[0].location,
+                                    'destination_quantity': quantity, 'source_batch_id':stocks[0].batch_detail_id,
+                                    'dest_batch_id': dest_batch.id, 'seller_id': seller_id, 'summary_type': 'bulk_stock_update'}
+                        SubstitutionSummary.objects.create(**sub_data)
+                        sku_codes.append(sku_code)
+                        check_and_update_marketplace_stock(sku_codes, user)
+                        log.info("Bulk Stock Update Done For user %s is %s"  % (str(user.username), str(json.dumps(sub_data))))
             except Exception as e:
                 import traceback
                 log.debug(traceback.format_exc())

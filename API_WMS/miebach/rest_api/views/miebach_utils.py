@@ -2679,7 +2679,7 @@ def get_location_stock_data(search_params, user, sub_user):
         total = stock_detail[stock_detail_key]
         if  user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             sku_code, location, mrp, weight = stock_detail_key.split('<<>>')
-	    else:
+        else:
             sku_code, location = stock_detail_key.split('<<>>')
         sku_master = SKUMaster.objects.get(sku_code=sku_code, user=user.id)
         location_master = LocationMaster.objects.get(location=location, zone__user=user.id)

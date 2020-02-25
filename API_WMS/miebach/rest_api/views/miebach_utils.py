@@ -9306,7 +9306,7 @@ def get_move_inventory_report_data(search_params, user, sub_user):
 
 
 def get_bulk_stock_update_data(search_params, user, sub_user):
-  from rest_api.views.common import get_sku_master, get_local_date
+  from rest_api.views.common import get_sku_master, get_local_date, get_utc_start_date
   temp_data = copy.deepcopy(AJAX_DATA)
   lis = ['source_sku_code__sku_code', 'source_sku_code__sku_code', 'source_sku_code__sku_code', 'source_sku_code__sku_code', 'source_location', 'destination_location', 'source_quantity', 'creation_date']
   col_num = search_params.get('order_index',7)
@@ -9322,10 +9322,12 @@ def get_bulk_stock_update_data(search_params, user, sub_user):
       order_data = '-%s' % order_data
   if 'from_date' in search_params:
       search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+      search_params['from_date'] = get_utc_start_date(search_params['from_date'])
       search_parameters['creation_date__gte'] = search_params['from_date']
   if 'to_date' in search_params:
       search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                            datetime.time())
+      search_params['to_date'] = get_utc_start_date(search_params['to_date'])
       search_parameters['creation_date__lte'] = search_params['to_date']
   if 'sku_code' in search_params:
       search_parameters['source_sku_code__sku_code'] = search_params['sku_code']

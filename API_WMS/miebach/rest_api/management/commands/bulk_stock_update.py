@@ -45,7 +45,7 @@ class Command(BaseCommand):
                 bulk_locations=list(LocationMaster.objects.filter(zone__zone__in=bulk_zones, zone__user=user.id, status=1).values_list('location', flat=True))
                 sellable_bulk_locations=list(chain(collect_all_sellable_location ,bulk_locations))
                 ba_sa_data = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, location__location__in=sellable_bulk_locations).distinct()
-                mrp_offer_change_data = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, location__zone='Non Sellable Zone', location__status=1).distinct()
+                mrp_offer_change_data = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, location__zone__zone='Non Sellable Zone', location__status=1).distinct()
                 stock_zero_skus = list(set(mrp_offer_change_data.values_list('sku__id')) - set(ba_sa_data.values_list('sku__id')))
                 for sku in stock_zero_skus:
                     sku_id = sku[0]

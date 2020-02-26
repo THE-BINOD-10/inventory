@@ -39,6 +39,12 @@
               <textarea id="scan_order_id" rows="1" class="form-control" ng-model="showCase.model_data.scan_order_id" ng-keydown="showCase.scan_track($event, showCase.model_data.scan_order_id,showCase.model_data.seller_type)"></textarea>
              </div>
            </div>
+           <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.return_process == 'invoice_number'">
+             <div class="form-group">
+               <label class="control-label"> Invoice Number </label>
+              <textarea id="scan_invoice_no" rows="1" class="form-control" ng-model="showCase.model_data.scan_invoice_no" ng-keydown="showCase.scan_invoice($event, showCase.model_data.scan_invoice_no,showCase.model_data.seller_type)"></textarea>
+             </div>
+           </div>
            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.return_process == 'scan_awb'">
              <div class="form-group">
               <label class="control-label"> Scan AWB No. </label>
@@ -112,7 +118,7 @@
            <table class="table mw60">
              <thead>
                <tr>
-                 <th ng-if="user.user_profile['user_type'] == 'marketplace_user'"> Invoice Number </th>
+                 <th ng-if="user.user_profile['user_type'] == 'marketplace_user' || showCase.return_process == 'invoice_number'"> Invoice Number </th>
                  <th> Order ID </th>
                  <th> SKU Code </th>
                  <th> Product Description </th>
@@ -136,7 +142,7 @@
              </thead>
              <tbody>
                <tr ng-repeat="data_split in showCase.model_data.data">
-                 <td ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+                 <td ng-if="user.user_profile['user_type'] == 'marketplace_user' || showCase.return_process == 'invoice_number'">
                    <input type="text" name="invoice_number" class="form-control" ng-model="data_split.invoice_number" readonly>
                  </td>
    	             <td>

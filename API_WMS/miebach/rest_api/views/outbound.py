@@ -6078,6 +6078,8 @@ def insert_shipment_info(request, user=''):
                 if received_quantity <= 0:
                     break
                 invoice_number = ''
+                if myDict.get('invoice_number',''):
+                     invoice_number = myDict.get('invoice_number','')[0]
                 data_dict = copy.deepcopy(ORDER_PACKAGING_FIELDS)
                 shipment_data = copy.deepcopy(SHIPMENT_INFO_FIELDS)
                 order_detail = OrderDetail.objects.get(id=order_id, user=user.id)

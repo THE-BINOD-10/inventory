@@ -847,7 +847,9 @@ def configurations(request, user=''):
                                       values('marketplace', 'prefix', 'interfix', 'date_type'))
     config_dict['prefix_dc_data'] = list(ChallanSequence.objects.filter(user=user.id, status=1).exclude(marketplace=''). \
                                       values('marketplace', 'prefix'))
-
+    config_dict['prefix_cn_data'] = list(UserTypeSequence.objects.filter(user=user.id, status=1,
+                                            type_name='credit_note_sequence').exclude(type_value=''). \
+                                      values('prefix').annotate(marketplace=F('type_value')))
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
     config_dict['all_stages'] = str(','.join(all_stages))
     order_field_obj =  MiscDetail.objects.filter(user=user.id,misc_type='extra_order_fields')
@@ -7225,6 +7227,51 @@ def update_dc_sequence(request, user=''):
         status = 'Update DC Invoice Number Sequence Failed'
     return HttpResponse(json.dumps({'status': status}))
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_user_type_sequence(request, user=''):
+
+    log.info('Request Params for Update Dc Invoice Sequences for %s is %s' % (user.username, str(request.GET.dict())))
+    status = ''
+    try:
+        marketplace_prefix = request.GET.get('marketplace_prefix', '')
+        marketplace_interfix = request.GET.get('marketplace_interfix', '')
+        marketplace_date_type = request.GET.get('marketplace_date_type', '')
+        type_name = request.GET.get('type_name', '')
+        type_value = request.GET.get('type_value', '')
+        delete_status = request.GET.get('delete', '')
+        if not type_name:
+            status = 'Type Name Should not be empty'
+        if not status:
+            sequence = UserTypeSequence.objects.filter(user_id=user.id, type_name=type_name, type_value=type_value)
+            if sequence:
+                sequence = sequence[0]
+                sequence.prefix = marketplace_prefix
+                sequence.interfix = marketplace_interfix
+                sequence.date_type = marketplace_date_type
+                if delete_status:
+                    sequence.status = 0
+                else:
+                    sequence.status = 1
+                sequence.save()
+            else:
+                UserTypeSequence.objects.create(prefix=marketplace_prefix, value=1,
+                                               status=1,user_id=user.id, creation_date=datetime.datetime.now(),
+                                                date_type=marketplace_date_type,
+                                                type_name=type_name, type_value=type_value)
+            status = 'Success'
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update User Type Invoice Sequence failed for %s and params are %s and error statement is %s' %
+                 (str(user.username), str(request.GET.dict()), str(e)))
+        status = 'Update Sequence Failed'
+    return HttpResponse(json.dumps({'status': status}))
+
+
 def get_warehouse_admin(user):
     """ Check and Return Admin user of current """
 
@@ -8661,6 +8708,13 @@ def get_invoice_sequence_obj(user, marketplace):
     if not invoice_sequence:
         invoice_sequence = InvoiceSequence.objects.filter(user=user.id, marketplace='')
     return invoice_sequence
+
+
+def user_type_sequence_obj(user, type_name, type_value):
+    user_type_sequence = UserTypeSequence.objects.filter(user=user.id, status=1, type_name=type_name, type_value=type_value)
+    if not user_type_sequence:
+        user_type_sequence = UserTypeSequence.objects.filter(user=user.id, type_name=type_name,type_value='')
+    return user_type_sequence
 
 
 def create_update_batch_data(batch_dict):
@@ -10545,3 +10599,30 @@ def mb_weight_correction(weight):
                 replace('UNIT', 'Unit').replace('INCHES', 'Inches').replace('INCH', 'Inch').strip()
     return weight
 
+
+def get_orders_with_invoice_no(user, invoice_no):
+    if user.userprofile.user_type == 'marketplace_user':
+        sos_objs = SellerOrderSummary.objects.filter(seller_order__order__user=user.id,
+                                    invoice_number=invoice_no)
+        invoice_qty_dict = dict(sos_objs.values_list('seller_order__order_id').annotate(Sum('quantity')))
+    else:
+        sos_objs = SellerOrderSummary.objects.filter(order__user=user.id, invoice_number=invoice_no)
+        invoice_qty_dict = dict(sos_objs.values_list('order_id').annotate(Sum('quantity')))
+    picklist_ids = sos_objs.values_list('picklist_id', flat=True)
+    return invoice_qty_dict, picklist_ids
+
+
+def get_full_sequence_number(user_type_sequence, creation_date):
+    inv_num_lis = []
+    if user_type_sequence.prefix:
+        inv_num_lis.append(user_type_sequence.prefix)
+    if user_type_sequence.date_type:
+        if user_type_sequence.date_type == 'financial':
+            inv_num_lis.append(get_financial_year(creation_date))
+        elif user_type_sequence.date_type == 'month_year':
+            inv_num_lis.append(creation_date.strftime('%m%y'))
+    if user_type_sequence.interfix:
+        inv_num_lis.append(user_type_sequence.interfix)
+    inv_num_lis.append(str(user_type_sequence.value).zfill(3))
+    sequence_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
+    return sequence_number

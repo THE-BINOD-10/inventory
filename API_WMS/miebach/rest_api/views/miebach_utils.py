@@ -4622,7 +4622,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
                                                                     'sku__sku_desc','sku__price','sellerordersummary__invoice_number','sellerordersummary__challan_number','address',
                                                                     'quantity', 'original_quantity', 'original_order_id','order_reference','sku__sku_brand','customer_name','customer_id',
-                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category','sku__hsn_code','shipmentinfo__order_shipment__ewaybill_number').distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
+                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category','sku__hsn_code').distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
     else:
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size',
@@ -4814,6 +4814,7 @@ def get_order_summary_data(search_params, user, sub_user):
         remarks = ''
         order_taken_by = ''
         vehicle_number = ''
+        ewaybill_number = ''
         payment_card, payment_cash ,payment_PhonePe,payment_Paytm,payment_GooglePay = 0, 0,0,0,0
         order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data['id'])
         unit_price, unit_price_inclusive_tax = [data['unit_price']] * 2
@@ -4890,6 +4891,11 @@ def get_order_summary_data(search_params, user, sub_user):
                             invoice_number = str(invoice_number_obj[0].order.order_id)
                         else:
                             invoice_number = str(invoice_number_obj[0].seller_order.order.order_id)
+            if invoice_number:
+                shipment_info = ShipmentInfo.objects.filter(user=user.id,order__original_order_id=data['original_order_id'],
+                                                            invoice_number=invoice_number)
+                if shipment_info.exists():
+                    ewaybill_number = str(shipment_info[0].order_shipment.ewaybill_number)
 
             if data['sellerordersummary__creation_date'] :
                 invoice_date = data['sellerordersummary__creation_date'].strftime('%d %b %Y')
@@ -4981,11 +4987,11 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('Invoice Tax Amt', invoice_tax),
                                                     ('Order Tax Amt',("%.2f"%tax)),('Invoice Amount', invoice_amount_picked),
                                                     ('City', data['city']), ('State', data['state']), ('Marketplace', data['marketplace']),
-                                                    ('Total Order Amt', float(invoice_amount)),
+                                                    ('Total Order Amt', float(invoice_amount)),('EwayBill Number', ewaybill_number),
                                                     ('Cancelled Order Qty', cancelled_qty),
                                                     ('Cancelled Order Amt', cancelled_amt),
                                                     ('Net Order Qty', net_qty), ('Net Order Amt', net_amt),
-                                                    ('Price', data['sku__price']),('EwayBill Number',data.get('shipmentinfo__order_shipment__ewaybill_number')),
+                                                    ('Price', data['sku__price']),
                                                     ('Status', status), ('Order Status', order_status),('Customer GST Number',gst_number),
                                                     ('Remarks', remarks), ('Order Taken By', order_taken_by),
                                                     ('Invoice Date',invoice_date),("Billing Address",billing_address),("Shipping Address",shipping_address),

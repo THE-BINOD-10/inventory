@@ -4956,7 +4956,7 @@ def get_order_summary_data(search_params, user, sub_user):
             order_extra_fields[extra] = ''
             if order_field_obj.exists():
                 order_extra_fields[order_field_obj[0].name] = order_field_obj[0].value
-        total_procurement_price, procurement_price, margin = get_margin_price_details(data, float(unit_price_inclusive_tax), quantity)
+        total_procurement_price, procurement_price, margin = get_margin_price_details(invoice_qty_filter, data, float(unit_price_inclusive_tax), quantity)
         aaData = OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                     ('Customer ID', data['customer_id']),
                                                     ('Customer Name', customer_name),
@@ -5063,14 +5063,13 @@ def tally_dump(user,order_id,invoice_amount_picked,unit_price_inclusive_tax, gst
                               ('GST', tax_percent)))
     return tally_Data
 
-def get_margin_price_details(order_data, unit_price, inv_quantity):
+def get_margin_price_details(invoice_qty_filter, order_data, unit_price, inv_quantity):
     total_procurement_price, procurement_price, margin = 0, 0, 0
-    pick_obj = Picklist.objects.filter(order_id=order_data['id'])
-    if pick_obj.exists():
-        procrument_data = pick_obj.values('stock__unit_price', 'picked_quantity')
-        for picklist in procrument_data:
-            if picklist.has_key('stock__unit_price') and picklist.has_key('picked_quantity'):
-                total_procurement_price += (picklist['stock__unit_price'] * picklist['picked_quantity'])
+    pick_obj = SellerOrderSummary.objects.filter(**invoice_qty_filter).values('picklist__stock__unit_price', 'quantity')
+    if pick_obj:
+        for picklist in pick_obj:
+            if picklist.has_key('picklist__stock__unit_price') and picklist.has_key('quantity'):
+                total_procurement_price += (picklist['picklist__stock__unit_price'] * picklist['quantity'])
             else:
                 total_procurement_price += 0
         if total_procurement_price > 0 and inv_quantity > 0:  

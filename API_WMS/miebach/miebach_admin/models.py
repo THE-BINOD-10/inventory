@@ -2104,6 +2104,8 @@ class OrderReturns(models.Model):
     reason = models.CharField(max_length=256, default='')
     status = models.CharField(max_length=64)
     marketplace = models.CharField(max_length=32, default='')
+    invoice_number = models.CharField(max_length=32, default='')
+    credit_note_number = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2475,6 +2477,7 @@ class OrderTracking(models.Model):
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     quantity = models.FloatField(default=0)
     imei = models.CharField(max_length=128, default='')
+    invoice_number = models.CharField(max_length=128, default='')
     status = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -2545,6 +2548,25 @@ class ChallanSequence(models.Model):
         db_table = 'CHALLAN_SEQUENCE'
         index_together = ('user', 'marketplace')
         unique_together = ('user', 'marketplace')
+
+
+class UserTypeSequence(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    type_name = models.CharField(max_length=64, default='')
+    type_value = models.CharField(max_length=64, default='')
+    prefix = models.CharField(max_length=64, default='')
+    interfix = models.CharField(max_length=64, default='')
+    date_type = models.CharField(max_length=32, default='')
+    value = models.PositiveIntegerField()
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'USER_TYPE_SEQUENCE'
+        index_together = ('user', 'type_name', 'type_value')
+        unique_together = ('user', 'type_name', 'type_value')
 
 
 class OrderAwbMap(models.Model):

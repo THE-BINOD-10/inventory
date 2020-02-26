@@ -629,12 +629,12 @@ STOCK_LEDGER_REPORT_DICT = {
         {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
     ],
     'dt_headers': ['Date', 'SKU Code', 'SKU Description', 'Style Name', 'Brand', 'Category', 'Sub Category',
-                   'Size', 'Opening Stock', 'Opening Stock Value', 'Receipt Quantity', 'Produced Quantity', 'Dispatch Quantity','RTV Quantity',
-                   'Return Quantity', 'Adjustment Quantity', 'Consumed Quantity', 'Closing Stock', 'Closing Stock Value'],
+                   'Size', 'Opening Stock', 'Receipt Quantity', 'Produced Quantity', 'Dispatch Quantity','RTV Quantity',
+                   'Return Quantity', 'Adjustment Quantity', 'Consumed Quantity', 'Closing Stock', ],
     'mk_dt_headers': ['Date', 'SKU Code', 'SKU Description', 'Style Name', 'Brand', 'Category', 'Sub Category',
                     'Manufacturer', 'Searchable', 'Bundle',
-                   'Size', 'Opening Stock', 'Opening Stock Value', 'Receipt Quantity', 'Produced Quantity', 'Dispatch Quantity',
-                   'Return Quantity', 'Adjustment Quantity', 'Consumed Quantity', 'Closing Stock', 'Closing Stock Value'],
+                   'Size', 'Opening Stock', 'Receipt Quantity', 'Produced Quantity', 'Dispatch Quantity',
+                   'Return Quantity', 'Adjustment Quantity', 'Consumed Quantity', 'Closing Stock',],
     'dt_url': 'get_stock_ledger_report', 'excel_name': 'stock_ledger_report',
     'print_url': 'print_stock_ledger_report',
 }
@@ -2683,10 +2683,10 @@ def get_location_stock_data(search_params, user, sub_user):
         mrp = 0
         weight = 0
         total = stock_detail[stock_detail_key]
-    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-        sku_code, location, mrp, weight = stock_detail_key.split('<<>>')
-    else:
-        sku_code, location = stock_detail_key.split('<<>>')
+        if  user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+            sku_code, location, mrp, weight = stock_detail_key.split('<<>>')
+        else:
+            sku_code, location = stock_detail_key.split('<<>>')
         sku_master = SKUMaster.objects.get(sku_code=sku_code, user=user.id)
         location_master = LocationMaster.objects.get(location=location, zone__user=user.id)
         if stock_detail_key in picklist_reserved.keys():
@@ -4710,7 +4710,7 @@ def get_order_summary_data(search_params, user, sub_user):
         ('Order Amt(w/o tax)',''), ('Tax Percent',''), ('HSN Code', ''), ('Tax', ''),('City', ''), ('State', ''), ('Marketplace', 'TotalOrderAmount='),('Invoice Amount',''),('Order Amount', temp_data['totalSellingPrice']),
         ('Price', ''),('Status', ''), ('Order Status', ''),('Invoice Tax', ''),('Customer GST Number',''),('Remarks', ''), ('Order Taken By', ''),('Net Order Qty', ''), ('Net Order Amt', ''),
         ('Invoice Date',''),('Billing Address',''),('Shipping Address',''),('Payment Cash', ''),('Payment Card', ''),('Payment PhonePe',''),('Payment GooglePay',''),('Payment Paytm',''),('Payment Received', ''),('GST Number', ''),
-        ('Procurement Price',''), ('Margin',''), ('Invoice Amt(w/o tax)',''), ('Invoice Tax Amt',''), ('EwayBill Number','')))
+        ('Procurement Price',''), ('Total Procurement Price','') , ('Margin',''), ('Invoice Amt(w/o tax)',''), ('Invoice Tax Amt',''), ('EwayBill Number','')))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             total_row['Manufacturer'] = ''
             total_row['Searchable'] = ''
@@ -4962,7 +4962,10 @@ def get_order_summary_data(search_params, user, sub_user):
             order_extra_fields[extra] = ''
             if order_field_obj.exists():
                 order_extra_fields[order_field_obj[0].name] = order_field_obj[0].value
-        procurement_price, margin = get_margin_price_details(data, float(unit_price_inclusive_tax), quantity)
+        if search_params.get('invoice','') == 'true' and invoice_qty_filter:
+            total_procurement_price, procurement_price, margin = get_margin_price_details(invoice_qty_filter, data, float(unit_price_inclusive_tax), quantity)
+        else:
+            total_procurement_price, procurement_price, margin = 0, 0, 0
         aaData = OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                     ('Customer ID', data['customer_id']),
                                                     ('Customer Name', customer_name),
@@ -4997,7 +5000,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('Invoice Date',invoice_date),("Billing Address",billing_address),("Shipping Address",shipping_address),
                                                     ('Payment Cash', payment_cash), ('Payment Card', payment_card),('Payment PhonePe', payment_PhonePe),
                                                     ('Payment Paytm', payment_Paytm),('Payment GooglePay', payment_GooglePay), ('Payment Received', data['payment_received']), ('Vehicle Number', vehicle_number),
-                                                    ('GST Number', user_gst_number), ('Procurement Price',procurement_price), ('Margin',margin)))
+                                                    ('GST Number', user_gst_number), ('Procurement Price',procurement_price), ('Total Procurement Price',total_procurement_price), ('Margin',margin)))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             aaData['Manufacturer'] = manufacturer
             aaData['Searchable'] = searchable
@@ -5069,19 +5072,21 @@ def tally_dump(user,order_id,invoice_amount_picked,unit_price_inclusive_tax, gst
                               ('GST', tax_percent)))
     return tally_Data
 
-def get_margin_price_details(order_data, unit_price, inv_quantity):
-    procurement_price, margin = 0, 0
-    pick_obj = Picklist.objects.filter(order_id=order_data['id'])
-    if pick_obj.exists():
+def get_margin_price_details(invoice_qty_filter, order_data, unit_price, inv_quantity):
+    total_procurement_price, procurement_price, margin = 0, 0, 0
+    pick_obj = SellerOrderSummary.objects.filter(**invoice_qty_filter).values('picklist__stock__unit_price', 'quantity')
+    if pick_obj:
         for picklist in pick_obj:
-            if picklist.stock:
-                procurement_price = picklist.stock.unit_price
+            if picklist.has_key('picklist__stock__unit_price') and picklist.has_key('quantity'):
+                total_procurement_price += (picklist['picklist__stock__unit_price'] * picklist['quantity'])
             else:
-                procurement_price = 0
-        margin = (unit_price - procurement_price) * inv_quantity
+                total_procurement_price += 0
+        if total_procurement_price > 0 and inv_quantity > 0:  
+            procurement_price = total_procurement_price/inv_quantity
+            margin = (unit_price * inv_quantity) - total_procurement_price  
     else:
-        procurement_price, margin = 0, 0
-    return procurement_price, margin
+        total_procurement_price, procurement_price, margin = 0, 0, 0
+    return round(total_procurement_price, 2), round(procurement_price, 2), round(margin, 2)
 
 def html_excel_data(data, fname):
     from miebach_admin.views import *
@@ -5589,12 +5594,12 @@ def get_stock_ledger_data(search_params, user, sub_user):
                                  ('Style Name', obj.sku.style_name),
                                  ('Brand', obj.sku.sku_brand), ('Category', obj.sku.sku_category),
                                  ('Sub Category', obj.sku.sub_category),
-                                 ('Size', obj.sku.sku_size), ('Opening Stock', obj.opening_stock), ('Opening Stock Value', obj.opening_stock_value),
+                                 ('Size', obj.sku.sku_size), ('Opening Stock', obj.opening_stock),
                                  ('Receipt Quantity', obj.receipt_qty + obj.uploaded_qty),
                                  ('Produced Quantity', obj.produced_qty),
                                  ('Dispatch Quantity', obj.dispatch_qty), ('Return Quantity', obj.return_qty),
                                  ('Consumed Quantity', obj.consumed_qty),('RTV Quantity',obj.rtv_quantity),
-                                 ('Adjustment Quantity', obj.adjustment_qty), ('Closing Stock', obj.closing_stock), ('Closing Stock Value', obj.closing_stock_value)
+                                 ('Adjustment Quantity', obj.adjustment_qty), ('Closing Stock', obj.closing_stock)
                                  ))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             ord_dict['Manufacturer'] = manufacturer
@@ -7511,6 +7516,7 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
     lis = ['open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__sku__sku_category', 'open_po__sku__sub_category',
             'open_po__sku__sku_brand','open_po__order_quantity','order_id',
             'open_po__sku__user']
+    order_data=lis[1]
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
         if search_params['order_term'] == 'desc':
@@ -9312,7 +9318,7 @@ def get_move_inventory_report_data(search_params, user, sub_user):
 
 
 def get_bulk_stock_update_data(search_params, user, sub_user):
-  from rest_api.views.common import get_sku_master, get_local_date
+  from rest_api.views.common import get_sku_master, get_local_date, get_utc_start_date
   temp_data = copy.deepcopy(AJAX_DATA)
   lis = ['source_sku_code__sku_code', 'source_sku_code__sku_code', 'source_sku_code__sku_code', 'source_sku_code__sku_code', 'source_location', 'destination_location', 'source_quantity', 'creation_date']
   col_num = search_params.get('order_index',7)
@@ -9328,10 +9334,12 @@ def get_bulk_stock_update_data(search_params, user, sub_user):
       order_data = '-%s' % order_data
   if 'from_date' in search_params:
       search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+      search_params['from_date'] = get_utc_start_date(search_params['from_date'])
       search_parameters['creation_date__gte'] = search_params['from_date']
   if 'to_date' in search_params:
       search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                            datetime.time())
+      search_params['to_date'] = get_utc_start_date(search_params['to_date'])
       search_parameters['creation_date__lte'] = search_params['to_date']
   if 'sku_code' in search_params:
       search_parameters['source_sku_code__sku_code'] = search_params['sku_code']

@@ -346,12 +346,11 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
 
   vm.gst_calculate = function(record){
     var gst_val = Number(record.taxes.cgst_tax) + Number(record.taxes.sgst_tax) + Number(record.taxes.igst_tax);
-    if (gst_val) {
-      gst_val = Number(record.base_price) * gst_val / 100;
-    }
 
-     var discount_val = ((Number(record.base_price) * Number(record.discount)/100))
-      record.invoice_amount = record.base_price - discount_val + gst_val
+    if (gst_val) {
+      gst_val = Number(record.base_price-Number(record.discount)) * gst_val / 100;
+    }
+      record.invoice_amount = record.base_price - Number(record.discount) + gst_val
   }
 
 

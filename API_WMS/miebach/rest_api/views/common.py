@@ -10623,6 +10623,6 @@ def get_full_sequence_number(user_type_sequence, creation_date):
             inv_num_lis.append(creation_date.strftime('%m%y'))
     if user_type_sequence.interfix:
         inv_num_lis.append(user_type_sequence.interfix)
-    inv_num_lis.append(str(user_type_sequence.value))
+    inv_num_lis.append(str(user_type_sequence.value).zfill(3))
     sequence_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
     return sequence_number

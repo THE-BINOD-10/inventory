@@ -12,7 +12,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.datatable = false;
   vm.industry_type = Session.user_profile.industry_type;
   vm.user_type = Session.user_profile.user_type;
-  vm.parent_username = Session.parent.parent_username
+  vm.parent_username = Session.parent.parent_username;
 
   vm.empty_data = {}
   vm.model_data = {};
@@ -52,6 +52,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
      vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Amt(w/o tax)').withTitle('Invoice Amt(w/o tax)'))
      vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Amount').withTitle('Invoice Amount'))
      vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Tax Amt').withTitle('Invoice Tax Amt'))
+     vm.dtColumns.push(DTColumnBuilder.newColumn('EwayBill Number').withTitle('EwayBill Number'))
      vm.model_data.invoice = "true"
     } else {
       vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Number').withTitle('Invoice Number'))

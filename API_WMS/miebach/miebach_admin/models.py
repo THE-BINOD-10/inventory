@@ -489,6 +489,49 @@ class OpenPO(models.Model):
 
 
 @reversion.register()
+class OpenPR(models.Model):
+    id = BigAutoField(primary_key=True)
+    open_po = models.ForeignKey(OpenPO, blank=True, null=True)
+    sku = models.ForeignKey(SKUMaster, db_index=True)
+    quantity = models.FloatField(default=0, db_index=True)
+    price = models.FloatField(default=0)
+    remarks = models.CharField(max_length=256, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'OPEN_PR'
+
+
+@reversion.register()
+class PRApprovals(models.Model):
+    id = BigAutoField(primary_key=True)
+    open_pr = models.ForeignKey(OpenPR)
+    level = models.CharField(max_length=64, default='')
+    approved_by = models.CharField(max_length=64, default='')
+    status = models.CharField(max_length=32, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PR_APPROVALS'
+
+
+class PRApprovalConfig(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    name = models.CharField(max_length=64, default='')
+    min_unit_range = models.FloatField(default=0)
+    max_unit_range = models.FloatField(default=0)
+    unit_type = models.CharField(max_length=32, choices=UNIT_TYPE_CHOICES, default='amount')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PR_APPROVAL_CONFIG'
+
+
+@reversion.register()
 class PurchaseOrder(models.Model):
     id = BigAutoField(primary_key=True)
     order_id = models.PositiveIntegerField(db_index=True)

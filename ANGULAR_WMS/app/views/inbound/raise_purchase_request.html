@@ -1,0 +1,23 @@
+<div class="page-layout" ng-controller="RaisePurchaseRequestCtrl as showCase">
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+     <div ng-include="'views/common/excel.html'"></div>
+  </div>
+  <div class="layout-body">
+    <div class="panel">
+      <div class="panel-header">
+        <button type="button" class="btn btn-success pull-right ml10" ng-click="showCase.add()">New Purchase Request</button>
+        <div ng-include="'views/common/excel.html'"></div>
+      </div>
+      <div ng-include="'views/common/datatable.html'"></div>
+      <div class="panel-footer">
+        <button type="button" class="pull-right btn btn-success" style="margin-left:10px;" ng-click="showCase.confirm_po1()" ng-disabled="showCase.bt_disable || process" ng-show="showCase.permissions.change_openpo">
+          Confirm PO
+        </button>
+        <button type="button" class="pull-right btn btn-danger" ng-disabled="showCase.bt_disable || process" ng-click="showCase.delete_po_group();" ng-show="showCase.permissions.change_openpo">
+          Delete PO
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

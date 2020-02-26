@@ -709,6 +709,22 @@ var app = angular.module('urbanApp')
           abstract: true,
           url: '/inbound',
         })
+        .state('app.inbound.RaisePr', {
+          url: '/RaisePR',
+          permission: 'add_openpr|change_openpr',
+          templateUrl: 'views/inbound/raise_purchase_request.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/inbound/raise_purchase_request.js'
+                ])
+              }]
+          },
+          data: {
+            title: 'Raise PR',
+          }
+        })
+
         .state('app.inbound.RaisePo', {
           url: '/scripts/controllers/outbound/pop_js/custom_order_details.jsRaisePO',
           permission: 'add_openpo|change_openpo|add_intransitorders',

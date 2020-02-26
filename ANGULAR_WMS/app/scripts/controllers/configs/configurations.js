@@ -44,6 +44,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'show_mrp_grn': false,
                     'display_dc_invoice':false,
                     'display_order_reference':false,
+                    'levels_based_pr_to_po': false,
                     'move_inventory_reasons':'',
                   };
   vm.all_mails = '';
@@ -78,6 +79,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      101: 'display_dc_invoice',
                      102: 'display_order_reference',
                      103: 'picklist_sort_by_sku_sequence',
+                     104: 'levels_based_pr_to_po'
                      }
 
   vm.check_box_data = [
@@ -599,6 +601,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    class_name: "fa fa-server",
    display: true
   },
+  {
+   name: "Enable Purchase Request to PO",
+   model_name: "levels_based_pr_to_po",
+   param_no: 104,
+   class_name: "fa fa-server",
+   display: true
+  },
 ]
 
   vm.empty = {};
@@ -744,6 +753,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       vm.model_data["tax_details"] = {'CST': {}};
       vm.model_data['prefix_data'] = [];
       vm.model_data['prefix_dc_data'] = [];
+      vm.model_data['pr_approvals_conf_data'] = [];
       angular.forEach(data.data.prefix_data, function(data){
         vm.model_data.prefix_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix,
                                         marketplace_interfix: data.interfix, marketplace_date_type: data.date_type});
@@ -751,6 +761,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       angular.forEach(data.data.prefix_dc_data, function(data){
         vm.model_data.prefix_dc_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix});
       })
+      angular.forEach(data.data.pr_approvals_conf_data, function(data){
+        vm.model_data.pr_approvals_conf_data.push({pr_name: data.name});
+      })
+
       angular.forEach(vm.model_data, function(value, key) {
         if (value == "true") {
           vm.model_data[key] = Boolean(true);
@@ -1204,6 +1218,45 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     for(var i=0; i < vm.model_data.marketplaces.length; i++) {
       if (vm.saved_marketplaces.indexOf(vm.model_data.marketplaces[i]) == -1) {
         vm.model_data.marketplace_name = vm.model_data.marketplaces[i];
+        break;
+      }
+    }
+  }
+
+    vm.model_data.pr_add_new = true;
+    vm.PRSelected = function(name) {
+
+    if (name) {
+
+      for(var i = 0; i < vm.model_data.pr_conf_names.length; i++) {
+
+        if(vm.model_data.pr_approvals_conf_data[i].name == name) {
+
+          vm.model_data.pr_name = vm.model_data.pr_approvals_conf_data[i].name;
+          vm.model_data.pr_minAmt = vm.model_data.prefix_data[i].min_unit_range;
+          vm.model_data.pr_maxAmt = vm.model_data.prefix_data[i].max_unit_range;
+          vm.model_data["pr_add_new"] = false;
+          vm.pr_add_show = true;
+          break;
+        }
+      }
+    } else {
+
+      vm.model_data["pr_add_new"] = true;
+      vm.pr_add_show = false;
+      vm.model_data.name = "";
+    }
+  }
+
+  vm.saved_pr_configs = [];
+  vm.filterPRConfigs = function() {
+    vm.saved_pr_configs = [];
+    angular.forEach(vm.model_data.prefix_data, function(data){
+      vm.saved_pr_configs.push(data.name);
+    })
+    for(var i=0; i < vm.model_data.pr_conf_names.length; i++) {
+      if (vm.saved_pr_configs.indexOf(vm.model_data.pr_conf_names[i]) == -1) {
+        vm.model_data.pr_name = vm.model_data.pr_conf_names[i];
         break;
       }
     }

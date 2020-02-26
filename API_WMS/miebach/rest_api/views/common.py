@@ -805,6 +805,11 @@ def add_extra_permissions(user):
                 user.groups.add(group)
 
 
+def get_pr_approvals_configuration_data(user):
+    pr_conf_data = list(PRApprovalConfig.objects.filter(user=user).values('id', 'name', 'min_unit_range', 'max_unit_range'))
+    return pr_conf_data
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -847,6 +852,9 @@ def configurations(request, user=''):
                                       values('marketplace', 'prefix', 'interfix', 'date_type'))
     config_dict['prefix_dc_data'] = list(ChallanSequence.objects.filter(user=user.id, status=1).exclude(marketplace=''). \
                                       values('marketplace', 'prefix'))
+
+    config_dict['pr_conf_names'] = list(PRApprovalConfig.objects.filter(user=user).values_list('name', flat=True))
+    config_dict['pr_approvals_conf_data'] = get_pr_approvals_configuration_data(user)
 
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
     config_dict['all_stages'] = str(','.join(all_stages))

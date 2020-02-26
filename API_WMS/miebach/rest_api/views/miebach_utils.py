@@ -4893,7 +4893,7 @@ def get_order_summary_data(search_params, user, sub_user):
                             invoice_number = str(invoice_number_obj[0].seller_order.order.order_id)
             if invoice_number:
                 shipment_info = ShipmentInfo.objects.filter(order__user=user.id,order__original_order_id=data['original_order_id'],
-                                                            invoice_number=invoice_number)
+                                                            invoice_number__endswith='/'+invoice_number)
                 if shipment_info.exists():
                     ewaybill_number = str(shipment_info[0].order_shipment.ewaybill_number)
 

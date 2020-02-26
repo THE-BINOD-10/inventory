@@ -5044,6 +5044,7 @@ def tally_dump(user,order_id,invoice_amount_picked,unit_price_inclusive_tax, gst
                               ('Qty', quantity),
                               ('Rate', float(data['unit_price'])),
                               ('Disc%', round(discount_percent)),
+                              ('Discount Amount', float(discount)),
                               ('Sales Ledger', 'Sales'),
                               ('Sales Amount', float(taxable_amount)),
                               ('Sgst Ledger', 'SGST'),

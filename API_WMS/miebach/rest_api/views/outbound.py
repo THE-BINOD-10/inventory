@@ -9494,7 +9494,9 @@ def picklist_delete(request, user=""):
                                                                                     float(picked_qty)
 
                         if picked_qty <= 0 and not seller_order:
-                            order.delete()
+                            order.status = 3
+                            order.save()
+                            order.picklist_set.filter(status__icontains='open').delete()
                             continue
                         save_order_tracking_data(order, quantity=picked_qty, status='cancelled', imei='')
                         temp_order_quantity = float(order.original_quantity) - float(picked_qty)

@@ -7505,6 +7505,7 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
     lis = ['open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__sku__sku_category', 'open_po__sku__sub_category',
             'open_po__sku__sku_brand','open_po__order_quantity','order_id',
             'open_po__sku__user']
+    order_data=lis[1]
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
         if search_params['order_term'] == 'desc':

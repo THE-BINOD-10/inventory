@@ -2556,6 +2556,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
         price = 0
         tax = 0
         batch_id = ''
+        mfg_date, exp_date = '', ''
         if data.batch_detail:
             batch_no = data.batch_detail.batch_no
             mrp = data.batch_detail.mrp
@@ -2563,7 +2564,6 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
             price = data.batch_detail.buy_price
             tax = data.batch_detail.tax_percent
             batch_id = data.batch_detail.id
-            mfg_date,exp_date = '',''
             if data.batch_detail.manufactured_date:
                 manufactured_date = data.batch_detail.manufactured_date.strftime("%d %b %Y")
                 mfg_date = data.batch_detail.manufactured_date.strftime("%m/%d/%Y")

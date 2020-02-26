@@ -350,7 +350,6 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     order_data = SKU_SUPPLIER_MAPPING.values()[col_num]
     filter_params = get_filtered_params(filters, SKU_SUPPLIER_MAPPING.values())
-
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
@@ -378,9 +377,9 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
         temp_data['aaData'].append(OrderedDict((('supplier_id', result.supplier_id), ('wms_code', result.sku.wms_code),
                                                 ('supplier_code', result.supplier_code), ('moq', result.moq),
                                                 ('preference', sku_preference),
-                                                ('price', result.price), ('costing_type', result.costing_type),
-                                                ('markup_percentage',result.markup_percentage),
-                                                ('margin_percentage', result.margin_percentage), ('DT_RowClass', 'results'),
+                                                ('costing_type', result.costing_type),('price', result.price),
+                                                ('margin_percentage', result.margin_percentage),('markup_percentage',result.markup_percentage),
+                                                ('DT_RowClass', 'results'),
                                                 ('DT_RowId', result.id), ('mrp', result.sku.mrp))))
 
 
@@ -1426,6 +1425,7 @@ def update_sku_supplier_values(request, user=''):
 def insert_mapping(request, user=''):
     data_dict = copy.deepcopy(SUPPLIER_SKU_DATA)
     integer_data = 'preference'
+    auto_po_switch = get_misc_value('auto_po_switch', user.id)
     for key, value in request.POST.iteritems():
 
         if key == 'wms_code':
@@ -1451,7 +1451,7 @@ def insert_mapping(request, user=''):
 
         if value != '':
             data_dict[key] = value
-    if user.username not in MILKBASKET_USERS:
+    if auto_po_switch == 'true':
         sku_supplier = SKUSupplier.objects.filter(Q(sku_id=sku_id[0].id) & Q(preference=preference),
                                                   sku__user=user.id)
         if sku_supplier:

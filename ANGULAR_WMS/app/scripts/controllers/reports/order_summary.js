@@ -45,6 +45,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     if(vm.invoice_number_show) {
      vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Number').withTitle('Invoice Number'))
      vm.dtColumns.push(DTColumnBuilder.newColumn('Challan Number').withTitle('Challan Number'))
+     vm.dtColumns.push(DTColumnBuilder.newColumn('Total Procurement Price').withTitle('Total Procurement Price'))
      vm.dtColumns.push(DTColumnBuilder.newColumn('Procurement Price').withTitle('Procurement Price'))
      vm.dtColumns.push(DTColumnBuilder.newColumn('Margin').withTitle('Margin'))
      vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Qty').withTitle('Invoice Qty'))
@@ -56,6 +57,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     } else {
       vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Number').withTitle('Invoice Number'))
       vm.dtColumns.pop(DTColumnBuilder.newColumn('Challan Number').withTitle('Challan Number'))
+      vm.dtColumns.pop(DTColumnBuilder.newColumn('Total Procurement Price').withTitle('Total Procurement Price'))
       vm.dtColumns.pop(DTColumnBuilder.newColumn('Procurement Price').withTitle('Procurement Price'))
       vm.dtColumns.pop(DTColumnBuilder.newColumn('Margin').withTitle('Margin'))
       vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Qty').withTitle('Invoice Qty'))

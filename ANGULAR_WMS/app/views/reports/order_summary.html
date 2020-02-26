@@ -33,10 +33,6 @@
               <div class="col-md-4 col-sm-4 col-xs-6" ng-repeat="field in showCase.report_data.filters">
                 <div ng-include="service.get_view_url(field.type, 'inputs')"></div>
               </div>
-              <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.invoice_number_show">
-                <label class="control-label">Invoice Number</label>
-                <div><input name="invoice_number" class="form-control" type="text" ng-model="showCase.model_data.invoice_number"></div>
-              </div>
               <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.invoice_number">
                 <label class="control-label">Invoice Date</label>
                 <div><input name="invoice_date" class="form-control" ui-jq="datepicker" type="text" ng-model="showCase.model_data.invoice_date"></div>
@@ -66,14 +62,16 @@
                   <input type="text" autocomplete="off" name="customer_id" class="form-control" placeholder="Search Customer ID/Name/Number" typeahead="address.customer_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_customer_data?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.customer_id" typeahead-on-select="showCase.model_data.customer_id = $item.customer_id" required>
                 </div>
               </div>
-
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label">SKU Sub Category</label>
                   <input name="sub_category" class="form-control" type="text" ng-model="showCase.model_data.sub_category">
                 </div>
               </div>
-
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.invoice_number_show">
+                <label class="control-label">Invoice Number</label>
+                <div><input name="invoice_number" class="form-control" type="text" ng-model="showCase.model_data.invoice_number"></div>
+              </div>
             </div>
             <div class="col-md-12">
               <div ng-include="'views/common/controls/report_controls.html'"></div>

@@ -9511,6 +9511,12 @@ def get_sales_return_print_json(return_ids, user):
             data_dict['pincode'] = customer_master.pincode
             data_dict['pan'] = customer_master.pan_number
             data_dict['customer_gst'] = customer_master.tin_number
+            data_dict['shipping_address'] = customer_master.shipping_address
+            cod = obj.order.customerordersummary_set.filter()
+            if cod and cod[0].consignee:
+                data_dict['shipping_address'] = cod[0].consignee
+            if not data_dict['shipping_address']:
+                data_dict['shipping_address'] = customer_master.address
         else:
             data_dict['customer_name'] = obj.order.customer_name
             data_dict['customer_address'] = obj.order.address
@@ -9519,6 +9525,7 @@ def get_sales_return_print_json(return_ids, user):
             data_dict['pincode'] = obj.order.pin_code
             data_dict['pan'] = ''
             data_dict['customer_gst'] = ''
+            data_dict['shipping_address'] = ''
         data_dict.setdefault('item_details', [])
         data_dict_item = {}
         data_dict_item['sku_code'] = obj.sku.sku_code

@@ -891,6 +891,7 @@ class OrderShipment(models.Model):
     driver_phone_number = models.CharField(max_length =32 , default ='')
     truck_number = models.CharField(max_length=64)
     shipment_reference = models.CharField(max_length=64)
+    ewaybill_number = models.CharField(max_length=64, default='')
     status = models.CharField(max_length=32)
     courier_name = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)

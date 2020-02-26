@@ -174,7 +174,7 @@ PO_SUGGESTIONS_DATA = {'supplier_id': '', 'sku_id': '', 'order_quantity': '', 'o
 PO_DATA = {'open_po_id': '', 'status': '', 'received_quantity': 0}
 
 ORDER_SHIPMENT_DATA = {'shipment_number': '','manifest_number':'','shipment_date': '', 'truck_number': '', 'shipment_reference': '',
-                       'status': 1, 'courier_name': '','driver_name':'','driver_phone_number':''}
+                       'status': 1, 'courier_name': '','driver_name':'','driver_phone_number':'', 'ewaybill_number':''}
 
 SKU_FIELDS = ((('WMS SKU Code *', 'wms_code', 60), ('Product Description *', 'sku_desc', 256)),
               (('SKU Type', 'sku_type', 60), ('Put Zone *', 'zone_id', 60)),
@@ -4559,7 +4559,7 @@ def get_order_summary_data(search_params, user, sub_user):
     user_gst_number = ''
     if user.userprofile:
         user_gst_number = user.userprofile.gst_number
-    lis = ['creation_date', 'order_id', 'customer_id','customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
+    lis = ['creation_date', 'order_id', 'customer_id','customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku_n_sku_class',
            'sku__sku_size', 'sku__sku_desc', 'sku__sub_category', 'sku_code', 'sku_code', 'original_quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
            'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id',
            'quantity', 'quantity', 'quantity', 'quantity','order_id',
@@ -4710,7 +4710,7 @@ def get_order_summary_data(search_params, user, sub_user):
         ('Order Amt(w/o tax)',''), ('Tax Percent',''), ('HSN Code', ''), ('Tax', ''),('City', ''), ('State', ''), ('Marketplace', 'TotalOrderAmount='),('Invoice Amount',''),('Order Amount', temp_data['totalSellingPrice']),
         ('Price', ''),('Status', ''), ('Order Status', ''),('Invoice Tax', ''),('Customer GST Number',''),('Remarks', ''), ('Order Taken By', ''),('Net Order Qty', ''), ('Net Order Amt', ''),
         ('Invoice Date',''),('Billing Address',''),('Shipping Address',''),('Payment Cash', ''),('Payment Card', ''),('Payment PhonePe',''),('Payment GooglePay',''),('Payment Paytm',''),('Payment Received', ''),('GST Number', ''),
-        ('Procurement Price',''), ('Total Procurement Price','') , ('Margin',''), ('Invoice Amt(w/o tax)',''), ('Invoice Tax Amt','')))
+        ('Procurement Price',''), ('Total Procurement Price','') , ('Margin',''), ('Invoice Amt(w/o tax)',''), ('Invoice Tax Amt',''), ('EwayBill Number','')))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             total_row['Manufacturer'] = ''
             total_row['Searchable'] = ''
@@ -4814,6 +4814,7 @@ def get_order_summary_data(search_params, user, sub_user):
         remarks = ''
         order_taken_by = ''
         vehicle_number = ''
+        ewaybill_number = ''
         payment_card, payment_cash ,payment_PhonePe,payment_Paytm,payment_GooglePay = 0, 0,0,0,0
         order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data['id'])
         unit_price, unit_price_inclusive_tax = [data['unit_price']] * 2
@@ -4890,6 +4891,11 @@ def get_order_summary_data(search_params, user, sub_user):
                             invoice_number = str(invoice_number_obj[0].order.order_id)
                         else:
                             invoice_number = str(invoice_number_obj[0].seller_order.order.order_id)
+            if invoice_number:
+                shipment_info = ShipmentInfo.objects.filter(order__user=user.id,order__original_order_id=data['original_order_id'],
+                                                            invoice_number__endswith='/'+invoice_number)
+                if shipment_info.exists():
+                    ewaybill_number = str(shipment_info[0].order_shipment.ewaybill_number)
 
             if data['sellerordersummary__creation_date'] :
                 invoice_date = data['sellerordersummary__creation_date'].strftime('%d %b %Y')
@@ -4984,7 +4990,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('Invoice Tax Amt', invoice_tax),
                                                     ('Order Tax Amt',("%.2f"%tax)),('Invoice Amount', invoice_amount_picked),
                                                     ('City', data['city']), ('State', data['state']), ('Marketplace', data['marketplace']),
-                                                    ('Total Order Amt', float(invoice_amount)),
+                                                    ('Total Order Amt', float(invoice_amount)),('EwayBill Number', ewaybill_number),
                                                     ('Cancelled Order Qty', cancelled_qty),
                                                     ('Cancelled Order Amt', cancelled_amt),
                                                     ('Net Order Qty', net_qty), ('Net Order Amt', net_amt),

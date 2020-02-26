@@ -4956,7 +4956,10 @@ def get_order_summary_data(search_params, user, sub_user):
             order_extra_fields[extra] = ''
             if order_field_obj.exists():
                 order_extra_fields[order_field_obj[0].name] = order_field_obj[0].value
-        total_procurement_price, procurement_price, margin = get_margin_price_details(invoice_qty_filter, data, float(unit_price_inclusive_tax), quantity)
+        if search_params.get('invoice','') == 'true' and invoice_qty_filter:
+            total_procurement_price, procurement_price, margin = get_margin_price_details(invoice_qty_filter, data, float(unit_price_inclusive_tax), quantity)
+        else:
+            total_procurement_price, procurement_price, margin = 0, 0, 0
         aaData = OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                     ('Customer ID', data['customer_id']),
                                                     ('Customer Name', customer_name),

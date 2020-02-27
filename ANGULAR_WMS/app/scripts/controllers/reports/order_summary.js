@@ -66,6 +66,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Amt(w/o tax)').withTitle('Invoice Amt(w/o tax)'))
       vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Amount').withTitle('Invoice Amount'))
       vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Tax Amt').withTitle('Invoice Tax Amt'))
+      vm.dtColumns.pop(DTColumnBuilder.newColumn('EwayBill Number').withTitle('EwayBill Number'))
       vm.model_data.invoice = "false"
     }
   }

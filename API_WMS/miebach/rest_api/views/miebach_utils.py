@@ -4563,7 +4563,7 @@ def get_order_summary_data(search_params, user, sub_user):
            'sku__sku_size', 'sku__sku_desc', 'sku__sub_category', 'sku_code', 'sku_code', 'original_quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
            'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id',
            'quantity', 'quantity', 'quantity', 'quantity','order_id',
-           'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','invoice_number', 'order_id', 'quantity','creation_date', 'order_id', 'order_id', 'order_id']
+           'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','invoice_number', 'order_id', 'quantity','creation_date', 'order_id', 'order_id', 'order_id','order_id','order_id']
     if milkbasket_user :
         lis.append('order_id')
     # lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']

@@ -9,11 +9,11 @@
           <div class="col-md-3 col-sm-3 col-xs-3 pull-left hide">
             <button type="button" class="btn btn-success" ng-click="showCase.open_order_update()">Update Order</button>
           </div>
-          <div class="col-md-2 col-sm-3 col-xs-6 pull-right">
+          <!-- <div class="col-md-2 col-sm-3 col-xs-6 pull-right">
             <select class="form-control" name="search" ng-model="showCase.model_data.search" ng-change="showCase.get_payment_tracker_data()">
               <option ng-repeat="data in showCase.model_data.filters" value="{{data}}">{{data}}</option>
             </select>
-          </div>
+          </div> -->
         </div>
         <div class="row" style="margin: 10px 5px 0px;">
           <div class="col-md-1 col-sm-6 col-xs-6">
@@ -63,34 +63,34 @@
             <!--This is just some content to illustrate fancy headings.-->
             <div class="row">
               <div class="col-md-12 col-sm-12 col-xs-12">
-                <table class="table table-stk" style="margin-bottom: 0px;background: #f0f0f0">
+                <table class="table" style="margin-bottom: 0px;background: #f0f0f0">
                   <thead>
                     <tr>
+                      <th>Invoice Number</th>
                       <th>Order ID</th>
                       <th>Invoice Amount</th>
                       <th>Received</th>
                       <th>Receivable</th>
                       <th>Expected Date</th>
-                      <th>Order Status</th>
                       <th style="width: 200px;">Update Amount</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr ng-repeat="data in payment.data">
+                      <td>{{data.invoice_number}}</td>
                       <td>{{data.display_order}}</td>
                       <td>{{data.inv_amount}}</td>
                       <td>{{data.received}}</td>
                       <td>{{data.receivable}}</td>
                       <td>{{data.expected_date}}</td>
-                      <td>{{data.order_status}}</td>
-                      <td class="order-edit">
-                        <div class="order-update">
-                          <span style="color: #2ECC71;text-decoration: underline;cursor: pointer;" ng-click="showCase.order_update($event)">Update</span>
-                        </div>
-                        <div style="width: 200px;" class="order-save hide">
+                      <td>
+                        <!-- <div class="order_update_show"> -->
+                          <span style="color: #2ECC71;text-decoration: underline;cursor: pointer;" class="order_update_show" ng-click="showCase.addRowData($event, data);$event.stopPropagation()">Update</span>
+                        <!-- </div> -->
+                        <!-- <div style="width: 200px;" class="order-save hide">
                           <input type="text" style="width: 100px !important;" class="form-control pull-left" placeholder="Amount" decimal-number ng-model="data.amount" ng-change="showCase.change_amount(data)">
                           <button style="width: 60px;margin-left: 10px;" type="button" class="btn btn-success pull-left" ng-click="showCase.order_save($event, $index, $parent.$index, data, payment)">Save</button>
-                        </div>
+                        </div> -->
                       </td>
                     </tr>
                   </tbody>

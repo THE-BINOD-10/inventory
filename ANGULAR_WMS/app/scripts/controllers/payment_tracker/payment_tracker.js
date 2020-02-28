@@ -1,12 +1,16 @@
+FUN = {};
+
+;(function() {
 'use strict';
 
-angular.module('urbanApp', ['datatables'])
-  .controller('PaymentTracker',['$scope', '$http', '$state', 'Session', 'Service', ServerSideProcessingCtrl]);
+var stockone = angular.module('urbanApp', ['datatables'])
+  stockone.controller('PaymentTracker',['$scope', '$http', '$state', 'Session', 'Service','$q', 'SweetAlert', 'focus', '$modal', '$compile', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, Session, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, SweetAlert, focus, $modal, $compile,Data) {
 
   var vm = this;
   vm.service = Service;
+  vm.permissions = Session.roles.permissions;
   
   var empty_data = { payments: [],
                      total_invoice_amount: "", total_payment_receivable: "", total_payment_received: ""
@@ -47,6 +51,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service) {
       })
     }
   }
+  vm.invoice_update = function(form){
+
+    var elem = angular.element($('form'));
+    elem = elem[0];
+    elem = $(elem).serializeArray();
+    elem.push({'name':'invoice_number', 'value':Data.invoice_data.invoice_number});
+
+    vm.service.apiCall("update_payment_status/", "GET", elem).then(function(data){
+      if(data.message) {
+        console.log(data);
+        vm.reloadData();
+      }
+    })
+  }
 
   //Upadate payment popup
   vm.order_data = {}
@@ -63,9 +81,30 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service) {
 
     var temp = event.target;
     var parent = angular.element(temp).parents(".order-edit");
-    angular.element(parent).find(".order-update").addClass("hide");
+    angular.element(parent).find(".order_update").addClass("hide");
     angular.element(parent).find(".order-save").removeClass("hide");
+    $(".update_fields").removeClass("hide");
   }
+  vm.addRowData = function(event, data) {
+      Data.invoice_data = data;
+      var elem = event.target;
+      var data_tr = angular.element(elem).parent().parent();
+      if ($(elem).hasClass('order_update_show')) {
+        var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='12'><dt-po-data-out data='"+JSON.stringify(vm.row_data)+"' preview='showCase.preview'></dt-po-data-out></td></tr>")($scope);
+        data_tr.after(html);
+        data_tr.next().toggle(1000);
+        
+        $(elem).removeClass();
+        $(elem).addClass('order_update_hide');
+      } else {
+        $(elem).removeClass('order_update_hide');
+        $(elem).addClass('order_update_show');
+        data_tr.next().remove();
+      }
+    }
+    vm.reloadData = function () {
+      $('.custom-table').DataTable().draw();
+    };
 
   vm.order_save = function(event, index1, index2, order, customer){
 
@@ -97,6 +136,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service) {
       })
     }
   }
+  vm.bank_names = ''
+  if (vm.permissions.bank_option_fields){
+    vm.bank_names=vm.permissions.bank_option_fields.split(',');
+  }
+  // vm.bank_names = {'abc': 'abc',
+  //                  'xyz': 'xyz',
+  //                  'pqr': 'pqr'};
+  vm.payment_modes = {'cheque': 'Cheque',
+                      'NEFT': 'NEFT',
+                      'online': 'Online',
+                      'cash': 'Cash'};
+  vm.default_bank = vm.bank_names[0];
+  vm.default_mode = "cash";
 
   vm.change_amount = function(data) {
 
@@ -105,3 +157,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service) {
     }
   }
 }
+  stockone.directive('dtPoDataOut', function() {
+  return {
+    restrict: 'E',
+    scope: {
+      po_data: '=data',
+      preview: '=preview'
+    },
+    templateUrl: 'views/payment_tracker/update_alternative_amt_datatable.html',
+    link: function(scope, element, attributes, $http){
+      console.log(scope);
+    }
+  };
+});
+})();

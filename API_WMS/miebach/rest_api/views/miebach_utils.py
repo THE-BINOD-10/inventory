@@ -4584,7 +4584,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                              datetime.time())
         search_params['to_date'] = get_utc_start_date(search_params['to_date'])
         search_parameters['creation_date__lt'] = search_params['to_date']
-    filter_dict = {'sku_code':'sku_code', 'marketplace':'marketplace','sku_category':'sku__sku_category',
+    filter_dict = {'sku_code':'sku__sku_code', 'marketplace':'marketplace','sku_category':'sku__sku_category',
                     'sub_category': 'sku__sub_category','sku_brand':'sku__sku_brand','sku_size':'sku__sku_size',
                     'sku_class':'sku__sku_class','city':'city', 'state':'state','order_reference':'order_reference',
                      'invoice_date': 'sellerordersummary__creation_date__icontains','customer_id':'customer_id',

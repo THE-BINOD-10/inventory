@@ -554,7 +554,7 @@ data_datatable = {  # masters
     'POPaymentTrackerInvBased': 'get_inv_based_po_payment_data', \
     'ReturnToVendor': 'get_po_putaway_data', \
     'CreatedRTV': 'get_saved_rtvs', \
-    'PastPO':'get_past_po',\
+    'PastPO':'get_past_po', 'RaisePR': 'get_pr_suggestions',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -805,9 +805,75 @@ def add_extra_permissions(user):
                 user.groups.add(group)
 
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def add_update_pr_config(request,user=''):
+    toBeUpdateData = eval(request.POST.get('data', []))
+    if toBeUpdateData:
+        data = toBeUpdateData[0]
+        pr_approvals = PRApprovalConfig.objects.filter(user=user, name=data['name'], 
+                                        min_Amt=data['min_Amt'], max_Amt=data['max_Amt'])
+            
+        mailsMap = data.get('mail_id', {})
+        for level, mails in mailsMap.items():
+            PRApprovalMap = {
+                    'user': user,
+                    'name': data['name'],
+                    'min_Amt': data['min_Amt'],
+                    'max_Amt': data['max_Amt'],
+                    'level': level,
+                }
+            if not pr_approvals.exists():
+                eachConfig = PRApprovalConfig.objects.create(**PRApprovalMap)
+                eachConfigId = eachConfig.id
+            else:
+                eachLevel = pr_approvals.filter(level=level)
+                if eachLevel.exists():
+                    eachConfigId = eachLevel[0].id
+                else:
+                    eachConfig = PRApprovalConfig.objects.create(**PRApprovalMap)
+                    eachConfigId = eachConfig.id
+
+                
+            mailsList = [i.strip() for i in mails.split(',')]
+            for eachMail in mailsList:
+                emailMap = {
+                            'user': user, 
+                            'master_id': eachConfigId, 
+                            'master_type': 'pr_approvals_conf_data', 
+                            'email_id': eachMail,
+                            }
+                MasterEmailMapping.objects.update_or_create(**emailMap)
+        status = "Updated Successfully"
+    else:
+        status = "Wrong data provided in Configuration"
+    return HttpResponse(status)
+
+def fetchConfigNameRangesMap(user):
+    confMap = OrderedDict()
+    for rec in PRApprovalConfig.objects.filter(user=user).distinct().values_list('name', 'min_Amt', 'max_Amt'):
+        name, min_Amt, max_Amt = rec
+        confMap[name] = (min_Amt, max_Amt)
+    return confMap
+
 def get_pr_approvals_configuration_data(user):
-    pr_conf_data = list(PRApprovalConfig.objects.filter(user=user).values('id', 'name', 'min_unit_range', 'max_unit_range'))
-    return pr_conf_data
+    pr_conf_obj = PRApprovalConfig.objects.filter(user=user)
+    pr_conf_data = pr_conf_obj.values('id', 'name', 'min_Amt', 'max_Amt', 'level')
+    mailsMap = {}
+    totalConfigData = {}
+    for eachConfData in pr_conf_data:
+        name = eachConfData['name']
+        sameLevelMailIds = MasterEmailMapping.objects.filter(master_id=eachConfData['id'], 
+                                    master_type='pr_approvals_conf_data', user=user).values_list('email_id', flat=True)
+        commaSepMailIds = ','.join(sameLevelMailIds)
+        eachConfData['mail_id'] = {str(eachConfData['level']):commaSepMailIds}
+        if name not in totalConfigData:
+            totalConfigData[name] = eachConfData
+        else:
+            totalConfigData[name]['mail_id'][str(eachConfData['level'])] = commaSepMailIds 
+
+    return totalConfigData.values()
 
 
 @csrf_exempt

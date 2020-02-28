@@ -42,6 +42,77 @@ def get_filtered_params(filters, data_list):
 
 
 @csrf_exempt
+def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    sku_master, sku_master_ids = get_sku_master(user, user)
+    # lis = ['supplier__name', 'total', 'order_type']
+    # search_params = get_filtered_params(filters, lis[1:])
+    # order_data = lis[col_num]
+    # if order_term == 'desc':
+    #     order_data = '-%s' % order_data
+
+    # search_params['sku_id__in'] = sku_master_ids
+    values_list = ['requested_user__username', 'pr_number', 'final_status', 'pending_level']
+    if search_term:
+        # results = OpenPO.objects.filter(status__in=['', 'Manual', 'Automated']).values('supplier_id', 'supplier__name', 'supplier__tax_type',
+        #                                                   'order_type').distinct().annotate(
+        #     total=Sum('order_quantity')). \
+        #     filter(Q(supplier__id__icontains=search_term) | Q(supplier__name__icontains=search_term) |
+        #            Q(total__icontains=search_term), sku__user=user.id, **search_params).order_by(order_data)
+        pass
+
+    elif order_term:
+        # results = OpenPO.objects.filter(status__in=['', 'Manual', 'Automated']).values('supplier_id', 'supplier__name', 'supplier__tax_type',
+        #                                                   'order_type').distinct().annotate(
+        #     total=Sum('order_quantity')). \
+        #     filter(sku__user=user.id, **search_params).order_by(order_data)
+        pass
+    else:
+        # results = OpenPO.objects.filter(status__in=['', 'Manual', 'Automated']).values('supplier_id', 'supplier__name', 'supplier__tax_type',
+        #                                                   'order_type').distinct().annotate(
+        #     total=Sum('order_quantity')). \
+        #     filter(sku__user=user.id, **search_params)
+        pass
+    results = OpenPR.objects.filter(sku__user=user.id).values(*values_list).distinct().\
+                    annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
+
+    temp_data['recordsTotal'] = results.count()
+    temp_data['recordsFiltered'] = results.count()
+
+    configMap = fetchConfigNameRangesMap(user)
+    reqConfigName = ''
+    count = 0
+    for result in results[start_index: stop_index]:
+        for configName, priceRanges in configMap.items():
+            min_Amt, max_Amt = priceRanges
+            if min_Amt <= result['total_amt'] <= max_Amt:
+                reqConfigName = configName
+                break
+        else:
+            reqConfigName = configName
+        mailsList = []
+        apprConfObj = PRApprovalConfig.objects.filter(user=user, name=reqConfigName, level=result['pending_level'])
+        if apprConfObj:
+            apprConfObjId = apprConfObj[0].id
+            mailsList = MasterEmailMapping.objects.filter(user=user, 
+                                    master_id=apprConfObjId, 
+                                    master_type='pr_approvals_conf_data').values_list('email_id', flat=True)
+        if mailsList:
+            validated_by = mailsList[0]
+        else:
+            validated_by = ''
+        temp_data['aaData'].append(OrderedDict((
+                                                ('PR Number', result['pr_number']),
+                                                ('Total Quantity', result['total_qty']),
+                                                ('Total Amount', result['total_amt']),
+                                                ('Requested User', result['requested_user__username']),
+                                                ('Validation Status', result['final_status']),
+                                                ('Pending Level', result['pending_level']),
+                                                ('Validated By', validated_by),
+                                                ('DT_RowClass', 'results'))))
+        count += 1
+
+
+@csrf_exempt
 def get_po_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['supplier__id', 'supplier__id', 'supplier__name', 'total', 'order_type']
@@ -797,6 +868,24 @@ def generated_po_data(request, user=''):
                                     'data': ser_data, 'receipt_type': receipt_type, 'receipt_types': PO_RECEIPT_TYPES,
                                     'terms_condition' : terms_condition}))
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def generated_pr_data(request, user=''):
+    pr_number = request.POST.get('pr_number', '')
+    requested_user = request.POST.get('requested_user', '')
+    supplier_id = request.POST.get('supplier_id', '')
+    record = OpenPR.objects.filter(sku__user=user.id, requested_user__username=requested_user, pr_number=pr_number)
+    total_data = []
+    ser_data = []
+    for rec in record:
+        ser_data.append({'fields': {'sku': {'wms_code': rec.sku.sku_code}, 'description': rec.sku.sku_desc,
+                                    'order_quantity': rec.quantity, 'price': rec.price, 
+                                    'remarks': rec.remarks, 
+                                    }, 'pk': rec.id})
+    return HttpResponse(json.dumps({#'supplier_id': record[0].supplier_id, 'supplier_name': record[0].supplier.name,
+                                    'data': ser_data}))
+
 
 @login_required
 @get_admin_user
@@ -808,11 +897,15 @@ def validate_wms(request, user=''):
     receipt_type = request.POST.get('receipt_type', '')
     is_central_po = request.POST.get('is_central_po', '')
     wh_purchase_order = request.POST.get('wh_purchase_order', '')
+    is_purchase_request = request.POST.get('is_purchase_request', '')
     warehouse = None
     if is_central_po == 'true':
         warehouse = User.objects.get(username=request.POST['warehouse_name'])
-    supplier_master = SupplierMaster.objects.filter(id=myDict['supplier_id'][0], user=user.id)
-    if not supplier_master and not receipt_type == 'Hosted Warehouse' and wh_purchase_order != 'true':
+    if is_purchase_request != 'true':
+        supplier_master = SupplierMaster.objects.filter(id=myDict['supplier_id'][0], user=user.id)
+    else:
+        supplier_master = None
+    if not supplier_master and not receipt_type == 'Hosted Warehouse' and wh_purchase_order != 'true' and is_purchase_request != 'true':
         return HttpResponse("Invalid Supplier " + myDict['supplier_id'][0])
     if myDict.get('vendor_id', ''):
         vendor_master = VendorMaster.objects.filter(vendor_id=myDict['vendor_id'][0], user=user.id)
@@ -1550,7 +1643,9 @@ def get_raisepo_group_data(user, myDict):
         if 'remarks' in myDict.keys():
             remarks = myDict['remarks'][i]
         if 'supplier_code' in myDict.keys():
-            supplier_code = myDict['supplier_code'][i]
+            supplier_code = myDict.get('supplier_code', [])
+            if supplier_code:
+                supplier_code = supplier_code[i]
         if 'po_name' in myDict.keys():
             po_name = myDict['po_name'][0]
         if 'po_delivery_date' in myDict.keys() and myDict['po_delivery_date'][0]:
@@ -1598,7 +1693,10 @@ def get_raisepo_group_data(user, myDict):
         if receipt_type:
             order_types = dict(zip(PO_ORDER_TYPES.values(), PO_ORDER_TYPES.keys()))
             order_type = order_types.get(receipt_type, 'SR')
-        if not myDict['supplier_id'][0] and receipt_type == 'Hosted Warehouse' and myDict['dedicated_seller'][0] and myDict['wh_purchase_order'] != 'true':
+        supplierId = myDict.get('supplier_id', [])
+        if supplierId:
+            supplierId = supplierId[0]
+        if not supplierId and receipt_type == 'Hosted Warehouse' and myDict['dedicated_seller'][0] and myDict['wh_purchase_order'] != 'true':
                 seller_id = myDict['dedicated_seller'][0].split(':')[0]
                 myDict['supplier_id'][0] = check_and_create_supplier(seller_id, user)
         if myDict.get('wh_purchase_order', []):
@@ -1609,7 +1707,7 @@ def get_raisepo_group_data(user, myDict):
         if not myDict['wms_code'][i]:
             continue
         cond = (myDict['wms_code'][i])
-        all_data.setdefault(cond, {'order_quantity': 0, 'price': price, 'supplier_id': myDict['supplier_id'][0],
+        all_data.setdefault(cond, {'order_quantity': 0, 'price': price, 'supplier_id': supplierId,
                                    'supplier_code': supplier_code, 'po_name': po_name, 'receipt_type': receipt_type,
                                    'remarks': remarks, 'measurement_unit': measurement_unit,
                                    'vendor_id': vendor_id, 'ship_to': ship_to, 'sellers': {}, 'data_id': data_id,
@@ -1726,6 +1824,107 @@ def add_po(request, user=''):
         email = user.email
         if email:
             send_mail([email], 'BluecatPaper Saved PO Details', rendered)
+    return HttpResponse(status)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def approve_pr(request, user=''):
+    status = 'Approved Failed'
+    pr_number = request.POST.get('pr_number', '')
+    validation_type = request.POST.get('validation_type', '')
+    if pr_number:
+        pr_number = int(pr_number)
+    OpenPR.objects.filter(sku__user=user.id, pr_number=pr_number).update(final_status=validation_type)
+    status = 'Approved Successfully'
+    return HttpResponse(status)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def add_pr(request, user=''):
+    status = 'Failed to Add PR'
+    myDict = dict(request.POST.iterlists())
+    pr_number = get_incremental(user, 'PurchaseRequest')
+    all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
+    baseLevel = 'level0'
+    configNameRangesMap = fetchConfigNameRangesMap(user)
+    totalAmt = 0
+    reqConfigName = ''
+    mailsList = []
+    for key, value in all_data.iteritems():
+        wms_code = key
+        if not wms_code:
+            continue
+        if wms_code.isdigit():
+            sku_id = SKUMaster.objects.filter(Q(ean_number=wms_code) | Q(wms_code=wms_code), user=user.id)
+        else:
+            sku_id = SKUMaster.objects.filter(wms_code=wms_code.upper(), user=user.id)
+        if not sku_id:
+            status = 'Invalid WMS CODE'
+            return HttpResponse(status)
+        # supplier_master = SupplierMaster.objects.filter(id=value['supplier_id'], user=user.id)
+        pr_suggestions = {}
+        suggestions_data = OpenPR.objects.filter(sku_id=sku_id,
+                                                quantity=value['order_quantity'],
+                                                sku__user=user.id)
+        if not suggestions_data:
+            pr_suggestions['sku_id'] = sku_id[0].id
+            try:
+                pr_suggestions['quantity'] = float(value['order_quantity'])
+            except:
+                pr_suggestions['quantity'] = 0
+
+            try:
+                pr_suggestions['price'] = float(value['price'])
+            except:
+                pr_suggestions['price'] = 0
+            pr_suggestions['remarks'] = value['remarks']
+            pr_suggestions['requested_user'] = request.user
+            pr_suggestions['pr_number'] = pr_number
+            pr_suggestions['pending_level'] = baseLevel
+            pr_suggestions['final_status'] = 'pending'
+            openPRObj = OpenPR.objects.create(**pr_suggestions)
+            # data.save()
+            totalAmt += (pr_suggestions['quantity'] * pr_suggestions['price'])
+
+    for confName, priceRanges in configNameRangesMap.items():  #Used For..else
+        min_Amt, max_Amt = priceRanges
+        if min_Amt <= totalAmt <= max_Amt:
+            reqConfigName = confName
+            break
+    else:
+        reqConfigName = confName
+    apprConfObj = PRApprovalConfig.objects.filter(user=user, name=reqConfigName, level=baseLevel)
+    if apprConfObj:
+        apprConfObjId = apprConfObj[0].id
+        mailsList = MasterEmailMapping.objects.filter(user=user, 
+                                master_id=apprConfObjId, 
+                                master_type='pr_approvals_conf_data').values_list('email_id', flat=True)
+    if mailsList:
+        validated_by = mailsList[0]
+    else:
+        validated_by = ''
+    prApprovalsMap = {
+                        'openpr_number': pr_number, 
+                        'pr_user': user, 
+                        'level': baseLevel,
+                        'validated_by': validated_by,
+                        'configName': reqConfigName
+                    }
+    prObj = PRApprovals(**prApprovalsMap)
+    prObj.save()
+
+    status = 'Added Successfully'
+    # if all_data and user.username == 'bluecatpaper':
+    #     t = loader.get_template('templates/save_po_data.html')
+    #     data_dict = {'sku_data' : dict(all_data), 'sku_ids' : all_data.keys(), 'headers' : ['SKU Code', 'Qty', 'Unit Price'], 'supplier_name' : request.POST['supplier_id_name'].split(':')[1]}
+    #     rendered = t.render(data_dict)
+    #     email = user.email
+    #     if email:
+    #         send_mail([email], 'BluecatPaper Saved PO Details', rendered)
     return HttpResponse(status)
 
 

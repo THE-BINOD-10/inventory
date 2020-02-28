@@ -187,49 +187,6 @@
       <div class="row col-md-12" style="padding-bottom: 15px">
         <div class="col-md-5 col-sm-8 col-xs-12">
           <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i>
-          <strong style="line-height: 34px;" class="pull-left ml20"> Purchase Request Price Ranges </strong>
-        </div>
-        <div class="col-md-2 col-sm-4 col-xs-4">
-          <select class="show-menu-arrow form-control pull-left" ng-model="showCase.pr_selected" ng-change="showCase.PRSelected(showCase.pr_selected)">
-            <option value="">Select</option>
-            <option ng-repeat="preq in showCase.model_data.pr_approvals_conf_data" value="{{preq.pr_name}}"> {{preq.pr_name}}</option>
-          </select>
-        </div>
-        <div class="col-md-1 col-sm-1 col-xs-2" ng-if="!showCase.pr_add_show">
-          <div class="btn-group pull-left">
-            <button type="button" class="btn btn-warning" ng-click="showCase.pr_add_show = true;showCase.model_data.pr_add_new = true;showCase.filterPRConfigs();">
-              <span class="icon-plus"></span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="row col-md-12" style="padding-bottom: 15px" ng-if="showCase.pr_add_show">
-        <div class="col-md-5 col-sm-8 col-xs-12">
-        </div>
-        <div class="col-md-2 col-sm-2 col-xs-3">
-          <select class="show-menu-arrow form-control pull-left" ng-model="showCase.model_data.pr_name" ng-disabled="!showCase.model_data.pr_add_new">
-            <option ng-repeat="pr_name in showCase.model_data.pr_conf_names" value="{{pr_name}}" ng-selected="pr_name==showCase.model_data.pr_name"> {{pr_name}} </option>
-          </select>
-        </div>
-        <div class="col-md-1 col-sm-1 col-xs-2">
-          <input type="text" class="form-control" ng-model="showCase.model_data.pr_minAmt" placeholder="MinAmt">
-        </div>
-        <div class="col-md-1 col-sm-1 col-xs-2">
-          <input type="text" class="form-control" ng-model="showCase.model_data.pr_maxAmt" placeholder="MaxAmt">
-        </div>
-        <div class="col-md-1 col-sm-1 col-xs-2">
-          <input type="text" class="form-control" ng-model="showCase.model_data.pr_mail_id" placeholder="Add Mail ID">
-        </div>
-        <div class="col-md-2 col-sm-2 col-xs-3">
-          <button type="button" class="btn btn-success" ng-click="showCase.saveMarketplace(showCase.model_data.marketplace_name, showCase.model_data.marketplace_prefix)">Save</button>
-          <button type="button" class="btn btn-danger" ng-click="showCase.updateMarketplace(showCase.model_data.marketplace_name, showCase.model_data.marketplace_prefix, 'delete')" ng-if="!showCase.model_data.marketplace_new">Delete</button>
-        </div>
-      </div>
-
-      <div class="row col-md-12" style="padding-bottom: 15px">
-        <div class="col-md-5 col-sm-8 col-xs-12">
-          <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i>
           <strong style="line-height: 34px;" class="pull-left ml20"> Marketplace DC Prefix Details </strong>
         </div>
         <div class="col-md-2 col-sm-4 col-xs-4">
@@ -365,6 +322,55 @@
               </span>
             </div>
           </label>
+        </div>
+      </div>
+
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Purchase Request Price Ranges </strong>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <select class="show-menu-arrow form-control pull-left" ng-model="showCase.pr_selected" ng-change="showCase.PRSelected(showCase.pr_selected)">
+            <option value="">Select</option>
+            <option ng-repeat="preq in showCase.model_data.pr_approvals_conf_data" value="{{preq.pr_name}}"> {{preq.pr_name}}</option>
+          </select>
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-2" ng-if="!showCase.pr_selected">
+          <div class="btn-group pull-left">
+            <button type="button" class="btn btn-warning" ng-click="showCase.add_empty_index('','add');showCase.pr_add_show = true;">
+              <span class="icon-plus"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div ng-if="showCase.pr_add_show">
+        <div class="row col-md-12" style="padding-bottom: 15px" ng-repeat="datum in showCase.model_data.selected_pr_config_data">
+          <div class="col-md-5 col-sm-8 col-xs-12">
+          </div>
+          <div class="col-md-1 col-sm-2 col-xs-3">
+            <input type="text" class="form-control" ng-model="datum.name" placeholder="Config name">
+          </div>
+          <div class="col-md-1 col-sm-1 col-xs-2">
+            <input type="text" class="form-control" ng-model="datum.min_Amt" placeholder="MinAmt">
+          </div>
+          <div class="col-md-1 col-sm-1 col-xs-2">
+            <input type="text" class="form-control" ng-model="datum.max_Amt" placeholder="MaxAmt">
+          </div>
+           <div class="col-md-3 col-sm-1 col-xs-2">
+            <div style="padding: 3px;" ng-repeat="(key, value) in datum.mail_id">
+              <input class="{{datum.name+key}}" type="text" value="{{value}}" ui-jq="tagsInput"/>
+            </div>
+          </div>
+          <div class="col-md-1 col-sm-1 col-xs-2 pull-right" align="right">
+            <button type="button" class="btn btn-success" ng-click="showCase.add_empty_index(datum, 'add_email')">+</button>
+            <button type="button" class="btn btn-danger" ng-click="showCase.add_empty_index(datum, 'remove_email')">-</button>
+          </div>
+          <div class="row col-md-12" style="padding: 3px" ng-if="showCase.pr_add_show" align="right">
+            <button type="button" class="btn btn-danger" ng-click="showCase.pr_save(datum, 'pop')">Remove</button>
+            <button type="button" class="btn btn-success" ng-click="showCase.pr_save('', 'save')">Save</button>
+          </div>
         </div>
       </div>
 

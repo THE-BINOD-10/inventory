@@ -13,6 +13,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.selectAll = false;
     vm.date = new Date();
     vm.update_part = true;
+    vm.is_purchase_request = true;
     vm.permissions = Session.roles.permissions;
     vm.user_profile = Session.user_profile;
     vm.industry_type = vm.user_profile.industry_type;
@@ -22,7 +23,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.multi_level_system = vm.user_profile.multi_level_system;
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
-    vm.filters = {'datatable': 'RaisePO', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
+    vm.filters = {'datatable': 'RaisePR', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -54,7 +55,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ["Supplier ID", "Supplier Name", "Total Quantity", "Order Type"];
+    var columns = ["PR Number", "Total Quantity", "Total Amount", "Requested User", "Validation Status", "Pending Level", "Validated By"];
     vm.dtColumns = vm.service.build_colums(columns);
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
                 .renderWith(function(data, type, full, meta) {
@@ -80,11 +81,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
         $scope.$apply(function() {
           vm.extra_width = { 'width': '1250px' };
           vm.supplier_id = aData['Supplier ID'];
-          var data = {supplier_id: aData['Supplier ID'], order_type: aData['Order Type'], po_type:''};
-          vm.service.apiCall('generated_po_data/', 'GET', data).then(function(data){
+          var data = {requested_user: aData['Requested User'], pr_number:aData['PR Number']};
+          vm.service.apiCall('generated_pr_data/', 'POST', data).then(function(data){
             if (data.message) {
-
-              //angular.copy(data.data, vm.model_data);
               var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
               vm.update_part = false;
               var empty_data = {"supplier_id":vm.supplier_id,
@@ -103,7 +102,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               vm.model_data = {};
               angular.copy(empty_data, vm.model_data);
 
-              vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
+              // vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
 
               vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
               vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
@@ -159,9 +158,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               vm.model_data.supplier_id = vm.model_data.suppliers[0];
               // vm.model_data.seller_type = vm.model_data.dedicated_seller;
               vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
-              vm.title = 'Update PO';
-              vm.update = true;
-              $state.go('app.inbound.RaisePo.PurchaseOrder');
+              vm.title = 'Update PR';
+              vm.pr_number = aData['PR Number']
+              // vm.update = true;
+              if (aData['Validation Status'] == 'pending'){
+                $state.go('app.inbound.RaisePr.ApprovePurchaseRequest');  
+              } else {
+                $state.go('app.inbound.RaisePr.PurchaseOrder');
+              }
+              
             }
           });
         });
@@ -213,14 +218,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
     vm.close = function () {
       vm.base();
-      $state.go('app.inbound.RaisePo');
+      $state.go('app.inbound.RaisePr');
       vm.display_purchase_history_table = false;
     }
 
     vm.b_close = vm.close;
 
     vm.base = function() {
-      vm.title = "Raise PO";
+      vm.title = "Raise PR";
       vm.vendor_produce = false;
       vm.confirm_print = false;
       vm.update = false;
@@ -242,6 +247,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.add = function () {
       vm.extra_width = { 'width': '1250px' };
       vm.model_data.seller_types = [];
+
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
         if (data.message) {
           var seller_data = data.data.sellers;
@@ -264,7 +270,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
           if (Session.user_profile.user_type == 'marketplace_user') {
             vm.model_data.receipt_type = 'Hosted Warehouse';
           }
-          $state.go('app.inbound.RaisePo.PurchaseOrder');
+          $state.go('app.inbound.RaisePr.OpenPr');
 
         }
       });
@@ -361,16 +367,44 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       }
     }
 
-    vm.save_raise_po = function(data) {
+    vm.save_raise_pr = function(data) {
 
       if (data.$valid) {
         if(vm.update) {
-          vm.update_raise_po();
+          vm.update_raise_pr();
         } else {
-          vm.add_raise_po();
+          vm.add_raise_pr();
         }
       }
     }
+
+    vm.approve_pr = function(form, validation_type) {
+      var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      if (vm.is_purchase_request){
+        elem.push({name:'is_purchase_request', value:true})
+      }
+      if (vm.pr_number){
+        elem.push({name:'pr_number', value:vm.pr_number})
+      }
+      if (validation_type == 'approved'){
+        elem.push({name: 'validation_type', value: 'approved'})
+      } else{
+        elem.push({name: 'validation_type', value: 'rejected'})
+      }
+      vm.service.apiCall('approve_pr/', 'POST', elem, true).then(function(data){
+        if(data.message){
+          if(data.data == 'Added Successfully') {
+            vm.close();
+            vm.service.refresh(vm.dtInstance);
+          } else {
+            vm.service.pop_msg(data.data);
+          }
+        }
+      })
+    }
+
 
     vm.barcode = function() {
 
@@ -402,7 +436,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       $state.go('app.inbound.RaisePo.barcode');
     }
 
-    vm.update_raise_po = function() {
+    vm.update_raise_pr = function() {
 
       var elem = angular.element($('form'));
       elem = elem[0];
@@ -451,23 +485,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       vm.common_confirm('confirm_add_po/', elem);
     }
 
-    vm.confirm_po = function() {
+    vm.confirm_pr = function() {
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      vm.common_confirm('confirm_po/', elem);
+      vm.common_confirm('confirm_pr/', elem);
     }
 
     vm.common_confirm = function(url, elem) {
       var confirm_url = 'validate_wms/';
-      if (vm.warehouse_type == 'CENTRAL_ADMIN') {
-        elem.push({name:'is_central_po', value:true});
-      }
-      if (vm.wh_purchase_order){
-        elem.push({name:'wh_purchase_order', value:true})
-      }
-      if (vm.model_data.terms_condition) {
-        elem.push({name: "terms_condition", value:vm.model_data.terms_condition});
+      if (vm.is_purchase_request){
+        elem.push({name:'is_purchase_request', value:true})
       }
       vm.service.apiCall(confirm_url, 'POST', elem, true).then(function(data){
         if(data.message) {
@@ -614,16 +642,16 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       vm.clear_raise_po_data(product);
       vm.purchase_history_wms_code = item.wms_code;
       vm.blur_focus_flag = false;
-      if (!vm.model_data.supplier_id && Session.user_profile.user_type != 'marketplace_user' && Session.user_profile.industry_type != 'FMCG') {
-        product.fields.sku.wms_code = ''
-        vm.service.showNoty('Fill Supplier ID');
-        return false;
-      }
-      if (vm.wh_purchase_order && (!vm.model_data.po_delivery_date || typeof(vm.model_data.po_delivery_date) == 'undefined')) {
-        product.fields.sku.wms_code = ''
-        vm.service.showNoty('Fill Delivery Date');
-        return false;
-      }
+      // if (!vm.model_data.supplier_id && Session.user_profile.user_type != 'marketplace_user' && Session.user_profile.industry_type != 'FMCG') {
+      //   product.fields.sku.wms_code = ''
+      //   vm.service.showNoty('Fill Supplier ID');
+      //   return false;
+      // }
+      // if (vm.wh_purchase_order && (!vm.model_data.po_delivery_date || typeof(vm.model_data.po_delivery_date) == 'undefined')) {
+      //   product.fields.sku.wms_code = ''
+      //   vm.service.showNoty('Fill Delivery Date');
+      //   return false;
+      // }
       if(vm.permissions.show_purchase_history) {
 	    $timeout( function() {
 	        vm.populate_last_transaction('')
@@ -758,17 +786,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       }
     }
 
-    vm.add_raise_po = function() {
+    vm.add_raise_pr = function() {
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      if (vm.wh_purchase_order){
-        elem.push({name:'wh_purchase_order', value:true})
+      if (vm.is_purchase_request){
+        elem.push({name:'is_purchase_request', value:true})
       }
       vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
         if(data.message){
           if(data.data == 'success') {
-            vm.service.apiCall('add_po/', 'POST', elem, true).then(function(data){
+            vm.service.apiCall('add_pr/', 'POST', elem, true).then(function(data){
               if(data.message){
                 if(data.data == 'Added Successfully') {
                   vm.close();

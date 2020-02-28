@@ -492,43 +492,52 @@ class OpenPO(models.Model):
 class OpenPR(models.Model):
     id = BigAutoField(primary_key=True)
     open_po = models.ForeignKey(OpenPO, blank=True, null=True)
+    requested_user = models.ForeignKey(User)
+    pr_number = models.PositiveIntegerField() #WH Specific Inc Number
     sku = models.ForeignKey(SKUMaster, db_index=True)
     quantity = models.FloatField(default=0, db_index=True)
     price = models.FloatField(default=0)
+    pending_level = models.CharField(max_length=64, default='')
+    final_status = models.CharField(max_length=32, default='')
     remarks = models.CharField(max_length=256, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'OPEN_PR'
+        unique_together = ('requested_user', 'sku')
 
 
 @reversion.register()
 class PRApprovals(models.Model):
     id = BigAutoField(primary_key=True)
-    open_pr = models.ForeignKey(OpenPR)
+    openpr_number = models.PositiveIntegerField() #WH Specific Inc Number
+    configName = models.CharField(max_length=64, default='')
+    pr_user = models.ForeignKey(User)
     level = models.CharField(max_length=64, default='')
-    approved_by = models.CharField(max_length=64, default='')
+    validated_by = models.CharField(max_length=64, default='')
     status = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'PR_APPROVALS'
+        unique_together = ('openpr_number', 'pr_user', 'level', 'validated_by')
 
 
 class PRApprovalConfig(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, blank=True, null=True)
     name = models.CharField(max_length=64, default='')
-    min_unit_range = models.FloatField(default=0)
-    max_unit_range = models.FloatField(default=0)
-    unit_type = models.CharField(max_length=32, choices=UNIT_TYPE_CHOICES, default='amount')
+    min_Amt = models.FloatField(default=0)
+    max_Amt = models.FloatField(default=0)
+    level  = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'PR_APPROVAL_CONFIG'
+        unique_together = ('user', 'name', 'min_Amt', 'max_Amt', 'level')
 
 
 @reversion.register()

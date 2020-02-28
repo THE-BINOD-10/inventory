@@ -6,7 +6,6 @@ angular.module('urbanApp', ['angularjs-dropdown-multiselect'])
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth, $timeout, Service,$rootScope, $modal) {
   var vm = this;
   vm.service = Service;
-
   vm.marketplace_user = (Session.user_profile.user_type == "marketplace_user")? true: false;
 
   vm.model_data = {
@@ -744,7 +743,63 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       }, 500);
     }
   }
-
+  vm.pr_save = function (data, type) {
+    if(type =='save') {
+      vm.add_empty_index('', 'save');
+      console.log(vm.model_data['selected_pr_config_data'])
+      var toBeUpdateData = vm.model_data['selected_pr_config_data'];
+      vm.service.apiCall("add_update_pr_config/", "POST", {'data':JSON.stringify(toBeUpdateData)}).then(function(data){
+        if(data.message) {
+          msg = data.data;
+          $scope.showNoty();
+          Auth.status();
+        }
+      });
+    } else {
+      console.log(type)
+      vm.add_empty_index(data, 'delete')
+    }
+  }
+  vm.add_empty_index = function(data, operation) {
+    if (operation == 'delete') {
+      angular.forEach(vm.model_data['selected_pr_config_data'], function(tuple, index){
+        if(data.name == tuple.name) {
+          vm.model_data['selected_pr_config_data'].splice(index,1)        
+        }
+      })
+    } else if (operation == 'add_email' || operation == 'remove_email') {
+      angular.forEach(vm.model_data['selected_pr_config_data'], function(tuple, index){
+        if(data.name == tuple.name) {
+          if (operation == 'add_email') {
+            tuple['mail_id']['level'+Object.keys(tuple['mail_id']).length] = ""
+          } else {
+            if (Object.keys(tuple['mail_id']).length > 1) {
+              delete tuple['mail_id'][Object.keys(tuple['mail_id'])[Object.keys(tuple['mail_id']).length -1]]
+            }
+          }
+        }
+      })
+    } else if (operation == 'save') {
+      angular.forEach(vm.model_data['selected_pr_config_data'], function(tuple, index){
+        angular.forEach(Object.keys(tuple['mail_id']), function(level) {
+          var values = tuple.name+level
+          var emails = $("."+values).val();
+          tuple['mail_id'][level] = emails;
+        })
+      })
+    } else {
+      var empty_dict = {'name': '', 'min_Amt': '', 'max_Amt': '', 'mail_id': {'level0': ""}};
+      if (vm.model_data['selected_pr_config_data'].length != 0) {
+        var check_last_record = vm.model_data['selected_pr_config_data'][vm.model_data['selected_pr_config_data'].length -1]
+        if (check_last_record['name'] == '') {
+          Service.showNoty('please Fill Available One');
+        }
+      } else {
+        vm.model_data['selected_pr_config_data'].push(empty_dict);
+        vm.pr_add_show = true;
+      }
+    }
+  }
   vm.input_fields = ['Input', 'Textarea'];
 
   vm.service.apiCall("configurations/").then(function(data){
@@ -754,6 +809,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       vm.model_data['prefix_data'] = [];
       vm.model_data['prefix_dc_data'] = [];
       vm.model_data['pr_approvals_conf_data'] = [];
+      vm.model_data['selected_pr_config_data'] = [];
+      vm.model_data['total_pr_config_ranges'] = [];
       angular.forEach(data.data.prefix_data, function(data){
         vm.model_data.prefix_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix,
                                         marketplace_interfix: data.interfix, marketplace_date_type: data.date_type});
@@ -762,6 +819,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         vm.model_data.prefix_dc_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix});
       })
       angular.forEach(data.data.pr_approvals_conf_data, function(data){
+        var data_dict = {}
+        data_dict['name'] = data.name;
+        data_dict['min_Amt'] = data.min_Amt;
+        data_dict['max_Amt'] = data.max_Amt;
+        data_dict['mail_id'] = data.mail_id;
+        vm.model_data.total_pr_config_ranges.push(data_dict)
         vm.model_data.pr_approvals_conf_data.push({pr_name: data.name});
       })
 
@@ -1223,29 +1286,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     }
   }
 
-    vm.model_data.pr_add_new = true;
-    vm.PRSelected = function(name) {
-
-    if (name) {
-
-      for(var i = 0; i < vm.model_data.pr_conf_names.length; i++) {
-
-        if(vm.model_data.pr_approvals_conf_data[i].name == name) {
-
-          vm.model_data.pr_name = vm.model_data.pr_approvals_conf_data[i].name;
-          vm.model_data.pr_minAmt = vm.model_data.prefix_data[i].min_unit_range;
-          vm.model_data.pr_maxAmt = vm.model_data.prefix_data[i].max_unit_range;
-          vm.model_data["pr_add_new"] = false;
-          vm.pr_add_show = true;
-          break;
-        }
+  vm.model_data.pr_add_new = true;
+  vm.PRSelected = function(name) {
+    vm.model_data.selected_pr_config_data = []
+    angular.forEach(vm.model_data.total_pr_config_ranges, function(data){
+      if (name == data.name) {
+        vm.model_data.selected_pr_config_data.push(data);
+        vm.pr_add_show = true;
       }
-    } else {
-
-      vm.model_data["pr_add_new"] = true;
-      vm.pr_add_show = false;
-      vm.model_data.name = "";
-    }
+    })
   }
 
   vm.saved_pr_configs = [];

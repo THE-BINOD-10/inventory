@@ -724,6 +724,18 @@ var app = angular.module('urbanApp')
             title: 'Raise PR',
           }
         })
+        .state('app.inbound.RaisePr.OpenPr', {
+          url: '/PurchaseRequest',
+          templateUrl: 'views/inbound/toggle/raise_pr.html'
+          })
+        .state('app.inbound.RaisePr.PurchaseOrder', {
+          url: '/PurchaseOrder',
+          templateUrl: 'views/inbound/toggle/raise_purchase.html'
+          })
+        .state('app.inbound.RaisePr.ApprovePurchaseRequest', {
+          url: '/ApprovePR',
+          templateUrl: 'views/inbound/toggle/approve_pr.html'
+          })
 
         .state('app.inbound.RaisePo', {
           url: '/scripts/controllers/outbound/pop_js/custom_order_details.jsRaisePO',

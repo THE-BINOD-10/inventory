@@ -122,6 +122,7 @@ urlpatterns = [
     url(r'^push_message_notification/$', push_message_notification),
     url(r'^get_zones/$', get_zones),
     url(r'^add_sub_zone_mapping/$', add_sub_zone_mapping),
+    url(r'^add_update_pr_config/$', add_update_pr_config),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),
@@ -204,6 +205,9 @@ urlpatterns = [
     url(r'^confirm_central_po/$', confirm_central_po),
     url(r'^check_sku_pack_scan/$', check_sku_pack_scan),
     url(r'^get_grn_extra_fields/$', get_grn_extra_fields),
+    url(r'^add_pr/$', add_pr),
+    url(r'^generated_pr_data/$', generated_pr_data),
+    url(r'^approve_pr/$', approve_pr),
 
 
 

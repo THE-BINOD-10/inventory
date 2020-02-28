@@ -1645,6 +1645,25 @@ var app = angular.module('urbanApp')
             title: 'Back Orders',
           }
         })
+        .state('app.outbound.CreateAllocation', {
+          url: '/CreateAllocation',
+          permission: 'add_orderdetail',
+          templateUrl: 'views/outbound/create_allocation.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/create_allocations/create_allocation.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/create_orders/create_stock_orders.js'
+                  ])
+                });
+              }]
+          },
+          data: {
+            title: 'Create Orders',
+          }
+        })
         .state('app.outbound.CreateStockTransfer', {
           url: '/CreateStockTransfer',
           permission: 'multi_warehouse',

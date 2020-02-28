@@ -1,0 +1,86 @@
+<style>
+  .table > tbody > tr > td{
+    padding: 5px 5px;
+  }
+  .form-control {
+    padding: 6px;
+  }
+  .text-overflow {
+    overflow: hidden;
+  }
+</style>
+<div class="mr20 ml20">
+  <form id="order-create" name="form" role="form" ui-jq="validate">
+    <div class="clearfix">
+      <div class="row mt10 mb10 pr10 pl10">
+        <div class="col-md-8 col-sm-6 col-xs-12">
+       	  <div class="col-md-4 col-sm-12 mt10">
+            <div class="col-md-4">
+              <label class="control-label">Customer Type</label>
+            </div>
+            <div class="col-md-8">
+              <select class="form-control" name="invoice_type" ng-model="showCase.model_data.invoice_type">
+                <option value="" style="display:None;"></option>
+                <option ng-repeat="inv_type in showCase.create_order_data.invoice_types" ng-selected="$first" value="{{inv_type}}">{{inv_type}}</option>
+              </select>
+            </div>
+          </div>
+          <!-- <div class="row">
+
+          </div> -->
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-4 col-sm-4 col-xs-6">
+          <div class="form-group">
+            <label class="control-label">Customer ID *</label>
+            <input type="text" autocomplete="off" name="customer_id" class="form-control" placeholder="Search Customer ID/Name/Number" typeahead="address.customer_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_customer_data?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.customer_id" typeahead-on-select="showCase.get_customer_data($item, $model, $label, $event)" required>
+          </div>
+        </div>
+        <div class="col-md-4 col-sm-4 col-xs-6">
+          <div class="form-group">
+            <label class="control-label">Customer Name *</label>
+            <input name="customer_name" ng-model="showCase.model_data.customer_name" class="form-control" type="text" readonly required>
+            <!--ng-focus="showCase.check_id(showCase.model_data.customer_id)">-->
+          </div>
+        </div>
+      </div>
+    </div>
+      <div class="row"><hr></div>
+      <div class="row over-x" style="overflow-y: hidden;">
+        <table class="table" ng-class="showCase.min_width">
+          <thead>
+            <tr>
+              <th>SKU Code *</th>
+              <th> Description </th>
+              <th class="w10_">Quantity</th>
+              <th class="plus"></th>
+            </tr>
+          </thead>
+          <tbody style="padding: 0px 0px">
+            <tr ng-repeat="data in showCase.model_data.data">
+              <td>
+                <input type="text" autocomplete="off" name="sku_id" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="data.sku_id" typeahead-on-select="showCase.get_sku_data(data, $item, $index)" ng-keyup="showCase.key_event($event, data, $item, $index)">
+              </td>
+              <td>
+                <input type="text" class="form-control" ng-model="data.description" title="{{data.description}}" size="50" name="description">
+              </td>
+              <td>
+                <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-change="showCase.change_quantity(data)" size="12" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Quantity', $index, data)">
+              </td>
+              <td><i style="font-size: 20px;padding-top: 7px;cursor: pointer;" ng-click="showCase.update_data($index, data, $last)" ng-class="showCase.isLast($last)"></i></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="row mb10">
+        <hr>
+	    <div class="col-md-6 col-sm-6 col-xs-6">
+          <button type="button" class="btn btn-primary pull-right" style="margin: auto;display: block;" ng-disabled="showCase.bt_disable" ng-click="showCase.insert_allocation_data($event, form)" ng-disabled="showCase.bt_disable">Create Allocation </button>
+	    </div>
+      </div>
+    </div>
+  </div>
+</form>
+<div ui-view></div>
+</div>

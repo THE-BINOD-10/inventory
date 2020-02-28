@@ -16319,3 +16319,54 @@ def generate_dc(request , user = ''):
                 invoice_data['dc_number'] = dc_number_obj
                 invoice_data['total_quantity'] = total_qty
     return render(request, 'templates/toggle/delivery_challan_batch_level.html', invoice_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+@fn_timer
+def insert_allocation_data(request, user=''):
+    myDict = dict(request.POST.iterlists())
+    single_key = ['customer_name', 'customer_id']
+    number_fields = ["quantity"]
+    error_dict = {'quantity': 'Quantity'}
+    data_list = []
+    for ind in range(0, len(myDict['sku_id'])):
+        data_dict = {}
+        for key, value in myDict.items():
+            if key in single_key:
+                val = myDict[key][ind]
+            else:
+                val = myDict[key][0]
+            if key in number_fields:
+                try:
+                    val = float(val)
+                except:
+                    return HttpResponse("Invalid %s" % error_dict[key])
+            data_dict[key] = val
+        sku_master = SKUMaster.objects.filter(sku_code=data_dict['sku_id'], user=user.id)
+        if not sku_master.exists():
+            return HttpResponse("Invalid SKU Code %s" % data_dict['sku_id'])
+        else:
+            data_dict['sku_master_id'] = sku_master[0].id
+        customer_master = CustomerMaster.objects.filter(customer_id=data_dict['customer_id'], user=user.id)
+        if not customer_master.exists():
+            return HttpResponse("Invalid Customer %s" % data_dict['customer_id'])
+        data_list.append(data_dict)
+    if data_list:
+        try:
+            picklist_exclude_zones = get_exclude_zones(user)
+            order_id = get_incremental(user, 'allocation_order_id', default_val='1000')
+            order_code = 'AL'
+            original_order_id = order_code + str(order_id)
+            created_orders = []
+            for final_data in data_list:
+                import pdb;pdb.set_trace()
+                OrderDetail.objects.create(order_id=order_id, sku_id=data_dict['sku_master_id'], order_code=order_code,
+                                           original_order_id=original_order_id, quantity=data_dict['quantity'])
+            sku_combos, all_sku_stocks, switch_vals = picklist_generation_data(user, picklist_exclude_zones)
+
+
+        except Exception as e:
+            log.info(e)
+    return HttpResponse("Success")

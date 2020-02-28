@@ -386,6 +386,11 @@
             <span>Create Stock Transfer</span>
           </a>
         </li>
+        <li ng-show="show_tab('add_orderdetail')" ui-sref-active="active">
+          <a ui-sref="app.outbound.CreateAllocation">
+            <span>Allocation / Deallocation</span>
+          </a>
+        </li>
         <!--<li ui-sref-active="active">-->
         <li ng-show="show_tab('add_sellerordersummary') && show_tab('customer_dc')" ui-sref-active="active">
           <a ui-sref="app.outbound.CustomerInvoices">

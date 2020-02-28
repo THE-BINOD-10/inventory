@@ -293,6 +293,7 @@ urlpatterns = [
     url('^marketplace_segregation/$', marketplace_segregation),
     url('^get_customer_data/$', get_customer_data),
     url('^insert_order_data/$', insert_order_data),
+    url('^insert_allocation_data/$', insert_allocation_data),
     url('^get_warehouses_list/$', get_warehouses_list),
     url('^create_stock_transfer/$', create_stock_transfer),
     url('^stock_transfer_delete/$', stock_transfer_delete),

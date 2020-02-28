@@ -1,0 +1,30 @@
+<p class="hide">{{showCase.details}}</p>
+<div class="page-layout" ng-controller="CreateAllocations as showCase" scrolly="showCase.scroll(e)">
+  <div>
+    <div class="layout-header" ng-if="!(showCase.detailed_list)">
+      <!--<div class="pull-left" ng-include="'views/common/title.html'" ng-if="(!(showCase.catlog))"></div>
+      <div class="pull-left" ng-include="'views/common/company_name.html'" ng-if="showCase.details"></div>-->
+      <div ng-include="'views/common/company_name.html'"></div>
+    </div>
+   <div class="layout-body" style="background-color: white;">
+    <div>
+      <div ng-include="'views/outbound/create_allocations/order_allocation_page.html'"></div>
+    </div>
+   </div>
+ </div>
+  <!--<div class='layout-header'>
+    <div ng-controller="CreateOrders as showCase">
+      <div class="pull-left" ng-include="'views/common/title.html'" ng-if="(!(showCase.catlog))"></div>
+    </div>
+  </div>
+
+  <div class="layout-body" style="padding-top:3%;background-color: white;">
+    <div ng-controller="CreateOrders as showCase">
+      <div ng-include="'views/outbound/create_orders/order.html'" ng-if="(!(showCase.catlog))"></div>
+      <div ng-include="'views/outbound/create_orders/style.html'" ng-if="showCase.catlog && showCase.style_open"></div>
+      <div ng-include="'views/outbound/create_orders/details.html'" ng-if="showCase.details"></div>
+      <div ng-include="'views/outbound/create_orders/catlog.html'" ng-if="showCase.detailed_list"></div>
+    </div>
+  </div>
+  <div class="layout-body">
+</div>-->

@@ -336,6 +336,7 @@
     $ctrl.disabled_button = false;
     $ctrl.model_data.src_quantity = 0;
     $ctrl.model_data.dest_info = [{dest_sku_code:'', dest_quantity:'', dest_location:'', batch_number:'', mrp:''}];
+    $ctrl.model_data.source_info = [{source_sku_code:'', source_quantity:'', source_location:'', batch_number:'', mrp:''}];
     $ctrl.batch_nos = [];
     $ctrl.batches = {};
     $ctrl.weights = {};
@@ -374,17 +375,20 @@
       }
 
     $ctrl.update_dest_info = update_dest_info;
-    function update_dest_info(index, data, last) {
-      console.log(data);
-      if (last && (!data.dest_sku_code)) {
+    function update_dest_info(index, data, last, dest) {
+      if (last && (!data.dest_sku_code) && dest) {
+         colFilters.showNoty("Please fill existing record properly");
+        return false;
+      } else if (last && (!data.src_sku_code) && !dest) {
         colFilters.showNoty("Please fill existing record properly");
         return false;
       }
-      if (last) {
+      if (last && dest) {
         $ctrl.model_data.dest_info.push({dest_sku_code:'', dest_quantity:'', dest_location:'', batch_number:'', mrp:''});
+      } else if (last && !dest ) {
+         $ctrl.model_data.source_info.push({source_sku_code:'', source_quantity:'', source_location:'', batch_number:'', mrp:''});
       } else {
         $ctrl.model_data.dest_info.splice(index,1);
-        // $ctrl.cal_total();
       }
     }
 
@@ -423,33 +427,33 @@
 
     $ctrl.margin_types = ['Margin Percentage', 'Margin Value'];
 
-    $ctrl.check_sku_code = function($items, location, sku){
+    $ctrl.check_sku_code = function($items, location, sku , index){
 
       $ctrl.sku = sku;
 
       if (sku == 'src_sku') {
 
         $ctrl.data_available = false
-        $ctrl.model_data.src_available_quantity = 0;
+        $ctrl.model_data.source_info[index].src_available_quantity = 0;
       }
       
       if (!$ctrl.model_data.src_available_quantity) {
 
-        $ctrl.model_data.src_available_quantity = 0;
+        $ctrl.model_data.source_info[index].src_available_quantity = 0;
       }
 
       var send = {sku_code: $items.wms_code, location: location};
 
-      $ctrl.get_avb_quantity(send, sku);
+      $ctrl.get_avb_quantity(send, sku, index);
     }
 
-    $ctrl.check_loc_wise_qty = function(sku, location, sku_type){
+    $ctrl.check_loc_wise_qty = function(sku, location, sku_type,index ){
 
       var send = {sku_code: sku, location: location};
-      $ctrl.get_avb_quantity(send, sku_type);
+      $ctrl.get_avb_quantity(send, sku_type, index);
     }
 
-    $ctrl.get_avb_quantity = function(send, sku_type){
+    $ctrl.get_avb_quantity = function(send, sku_type, index){
       
       $ctrl.service.apiCall("get_sku_stock_check/", 'GET', send, true).then(function(data){
        
@@ -457,11 +461,11 @@
        
           if (sku_type == "src_sku") {
        
-            $ctrl.model_data.src_available_quantity = data.data.available_quantity;
+            $ctrl.model_data.source_info[index].src_available_quantity = data.data.available_quantity;
           }
         } else {
 
-          $ctrl.model_data.src_available_quantity = 0;
+          $ctrl.model_data.source_info[index].src_available_quantity = 0;
         }
 
         $ctrl.empty_input_fields();

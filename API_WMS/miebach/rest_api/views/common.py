@@ -812,8 +812,7 @@ def add_update_pr_config(request,user=''):
     toBeUpdateData = eval(request.POST.get('data', []))
     if toBeUpdateData:
         data = toBeUpdateData[0]
-        pr_approvals = PRApprovalConfig.objects.filter(user=user, name=data['name'], 
-                                        min_Amt=data['min_Amt'], max_Amt=data['max_Amt'])
+        pr_approvals = PRApprovalConfig.objects.filter(user=user, name=data['name'])
             
         mailsMap = data.get('mail_id', {})
         for level, mails in mailsMap.items():
@@ -830,7 +829,13 @@ def add_update_pr_config(request,user=''):
             else:
                 eachLevel = pr_approvals.filter(level=level)
                 if eachLevel.exists():
-                    eachConfigId = eachLevel[0].id
+                    eachLevelObj = eachLevel[0]
+                    if eachLevelObj.max_Amt != data['max_Amt']:
+                        eachLevelObj.max_Amt = data['max_Amt']
+                    if eachLevelObj.min_Amt != data['min_Amt']:
+                        eachLevelObj.min_Amt = data['min_Amt']
+                    eachLevelObj.save()
+                    eachConfigId = eachLevelObj.id
                 else:
                     eachConfig = PRApprovalConfig.objects.create(**PRApprovalMap)
                     eachConfigId = eachConfig.id

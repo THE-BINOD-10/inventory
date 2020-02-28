@@ -537,7 +537,7 @@ class PRApprovalConfig(models.Model):
 
     class Meta:
         db_table = 'PR_APPROVAL_CONFIG'
-        unique_together = ('user', 'name', 'min_Amt', 'max_Amt', 'level')
+        unique_together = ('user', 'name', 'level')
 
 
 @reversion.register()

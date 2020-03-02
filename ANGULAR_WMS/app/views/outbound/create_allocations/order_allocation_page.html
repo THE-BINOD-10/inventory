@@ -43,6 +43,7 @@
               <th>SKU Code *</th>
               <th> Description </th>
               <th class="w10_">Quantity</th>
+              <th ng-if="showCase.permissions.use_imei">Scan Serial</th>
               <th class="plus"></th>
             </tr>
           </thead>
@@ -55,7 +56,12 @@
                 <input type="text" class="form-control" ng-model="data.description" title="{{data.description}}" size="50" name="description">
               </td>
               <td>
-                <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-change="showCase.change_quantity(data)" size="12" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Quantity', $index, data)">
+                <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-change="showCase.change_quantity(data)" size="12" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Quantity', $index, data)"
+                ng-readonly="data.enable_serial">
+              </td>
+              <td ng-if="showCase.permissions.use_imei">
+                <input type="text" class="form-control" ng-model="data.serial" ng-keydown="showCase.serial_scan($event, data.serial, data)" ng-readonly="!data.enable_serial">
+                <input name="serials" type="hidden" value="{{data.serials.join(',')}}">
               </td>
               <td ng-hide="true">
                 <input type="text" name="unit_price" class="form-control" ng-model="data.price" ng-change="showCase.change_unit_price(data)" size="12" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Unit Price', $index, data)">

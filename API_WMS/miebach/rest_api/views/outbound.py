@@ -16336,9 +16336,9 @@ def insert_allocation_data(request, user=''):
         data_dict = {}
         for key, value in myDict.items():
             if key in single_key:
-                val = myDict[key][ind]
-            else:
                 val = myDict[key][0]
+            else:
+                val = myDict[key][ind]
             if key in number_fields:
                 try:
                     val = float(val)
@@ -16381,7 +16381,7 @@ def insert_allocation_data(request, user=''):
                                            customer_id=customer_master.customer_id,
                                            customer_name=customer_master.name,
                                            email_id=customer_master.email_id, telephone=customer_master.phone_number,
-                                           address=customer_master.address)
+                                           address=customer_master.address, status=1)
                 inter_state = 2
                 if customer_master.tax_type == 'inter_state':
                     inter_state = 1
@@ -16391,6 +16391,9 @@ def insert_allocation_data(request, user=''):
                                                     cgst_tax=final_data['cgst_tax'], sgst_tax=final_data['sgst_tax'],
                                                     igst_tax=final_data['igst_tax'])
                 created_orders.append(order)
+                if 'serials' in final_data.keys() and final_data['serials'] and final_data['serials'] != '[]':
+                    serial_dict = {'imei': final_data['serials'], 'wms_code': final_data['sku_id']}
+                    insert_order_serial(None, serial_dict, order)
             sku_combos, all_sku_stocks, switch_vals = picklist_generation_data(user, picklist_exclude_zones)
             stock_status, picklist_number = picklist_generation(created_orders, '',
                                                                 picklist_number, user,

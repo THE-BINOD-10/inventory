@@ -6,14 +6,15 @@ function CreateAllocations($scope, $filter, $http, $q, Session, colFilters, Serv
   var vm = this;
   vm.order_type_value = "offline";
   vm.service = Service;
-  vm.g_data = Data.create_orders
+  vm.g_data = Data.create_orders;
   vm.company_name = Session.user_profile.company_name;
   vm.order_exceed_stock = Boolean(Session.roles.permissions.order_exceed_stock);
   vm.permissions = Session.roles.permissions;
   vm.brand_categorization = Session.roles.permissions.brand_categorization;
   vm.model_data = {}
   vm.dispatch_data = []
-  var empty_data = {data: [{sku_id: "", quantity: "", price: 0, cgst_tax: 0, sgst_tax: 0, igst_tax: 0}],
+  var empty_data = {data: [{sku_id: "", quantity: 0, price: 0, cgst_tax: 0, sgst_tax: 0, igst_tax: 0,
+                            enable_serial: false, serials: []}],
                     customer_id: "", customer_name: "", tax_type: ""};
 
   angular.copy(empty_data, vm.model_data);
@@ -48,10 +49,20 @@ function CreateAllocations($scope, $filter, $http, $q, Session, colFilters, Serv
     if(!vm.model_data.blind_order && !(check_exist(record, index))){
       return false;
     }
+    if(!vm.model_data.customer_name){
+      record.sku_id = "";
+      colFilters.showNoty("Please Select Customer First");
+      return false;
+    }
     angular.copy(empty_data.data[0], record);
     record.sku_id = item.wms_code;
     record["description"] = item.sku_desc;
-    record["quantity"] = 1;
+    if(vm.permissions.use_imei && item.enable_serial_based) {
+      record['enable_serial'] = true;
+    }
+    if(!record.enable_serial) {
+      record["quantity"] = 1;
+    }
     vm.change_tax_type();
   }
   //Fill SKU Info Code Ends
@@ -92,26 +103,31 @@ function CreateAllocations($scope, $filter, $http, $q, Session, colFilters, Serv
   }
   //Create Allocation Code Ends
 
-
+  // Plus or Minus Button Code Starts
   vm.isLast = isLast;
     function isLast(check) {
 
       var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
       return cssClass
   }
+  // Plus or Minus Button Code Ends
 
+  //Add New Row Code Starts
   vm.update_data = update_data;
   function update_data(index, data, last) {
     if (last && (!vm.model_data.data[index].sku_id)) {
       return false;
     }
     if (last) {
-      vm.model_data.data.push({sku_id: "", quantity: ""});
+      vm.model_data.data.push({sku_id: "", quantity: "", price: 0, cgst_tax: 0, sgst_tax: 0, igst_tax: 0,
+                                enable_serial: false, serials: []});
     } else {
       vm.model_data.data.splice(index,1);
     }
   }
+  //Add New Row Code Ends
 
+  //Get Customer Price API Code Starts
   vm.get_customer_sku_prices = function(sku) {
 
     var d = $q.defer();
@@ -124,7 +140,9 @@ function CreateAllocations($scope, $filter, $http, $q, Session, colFilters, Serv
     });
     return d.promise;
   }
+  //Get Customer Price API Code Ends
 
+  // Updating Price and Tax Code Starts
   vm.change_tax_type = function() {
     var tax_name = vm.model_data.tax_type;
     if(!(vm.model_data.tax_type)) {
@@ -160,8 +178,58 @@ function CreateAllocations($scope, $filter, $http, $q, Session, colFilters, Serv
     }
     //vm.cal_total();
   }
+  // Updating Price and Tax Code Ends
 
+  // Serial Based Scan Code Starts
+  vm.checkAndAdd = function(scan) {
 
+    var status = false;
+    for(var i = 0; i < vm.model_data.data.length; i++) {
+
+      if(vm.model_data.data[i].serials.indexOf(scan) > -1){
+        status = true;
+        break;
+      }
+    }
+    return status;
+  }
+
+  vm.serial_scan = function(event, scan, sku_data) {
+    if ( event.keyCode == 13 && scan) {
+      event.preventDefault();
+      sku_data.serial = "";
+      if(!sku_data.sku_id) {
+        vm.service.showNoty("Please Select SKU Code First");
+      }
+      else {
+        var elem = {serial: scan, cost_check:vm.model_data.blind_order};
+        vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
+          if(data.message) {
+            if(data.data.status == "Success") {
+              if (data.data.data.sku_code != sku_data.sku_id) {
+                vm.service.showNoty("IMEI Code not matching with SKU code");
+              } else if(vm.checkAndAdd(scan)) {
+                vm.service.showNoty("Already Scanned")
+              } else {
+                sku_data.serials.push(scan);
+                sku_data.quantity = sku_data.serials.length;
+                sku_data.invoice_amount = vm.service.multi(sku_data.quantity, sku_data.price);
+                vm.cal_percentage(sku_data);
+                for(var i = 0; i < vm.model_data.data.length ; i++) {
+                  if (vm.model_data.data[i]["sku_id"] == data.data.data.sku_code) {
+                    vm.model_data.data[i]['cost_price'] = data.data.data.cost_price;
+                  }
+                }
+              }
+            } else {
+              vm.service.showNoty(data.data.status);
+            }
+          }
+        });
+      }
+    }
+  }
+  // Serial Based Scan Code Ends
 
 }
 angular

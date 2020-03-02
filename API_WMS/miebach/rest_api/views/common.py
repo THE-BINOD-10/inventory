@@ -4271,7 +4271,8 @@ def search_wms_data(request, user=''):
         total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc, \
                            'measurement_unit': master_data.measurement_type,
                            'load_unit_handle': master_data.load_unit_handle,
-                           'mrp': master_data.mrp})
+                           'mrp': master_data.mrp,
+                           'enable_serial_based': master_data.enable_serial_based})
 
     master_data = query_objects.filter(Q(wms_code__istartswith=search_key) | Q(sku_desc__istartswith=search_key),
                                        user=user.id)
@@ -4471,7 +4472,8 @@ def build_search_data(to_data, from_data, limit):
                     to_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
                                     'measurement_unit': data.measurement_type,
                                     'mrp': data.mrp, 'sku_class': data.sku_class,
-                                    'style_name': data.style_name})
+                                    'style_name': data.style_name,
+                                    'enable_serial_based': data.enable_serial_based})
         return to_data
 
 

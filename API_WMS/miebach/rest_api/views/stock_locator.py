@@ -3608,7 +3608,7 @@ def ba_to_sa_calculate_now(request, user=''):
                         round_of_value = 0
                     if round_of_value:
                         replenishment_qty = int(
-                            (replenishment_qty + (round_of_value - 1)) // round_of_value * round_of_value)
+                            (replenishment_qty + (round_of_value - 1)) // (round_of_value * round_of_value) )
 
             if ba_stock_dict:
                 total_ba_stock = ba_stock_dict[

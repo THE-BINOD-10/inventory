@@ -543,7 +543,8 @@ function pull_confirmation() {
     var field = field;
     vm.service.scan(event, field).then(function(data){
       if(data) {
-        vm.service.apiCall('check_sku/', 'GET',{'sku_code': field}).then(function(data){
+        var sku_brand = vm.model_data.data[0].sku_brand;
+        vm.service.apiCall('check_sku/', 'GET',{'sku_code': field, 'sku_brand': sku_brand}).then(function(data){
           if(data.message) {
             if(typeof(data.data) == 'string') {
               alert(data.data);
@@ -711,7 +712,8 @@ function pull_confirmation() {
     vm.service.scan(event, field).then(function(data){
       if(data) {
         if(vm.model_data.scan_location) {
-          vm.service.apiCall('check_sku/', 'GET',{'sku_code': field}).then(function(data){
+          var sku_brand = vm.model_data.data[0].sku_brand;
+          vm.service.apiCall('check_sku/', 'GET',{'sku_code': field, 'sku_brand': sku_brand}).then(function(data){
             if(data.message) {
               if(typeof(data.data) == 'string') {
                 alert(data.data);
@@ -993,7 +995,7 @@ function pull_confirmation() {
                   angular.copy(data.data, vm.model_data);
                   for(var i=0; i<vm.model_data.data.length; i++){
                     vm.model_data.data[i]['sub_data'] = [];
-                    var value = (vm.permissions.use_imei)? 0: vm.model_data.data[i].picked_quantity;
+                    var value = (vm.permissions.scan_picklist_option != 'scan_none')? 0: vm.model_data.data[i].picked_quantity;
                     var temp = {zone: vm.model_data.data[i].zone,
                                 location: vm.model_data.data[i].location,
                                 orig_location: vm.model_data.data[i].location,

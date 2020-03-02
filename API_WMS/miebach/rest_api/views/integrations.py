@@ -27,8 +27,8 @@ def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, i
     elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('quantity'):
         final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name]['quantity'] + \
                                                               adding_dat.get('quantity', 0)
-    elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('invoice_amount'):
-        final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name][
+    # elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('invoice_amount'):
+        final_data_dict[grouping_key][key_name]['invoice_amount'] = final_data_dict[grouping_key][key_name][
                                                                   'invoice_amount'] + \
                                                               adding_dat.get('invoice_amount', 0)
     else:
@@ -950,10 +950,11 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                                          field_key='sku_code')
             continue
         elif key in ["cgst", "sgst", "igst", "cess"]:
-            try:
-                taxes_dict[taxes_mapping[key]] = float(value)
-            except:
-                taxes_dict[taxes_mapping[key]] = 0
+            if value or value == '0':
+                try:
+                    taxes_dict[taxes_mapping[key]] = float(value)
+                except:
+                    taxes_dict[taxes_mapping[key]] = 0
             continue
         elif key == 'image_url':
             if value and 'http' not in value:
@@ -983,8 +984,14 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                             error_message = str(temp_ean) + ' EAN Number already mapped to SKU ' + str(exist_sku_eans[temp_ean])
                             update_error_message(failed_status, 5031, error_message, sku_code,
                                                  field_key='sku_code')
+            else:
+                EANNumbers.objects.filter(sku_id=sku_master.id).delete()
+                sku_obj = sku_master
+                sku_obj.ean_number = ''
+                sku_obj.save()
+
             continue
-        if value == None:
+        if value is None:
             value = ''
         sku_master_dict[key] = value
         if sku_master:
@@ -993,7 +1000,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
     if sku_code in sum(insert_status.values(), []):
         return sku_master, insert_status, new_ean_objs
     product_type = ''
-    if taxes_dict and sum(taxes_dict.values()) > 0:
+    if taxes_dict :
         product_type_dict = {}
         cgst_check = True
         if taxes_dict.get('cgst_tax', 0) or taxes_dict.get('sgst_tax', 0):
@@ -1015,7 +1022,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                 product_type = ''
             else:
                 product_type = tax_master_obj[0]
-        if not product_type:
+        if not product_type and sum(taxes_dict.values()) > 0:
             error_message = 'Tax Master not found'
             update_error_message(failed_status, 5028, error_message, sku_code,
                                  field_key='sku_code')
@@ -1075,7 +1082,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
             #     SKUAttributes.objects.create(sku_id=sku_master.id, attribute_name=option['name'],
             #                                  attribute_value=option['value'],
             #                                  creation_date=datetime.datetime.now())
-    if sku_master and product_type:
+    if sku_master and taxes_dict :
         sku_master.product_type = product_type
         update_sku_obj = True
         #sku_master.save()
@@ -2047,7 +2054,7 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
     sister_whs1.append(user.username)
     sister_whs = []
-    inter_state = 1
+    inter_state = 0
     cgst_tax, igst_tax, sgst_tax = 0,0,0
     for sister_wh1 in sister_whs1:
         sister_whs.append(str(sister_wh1).lower())
@@ -2122,7 +2129,7 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                             customer_address = customer_master[0].address
                             customer_tax_type = customer_master[0].tax_type
                             if customer_tax_type == "inter_state":
-                                inter_state = 0
+                                inter_state = 1
                             try:
                                 customer_pincode = int(customer_master[0].pincode)
                             except:
@@ -2262,7 +2269,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
     order_status_dict = {'NEW': 1, 'RETURN': 3, 'CANCEL': 4}
     NOW = datetime.datetime.now()
     insert_status = []
-    inter_state = 1
+    inter_state = 0
     cgst_tax, igst_tax, sgst_tax, utgst_tax = 0,0,0,0
     final_data_dict = OrderedDict()
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
@@ -2339,7 +2346,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                             customer_pincode = customer_master[0].pincode
                             customer_tax_type = customer_master[0].tax_type
                             if customer_tax_type == "inter_state":
-                                inter_state = 0
+                                inter_state = 1
                     except:
                         customer_master = []
                     if not customer_master:
@@ -2458,7 +2465,13 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                             utgst_tax = float(sku_item['tax_percent'].get('UTGST', 0))
                         except:
                             utgst_tax = 0
-
+                    if sku_item.has_key('sku_order_fields'):
+                        sku_fields = sku_item['sku_order_fields']
+                        for datum in sku_fields.keys():
+                            sku_ord_dict = {'user': user.id, 'original_order_id': original_order_id, 'name': datum,
+                                         'value': sku_fields[datum], 'order_type': 'order_sku', 'extra_fields': sku_master[0].id }
+                            sku_attr_obj = OrderFields(**sku_ord_dict)
+                            sku_attr_obj.save()
                     if order_create:
                         order_details['original_order_id'] = original_order_id
                         order_details['order_id'] = order_id

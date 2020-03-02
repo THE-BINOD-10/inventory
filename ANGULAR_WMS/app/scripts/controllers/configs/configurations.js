@@ -14,11 +14,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'back_order': false, 'use_imei': false, 'pallet_switch': false, 'production_switch': false,'stock_sync': false,
                     'pos_switch': false, 'auto_po_switch': false, 'no_stock_switch': false, 'online_percentage': 0,
                     'mail_alerts': 0, 'prefix': '', 'all_groups': '', 'mail_options': [{'id': 1,'name': 'Default'}],
-                    'mail_inputs':[], 'report_freq':'0', 'float_switch': false, 'automate_invoice': false, 'all_stages': '','all_order_fields':'',
+                    'mail_inputs':[], 'report_freq':'0', 'float_switch': false, 'automate_invoice': false, 'all_stages': '','all_order_fields':'','all_order_sku_fields':'',
                     'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,'grn_fields':'', 'po_fields':'', 'rtv_reasons':'',
                     'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': '',
                     'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false,
-                    'invoice_remarks': '','invoice_declaration':'', 'raisepo_terms_conditions':'', 'show_disc_invoice': false, 'serial_limit': '',
+                    'invoice_remarks': '','invoice_declaration':'', 'show_disc_invoice': false, 'serial_limit': '',
                     'increment_invoice': false, 'create_shipment_type': false, 'auto_allocate_stock': false,
                     'generic_wh_level': false, 'auto_confirm_po': false, 'create_order_po': false, 'shipment_sku_scan': false,
                     'disable_brands_view': false, 'sellable_segregation': false, 'display_styles_price': false,
@@ -36,12 +36,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'loc_serial_mapping_switch':false,
                     'brand_categorization':false,
                     'purchase_order_preview':false,
+                    'picklist_sort_by_sku_sequence':false,
                     'stop_default_tax':false,
                     'delivery_challan_terms_condtions': '',
                     'order_prefix': false,
                     'supplier_mapping':false,
                     'show_mrp_grn': false,
                     'display_dc_invoice':false,
+                    'display_order_reference':false,
+                    'move_inventory_reasons':'',
+                    'mandate_invoice_number':false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -63,7 +67,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      65: 'auto_expire_enq_limit', 66: 'invoice_based_payment_tracker', 67: 'receive_po_invoice_check',
                      68: 'mark_as_delivered', 69: 'receive_po_mandatory_fields', 70: 'central_order_mgmt',
                      71: 'order_exceed_stock',72:'invoice_declaration',73:'central_order_reassigning',
-                     74: 'sku_pack_config', 75: 'po_sub_user_prefix', 76: 'combo_allocate_stock', 77:'sno_in_invoice', 78:'raisepo_terms_conditions',
+                     74: 'sku_pack_config', 75: 'po_sub_user_prefix', 76: 'combo_allocate_stock', 77:'sno_in_invoice',
                      79: 'generate_delivery_challan_before_pullConfiramation', 80: 'unique_mrp_putaway',
                      81: 'rtv_prefix_code',82:'pos_remarks', 83:'dispatch_qc_check', 84:'block_expired_batches_picklist', 85:'non_transacted_skus',
                      86:'sku_less_than_threshold', 87:'decimal_limit_price', 88: 'mandate_sku_supplier', 89: 'update_mrp_on_grn', 90: 'allow_rejected_serials',
@@ -72,7 +76,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      98: 'delivery_challan_terms_condtions',
                      99: 'supplier_mapping',
                      100: 'show_mrp_grn',
-                     101:'display_dc_invoice',
+                     101: 'display_dc_invoice',
+                     102: 'display_order_reference',
+                     103: 'picklist_sort_by_sku_sequence',
+                     104: 'mandate_invoice_number',
                      }
 
   vm.check_box_data = [
@@ -238,6 +245,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
+      name: "Picklist Sort By SKU Sequence",
+      model_name: "picklist_sort_by_sku_sequence",
+      param_no: 103,
+      class_name: "fa fa-envelope",
+      display: true
+    },
+    {
       name: "Sync WMS Stock Count",
       model_name: "stock_sync",
       param_no: 20,
@@ -315,7 +329,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
-      name: "Generic Wharehouse Level",
+      name: "Generic Warehouse Level",
       model_name: "generic_wh_level",
       param_no: 49,
       class_name: "fa fa-server",
@@ -420,7 +434,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
-     name: "Invoice Based Payment Tracker Enable/Disable",
+     name: "Order Based Payment Tracker Enable/Disable",
      model_name: "invoice_based_payment_tracker",
      param_no: 66,
      class_name: "fa fa-server",
@@ -580,6 +594,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     class_name: "fa fa-rupee",
     display: true
   },
+  {
+   name: "Display Order Reference in Outbound",
+   model_name: "display_order_reference",
+   param_no: 102,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
+   name: "Mandate Invoice Number in GRN",
+   model_name: "mandate_invoice_number",
+   param_no: 104,
+   class_name: "fa fa-server",
+   display: true
+  },
 ]
 
   vm.empty = {};
@@ -725,12 +753,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       vm.model_data["tax_details"] = {'CST': {}};
       vm.model_data['prefix_data'] = [];
       vm.model_data['prefix_dc_data'] = [];
+      vm.model_data['prefix_cn_data'] = [];
       angular.forEach(data.data.prefix_data, function(data){
         vm.model_data.prefix_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix,
                                         marketplace_interfix: data.interfix, marketplace_date_type: data.date_type});
       })
       angular.forEach(data.data.prefix_dc_data, function(data){
         vm.model_data.prefix_dc_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix});
+      })
+      angular.forEach(data.data.prefix_cn_data, function(data){
+        vm.model_data.prefix_cn_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix});
       })
       angular.forEach(vm.model_data, function(value, key) {
         if (value == "true") {
@@ -785,11 +817,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $(".sku_groups").importTags(vm.model_data.all_groups);
       $(".stages").importTags(vm.model_data.all_stages);
       $(".order_fields").importTags(vm.model_data.all_order_fields);
+      $(".order_sku_fields").importTags(vm.model_data.all_order_sku_fields);
       $(".grn_fields").importTags(vm.model_data.grn_fields);
       $(".po_fields").importTags(vm.model_data.po_fields);
       $(".rtv_reasons").importTags(vm.model_data.rtv_reasons);
+      $(".move_inventory_reasons").importTags(vm.model_data.move_inventory_reasons);
       vm.model_data.all_order_fields_list = vm.model_data.all_order_fields.split(",")
       $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
+      $(".bank_option_fields").importTags(vm.model_data.bank_option_fields);
       $(".invoice_types").importTags(vm.model_data.invoice_types);
       $(".mode_of_transport").importTags(vm.model_data.mode_of_transport||'');
       $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
@@ -800,7 +835,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       vm.getRemarks(vm.model_data.invoice_remarks)
       vm.getDeclaration(vm.model_data.invoice_declaration)
       vm.getPosremarks(vm.model_data.pos_remarks)
-      vm.getRaisePOterms(vm.model_data.raisepo_terms_conditions)
       vm.getDeliveryChallanterms(vm.model_data.delivery_challan_terms_condtions)
     }
   })
@@ -861,6 +895,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     });
   }
 
+  vm.update_bank_option_fields = function() {
+    var data = $(".bank_option_fields").val();
+    vm.service.apiCall("switches?bank_option_fields="+data).then(function(data){
+      if(data.message) {
+        msg = data.data;
+        $scope.showNoty();
+        Auth.status();
+      }
+    });
+  }
+
   vm.update_invoice_type = function() {
     var data = $(".invoice_types").val();
     vm.service.apiCall("switches?invoice_types="+data).then(function(data){
@@ -904,7 +949,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       }
     });
   }
-
+  vm.update_extra_order_sku_fields = function() {
+    var data = $(".order_sku_fields").val();
+    vm.service.apiCall("save_order_sku_extra_fields/?extra_order_sku_fields="+data).then(function(data){
+      if(data.message) {
+        msg = data.data;
+        vm.model_data.all_order_sku_fields = $(".order_sku_fields").val().split(',');
+        $scope.showNoty();
+        Auth.status();
+      }
+    });
+  }
   vm.update_extra_central_order_fields = function() {
     var data = $(".order_fields").val();
     vm.service.apiCall("save_order_extra_fields/?extra_order_fields="+data).then(function(data){
@@ -916,9 +971,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       }
     });
   }
-  vm.update_grn_fields = function() {
-    var data = $(".grn_fields").val();
-    vm.service.apiCall("save_grn_fields/?grn_fields="+data).then(function(data){
+  vm.update_extra_fields = function(fields) {
+    var data = $(fields).val();
+    vm.service.apiCall("save_config_extra_fields/?config_extra_fields="+data+'&field_type='+fields).then(function(data){
       if(data.message) {
         msg = data.data;
         $scope.showNoty();
@@ -926,29 +981,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       }
     });
   }
-
-  vm.update_po_fields = function() {
-    var data = $(".po_fields").val();
-    vm.service.apiCall("save_grn_fields/?po_fields="+data).then(function(data){
-      if(data.message) {
-        msg = data.data;
-        $scope.showNoty();
-        Auth.status();
-      }
-    });
-  }
-
-  vm.update_rtv_reasons = function() {
-    var data = $(".rtv_reasons").val();
-    vm.service.apiCall("save_grn_fields/?rtv_reasons="+data).then(function(data){
-      if(data.message) {
-        msg = data.data;
-        $scope.showNoty();
-        Auth.status();
-      }
-    });
-  }
-
   vm.update_invoice_titles = function() {
     var data = $(".titles").val();
     vm.switches(data, 38);
@@ -1296,6 +1328,145 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       }
     }
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+  //Credit Note Config Code Started
+  vm.marketplace_add_show_cn = false;
+  vm.marketplace_selected_cn = '';
+  vm.saveCreditNote = function(name, value) {
+
+    if(!name) {
+
+      Service.showNoty("Please Enter Name");
+      return false;
+    } else {
+      vm.updateMarketplaceCn(name, value, 'save')
+      //vm.switches("{'tax_"+name+"':'"+value+"'}", 31);
+      var found = false;
+      for(var i = 0; i < vm.model_data.prefix_cn_data.length; i++) {
+
+        if(vm.model_data.prefix_cn_data[i].marketplace_name == vm.model_data.marketplace_name) {
+
+          vm.model_data.prefix_cn_data[i].marketplace_name = vm.model_data.marketplace_name;
+          vm.model_data.prefix_cn_data[i].marketplace_prefix = vm.model_data.marketplace_prefix;
+          vm.model_data.prefix_cn_data[i].marketplace_interfix = vm.model_data.marketplace_interfix;
+          vm.model_data.prefix_cn_data[i].marketplace_date_type = vm.model_data.marketplace_date_type;
+          found = true;
+          break;
+        }
+      }
+      if(!found) {
+
+        vm.model_data.prefix_cn_data.push({marketplace_name: vm.model_data.marketplace_name,
+                                        marketplace_prefix: vm.model_data.marketplace_prefix,
+                                        marketplace_interfix: vm.model_data.marketplace_interfix,
+                                        marketplace_date_type: vm.model_data.marketplace_date_type});
+      }
+      vm.marketplace_add_show_cn = false;
+      vm.marketplace_selected_cn = "";
+      vm.model_data.marketplace_name = "";
+      vm.model_data.marketplace_prefix = "";
+      vm.model_data.marketplace_interfix = "";
+      vm.model_data.marketplace_date_type = "";
+      vm.model_data.marketplace_new = true;
+    }
+  }
+
+   vm.marketplaceSelectedCn = function(name) {
+
+    if (name) {
+
+      for(var i = 0; i < vm.model_data.prefix_cn_data.length; i++) {
+
+        if(vm.model_data.prefix_cn_data[i].marketplace_name == name) {
+
+          vm.model_data.marketplace_name = vm.model_data.prefix_cn_data[i].marketplace_name;
+          vm.model_data.marketplace_prefix = vm.model_data.prefix_cn_data[i].marketplace_prefix;
+          vm.model_data.marketplace_interfix = vm.model_data.prefix_cn_data[i].marketplace_interfix;
+          vm.model_data.marketplace_date_type = vm.model_data.prefix_cn_data[i].marketplace_date_type;
+          vm.model_data["marketplace_new"] = false;
+          vm.marketplace_add_show_cn = true;
+          break;
+        }
+      }
+    } else {
+
+      vm.model_data["marketplace_new"] = true;
+      vm.marketplace_add_show = false;
+      vm.model_data.marketplace_name = "";
+      vm.model_data.marketplace_prefix = "";
+    }
+  }
+
+  vm.updateMarketplaceCn = function(name, value, type) {
+
+      var send = {marketplace_prefix: value,
+                  marketplace_interfix: vm.model_data.marketplace_interfix,
+                  marketplace_date_type: vm.model_data.marketplace_date_type,
+                  type_name: 'credit_note_sequence', type_value: name}
+      if (type != 'save') {
+        send['delete'] = true;
+
+        for(var i = 0; i < vm.model_data.prefix_cn_data.length; i++) {
+
+          if(vm.model_data.prefix_cn_data[i].marketplace_name == vm.model_data.marketplace_name) {
+
+            vm.model_data.prefix_cn_data.splice(i, 1);
+            break;
+          }
+        }
+        vm.marketplace_add_show_cn = false;
+        vm.marketplace_selected_cn = "";
+        vm.model_data.marketplace_name = "";
+        vm.model_data.marketplace_prefix = "";
+        vm.model_data.marketplace_new = true;
+      }
+      vm.service.apiCall("update_user_type_sequence/", "GET", send).then(function(data) {
+
+        console.log(data);
+        Service.showNoty(data.data.status);
+      })
+  }
+  vm.saved_marketplaces_cn = [];
+  vm.filterMarkeplacesCn = function() {
+    vm.saved_marketplaces_cn = [];
+    angular.forEach(vm.model_data.prefix_cn_data, function(data){
+      vm.saved_marketplaces_cn.push(data.marketplace_name);
+    })
+    for(var i=0; i < vm.model_data.marketplaces.length; i++) {
+      if (vm.saved_marketplaces_cn.indexOf(vm.model_data.marketplaces[i]) == -1) {
+        vm.model_data.marketplace_name = vm.model_data.marketplaces[i];
+        break;
+      }
+    }
+  }
+  //Credit Note Config Code Ended
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   vm.addClassfication = function(){
     var send_data = {}
     angular.copy(vm.attr_model_data, send_data);
@@ -1337,11 +1508,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     vm.switches(data, 82);
     Auth.status();
   }
-  vm.raise_po_terms_conditions = function(raisepo_terms_conditions) {
-    var data = $("[name='raisepo_terms_conditions']").val().split("\n").join("<<>>");
-    vm.switches(data, 78);
-    Auth.status();
-  }
   vm.delivery_challan_terms_condtions = function(delivery_challan_terms_condtions){
     var data = $("[name='delivery_challan_terms_condtions']").val().split("\n").join("<<>>");
     vm.switches(data, 98);
@@ -1375,15 +1541,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $("[name='pos_remarks']").val( pos_remarks.split("<<>>").join("\n") )
     } else {
       $("[name='pos_remarks']").val( pos_remarks );
-    }
-    }, 1000);
-  }
-  vm.getRaisePOterms= function(raisepo_terms_conditions) {
-    $timeout(function() {
-    if(raisepo_terms_conditions && raisepo_terms_conditions.split("<<>>").length > 1) {
-      $("[name='raisepo_terms_conditions']").val( raisepo_terms_conditions.split("<<>>").join("\n") )
-    } else {
-      $("[name='raisepo_terms_conditions']").val( raisepo_terms_conditions );
     }
     }, 1000);
   }

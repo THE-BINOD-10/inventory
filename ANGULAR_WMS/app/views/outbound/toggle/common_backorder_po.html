@@ -25,7 +25,7 @@
             </div>
             <div class="col-md-3 col-sm-3 col-xs-6">
               <div class="form-group">
-                <label for="po_reference" class="control-label"> <b>PO Reference</b></label>
+                <label for="po_reference" class="control-label"> <b>PO References</b></label>
                 <input class="form-control" ng-model="pop.model_data.data_dict[0].original_order_id" name= "po_reference" type="text">
               </div>
             </div>
@@ -42,6 +42,7 @@
                   <th> Supplier Name *</th>
                   <th> WMS Code </th>
                   <th> Title </th>
+                  <th> Brand </th>
                   <th class="w10">Quantity </th>
                   <th>Unit Price</th>
                   <th class="w10">SGST(%)</th>
@@ -63,6 +64,7 @@
                   </td>
                   <td>{{product.wms_code}}</td>
                   <td>{{product.title}}</td>
+                  <td>{{product.brand}}</td>
                   <td>
                     <input type="text" name="quantity" class="form-control" ng-model="product.quantity" ng-class="service.get_decimal_perm()">
                   </td>

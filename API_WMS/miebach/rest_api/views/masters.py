@@ -350,7 +350,6 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     order_data = SKU_SUPPLIER_MAPPING.values()[col_num]
     filter_params = get_filtered_params(filters, SKU_SUPPLIER_MAPPING.values())
-
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
@@ -378,9 +377,9 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
         temp_data['aaData'].append(OrderedDict((('supplier_id', result.supplier_id), ('wms_code', result.sku.wms_code),
                                                 ('supplier_code', result.supplier_code), ('moq', result.moq),
                                                 ('preference', sku_preference),
-                                                ('price', result.price), ('costing_type', result.costing_type),
-                                                ('markup_percentage',result.markup_percentage),
-                                                ('margin_percentage', result.margin_percentage), ('DT_RowClass', 'results'),
+                                                ('costing_type', result.costing_type),('price', result.price),
+                                                ('margin_percentage', result.margin_percentage),('markup_percentage',result.markup_percentage),
+                                                ('DT_RowClass', 'results'),
                                                 ('DT_RowId', result.id), ('mrp', result.sku.mrp))))
 
 
@@ -1426,6 +1425,7 @@ def update_sku_supplier_values(request, user=''):
 def insert_mapping(request, user=''):
     data_dict = copy.deepcopy(SUPPLIER_SKU_DATA)
     integer_data = 'preference'
+    auto_po_switch = get_misc_value('auto_po_switch', user.id)
     for key, value in request.POST.iteritems():
 
         if key == 'wms_code':
@@ -1451,7 +1451,7 @@ def insert_mapping(request, user=''):
 
         if value != '':
             data_dict[key] = value
-    if user.username not in MILKBASKET_USERS:
+    if auto_po_switch == 'true':
         sku_supplier = SKUSupplier.objects.filter(Q(sku_id=sku_id[0].id) & Q(preference=preference),
                                                   sku__user=user.id)
         if sku_supplier:
@@ -3972,7 +3972,6 @@ def insert_update_terms(request, user=''):
         message = 'Mandatory fields missing'
     return HttpResponse(json.dumps({'status': status, 'message': message, 'data': data}))
 
-
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -3988,6 +3987,36 @@ def delete_terms(request, user=''):
         TANDCMaster.objects.filter(id=terms_dict['id']).delete()
         message = 'Deleted Successfully'
         status = 1
+    else:
+        message = 'Mandatory fields missing'
+    return HttpResponse(json.dumps({'status': status, 'message': message, 'data': data}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def insert_po_terms(request, user=''):
+    ''' Create or Update PO Terms and conditions'''
+    terms_dict = request.POST.dict()
+    message = ''
+    status = 0
+    data = {}
+    if  terms_dict.get('get_data', '') != 'poTerms' and terms_dict.get('field_type', ''):
+        terms_dict['user_id'] = user.id
+        tc_master = UserTextFields.objects.filter(user=user.id, field_type=terms_dict['field_type'])
+        if tc_master.exists():
+            tc_master.update(text_field=terms_dict['text_field'])
+            message = 'Updated Successfully'
+            status = 1
+        else:
+            UserTextFields.objects.create(**terms_dict)
+            message = 'Added Successfully'
+            status = 1
+    elif terms_dict.get('get_data', '') == 'poTerms':
+        tc_master = UserTextFields.objects.filter(user=user.id, field_type=terms_dict['field_type'])
+        if tc_master.exists():
+            message = 'Data Access'
+            status = 1
+            data = tc_master[0].text_field
     else:
         message = 'Mandatory fields missing'
     return HttpResponse(json.dumps({'status': status, 'message': message, 'data': data}))
@@ -4246,7 +4275,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
         excel_headers = temp_data['aaData'][0].keys()
     excel_name = request.POST.get('datatable', '')
     if excel_name:
-        file_name = "%s.%s" % (user.id, excel_name.split('=')[-1])
+        file_name = "%s.%s" % (user.username, excel_name.split('=')[-1])
     file_type = 'xls'
     path = ('static/excel_files/%s.%s') % (file_name, file_type)
     if not os.path.exists('static/excel_files/'):

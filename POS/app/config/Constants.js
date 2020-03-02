@@ -22,5 +22,6 @@ var NOTIIFICATION_ERROR="applicaiton need an notfication permission.";
 var DELIVERY_CHALLAN="Delivery Challan";
 var STAFF_MEMBERS="staff_members";
 var TAX_INCLUSIVE="tax_inclusive";
+var MRP_DISCOUNT ="mrp_discount";
 var POS_ENABLE_SYNC=false;
 var POS_UPDATE_FOUND=false;

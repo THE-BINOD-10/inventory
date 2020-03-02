@@ -20,6 +20,7 @@
       vm.batch_nos = [];
       vm.batches = {};
       vm.weights = {};
+      vm.move_inventory_reasons = [];
 
       vm.dtOptions = DTOptionsBuilder.newOptions()
          .withOption('ajax', {
@@ -151,6 +152,11 @@
       vm.add = add;
       function add() {
         angular.copy(vm.empty_data, vm.model_data);
+        vm.service.apiCall('get_move_inventory_reasons/').then(function(data){
+          if(data) {
+           vm.move_inventory_reasons = data.data.move_inventory_reasons
+           vm.reasons_available = data.data.reasons_available
+          }});
         $state.go('app.stockLocator.MoveInventory.Inventory');
       }
 
@@ -171,7 +177,8 @@
                         'wms_code':'',
                         'source_loc': '',
                         'dest_loc': '',
-                        'quantity': ''
+                        'quantity': '',
+                        'reason':'',
                       }
       vm.model_data = {};
       angular.copy(vm.empty_data, vm.model_data);

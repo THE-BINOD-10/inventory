@@ -108,6 +108,7 @@ urlpatterns = [
     url(r'^get_terms_and_conditions/$', get_terms_and_conditions),
     url(r'^insert_update_terms/$', insert_update_terms),
     url(r'^delete_terms/$', delete_terms),
+    url(r'^insert_po_terms/$', insert_po_terms),
     url(r'^insert_staff/$', insert_staff),
     url(r'^update_staff_values/$', update_staff_values),
     url(r'^get_user_attributes_list/$', get_user_attributes_list),
@@ -273,6 +274,8 @@ urlpatterns = [
     url(r'^confirm_combo_allocation/$', confirm_combo_allocation),
     url(r'^cal_ba_to_sa/$',cal_ba_to_sa),
     url(r'^ba_to_sa_calculate_now/$',ba_to_sa_calculate_now),
+    url(r'^get_move_inventory_reasons/$',get_move_inventory_reasons),
+    url(r'^stock_detail_update/$',stock_detail_update),
 
     # OutBound
     url(r'^batch_generate_picklist/$', batch_generate_picklist),
@@ -528,6 +531,8 @@ urlpatterns = [
     url(r'^get_move_inventory_report/$', get_move_inventory_report),
     url(r'^get_financial_report/$', get_financial_report),
     url(r'^print_financial_report_report/$', print_financial_report_report),
+    url(r'^get_bulk_stock_update/$', get_bulk_stock_update),
+    url(r'^print_bulk_stock_update/$', print_bulk_stock_update),
 ]
 
 # urlpatterns += patterns('rest_api.views',
@@ -621,9 +626,10 @@ urlpatterns += [
     url(r'^delete_tax/$', delete_tax),
     url(r'^update_invoice_sequence/$', update_invoice_sequence),
     url(r'^update_dc_sequence/$', update_dc_sequence),
+    url(r'^update_user_type_sequence/$', update_user_type_sequence),
     url(r'^update_mail_alerts/$', update_mail_alerts),
     url(r'^pos_extra_fields/$',pos_extra_fields),
-    url(r'^save_grn_fields/$',save_grn_fields),
+    url(r'^save_config_extra_fields/$',save_config_extra_fields),
     url(r'^save_extra_order_options/$',save_extra_order_options),
     url(r'^get_classfication_settings/$',get_classfication_settings),
     url(r'^save_update_classification/$',save_update_classification),
@@ -660,9 +666,12 @@ urlpatterns += [
     url(r'delete_temp_json/$', delete_temp_json),
     url(r'^search_batches/$', search_batches),
     url(r'^save_order_extra_fields/$', save_order_extra_fields),
+    url(r'^save_order_sku_extra_fields/$', save_order_sku_extra_fields),
     url(r'^get_sku_mrp/$', get_sku_mrp),
     url(r'^get_current_weight/$', get_current_weight),
     url(r'^get_decimal_data/$', get_decimal_data),
+    url(r'^update_barcode_configuration/$', update_barcode_configuration),
+    url(r'^get_barcode_configurations/$', get_barcode_configurations),
 
 
     # Retailone
@@ -696,6 +705,7 @@ urlpatterns += [
     url('^get_extra_fields/$', get_extra_fields),
     url('^get_staff_members_list/$', get_staff_members_list),
     url(r'^pos_tax_inclusive/$', pos_tax_inclusive),
+    url(r'^pos_mrp_discount/$', pos_mrp_discount),
     url(r'^stock_transfer_invoice_data/$', stock_transfer_invoice_data),
     url(r'^pos_send_mail/$', pos_send_mail),
 

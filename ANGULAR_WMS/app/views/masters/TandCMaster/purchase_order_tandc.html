@@ -1,0 +1,38 @@
+<head>
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/pell/dist/pell.min.css">
+  <style>
+    .pell-content{
+      background: #f3f3f359;
+      border-bottom: 0.1px solid #f3f0f0;
+    }
+    .editor_align{
+      padding: 30px;
+    }
+  </style>
+  <script type="text/javascript">
+  const pell = window.pell;
+  const editor = document.getElementById("editor");
+  const markup = document.getElementById("markup");
+  pell.init({
+    element: editor,
+    onChange: (html) => {
+      markup.innerHTML = "";
+      markup.innerText += html;
+    }
+  })
+</script>
+</head>
+<div class="panel" ng-controller="TandCMaster as showCase">
+  <div class="panel-header">
+    <button type="button" class="btn btn-success pull-right ml10" ng-click="showCase.save_po_terms({'get_data': 'poTerms'})" ng-disabled="showCase.btn_disable">View PO Terms and Conditions</button>
+  </div>
+  <div class="panel-body mr20 ml20">
+    <div class="row">
+      <div id="editor" class="editor_align"></div>
+      <div id="markup" ng-hide="showCase.markup_hide"></div>
+      <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 mbalign">
+        <button type="button" class="btn btn-success btn-outline pull-right mr10" ng-disabled="showCase.btn_disable" ng-click="showCase.saveTermsConditions()">SAVE</button>
+      </div>
+    </div>
+  </div>
+</div>

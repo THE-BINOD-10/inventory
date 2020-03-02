@@ -934,6 +934,10 @@ def get_skus(request):
     error_status = []
     skus = []
     search_params = {'user': user.id}
+    sister_whs = []
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
     request_data = request.body
     search_query = Q()
     if request_data:
@@ -941,6 +945,11 @@ def get_skus(request):
             request_data = json.loads(request_data)
         except:
             request_data = {}
+        if request_data.has_key('warehouse'):
+            warehouse = request_data['warehouse']
+            if warehouse.lower() in sister_whs:
+                user = User.objects.get(username=warehouse)
+        search_params = {'user': user.id}
         attributes = get_user_attributes(user, 'sku')
         if request_data.get('limit'):
             limit = request_data['limit']
@@ -1031,25 +1040,51 @@ def get_skufilters(request):
     request_data = request.body
     sku_model = []
     query_list = []
+    sister_whs = []
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
     if request_data:
         try:
             request_data = json.loads(request_data)
         except:
             request_data = {}
-    sku_model = [field.name for field in SKUMaster._meta.get_fields()]
-    attributes = get_user_attributes(user, 'sku')
-    attr_list = []
-    attr_filter_ids = []
-    if attributes:
-        attr_list = list(attributes.values_list('attribute_name', flat=True))
-    if request_data.get('key'):
-        search_param = request_data['key']
-        if search_param in sku_model:
-            query_list = list(SKUMaster.objects.filter(user = user.id).values_list(search_param, flat=True).distinct())
-        elif search_param in attr_list:
-            query_list = list(SKUAttributes.objects.filter(sku__user=user.id, attribute_name=search_param).values_list('attribute_value', flat=True).distinct())
-        else:
-            status['status'] = 400
+        if request_data.has_key('warehouse'):
+            warehouse = request_data['warehouse']
+            if warehouse.lower() in sister_whs:
+                user = User.objects.get(username=warehouse)
+        sku_model = [field.name for field in SKUMaster._meta.get_fields()]
+        attributes = get_user_attributes(user, 'sku')
+        attr_list = []
+        attr_filter_ids = []
+        sku_attribute = SKUAttributes.objects.filter(sku__user=user.id)
+        sku_master = SKUMaster.objects.filter(user = user.id)
+        if attributes:
+            attr_list = list(attributes.values_list('attribute_name', flat=True))
+        if request_data.get('key'):
+            search_param = request_data['key']
+            if search_param in sku_model:
+                if request_data.get('name_search'):
+                    search_query = build_search_term_query([search_param], request_data['name_search'])
+                    if search_query:
+                        sku_master = sku_master.filter(search_query)
+                query_list = list(sku_master.values_list(search_param, flat=True).distinct())
+            elif search_param in attr_list:
+                query_list = list(sku_attribute.filter(attribute_name=search_param).values_list('attribute_value', flat=True).distinct())
+            else:
+                status['status'] = 400
+        #Attribute filter for go_mech
+        if request_data.get('sku_brand') and request_data.get('attribute'):
+            sku_brand = request_data['sku_brand']
+            attribute_name = request_data['attribute']
+            if attribute_name in attr_list:
+                if request_data.get('attribute_search'):
+                    search_query = build_search_term_query(['attribute_value'], request_data['attribute_search'])
+                    if search_query:
+                        sku_attribute = sku_attribute.filter(search_query)
+                query_list = list(sku_attribute.filter(attribute_name=attribute_name, sku__sku_brand=sku_brand).values_list('attribute_value', flat=True).distinct())
+            else:
+                status['status'] = 400
     status['data'] = query_list
     if status['status'] == 400:
         status['message'] = 'Key error'
@@ -1333,7 +1368,7 @@ def get_orders(request):
                                                              datetime.time())
         search_parameters['creation_date__lt'] = search_params['to_date']
     if 'order_id' in search_params:
-        search_parameters['original_order_id'] = search_params['order_id']
+        search_parameters['original_order_id__in'] = search_params['order_id'].split(',')
     search_parameters['user'] = request.user.id
     order_records = OrderDetail.objects.filter(**search_parameters).values_list('original_order_id',flat= True).distinct()
     page_info = scroll_data(request, order_records, limit=limit)
@@ -1430,9 +1465,6 @@ def get_mp_inventory(request):
             if skus:
                 filter_params['sku_code__in'] = skus
                 limit = len(skus)
-            log_mp = ('MP inventory request from %s with request data %s '%
-                         (str(request.user.username), str(request_data)))
-            mb_stock_sycn_log(log_mp, user)
         except:
             return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}), status=400)
         if not seller_id:
@@ -1455,6 +1487,8 @@ def get_mp_inventory(request):
                 return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Seller ID'}), status=400)
         except:
             return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Seller ID'}), status=400)
+        log_mp = ('MP inventory request from %s with request data %s '% (str(user.username), str(request_data)))
+        mb_stock_sycn_log(log_mp, user)
         seller_master_id = seller_master[0].id
         picklist_exclude_zones = get_exclude_zones(user)
         filter_params['user'] = user.id
@@ -1493,14 +1527,14 @@ def get_mp_inventory(request):
                                                       Value('<<>>'), 'stock__batch_detail__weight',
                                               output_field=CharField())).values_list('group_key').distinct(). \
                             annotate(stock_sum=Sum('reserved')))
-            unsellable_stock = SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone__zone').\
+            '''unsellable_stock = SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone__zone').\
                           filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0,
                                  stock__location__zone__zone__in=non_sellable_zones). \
                           only('stock__sku__sku_code', 'stock__batch_detail__mrp', 'reserved').\
                           annotate(group_key=Concat('stock__sku__sku_code',Value('<<>>'), 'stock__batch_detail__mrp',
                                                     Value('<<>>'), 'stock__batch_detail__weight',
                                           output_field=CharField())).values('group_key').distinct(). \
-                          annotate(stock_sum=Sum('quantity'))
+                          annotate(stock_sum=Sum('quantity'))'''
             bulk_zone_stock = SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone__zone').\
                           filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0,
                                  stock__location__zone__zone__in=bulk_zones). \
@@ -1540,7 +1574,7 @@ def get_mp_inventory(request):
 
             for sku in sku_records:
                 group_data = stocks.filter(stock__sku__sku_code=sku['sku_code']).values('group_key', 'stock_sum')
-                group_data1 = unsellable_stock.filter(stock__sku__sku_code=sku['sku_code'])#.\
+                #group_data1 = unsellable_stock.filter(stock__sku__sku_code=sku['sku_code'])#.\
                                         #exclude(group_key__in=group_data.values_list('group_key', flat=True))
                 group_data2 = bulk_zone_stock.filter(stock__sku__sku_code=sku['sku_code']) #.\
                                         #exclude(group_key__in=group_data.values_list('group_key', flat=True))
@@ -1569,10 +1603,10 @@ def get_mp_inventory(request):
                     sell_filter = {'stock__sku__sku_code': sku_code}
                     if mrp or mrp == 0:
                         sell_filter['stock__batch_detail__mrp'] = mrp
-                    unsellable = unsellable_stock.filter(**sell_filter).\
-                                                aggregate(Sum('quantity'))['quantity__sum']
-                    if not unsellable:
-                        unsellable = 0
+                    #unsellable = unsellable_stock.filter(**sell_filter).\
+                    #                            aggregate(Sum('quantity'))['quantity__sum']
+                    #if not unsellable:
+                    #    unsellable = 0
                     # bulk_stock = bulk_zone_stock.filter(**sell_filter).\
                     #                             aggregate(Sum('quantity'))['quantity__sum']
                     # if not bulk_stock:
@@ -1589,12 +1623,10 @@ def get_mp_inventory(request):
                     mrp_dict.setdefault(sub_group_key, OrderedDict(( ('mrp', mrp), ('weight', weight),
                                                                      ('inventory', OrderedDict((('sellable', 0),
                                                                                                 ('on_hold', 0),
-                                                                                                ('un_sellable', 0),
                                                                                                 ('bulk_area', 0)))))))
                     mrp_dict[sub_group_key]['inventory']['sellable'] += int(inventory)
                     mrp_dict[sub_group_key]['inventory']['on_hold'] += int(reserved)
-                    #mrp_dict[sub_group_key]['inventory']['un_sellable'] += int(unsellable)
-                for stock_dat1 in group_data1:
+                '''for stock_dat1 in group_data1:
                     splitted_val = stock_dat1['group_key'].split('<<>>')
                     sku_code = splitted_val[0]
                     mrp = splitted_val[1]
@@ -1617,7 +1649,7 @@ def get_mp_inventory(request):
                                                                                                 ('on_hold', 0),
                                                                                                 ('un_sellable', 0),
                                                                                                 ('bulk_area', 0)))))))
-                    mrp_dict[sub_group_key]['inventory']['un_sellable'] += int(inventory)
+                    mrp_dict[sub_group_key]['inventory']['un_sellable'] += int(inventory)'''
                 for stock_dat2 in group_data2:
                     splitted_val = stock_dat2['group_key'].split('<<>>')
                     sku_code = splitted_val[0]
@@ -1639,7 +1671,6 @@ def get_mp_inventory(request):
                     mrp_dict.setdefault(sub_group_key, OrderedDict(( ('mrp', mrp), ('weight', weight),
                                                                      ('inventory', OrderedDict((('sellable', 0),
                                                                                                 ('on_hold', 0),
-                                                                                                ('un_sellable', 0),
                                                                                                 ('bulk_area', 0)))))))
                     mrp_dict[sub_group_key]['inventory']['bulk_area'] += int(inventory)
                 for sku_open_order in sku_open_orders:
@@ -1657,19 +1688,29 @@ def get_mp_inventory(request):
                                                                       ('weight', open_weight), ('inventory',
                                                          OrderedDict((('sellable', 0),
                                                                     ('on_hold', 0),
-                                                                    ('un_sellable', 0),
                                                                       ('bulk_area', 0)))))))
                     mrp_dict[open_order_grouping_key]['inventory']['sellable'] -= open_orders[sku_open_order]
                     mrp_dict[open_order_grouping_key]['inventory']['on_hold'] += open_orders[sku_open_order]
                 mrp_list = mrp_dict.values()
                 if not mrp_list:
                     sku_obj = SKUMaster.objects.get(id=sku['id'])
-                    mrp_list = [OrderedDict(( ('mrp', sku_obj.mrp), ('weight', get_sku_weight(sku_obj)),
+                    mrp = 0
+                    weight = ''
+                    collect_all_sellable_location = list(LocationMaster.objects.filter(zone__segregation='sellable',  zone__user=user.id, status=1).values_list('location', flat=True))
+                    bulk_zones= get_all_zones(user ,zones=[MILKBASKET_BULK_ZONE])
+                    bulk_locations=list(LocationMaster.objects.filter(zone__zone__in=bulk_zones, zone__user=user.id, status=1).values_list('location', flat=True))
+                    sellable_bulk_locations=list(chain(collect_all_sellable_location ,bulk_locations))
+                    mrp_weight_obj = StockDetail.objects.filter(sku=sku['id'], location__location__in=sellable_bulk_locations)
+                    if mrp_weight_obj:
+                        mrp_weight_obj = mrp_weight_obj.latest('creation_date')
+                        mrp_list = [OrderedDict(( ('mrp', mrp_weight_obj.batch_detail.mrp), ('weight', mrp_weight_obj.batch_detail.weight),
                                                                      ('inventory', OrderedDict((('sellable', 0),
                                                                                                 ('on_hold', 0),
-                                                                                                ('un_sellable', 0),
                                                                                                 ('bulk_area', 0))))))]
-                data.append(OrderedDict(( ('sku', sku['sku_code']), ('data', mrp_list))))
+                if mrp_list:
+                    data.append(OrderedDict(( ('sku', sku['sku_code']), ('data', mrp_list))))
+                else:
+                    error_status.append({'sku': sku['sku_code'], 'message': 'Stock Not found', 'status': 5030})
         else:
             stocks = dict(SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone').\
                           filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0).\
@@ -1680,18 +1721,18 @@ def get_mp_inventory(request):
                             filter(stock__sellerstock__seller_id=seller_master_id, reserved__gt=0, status=1,
                                     stock__sellerstock__quantity__gt=0, stock__sku__user=user.id).\
                             values_list('stock__sku__sku_code').distinct().annotate(tot_stock=Sum('reserved')))
-            unsellable_stock = dict(SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone__zone').\
+            '''unsellable_stock = dict(SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone__zone').\
                           filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0,
                                  stock__location__zone__zone='Non Sellable Zone').\
                               values_list('stock__sku__sku_code').distinct().\
-                          annotate(tot_stock=Sum('quantity')))
+                          annotate(tot_stock=Sum('quantity')))'''
             for sku in sku_records:
                 inventory = stocks.get(sku['sku_code'], 0)
                 reserved = pick_res.get(sku['sku_code'], 0)
-                unsellable = unsellable_stock.get(sku['sku_code'], 0)
+                #unsellable = unsellable_stock.get(sku['sku_code'], 0)
                 inventory -= reserved
                 data.append(OrderedDict(( ('sku', sku['sku_code']), ('inventory', int(inventory)),
-                                          ('on_hold', int(reserved)), ('un_sellable', unsellable))))
+                                          ('on_hold', int(reserved)))))
         page_info['data'] = data
         #data = scroll_data(request, data, limit=limit)
         response_data = {'page_info': page_info.get('page_info', {}), 'status': 200,
@@ -1990,11 +2031,20 @@ def get_customers(request, user=''):
     search_params = {'user': user.id}
     request_data = request.body
     limit = 30
+    sister_whs = []
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
     if request_data:
         try:
             request_data = json.loads(request_data)
         except:
             return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Json', 'data': []}))
+        if request_data.has_key('warehouse'):
+            warehouse = request_data['warehouse']
+            if warehouse.lower() in sister_whs:
+                user = User.objects.get(username=warehouse)
+        search_params = {'user': user.id}
         if request_data.get('name_search', ''):
             search_params['name__icontains'] = request_data['name_search']
         elif request_data.get('name', ''):
@@ -2005,6 +2055,8 @@ def get_customers(request, user=''):
             search_params['customer_id'] = request_data['customer_id']
         if request_data.get('limit'):
             limit = request_data['limit']
+        if request_data.get('customer_type'):
+            search_params['customer_type'] = request_data['customer_type']
     total_data = []
     master_data = CustomerMaster.objects.filter(**search_params)
     page_info = scroll_data(request, master_data, limit=limit, request_type='body')
@@ -2014,6 +2066,7 @@ def get_customers(request, user=''):
             data.phone_number = int(float(data.phone_number))
         total_data.append({'customer_id': data.customer_id, 'first_name': data.name,
                            'last_name': data.last_name, 'address': data.address,
-                           'phone_number': str(data.phone_number), 'email': data.email_id})
+                           'phone_number': str(data.phone_number), 'email': data.email_id,
+                           'customer_type':data.customer_type})
     page_info['data'] = total_data
     return HttpResponse(json.dumps(page_info))

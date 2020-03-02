@@ -410,6 +410,7 @@ class OrderFields(models.Model):
     name = models.CharField(max_length=256, default='')
     value = models.CharField(max_length=256, default='')
     order_type = models.CharField(max_length=256, default='order')
+    extra_fields = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -604,6 +605,7 @@ class BatchDetail(models.Model):
     tax_percent = models.FloatField(default=0)
     transact_id = models.IntegerField(default=0)
     transact_type = models.CharField(max_length=36, default='')
+    receipt_number = models.PositiveIntegerField(default=0)
     weight = models.CharField(max_length=64, default='')
     ean_number = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -824,6 +826,7 @@ class MoveInventory(models.Model):
     batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True)
     pallet_detail = models.ForeignKey(PalletDetail, blank=True, null=True)
     seller = models.ForeignKey(SellerMaster, blank=True, null=True)
+    reason = models.CharField(max_length=256, default='', null=True, blank=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -888,6 +891,7 @@ class OrderShipment(models.Model):
     driver_phone_number = models.CharField(max_length =32 , default ='')
     truck_number = models.CharField(max_length=64)
     shipment_reference = models.CharField(max_length=64)
+    ewaybill_number = models.CharField(max_length=64, default='')
     status = models.CharField(max_length=32)
     courier_name = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -1908,6 +1912,7 @@ class PaymentSummary(models.Model):
     entered_amount = models.FloatField(default=0)
     balance_amount = models.FloatField(default=0)
     tds_amount = models.FloatField(default=0)
+    invoice_number = models.CharField(max_length=128, default='')
     payment_date = models.DateField(blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -2019,7 +2024,7 @@ class SellerPOSummary(models.Model):
     cess_tax = models.FloatField(default=0)
     apmc_tax = models.FloatField(default=0)
     overall_discount = models.FloatField(default=0)
-    price=models.FloatField(default=0)
+    price = models.FloatField(default=0)
     remarks = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -2100,6 +2105,8 @@ class OrderReturns(models.Model):
     reason = models.CharField(max_length=256, default='')
     status = models.CharField(max_length=64)
     marketplace = models.CharField(max_length=32, default='')
+    invoice_number = models.CharField(max_length=32, default='')
+    credit_note_number = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2471,6 +2478,7 @@ class OrderTracking(models.Model):
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     quantity = models.FloatField(default=0)
     imei = models.CharField(max_length=128, default='')
+    invoice_number = models.CharField(max_length=128, default='')
     status = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -2498,6 +2506,15 @@ class BarcodeSettings(models.Model):
 
     def __unicode__(self):
         return "%s, %s %s" % (self.user, self.show_fields, self.rows_columns)
+
+
+class BarCodeBrandMappingMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    configName = models.CharField(max_length=256, blank=True, null=True)
+    sku_brand = models.CharField(max_length=64, default='')
+    class Meta:
+        db_table = 'BARCODE_BRAND_MAPPING_MASTER'
 
 
 class InvoiceSequence(models.Model):
@@ -2532,6 +2549,25 @@ class ChallanSequence(models.Model):
         db_table = 'CHALLAN_SEQUENCE'
         index_together = ('user', 'marketplace')
         unique_together = ('user', 'marketplace')
+
+
+class UserTypeSequence(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    type_name = models.CharField(max_length=64, default='')
+    type_value = models.CharField(max_length=64, default='')
+    prefix = models.CharField(max_length=64, default='')
+    interfix = models.CharField(max_length=64, default='')
+    date_type = models.CharField(max_length=32, default='')
+    value = models.PositiveIntegerField()
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'USER_TYPE_SEQUENCE'
+        index_together = ('user', 'type_name', 'type_value')
+        unique_together = ('user', 'type_name', 'type_value')
 
 
 class OrderAwbMap(models.Model):

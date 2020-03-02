@@ -251,6 +251,7 @@ def add_user_permissions(request, response_data, user=''):
                                              'registered_date': get_local_date(request.user,
                                                                                user_profile.creation_date),
                                              'email': request.user.email,
+                                             'state': user_profile.state,
                                              'trail_user': status_dict[int(user_profile.is_trail)],
                                              'company_name': user_profile.company_name,
                                              'industry_type': user_profile.industry_type,
@@ -475,7 +476,7 @@ def get_search_params(request, user=''):
                     'marketplace': 'marketplace','central_order_id':'central_order_id',
                     'marketplace': 'marketplace','source_location':'source_location','destination_location':'destination_location',
                     'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage', 'jo_code': 'jo_code',
-                    'sku_class': 'sku_class', 'sku_size': 'sku_size',
+                    'sku_class': 'sku_class', 'sku_size': 'sku_size','order_reference':'order_reference',
                     'order_report_status': 'order_report_status', 'customer_id': 'customer_id',
                     'imei_number': 'imei_number','creation_date':'creation_date',
                     'order_id': 'order_id', 'job_code': 'job_code', 'job_order_code': 'job_order_code',
@@ -488,7 +489,7 @@ def get_search_params(request, user=''):
                     'aging_period': 'aging_period', 'source_sku_code': 'source_sku_code',
                     'destination_sku_code': 'destination_sku_code',
                     'destination_sku_category': 'destination_sku_category',
-                    'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name'}
+                    'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name', 'customer':'customer'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -846,7 +847,9 @@ def configurations(request, user=''):
                                       values('marketplace', 'prefix', 'interfix', 'date_type'))
     config_dict['prefix_dc_data'] = list(ChallanSequence.objects.filter(user=user.id, status=1).exclude(marketplace=''). \
                                       values('marketplace', 'prefix'))
-
+    config_dict['prefix_cn_data'] = list(UserTypeSequence.objects.filter(user=user.id, status=1,
+                                            type_name='credit_note_sequence').exclude(type_value=''). \
+                                      values('prefix').annotate(marketplace=F('type_value')))
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
     config_dict['all_stages'] = str(','.join(all_stages))
     order_field_obj =  MiscDetail.objects.filter(user=user.id,misc_type='extra_order_fields')
@@ -855,6 +858,11 @@ def configurations(request, user=''):
         config_dict['all_order_fields'] = ''
     else:
         config_dict['all_order_fields'] = extra_order_fields
+    extra_order_sku_fields = get_misc_value('extra_order_sku_fields', user.id)
+    if extra_order_sku_fields == 'false' :
+        config_dict['all_order_sku_fields'] = ''
+    else:
+        config_dict['all_order_sku_fields'] = extra_order_sku_fields
     grn_fields = get_misc_value('grn_fields', user.id)
     if grn_fields == 'false' :
         config_dict['grn_fields'] = ''
@@ -872,6 +880,11 @@ def configurations(request, user=''):
         config_dict['rtv_reasons'] = ''
     else:
         config_dict['rtv_reasons'] = rtv_reasons
+    move_inventory_reasons = get_misc_value('move_inventory_reasons', user.id)
+    if move_inventory_reasons == 'false':
+        config_dict['move_inventory_reasons'] = ''
+    else:
+        config_dict['move_inventory_reasons'] = move_inventory_reasons
 
     if config_dict['mail_alerts'] == 'false':
         config_dict['mail_alerts'] = 0
@@ -988,7 +1001,7 @@ def get_extra_data(excel_headers, result_data, user):
 @csrf_exempt
 @login_required
 @get_admin_user
-def print_excel(request, temp_data, headers, excel_name='', user='', file_type=''):
+def print_excel(request, temp_data, headers, excel_name='', user='', file_type='', tally_report=0):
     excel_headers = ''
     if temp_data['aaData']:
         excel_headers = temp_data['aaData'][0].keys()
@@ -998,11 +1011,13 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
         excel_headers = headers
     for i in set(excel_headers) - set(headers):
         excel_headers.remove(i)
+    if tally_report ==1:
+        excel_headers = headers
     excel_headers, temp_data['aaData'] = get_extra_data(excel_headers, temp_data['aaData'], user)
     if not excel_name:
         excel_name = request.POST.get('serialize_data', '')
     if excel_name:
-        file_name = "%s.%s" % (user.id, excel_name.split('=')[-1])
+        file_name = "%s.%s" % (user.username, excel_name.split('=')[-1])
     if not file_type:
         file_type = 'xls'
     if len(temp_data['aaData']) > 65535:
@@ -1036,7 +1051,7 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
         for i in range(0, len(data)):
             index = i + 1
             for ind, header_name in enumerate(excel_headers):
-                ws.write(index, excel_headers.index(header_name), data[i][header_name])
+                ws.write(index, excel_headers.index(header_name), data[i].get(header_name, ''))
 
         # for data in temp_data['aaData']:
         #     data_count += 1
@@ -1055,22 +1070,22 @@ def po_message(po_data, phone_no, user_name, f_name, order_date, ean_flag, table
     total_amount = 0
     if ean_flag:
         for po in po_data:
-            data += '\nD.NO: %s, Qty: %s' % (po[2], po[4])
+            data += '\nD.NO: %s, Qty: %s' % (po[2], po[5])
+            if table_headers:
+                total_quantity += int(po[table_headers.index('Qty')])
+                total_amount += float(po[table_headers.index('Amt')])
+            else:
+                total_quantity += int(po[5])
+                total_amount += float(po[7])
+    else:
+        for po in po_data:
+            data += '\nD.NO: %s, Qty: %s' % (po[1], po[4])
             if table_headers:
                 total_quantity += int(po[table_headers.index('Qty')])
                 total_amount += float(po[table_headers.index('Amt')])
             else:
                 total_quantity += int(po[4])
                 total_amount += float(po[6])
-    else:
-        for po in po_data:
-            data += '\nD.NO: %s, Qty: %s' % (po[1], po[3])
-            if table_headers:
-                total_quantity += int(po[table_headers.index('Qty')])
-                total_amount += float(po[table_headers.index('Amt')])
-            else:
-                total_quantity += int(po[3])
-                total_amount += float(po[5])
     data += '\nTotal Qty: %s, Total Amount: %s\nPlease check WhatsApp for Images' % (total_quantity, total_amount)
     send_sms(phone_no, data)
 
@@ -1080,9 +1095,9 @@ def grn_message(po_data, phone_no, user_name, f_name, order_date):
     total_quantity = 0
     total_amount = 0
     for po in po_data:
-        data += '\nD.NO: %s, Qty: %s' % (po[0], po[4])
-        total_quantity += int(po[4])
-        total_amount += int(po[5])
+        data += '\nD.NO: %s, Qty: %s' % (po[0], po[5])
+        total_quantity += int(po[5])
+        total_amount += int(po[6])
     data += '\nTotal Qty: %s, Total Amount: %s' % (total_quantity, total_amount)
     send_sms(phone_no, data)
 
@@ -1773,7 +1788,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
     return dest_batch
 
 def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp='',
-                        weight='', receipt_number='', receipt_type=''):
+                        weight='', receipt_number='', receipt_type='',reason=''):
     # sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
     try:
         sku = check_and_return_mapping_id(wms_code, "", user, False)
@@ -1855,7 +1870,7 @@ def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_i
 
         dest_batch = update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
                            dest_seller_id=seller_id, receipt_type=receipt_type, receipt_number=receipt_number)
-        move_inventory_dict = {'sku_id': sku_id, 'source_location_id': source[0].id,
+        move_inventory_dict = {'sku_id': sku_id, 'source_location_id': source[0].id,'reason':reason,
                                'dest_location_id': dest[0].id, 'quantity': move_quantity, }
         if seller_id:
             move_inventory_dict['seller_id'] = seller_id
@@ -2437,32 +2452,52 @@ def save_order_extra_fields(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-def save_grn_fields(request, user=''):
-    grn_fields = request.GET.get('grn_fields', '')
-    po_fields = request.GET.get('po_fields', '')
-    rtv_reasons = request.GET.get('rtv_reasons', '')
-    if grn_fields:
-        misc_type = 'grn_fields'
-        fields = grn_fields
-    if po_fields:
-        misc_type = 'po_fields'
-        fields = po_fields
-    if rtv_reasons:
-        misc_type = 'rtv_reasons'
-        fields = rtv_reasons
-    if len(fields.split(',')) <=  4 :
-        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=misc_type)
+def save_order_sku_extra_fields(request, user=''):
+    extra_order_sku_fields = request.GET.get('extra_order_sku_fields', '')
+    misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='extra_order_sku_fields')
+    try:
+        if not misc_detail.exists():
+             MiscDetail.objects.create(user=user.id,misc_type='extra_order_sku_fields',misc_value=extra_order_sku_fields)
+        else:
+            misc_order_option_list = list(MiscDetailOptions.objects.filter(misc_detail__user=user.id).values_list('misc_key',flat=True))
+            order_extra_list = extra_order_sku_fields.split(',')
+            diff_list = list(set(misc_order_option_list)- set(order_extra_list))
+            if len(diff_list) > 0 :
+                for key in diff_list :
+                    misc_records = MiscDetailOptions.objects.filter(misc_detail__user= user.id,misc_key = key)
+                    for record in misc_records :
+                        record.delete()
+            misc_detail_obj = misc_detail[0]
+            misc_detail_obj.misc_value = extra_order_sku_fields
+            misc_detail_obj.save()
+    except:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Issue for ' + request)
+        return HttpResponse("Something Went Wrong")
+
+    return HttpResponse("Saved Successfully")
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_config_extra_fields(request, user=''):
+    field_type = request.GET.get('field_type', '')
+    fields = request.GET.get('config_extra_fields', '')
+    field_type =field_type.strip('.')
+    if len(fields.split(',')) <=  4 or field_type == 'move_inventory_reasons' :
+        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=field_type)
         try:
             if not misc_detail.exists():
-                 MiscDetail.objects.create(user=user.id,misc_type=misc_type,misc_value=fields)
+                 MiscDetail.objects.create(user=user.id,misc_type=field_type,misc_value=fields)
             else:
                 misc_detail_obj = misc_detail[0]
                 misc_detail_obj.misc_value = fields
                 misc_detail_obj.save()
-        except:
+        except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
-            log.info('Issue for ' + request)
+            log.info('Issue for {} withe exception {}'.format(request.GET.dict(),str(e)))
             return HttpResponse("Something Went Wrong")
     else:
         return HttpResponse("Limit Exceeded Enter only Four Fields")
@@ -2834,10 +2869,10 @@ def check_and_update_marketplace_stock(sku_codes, user):
         try:
             sku_tupl = (user.username, sku_codes)
             log.info('Update for stock sync of'+str(sku_tupl))
-            response = obj.update_stock_count(sku_tupl, user=user)
             log_mb_sync = ('Updating for stock sync of skus %s from the user %s ' %
                                         (str(sku_codes), str(user.username)))
             mb_stock_sycn_log(log_mb_sync, user)
+            response = obj.update_stock_count(sku_tupl, user=user)
         except Exception as e:
             log.info('Stock sync failed for %s and skus are %s and error statement is %s'%
                         (str(user.username),str(sku_codes), str(e)))
@@ -3030,12 +3065,12 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                     invoice_ins = SellerOrderSummary.objects.filter(**sell_ids).exclude(invoice_number='')
                 else:
                     invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
-            if user.userprofile.multi_level_system == 1 and user.userprofile.warehouse_level == 1:
-                admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
-                admin_user = User.objects.get(id=admin_user_id)
-                invoice_sequence = get_invoice_sequence_obj(admin_user, order.marketplace)
-            else:
-                invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
+            #if user.userprofile.multi_level_system == 1 and user.userprofile.warehouse_level == 1:
+            #    admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
+            #    admin_user = User.objects.get(id=admin_user_id)
+            #    invoice_sequence = get_invoice_sequence_obj(admin_user, order.marketplace)
+            #else:
+            invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
             if invoice_ins:
                 order_no = invoice_ins[0].invoice_number
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
@@ -3051,12 +3086,12 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                     invoice_seq.save()
             else:
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
-    if user.userprofile.multi_level_system == 1 and user.userprofile.warehouse_level == 1:
-        admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
-        admin_user = User.objects.get(id=admin_user_id)
-        invoice_number = get_full_invoice_number(admin_user, order_no, order, invoice_date=invoice_date, pick_number='')
-    else:
-        invoice_number = get_full_invoice_number(user, order_no, order, invoice_date=invoice_date, pick_number='')
+    #if user.userprofile.multi_level_system == 1 and user.userprofile.warehouse_level == 1:
+    #    admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
+    #    admin_user = User.objects.get(id=admin_user_id)
+    #    invoice_number = get_full_invoice_number(admin_user, order_no, order, invoice_date=invoice_date, pick_number='')
+    #else:
+    invoice_number = get_full_invoice_number(user, order_no, order, invoice_date=invoice_date, pick_number='')
     # if invoice_sequence:
     #     invoice_sequence = invoice_sequence[0]
     #     inv_num_lis = []
@@ -3545,6 +3580,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
 def common_calculations(arg_data):
     for key,val in arg_data.items():
         exec(key + '=val')
+    order_discount = discount
+    unit_discount = float(order_discount)/dat.original_quantity
+    discount = unit_discount * quantity
     amt = (unit_price * quantity) - discount
     base_price = "%.2f" % (unit_price * quantity)
     hsn_code = ''
@@ -5702,8 +5740,11 @@ def generate_barcode_dict(pdf_format, myDicts, user):
                     single.update()
                     single['SKUCode'] = sku if sku else label
                     single['Label'] = label if label else sku
-                    if barcode_opt == 'sku_ean' and sku_data.ean_number:
-                        single['Label'] = str(sku_data.ean_number)
+                    if barcode_opt == 'sku_ean' :
+                        if sku_data.ean_number:
+                            single['Label'] = str(sku_data.ean_number)
+                        elif  EANNumbers.objects.filter(sku__id = sku_data.id).exists():
+                            single['Label'] = EANNumbers.objects.filter(sku__id=sku_data.id)[0].ean_number
                     single['SKUPrintQty'] = quant
                     if myDict.get('mfg_date', ''):
                         single['mfg_date'] = myDict['mfg_date'][ind]
@@ -5940,7 +5981,7 @@ def get_purchase_order_data(order):
         order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group,
                       'sku': order.product_code,
                       'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle,
-                      'sku_desc': order.product_code.sku_desc,
+                      'sku_desc': order.product_code.sku_desc,'sku_brand':order.product_code.sku_brand,
                       'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0, 'apmc_tax': 0, 'tin_number': '',
                       'intransit_quantity': intransit_quantity, 'shelf_life': order.product_code.shelf_life,
                       'show_imei': order.product_code.enable_serial_based}
@@ -6013,7 +6054,7 @@ def get_purchase_order_data(order):
         apmc_tax = 0
         tin_number = ''
     order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp,'wms_code': sku.wms_code,
-                  'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
+                  'sku_code': sku.sku_code, 'sku_brand':sku.sku_brand,'supplier_id': user_data.id, 'zone': sku.zone,
                   'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
                   'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,
                   'phone_number': user_data.phone_number, 'email_id': email_id,
@@ -6673,8 +6714,8 @@ def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, i
     elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('quantity'):
         final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name]['quantity'] + \
                                                               adding_dat.get('quantity', 0)
-    elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('invoice_amount'):
-        final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name][
+    # elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('invoice_amount'):
+        final_data_dict[grouping_key][key_name]['invoice_amount'] = final_data_dict[grouping_key][key_name][
                                                                   'invoice_amount'] + \
                                                               adding_dat.get('invoice_amount', 0)
     else:
@@ -6721,8 +6762,8 @@ def update_order_dicts(orders, user='', company_name=''):
             order['order_summary_dict']['order_id'] = order_detail.id
             customer_order_summary = CustomerOrderSummary.objects.create(**order['order_summary_dict'])
         if order.get('seller_order_dict', {}):
-            trans_mapping = check_create_seller_order(order['seller_order_dict'], order_detail, user,
-                                                      order.get('swx_mappings', []), trans_mapping=trans_mapping)
+            check_create_seller_order(order['seller_order_dict'], order_detail, user,
+                                      order.get('swx_mappings', []), trans_mapping=trans_mapping)
         order_sku = {}
         sku_obj = SKUMaster.objects.filter(id=order_det_dict['sku_id'])
 
@@ -7087,9 +7128,9 @@ def get_shipment_quantity(user, all_orders, sku_grouping=False):
 
 def get_marketplace_names(user, status_type):
     userIds = [user.id]
-    if user.userprofile.multi_level_system == 1:
-        sameGroupWhs = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
-        userIds = UserProfile.objects.filter(user_id__in=sameGroupWhs, warehouse_level=1).values_list('user_id', flat=True)
+    #if user.userprofile.multi_level_system == 1:
+    #    sameGroupWhs = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
+    #    userIds = UserProfile.objects.filter(user_id__in=sameGroupWhs, warehouse_level=1).values_list('user_id', flat=True)
 
     if status_type == 'picked':
         marketplace = list(
@@ -7185,6 +7226,51 @@ def update_dc_sequence(request, user=''):
                  (str(user.username), str(request.GET.dict()), str(e)))
         status = 'Update DC Invoice Number Sequence Failed'
     return HttpResponse(json.dumps({'status': status}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_user_type_sequence(request, user=''):
+
+    log.info('Request Params for Update Dc Invoice Sequences for %s is %s' % (user.username, str(request.GET.dict())))
+    status = ''
+    try:
+        marketplace_prefix = request.GET.get('marketplace_prefix', '')
+        marketplace_interfix = request.GET.get('marketplace_interfix', '')
+        marketplace_date_type = request.GET.get('marketplace_date_type', '')
+        type_name = request.GET.get('type_name', '')
+        type_value = request.GET.get('type_value', '')
+        delete_status = request.GET.get('delete', '')
+        if not type_name:
+            status = 'Type Name Should not be empty'
+        if not status:
+            sequence = UserTypeSequence.objects.filter(user_id=user.id, type_name=type_name, type_value=type_value)
+            if sequence:
+                sequence = sequence[0]
+                sequence.prefix = marketplace_prefix
+                sequence.interfix = marketplace_interfix
+                sequence.date_type = marketplace_date_type
+                if delete_status:
+                    sequence.status = 0
+                else:
+                    sequence.status = 1
+                sequence.save()
+            else:
+                UserTypeSequence.objects.create(prefix=marketplace_prefix, value=1,
+                                               status=1,user_id=user.id, creation_date=datetime.datetime.now(),
+                                                date_type=marketplace_date_type,
+                                                type_name=type_name, type_value=type_value)
+            status = 'Success'
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update User Type Invoice Sequence failed for %s and params are %s and error statement is %s' %
+                 (str(user.username), str(request.GET.dict()), str(e)))
+        status = 'Update Sequence Failed'
+    return HttpResponse(json.dumps({'status': status}))
+
 
 def get_warehouse_admin(user):
     """ Check and Return Admin user of current """
@@ -7326,6 +7412,8 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         combo_sku_ids.append(order.sku_id)
         sku_id_stock_filter = {'sku_id__in': combo_sku_ids}
         needed_mrp_filter = 0
+        if order.sku.relation_type == 'combo':
+            add_mrp_filter = False
         if add_mrp_filter:
             if 'st_po' not in dir(order) and order.customerordersummary_set.filter().exists():
                 needed_mrp_filter = order.customerordersummary_set.filter()[0].mrp
@@ -7348,10 +7436,9 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         else:
             sku_id_stocks = sku_stocks.filter(**sku_id_stock_filter).values('id', 'sku_id').\
                                         annotate(total=Sum('quantity')).order_by(order_by)
-        val_dict = {}
-        val_dict['sku_ids'] = map(lambda d: d['sku_id'], sku_id_stocks)
-        val_dict['stock_ids'] = map(lambda d: d['id'], sku_id_stocks)
-        val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)
+        val_dict = {'sku_ids': map(lambda d: d['sku_id'], sku_id_stocks),
+                    'stock_ids': map(lambda d: d['id'], sku_id_stocks),
+                    'stock_totals': map(lambda d: d['total'], sku_id_stocks)}
         pc_loc_filter = OrderedDict()
         pc_loc_filter['picklist__order__user'] = user.id
         #if is_seller_order or add_mrp_filter:
@@ -7881,6 +7968,81 @@ def update_profile_shipment_address(request, user=''):
         import traceback
         log.debug(traceback.format_exc())
         log.info('updation of user shipment Address Failed %s ' % (str(user.username)))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_barcode_configuration(request, user=''):
+    "Different BarCode Configurations will be stored based"
+    scanning_type = request.POST.get('scanning_type', 'sku_based')
+    config_name = request.POST.get('configuration_title', '')
+    removeAfterSpacesFlag = request.POST.get('remove_after_spaces', 'false')
+    condition1 = request.POST.get('condition1', '')
+    expression1 = request.POST.get('expression1', '')
+    condition2 = request.POST.get('condition2', '')
+    expression2 = request.POST.get('expression2', '')
+    miscOptionsDict = {'scanning_type': scanning_type, 'remove_after_spaces': removeAfterSpacesFlag}
+    if condition1 and expression1:
+        miscOptionsDict.update({'condition1': condition1, 'expression1': expression1})
+    if condition2 and expression2:
+        miscOptionsDict.update({'condition2': condition2, 'expression2': expression2})
+
+    miscExistingObj = MiscDetail.objects.filter(misc_type__contains='barcode_configuration', user=user.id, misc_value=config_name)
+    configId = 1
+    if not miscExistingObj.exists():
+        dbMaxConfigId = MiscDetail.objects.filter(misc_type__contains='barcode_configuration', 
+                    user=user.id).order_by('-id').values_list('misc_type', flat=True)
+        if dbMaxConfigId:
+            configId = int(dbMaxConfigId[0].split('_')[-1])+1
+        miscObj = MiscDetail.objects.create(misc_type='barcode_configuration_%s'%configId, misc_value=config_name, user=user.id)
+    else:
+        miscObj = miscExistingObj[0]
+    for k, v in miscOptionsDict.items():
+        MiscDetailOptions.objects.create(misc_detail=miscObj, misc_key=k, misc_value=v)
+    return HttpResponse('Success')
+
+
+@login_required
+@get_admin_user
+def get_barcode_configurations(request, user=''):
+    barcode_configs = []
+    barcodeConfigs = MiscDetail.objects.filter(user=user.id, misc_type__contains='barcode_configuration')
+    if barcodeConfigs.exists():
+        for eachConfig in barcodeConfigs:
+            configDict = {'title': eachConfig.misc_value}
+            for configData in eachConfig.miscdetailoptions_set.values():
+                configDict.update({configData['misc_key']: configData['misc_value']})
+            barcode_configs.append(configDict)
+        return HttpResponse(json.dumps({'msg':1, 'data': barcode_configs}))
+    else:
+        return HttpResponse(json.dumps({'msg':1, 'data': 'null'}))
+
+
+def check_and_return_barcodeconfig_sku(user, sku_code, sku_brand):
+    configName = ''
+    conditions = {}
+    configMappingObj = BarCodeBrandMappingMaster.objects.filter(sku_brand=sku_brand, user=user)
+    if configMappingObj.exists():
+        configName = configMappingObj[0].configName
+    brandConfigObj = MiscDetail.objects.filter(user=user.id, misc_type__contains='barcode_configuration', misc_value=configName)
+    if brandConfigObj.exists():
+        conditions = dict(brandConfigObj[0].miscdetailoptions_set.values_list('misc_key', 'misc_value'))
+    for k, v in conditions.items():
+        if k == 'remove_after_spaces' and v == 'true':
+            sku_code = sku_code.split(' ')[0]
+        elif k == 'condition1':
+            vThChar = sku_code[int(v)-1]
+            if sku_code[int(v)-1].isdigit():
+                expression1Char = int(conditions.get('expression1'))
+                sku_code = sku_code[:expression1Char]
+        elif k == 'condition2':
+            vThChar = sku_code[int(v)-1]
+            if sku_code[int(v)-1].isalpha():
+                expression2Char = int(conditions.get('expression2'))
+                sku_code = sku_code[:expression2Char]
+    return sku_code
+
 
 def get_purchase_company_address(profile):
     """ Returns Company address for purchase order"""
@@ -8546,6 +8708,13 @@ def get_invoice_sequence_obj(user, marketplace):
     if not invoice_sequence:
         invoice_sequence = InvoiceSequence.objects.filter(user=user.id, marketplace='')
     return invoice_sequence
+
+
+def user_type_sequence_obj(user, type_name, type_value):
+    user_type_sequence = UserTypeSequence.objects.filter(user=user.id, status=1, type_name=type_name, type_value=type_value)
+    if not user_type_sequence:
+        user_type_sequence = UserTypeSequence.objects.filter(user=user.id, type_name=type_name,type_value='')
+    return user_type_sequence
 
 
 def create_update_batch_data(batch_dict):
@@ -10067,11 +10236,11 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
                             tax=tax_list.get('cgst_tax',0)+tax_list.get('sgst_tax',0)+tax_list.get('apmc_tax',0)+tax_list.get('cess_tax',0)
 
                 prefill_unit_price = (prefill_unit_price * 100) / (100 + tax)
-                data['price'] = prefill_unit_price
+                data['price'] = float("%.2f" % prefill_unit_price)
             elif sku_supplier[0].costing_type == 'Markup Based':
                  markup_percentage = sku_supplier[0].markup_percentage
                  prefill_unit_price = mrp_value / (1+(markup_percentage/100))
-                 data['price'] = prefill_unit_price
+                 data['price'] = float("%.2f" % prefill_unit_price)
             else:
                 data['price'] = sku_supplier[0].price
             data['supplier_code'] = sku_supplier[0].supplier_code
@@ -10400,3 +10569,60 @@ def get_distinct_price_types(user):
     price_types = list(chain(price_types1, price_types2))
     return price_types
 
+def validate_mrp_weight(data_dict, user):
+    collect_dict_form = {}
+    status = ''
+    collect_all_sellable_location = list(LocationMaster.objects.filter(zone__segregation='sellable',  zone__user=user.id, status=1).values_list('location', flat=True))
+    bulk_zones= get_all_zones(user ,zones=[MILKBASKET_BULK_ZONE])
+    bulk_locations=list(LocationMaster.objects.filter(zone__zone__in=bulk_zones, zone__user=user.id, status=1).values_list('location', flat=True))
+    sellable_bulk_locations=list(chain(collect_all_sellable_location ,bulk_locations))
+    if data_dict['location'] in sellable_bulk_locations:
+        sku_mrp_weight_map = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku__wms_code=data_dict['sku_code'],
+                                             location__location__in=sellable_bulk_locations).\
+                            exclude(batch_detail__mrp=data_dict['mrp'], batch_detail__weight=data_dict['weight']).values_list('sku__wms_code', 'batch_detail__mrp', 'batch_detail__weight').distinct()
+        if sku_mrp_weight_map:
+            for sku_code, mrp, weight_dict in sku_mrp_weight_map:
+                mrp_weight_dict = {'mrp':[str(mrp)], 'weight':[weight_dict]}
+                if sku_code in collect_dict_form.keys():
+                    collect_dict_form[sku_code]['mrp'].append(mrp_weight_dict['mrp'][0])
+                    collect_dict_form[sku_code]['weight'].append(mrp_weight_dict['weight'][0])
+                else:
+                    collect_dict_form[sku_code] = mrp_weight_dict
+            if data_dict['sku_code'] in collect_dict_form.keys():
+                if not str(data_dict['mrp']) in str(collect_dict_form[data_dict['sku_code']]["mrp"]) or not str(data_dict['weight']) in str(collect_dict_form[data_dict['sku_code']]["weight"]):
+                    status = 'For SKU '+str(data_dict['sku_code'])+', MRP '+str(",".join(collect_dict_form[data_dict['sku_code']]["mrp"]))+' and WEIGHT '+str(",".join(collect_dict_form[data_dict['sku_code']]["weight"]))+' are only accepted.'
+    return status
+
+def mb_weight_correction(weight):
+    if weight:
+        weight = re.sub("\s\s+" , " ", weight).upper().replace('UNITS', 'Units').replace('PCS', 'Pcs').\
+                replace('UNIT', 'Unit').replace('INCHES', 'Inches').replace('INCH', 'Inch').strip()
+    return weight
+
+
+def get_orders_with_invoice_no(user, invoice_no):
+    if user.userprofile.user_type == 'marketplace_user':
+        sos_objs = SellerOrderSummary.objects.filter(seller_order__order__user=user.id,
+                                    invoice_number=invoice_no)
+        invoice_qty_dict = dict(sos_objs.values_list('seller_order__order_id').annotate(Sum('quantity')))
+    else:
+        sos_objs = SellerOrderSummary.objects.filter(order__user=user.id, invoice_number=invoice_no)
+        invoice_qty_dict = dict(sos_objs.values_list('order_id').annotate(Sum('quantity')))
+    picklist_ids = sos_objs.values_list('picklist_id', flat=True)
+    return invoice_qty_dict, picklist_ids
+
+
+def get_full_sequence_number(user_type_sequence, creation_date):
+    inv_num_lis = []
+    if user_type_sequence.prefix:
+        inv_num_lis.append(user_type_sequence.prefix)
+    if user_type_sequence.date_type:
+        if user_type_sequence.date_type == 'financial':
+            inv_num_lis.append(get_financial_year(creation_date))
+        elif user_type_sequence.date_type == 'month_year':
+            inv_num_lis.append(creation_date.strftime('%m%y'))
+    if user_type_sequence.interfix:
+        inv_num_lis.append(user_type_sequence.interfix)
+    inv_num_lis.append(str(user_type_sequence.value).zfill(3))
+    sequence_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
+    return sequence_number

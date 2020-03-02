@@ -91,8 +91,8 @@
         <tr>
           <th>Item Name</th>
           <th>Qty</th>
-          <th>Rate</th>
-          <th ng-if="user.admin.username !='gomechanic_admin'">Amt</th>
+          <th ng-if="user.admin.username !='gomechanic_admin'">Rate</th>
+          <th>Amt</th>
         </tr>
       </thead>
       <tbody>
@@ -102,13 +102,13 @@
           <!-- <td ng-if = "print_type == 'DUPLICATE'">
             {{ (item.unit_price + item.sgst/item.quantity + item.cgst/item.quantity + (item.selling_price*item.discount/100)) | number:2 }}
           </td> -->
-          <td>
+          <td ng-if = "user.admin.username !='gomechanic_admin'">
             {{item.selling_price | number:2}}
           </td>
-          <td ng-if = "print_type == 'DUPLICATE' and user.admin.username !='gomechanic_admin'">
-            {{((item.unit_price + item.sgst + item.cgst + (item.selling_price*item.discount/100)) * item.quantity) | number:2}}
-          </td>
-          <td ng-if = "print_type != 'DUPLICATE' and user.admin.username !='gomechanic_admin'">
+          <!-- <td ng-if = "print_type == 'DUPLICATE' && user.admin.username !='gomechanic_admin'">
+            {{((item.unit_price + item.sgst/item.quantity + item.cgst/item.quantity + (item.selling_price*item.discount/100)) * item.quantity) | number:2}}
+          </td> -->
+          <td >
             {{((item.unit_price + item.sgst/item.quantity + item.cgst/item.quantity + (item.selling_price*item.discount/100)) * item.quantity) | number:2}}
           </td>
         </tr>
@@ -119,15 +119,15 @@
     <div class="product-total">
       <span>Tot Items: {{data.sku_data.length}}</span>
       <span>Tot Qty: {{data.summary.total_quantity}} </span>
-      <span ng-if="data.summary.issue_type=='Delivery Challan' and user.admin.username !='gomechanic_admin'">
+      <!-- <span ng-if="data.summary.issue_type=='Delivery Challan' && user.admin.username !='gomechanic_admin'">
         Amt: {{ data.summary.subtotal + data.summary.sgst + data.summary.igst + data.summary.utgst + data.summary.cgst | number:2}}
-      </span>
+      </span> -->
       <span ng-if="data.summary.issue_type=='Pre Order'">
         Amt: {{ data.summary.subtotal | number:2}}
       </span>
       <span style="width: 40%;">Discount: {{data.summary.total_discount | number:2}}</span><br>
       <span style="width: 100%;text-align:center;font-size: 20px;font-weight:bold" ng-if="data.summary.issue_type=='Delivery Challan'">
-        Total: {{ data.summary.subtotal - data.summary.total_discount | number:2 }}
+        Total: {{ data.summary.total_amount - data.summary.total_discount | number:2 }}
       </span>
       <span style="width: 100%;text-align:center;font-size: 20px;font-weight:bold" ng-if="data.summary.issue_type=='Pre Order'">
         Total: {{ data.summary.subtotal - data.summary.total_discount | number:2 }}
@@ -173,7 +173,7 @@
   </div>
   <hr>
   <div ng-if="user.admin.username !='gomechanic_admin'" class="vat-cal table-pro col-md-12">
-      <span class="pull-left">  {{ user.pos_remarks }} </span>
+      <span class="pull-left"> {{ user.pos_remarks }} </span>
   </div>
   <!--
   <div class="total">

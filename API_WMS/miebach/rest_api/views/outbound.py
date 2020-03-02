@@ -16328,9 +16328,10 @@ def generate_dc(request , user = ''):
 def insert_allocation_data(request, user=''):
     myDict = dict(request.POST.iterlists())
     single_key = ['customer_name', 'customer_id']
-    number_fields = ["quantity"]
+    number_fields = ["quantity", "unit_price", "cgst_tax", "sgst_tax", "igst_tax"]
     error_dict = {'quantity': 'Quantity'}
     data_list = []
+    picklist_exclude_zones = get_exclude_zones(user)
     for ind in range(0, len(myDict['sku_id'])):
         data_dict = {}
         for key, value in myDict.items():
@@ -16352,21 +16353,67 @@ def insert_allocation_data(request, user=''):
         customer_master = CustomerMaster.objects.filter(customer_id=data_dict['customer_id'], user=user.id)
         if not customer_master.exists():
             return HttpResponse("Invalid Customer %s" % data_dict['customer_id'])
+        else:
+            customer_master = customer_master[0]
+        stocks = StockDetail.objects.filter(sku_id=data_dict['sku_master_id'],quantity__gt=0).\
+                        exclude(location__zone__zone__in=picklist_exclude_zones)
+        stock_qty = check_stock_available_quantity(stocks, user)
+        if stock_qty < data_dict['quantity']:
+            return HttpResponse("Insufficent Stock for %s" % str(data_dict['sku_id']))
+        amt = data_dict['quantity'] * data_dict['unit_price']
+        data_dict['invoice_amount'] = amt + ((amt/100) * data_dict['cgst_tax'] + data_dict['sgst_tax'] + \
+                                                data_dict['igst_tax'])
         data_list.append(data_dict)
     if data_list:
         try:
-            picklist_exclude_zones = get_exclude_zones(user)
+            shipment_date = datetime.datetime.now()
             order_id = get_incremental(user, 'allocation_order_id', default_val='1000')
+            picklist_number = get_picklist_number(user)
             order_code = 'AL'
             original_order_id = order_code + str(order_id)
             created_orders = []
             for final_data in data_list:
-                import pdb;pdb.set_trace()
-                OrderDetail.objects.create(order_id=order_id, sku_id=data_dict['sku_master_id'], order_code=order_code,
-                                           original_order_id=original_order_id, quantity=data_dict['quantity'])
+                order = OrderDetail.objects.create(order_id=order_id, sku_id=final_data['sku_master_id'], order_code=order_code,
+                                           original_order_id=original_order_id, quantity=final_data['quantity'],
+                                           shipment_date=shipment_date,
+                                           unit_price=final_data['unit_price'], user=user.id,
+                                            invoice_amount=final_data['invoice_amount'],
+                                           customer_id=customer_master.customer_id,
+                                           customer_name=customer_master.name,
+                                           email_id=customer_master.email_id, telephone=customer_master.phone_number,
+                                           address=customer_master.address)
+                inter_state = 2
+                if customer_master.tax_type == 'inter_state':
+                    inter_state = 1
+                elif customer_master.tax_type == 'intra_state':
+                    inter_state = 0
+                CustomerOrderSummary.objects.create(order_id=order.id, inter_state=inter_state,
+                                                    cgst_tax=final_data['cgst_tax'], sgst_tax=final_data['sgst_tax'],
+                                                    igst_tax=final_data['igst_tax'])
+                created_orders.append(order)
             sku_combos, all_sku_stocks, switch_vals = picklist_generation_data(user, picklist_exclude_zones)
-
-
+            stock_status, picklist_number = picklist_generation(created_orders, '',
+                                                                picklist_number, user,
+                                                                sku_combos, all_sku_stocks, switch_vals, 
+                                                                status='open', remarks='Allocation Picklist')
+            picklist_objs = Picklist.objects.filter(order__user=user.id, picklist_number=picklist_number+1,
+                                                    status='open')
+            for picklist in picklist_objs.iterator():
+                stock = picklist.stock
+                update_picked = picklist.reserved_quantity
+                stock.quantity -= update_picked
+                picklist.picked_quantity = update_picked
+                picklist.reserved_quantity = 0
+                picklist.status = 'picked'
+                picklist.save()
+                picklist_locs = picklist.picklistlocation_set.filter()
+                picklist_locs.update(status=0, reserved=0)
+                stock.save()
+                save_sku_stats(user, stock.sku_id, picklist.id, 'picklist', update_picked, stock)
+            check_picklist_number_created(user, picklist_number + 1)
         except Exception as e:
-            log.info(e)
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Parts Allocation failed for %s and params are %s and error statement is %s' % (
+                str(user.username), str(request.POST.dict()), str(e)))
     return HttpResponse("Success")

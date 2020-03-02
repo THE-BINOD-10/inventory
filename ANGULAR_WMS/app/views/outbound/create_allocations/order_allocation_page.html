@@ -14,17 +14,6 @@
     <div class="clearfix">
       <div class="row mt10 mb10 pr10 pl10">
         <div class="col-md-8 col-sm-6 col-xs-12">
-       	  <div class="col-md-4 col-sm-12 mt10">
-            <div class="col-md-4">
-              <label class="control-label">Customer Type</label>
-            </div>
-            <div class="col-md-8">
-              <select class="form-control" name="invoice_type" ng-model="showCase.model_data.invoice_type">
-                <option value="" style="display:None;"></option>
-                <option ng-repeat="inv_type in showCase.create_order_data.invoice_types" ng-selected="$first" value="{{inv_type}}">{{inv_type}}</option>
-              </select>
-            </div>
-          </div>
           <!-- <div class="row">
 
           </div> -->
@@ -68,7 +57,19 @@
               <td>
                 <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-change="showCase.change_quantity(data)" size="12" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Quantity', $index, data)">
               </td>
-              <td><i style="font-size: 20px;padding-top: 7px;cursor: pointer;" ng-click="showCase.update_data($index, data, $last)" ng-class="showCase.isLast($last)"></i></td>
+              <td ng-hide="true">
+                <input type="text" name="unit_price" class="form-control" ng-model="data.price" ng-change="showCase.change_unit_price(data)" size="12" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Unit Price', $index, data)">
+              </td>
+              <td ng-hide="true">
+                <input type="text" name="sgst_tax" class="form-control" ng-model="data.sgst_tax" size="15" decimal-number ng-change="showCase.cal_percentage(data)" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Tax', $index, data)" readonly>
+              </td>
+              <td ng-hide="true">
+                <input type="text" name="cgst_tax" class="form-control" ng-model="data.cgst_tax" decimal-number ng-change="showCase.cal_percentage(data)" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Tax', $index, data)" readonly>
+              </td>
+              <td ng-hide="true">
+                <input type="text" name="igst_tax" class="form-control" ng-model="data.igst_tax" decimal-number ng-change="showCase.cal_percentage(data)" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Tax', $index, data)" readonly>
+              </td>
+                <td><i style="font-size: 20px;padding-top: 7px;cursor: pointer;" ng-click="showCase.update_data($index, data, $last)" ng-class="showCase.isLast($last)"></i></td>
             </tr>
           </tbody>
         </table>

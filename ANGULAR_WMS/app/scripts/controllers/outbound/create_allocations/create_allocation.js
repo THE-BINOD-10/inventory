@@ -13,8 +13,8 @@ function CreateAllocations($scope, $filter, $http, $q, Session, colFilters, Serv
   vm.brand_categorization = Session.roles.permissions.brand_categorization;
   vm.model_data = {}
   vm.dispatch_data = []
-  var empty_data = {data: [{sku_id: "", quantity: ""}],
-                    customer_id: "", customer_name: ""};
+  var empty_data = {data: [{sku_id: "", quantity: "", price: 0, cgst_tax: 0, sgst_tax: 0, igst_tax: 0}],
+                    customer_id: "", customer_name: "", tax_type: ""};
 
   angular.copy(empty_data, vm.model_data);
 
@@ -37,6 +37,7 @@ function CreateAllocations($scope, $filter, $http, $q, Session, colFilters, Serv
   vm.get_customer_data = function(item, model, label, event) {
     vm.model_data["customer_id"] = item.customer_id;
     vm.model_data["customer_name"] = item.name;
+    vm.model_data["tax_type"] = item.tax_type;
   }
   // Fill Customer Info Code Ends
 
@@ -51,6 +52,7 @@ function CreateAllocations($scope, $filter, $http, $q, Session, colFilters, Serv
     record.sku_id = item.wms_code;
     record["description"] = item.sku_desc;
     record["quantity"] = 1;
+    vm.change_tax_type();
   }
   //Fill SKU Info Code Ends
 
@@ -109,6 +111,57 @@ function CreateAllocations($scope, $filter, $http, $q, Session, colFilters, Serv
       vm.model_data.data.splice(index,1);
     }
   }
+
+  vm.get_customer_sku_prices = function(sku) {
+
+    var d = $q.defer();
+    var data = {sku_codes: sku, cust_id: vm.model_data.customer_id, tax_type: vm.model_data.tax_type}
+    vm.service.apiCall("get_customer_sku_prices/", "POST", data).then(function(data) {
+
+      if(data.message) {
+        d.resolve(data.data);
+      }
+    });
+    return d.promise;
+  }
+
+  vm.change_tax_type = function() {
+    var tax_name = vm.model_data.tax_type;
+    if(!(vm.model_data.tax_type)) {
+      tax_name = 'DEFAULT';
+      angular.forEach(vm.model_data.data, function(record) {
+        if(record.sku_id) {
+          record.tax = 0;
+          record.sgst_tax = 0;
+          record.cgst_tax = 0;
+          record.igst_tax = 0;
+        }
+      })
+    } else {
+
+      angular.forEach(vm.model_data.data, function(record) {
+
+        if(record.sku_id) {
+          vm.get_customer_sku_prices(record.sku_id).then(function(data){
+            if(data.length > 0) {
+              console.log(data);
+              record.price = data[0].price;
+              if(tax_name == 'intra_state') {
+                record.cgst_tax = data[0].cgst_tax;
+                record.sgst_tax = data[0].sgst_tax;
+              }
+              else {
+                record.igst_tax = data[0].igst_tax;
+              }
+            }
+          })
+        }
+      })
+    }
+    //vm.cal_total();
+  }
+
+
 
 }
 angular

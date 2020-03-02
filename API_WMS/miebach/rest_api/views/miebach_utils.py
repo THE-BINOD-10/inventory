@@ -4564,7 +4564,7 @@ def get_order_summary_data(search_params, user, sub_user):
            'sku__sku_size', 'sku__sku_desc', 'sku__sub_category', 'sku_code', 'sku_code', 'original_quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
            'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id',
            'quantity', 'quantity', 'quantity', 'quantity','order_id',
-           'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','invoice_number', 'order_id', 'quantity','creation_date', 'order_id', 'order_id', 'order_id']
+           'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','invoice_number', 'order_id', 'quantity','creation_date', 'order_id', 'order_id', 'order_id','order_id','order_id']
     if milkbasket_user :
         lis.append('order_id')
     # lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
@@ -4585,7 +4585,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                              datetime.time())
         search_params['to_date'] = get_utc_start_date(search_params['to_date'])
         search_parameters['creation_date__lt'] = search_params['to_date']
-    filter_dict = {'sku_code':'sku_code', 'marketplace':'marketplace','sku_category':'sku__sku_category',
+    filter_dict = {'sku_code':'sku__sku_code', 'marketplace':'marketplace','sku_category':'sku__sku_category',
                     'sub_category': 'sku__sub_category','sku_brand':'sku__sku_brand','sku_size':'sku__sku_size',
                     'sku_class':'sku__sku_class','city':'city', 'state':'state','order_reference':'order_reference',
                      'invoice_date': 'sellerordersummary__creation_date__icontains','customer_id':'customer_id',
@@ -5078,7 +5078,7 @@ def get_margin_price_details(invoice_qty_filter, order_data, unit_price, inv_qua
     pick_obj = SellerOrderSummary.objects.filter(**invoice_qty_filter).values('picklist__stock__unit_price', 'quantity')
     if pick_obj:
         for picklist in pick_obj:
-            if picklist.has_key('picklist__stock__unit_price') and picklist.has_key('quantity'):
+            if picklist.get('picklist__stock__unit_price','') and picklist.has_key('quantity'):
                 total_procurement_price += (picklist['picklist__stock__unit_price'] * picklist['quantity'])
             else:
                 total_procurement_price += 0

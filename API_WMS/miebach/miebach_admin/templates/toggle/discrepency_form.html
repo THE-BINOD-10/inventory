@@ -91,7 +91,6 @@ tr,td{
   </thead>
   <tbody>
     {% for i in page %}
-    {% if i.discrepency_quantity %}
     <tr class="fs14 rm-border">
       {% if i.discrepency_quantity %}
         <td class="text-left">{{ forloop.counter }}</td>
@@ -107,7 +106,6 @@ tr,td{
       <td class="text-right">{{i.discrepencey_price_tax}}</td>
       <td class="text-right">{{i.discrepency_reason}}</td>
     </tr>
-    {% endif %}
     {% endfor %}
     {% if forloop.last %}
     <tr style="border-top: 1px solid black;">

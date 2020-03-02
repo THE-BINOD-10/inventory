@@ -3289,8 +3289,8 @@ def confirm_grn(request, confirm_returns='', user=''):
     else:
         myDict = confirm_returns
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
-    total_discrepency_amount = 0
-    total_discrepency_qty = 0
+    # total_discrepency_amount = 0
+    # total_discrepency_qty = 0
     try:
         po_data, status_msg, all_data, order_quantity_dict, \
         purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, send_discrepencey = generate_grn(myDict, request, user,  failed_qty_dict={}, passed_qty_dict={}, is_confirm_receive=True)
@@ -3301,12 +3301,14 @@ def confirm_grn(request, confirm_returns='', user=''):
             entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7] + float(key[9]) + float(key[11]))
             if entry_tax:
                 entry_price += (float(entry_price) / 100) * entry_tax
-            if user.userprofile.industry_type == 'FMCG':
-                tax = key[4]+key[5]+key[6]+key[7]+key[9]
-                discrepencey_price = key[3]*key[14]
-                discrepencey_price_tax = (discrepencey_price+ key[14]*key[3]*tax/100)
-                total_discrepency_amount+=discrepencey_price_tax
-                total_discrepency_qty+=key[14]
+
+
+            # if user.userprofile.industry_type == 'FMCG':
+            #     tax = key[4]+key[5]+key[6]+key[7]+key[9]
+            #     discrepencey_price = key[3]*key[14]
+            #     discrepencey_price_tax = (discrepencey_price+ key[14]*key[3]*tax/100)
+            #     total_discrepency_amount+=discrepencey_price_tax
+            #     total_discrepency_qty+=key[14]
                 # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
                 #                                   key[6], key[7], entry_price, key[8], key[9], key[12]))
                 putaway_data[headers].append({'wms_code': key[1], 'order_quantity': order_quantity_dict[key[0]],
@@ -3315,11 +3317,11 @@ def confirm_grn(request, confirm_returns='', user=''):
                                                'igst_tax': key[6], 'utgst_tax': key[7], 'amount': entry_price,
                                                'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': key[12],
                                                'mrp': key[13],
-                                               'discrepency_quantity':key[14],
-                                               'discrepency_reason': key[15],
-                                               'tax_percent':tax,
-                                               'discrepencey_price':discrepencey_price,
-                                               'discrepencey_price_tax':discrepencey_price_tax,
+                                               # 'discrepency_quantity':key[14],
+                                               # 'discrepency_reason': key[15],
+                                               # 'tax_percent':tax,
+                                               # 'discrepencey_price':discrepencey_price,
+                                               # 'discrepencey_price_tax':discrepencey_price_tax,
                                             })
             else:
                 # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3],key[4], key[5],
@@ -3404,8 +3406,8 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': int(total_tax),
                                 'tax_value': tax_value,
-                                'total_discrepency_amount':total_discrepency_amount,
-                                'total_discrepency_qty':total_discrepency_qty,
+                                # 'total_discrepency_amount':total_discrepency_amount,
+                                # 'total_discrepency_qty':total_discrepency_qty,
                                 'overall_discount':overall_discount,
                                 'net_amount':float(total_price) - float(overall_discount),
                                 'address': address,'grn_extra_field_dict':grn_extra_field_dict,
@@ -3419,11 +3421,15 @@ def confirm_grn(request, confirm_returns='', user=''):
                 t = loader.get_template('templates/toggle/grn_form.html')
                 rendered = t.render(report_data_dict)
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data, order_date, internal=True, report_type="Goods Receipt Note")
-                if send_discrepencey:
-                    t = loader.get_template('templates/toggle/discrepency_form.html')
-                    rendered = t.render(report_data_dict)
-                    write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
-                                       order_date, internal=True, report_type="Discrepancy Note")
+
+
+                # if send_discrepencey:
+                #     t = loader.get_template('templates/toggle/discrepency_form.html')
+                #     rendered = t.render(report_data_dict)
+                #     write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
+                #                        order_date, internal=True, report_type="Discrepancy Note")
+            if send_discrepencey:
+                do_discrepencey(all_data, report_data_dict, user)
 
             return render(request, 'templates/toggle/c_putaway_toggle.html', report_data_dict)
         else:

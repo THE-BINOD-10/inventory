@@ -813,8 +813,14 @@ def add_update_pr_config(request,user=''):
     if toBeUpdateData:
         data = toBeUpdateData[0]
         pr_approvals = PRApprovalConfig.objects.filter(user=user, name=data['name'])
+        existingLevels = list(pr_approvals.values_list('level', flat=True))
             
         mailsMap = data.get('mail_id', {})
+        updatingLevels = mailsMap.keys()
+        tobeDeletedLevels = list(set(existingLevels) - set(updatingLevels))
+        if tobeDeletedLevels:
+            for eachLevel in tobeDeletedLevels:
+                pr_approvals.filter(level=eachLevel).delete()
         for level, mails in mailsMap.items():
             PRApprovalMap = {
                     'user': user,
@@ -857,7 +863,7 @@ def add_update_pr_config(request,user=''):
 
 def fetchConfigNameRangesMap(user):
     confMap = OrderedDict()
-    for rec in PRApprovalConfig.objects.filter(user=user).distinct().values_list('name', 'min_Amt', 'max_Amt'):
+    for rec in PRApprovalConfig.objects.filter(user=user).distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
         name, min_Amt, max_Amt = rec
         confMap[name] = (min_Amt, max_Amt)
     return confMap

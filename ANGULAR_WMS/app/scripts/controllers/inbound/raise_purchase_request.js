@@ -160,10 +160,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
               vm.title = 'Update PR';
               vm.pr_number = aData['PR Number']
+              vm.validated_by = aData['Validated By']
               // vm.update = true;
               if (aData['Validation Status'] == 'pending'){
                 $state.go('app.inbound.RaisePr.ApprovePurchaseRequest');  
-              } else {
+              } else if (aData['Validation Status'] == 'approved'){
                 $state.go('app.inbound.RaisePr.PurchaseOrder');
               }
               
@@ -388,6 +389,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       if (vm.pr_number){
         elem.push({name:'pr_number', value:vm.pr_number})
       }
+      if (vm.validated_by){
+        elem.push({name:'validated_by', value:vm.validated_by})
+      }
       if (validation_type == 'approved'){
         elem.push({name: 'validation_type', value: 'approved'})
       } else{
@@ -395,7 +399,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       }
       vm.service.apiCall('approve_pr/', 'POST', elem, true).then(function(data){
         if(data.message){
-          if(data.data == 'Added Successfully') {
+          if(data.data == 'Approved Successfully') {
             vm.close();
             vm.service.refresh(vm.dtInstance);
           } else {
@@ -496,6 +500,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       var confirm_url = 'validate_wms/';
       if (vm.is_purchase_request){
         elem.push({name:'is_purchase_request', value:true})
+      }
+      if (vm.pr_number){
+        elem.push({name:'pr_number', value:vm.pr_number})
       }
       vm.service.apiCall(confirm_url, 'POST', elem, true).then(function(data){
         if(data.message) {

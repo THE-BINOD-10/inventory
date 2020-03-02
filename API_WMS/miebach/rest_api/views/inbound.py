@@ -43,6 +43,21 @@ def get_filtered_params(filters, data_list):
 
 @csrf_exempt
 def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    filtersMap = {'sku__user':user.id, 'open_po_id': None}
+    if request.user.id != user.id:
+        currentUserLevel = ''
+        currentUserEmailId = request.user.email
+        memQs = MasterEmailMapping.objects.filter(user=user, master_type='pr_approvals_conf_data', email_id=currentUserEmailId)
+        for memObj in memQs:
+            master_id = memObj.master_id
+            prApprObj = PRApprovalConfig.objects.get(id=master_id)
+            currentUserLevel = prApprObj.level
+            configName = prApprObj.name
+            pr_numbers = list(PRApprovals.objects.filter(pr_user=user, 
+                                configName=configName, 
+                                level=currentUserLevel).distinct().values_list('openpr_number', flat=True))
+            # if currentUserLevel:
+            filtersMap.update(pr_number__in=pr_numbers)
     sku_master, sku_master_ids = get_sku_master(user, user)
     # lis = ['supplier__name', 'total', 'order_type']
     # search_params = get_filtered_params(filters, lis[1:])
@@ -72,7 +87,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
         #     total=Sum('order_quantity')). \
         #     filter(sku__user=user.id, **search_params)
         pass
-    results = OpenPR.objects.filter(sku__user=user.id).values(*values_list).distinct().\
+    results = OpenPR.objects.filter(**filtersMap).values(*values_list).distinct().\
                     annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
 
     temp_data['recordsTotal'] = results.count()
@@ -82,22 +97,10 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
     reqConfigName = ''
     count = 0
     for result in results[start_index: stop_index]:
-        for configName, priceRanges in configMap.items():
-            min_Amt, max_Amt = priceRanges
-            if min_Amt <= result['total_amt'] <= max_Amt:
-                reqConfigName = configName
-                break
-        else:
-            reqConfigName = configName
         mailsList = []
-        apprConfObj = PRApprovalConfig.objects.filter(user=user, name=reqConfigName, level=result['pending_level'])
-        if apprConfObj:
-            apprConfObjId = apprConfObj[0].id
-            mailsList = MasterEmailMapping.objects.filter(user=user, 
-                                    master_id=apprConfObjId, 
-                                    master_type='pr_approvals_conf_data').values_list('email_id', flat=True)
-        if mailsList:
-            validated_by = mailsList[0]
+        prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
+        if prApprQs.exists():
+            validated_by = prApprQs[0].validated_by
         else:
             validated_by = ''
         temp_data['aaData'].append(OrderedDict((
@@ -1827,6 +1830,57 @@ def add_po(request, user=''):
     return HttpResponse(status)
 
 
+
+def findLastLevelToApprove(user, pr_number, totalAmt):
+    finalLevel = 'level0'
+    reqConfigName = ''
+    configNameRangesMap = fetchConfigNameRangesMap(user)
+    for confName, priceRanges in configNameRangesMap.items():  #Used For..else
+        min_Amt, max_Amt = priceRanges
+        if totalAmt <= min_Amt:
+            reqConfigName = confName
+            break
+        elif min_Amt <= totalAmt <= max_Amt:
+            reqConfigName = confName
+            break
+    else:
+        reqConfigName = confName
+    configQs = list(PRApprovalConfig.objects.filter(user=user, name=reqConfigName).values_list('level', flat=True).order_by('-id'))
+    if configQs:
+        finalLevel = configQs[0]
+    return reqConfigName, finalLevel
+
+def updateOrCreatePRApprovals(pr_number, user, level, validated_by, reqConfigName, validation_type,updateFlag=True):
+    if updateFlag:
+        apprQs = PRApprovals.objects.filter(openpr_number=pr_number, 
+                                                pr_user=user, 
+                                                level=level, 
+                                                validated_by=validated_by)
+        if apprQs:
+            apprQs.update(status=validation_type)
+    else:
+        apprConfObj = PRApprovalConfig.objects.filter(user=user, name=reqConfigName, level=level)
+        if apprConfObj:
+            apprConfObjId = apprConfObj[0].id
+            mailsList = MasterEmailMapping.objects.filter(user=user, 
+                                    master_id=apprConfObjId, 
+                                    master_type='pr_approvals_conf_data').values_list('email_id', flat=True)
+        if mailsList:
+            validated_by = mailsList[0]
+        else:
+            validated_by = ''
+        prApprovalsMap = {
+                            'openpr_number': pr_number, 
+                            'pr_user': user, 
+                            'level': level,
+                            'validated_by': validated_by,
+                            'configName': reqConfigName,
+                            'status': validation_type,
+                        }
+        prObj = PRApprovals(**prApprovalsMap)
+        prObj.save()
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1834,9 +1888,47 @@ def approve_pr(request, user=''):
     status = 'Approved Failed'
     pr_number = request.POST.get('pr_number', '')
     validation_type = request.POST.get('validation_type', '')
-    if pr_number:
+    validated_by = request.POST.get('validated_by', '')
+    currentUserEmailId = request.user.email
+    if not pr_number:
+        status = 'PR Number not provided, Status Failed'
+        return HttpResponse(status)
+    else:
         pr_number = int(pr_number)
-    OpenPR.objects.filter(sku__user=user.id, pr_number=pr_number).update(final_status=validation_type)
+
+    PRQs = OpenPR.objects.filter(sku__user=user.id, pr_number=pr_number)
+    if not PRQs:
+        status = 'NO Purchase Request Object found'
+        return HttpResponse(status)
+
+    totalAmt = PRQs.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
+    pending_level = list(PRQs.values_list('pending_level', flat=True))[0]
+    reqConfigName, lastLevel = findLastLevelToApprove(user, pr_number, totalAmt)
+    if validated_by != currentUserEmailId:
+        confObj = PRApprovalConfig.objects.filter(user=user, name=reqConfigName, level=pending_level)
+        apprConfObjId = confObj[0].id
+        mailsList = MasterEmailMapping.objects.filter(user=user, 
+                    master_id=apprConfObjId, 
+                    master_type='pr_approvals_conf_data').values_list('email_id', flat=True)
+        if currentUserEmailId not in mailsList:
+            return HttpResponse("This User Cant Approve this Request, Please Check")
+
+    if pending_level == lastLevel:
+        PRQs.update(final_status=validation_type)
+        updateOrCreatePRApprovals(pr_number, user, pending_level, validated_by, reqConfigName, validation_type)
+    else:
+        nextLevel = PRApprovalConfig.objects.filter(user=user, 
+                        name=reqConfigName).exclude(level=pending_level).values_list('level', flat=True).order_by('id')
+        if nextLevel:
+            nextLevel = nextLevel[0] 
+        PRQs.update(pending_level=nextLevel)
+        if validation_type == 'rejected':
+            PRQs.update(final_status=validation_type)
+            updateOrCreatePRApprovals(pr_number, user, pending_level, validated_by, reqConfigName, validation_type)
+        else:
+            updateOrCreatePRApprovals(pr_number, user, pending_level, validated_by, reqConfigName, validation_type)
+            updateOrCreatePRApprovals(pr_number, user, nextLevel, validated_by, reqConfigName, validation_type, updateFlag=False)
+        
     status = 'Approved Successfully'
     return HttpResponse(status)
 
@@ -1845,32 +1937,28 @@ def approve_pr(request, user=''):
 @login_required
 @get_admin_user
 def add_pr(request, user=''):
-    status = 'Failed to Add PR'
-    myDict = dict(request.POST.iterlists())
-    pr_number = get_incremental(user, 'PurchaseRequest')
-    all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
-    baseLevel = 'level0'
-    configNameRangesMap = fetchConfigNameRangesMap(user)
-    totalAmt = 0
-    reqConfigName = ''
-    mailsList = []
-    for key, value in all_data.iteritems():
-        wms_code = key
-        if not wms_code:
-            continue
-        if wms_code.isdigit():
-            sku_id = SKUMaster.objects.filter(Q(ean_number=wms_code) | Q(wms_code=wms_code), user=user.id)
-        else:
-            sku_id = SKUMaster.objects.filter(wms_code=wms_code.upper(), user=user.id)
-        if not sku_id:
-            status = 'Invalid WMS CODE'
-            return HttpResponse(status)
-        # supplier_master = SupplierMaster.objects.filter(id=value['supplier_id'], user=user.id)
-        pr_suggestions = {}
-        suggestions_data = OpenPR.objects.filter(sku_id=sku_id,
-                                                quantity=value['order_quantity'],
-                                                sku__user=user.id)
-        if not suggestions_data:
+    try:
+        log.info("Raise PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))
+        myDict = dict(request.POST.iterlists())
+        pr_number = get_incremental(user, 'PurchaseRequest')
+        all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
+        baseLevel = 'level0'
+        configNameRangesMap = fetchConfigNameRangesMap(user)
+        totalAmt = 0
+        reqConfigName = ''
+        mailsList = []
+        for key, value in all_data.iteritems():
+            wms_code = key
+            if not wms_code:
+                continue
+            if wms_code.isdigit():
+                sku_id = SKUMaster.objects.filter(Q(ean_number=wms_code) | Q(wms_code=wms_code), user=user.id)
+            else:
+                sku_id = SKUMaster.objects.filter(wms_code=wms_code.upper(), user=user.id)
+            if not sku_id:
+                status = 'Invalid WMS CODE'
+                return HttpResponse(status)
+            pr_suggestions = {}
             pr_suggestions['sku_id'] = sku_id[0].id
             try:
                 pr_suggestions['quantity'] = float(value['order_quantity'])
@@ -1887,45 +1975,43 @@ def add_pr(request, user=''):
             pr_suggestions['pending_level'] = baseLevel
             pr_suggestions['final_status'] = 'pending'
             openPRObj = OpenPR.objects.create(**pr_suggestions)
-            # data.save()
             totalAmt += (pr_suggestions['quantity'] * pr_suggestions['price'])
 
-    for confName, priceRanges in configNameRangesMap.items():  #Used For..else
-        min_Amt, max_Amt = priceRanges
-        if min_Amt <= totalAmt <= max_Amt:
+        for confName, priceRanges in configNameRangesMap.items():  #Used For..else
+            min_Amt, max_Amt = priceRanges
+            if totalAmt <= min_Amt:
+                reqConfigName = confName
+                break
+            elif min_Amt <= totalAmt <= max_Amt:
+                reqConfigName = confName
+                break
+        else:
             reqConfigName = confName
-            break
-    else:
-        reqConfigName = confName
-    apprConfObj = PRApprovalConfig.objects.filter(user=user, name=reqConfigName, level=baseLevel)
-    if apprConfObj:
-        apprConfObjId = apprConfObj[0].id
-        mailsList = MasterEmailMapping.objects.filter(user=user, 
-                                master_id=apprConfObjId, 
-                                master_type='pr_approvals_conf_data').values_list('email_id', flat=True)
-    if mailsList:
-        validated_by = mailsList[0]
-    else:
-        validated_by = ''
-    prApprovalsMap = {
-                        'openpr_number': pr_number, 
-                        'pr_user': user, 
-                        'level': baseLevel,
-                        'validated_by': validated_by,
-                        'configName': reqConfigName
-                    }
-    prObj = PRApprovals(**prApprovalsMap)
-    prObj.save()
-
-    status = 'Added Successfully'
-    # if all_data and user.username == 'bluecatpaper':
-    #     t = loader.get_template('templates/save_po_data.html')
-    #     data_dict = {'sku_data' : dict(all_data), 'sku_ids' : all_data.keys(), 'headers' : ['SKU Code', 'Qty', 'Unit Price'], 'supplier_name' : request.POST['supplier_id_name'].split(':')[1]}
-    #     rendered = t.render(data_dict)
-    #     email = user.email
-    #     if email:
-    #         send_mail([email], 'BluecatPaper Saved PO Details', rendered)
-    return HttpResponse(status)
+        apprConfObj = PRApprovalConfig.objects.filter(user=user, name=reqConfigName, level=baseLevel)
+        if apprConfObj:
+            apprConfObjId = apprConfObj[0].id
+            mailsList = MasterEmailMapping.objects.filter(user=user, 
+                                    master_id=apprConfObjId, 
+                                    master_type='pr_approvals_conf_data').values_list('email_id', flat=True)
+        if mailsList:
+            validated_by = mailsList[0]
+        else:
+            validated_by = ''
+        prApprovalsMap = {
+                            'openpr_number': pr_number, 
+                            'pr_user': user, 
+                            'level': baseLevel,
+                            'validated_by': validated_by,
+                            'configName': reqConfigName
+                        }
+        prObj = PRApprovals(**prApprovalsMap)
+        prObj.save()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Raise PR data failed for params " + str(request.POST.dict()) + " and error statement is " + str(e))
+        return HttpResponse('Update Failed')
+    return HttpResponse('Added Successfully')
 
 
 @csrf_exempt
@@ -5596,6 +5682,11 @@ def confirm_add_po(request, sales_data='', user=''):
                 po_suggestions['order_type'] = 'VR'
             data1 = OpenPO(**po_suggestions)
             data1.save()
+            if request.POST.get('is_purchase_request') == 'true':
+                pr_number = request.POST.get('pr_number', '')
+                if pr_number: pr_number = int(pr_number)
+                OpenPR.objects.filter(sku_id=sku_id[0].id, pr_number=pr_number).update(open_po_id=data1.id)
+
             purchase_order = OpenPO.objects.get(id=data1.id, sku__user=user.id)
             sup_id = purchase_order.id
             supplier = purchase_order.supplier_id
@@ -5778,6 +5869,7 @@ def confirm_add_po(request, sales_data='', user=''):
                 write_and_mail_pdf(po_number, rendered, request, user, supplier_email, phone_no, po_data,
                                    str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
         check_purchase_order_created(user, po_id)
+
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

@@ -4954,7 +4954,7 @@ def get_order_summary_data(search_params, user, sub_user):
 
         invoice_amount_picked = "%.2f" % (amount + float(invoice_tax))
 
-        if int(data['status']) == 3:
+        if data['status'] and int(data['status']) == 3:
             cancelled_qty = data['quantity']
             cancelled_amt = cancelled_qty * unit_invoice_amt
         net_qty = data['original_quantity'] - cancelled_qty

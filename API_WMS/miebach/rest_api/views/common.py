@@ -3040,12 +3040,28 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
     else:
         order = None
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
-    if invoice_no_gen:
-        if user.userprofile.user_type == 'marketplace_user':
-            seller_order_summary = SellerOrderSummary.objects.filter(seller_order__order__user=user.id,
+    seller_order_summary_ids = []
+    if user.userprofile.user_type == 'marketplace_user':
+        seller_order_summary = SellerOrderSummary.objects.filter(seller_order__order__user=user.id,
                                                                    seller_order__order_id__in=order_ids)
-        else:
-            seller_order_summary = SellerOrderSummary.objects.filter(Q(order__id__in=order_ids))
+        if seller_order_summary.exists():
+            order_obj = seller_order_summary[0].seller_order.order
+            exist_sos = SellerOrderSummary.objects.filter(seller_order__order__user=user.id,
+                                                          seller_order__order__order_id=order_obj.order_id,
+                                                          seller_order__order__order_code=order_obj.order_code,
+                                                          seller_order__order__original_order_id=order_obj.original_order_id)
+    else:
+        seller_order_summary = SellerOrderSummary.objects.filter(order__id__in=order_ids)
+        if seller_order_summary.exists():
+            order_obj = seller_order_summary[0].order
+            exist_sos = SellerOrderSummary.objects.filter(order__user=user.id,
+                                                      order__order_id=order_obj.order_id,
+                                                      order__order_code=order_obj.order_code,
+                                                      order__original_order_id=order_obj.original_order_id)
+            if not exist_sos.filter(full_invoice_number='').exists():
+                return exist_sos[0].full_invoice_number, exist_sos[0].invoice_number
+
+    if invoice_no_gen:
         if seller_order_summary and invoice_no_gen[0].creation_date < seller_order_summary[0].creation_date:
             check_dict = {}
             prefix_key = 'order__'
@@ -3056,75 +3072,37 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                 order = seller_order_summary[0].order
             check_dict = {prefix_key + 'order_id': order.order_id, prefix_key + 'order_code': order.order_code,
                           prefix_key + 'original_order_id': order.original_order_id, prefix_key + 'user': user.id}
-            # invoice_ins = SellerOrderSummary.objects.filter(**check_dict).exclude(invoice_number='')
-            if user.userprofile.user_type == 'marketplace_user':
-                invoice_ins = SellerOrderSummary.objects.filter(seller_order__order__id__in=order_ids).\
-                                exclude(invoice_number='')
-            else:
-                if sell_ids:
-                    invoice_ins = SellerOrderSummary.objects.filter(**sell_ids).exclude(invoice_number='')
-                else:
-                    invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
-            #if user.userprofile.multi_level_system == 1 and user.userprofile.warehouse_level == 1:
-            #    admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
-            #    admin_user = User.objects.get(id=admin_user_id)
-            #    invoice_sequence = get_invoice_sequence_obj(admin_user, order.marketplace)
-            #else:
+            invoice_ins = exist_sos.exclude(invoice_number='')
             invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
             if invoice_ins:
                 order_no = invoice_ins[0].invoice_number
+                seller_order_summary_ids = list(seller_order_summary.filter(invoice_number='').\
+                                                values_list('id', flat=True))
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
                 inv_no = order_no
             elif invoice_no_gen[0].misc_value == 'true':
                 if invoice_sequence:
                     invoice_seq = invoice_sequence[0]
                     inv_no = int(invoice_seq.value)
-                    #order_no = invoice_sequence.prefix + str(inv_no).zfill(3)
                     order_no = str(inv_no).zfill(3)
+                    seller_order_summary_ids = list(seller_order_summary.values_list('id', flat=True))
                     seller_order_summary.update(invoice_number=order_no)
                     invoice_seq.value = inv_no + 1
                     invoice_seq.save()
             else:
+                seller_order_summary_ids = list(seller_order_summary.values_list('id', flat=True))
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
-    #if user.userprofile.multi_level_system == 1 and user.userprofile.warehouse_level == 1:
-    #    admin_user_id = UserGroups.objects.filter(user_id=user.id).values_list('admin_user_id', flat=True)[0]
-    #    admin_user = User.objects.get(id=admin_user_id)
-    #    invoice_number = get_full_invoice_number(admin_user, order_no, order, invoice_date=invoice_date, pick_number='')
-    #else:
+    else:
+        seller_order_summary = SellerOrderSummary.objects.filter(Q(order__id__in=order_ids) |
+                                                                 Q(seller_order__order__user=user.id,
+                                                                   seller_order__order_id__in=order_ids),
+                                                                 full_invoice_number='')
+        seller_order_summary_ids = list(seller_order_summary.values_list('id', flat=True))
     invoice_number = get_full_invoice_number(user, order_no, order, invoice_date=invoice_date, pick_number='')
-    # if invoice_sequence:
-    #     invoice_sequence = invoice_sequence[0]
-    #     inv_num_lis = []
-    #     if invoice_sequence.prefix:
-    #         inv_num_lis.append(invoice_sequence.prefix)
-    #     if invoice_sequence.date_type:
-    #         if invoice_sequence.date_type == 'financial':
-    #             inv_num_lis.append(get_financial_year(invoice_date))
-    #         elif invoice_sequence.date_type == 'month_year':
-    #             inv_num_lis.append(invoice_date.strftime('%m%y'))
-    #     if invoice_sequence.interfix:
-    #         inv_num_lis.append(invoice_sequence.interfix)
-    #     inv_num_lis.append(str(order_no))
-    #     invoice_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
-    # else:
-    #     if user_profile.user_type == 'marketplace_user':
-    #         invoice_number = user_profile.prefix + '/' + str(invoice_date.strftime('%m-%y')) + '/A-' + str(order_no)
-    #     elif user.username == 'TranceHomeLinen':
-    #         invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + 'GST' + '/' + str(
-    #             order_no)
-    #     elif user.username == 'Subhas_Publishing':
-    #         invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + str(order_no)
-    #     elif user.username == 'campus_sutra':
-    #         invoice_number = str(get_financial_year(invoice_date)) + '/' + str(order_no)
-    #     elif user_profile.warehouse_type == 'DIST':
-    #         invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
-    #     else:
-    #         if from_pos:
-    #             sub_usr = ''.join(re.findall('\d+', OrderDetail.objects.get(id=order_ids[0]).order_code))
-    #             invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), sub_usr + order_no)
-    #         else:
-    #             invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
-
+    if invoice_number and seller_order_summary_ids:
+        invoice_update_objs = SellerOrderSummary.objects.filter(id__in=seller_order_summary_ids, full_invoice_number='')
+        if invoice_update_objs.exists():
+            invoice_update_objs.update(full_invoice_number=invoice_number)
     return invoice_number, inv_no
 
 

@@ -4563,7 +4563,7 @@ def get_order_summary_data(search_params, user, sub_user):
            'sku__sku_size', 'sku__sku_desc', 'sku__sub_category', 'sku_code', 'sku_code', 'original_quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
            'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id',
            'quantity', 'quantity', 'quantity', 'quantity','order_id',
-           'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','invoice_number', 'order_id', 'quantity','creation_date', 'order_id', 'order_id', 'order_id','order_id','order_id']
+           'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','full_invoice_number', 'order_id', 'quantity','creation_date', 'order_id', 'order_id', 'order_id','order_id','order_id']
     if milkbasket_user :
         lis.append('order_id')
     # lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
@@ -4588,7 +4588,7 @@ def get_order_summary_data(search_params, user, sub_user):
                     'sub_category': 'sku__sub_category','sku_brand':'sku__sku_brand','sku_size':'sku__sku_size',
                     'sku_class':'sku__sku_class','city':'city', 'state':'state','order_reference':'order_reference',
                      'invoice_date': 'sellerordersummary__creation_date__icontains','customer_id':'customer_id',
-                    'invoice_number': 'sellerordersummary__invoice_number', 'manufacturer':'sku__skuattributes__attribute_value__iexact',
+                    'invoice_number': 'sellerordersummary__full_invoice_number', 'manufacturer':'sku__skuattributes__attribute_value__iexact',
                     'searchable': 'sku__skuattributes__attribute_value__iexact', 'bundle': 'sku__skuattributes__attribute_value__iexact',
                    }
     filter_parameter_list = list(set(filter_dict.keys()).intersection(set(search_params.keys())))
@@ -4620,7 +4620,7 @@ def get_order_summary_data(search_params, user, sub_user):
     if search_params.get('invoice','') == 'true':
         orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
-                                                                    'sku__sku_desc','sku__price','sellerordersummary__invoice_number','sellerordersummary__challan_number','address',
+                                                                    'sku__sku_desc','sku__price','sellerordersummary__full_invoice_number','sellerordersummary__challan_number','address',
                                                                     'quantity', 'original_quantity', 'original_order_id','order_reference','sku__sku_brand','customer_name','customer_id',
                                                                     'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category','sku__hsn_code').distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
     else:
@@ -4880,7 +4880,7 @@ def get_order_summary_data(search_params, user, sub_user):
                     pos_extra[str(val['name'])] = str(val['value'])
         invoice_number,invoice_date,quantity,challan_number= '','',0,''
         if search_params.get('invoice','') == 'true':
-            invoice_number = data['sellerordersummary__invoice_number']
+            invoice_number = data['sellerordersummary__full_invoice_number']
             challan_number = data['sellerordersummary__challan_number']
             if not invoice_number :
                 invoice_number_obj = SellerOrderSummary.objects.filter(order_id = data['id'])
@@ -4905,15 +4905,15 @@ def get_order_summary_data(search_params, user, sub_user):
             invoice_qty_filter = {}
             if user_profile.user_type == 'marketplace_user':
                 invoice_qty_filter['seller_order__order_id'] = data['id']
-                if data['sellerordersummary__invoice_number']:
-                    invoice_qty_filter['invoice_number'] = data['sellerordersummary__invoice_number']
+                if data['sellerordersummary__full_invoice_number']:
+                    invoice_qty_filter['full_invoice_number'] = data['sellerordersummary__full_invoice_number']
                 quantity = SellerOrderSummary.objects.filter(**invoice_qty_filter).aggregate(Sum('quantity'))['quantity__sum']
             else:
                 invoice_qty_filter['order_id'] = data['id']
-                if data['sellerordersummary__invoice_number']:
-                    invoice_qty_filter['invoice_number'] = data['sellerordersummary__invoice_number']
+                if data['sellerordersummary__full_invoice_number']:
+                    invoice_qty_filter['full_invoice_number'] = data['sellerordersummary__full_invoice_number']
                 else:
-                    invoice_qty_filter['invoice_number'] = ''
+                    invoice_qty_filter['full_invoice_number'] = ''
                     invoice_date = ''
                 quantity = SellerOrderSummary.objects.filter(**invoice_qty_filter).aggregate(Sum('quantity'))['quantity__sum']
 
@@ -7405,7 +7405,6 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
         if data['order__original_order_id'] :
             order = OrderDetail.objects.filter(original_order_id = data['order__original_order_id'] ,user = user.id)
             payment_status = order.values('customerordersummary__payment_status')[0].get('customerordersummary__payment_status','')
-
         if ord_invoice_map and central_order_reassigning == 'true':
             creation_date = ord_inv_dates_map.get(data['order__id'], '')
             if creation_date:
@@ -7421,12 +7420,18 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
                 creation_date = ord_inv_dates_map.get(data['order__id'], '')
                 if creation_date:
                     invoice_date = get_local_date(user, creation_date)
+                    invoice_number = get_full_invoice_number(user,invoice_number,order[0], invoice_date)
+                else:
+                    invoice_number = get_full_invoice_number(user,invoice_number,order[0])
             elif increment_invoice == 'false':
                 invoice_number =  int(data['order__order_id'])
                 if data['order__id'] in ord_invoice_map:
                     creation_date = ord_inv_dates_map.get(data['order__id'], '')
                     if creation_date:
                         invoice_date = get_local_date(user, creation_date)
+                        invoice_number = get_full_invoice_number(user,invoice_number,order[0], invoice_date)
+                    else:
+                        invoice_number = get_full_invoice_number(user,invoice_number,order[0])
             else:
                 invoice_number = ''
         if result :

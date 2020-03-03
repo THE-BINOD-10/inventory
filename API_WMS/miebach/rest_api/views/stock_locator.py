@@ -3595,9 +3595,6 @@ def ba_to_sa_calculate_now(request, user=''):
                 if sku_avail_qty:
                     continue
             ba_stock_dict = ba_sku_avail_qty.get(data.id, {})
-            if replenishment_qty < 20:
-                replenishment_qty = 20
-
             if data.sku_code:
                 sku_attr_obj = SKUAttributes.objects.filter(sku__user=user.id, sku__sku_code=data.sku_code,
                                                             attribute_name='Carton/Case Size').only('attribute_value')
@@ -3609,7 +3606,8 @@ def ba_to_sa_calculate_now(request, user=''):
                     if round_of_value:
                         replenishment_qty = int(
                             (replenishment_qty + (round_of_value - 1)) // (round_of_value * round_of_value) )
-
+            if replenishment_qty < 20:
+                replenishment_qty = 20
             if ba_stock_dict:
                 total_ba_stock = ba_stock_dict[
                     'total_quantity']  # ba_stock_objs.aggregate(Sum('sellerstock__quantity'))['sellerstock__quantity__sum']

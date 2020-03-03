@@ -41,7 +41,7 @@ class Command(BaseCommand):
         today_end = datetime.datetime.combine(tomorrow, datetime.time())
         print str(datetime.datetime.now())
         # users = User.objects.filter(is_staff=True)
-        list_usr=['demo', 'ola_bangalore', 'ola_mumbai', 'stockone', 'trancehomelinen']
+        list_usr=['demo']
         users = User.objects.filter(username__in=list_usr, is_staff=True)
         for user in users:
             print user
@@ -86,14 +86,13 @@ class Command(BaseCommand):
                     produced_quantity = jo_putaway_objs.get(sku.id, 0)
                     consumed = rm_picklist_objs.get(sku.id, 0)
                     rtv_quantity = rtv_objs.get(sku.id,0)
-                    import pdb; pdb.set_trace()
                     # stock_stat_objects = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id).order_by('-creation_date')
                     stock_stat_objects = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id)
                     if stock_stat_objects.exists():
-                        lat_rec = stock_object.latest('creation_date')
+                        lat_rec = stock_stat_objects.latest('creation_date')
                         import pdb; pdb.set_trace()
-                        openinig_stock = stock_stat_objects[0].closing_stock
-                        opening_stock_value = stock_stat_objects[0].closing_stock_value
+                        openinig_stock = lat_rec.closing_stock
+                        opening_stock_value = lat_rec.closing_stock_value
                     else:
                         openinig_stock = 0
                         opening_stock_value = 0
@@ -120,10 +119,9 @@ class Command(BaseCommand):
                         current_stock =StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku_id=sku.id).aggregate(Sum('quantity'), stock_value=Sum(F('quantity') * F('unit_price')))
                         stock_object = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id)
                         if stock_object.exists():
-                            lat = stock_object.latest('creation_date')
-                            import pdb; pdb.set_trace()
-                            data_dict = {'opening_stock': stock_object[0].closing_stock, 'closing_stock': stock_object[0].closing_stock, 'sku_id':sku.id,
-                                        'opening_stock_value': stock_object[0].closing_stock_value, 'closing_stock_value': current_stock['stock_value'] or 0}
+                            lat_re = stock_object.latest('creation_date')
+                            data_dict = {'opening_stock': lat_re.closing_stock, 'closing_stock': lat_re.closing_stock, 'sku_id':sku.id,
+                                        'opening_stock_value': lat_re.closing_stock_value, 'closing_stock_value': current_stock['stock_value'] or 0}
                             if stock_stat.exists():
                                 stock_stat.update(**data_dict)
                             else:

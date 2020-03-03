@@ -13,7 +13,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     vm.mk_user = (vm.permissions.use_imei == true) ? true: false;
     vm.awb_ship_type = (vm.permissions.create_shipment_type == true) ? true: false;
     vm.scan_imei_readonly = false;
-
+    vm.parent_username = Session.parent.parent_username;
     vm.g_data = Data.create_shipment;
 
     //table start

@@ -40,9 +40,7 @@ class Command(BaseCommand):
         today_start = datetime.datetime.combine(today, datetime.time())
         today_end = datetime.datetime.combine(tomorrow, datetime.time())
         print str(datetime.datetime.now())
-        # users = User.objects.filter(is_staff=True)
-        list_usr=['demo']
-        users = User.objects.filter(username__in=list_usr, is_staff=True)
+        users = User.objects.filter(is_staff=True)
         for user in users:
             print user
             userprofile = UserProfile.objects.filter(user_id=user.id)
@@ -90,7 +88,6 @@ class Command(BaseCommand):
                     stock_stat_objects = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id)
                     if stock_stat_objects.exists():
                         lat_rec = stock_stat_objects.latest('creation_date')
-                        import pdb; pdb.set_trace()
                         openinig_stock = lat_rec.closing_stock
                         opening_stock_value = lat_rec.closing_stock_value
                     else:

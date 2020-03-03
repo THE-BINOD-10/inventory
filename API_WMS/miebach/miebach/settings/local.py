@@ -4,9 +4,9 @@ from .base import *
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'wms',
+        'NAME': 'WMS_DEV',
         'USER': 'root',
-        'PASSWORD': 'root123',
+        'PASSWORD': 'root@123',
         'TEST_MIRROR': 'default'
     }
 }

@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from django.core.management import BaseCommand
-from django.db.models import Q, Sum, F
+from django.db.models import Q, Sum
 import os
 import logging
 import django
@@ -64,8 +64,6 @@ class Command(BaseCommand):
                                                     values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
                     stock_objs = dict(StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values_list('sku_id').\
                                       distinct().annotate(in_stock=Sum('quantity')))
-                    stock_value_objs = dict(StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values_list('sku_id').\
-                                      distinct().annotate(stock_value=Sum(F('quantity') * F('unit_price'))))
                     adjust_objs = dict(all_sku_stats.filter(transact_type='inventory-adjustment').\
                                                         values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
                     return_objs = dict(all_sku_stats.filter(transact_type='return').\
@@ -76,30 +74,23 @@ class Command(BaseCommand):
                                                         values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
                     rtv_objs = dict(all_sku_stats.filter(transact_type='rtv').\
                                                         values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
+
                     putaway_quantity = putaway_objs.get(sku.id, 0)
                     uploaded_quantity = stock_uploaded_objs.get(sku.id, 0)
                     stock_quantity = stock_objs.get(sku.id, 0)
-                    closing_stock_value = stock_value_objs.get(sku.id, 0)
                     return_quantity = return_objs.get(sku.id, 0)
                     adjusted = adjust_objs.get(sku.id, 0)
                     dispatched = market_data.get(sku.id, 0)
                     produced_quantity = jo_putaway_objs.get(sku.id, 0)
                     consumed = rm_picklist_objs.get(sku.id, 0)
                     rtv_quantity = rtv_objs.get(sku.id,0)
-                    stock_stat_objects = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id).order_by('-creation_date')
-                    if stock_stat_objects.exists():
-                        openinig_stock = stock_stat_objects[0].closing_stock
-                        opening_stock_value = stock_stat_objects[0].closing_stock_value
-                    else:
-                        openinig_stock = 0
-                        opening_stock_value = 0
-                    # openinig_stock = stock_quantity+rtv_quantity - (putaway_quantity + uploaded_quantity + return_quantity +\
-                    #                                    produced_quantity) + (dispatched + consumed) - adjusted
+                    openinig_stock = stock_quantity+rtv_quantity - (putaway_quantity + uploaded_quantity + return_quantity +\
+                                                       produced_quantity) + (dispatched + consumed) - adjusted
                     stock_stat = StockStats.objects.filter(sku_id=sku.id, creation_date__startswith=today)
-                    data_dict = {'opening_stock': openinig_stock, 'receipt_qty': putaway_quantity, 'opening_stock_value': opening_stock_value,
+                    data_dict = {'opening_stock': openinig_stock, 'receipt_qty': putaway_quantity,
                                  'uploaded_qty': uploaded_quantity, 'produced_qty': produced_quantity,
                                  'dispatch_qty': dispatched, 'return_qty': return_quantity,'rtv_quantity':rtv_quantity,
-                                 'adjustment_qty': adjusted, 'closing_stock': stock_quantity,'closing_stock_value': closing_stock_value,
+                                 'adjustment_qty': adjusted, 'closing_stock': stock_quantity,
                                   'uploaded_qty': uploaded_quantity, 'consumed_qty': consumed,
                                   'creation_date': today
                                  }
@@ -113,22 +104,18 @@ class Command(BaseCommand):
                 else:
                     if non_transact_process == 'true':
                         stock_stat = StockStats.objects.filter(sku_id=sku.id, creation_date__startswith=today)
-                        current_stock =StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku_id=sku.id).aggregate(Sum('quantity'), stock_value=Sum(F('quantity') * F('unit_price')))
                         stock_object = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id).order_by('-creation_date')
                         if stock_object.exists():
-                            data_dict = {'opening_stock': stock_object[0].closing_stock, 'closing_stock': stock_object[0].closing_stock, 'sku_id':sku.id,
-                                        'opening_stock_value': stock_object[0].closing_stock_value, 'closing_stock_value': current_stock['stock_value'] or 0}
+                            data_dict = {'opening_stock': stock_object[0].closing_stock, 'closing_stock': stock_object[0].closing_stock, 'sku_id':sku.id}
                             if stock_stat.exists():
                                 stock_stat.update(**data_dict)
                             else:
                                 StockStats.objects.create(**data_dict)
                         else:
-                            quantity = current_stock['quantity__sum']
-                            closing_stock_value = current_stock['stock_value'] or 0
+                            quantity = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku_id=sku.id).aggregate(Sum('quantity'))['quantity__sum']
                             if not quantity:
                                 quantity = 0
-                            data_dict = {'opening_stock': 0, 'closing_stock': quantity, 'sku_id':sku.id, 'closing_stock_value': closing_stock_value,
-                                        'opening_stock_value': 0}
+                            data_dict = {'opening_stock': 0, 'closing_stock': quantity, 'sku_id':sku.id}
                             if stock_stat.exists():
                                 stock_stat.update(**data_dict)
                             else:

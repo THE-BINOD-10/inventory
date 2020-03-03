@@ -1889,7 +1889,9 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 if user.username in MILKBASKET_USERS and not cell_data:
                     index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
             elif key == 'price':
-                data_dict['price'] = cell_data
+                if user.userprofile.industry_type == 'FMCG':
+                    data_dict['batch_detail__buy_price'] = cell_data
+                data_dict['unit_price'] = cell_data
                 if not isinstance(cell_data, float):
                     index_status.setdefault(row_idx, set()).add('Price should be number')
             elif key in number_fields:
@@ -3534,12 +3536,18 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                     reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
                     raw_reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
                 if data_dict.get('price', '') or data_dict.get('price', '') == 0 :
-                    price = int(data_dict['price'])
-                    if data_dict['price'] == stock_dict["stock__unit_price"]:
+                    price = float(data_dict['price'])
+                    if user.userprofile.industry_type == 'FMCG':
+                        if data_dict['price'] == stock_dict["stock__batch_detail__buy_price"]:
+                            stock_dict['stock__batch_detail__buy_price'] = price
+                            reserved_dict["stock__batch_detail__buy_price"] = price
+                            raw_reserved_dict['stock__batch_detail__buy_price'] = price
+                    elif data_dict['price'] == stock_dict["stock__unit_price"]:
                         stock_dict['stock__unit_price'] = price
                         reserved_dict["stock__unit_price"] = price
                         raw_reserved_dict['stock__unit_price'] = price
                     continue
+
                 stocks = StockDetail.objects.filter(**stock_dict)
                 if not stocks:
                     index_status.setdefault(row_idx, set()).add('No Stocks Found')
@@ -4024,8 +4032,10 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                 if user.userprofile.industry_type == 'FMCG':
                     data_dict['buy_price'] = float(cell_data)
                     if data_dict['buy_price']<0:
-                        index_status.setdefault(row_idx, set()).add('Invalid Buy Price')
-                data_dict[key] = float(cell_data)
+                        index_status.setdefault(row_idx, set()).add('Invalid Price')
+                data_dict['unit_price'] = float(cell_data)
+                if data_dict['unit_price']<0:
+                    index_status.setdefault(row_idx,set()).add('Invalid Price')
 
             else:
                 if isinstance(cell_data, (int, float)):

@@ -40,7 +40,9 @@ class Command(BaseCommand):
         today_start = datetime.datetime.combine(today, datetime.time())
         today_end = datetime.datetime.combine(tomorrow, datetime.time())
         print str(datetime.datetime.now())
-        users = User.objects.filter(is_staff=True)
+        #users = User.objects.filter(is_staff=True)
+        list_usr=['demo', 'ola_bangalore', 'ola_mumbai', 'stockone', 'trancehomelinen']
+        users = User.objects.filter(username__in=list_usr, is_staff=True)
         for user in users:
             print user
             userprofile = UserProfile.objects.filter(user_id=user.id)

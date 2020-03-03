@@ -1763,11 +1763,11 @@ def insert_inventory_adjust(request, user=''):
             return HttpResponse("Invalid Seller ID")
         seller_master_id = seller_master[0].id
     if reduce_stock == 'true':
-        status = reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,
+        status = reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,price=price,
                                        seller_master_id=seller_master_id, weight=weight)
     else:
-        status, stock_stats_objs = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet_code, batch_no, mrp,
-                                       seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,price=price,
+        status, stock_stats_objs = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet_code, batch_no, mrp, price=price,
+                                       seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
                                        receipt_type='inventory-adjustment')
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)

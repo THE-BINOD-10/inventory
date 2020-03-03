@@ -1959,7 +1959,10 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
     if seller_master_id:
         stock_dict['sellerstock__seller_id'] = seller_master_id
     if price:
-        stock_dict['batch_detail__buy_price'] = price
+        if user.userprofile.industry_type == 'FMCG' :
+            stock_dict['batch_detail__buy_price'] = float(price)
+        stock_dict['unit_price'] = float(price)
+
     total_stock_quantity = 0
     dest_stocks = ''
 
@@ -9134,7 +9137,9 @@ def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
     if seller_master_id:
         stock_dict['sellerstock__seller_id'] = seller_master_id
     if price:
-        stock_dict["batch_detail__buy_price"] = price
+        if user.userprofile.industry_type == 'FMCG':
+            stock_dict["batch_detail__buy_price"] = float(price)
+        stock_dict['unit_price'] = float(price)
 
     total_stock_quantity = 0
     if quantity:

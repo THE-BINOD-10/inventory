@@ -3387,6 +3387,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 incremental_object = IncrementalTable.objects.create(user_id=user.id,value=discrepency_number,type_name='discrepancy')
                             else:
                                 discrepency_number = incremental_object[0].value
+                                incremental_object = incremental_object[0]
 
                         discrepency_dict['discrepancy_number'] = 'DIS'+ str(discrepency_number)
                         Discrepancy.objects.create(**discrepency_dict)
@@ -3495,7 +3496,9 @@ def confirm_grn(request, confirm_returns='', user=''):
                 rendered = t.render(report_data_dict)
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data, order_date, internal=True, report_type="Goods Receipt Note")
             if send_discrepencey and fmcg:
-                incremental_object.update(value=discrepency_number+1)
+                incremental_update = incremental_object
+                incremental_update.value=discrepency_number+1
+                incremental_update.save()
                 t = loader.get_template('templates/toggle/discrepency_form.html')
                 rendered = t.render(report_data_dict)
                 data_dict_po = {'po_date': order_date,'po_reference':po_number ,

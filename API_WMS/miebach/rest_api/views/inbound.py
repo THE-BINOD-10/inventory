@@ -1090,6 +1090,7 @@ def switches(request, user=''):
                        'display_dc_invoice': 'display_dc_invoice',
                        'display_order_reference': 'display_order_reference',
                        'mrp_discount':'mrp_discount',
+                       'mandate_invoice_number':'mandate_invoice_number',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -3504,14 +3505,14 @@ def confirmation_location(record, data, total_quantity, temp_dict=''):
     return total_quantity
 
 
-def returns_order_tracking(order_returns, user, quantity, status='', imei=''):
+def returns_order_tracking(order_returns, user, quantity, status='', imei='', invoice_no=''):
     now = datetime.datetime.now()
     try:
         if order_returns.order_id:
             log.info('Order Tracking Data Request Params %s, %s, %s, %s' % (str(order_returns.order_id), str(quantity),
                                                                             str(status), str(imei)))
             OrderTracking.objects.create(order_id=order_returns.order_id, status=status, imei=imei, quantity=quantity,
-                                         creation_date=now, updation_date=now)
+                                         creation_date=now, updation_date=now, invoice_number=invoice_no)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -3532,12 +3533,78 @@ def check_returns(request, user=''):
     request_order_id = request.GET.get('order_id', '')
     request_return_id = request.GET.get('return_id', '')
     request_awb = request.GET.get('awb_no', '')
+    request_invoice_no = str(request.GET.get('invoice_no', '')).upper()
     if request_awb:
         try:
             request_order_id = OrderAwbMap.objects.get(awb_no=request_awb, user=user.id).original_order_id
         except ObjectDoesNotExist:
             request_order_id = None
-    if request_order_id:
+    if request_invoice_no:
+        key = [request_invoice_no]
+        invoice_no = request_invoice_no.split('/')[-1]
+        invoice_dict, picklist_ids = get_orders_with_invoice_no(user, invoice_no)
+        if picklist_ids:
+            picklists = Picklist.objects.filter(id__in=picklist_ids, status__in=['picked', 'batch_picked', 'dispatched'],
+                                                picked_quantity__gt=0)
+        else:
+            picklists = Picklist.objects.filter(order_id__in=invoice_dict.keys(), status__in=['picked', 'batch_picked', 'dispatched'],
+                                                picked_quantity__gt=0)
+        if not invoice_dict or not picklists:
+            status = 'Invoice Number is invalid'
+        for order_detail_id, qty in invoice_dict.items():
+            picklist = picklists.filter(order_id=order_detail_id)
+            if picklist:
+                picklist = picklist[0]
+                order = picklist.order
+            else:
+                order = OrderDetail.objects.get(id=order_detail_id)
+            wms_code = order.sku.wms_code
+            sku_desc = order.sku.sku_desc
+            unit_price = order.unit_price
+            taxes = {'cgst': 0, 'sgst': 0, 'igst': 0}
+            if picklist:
+                cod = picklist.order.customerordersummary_set.filter()
+                if cod.exists():
+                    cod = cod[0]
+                    taxes['cgst'] = cod.cgst_tax
+                    taxes['sgst'] = cod.sgst_tax
+                    taxes['igst'] = cod.igst_tax
+                if picklist.stock:
+                    wms_code = picklist.stock.sku.wms_code
+                    sku_desc = picklist.stock.sku.sku_desc
+            order_id = picklist.order.original_order_id
+            if not order_id:
+                order_id = order.order_code + str(order.order_id)
+            cond = (order_id, wms_code, sku_desc, order.id)
+            all_data.setdefault(cond, {'picked_quantity': 0, 'unit_price': unit_price, 'taxes': taxes})
+            all_data[cond]['picked_quantity'] += qty
+        for key, value in all_data.iteritems():
+            order_track_obj = OrderTracking.objects.filter(order_id=key[3], status='returned',
+                                                           invoice_number=request_invoice_no)
+            if order_track_obj:
+                order_track_quantity = int(order_track_obj.aggregate(Sum('quantity'))['quantity__sum'])
+                if value['picked_quantity'] == order_track_quantity:
+                    continue
+                else:
+                    remaining_return = int(value['picked_quantity']) - int(order_track_quantity)
+                    dict_data = {'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'order_detail_id': key[3],
+                                 'ship_quantity': remaining_return, 'return_quantity': remaining_return,
+                                 'damaged_quantity': 0, 'unit_price': value['unit_price'],
+                                 'invoice_number': request_invoice_no}
+                    dict_data.update(taxes)
+                    data.append(dict_data)
+            else:
+                dict_data = {'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'order_detail_id': key[3],
+                             'ship_quantity': value['picked_quantity'], 'return_quantity': value['picked_quantity'],
+                             'damaged_quantity': 0, 'unit_price': value['unit_price'],
+                             'invoice_number': request_invoice_no}
+                dict_data.update(taxes)
+                data.append(dict_data)
+        if not data:
+            status = str(key[0]) + ' Invoice Number Already Returned or Invalid'
+            return HttpResponse(status)
+
+    elif request_order_id:
         key = [request_order_id]
         filter_params = {}
         order_id = re.findall('\d+', request_order_id)
@@ -3693,13 +3760,13 @@ def get_returns_location(put_zone, request, user):
     return location
 
 
-def create_return_order(data, user):
+def create_return_order(data, user, credit_note_number):
     seller_order_ids = []
     status = ''
     user_obj = User.objects.get(id=user)
     sku_id = SKUMaster.objects.filter(sku_code=data['sku_code'], user=user)
     if not sku_id:
-        return "", "", "SKU Code doesn't exist"
+        return "", "", "SKU Code doesn't exist", credit_note_number
     return_details = copy.deepcopy(RETURN_DATA)
     user_obj = User.objects.get(id=user)
     try:
@@ -3744,7 +3811,8 @@ def create_return_order(data, user):
                 data['order_id'] = str(order_map_ins.order.order_code) + str(order_map_ins.order.order_id)
 
         return_details = {'return_id': '', 'return_date': datetime.datetime.now(), 'quantity': quantity,
-                          'sku_id': sku_id[0].id, 'status': 1, 'marketplace': marketplace, 'return_type': return_type}
+                          'sku_id': sku_id[0].id, 'status': 1, 'marketplace': marketplace, 'return_type': return_type,
+                          'invoice_number': data.get('invoice_number', '')}
         if seller_id:
             return_details['seller_id'] = seller_id
         if data.get('order_id', ''):
@@ -3764,6 +3832,14 @@ def create_return_order(data, user):
                     return_details['seller_order_id'] = seller_order.id
                     return_details['seller_id'] = seller_order.seller_id
                     seller_order_ids.append(seller_order.id)
+                if not credit_note_number:
+                    user_type_sequence = user_type_sequence_obj(user_obj, 'credit_note_sequence', order_detail[0].marketplace)
+                    if user_type_sequence:
+                        user_type_sequence = user_type_sequence[0]
+                        credit_note_number = get_full_sequence_number(user_type_sequence, datetime.datetime.now())
+                        user_type_sequence.value += 1
+                        user_type_sequence.save()
+        return_details['credit_note_number'] = credit_note_number
         returns = OrderReturns(**return_details)
         returns.save()
 
@@ -3773,9 +3849,9 @@ def create_return_order(data, user):
     else:
         status = 'Missing Required Fields'
     if not status:
-        return returns.id, status, seller_order_ids
+        return returns.id, status, seller_order_ids, credit_note_number
     else:
-        return "", status, seller_order_ids
+        return "", status, seller_order_ids, credit_note_number
 
 
 def create_default_zones(user, zone, location, sequence, segregation='sellable'):
@@ -3926,6 +4002,7 @@ def group_sales_return_data(data_dict, return_process, user):
 
     returns_dict = {}
     grouping_dict = {'order_id': '[str(data_dict["order_id"][ind]), str(data_dict["sku_code"][ind])]',
+                     'invoice_number': '[str(data_dict["order_id"][ind]), str(data_dict["sku_code"][ind]), str(data_dict["invoice_number"][ind])]',
                      'sku_code': '[str(data_dict["order_id"][ind]), data_dict["sku_code"][ind]]', 'return_id': 'data_dict["id"][ind]',
                      'scan_imei': 'data_dict["id"][ind]',
                      'scan_awb': '[str(data_dict["order_id"][ind]), str(data_dict["sku_code"][ind])]'}
@@ -4002,6 +4079,7 @@ def confirm_sales_return(request, user=''):
     return_type = request.POST.get('return_type', '')
     return_process = request.POST.get('return_process')
     mp_return_data = {}
+    credit_note_number = ''
     created_return_ids = OrderedDict()
     log.info('Request params for Confirm Sales Return for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
@@ -4011,7 +4089,7 @@ def confirm_sales_return(request, user=''):
             all_data = []
             check_seller_order = True
             if not return_dict['id']:
-                return_dict['id'], status, seller_order_ids = create_return_order(return_dict, user.id)
+                return_dict['id'], status, seller_order_ids, credit_note_number = create_return_order(return_dict, user.id, credit_note_number)
                 if not return_dict['id']:
                     continue
                 if seller_order_ids:
@@ -4084,7 +4162,8 @@ def confirm_sales_return(request, user=''):
             else:
                 total_quantity = int(return_dict['return'])
                 if total_quantity:
-                    returns_order_tracking(order_returns[0], user, total_quantity, 'returned', '')
+                    returns_order_tracking(order_returns[0], user, total_quantity, 'returned', imei='',
+                                           invoice_no=return_dict.get('invoice_number'))
         if user.userprofile.user_type == 'marketplace_user':
             check_and_update_order_status_data(mp_return_data, user, status='RETURNED')
     except Exception as e:
@@ -4503,10 +4582,16 @@ def putaway_data(request, user=''):
                     value = count
                     count = 0
                 order_data = get_purchase_order_data(data.purchase_order)
+                grn_price = 0
+                seller_po_summary_obj = SellerPOSummary.objects.filter(purchase_order_id=data.purchase_order.id)
+                if seller_po_summary_obj.exists():
+                    grn_price = seller_po_summary_obj[0].price
+                if not grn_price:
+                    grn_price = order_data['price']
                 putaway_location(data, value, exc_loc, user, 'purchase_order_id', data.purchase_order_id)
                 stock_check_params = {'location_id': exc_loc, 'receipt_number':data.purchase_order.order_id,
                                      'sku_id': order_data['sku_id'], 'sku__user': user.id,
-                                      'unit_price': order_data['price'], 'receipt_type': 'purchase order'}
+                                      'unit_price': grn_price, 'receipt_type': 'purchase order'}
                 if batch_obj:
                     stock_check_params['batch_detail_id'] = batch_obj[0].id
                     stock_check_params['unit_price'] = batch_obj[0].buy_price
@@ -4545,7 +4630,7 @@ def putaway_data(request, user=''):
                                    'sku_id': order_data['sku_id'],
                                    'quantity': value, 'status': 1, 'receipt_type': 'purchase order',
                                    'creation_date': datetime.datetime.now(),
-                                   'updation_date': datetime.datetime.now(), 'unit_price': order_data['price']}
+                                   'updation_date': datetime.datetime.now(), 'unit_price': grn_price}
                     if batch_obj:
                         record_data['batch_detail_id'] = batch_obj[0].id
                         record_data['unit_price'] = batch_obj[0].buy_price
@@ -9420,18 +9505,27 @@ def get_sales_return_print_json(return_ids, user):
         if customer_master:
             customer_master = customer_master[0]
             data_dict['customer_name'] = customer_master.name
-            data_dict['supplier_address'] = customer_master.address
+            data_dict['customer_address'] = customer_master.address
             data_dict['city'] = customer_master.city
             data_dict['state'] = customer_master.state
             data_dict['pincode'] = customer_master.pincode
             data_dict['pan'] = customer_master.pan_number
+            data_dict['customer_gst'] = customer_master.tin_number
+            data_dict['shipping_address'] = customer_master.shipping_address
+            cod = obj.order.customerordersummary_set.filter()
+            if cod and cod[0].consignee:
+                data_dict['shipping_address'] = cod[0].consignee
+            if not data_dict['shipping_address']:
+                data_dict['shipping_address'] = customer_master.address
         else:
             data_dict['customer_name'] = obj.order.customer_name
-            data_dict['supplier_address'] = obj.order.address
+            data_dict['customer_address'] = obj.order.address
             data_dict['city'] = obj.order.city
             data_dict['state'] = obj.order.state
             data_dict['pincode'] = obj.order.pin_code
             data_dict['pan'] = ''
+            data_dict['customer_gst'] = ''
+            data_dict['shipping_address'] = ''
         data_dict.setdefault('item_details', [])
         data_dict_item = {}
         data_dict_item['sku_code'] = obj.sku.sku_code
@@ -9442,7 +9536,18 @@ def get_sales_return_print_json(return_ids, user):
         data_dict_item['price'] = obj.order.unit_price
         data_dict_item['measurement_unit'] = obj.sku.measurement_type
         data_dict_item['discount'] = 0
-        data_dict['invoice_num'] = ''
+        data_dict['invoice_num'] = obj.invoice_number
+        data_dict['invoice_date'] = ''
+        data_dict['credit_note_number'] = obj.credit_note_number
+        if data_dict['invoice_num']:
+            if user.userprofile.user_type == 'marketplace_user':
+                sos_filter = {'invoice_number': obj.invoice_number.split('/')[-1],
+                              'seller_order__order_id': obj.order_id}
+            else:
+                sos_filter = {'invoice_number': obj.invoice_number.split('/')[-1], 'order_id': obj.order_id}
+            sos_obj = SellerOrderSummary.objects.filter(**sos_filter)
+            if sos_obj.exists():
+                data_dict['invoice_date'] = get_local_date(user, sos_obj[0].creation_date, send_date='true').date()
         cust_order_obj = obj.order.customerordersummary_set.filter().values('cgst_tax', 'sgst_tax',
                                                                     'igst_tax', 'utgst_tax')
         order_summary = {}
@@ -9574,6 +9679,7 @@ def get_grn_level_data(request, user=''):
                         po_data_dict['buy_price'] = seller_summary_obj.batch_detail.buy_price
                         po_data_dict['batch_no'] = seller_summary_obj.batch_detail.batch_no
                         po_data_dict['mrp'] = seller_summary_obj.batch_detail.mrp
+                        po_data_dict['weight'] = seller_summary_obj.batch_detail.weight
                         po_data_dict['mfg_date'] = ''
                         po_data_dict['exp_date'] = ''
                         if seller_summary_obj.batch_detail.manufactured_date:
@@ -9598,20 +9704,14 @@ def get_grn_level_data(request, user=''):
 
             else:
                 open_data = data.open_po
-                po_data_dict = {}
-                po_data_dict['sku_code'] = data.open_po.sku.sku_code
-                po_data_dict['sku_desc'] = data.open_po.sku.sku_desc
-                po_data_dict['quantity'] = data.received_quantity
-                po_data_dict['price'] = open_data.price
-                po_data_dict['cgst_tax'] = open_data.cgst_tax
-                po_data_dict['sgst_tax'] = open_data.sgst_tax
-                po_data_dict['igst_tax'] = open_data.igst_tax
-                po_data_dict['utgst_tax'] = open_data.utgst_tax
-                po_data_dict['cess_percent'] = open_data.cess_tax
-                po_data_dict['tax_percent'] = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + \
-                                              open_data.utgst_tax
-                po_data_dict['confirm_key'] = 'purchase_order_id'
-                po_data_dict['confirm_id'] = data.id
+                po_data_dict = {'sku_code': data.open_po.sku.sku_code, 'sku_desc': data.open_po.sku.sku_desc,
+                                'quantity': data.received_quantity, 'price': open_data.price,
+                                'cgst_tax': open_data.cgst_tax, 'sgst_tax': open_data.sgst_tax,
+                                'igst_tax': open_data.igst_tax, 'utgst_tax': open_data.utgst_tax,
+                                'cess_percent': open_data.cess_tax,
+                                'tax_percent': open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + \
+                                               open_data.utgst_tax, 'confirm_key': 'purchase_order_id',
+                                'confirm_id': data.id}
                 amount = float(po_data_dict['quantity']) * float(po_data_dict['price'])
                 po_data.append([po_data_dict])
         if results:
@@ -9671,6 +9771,7 @@ def update_existing_grn(request, user=''):
     total_received_qty = 0
     total_order_qty = 0
     total_price = 0
+    seller_po_check = False
     total_tax = 0
     is_putaway = ''
     if user.username in MILKBASKET_USERS and (not request.POST.get('invoice_number', '') and not request.POST.get('dc_number', '')):
@@ -9694,7 +9795,7 @@ def update_existing_grn(request, user=''):
     log.info('Request params for Update GRN for request user ' + request.user.username +' user ' + user.username + ' is ' + str(myDict))
     try:
         field_mapping = {'exp_date': 'expiry_date', 'mfg_date': 'manufactured_date', 'quantity': 'quantity',
-                         'discount_percentage': 'discount_percent', 'batch_no': 'batch_no',
+                         'discount_percentage': 'discount_percent', 'batch_no': 'batch_no', 'weight':'weight',
                          'mrp': 'mrp', 'buy_price': 'buy_price', 'invoice_number': 'invoice_number',
                          'invoice_date': 'invoice_date', 'dc_date': 'challan_date', 'dc_number': 'challan_number',
                          'tax_percent': 'tax_percent', 'cess_percent': 'cess_tax'}
@@ -9702,6 +9803,7 @@ def update_existing_grn(request, user=''):
         for ind in range(0, len(myDict['confirm_key'])):
             model_name = myDict['confirm_key'][ind].strip('_id')
             if myDict['confirm_key'][ind] == 'seller_po_summary_id':
+                seller_po_check = True
                 model_obj = SellerPOSummary.objects.get(id=myDict['confirm_id'][ind])
             else:
                 model_obj = PurchaseOrder.objects.get(id=myDict['confirm_id'][ind])
@@ -9768,7 +9870,7 @@ def update_existing_grn(request, user=''):
                             model_obj.purchase_order.open_po.cess_tax = 0
                             model_obj.purchase_order.open_po.save()
 
-                elif key == 'batch_no':
+                elif key in  ['batch_no','weight'] :
                     if model_obj.batch_detail:
                         prev_val = getattr(model_obj.batch_detail, field_mapping[key])
                         if prev_val != value:
@@ -9804,35 +9906,37 @@ def update_existing_grn(request, user=''):
                         model_obj.save()
                         create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
                                                     prev_val, value)
-            if model_obj.batch_detail:
-                if model_obj.batch_detail.transact_type == 'seller_po_summary':
-                    PrimarySegregation.objects.filter(seller_po_summary__id=model_obj.batch_detail.transact_id,
-                                                      seller_po_summary__receipt_number=model_obj.receipt_number)\
-                                                .update(batch_detail=model_obj.batch_detail)
-                else:
-                    PrimarySegregation.objects.filter(purchase_order__id=model_obj.batch_detail.transact_id,
-                                                      seller_po_summary__receipt_number=model_obj.receipt_number)\
-                                              .update(batch_detail=model_obj.batch_detail)
-                po_location_ids = POLocation.objects.filter(purchase_order__id=model_obj.batch_detail.transact_id,
-                                                            status=1).values_list('id', flat=True)
-                update_batch_dict = copy.deepcopy(model_obj.batch_detail.__dict__)
-                BatchDetail.objects.filter(transact_type='po_loc', transact_id__in=po_location_ids,
-                                           receipt_number=model_obj.batch_detail.receipt_number)\
-                                    .update(mrp=update_batch_dict.get('mrp',0),
-                                            batch_no=update_batch_dict.get('batch_no'),
-                                            buy_price=update_batch_dict.get('buy_price'),
-                                            manufactured_date=update_batch_dict.get('manufactured_date'),
-                                            expiry_date=update_batch_dict.get('expiry_date'),
-                                            tax_percent=update_batch_dict.get('tax_percent'))
+            if seller_po_check:
+                if model_obj.batch_detail:
+                    if model_obj.batch_detail.transact_type == 'seller_po_summary':
+                        PrimarySegregation.objects.filter(seller_po_summary__id=model_obj.batch_detail.transact_id,
+                                                          seller_po_summary__receipt_number=model_obj.receipt_number)\
+                                                    .update(batch_detail=model_obj.batch_detail)
+                    else:
+                        PrimarySegregation.objects.filter(purchase_order__id=model_obj.batch_detail.transact_id,
+                                                          seller_po_summary__receipt_number=model_obj.receipt_number)\
+                                                  .update(batch_detail=model_obj.batch_detail)
+                    po_location_ids = POLocation.objects.filter(purchase_order__id=model_obj.batch_detail.transact_id,
+                                                                status=1).values_list('id', flat=True)
+                    update_batch_dict = copy.deepcopy(model_obj.batch_detail.__dict__)
+                    BatchDetail.objects.filter(transact_type='po_loc', transact_id__in=po_location_ids,
+                                               receipt_number=model_obj.batch_detail.receipt_number)\
+                                        .update(mrp=update_batch_dict.get('mrp',0),
+                                                batch_no=update_batch_dict.get('batch_no'),
+                                                weight=update_batch_dict.get('weight'),
+                                                buy_price=update_batch_dict.get('buy_price'),
+                                                manufactured_date=update_batch_dict.get('manufactured_date'),
+                                                expiry_date=update_batch_dict.get('expiry_date'),
+                                                tax_percent=update_batch_dict.get('tax_percent'))
 
 
-            if batch_dict and not model_obj.batch_detail:
-                batch_dict['transact_id'] = model_obj.id
-                batch_dict['transact_type'] = 'seller_po_summary'
-                batch_obj = create_update_batch_data(batch_dict)
-                if batch_obj:
-                    model_obj.batch_detail_id = batch_obj.id
-                    model_obj.save()
+                if batch_dict and not model_obj.batch_detail:
+                    batch_dict['transact_id'] = model_obj.id
+                    batch_dict['transact_type'] = 'seller_po_summary'
+                    batch_obj = create_update_batch_data(batch_dict)
+                    if batch_obj:
+                        model_obj.batch_detail_id = batch_obj.id
+                        model_obj.save()
         return HttpResponse("Success")
     except Exception as e:
         import traceback

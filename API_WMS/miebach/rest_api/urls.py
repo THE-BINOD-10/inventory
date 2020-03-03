@@ -275,6 +275,7 @@ urlpatterns = [
     url(r'^cal_ba_to_sa/$',cal_ba_to_sa),
     url(r'^ba_to_sa_calculate_now/$',ba_to_sa_calculate_now),
     url(r'^get_move_inventory_reasons/$',get_move_inventory_reasons),
+    url(r'^stock_detail_update/$',stock_detail_update),
 
     # OutBound
     url(r'^batch_generate_picklist/$', batch_generate_picklist),
@@ -625,6 +626,7 @@ urlpatterns += [
     url(r'^delete_tax/$', delete_tax),
     url(r'^update_invoice_sequence/$', update_invoice_sequence),
     url(r'^update_dc_sequence/$', update_dc_sequence),
+    url(r'^update_user_type_sequence/$', update_user_type_sequence),
     url(r'^update_mail_alerts/$', update_mail_alerts),
     url(r'^pos_extra_fields/$',pos_extra_fields),
     url(r'^save_config_extra_fields/$',save_config_extra_fields),

@@ -505,7 +505,7 @@ class OpenPR(models.Model):
 
     class Meta:
         db_table = 'OPEN_PR'
-        unique_together = ('requested_user', 'sku')
+        #unique_together = ('requested_user', 'sku')
 
 
 @reversion.register()

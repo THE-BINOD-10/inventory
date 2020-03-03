@@ -57,7 +57,9 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
                                 configName=configName, 
                                 level=currentUserLevel).distinct().values_list('openpr_number', flat=True))
             # if currentUserLevel:
-            filtersMap.update(pr_number__in=pr_numbers)
+            filtersMap.setdefault('pr_number__in', [])
+            filtersMap['pr_number__in'] = list(chain(filtersMap['pr_number__in'], pr_numbers))
+            #filtersMap.update(pr_number__in=pr_numbers)
     sku_master, sku_master_ids = get_sku_master(user, user)
     # lis = ['supplier__name', 'total', 'order_type']
     # search_params = get_filtered_params(filters, lis[1:])

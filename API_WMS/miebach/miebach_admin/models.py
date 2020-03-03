@@ -2163,6 +2163,7 @@ class SellerOrderSummary(models.Model):
     picklist = models.ForeignKey(Picklist, blank=True, null=True, db_index=True)
     quantity = models.FloatField(default=0)
     invoice_number = models.CharField(max_length=64, default='')
+    full_invoice_number = models.CharField(max_length=64, default='')
     challan_number = models.CharField(max_length=64, default='')
     order_status_flag = models.CharField(max_length=64, default='processed_orders')
     delivered_flag = models.IntegerField(default=0)

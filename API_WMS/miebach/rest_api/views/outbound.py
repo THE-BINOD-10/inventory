@@ -11121,7 +11121,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                    'seller_order__seller__seller_id', 'seller_order__order__customer_name', 'quantity', 'quantity',
                    'quantity', 'date_only', 'invoice_number']
             user_filter = {'seller_order__seller__user': user.id, 'order_status_flag': 'customer_invoices'}
-            result_values = ['invoice_number', 'seller_order__seller__name',
+            result_values = ['invoice_number', 'full_invoice_number', 'seller_order__seller__name',
                              'seller_order__sor_id', 'financial_year', 'seller_order__order__customer_name']
             field_mapping = {'order_quantity_field': 'seller_order__quantity',
                              'date_only': 'seller_order__order__creation_date'}
@@ -11130,7 +11130,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             lis = ['invoice_number', 'invoice_number', 'financial_year', 'order__customer_name', 'invoice_number', 'invoice_number',
                    'date_only', 'invoice_number', 'invoice_number']
             user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
-            result_values = ['invoice_number', 'financial_year', 'order__customer_name', 'order__marketplace']
+            result_values = ['invoice_number', 'full_invoice_number', 'financial_year', 'order__customer_name', 'order__marketplace']
             field_mapping = {'order_quantity_field': 'order__quantity', 'date_only': 'creation_date'}
             is_marketplace = False
 
@@ -11149,14 +11149,14 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                     annotate(total_quantity=Sum('quantity'),
                              ordered_quantity=Sum(field_mapping['order_quantity_field'], distinct=True),
                              date_only=Cast(field_mapping['date_only'], DateField())).\
-                    filter(Q(invoice_number__icontains=search_term)|search_query)
+                    filter(Q(full_invoice_number__icontains=search_term)|search_query)
             else:
                 master_data = SellerOrderSummary.objects.filter(**user_filter).values(
                     *result_values).distinct(). \
                     annotate(total_quantity=Sum('quantity'),
                              ordered_quantity=Sum(field_mapping['order_quantity_field'], distinct=True),
                              date_only=Cast(field_mapping['date_only'], DateField())).\
-                        filter(Q(invoice_number__icontains=search_term)|
+                        filter(Q(full_invoice_number__icontains=search_term)|
                                                                 search_query)
 
         elif order_term:
@@ -11245,7 +11245,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             order_date = get_local_date(user, order.creation_date)
             invoice_date = invoice_date.strftime("%d %b %Y") if invoice_date else order.creation_date.strftime("%d %b %Y")
             if is_marketplace:
-                data_dict = OrderedDict((("Invoice ID", data['invoice_number']), ('UOR ID', order_id), ('SOR ID', summary.seller_order.sor_id),
+                data_dict = OrderedDict((("Invoice ID", data['full_invoice_number']), ('UOR ID', order_id), ('SOR ID', summary.seller_order.sor_id),
                                          ('Seller ID', summary.seller_order.seller.seller_id),
                                          ('id', str(data['invoice_number']) + \
                                           ":" + str(data.get('pick_number', '')) + ":" + data['seller_order__seller__name'] + \
@@ -11254,7 +11254,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                                          ))
                 customer_name = data['seller_order__order__customer__name']
             else:
-                data_dict = OrderedDict((("Invoice ID", data['invoice_number']), ('Order ID', order_id),
+                data_dict = OrderedDict((("Invoice ID", data['full_invoice_number']), ('Order ID', order_id),
                                          ('id', str(data['invoice_number']) + ":" + str(data.get('pick_number', '')) + ':' + data['financial_year']),
                                          ('check_field', 'Order ID')))
                 customer_name = data['order__customer_name']
@@ -11711,6 +11711,7 @@ def move_to_inv(request, user=''):
     else:
         sell_ids = construct_sell_ids(request, user)
         #del sell_ids['pick_number__in']
+    user_type = user.userprofile.user_type
     seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
     if is_sample_option == 'true':
         for data in seller_summary:
@@ -11722,7 +11723,7 @@ def move_to_inv(request, user=''):
                     if received_quantity != 0:
                         data.quantity = data.quantity - received_quantity
     if cancel_flag != 'true':
-        if user.userprofile.user_type == 'marketplace_user':
+        if user_type == 'marketplace_user':
             marketplace = seller_summary[0].seller_order.order.marketplace
         else:
             marketplace = seller_summary[0].order.marketplace
@@ -11741,6 +11742,12 @@ def move_to_inv(request, user=''):
             for sel_obj in seller_summary:
                 if not sel_obj.invoice_number:
                     sel_obj.invoice_number = order_no
+                    if user_type == 'marketplace_user':
+                        order_obj = sel_obj.seller_order.order
+                    else:
+                        order_obj = sel_obj.order
+                    full_invoice_number = get_full_invoice_number(user, order_no, order_obj, invoice_date='', pick_number=sel_obj.pick_number)
+                    sel_obj.full_invoice_number = full_invoice_number
                     sel_obj.creation_date=date
                     sel_obj.save()
                     is_inv_num_added = True

@@ -2956,6 +2956,7 @@ def update_remarks_put_zone(remarks, user, put_zone, seller_summary_id=''):
 def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, is_confirm_receive=False):
     order_quantity_dict = {}
     all_data = OrderedDict()
+    po_new_data = OrderedDict()
     seller_receipt_id = 0
     po_data = []
     status_msg = ''
@@ -3030,6 +3031,8 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                     continue
                 get_data = create_purchase_order(request, myDict, i, exist_id=exist_id)
                 myDict['id'][i] = get_data
+        if status_msg:
+            return get_data,status_msg,'','','','','','','','',''
         data = PurchaseOrder.objects.get(id=myDict['id'][i])
         if remarks != data.remarks:
             data.remarks = remarks
@@ -3098,11 +3101,14 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
                     purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
                     purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent,
-                    purchase_data['apmc_tax'],myDict['batch_no'][i], mrp,discrepency_quantity,discrepency_reason)
+                    purchase_data['apmc_tax'],myDict['batch_no'][i], mrp)
 
 
         all_data.setdefault(cond, 0)
         all_data[cond] += float(value)
+        po_new_data[cond] = {'discrepency_quantity':discrepency_quantity, 'discrepency_reason':discrepency_reason}
+        if myDict['id'][i]:
+            po_new_data[cond]['po_id'] = myDict['id'][i]
         if data.id not in order_quantity_dict:
             order_quantity_dict[data.id] = float(purchase_data['order_quantity']) - temp_quantity
         data.received_quantity = float(data.received_quantity) + float(value)
@@ -3216,7 +3222,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                         purchase_data['order_quantity'],
                         value, price))
     create_file_po_mapping(request, user, seller_receipt_id, myDict)
-    return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, send_discrepencey
+    return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, po_new_data, send_discrepencey
 
 
 def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='', data='', po_id=''):
@@ -3304,6 +3310,9 @@ def confirm_grn(request, confirm_returns='', user=''):
     seller_name = user.username
     seller_address = user.userprofile.address
     seller_receipt_id = 0
+    fmcg = False
+    if user.userprofile.industry_type == 'FMCG':
+        fmcg = True
     if user.username in MILKBASKET_USERS and (not request.POST.get('invoice_number', '') and not request.POST.get('dc_number', '')):
         return HttpResponse("Invoice/DC Number  is Mandatory")
     if user.username in MILKBASKET_USERS and (not request.POST.get('invoice_date', '') and not request.POST.get('dc_date', '')):
@@ -3330,11 +3339,12 @@ def confirm_grn(request, confirm_returns='', user=''):
     else:
         myDict = confirm_returns
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
-    # total_discrepency_amount = 0
-    # total_discrepency_qty = 0
+    total_discrepency_amount = 0
+    total_discrepency_qty = 0
+    discrepency_number = 0
     try:
         po_data, status_msg, all_data, order_quantity_dict, \
-        purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, send_discrepencey = generate_grn(myDict, request, user,  failed_qty_dict={}, passed_qty_dict={}, is_confirm_receive=True)
+        purchase_data, data, data_dict, seller_receipt_id, created_qc_ids,po_new_data, send_discrepencey = generate_grn(myDict, request, user,  failed_qty_dict={}, passed_qty_dict={}, is_confirm_receive=True)
         for key, value in all_data.iteritems():
             entry_price = float(key[3]) * float(value)
             if key[10]:
@@ -3344,26 +3354,47 @@ def confirm_grn(request, confirm_returns='', user=''):
                 entry_price += (float(entry_price) / 100) * entry_tax
 
 
-            # if user.userprofile.industry_type == 'FMCG':
-            #     tax = key[4]+key[5]+key[6]+key[7]+key[9]
-            #     discrepencey_price = key[3]*key[14]
-            #     discrepencey_price_tax = (discrepencey_price+ key[14]*key[3]*tax/100)
-            #     total_discrepency_amount+=discrepencey_price_tax
-            #     total_discrepency_qty+=key[14]
+            if fmcg:
                 # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
                 #                                   key[6], key[7], entry_price, key[8], key[9], key[12]))
-                putaway_data[headers].append({'wms_code': key[1], 'order_quantity': order_quantity_dict[key[0]],
+                purchase_order_dict = {'wms_code': key[1], 'order_quantity': order_quantity_dict[key[0]],
                                               'received_quantity': value, 'measurement_unit': key[2],
                                                'price': key[3], 'cgst_tax': key[4], 'sgst_tax': key[5],
                                                'igst_tax': key[6], 'utgst_tax': key[7], 'amount': entry_price,
                                                'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': key[12],
-                                               'mrp': key[13],
-                                               # 'discrepency_quantity':key[14],
-                                               # 'discrepency_reason': key[15],
-                                               # 'tax_percent':tax,
-                                               # 'discrepencey_price':discrepencey_price,
-                                               # 'discrepencey_price_tax':discrepencey_price_tax,
-                                            })
+                                               'mrp': key[13]}
+
+                if send_discrepencey:
+                    tax = key[4] + key[5] + key[6]
+                    discrepency_quantity = float(po_new_data[key].get('discrepency_quantity', 0))
+                    discrepencey_reason = po_new_data[key].get('discrepency_reason', '')
+                    po_id = po_new_data[key].get('po_id', '')
+                    discrepencey_price = key[3] * discrepency_quantity
+                    discrepencey_price_tax = discrepencey_price + (discrepency_quantity * key[3] * tax / 100)
+                    total_discrepency_amount += discrepencey_price_tax
+                    total_discrepency_qty += discrepency_quantity
+                    if discrepency_quantity:
+                        purchase_order_text = json.dumps(purchase_order_dict)
+                        discrepency_dict = {'quantity': discrepency_quantity, 'return_reason': discrepencey_reason,}
+                        if po_id:
+                            discrepency_dict['purchase_order_id'] = po_id
+                        else:
+                            discrepency_dict['new_data']= purchase_order_text
+                        if not discrepency_number:
+                            incremental_object = IncrementalTable.objects.filter(user=user.id,type_name='discrepancy')
+                            if not incremental_object.exists():
+                                discrepency_number = 1
+                                incremental_object = IncrementalTable.objects.create(user_id=user.id,value=discrepency_number,type_name='discrepancy')
+                            else:
+                                discrepency_number = incremental_object[0].value
+
+                        discrepency_dict['discrepancy_number'] = 'DIS'+ str(discrepency_number)
+                        Discrepancy.objects.create(**discrepency_dict)
+                        discrpency_po_dict = {'discrepency_quantity':discrepency_quantity,'discrepency_reason': discrepencey_reason,
+                                              'discrepencey_price':discrepencey_price,'discrepencey_price_tax':discrepencey_price_tax,}
+                        purchase_order_dict.update(discrpency_po_dict)
+
+                putaway_data[headers].append(purchase_order_dict)
             else:
                 # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3],key[4], key[5],
                 #                               key[6], key[7], entry_price, key[8], key[9], ''))
@@ -3447,8 +3478,9 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': int(total_tax),
                                 'tax_value': tax_value,
-                                # 'total_discrepency_amount':total_discrepency_amount,
-                                # 'total_discrepency_qty':total_discrepency_qty,
+                                'total_discrepency_amount':total_discrepency_amount,
+                                'total_discrepency_qty':total_discrepency_qty,
+                                'discrepency_number': discrepency_dict.get('discrepancy_number',''),
                                 'overall_discount':overall_discount,
                                 'net_amount':float(total_price) - float(overall_discount),
                                 'address': address,'grn_extra_field_dict':grn_extra_field_dict,
@@ -3462,15 +3494,16 @@ def confirm_grn(request, confirm_returns='', user=''):
                 t = loader.get_template('templates/toggle/grn_form.html')
                 rendered = t.render(report_data_dict)
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data, order_date, internal=True, report_type="Goods Receipt Note")
+            if send_discrepencey and fmcg:
+                incremental_object.update(value=discrepency_number+1)
+                t = loader.get_template('templates/toggle/discrepency_form.html')
+                rendered = t.render(report_data_dict)
+                data_dict_po = {'po_date': order_date,'po_reference':po_number ,
+                                'invoice_number': bill_no,'supplier_name': data_dict[1][1],
+                                'number': discrepency_dict.get('discrepancy_number',''),'type':'Discrepancy' ,}
+                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
+                                   order_date, internal=True, report_type="Discrepancy Note",data_dict_po = data_dict_po)
 
-
-                # if send_discrepencey:
-                #     t = loader.get_template('templates/toggle/discrepency_form.html')
-                #     rendered = t.render(report_data_dict)
-                #     write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
-                #                        order_date, internal=True, report_type="Discrepancy Note")
-            if send_discrepencey:
-                do_discrepencey(all_data, report_data_dict, user)
 
             return render(request, 'templates/toggle/c_putaway_toggle.html', report_data_dict)
         else:
@@ -5772,16 +5805,13 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
     elif report_type == 'posform' :
         email_body = 'pls find the attachment'
         email_subject = 'pos order'
-    elif report_type == 'Discrepancy Note':
-        email_body = 'Please Find the attachment'
-        email_subject = 'Discrepancy Note for the Purchase Order {}'.format(f_name)
-    elif report_type == 'rtv_mail':
+    elif report_type in ['rtv_mail', 'Discrepancy Note'] :
         t = loader.get_template('templates/toggle/auto_rtv_mail_format.html')
         email_body = t.render(data_dict_po)
         extra_data = ''
         if user.username in MILKBASKET_USERS:
             extra_data = 'ASPL'
-        email_subject = 'Debit Note {} from {} {} to  {}'.format(data_dict_po.get('rtv_number',''),
+        email_subject = 'Debit Note {} from {} {} to  {}'.format(data_dict_po.get('number',''),
                                                                  extra_data,user.username,data_dict_po.get('supplier_name',''))
 
     if report_type == 'Purchase Order' and data_dict_po and user.username in MILKBASKET_USERS:
@@ -6989,7 +7019,7 @@ def confirm_receive_qc(request, user=''):
                 ind].split(',')
             myDict['imei_number'].append(','.join(imeis_list))
         po_data, status_msg, all_data, order_quantity_dict, \
-        purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, send_discrepency = generate_grn(myDict, request, user, failed_qty_dict=failed_serial_number, passed_qty_dict=passed_serial_number, is_confirm_receive=True)
+        purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, po_new_data, send_discrepency = generate_grn(myDict, request, user, failed_qty_dict=failed_serial_number, passed_qty_dict=passed_serial_number, is_confirm_receive=True)
         for i in range(0, len(myDict['id'])):
             if not myDict['id'][i] or not (int(myDict['id'][i]) in created_qc_ids):
                 continue
@@ -7077,8 +7107,7 @@ def confirm_receive_qc(request, user=''):
                                 'total_price': total_price, 'total_tax': total_tax, 'address': address,
                                 'seller_name': seller_name, 'company_name': profile.company_name,
                                 'company_address': profile.address, 'bill_no': bill_no,
-                                'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(
-                                    data.order_id),
+                                'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id),
                                 'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class, 'bill_date': str(bill_date),
                                 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)}
@@ -9262,11 +9291,9 @@ def create_rtv(request, user=''):
             show_data_invoice = get_debit_note_data(rtv_number, user)
             if send_rtv_mail:
                 supplier_email = show_data_invoice.get('supplier_email', '')
-                data_dict_po = {'po_date': show_data_invoice.get('grn_date',''),
-                                'po_reference': show_data_invoice.get('grn_no',''),
-                                'invoice_number': invoice_number,
-                                'supplier_name':show_data_invoice.get('supplier_name',''),
-                                'rtv_number':show_data_invoice.get('rtv_number',''),
+                data_dict_po = {'po_date': show_data_invoice.get('grn_date',''),'po_reference': show_data_invoice.get('grn_no',''),
+                                'invoice_number': invoice_number,'supplier_name':show_data_invoice.get('supplier_name',''),
+                                'number':show_data_invoice.get('rtv_number',''),'type':'RTV',
                                  }
                 t = loader.get_template('templates/toggle/rtv_mail.html')
                 rendered_mail = t.render({'show_data_invoice': [show_data_invoice]})

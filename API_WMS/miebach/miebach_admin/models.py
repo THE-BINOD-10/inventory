@@ -600,6 +600,7 @@ class BatchDetail(models.Model):
     batch_no = models.CharField(max_length=64, default='')
     buy_price = models.FloatField(default=0)
     mrp = models.FloatField(default=0)
+    receipt_number = models.PositiveIntegerField(default=1)
     manufactured_date = models.DateField(null=True, blank=True)
     expiry_date = models.DateField(null=True, blank=True)
     tax_percent = models.FloatField(default=0)
@@ -3479,3 +3480,22 @@ def save_order_original_quantity(sender, instance, created, **kwargs):
     if created:
         instance.original_quantity = instance.quantity
         instance.save()
+
+
+@reversion.register()
+class Discrepancy(models.Model):
+    id = BigAutoField(primary_key=True)
+    discrepancy_number = models.CharField(max_length=32, default='')
+    purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
+    new_data = models.TextField(default='')
+    quantity = models.FloatField(default=0)
+    status = models.IntegerField(default=1)
+    return_reason = models.CharField(max_length=64, default='')
+    return_type = models.CharField(max_length=32, default='Discrepancy')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'DISCREPANCY'
+
+

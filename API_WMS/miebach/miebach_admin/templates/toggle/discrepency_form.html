@@ -29,7 +29,7 @@ tr,td{
   <tbody>
     <tr>
       <td colspan="2">
-        <h3 class="m0" align="center"><b>Discrepancy NOTE</b></h3>
+        <h3 class="m0" align="center"><b>Debit Note (Discrepancy Note)</b></h3>
       </td>
     </tr>
     <tr>
@@ -43,13 +43,10 @@ tr,td{
         <div class="row m0" style="height: 105px;overflow: hidden;">
           <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
             <div class="col-md-12 p0">
-              <h4 class="m0"><b>Supplier Details:</b></h4>
             </div>
             <div class="col-md-12 p0">
-              <span><b>Supplier ID: </b>{{ data_dict.1.1 }}</span><br>
-              <span><b>Supplier Name: </b>{{ data_dict.3.1 }}</span><br>
-              <span><b>GST NO: </b>{{ data_dict.4.1 }}</span><br>
-              <span>{{ address }}</span>
+              <span><b>Serial No. on Debit Note: </b>{{ discrepency_number }}</span><br>
+              <span><b>Date of Debit Note </b>{{ order_date }}</span><br>
             </div>
           </div>
         </div>
@@ -57,35 +54,63 @@ tr,td{
       <td class="fs14">
         <div class="row m0">
           <div class="col-xs-6 text-left">
-            <strong>GRN NO:</strong>{{ po_number }}
+            <strong>Original Invoice No.</strong>{{ bill_no }}
           </div>
           <div class="col-xs-6 text-left">
-            <strong>Date:</strong>{{ order_date }}
           </div>
         </div>
         <div class="row m0">
           <div class="col-xs-6 text-left">
-            <strong>Bill NO:</strong> {{ bill_no }}
-          </div>
-          <div class="col-xs-6 text-left">
-            <strong>Bill Date:</strong>{{ bill_date }}
+            <strong>Date of Issue of the Original Invoice:</strong> {{ bill_date }}
           </div>
         </div>
       </td>
     </tr>
+  <tr>
+      <td style="width: 50%">
+        <div class="row m0" style="overflow: hidden;">
+          <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+            <div class="col-md-12 p0">
+              <h4>Details of Receiver (Billed to) :</h4>
+              <span><b>Name :</b></span>{{ data_dict.1.1 }}<br>
+              <span><b>Address  line</b></span>{{ address }}<br>
+<!--              <span><b>City :</b></span>{{ page.city }}<br>-->
+<!--              <span><b>Pincode :</b></span>{{ page.pincode }}<br>-->
+              <span><b>GST No :</b></span>{{ data_dict.4.1  }}<br>
+            </div>
+          </div>
+        </div>
+            </td>
+            <td style="width: 50%">
+        <div class="row m0" style="overflow: hidden;">
+          <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+            <div class="col-md-12 p0">
+              <h4>Details of Consignee (Shipped to) :</h4>
+              <span><b>Name :</b></span>{{ data_dict.1.1 }}<br>
+              <span><b>Address  line</b></span>{{ address }}<br>
+<!--              <span><b>City :</b></span>{{ page.city }}<br>-->
+<!--              <span><b>Pincode :</b></span>{{ page.pincode }}<br>-->
+              <span><b>GST No :</b></span>{{ data_dict.4.1  }}<br>
+            </div>
+          </div>
+        </div>
+      </td>
+  </tr>
   </tbody>
 </table>
 <table class="table-bordered bl br cal-table m0 table-custom" width="960">
   <thead>
     <tr class="fs14">
       <th class="w5"><center>SL NO</center></th>
-      <th><center>UPC</center></th>
-      <th><center>Name</center></th>
+      <th><center>SKU Code</center></th>
+      <th><center>SKU Description</center></th>
       <th class="w6"><center>QTY</center></th>
-      <th class="w6"><center>Unit Landing Price(Excluding tax)</center></th>
+      <th class="w6"><center>Rate Per Unit(Excluding tax)</center></th>
       <th class="w6"><center>Sub Total (Excluding Tax)</center></th>
-      <th class="w6"><center>GST(%)</center></th>
-      <th class="w6"><center>Net Amount(including tax)</center></th>
+      <th class="w6"><center>CGST(%)</center></th>
+      <th class="w6"><center>SGST(%)</center></th>
+      <th class="w6"><center>IGST(%)</center></th>
+      <th class="w6"><center>Amount(including tax)</center></th>
       <th class="w6"><center>Reason</center></th>
     </tr>
   </thead>
@@ -102,28 +127,16 @@ tr,td{
       <td class="text-right"> {{ i.discrepency_quantity}} </td>
       <td class="text-right">{{i.price}}</td>
       <td class="text-right">{{i.discrepencey_price}}</td>
-      <td class="text-right">{{i.tax_percent}}</td>
+      <td class="text-right">{{i.cgst_tax}}</td>
+      <td class="text-right">{{i.sgst_tax}}</td>
+      <td class="text-right">{{i.igst_tax}}</td>
       <td class="text-right">{{i.discrepencey_price_tax}}</td>
       <td class="text-right">{{i.discrepency_reason}}</td>
     </tr>
     {% endfor %}
     {% if forloop.last %}
     <tr style="border-top: 1px solid black;">
-      <td class="fs14" colspan="3">
-        <div class="row m0">
-          <div class="col-xs-12 text-left">
-            <span>NAME OF CORRIER:</span><br>
-            <span>LR/GC NOTE NO.: {{ lr_number }}</span><br>
-            <span>VEHICLE NO.:</span><br>
-            <span>PACKING REF.:</span><br>
-            <span>REMARKS: {{remarks}}</span>
-          </div>
-      </td>
-      <td class="fs14" colspan="6">
-      </td>
-    </tr>
-    <tr style="border-top: 1px solid black;">
-        <td class="fs14" colspan="9">
+        <td class="fs14" colspan="11">
         <div class="row m0">
         </div>
         <div class="row m0">
@@ -137,7 +150,20 @@ tr,td{
             <span class="pull-right"> {{ total_discrepency_amount }}</span>
           </div>
         </div>
-          <p>This is a computer generated Invoice and Signature is not required</p>
+      </td>
+    </tr>
+    <tr>
+      <td class="fs14" colspan="4">
+        <div class="row m0">
+          <div class="col-xs-12 text-left">
+            <span>GRN No. :</span> {{ po_number  }}<br>
+            <span>GRN Date:</span> {{ order_date }} <br>
+          </div>
+        </div>
+      </td>
+      <td class="fs14 text-center" colspan="9">
+        <h5 class="m0">For {{ company_name }}</h5><br><br>
+        <h5 class="m0">Authorised Signatory</h5>
       </td>
     </tr>
     {% endif %}

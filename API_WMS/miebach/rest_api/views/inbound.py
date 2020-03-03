@@ -2452,7 +2452,7 @@ def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segrega
                                 'quantity': received_quantity, 'id': ''}]
     for po_received in seller_received_list:
         if po_received.get('put_zone', ''):
-            put_zone = po_received['put_zone']
+            put_zone = po_received['put_zne']
         temp_dict['seller_id'] = po_received.get('seller_id', '')
         batch_dict['transact_type'] = 'po'
         batch_dict['transact_id'] = data.id
@@ -2466,7 +2466,6 @@ def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segrega
         location = get_purchaseorder_locations(put_zone, temp_dict)
         received_quantity = po_received['quantity']
         for loc in location:
-
             location_quantity, received_quantity = get_remaining_capacity(loc, received_quantity, put_zone,
                                                                           pallet_number, user)
             if not location_quantity:
@@ -2475,9 +2474,7 @@ def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segrega
                 po_received = update_seller_summary_locs(data, loc, location_quantity, po_received)
             if not 'quality_check' in temp_dict.keys():
                 location_data = {'purchase_order_id': data.id, 'location_id': loc.id, 'status': 1,
-                                 'quantity': location_quantity,
-                                 'original_quantity': location_quantity,
-                                 }
+                                 'quantity': location_quantity,'original_quantity': location_quantity,}
                 user_check = 'location__zone__user'
                 if data.open_po:
                     user_check = 'purchase_order__open_po__sku__user'
@@ -2491,6 +2488,11 @@ def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segrega
                 if pallet_number:
                     if temp_dict['pallet_data'] == 'true':
                         insert_pallet_data(temp_dict, po_loc)
+                if temp_dict.get('discrepency_quantity',''):
+                    if float(purchase_data['order_quantity']) <= data.received_quantity+float(temp_dict.get('discrepency_quantity')):
+                        data.status = 'location-assigned'
+                        data.save()
+                        break
                 if received_quantity == 0:
                     if float(purchase_data['order_quantity']) - float(temp_dict['received_quantity']) <= 0:
                         data.status = 'location-assigned'
@@ -3072,11 +3074,12 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
         purchase_data['remarks'] = remarks
 
         if myDict.get('discrepency_check','') :
-            if myDict.get('discrepency_check', '')[i]:
-                if myDict['discrepency_quantity'][i]:
-                    discrepency_quantity = float(myDict['discrepency_quantity'][i])
-                discrepency_reason = myDict['discrepency_reason'][i]
-                send_discrepencey = True
+            if myDict.get('discrepency_check')[0]!='false':
+                if myDict.get('discrepency_check', '')[i]:
+                    if myDict['discrepency_quantity'][i]:
+                        discrepency_quantity = float(myDict['discrepency_quantity'][i])
+                    discrepency_reason = myDict['discrepency_reason'][i]
+                    send_discrepencey = True
 
         if 'discount_percentage' in myDict and myDict['discount_percentage'][i]:
             sku_row_discount_percent = float(myDict['discount_percentage'][i])
@@ -3187,6 +3190,8 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                                                seller_summary_id=seller_received_list[0].get('id', ''))
         temp_dict = {'received_quantity': float(value), 'user': user.id, 'data': data, 'pallet_number': pallet_number,
                      'pallet_data': pallet_data}
+        if discrepency_quantity:
+            temp_dict['discrepency_quantity'] = discrepency_quantity
         if get_permission(request.user, 'add_qualitycheck') and purchase_data['qc_check'] == 1:
             put_zone = 'QC_ZONE'
             qc_data = copy.deepcopy(QUALITY_CHECK_FIELDS)
@@ -3342,6 +3347,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     total_discrepency_amount = 0
     total_discrepency_qty = 0
     discrepency_number = 0
+    discrepency_dict = {}
     try:
         po_data, status_msg, all_data, order_quantity_dict, \
         purchase_data, data, data_dict, seller_receipt_id, created_qc_ids,po_new_data, send_discrepencey = generate_grn(myDict, request, user,  failed_qty_dict={}, passed_qty_dict={}, is_confirm_receive=True)
@@ -3352,7 +3358,6 @@ def confirm_grn(request, confirm_returns='', user=''):
             entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7] + float(key[9]) + float(key[11]))
             if entry_tax:
                 entry_price += (float(entry_price) / 100) * entry_tax
-
 
             if fmcg:
                 # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],

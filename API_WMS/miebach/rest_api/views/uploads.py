@@ -4020,6 +4020,13 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                 data_dict[key] = cell_data
                 #if user.username in MILKBASKET_USERS and not cell_data:
                 #    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
+            elif key == 'price':
+                if user.userprofile.industry_type == 'FMCG':
+                    data_dict['buy_price'] = float(cell_data)
+                    if data_dict['buy_price']<0:
+                        index_status.setdefault(row_idx, set()).add('Invalid Buy Price')
+                data_dict[key] = float(cell_data)
+
             else:
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
@@ -4099,7 +4106,7 @@ def inventory_adjust_upload(request, user=''):
         if final_dict.get('weight', ''):
             weight = final_dict['weight']
         if final_dict.get('price', '') or final_dict.get('price', '') == 0:
-            price = int(final_dict['price'])
+            price = float(final_dict['price'])
         if str(seller_master_id) in seller_receipt_dict.keys():
             receipt_number = seller_receipt_dict[str(seller_master_id)]
         else:

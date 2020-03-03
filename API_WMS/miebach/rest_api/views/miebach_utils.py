@@ -5018,7 +5018,6 @@ def get_order_summary_data(search_params, user, sub_user):
     return temp_data
 
 def tally_dump(user,order_id,invoice_amount_picked,unit_price_inclusive_tax, gst_number,unit_discount,discount, taxable_amount, tax_percent, mrp_price, data,billing_address,customer_name,invoice_number, invoice_date, quantity, order_summary):
-    # from rest_api.views.common import get_full_invoice_number
     discount_percent, selling_price = 0, 0
     cgst_amount, sgst_amount, igst_amount = 0,0,0
     tally_Data = OrderedDict()
@@ -5036,9 +5035,6 @@ def tally_dump(user,order_id,invoice_amount_picked,unit_price_inclusive_tax, gst
       igst_amount = float(order_summary[0].igst_tax) * (float(amt) / 100)
       utgst_amount = float(order_summary[0].utgst_tax) * (float(amt) / 100)
     if invoice_number:
-        # order_obj = OrderDetail.objects.filter(original_order_id=order_id, user=user.id)[0]
-        # if order_obj:
-        #     invoice_number = get_full_invoice_number(user, invoice_number, order_obj, invoice_date='', pick_number='')
         tally_Data = OrderedDict((('Voucher Type', 'SPARE PARTS'),
                               ('Invoice Number', invoice_number),
                               ('Invoice Date', invoice_date),

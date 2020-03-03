@@ -1744,6 +1744,7 @@ def insert_inventory_adjust(request, user=''):
     quantity = request.GET['quantity']
     reason = request.GET['reason']
     loc = request.GET['location']
+    price = request.GET.get('price', '')
     pallet_code = request.GET.get('pallet', '')
     batch_no = request.GET.get('batch_no', '')
     mrp = request.GET.get('mrp', '')
@@ -1766,7 +1767,7 @@ def insert_inventory_adjust(request, user=''):
                                        seller_master_id=seller_master_id, weight=weight)
     else:
         status, stock_stats_objs = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet_code, batch_no, mrp,
-                                       seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
+                                       seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,price=price,
                                        receipt_type='inventory-adjustment')
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)

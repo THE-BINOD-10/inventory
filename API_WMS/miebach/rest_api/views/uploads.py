@@ -1065,7 +1065,7 @@ def move_inventory_form(request, user=''):
         return error_file_download(inventory_file)
     excel_headers = get_move_inventory_excel_upload_headers(user)
     wb, ws = get_work_sheet('Inventory', excel_headers)
-    return xls_to_response(wb, '%s.move_inventory_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.move_inventory_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1807,7 +1807,7 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
     inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
-    excel_check_list = ['receipt_date', 'quantity', 'wms_code', 'location']
+    excel_check_list = ['receipt_date', 'quantity', 'wms_code', 'location', 'price']
     if user.userprofile.user_type == 'marketplace_user':
         excel_check_list.append('seller_id')
     if user.userprofile.industry_type == 'FMCG':
@@ -1816,7 +1816,7 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
     if not set(excel_check_list).issubset(excel_mapping.keys()):
         return 'Invalid File', []
     number_fields = ['quantity']
-    optional_fields = ['mrp']
+    optional_fields = ['mrp', 'price']
     mandatory_fields = ['receipt_date', 'location', 'quantity', 'receipt_type']
     fields_mapping = {'manufactured_date': 'Manufactured Date', 'expiry_date': 'Expiry Date'}
     location_master = LocationMaster.objects.filter(zone__user=user.id)
@@ -2003,7 +2003,7 @@ def inventory_excel_upload(request, user, data_list):
                 if weight:
                     batch_dict['weight'] = weight
                 if price:
-                    batch_dict["price"] = price
+                    batch_dict["buy_price"] = int(price)
                 add_ean_weight_to_batch_detail(SKUMaster.objects.get(id=inventory_data['sku_id']), batch_dict)
                 batch_obj = BatchDetail(**batch_dict)
                 batch_obj.save()
@@ -3403,7 +3403,7 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
         inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
         excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                      inv_mapping)
-        excel_check_list = ['wms_code', 'source', 'destination', 'quantity']
+        excel_check_list = ['wms_code', 'source', 'destination', 'quantity','price']
         if user.userprofile.user_type == 'marketplace_user':
             excel_check_list.append('seller_id')
         if user.userprofile.industry_type == 'FMCG':
@@ -3533,6 +3533,13 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                     stock_dict['sellerstock__quantity__gt'] = 0
                     reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
                     raw_reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
+                if data_dict.get('price', '') or data_dict.get('price', '') == 0 :
+                    price = int(data_dict['price'])
+                    if data_dict['price'] == stock_dict["stock__unit_price"]:
+                        stock_dict['stock__unit_price'] = price
+                        reserved_dict["stock__unit_price"] = price
+                        raw_reserved_dict['stock__unit_price'] = price
+                    continue
                 stocks = StockDetail.objects.filter(**stock_dict)
                 if not stocks:
                     index_status.setdefault(row_idx, set()).add('No Stocks Found')
@@ -3611,6 +3618,7 @@ def move_inventory_upload(request, user=''):
             dest_loc = data_dict['destination']
             quantity = data_dict['quantity']
             reason = data_dict.get('reason', '')
+            price = data_dict.get('price', '')
             seller_id = ''
             if data_dict.get('seller_id', ''):
                 extra_dict['seller_id'] = data_dict['seller_id']
@@ -3630,6 +3638,8 @@ def move_inventory_upload(request, user=''):
             extra_dict['receipt_type'] = 'move-inventory'
             extra_dict['receipt_number'] = receipt_number
             extra_dict['reason'] = reason
+            extra_dict['unit_price'] = price
+            print(extra_dict)
             response=move_stock_location(wms_code, source_loc, dest_loc, quantity, user, **extra_dict)
             if response == 'Added Successfully':
                 count+=1
@@ -3946,7 +3956,7 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
     inv_mapping = get_inventory_adjustment_excel_upload_headers(user)
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
-    excel_check_list = ['wms_code', 'location', 'quantity', 'reason']
+    excel_check_list = ['wms_code', 'location', 'quantity', 'reason', 'price']
     if user.userprofile.user_type == 'marketplace_user':
         excel_check_list.append('seller_id')
     if user.userprofile.industry_type == 'FMCG':
@@ -3958,6 +3968,7 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
         print row_idx
         data_dict = {}
         for key, value in excel_mapping.iteritems():
+            print(key,excel_mapping.items())
             cell_data = get_cell_data(row_idx, value, reader, file_type)
             if key == 'wms_code':
                 if isinstance(cell_data, (int, float)):
@@ -4078,7 +4089,7 @@ def inventory_adjust_upload(request, user=''):
         loc = final_dict['location_master'].location
         quantity = final_dict['quantity']
         reason = final_dict['reason']
-        seller_master_id, batch_no, mrp, weight = '', '', 0, ''
+        seller_master_id, batch_no, mrp, weight, price = '', '', 0, '', 0
         if final_dict.get('seller_master', ''):
             seller_master_id = final_dict['seller_master'].id
         if final_dict.get('batch_no', ''):
@@ -4087,13 +4098,15 @@ def inventory_adjust_upload(request, user=''):
             mrp = final_dict['mrp']
         if final_dict.get('weight', ''):
             weight = final_dict['weight']
+        if final_dict.get('price', '') or final_dict.get('price', '') == 0:
+            price = int(final_dict['price'])
         if str(seller_master_id) in seller_receipt_dict.keys():
             receipt_number = seller_receipt_dict[str(seller_master_id)]
         else:
             receipt_number = get_stock_receipt_number(user)
             seller_receipt_dict[str(seller_master_id)] = receipt_number
         adj_status, stock_stats_objs = adjust_location_stock(cycle_id, wms_code, loc, quantity, reason, user, stock_stats_objs, batch_no=batch_no, mrp=mrp,
-                              seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
+                              seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number, price=price,
                               receipt_type='inventory-adjustment')
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)

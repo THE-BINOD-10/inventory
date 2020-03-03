@@ -1920,7 +1920,7 @@ def create_invnetory_adjustment_record(user, dat, quantity, reason, location, no
 
 
 def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet='', batch_no='', mrp='',
-                          seller_master_id='', weight='', receipt_number=1, receipt_type='',):
+                          seller_master_id='', weight='', receipt_number=1, receipt_type='',price= ''):
     now_date = datetime.datetime.now()
     now = str(now_date)
     adjustment_objs = []
@@ -1958,6 +1958,8 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
         stock_dict["batch_detail__weight"] = weight
     if seller_master_id:
         stock_dict['sellerstock__seller_id'] = seller_master_id
+    if price:
+        stock_dict['batch_detail__buy_price'] = price
     total_stock_quantity = 0
     dest_stocks = ''
 
@@ -2040,6 +2042,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                 del stock_dict["batch_detail__weight"]
             if 'sellerstock__seller_id' in stock_dict.keys():
                 del stock_dict['sellerstock__seller_id']
+
             latest_batch = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id=sku_id, receipt_number=1).\
                                                     exclude(batch_detail__isnull=True)
             if latest_batch.exists():
@@ -2059,6 +2062,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
             if batch_dict.keys():
                 batch_obj = BatchDetail.objects.create(**batch_dict)
                 stock_dict["batch_detail_id"] = batch_obj.id
+                stock_dict["batch_detail__buy_price"] = batch_obj.price
             if pallet:
                 del stock_dict['pallet_detail_id']
             del stock_dict["sku__user"]
@@ -9129,6 +9133,8 @@ def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         stock_dict["batch_detail__weight"] = weight
     if seller_master_id:
         stock_dict['sellerstock__seller_id'] = seller_master_id
+    if price:
+        stock_dict["batch_detail__buy_price"] = price
 
     total_stock_quantity = 0
     if quantity:
@@ -9148,6 +9154,7 @@ def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         data_dict['status'] = 0
         data_dict['creation_date'] = now
         data_dict['updation_date'] = now
+        data_dict['price'] = price
         cycle_obj = CycleCount.objects.filter(cycle=cycle_id, sku_id=sku_id, location_id=data_dict['location_id'])
         if cycle_obj:
             cycle_obj = cycle_obj[0]

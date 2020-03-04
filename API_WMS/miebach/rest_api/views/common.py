@@ -845,9 +845,16 @@ def add_update_pr_config(request,user=''):
                 else:
                     eachConfig = PRApprovalConfig.objects.create(**PRApprovalMap)
                     eachConfigId = eachConfig.id
-
-                
+            # To Delete Existing Mails from  Level
             mailsList = [i.strip() for i in mails.split(',')]
+            memQs = MasterEmailMapping.objects.filter(master_type='pr_approvals_conf_data', 
+                                    master_id=eachConfigId)
+            existingMails = memQs.values_list('email_id', flat=True)
+            toBeDeletedMails = set(list(existingMails)) - set(mailsList)
+            for tobeDelMail in toBeDeletedMails:
+                memQs.filter(email_id=tobeDelMail).delete()
+
+            # To add new email in Level
             for eachMail in mailsList:
                 emailMap = {
                             'user': user, 
@@ -860,6 +867,21 @@ def add_update_pr_config(request,user=''):
     else:
         status = "Wrong data provided in Configuration"
     return HttpResponse(status)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def delete_pr_config(request, user=''):
+    toBeDeleteData = eval(request.POST.get('data', []))
+    if toBeDeleteData:
+        configName = toBeDeleteData[0].get('name')
+        PRApprovalConfig.objects.filter(user=user, name=configName).delete()
+        status = 'Deleted Successfully'
+    else:
+        status = 'Something Went Wrong, Please check with Tech Team'
+    return HttpResponse(status)
+
 
 def fetchConfigNameRangesMap(user):
     confMap = OrderedDict()

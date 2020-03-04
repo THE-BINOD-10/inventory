@@ -16343,7 +16343,10 @@ def insert_allocation_data(request, user=''):
                 try:
                     val = float(val)
                 except:
-                    return HttpResponse("Invalid %s" % error_dict[key])
+                    if key in error_dict.keys():
+                        return HttpResponse("Invalid %s" % error_dict[key])
+                    else:   
+                        val = 0
             data_dict[key] = val
         sku_master = SKUMaster.objects.filter(sku_code=data_dict['sku_id'], user=user.id)
         if not sku_master.exists():
@@ -16446,7 +16449,8 @@ def get_order_allocation_data(start_index, stop_index, temp_data, search_term, o
     if order_term == 'desc':
         order_data = '-%s' % order_data
 
-    orders = OrderDetail.objects.filter(**search_params)
+    orders = OrderDetail.objects.filter(**search_params).annotate(return_qty=Sum('orderreturns__quantity')).\
+                                exclude(return_qty__isnull=False, return_qty__gte=F('original_quantity'))
     if order_term:
         orders = orders.order_by(order_data)
 
@@ -16455,13 +16459,16 @@ def get_order_allocation_data(start_index, stop_index, temp_data, search_term, o
 
     count = 0
     for order in orders[start_index: stop_index]:
+        quantity = order.original_quantity
+        if order.return_qty:
+            quantity -= order.return_qty
         temp_data['aaData'].append(OrderedDict((('data_id', order.id),
                                                 ('Order ID', order.original_order_id),
                                                 ('Customer ID', order.customer_id),
                                                 ('Customer Name', order.customer_name),
                                                 ('SKU Code', order.sku.sku_code),
                                                 ('SKU Description', order.sku.sku_desc),
-                                                ('Allocated Quantity', order.original_quantity),
+                                                ('Allocated Quantity', quantity),
                                                 ('Deallocation Quantity',
                                                  '<input type="number" class="form-control" name="deallocation_qty" min="0" ng-model="showCase.deallocation_qty_val_%s" ng-init="showCase.deallocation_qty_val_%s=0" ng-keyup="showCase.check_dealloc_qty(%s, %s)">' % (str(order.id), str(order.id), str(count), str(order.id))
 
@@ -16477,6 +16484,13 @@ def get_order_allocation_data(start_index, stop_index, temp_data, search_term, o
 @get_admin_user
 @fn_timer
 def insert_deallocation_data(request, user=''):
+    from rest_api.views.inbound import create_return_order, save_return_locations, confirm_returns_putaway, returns_order_tracking
+    return_wms_codes = []
+    receipt_number = get_stock_receipt_number(user)
+    mod_locations = []
+    marketplace_data = []
+    seller_receipt_mapping = {}
+    unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
     data_id = request.POST.get('data_id', '')
     quantity = request.POST.get('dealloc_qty', '')
     if not (data_id or quantity):
@@ -16484,4 +16498,31 @@ def insert_deallocation_data(request, user=''):
     order = OrderDetail.objects.filter(id=data_id, user=user.id)
     if not order.exists():
         return HttpResponse("Invalid Order")
-    import pdb;pdb.set_trace()
+    try:
+        order = order[0]
+        credit_note_number = ''
+        data_dict = {'sku_code': order.sku.sku_code, 'return': quantity, 'damaged': 0, 'order_imei_id': '',
+                     'order_id': order.original_order_id, 'order_detail_id': order.id}
+        data_dict['id'], status, seller_order_ids, credit_note_number = create_return_order(data_dict, user.id,
+                                                                                              credit_note_number)
+        order_returns = OrderReturns.objects.filter(id=data_dict['id'])
+        if not order_returns:
+            return HttpResponse("Failed")
+        order_returns = order_returns[0]
+        save_return_locations([order_returns], [], 0, request, user)
+        returns_order_tracking(order_returns, user, quantity, 'returned', imei='', invoice_no='')
+        returns_location_data = ReturnsLocation.objects.filter(returns_id=order_returns.id, status=1)
+        for returns_data in returns_location_data:
+            location = returns_data.location.location
+            zone = returns_data.location.zone.zone
+            status, return_wms_codes, mod_locations, marketplace_data,\
+            seller_receipt_mapping = confirm_returns_putaway(user, returns_data, location, zone, returns_data.quantity,
+                                                             unique_mrp, receipt_number, return_wms_codes, mod_locations, marketplace_data,
+                                                             seller_receipt_mapping)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Parts DeAllocation failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Failed")
+    return HttpResponse("Success")

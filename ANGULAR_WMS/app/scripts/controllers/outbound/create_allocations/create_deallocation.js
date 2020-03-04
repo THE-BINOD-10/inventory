@@ -191,11 +191,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 		  dealloc_dict['data_id'] = data_id;
 		  dealloc_dict['dealloc_qty'] = vm['deallocation_qty_val_'+ data_id]
           vm.service.apiCall('insert_deallocation_data/', 'POST', dealloc_dict).then(function(resp) {
-            if (resp.data.status) {
-              var page = vm.dtInstance.DataTable.page()
-              $timeout(function() {
-                  vm.dtInstance.DataTable.page(page).draw(false);
-              },1000)
+            if (resp.data == 'Success') {
+              vm.service.refresh(vm.dtInstance);
             }
           })
 		}

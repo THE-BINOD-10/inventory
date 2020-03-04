@@ -7389,13 +7389,17 @@ def generate_order_jo_data(request, user=''):
 @get_admin_user
 def search_customer_data(request, user=''):
     search_key = request.GET.get('q', '')
+    type = request.GET.get('type' ,'')
     total_data = []
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 
     lis = ['name', 'email_id', 'phone_number', 'address', 'status', 'tax_type']
+    filter_params  = {'user':user.id,'status':1}
+    if type:
+        filter_params['customer_type'] = type
     master_data = CustomerMaster.objects.filter(Q(phone_number__icontains=search_key) | Q(name__icontains=search_key) |
-                                                Q(customer_id__icontains=search_key), user=user.id,status = 1)
+                                                Q(customer_id__icontains=search_key), **filter_params)
 
     for data in master_data[:30]:
         status = 'Inactive'
@@ -16010,11 +16014,22 @@ def generate_picklist_dc(request, user=''):
 @login_required
 @get_admin_user
 def get_order_extra_fields(request , user =''):
-    extra_order_fields = []
+    extra_order_fields ,order_level_data = [], 0
+    sku_level_order_fields , sku_level = [] ,0
     order_field_obj = get_misc_value('extra_order_fields', user.id)
+    sku_level_fields = get_misc_value('extra_order_sku_fields', user.id)
     if not order_field_obj == 'false':
         extra_order_fields = order_field_obj.split(',')
-    return HttpResponse(json.dumps({'data':extra_order_fields }))
+    if not sku_level_fields == 'false':
+        sku_level_order_fields = sku_level_fields.split(',')
+        if sku_level_order_fields:
+            sku_level = 1
+        if extra_order_fields:
+            order_level_data = 1
+    return HttpResponse(json.dumps({'order_level':extra_order_fields,
+                                    'order_level_data': order_level_data,
+                                    'sku_level_order_fields': sku_level_order_fields,
+                                    'sku_level':sku_level,}))
 
 
 @login_required

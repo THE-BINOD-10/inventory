@@ -3889,6 +3889,7 @@ def get_return_segregation_locations(order_returns, batch_dict, data, user):
         data['put_zone'] = put_zone.zone
     return data
 
+
 def save_return_locations(order_returns, all_data, damaged_quantity, request, user, is_rto=False,
                           batch_dict=None):
     order_returns = order_returns[0]
@@ -6074,6 +6075,106 @@ def get_return_seller_id(returns, user):
     return seller_id
 
 
+def confirm_returns_putaway(user, returns_data, location, zone, quantity, unique_mrp, receipt_number, return_wms_codes,
+                                mod_locations, marketplace_data, seller_receipt_mapping):
+    status = ''
+    if location and zone and quantity:
+        location_id = LocationMaster.objects.filter(location=location, zone__zone=zone, zone__user=user.id)
+        if not location_id:
+            status = "Zone, location match doesn't exists"
+    else:
+        status = 'Missing zone or location or quantity'
+    if not status:
+        sku_id = returns_data.returns.sku_id
+        return_wms_codes.append(returns_data.returns.sku.wms_code)
+        seller_id = ''
+        unit_price = returns_data.returns.sku.cost_price
+        if returns_data.returns.order:
+            picklist = returns_data.returns.order.picklist_set.filter(stock__isnull=False)
+            if picklist:
+                unit_price = picklist[0].stock.unit_price
+        if user.username in MILKBASKET_USERS:
+            seller_obj = SellerMaster.objects.filter(seller_id=1, user=user.id).only('id')
+            if seller_obj.exists():
+                seller_id = seller_obj[0].id
+        if not seller_id:
+            seller_id = get_return_seller_id(returns_data.returns, user)
+        if seller_id:
+            if seller_id in seller_receipt_mapping.keys():
+                receipt_number = seller_receipt_mapping[seller_id]
+            else:
+                receipt_number = get_stock_receipt_number(user)
+                seller_receipt_mapping[seller_id] = receipt_number
+        batch_detail = BatchDetail.objects.filter(transact_type='return_loc', transact_id=returns_data.id)
+        stock_filter_params = {'location_id': location_id[0].id, 'receipt_number': receipt_number,
+                               'sku_id': sku_id, 'sku__user': user.id, 'receipt_type': 'return'}
+        if batch_detail:
+            if user.username in MILKBASKET_USERS and unique_mrp == 'true':
+                data_dict = {'sku_code': returns_data.returns.sku.wms_code, 'mrp': batch_detail[0].mrp,
+                             'weight': batch_detail[0].weight,
+                             'seller_id': seller_id, 'location': location_id[0].location}
+                status = validate_mrp_weight(data_dict, user)
+                if status:
+                    return HttpResponse(status)
+            stock_filter_params['batch_detail_id'] = batch_detail[0].id
+        stock_data = StockDetail.objects.filter(**stock_filter_params)
+        seller_stock = None
+        if stock_data:
+            stock_data = stock_data[0]
+            setattr(stock_data, 'quantity', float(stock_data.quantity) + quantity)
+            if batch_detail:
+                stock_data.batch_detail_id = batch_detail[0].id
+            stock_data.save()
+            if seller_id:
+                seller_stock_obj = stock_data.sellerstock_set.filter(seller_id=seller_id)
+                if not seller_stock_obj:
+                    seller_stock_dict = {'seller_id': seller_id, 'stock_id': stock_data.id, 'quantity': quantity,
+                                         'status': 1,
+                                         'creation_date': datetime.datetime.now()}
+                    seller_stock = SellerStock(**seller_stock_dict)
+                    seller_stock.save()
+                else:
+                    seller_stock = seller_stock_obj[0]
+                    seller_stock.quantity = float(seller_stock.quantity) + quantity
+                    seller_stock.save()
+            mod_locations.append(stock_data.location.location)
+        else:
+            stock_dict = {'location_id': location_id[0].id, 'receipt_number': receipt_number,
+                          'receipt_date': datetime.datetime.now(),
+                          'sku_id': sku_id, 'quantity': quantity, 'status': 1,
+                          'creation_date': datetime.datetime.now(), 'updation_date': datetime.datetime.now(),
+                          'receipt_type': 'return', 'unit_price': unit_price}
+            if batch_detail:
+                stock_dict['batch_detail_id'] = batch_detail[0].id
+            new_stock = StockDetail(**stock_dict)
+            new_stock.save()
+            stock_data = new_stock
+            stock_id = new_stock.id
+            if seller_id:
+                seller_stock_dict = {'seller_id': seller_id, 'stock_id': stock_id, 'quantity': quantity,
+                                     'status': 1,
+                                     'creation_date': datetime.datetime.now()}
+                seller_stock = SellerStock(**seller_stock_dict)
+                seller_stock.save()
+            mod_locations.append(new_stock.location.location)
+        if seller_stock and seller_stock.stock.location.zone.zone not in ['DAMAGED_ZONE']:
+            marketplace_data.append({'sku_code': str(seller_stock.stock.sku.sku_code),
+                                     'seller_id': int(seller_stock.seller.seller_id),
+                                     'quantity': int(quantity)})
+        returns_data.quantity = float(returns_data.quantity) - float(quantity)
+
+        # Save SKU Level stats
+        save_sku_stats(user, returns_data.returns.sku_id, returns_data.returns.id, 'return', quantity, stock_data)
+        if returns_data.quantity <= 0:
+            returns_data.status = 0
+        if not returns_data.location_id == location_id[0].id:
+            setattr(returns_data, 'location_id', location_id[0].id)
+        returns_data.save()
+        status = 'Updated Successfully'
+
+    return status, return_wms_codes, mod_locations, marketplace_data, seller_receipt_mapping
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -6097,98 +6198,102 @@ def returns_putaway_data(request, user=''):
         if not returns_data:
             continue
         returns_data = returns_data[0]
-        if location and zone and quantity:
-            location_id = LocationMaster.objects.filter(location=location, zone__zone=zone, zone__user=user.id)
-            if not location_id:
-                status = "Zone, location match doesn't exists"
-        else:
-            status = 'Missing zone or location or quantity'
-        if not status:
-            sku_id = returns_data.returns.sku_id
-            return_wms_codes.append(returns_data.returns.sku.wms_code)
-            seller_id = ''
-            unit_price = returns_data.returns.sku.cost_price
-            if returns_data.returns.order:
-                picklist = returns_data.returns.order.picklist_set.filter(stock__isnull=False)
-                if picklist:
-                    unit_price = picklist[0].stock.unit_price
-            if user.username in MILKBASKET_USERS:
-                seller_obj = SellerMaster.objects.filter(seller_id=1, user=user.id).only('id')
-                if seller_obj.exists():
-                    seller_id = seller_obj[0].id
-            if not seller_id:
-                seller_id = get_return_seller_id(returns_data.returns, user)
-            if seller_id:
-                if seller_id in seller_receipt_mapping.keys():
-                    receipt_number = seller_receipt_mapping[seller_id]
-                else:
-                    receipt_number = get_stock_receipt_number(user)
-                    seller_receipt_mapping[seller_id] = receipt_number
-            batch_detail = BatchDetail.objects.filter(transact_type='return_loc', transact_id=returns_data.id)
-            stock_filter_params = {'location_id': location_id[0].id, 'receipt_number': receipt_number,
-                                   'sku_id': sku_id, 'sku__user': user.id, 'receipt_type': 'return'}
-            if batch_detail:
-                if user.username in MILKBASKET_USERS and unique_mrp == 'true':
-                    data_dict = {'sku_code':returns_data.returns.sku.wms_code, 'mrp':batch_detail[0].mrp, 'weight':batch_detail[0].weight,
-                                 'seller_id':seller_id, 'location':location_id[0].location}
-                    status = validate_mrp_weight(data_dict, user)
-                    if status:
-                        return HttpResponse(status)
-                stock_filter_params['batch_detail_id'] = batch_detail[0].id
-            stock_data = StockDetail.objects.filter(**stock_filter_params)
-            seller_stock = None
-            if stock_data:
-                stock_data = stock_data[0]
-                setattr(stock_data, 'quantity', float(stock_data.quantity) + quantity)
-                if batch_detail:
-                    stock_data.batch_detail_id = batch_detail[0].id
-                stock_data.save()
-                if seller_id:
-                    seller_stock_obj = stock_data.sellerstock_set.filter(seller_id=seller_id)
-                    if not seller_stock_obj:
-                        seller_stock_dict = {'seller_id': seller_id, 'stock_id': stock_data.id, 'quantity': quantity,
-                                             'status': 1,
-                                             'creation_date': datetime.datetime.now()}
-                        seller_stock = SellerStock(**seller_stock_dict)
-                        seller_stock.save()
-                    else:
-                        seller_stock = seller_stock_obj[0]
-                        seller_stock.quantity = float(seller_stock.quantity) + quantity
-                        seller_stock.save()
-                mod_locations.append(stock_data.location.location)
-            else:
-                stock_dict = {'location_id': location_id[0].id, 'receipt_number': receipt_number,
-                              'receipt_date': datetime.datetime.now(),
-                              'sku_id': sku_id, 'quantity': quantity, 'status': 1,
-                              'creation_date': datetime.datetime.now(), 'updation_date': datetime.datetime.now(),
-                              'receipt_type': 'return', 'unit_price': unit_price}
-                if batch_detail:
-                    stock_dict['batch_detail_id'] = batch_detail[0].id
-                new_stock = StockDetail(**stock_dict)
-                new_stock.save()
-                stock_data = new_stock
-                stock_id = new_stock.id
-                if seller_id:
-                    seller_stock_dict = {'seller_id': seller_id, 'stock_id': stock_id, 'quantity': quantity,
-                                         'status': 1,
-                                         'creation_date': datetime.datetime.now()}
-                    seller_stock = SellerStock(**seller_stock_dict)
-                    seller_stock.save()
-                mod_locations.append(new_stock.location.location)
-            if seller_stock and seller_stock.stock.location.zone.zone not in ['DAMAGED_ZONE']:
-                marketplace_data.append({'sku_code': str(seller_stock.stock.sku.sku_code),
-                                         'seller_id': int(seller_stock.seller.seller_id),
-                                         'quantity': int(quantity)})
-            returns_data.quantity = float(returns_data.quantity) - float(quantity)
-
-            # Save SKU Level stats
-            save_sku_stats(user, returns_data.returns.sku_id, returns_data.returns.id, 'return', quantity, stock_data)
-            if returns_data.quantity <= 0:
-                returns_data.status = 0
-            if not returns_data.location_id == location_id[0].id:
-                setattr(returns_data, 'location_id', location_id[0].id)
-            returns_data.save()
-            status = 'Updated Successfully'
+        status, return_wms_codes, mod_locations, marketplace_data, \
+        seller_receipt_mapping = confirm_returns_putaway(user, returns_data, location, zone, quantity, unique_mrp, receipt_number,
+                                return_wms_codes,
+                                mod_locations, marketplace_data, seller_receipt_mapping)
+        # if location and zone and quantity:
+        #     location_id = LocationMaster.objects.filter(location=location, zone__zone=zone, zone__user=user.id)
+        #     if not location_id:
+        #         status = "Zone, location match doesn't exists"
+        # else:
+        #     status = 'Missing zone or location or quantity'
+        # if not status:
+        #     sku_id = returns_data.returns.sku_id
+        #     return_wms_codes.append(returns_data.returns.sku.wms_code)
+        #     seller_id = ''
+        #     unit_price = returns_data.returns.sku.cost_price
+        #     if returns_data.returns.order:
+        #         picklist = returns_data.returns.order.picklist_set.filter(stock__isnull=False)
+        #         if picklist:
+        #             unit_price = picklist[0].stock.unit_price
+        #     if user.username in MILKBASKET_USERS:
+        #         seller_obj = SellerMaster.objects.filter(seller_id=1, user=user.id).only('id')
+        #         if seller_obj.exists():
+        #             seller_id = seller_obj[0].id
+        #     if not seller_id:
+        #         seller_id = get_return_seller_id(returns_data.returns, user)
+        #     if seller_id:
+        #         if seller_id in seller_receipt_mapping.keys():
+        #             receipt_number = seller_receipt_mapping[seller_id]
+        #         else:
+        #             receipt_number = get_stock_receipt_number(user)
+        #             seller_receipt_mapping[seller_id] = receipt_number
+        #     batch_detail = BatchDetail.objects.filter(transact_type='return_loc', transact_id=returns_data.id)
+        #     stock_filter_params = {'location_id': location_id[0].id, 'receipt_number': receipt_number,
+        #                            'sku_id': sku_id, 'sku__user': user.id, 'receipt_type': 'return'}
+        #     if batch_detail:
+        #         if user.username in MILKBASKET_USERS and unique_mrp == 'true':
+        #             data_dict = {'sku_code':returns_data.returns.sku.wms_code, 'mrp':batch_detail[0].mrp, 'weight':batch_detail[0].weight,
+        #                          'seller_id':seller_id, 'location':location_id[0].location}
+        #             status = validate_mrp_weight(data_dict, user)
+        #             if status:
+        #                 return HttpResponse(status)
+        #         stock_filter_params['batch_detail_id'] = batch_detail[0].id
+        #     stock_data = StockDetail.objects.filter(**stock_filter_params)
+        #     seller_stock = None
+        #     if stock_data:
+        #         stock_data = stock_data[0]
+        #         setattr(stock_data, 'quantity', float(stock_data.quantity) + quantity)
+        #         if batch_detail:
+        #             stock_data.batch_detail_id = batch_detail[0].id
+        #         stock_data.save()
+        #         if seller_id:
+        #             seller_stock_obj = stock_data.sellerstock_set.filter(seller_id=seller_id)
+        #             if not seller_stock_obj:
+        #                 seller_stock_dict = {'seller_id': seller_id, 'stock_id': stock_data.id, 'quantity': quantity,
+        #                                      'status': 1,
+        #                                      'creation_date': datetime.datetime.now()}
+        #                 seller_stock = SellerStock(**seller_stock_dict)
+        #                 seller_stock.save()
+        #             else:
+        #                 seller_stock = seller_stock_obj[0]
+        #                 seller_stock.quantity = float(seller_stock.quantity) + quantity
+        #                 seller_stock.save()
+        #         mod_locations.append(stock_data.location.location)
+        #     else:
+        #         stock_dict = {'location_id': location_id[0].id, 'receipt_number': receipt_number,
+        #                       'receipt_date': datetime.datetime.now(),
+        #                       'sku_id': sku_id, 'quantity': quantity, 'status': 1,
+        #                       'creation_date': datetime.datetime.now(), 'updation_date': datetime.datetime.now(),
+        #                       'receipt_type': 'return', 'unit_price': unit_price}
+        #         if batch_detail:
+        #             stock_dict['batch_detail_id'] = batch_detail[0].id
+        #         new_stock = StockDetail(**stock_dict)
+        #         new_stock.save()
+        #         stock_data = new_stock
+        #         stock_id = new_stock.id
+        #         if seller_id:
+        #             seller_stock_dict = {'seller_id': seller_id, 'stock_id': stock_id, 'quantity': quantity,
+        #                                  'status': 1,
+        #                                  'creation_date': datetime.datetime.now()}
+        #             seller_stock = SellerStock(**seller_stock_dict)
+        #             seller_stock.save()
+        #         mod_locations.append(new_stock.location.location)
+        #     if seller_stock and seller_stock.stock.location.zone.zone not in ['DAMAGED_ZONE']:
+        #         marketplace_data.append({'sku_code': str(seller_stock.stock.sku.sku_code),
+        #                                  'seller_id': int(seller_stock.seller.seller_id),
+        #                                  'quantity': int(quantity)})
+        #     returns_data.quantity = float(returns_data.quantity) - float(quantity)
+        #
+        #     # Save SKU Level stats
+        #     save_sku_stats(user, returns_data.returns.sku_id, returns_data.returns.id, 'return', quantity, stock_data)
+        #     if returns_data.quantity <= 0:
+        #         returns_data.status = 0
+        #     if not returns_data.location_id == location_id[0].id:
+        #         setattr(returns_data, 'location_id', location_id[0].id)
+        #     returns_data.save()
+        #     status = 'Updated Successfully'
     return_wms_codes = list(set(return_wms_codes))
     if user.username in MILKBASKET_USERS:
         check_and_update_marketplace_stock(return_wms_codes, user)

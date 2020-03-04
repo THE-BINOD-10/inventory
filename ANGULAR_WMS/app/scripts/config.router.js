@@ -1655,13 +1655,13 @@ var app = angular.module('urbanApp')
                   'scripts/controllers/outbound/create_allocations/create_allocation.js'
                 ]).then( function() {
                   return $ocLazyLoad.load([
-                    'scripts/controllers/outbound/create_orders/create_stock_orders.js'
+                    'scripts/controllers/outbound/create_allocations/create_deallocation.js'
                   ])
                 });
               }]
           },
           data: {
-            title: 'Create Orders',
+            title: 'Create Allocation / Deallocation',
           }
         })
         .state('app.outbound.CreateStockTransfer', {

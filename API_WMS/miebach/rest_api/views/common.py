@@ -593,6 +593,7 @@ data_datatable = {  # masters
     'AltStockTransferOrders': 'get_stock_transfer_order_level_data', 'RatingsTable': 'get_ratings_data',\
     'MyOrdersTbl' : 'get_customer_orders',\
     'MarketEnqTbl': 'get_enquiry_data', 'CustomOrdersTbl': 'get_manual_enquiry_data',\
+    'OrderAllocations': 'get_order_allocation_data',
     # manage users
     'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
     # retail one

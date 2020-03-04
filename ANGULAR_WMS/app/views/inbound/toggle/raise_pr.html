@@ -40,22 +40,22 @@
                     <th>WMS Code*</th>
                     <th>Title</th>
                     <th ng-if="showCase.show_ean_number">EAN Number</th>
-                    <th class="w10_" ng-if="!(user.user_profile.user_type == 'marketplace_user')">Supplier Code</th>
+                    <!-- <th class="w10_" ng-if="!(user.user_profile.user_type == 'marketplace_user')">Supplier Code</th> -->
 
                     <!--<th ng-if="user.user_profile.user_type == 'marketplace_user'">Description</th>-->
                     <th class="w10_">Quantity*</th>
-                    <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Measurement</th>
-                    <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
+                    <!-- <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Measurement</th> -->
+                    <!-- <th ng-if="showCase.industry_type=='FMCG'">MRP</th> -->
                     <th>Unit Price</th>
-                    <th ng-if="showCase.industry_type=='FMCG' && user.user_profile.user_type == 'marketplace_user'">Weight</th>
+                    <!-- <th ng-if="showCase.industry_type=='FMCG' && user.user_profile.user_type == 'marketplace_user'">Weight</th> -->
                     <th class="w10_">SGST(%)</th>
                     <th class="w10_">CGST(%)</th>
                     <th class="w10_">IGST(%)</th>
                     <th class="w10_">UTGST(%)</th>
-                    <th class="w10_">CESS(%)</th>
+                    <!-- <th class="w10_">CESS(%)</th>
                     <th class="w10_">APMC(%)</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Remarks</th>
-                    <th ng-if="user.user_profile.user_type == 'marketplace_user'">Dedicated Seller</th>
+                    <th ng-if="user.user_profile.user_type == 'marketplace_user'">Dedicated Seller</th> -->
                     <th class="plus"></th>
                   </tr>
                 </thead>
@@ -73,25 +73,25 @@
                       <input  ng-model="product.fields.ean_number" name="ean_number" title="{{ product.fields.ean_number }}" type="text" class="form-control detectTab" readonly size="50">
                     </td>
 
-                    <td ng-if="!(user.user_profile.user_type == 'marketplace_user')" ng-readonly="showCase.default_status">
+                    <!-- <td ng-if="!(user.user_profile.user_type == 'marketplace_user')" ng-readonly="showCase.default_status">
                       <input id="wms1" ng-model="product.fields.supplier_code" type="text" name="supplier_code" class="form-control detectTab " value="">
-                    </td>
+                    </td> -->
                     <td>
                       <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
                              ng-class="service.get_decimal_perm()" ng-readonly="showCase.default_status"
                              ng-keyup="showCase.getTotals()" size="12">
                     </td>
-                    <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
+                    <!-- <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
                       <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
-                    </td>
-                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="product.fields.mrp" size="22" title="{{ product.fields.mrp }}" name="mrp" class="form-control detectTab" ng-class="service.get_decimal_perm()" size="12"></td>
+                    </td> -->
+                    <!-- <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="product.fields.mrp" size="22" title="{{ product.fields.mrp }}" name="mrp" class="form-control detectTab" ng-class="service.get_decimal_perm()" size="12"></td> -->
                     <td>
                       <input type="text"  ng-model="product.fields.price" name="price" class="form-control detectTab" decimal-number
                              ng-readonly="showCase.default_status" ng-keyup="showCase.getTotals()" size="12">
                     </td>
-                    <td ng-if="showCase.industry_type=='FMCG' && user.user_profile.user_type == 'marketplace_user'">
+                    <!-- <td ng-if="showCase.industry_type=='FMCG' && user.user_profile.user_type == 'marketplace_user'">
                       <input name="weight" ng-model="product.fields.weight" type="text" class="form-control detectTab" readonly size="12">
-                    </td>
+                    </td> -->
                     <td>
 		               	<input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
 		               	<input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
@@ -108,20 +108,20 @@
 			                  <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
                         <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
                     </td>
-                    <td>
+                    <!-- <td>
                        <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
 		                   <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length !== 0" ng-debounce size="12">
-                    </td>
-                    <td>
+                    </td> -->
+                    <!-- <td>
                       <input type="text" ng-model="product.fields.apmc_tax" name="apmc_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
-                    </td>
-                    <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
+                    </td> -->
+                    <!-- <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
                       <input type="text" ng-model="product.fields.remarks" name="remarks" class="form-control detectTab"
                              ng-readonly="showCase.default_status">
-                    </td>
-                    <td ng-if="user.user_profile.user_type == 'marketplace_user'" id="tabChangeParent" ng-init="product.fields.dedicated_seller = showCase.model_data.seller_type">
+                    </td> -->
+                    <!-- <td ng-if="user.user_profile.user_type == 'marketplace_user'" id="tabChangeParent" ng-init="product.fields.dedicated_seller = showCase.model_data.seller_type">
                       <input type="text" ng-model="product.fields.dedicated_seller" id="tabChange" name="dedicated_seller" class="form-control detectTab" ng-readonly="showCase.update && !product.fields.is_new">
-                    </td>
+                    </td> -->
 
                     <td>
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">

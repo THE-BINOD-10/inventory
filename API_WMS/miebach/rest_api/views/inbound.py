@@ -1188,7 +1188,6 @@ def switches(request, user=''):
                        'display_dc_invoice': 'display_dc_invoice',
                        'display_order_reference': 'display_order_reference',
                        'mrp_discount':'mrp_discount',
-                       'levels_based_pr_to_po': 'levels_based_pr_to_po',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

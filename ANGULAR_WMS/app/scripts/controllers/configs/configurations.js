@@ -43,7 +43,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'show_mrp_grn': false,
                     'display_dc_invoice':false,
                     'display_order_reference':false,
-                    'levels_based_pr_to_po': false,
                     'move_inventory_reasons':'',
                   };
   vm.all_mails = '';
@@ -78,7 +77,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      101: 'display_dc_invoice',
                      102: 'display_order_reference',
                      103: 'picklist_sort_by_sku_sequence',
-                     104: 'levels_based_pr_to_po'
                      }
 
   vm.check_box_data = [
@@ -597,13 +595,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    name: "Display Order Reference in Outbound",
    model_name: "display_order_reference",
    param_no: 102,
-   class_name: "fa fa-server",
-   display: true
-  },
-  {
-   name: "Enable Purchase Request to PO",
-   model_name: "levels_based_pr_to_po",
-   param_no: 104,
    class_name: "fa fa-server",
    display: true
   },

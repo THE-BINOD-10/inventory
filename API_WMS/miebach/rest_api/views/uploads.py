@@ -6193,12 +6193,8 @@ def create_order_fields_entry(interm_order_id, name, value, user, is_bulk_create
                               order_fields_objs=None):
     if not order_fields_objs:
         order_fields_objs = []
-    order_fields_data = {}
-    order_fields_data['original_order_id'] = interm_order_id
-    order_fields_data['name'] = name
-    order_fields_data['value'] = value
-    order_fields_data['user'] = user.id
-    order_fields_data['order_type'] = 'intermediate_order'
+    order_fields_data = {'original_order_id': interm_order_id, 'name': name, 'value': value, 'user': user.id,
+                         'order_type': 'intermediate_order'}
     if not is_bulk_create:
         OrderFields.objects.create(**order_fields_data)
     else:

@@ -1000,7 +1000,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   vm.get_order_extra_fields = function(){
     vm.service.apiCall("get_order_extra_fields/").then(function(data){
       if(data.message) {
-        vm.order_extra_fields = data.data.data;
+        vm.order_extra_fields = data.data.order_level;
         if(vm.order_extra_fields[0] == '')
         {
           vm.extra_fields = false

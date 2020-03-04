@@ -16342,7 +16342,7 @@ def generate_dc(request , user = ''):
 @fn_timer
 def insert_allocation_data(request, user=''):
     myDict = dict(request.POST.iterlists())
-    single_key = ['customer_name', 'customer_id']
+    single_key = ['customer_name', 'customer_id','customer_type']
     number_fields = ["quantity", "unit_price", "cgst_tax", "sgst_tax", "igst_tax"]
     error_dict = {'quantity': 'Quantity'}
     data_list = []
@@ -16391,6 +16391,7 @@ def insert_allocation_data(request, user=''):
             original_order_id = order_code + str(order_id)
             created_orders = []
             for final_data in data_list:
+                order_fields_objs = []
                 order = OrderDetail.objects.create(order_id=order_id, sku_id=final_data['sku_master_id'], order_code=order_code,
                                            original_order_id=original_order_id, quantity=final_data['quantity'],
                                            shipment_date=shipment_date,
@@ -16401,6 +16402,14 @@ def insert_allocation_data(request, user=''):
                                            email_id=customer_master.email_id, telephone=customer_master.phone_number,
                                            address=customer_master.address, status=1,
                                             marketplace='Offline')
+
+                order_field_list = list(filter(lambda x: 'order_field' in x, final_data.keys()))
+                for key in order_field_list:
+                    value = final_data.get(key,'')
+                    order_fields_data = {'original_order_id': order.id, 'name': key, 'value': value,
+                                         'user': user.id,'order_type': 'allocate_order_sku'}
+                    order_fields_objs.append(OrderFields(**order_fields_data))
+                OrderFields.objects.bulk_create(order_fields_objs)
                 inter_state = 2
                 if customer_master.tax_type == 'inter_state':
                     inter_state = 1

@@ -20,10 +20,22 @@
         </div>
       </div>
       <div class="row">
+       <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"> Customer Type </label>
+              <select name="customer_type" class="form-control" ng-model="showCase.customer_type" ng-change="showCase.verifyTax()">
+                <option ng-repeat="wh in ['Partners','Internal']" value="{{wh}}">{{wh}}</option>
+              </select>
+            </div>
+          </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
             <label class="control-label">Customer ID *</label>
-            <input type="text" autocomplete="off" name="customer_id" class="form-control" placeholder="Search Customer ID/Name/Number" typeahead="address.customer_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_customer_data?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.customer_id" typeahead-on-select="showCase.get_customer_data($item, $model, $label, $event)" required>
+            <input type="text"
+                   autocomplete="off" name="customer_id"
+                   class="form-control"
+                   placeholder="Search Customer ID/Name/Number"
+                   typeahead="address.customer_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_customer_data?',showCase.customer_type)" typeahead-loading="loadingLocations" ng-model="showCase.model_data.customer_id" typeahead-on-select="showCase.get_customer_data($item, $model, $label, $event)" required>
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
@@ -43,6 +55,9 @@
               <th>SKU Code *</th>
               <th> Description </th>
               <th class="w10_">Quantity</th>
+              <th ng-repeat="data in showCase.order_extra_fields track by $index" ng-if ="showCase.extra_fields">
+                {{ data }}
+              </th>
               <th ng-if="showCase.permissions.use_imei">Scan Serial</th>
               <th class="plus"></th>
             </tr>
@@ -55,9 +70,16 @@
               <td>
                 <input type="text" class="form-control" ng-model="data.description" title="{{data.description}}" size="50" name="description">
               </td>
-              <td>
+               <td>
                 <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-change="showCase.change_quantity(data)" size="12" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Quantity', $index, data)"
-                ng-readonly="data.enable_serial">
+                        ng-readonly="data.enable_serial">
+              </td>
+              <td ng-repeat="data in showCase.order_extra_fields track by $index" ng-if ="showCase.extra_fields">
+                    <select ng-model="showCase.exta_model[data]" class="form-control" name=order_field_{{data}} ng-if = 'showCase.extra_order_options[data][0]!= "" && showCase.extra_order_options[data]'>
+                      <option value="">Select  From Below</option>
+                      <option ng-repeat="order_option in showCase.extra_order_options[data] track by $index" value="{{order_option}}">{{order_option}}</option>
+                    </select>
+                    <input name="order_field_{{data}}" ng-model="showCase.exta_model[data]" class="form-control" type="text" ng-if = 'showCase.extra_order_options[data][0] == "" || !showCase.extra_order_options[data]'>
               </td>
               <td ng-if="showCase.permissions.use_imei">
                 <input type="text" class="form-control" ng-model="data.serial" ng-keydown="showCase.serial_scan($event, data.serial, data)" ng-readonly="!data.enable_serial">

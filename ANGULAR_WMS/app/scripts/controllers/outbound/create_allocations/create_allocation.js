@@ -65,6 +65,34 @@ function CreateAllocations($scope, $filter, $http, $q, Session, colFilters, Serv
     }
     vm.change_tax_type();
   }
+  vm.order_extra_fields = []
+  vm.get_order_extra_fields = function(){
+    vm.service.apiCall("get_order_extra_fields/").then(function(data){
+      if(data.message) {
+        vm.extra_fields = data.data.order_level_data
+        if(data.data.sku_level)
+        {
+          vm.exta_model ={}
+          vm.order_extra_fields = data.data.order_level;
+           for(var i=0 ; i< vm.order_extra_fields.length; i++)
+           {
+              vm.exta_model[vm.order_extra_fields[i]] = '';
+           }
+         }
+        }
+      })
+    }
+    vm.get_order_extra_fields();
+    vm.get_extra_order_options  = function()
+      {
+        vm.service.apiCall("get_order_extra_options/").then(function(data){
+          if(data.message) {
+            vm.extra_order_options = data.data;
+          }
+
+        })
+      }
+      vm.get_extra_order_options();
   //Fill SKU Info Code Ends
 
   //Create Allocation Code Starts

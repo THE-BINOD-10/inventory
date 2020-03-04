@@ -2380,6 +2380,7 @@ def validate_supplier_sku_form(open_sheet, user_id):
     supplier_ids = []
     temp1 = ''
     supplier_list = SupplierMaster.objects.filter(user=user_id).values_list('id', flat=True)
+    auto_po_switch = get_misc_value('auto_po_switch', user_id)
     if supplier_list:
         for i in supplier_list:
             supplier_ids.append(i)
@@ -2415,10 +2416,11 @@ def validate_supplier_sku_form(open_sheet, user_id):
                         index_status.setdefault(row_idx, set()).add('Invalid WMS Code')
                     wms_code1 = cell_data
             if col_idx == 3:
-                if not cell_data:
-                    index_status.setdefault(row_idx, set()).add('Missing Preference')
-                else:
-                    preference1 = int(cell_data)
+                if auto_po_switch == 'true':
+                    if not cell_data:
+                        index_status.setdefault(row_idx, set()).add('Missing Preference')
+                    else:
+                        preference1 = int(cell_data)
             if col_idx == 6:
                 if cell_data :
                     if not cell_data in ['Price Based', 'Margin Based','Markup Based']:
@@ -2453,7 +2455,7 @@ def validate_supplier_sku_form(open_sheet, user_id):
 
 
 
-        if wms_code1 and preference1 and row_idx > 0:
+        if wms_code1 and preference1 and row_idx > 0 and  auto_po_switch == 'true':
             supp_val = SKUMaster.objects.filter(wms_code=wms_code1, user=user_id)
             if supp_val:
                 temp1 = SKUSupplier.objects.filter(Q(sku_id=supp_val[0].id) & Q(preference=preference1),
@@ -2518,6 +2520,8 @@ def supplier_sku_upload(request, user=''):
                         if cell_data and supplier_sku_instance:
                             supplier_sku_instance.supplier_code = cell_data
                     elif col_idx == 3:
+                        if not cell_data:
+                            cell_data = 0
                         supplier_data['preference'] = str(int(cell_data))
                         if supplier_data['preference'] and supplier_sku_instance:
                             supplier_sku_instance.preference = supplier_data['preference']

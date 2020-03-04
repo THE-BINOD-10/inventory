@@ -49,6 +49,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       vm.scan_returns = [];
       vm.scan_orders = [];
+      vm.scan_invoices = [];
       vm.scan_skus = [];
       vm.scan_imeis = [];
       vm.scan_awb_order_no = [];
@@ -104,6 +105,39 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
              } else {
                pop_msg("Already Added In List");
                vm.model_data.scan_order_id = "";
+             }
+         }
+     }
+
+
+    vm.scan_invoices = [];
+     vm.scan_invoice = function(event, field) {
+       if (event.keyCode == 13 && field) {
+             if(vm.scan_invoices.indexOf(field) == -1) {
+               vm.service.apiCall('check_returns/', 'GET', {invoice_no: field}).then(function(data){
+                 if(data.message) {
+                   if ('Order Id is invalid' == data.data) {
+                     check_data(field);
+                   } else if (field+' is already confirmed' == data.data){
+                     pop_msg(data.data);
+                   } else if (data.data.indexOf("Already Returned") >= 0) {
+                     pop_msg(data.data);
+                     vm.model_data.scan_order_id = ''
+                   } else {
+                     angular.forEach(data.data, function(sku_data){
+                       vm.model_data.data.push(sku_data);
+                       var name = sku_data.order_id+"<<>>"+sku_data.sku_code;
+                       vm.orders_data[name] = {};
+                       angular.copy(sku_data, vm.orders_data[name]);
+                     })
+                   vm.scan_invoices.push(field);
+                   }
+                 }
+                 vm.model_data.scan_invoice_no = "";
+               });
+             } else {
+               pop_msg("Already Added In List");
+               vm.model_data.scan_invoice_no = "";
              }
          }
      }
@@ -728,7 +762,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.add_excl_orders(data);
     }
 
-    vm.return_processes = {return_id: 'Return ID', order_id: 'Order ID'};
+    vm.return_processes = {return_id: 'Return ID', order_id: 'Order ID', invoice_number: 'Invoice Number'}
     vm.return_process = 'order_id';
     if(vm.permissions.use_imei) {
       vm.return_processes['scan_imei'] = 'Scan IMEI';

@@ -1920,7 +1920,7 @@ def create_invnetory_adjustment_record(user, dat, quantity, reason, location, no
 
 
 def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet='', batch_no='', mrp='',
-                          seller_master_id='', weight='', receipt_number=1, receipt_type='',price= ''):
+                          seller_master_id='', weight='', receipt_number=1, receipt_type='',buy_price= '', unit_price= '', price_type =''):
     now_date = datetime.datetime.now()
     now = str(now_date)
     adjustment_objs = []
@@ -1958,11 +1958,13 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
         stock_dict["batch_detail__weight"] = weight
     if seller_master_id:
         stock_dict['sellerstock__seller_id'] = seller_master_id
-    if price:
+    if buy_price:
         if user.userprofile.industry_type == 'FMCG' :
-            stock_dict['batch_detail__buy_price'] = float(price)
-        stock_dict['unit_price'] = float(price)
-
+            stock_dict['batch_detail__buy_price'] = float(buy_price)
+    if unit_price:
+        stock_dict['unit_price'] = float(unit_price)
+    if price_type:
+        stock_dict['price_type'] = price_type
     total_stock_quantity = 0
     dest_stocks = ''
 

@@ -16024,8 +16024,8 @@ def get_order_extra_fields(request , user =''):
         sku_level_order_fields = sku_level_fields.split(',')
         if sku_level_order_fields:
             sku_level = 1
-        if extra_order_fields:
-            order_level_data = 1
+    if extra_order_fields:
+        order_level_data = 1
     return HttpResponse(json.dumps({'order_level':extra_order_fields,
                                     'order_level_data': order_level_data,
                                     'sku_level_order_fields': sku_level_order_fields,

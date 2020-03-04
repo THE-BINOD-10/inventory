@@ -55,7 +55,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ["PR Number", "Total Quantity", "Total Amount", "Requested User", "Validation Status", "Pending Level", "Validated By"];
+    var columns = ["PR Number", "Total Quantity", "Total Amount", "Requested User", 
+                    "Validation Status", "Pending Level", "To Be Validated By",
+                    "Last Updated By", "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
                 .renderWith(function(data, type, full, meta) {
@@ -160,7 +162,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
               vm.title = 'Update PR';
               vm.pr_number = aData['PR Number']
-              vm.validated_by = aData['Validated By']
+              vm.validated_by = aData['To Be Validated By']
               // vm.update = true;
               if (aData['Validation Status'] == 'pending'){
                 $state.go('app.inbound.RaisePr.ApprovePurchaseRequest');  

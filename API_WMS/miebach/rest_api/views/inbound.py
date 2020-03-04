@@ -56,41 +56,23 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
             pr_numbers = list(PRApprovals.objects.filter(pr_user=user, 
                                 configName=configName, 
                                 level=currentUserLevel).distinct().values_list('openpr_number', flat=True))
-            # if currentUserLevel:
             filtersMap.setdefault('pr_number__in', [])
             filtersMap['pr_number__in'] = list(chain(filtersMap['pr_number__in'], pr_numbers))
-            #filtersMap.update(pr_number__in=pr_numbers)
     sku_master, sku_master_ids = get_sku_master(user, user)
-    # lis = ['supplier__name', 'total', 'order_type']
-    # search_params = get_filtered_params(filters, lis[1:])
-    # order_data = lis[col_num]
-    # if order_term == 'desc':
-    #     order_data = '-%s' % order_data
+    lis = ['pr_number', 'total_qty', 'total_amt']
+    search_params = get_filtered_params(filters, lis)
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    values_list = ['requested_user__username', 'pr_number', 'final_status', 'pending_level', 'remarks']
 
-    # search_params['sku_id__in'] = sku_master_ids
-    values_list = ['requested_user__username', 'pr_number', 'final_status', 'pending_level']
-    if search_term:
-        # results = OpenPO.objects.filter(status__in=['', 'Manual', 'Automated']).values('supplier_id', 'supplier__name', 'supplier__tax_type',
-        #                                                   'order_type').distinct().annotate(
-        #     total=Sum('order_quantity')). \
-        #     filter(Q(supplier__id__icontains=search_term) | Q(supplier__name__icontains=search_term) |
-        #            Q(total__icontains=search_term), sku__user=user.id, **search_params).order_by(order_data)
-        pass
-
-    elif order_term:
-        # results = OpenPO.objects.filter(status__in=['', 'Manual', 'Automated']).values('supplier_id', 'supplier__name', 'supplier__tax_type',
-        #                                                   'order_type').distinct().annotate(
-        #     total=Sum('order_quantity')). \
-        #     filter(sku__user=user.id, **search_params).order_by(order_data)
-        pass
-    else:
-        # results = OpenPO.objects.filter(status__in=['', 'Manual', 'Automated']).values('supplier_id', 'supplier__name', 'supplier__tax_type',
-        #                                                   'order_type').distinct().annotate(
-        #     total=Sum('order_quantity')). \
-        #     filter(sku__user=user.id, **search_params)
-        pass
     results = OpenPR.objects.filter(**filtersMap).values(*values_list).distinct().\
-                    annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
+                annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
+    if search_term:
+        results = results.filter(Q(pr_number__icontains=search_term) | Q(requested_user__username__icontains=search_term) |
+                        Q(final_status__icontains=search_term) | Q(pending_level__icontains=search_term))
+    elif order_term:
+        results = results.order_by(order_data)
 
     temp_data['recordsTotal'] = results.count()
     temp_data['recordsFiltered'] = results.count()
@@ -105,6 +87,21 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
             validated_by = prApprQs[0].validated_by
         else:
             validated_by = ''
+        if result['pending_level'] != 'level0' and result['final_status'] == 'pending':
+            prev_level = 'level' + str(int(result['pending_level'].replace('level', '')) - 1)
+            prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=prev_level)
+            last_updated_by = prApprQs[0].validated_by
+            last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+            last_updated_remarks = prApprQs[0].remarks
+        elif result['pending_level'] == 'level0' and result['final_status'] == 'approved':
+            prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
+            last_updated_by = prApprQs[0].validated_by
+            last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+            last_updated_remarks = prApprQs[0].remarks
+        else:
+            last_updated_by = ''
+            last_updated_time = ''
+            last_updated_remarks = ''
         temp_data['aaData'].append(OrderedDict((
                                                 ('PR Number', result['pr_number']),
                                                 ('Total Quantity', result['total_qty']),
@@ -112,7 +109,10 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
                                                 ('Requested User', result['requested_user__username']),
                                                 ('Validation Status', result['final_status']),
                                                 ('Pending Level', result['pending_level']),
-                                                ('Validated By', validated_by),
+                                                ('To Be Validated By', validated_by),
+                                                ('Last Updated By', last_updated_by),
+                                                ('Last Updated At', last_updated_time),
+                                                ('Remarks', last_updated_remarks),
                                                 ('DT_RowClass', 'results'))))
         count += 1
 
@@ -1851,7 +1851,7 @@ def findLastLevelToApprove(user, pr_number, totalAmt):
         finalLevel = configQs[0]
     return reqConfigName, finalLevel
 
-def updateOrCreatePRApprovals(pr_number, user, level, validated_by, reqConfigName, validation_type,updateFlag=True):
+def updateOrCreatePRApprovals(pr_number, user, level, validated_by, reqConfigName, validation_type, remarks, updateFlag=True):
     if updateFlag:
         apprQs = PRApprovals.objects.filter(openpr_number=pr_number, 
                                                 pr_user=user, 
@@ -1859,6 +1859,7 @@ def updateOrCreatePRApprovals(pr_number, user, level, validated_by, reqConfigNam
                                                 validated_by=validated_by)
         if apprQs:
             apprQs.update(status=validation_type)
+            apprQs.update(remarks=remarks)
     else:
         apprConfObj = PRApprovalConfig.objects.filter(user=user, name=reqConfigName, level=level)
         if apprConfObj:
@@ -1877,6 +1878,7 @@ def updateOrCreatePRApprovals(pr_number, user, level, validated_by, reqConfigNam
                             'validated_by': validated_by,
                             'configName': reqConfigName,
                             'status': validation_type,
+                            'remarks': remarks,
                         }
         prObj = PRApprovals(**prApprovalsMap)
         prObj.save()
@@ -1890,6 +1892,7 @@ def approve_pr(request, user=''):
     pr_number = request.POST.get('pr_number', '')
     validation_type = request.POST.get('validation_type', '')
     validated_by = request.POST.get('validated_by', '')
+    remarks = request.POST.get('remarks', '')
     currentUserEmailId = request.user.email
     if not pr_number:
         status = 'PR Number not provided, Status Failed'
@@ -1916,7 +1919,7 @@ def approve_pr(request, user=''):
 
     if pending_level == lastLevel:
         PRQs.update(final_status=validation_type)
-        updateOrCreatePRApprovals(pr_number, user, pending_level, validated_by, reqConfigName, validation_type)
+        updateOrCreatePRApprovals(pr_number, user, pending_level, validated_by, reqConfigName, validation_type, remarks)
     else:
         nextLevel = PRApprovalConfig.objects.filter(user=user, 
                         name=reqConfigName).exclude(level=pending_level).values_list('level', flat=True).order_by('id')
@@ -1925,10 +1928,10 @@ def approve_pr(request, user=''):
         PRQs.update(pending_level=nextLevel)
         if validation_type == 'rejected':
             PRQs.update(final_status=validation_type)
-            updateOrCreatePRApprovals(pr_number, user, pending_level, validated_by, reqConfigName, validation_type)
+            updateOrCreatePRApprovals(pr_number, user, pending_level, validated_by, reqConfigName, validation_type, remarks)
         else:
-            updateOrCreatePRApprovals(pr_number, user, pending_level, validated_by, reqConfigName, validation_type)
-            updateOrCreatePRApprovals(pr_number, user, nextLevel, validated_by, reqConfigName, validation_type, updateFlag=False)
+            updateOrCreatePRApprovals(pr_number, user, pending_level, validated_by, reqConfigName, validation_type, remarks)
+            updateOrCreatePRApprovals(pr_number, user, nextLevel, validated_by, reqConfigName, validation_type, remarks, updateFlag=False)
         
     status = 'Approved Successfully'
     return HttpResponse(status)
@@ -1938,6 +1941,7 @@ def approve_pr(request, user=''):
 @login_required
 @get_admin_user
 def add_pr(request, user=''):
+    from mail_server import send_mail
     try:
         log.info("Raise PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))
         myDict = dict(request.POST.iterlists())
@@ -1995,7 +1999,7 @@ def add_pr(request, user=''):
                                     master_id=apprConfObjId, 
                                     master_type='pr_approvals_conf_data').values_list('email_id', flat=True)
         if mailsList:
-            validated_by = mailsList[0]
+            validated_by = ", ".join(mailsList)
         else:
             validated_by = ''
         prApprovalsMap = {
@@ -2007,6 +2011,22 @@ def add_pr(request, user=''):
                         }
         prObj = PRApprovals(**prApprovalsMap)
         prObj.save()
+        for eachMail in mailsList:
+            hash_code = hashlib.md5(b'%s:%s' % (prObj.id, eachMail)).hexdigest()
+            prApprovalMailsMap = {
+                            'pr_approval': prObj, 
+                            'email': eachMail, 
+                            'hash_code': hash_code,
+                        }
+            mailObj = PRApprovalMails(**prApprovalMailsMap)
+            mailObj.save()
+
+        receipents = list(mailsList)
+        subject = "PR Approvals for PR Number: %s" %pr_number
+        body = "<p> Following user requested PR Approval for </p>  \
+                <p> NAME : %s </p> " % (request.user.username)
+        send_mail(receipents, subject, body)
+
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

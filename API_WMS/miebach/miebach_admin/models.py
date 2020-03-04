@@ -517,6 +517,7 @@ class PRApprovals(models.Model):
     level = models.CharField(max_length=64, default='')
     validated_by = models.CharField(max_length=64, default='')
     status = models.CharField(max_length=32, default='')
+    remarks = models.CharField(max_length=256, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -539,6 +540,18 @@ class PRApprovalConfig(models.Model):
         db_table = 'PR_APPROVAL_CONFIG'
         unique_together = ('user', 'name', 'level')
 
+
+class PRApprovalMails(models.Model):
+    id = BigAutoField(primary_key=True)
+    pr_approval = models.ForeignKey(PRApprovals)
+    email = models.EmailField(max_length=64)
+    hash_code = models.CharField(max_length=256, default='')
+    status = models.CharField(max_length=32, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "PR_APPROVAL_MAILS"
 
 @reversion.register()
 class PurchaseOrder(models.Model):

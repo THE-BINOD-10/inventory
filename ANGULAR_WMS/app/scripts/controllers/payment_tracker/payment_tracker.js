@@ -22,11 +22,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
   vm.model_data = {search:"All",filters: ["All", "Order Created", "Partially Invoiced", "Invoiced"]}
 
   vm.searching = function(data) {
-
     console.log(data);
   }
 
   vm.get_payment_tracker_data = function() {
+    angular.copy(empty_data, vm.payment_data);
     vm.service.apiCall("payment_tracker/","GET", {filter: vm.model_data.search}).then(function(data){
 
       if(data.message) {
@@ -61,8 +61,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
     vm.service.apiCall("update_payment_status/", "GET", elem).then(function(data){
       if(data.message) {
         console.log(data);
-        vm.reloadData();
+        // vm.close();
+        // vm.reloadData();
+        vm.get_payment_tracker_data();
+        // $state.go("app.PaymentTracker");
       }
+      // $state.go("app.PaymentTracker");
     })
   }
 
@@ -76,6 +80,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
   vm.close = function() {
     $state.go("app.PaymentTracker");
   }
+  vm.reloadData = function () {
+      $('.reload').DataTable().draw();
+    };
 
   vm.order_update = function(event){
 
@@ -83,7 +90,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
     var parent = angular.element(temp).parents(".order-edit");
     angular.element(parent).find(".order_update").addClass("hide");
     angular.element(parent).find(".order-save").removeClass("hide");
-    $(".update_fields").removeClass("hide");
   }
   vm.addRowData = function(event, data) {
       Data.invoice_data = data;
@@ -102,9 +108,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
         data_tr.next().remove();
       }
     }
-    vm.reloadData = function () {
-      $('.custom-table').DataTable().draw();
-    };
 
   vm.order_save = function(event, index1, index2, order, customer){
 
@@ -150,10 +153,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
   vm.default_bank = vm.bank_names[0];
   vm.default_mode = "cash";
 
-  vm.change_amount = function(data) {
+  vm.change_amount = function(data, flag='') {
 
-    if(Number(data.amount) > data.receivable) {
-      data.amount = data.receivable;
+    if (!flag) {
+      if(Number(data.amount) > Number(data.receivable)) {
+        data.amount = data.receivable;
+        Service.showNoty('You can enter '+data.receivable+' amount only');
+      }
+    } else {
+      if (Number(data) > Number(Data.invoice_data.receivable)) {
+        vm.amount = Data.invoice_data.receivable;
+        Service.showNoty('You can enter '+Data.invoice_data.receivable+' amount only');
+      }
     }
   }
 }

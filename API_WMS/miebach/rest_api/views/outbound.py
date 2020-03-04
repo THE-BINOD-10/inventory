@@ -8017,27 +8017,32 @@ def payment_tracker(request, user=''):
                                         .distinct().annotate(pic_qty=Sum('quantity'))\
                                         .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
                                         .aggregate(Sum('cur_amt'))['cur_amt__sum']
-        receivable = data['invoice_amount'] - data['payment_received']
-        total_payment_received += data['payment_received']
-        total_invoice_amount += data['invoice_amount']
-        total_payment_receivable += receivable
-        grouping_key = data['order__customer_id']
-        data_dict.setdefault(grouping_key, {'channel': data['order__marketplace'],
-                                            'customer_name':data['order__customer_name'],
-                                            'customer_id': data['order__customer_id'],
-                                            'invoice_amount': round(data['invoice_amount']),
-                                            'payment_received': round(data['payment_received']),
-                                            'payment_receivable': round(receivable)
-                                            })
-        data_dict[grouping_key]['invoice_amount'] +=round(data['invoice_amount'])
-        data_dict[grouping_key]['payment_received'] +=round(data['payment_received'])
-        data_dict[grouping_key]['payment_receivable'] +=round(receivable)
+        payment_received = float(data['payment_received'])
+        payment_obj = PaymentSummary.objects.filter(invoice_number=data['invoice_number'], order__user = user.id)
+        if payment_obj:
+            payment_received = payment_obj.aggregate(payment_received = Sum('payment_received'))['payment_received']
+        if round(picked_amount) > round(float(payment_received)):
+            receivable = picked_amount - data['payment_received']
+            total_payment_received += payment_received
+            total_invoice_amount += picked_amount
+            total_payment_receivable += receivable
+            grouping_key = data['order__customer_id']
+            data_dict.setdefault(grouping_key, {'channel': data['order__marketplace'],
+                                                'customer_name':data['order__customer_name'],
+                                                'customer_id': data['order__customer_id'],
+                                                'invoice_amount': 0,
+                                                'payment_received': 0,
+                                                'payment_receivable': 0
+                                                })
+            data_dict[grouping_key]['invoice_amount'] +=round(picked_amount)
+            data_dict[grouping_key]['payment_received'] +=round(payment_received)
+            data_dict[grouping_key]['payment_receivable'] +=round(receivable)
 
-        # customer_data.append({'channel': data['order__marketplace'], 'customer_id': data['order__customer_id'],
-        #                       'customer_name': data['order__customer_name'],
-        #                       'payment_received': "%.2f" % data['payment_received'],
-        #                       'payment_receivable': "%.2f" % receivable,
-        #                       'invoice_amount': "%.2f" % data['invoice_amount']})
+            # customer_data.append({'channel': data['order__marketplace'], 'customer_id': data['order__customer_id'],
+            #                       'customer_name': data['order__customer_name'],
+            #                       'payment_received': "%.2f" % data['payment_received'],
+            #                       'payment_receivable': "%.2f" % receivable,
+            #                       'invoice_amount': "%.2f" % data['invoice_amount']})
     order_data_loop = data_dict.values()
     data_append = []
     for data1 in order_data_loop:
@@ -8260,12 +8265,11 @@ def get_customer_payment_tracker(request, user=''):
     response = {}
     customer_id = request.GET['id']
     customer_name = request.GET['name']
-    channel = request.GET['channel']
+    # channel = request.GET['channel']
     status_filter = request.GET.get('filter', '')
     data_dict = OrderedDict()
     user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices', 
-                    'order__customer_name':customer_name, 'order__customer_id':customer_id, 'order__marketplace':channel,
-                    }
+                    'order__customer_name':customer_name, 'order__customer_id':customer_id}
     result_values = ['invoice_number', 'order__customer_name', 'order__customer_id', 'order__order_id', 'order__original_order_id', 'order__order_code']
     # all_picklists = Picklist.objects.filter(order__user=user.id)
     # invoiced = all_picklists.filter(order__user=user.id, status__in=['picked', 'batch_picked', 'dispatched']). \
@@ -8288,7 +8292,7 @@ def get_customer_payment_tracker(request, user=''):
     master_data = SellerOrderSummary.objects.filter(**user_filter)\
                         .exclude(invoice_number='')\
                         .values(*result_values).distinct()\
-                        .annotate(payment_received = Sum('order__payment_received'), invoice_amount = Sum('order__invoice_amount'))
+                        .annotate(payment_received = Sum('order__payment_received'), invoice_amount = Sum(F('order__invoice_amount')))
     master_data = master_data.exclude(invoice_amount=F('payment_received'))
     order_data = []
     for data in master_data:
@@ -8337,7 +8341,7 @@ def get_customer_payment_tracker(request, user=''):
         if invoice_date:
             due_date = (invoice_date + datetime.timedelta(days=credit_period)).strftime("%d %b %Y")
             invoice_date = invoice_date.strftime("%d %b %Y")
-        payment_received = 0
+        payment_received = float(data['payment_received'])
         payment_obj = PaymentSummary.objects.filter(invoice_number=data['invoice_number'], order__user = user.id)
         if payment_obj:
             payment_received = payment_obj.aggregate(payment_received = Sum('payment_received'))['payment_received']
@@ -8364,7 +8368,9 @@ def get_customer_payment_tracker(request, user=''):
     order_data_loop = data_dict.values()
     data_append = []
     for data1 in order_data_loop:
+        # data1['payment_status'] = 'Completed'
         if round(data1['inv_amount']) > round(float(data1['received'])):
+            # data1['payment_status'] = 'Pending'
             order_data.append(data1)
     response["data"] = order_data
     return HttpResponse(json.dumps(response))

@@ -70,7 +70,7 @@ function CreateAllocations($scope, $filter, $http, $q, Session, colFilters, Serv
     vm.service.apiCall("get_order_extra_fields/").then(function(data){
       if(data.message) {
         vm.extra_fields = data.data.order_level_data
-        if(data.data.sku_level)
+        if(data.data.order_level_data)
         {
           vm.exta_model ={}
           vm.order_extra_fields = data.data.order_level;

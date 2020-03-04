@@ -16381,7 +16381,8 @@ def insert_allocation_data(request, user=''):
                                            customer_id=customer_master.customer_id,
                                            customer_name=customer_master.name,
                                            email_id=customer_master.email_id, telephone=customer_master.phone_number,
-                                           address=customer_master.address, status=1)
+                                           address=customer_master.address, status=1,
+                                            marketplace='Offline')
                 inter_state = 2
                 if customer_master.tax_type == 'inter_state':
                     inter_state = 1
@@ -16419,4 +16420,68 @@ def insert_allocation_data(request, user=''):
             log.debug(traceback.format_exc())
             log.info('Parts Allocation failed for %s and params are %s and error statement is %s' % (
                 str(user.username), str(request.POST.dict()), str(e)))
+            return HttpResponse("Failed")
     return HttpResponse("Success")
+
+
+def get_order_allocation_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, col_filters={}):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    search_params = {'order_code': 'AL', 'user': user.id}
+    search_params['sku_id__in'] = sku_master_ids
+    lis = ['original_order_id', 'customer_id', 'customer_name', 'sku__sku_code', 'original_quantity',
+           'original_quantity', 'original_quantity']
+    headers1, filters, filter_params1 = get_search_params(request)
+    if 'from_date' in filters:
+        search_params['creation_date__gt'] = filters['from_date']
+    if 'to_date' in filters:
+        to_date = datetime.datetime.combine(filters['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_params['creation_date__lt'] = to_date
+    if 'sku_code' in filters:
+        search_params['sku__sku_code'] = filters['sku_code'].upper()
+    if 'customer_id' in filters:
+        search_params['customer_id'] = filters['customer_id']
+
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+
+    orders = OrderDetail.objects.filter(**search_params)
+    if order_term:
+        orders = orders.order_by(order_data)
+
+    temp_data['recordsTotal'] = orders.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    count = 0
+    for order in orders[start_index: stop_index]:
+        temp_data['aaData'].append(OrderedDict((('data_id', order.id),
+                                                ('Order ID', order.original_order_id),
+                                                ('Customer ID', order.customer_id),
+                                                ('Customer Name', order.customer_name),
+                                                ('SKU Code', order.sku.sku_code),
+                                                ('SKU Description', order.sku.sku_desc),
+                                                ('Allocated Quantity', order.original_quantity),
+                                                ('Deallocation Quantity',
+                                                 '<input type="number" class="form-control" name="deallocation_qty" min="0" ng-model="showCase.deallocation_qty_val_%s" ng-init="showCase.deallocation_qty_val_%s=0" ng-keyup="showCase.check_dealloc_qty(%s, %s)">' % (str(order.id), str(order.id), str(count), str(order.id))
+
+                                                 ),
+                                                ('', '<button type="button" name="submit" value="Save" class="btn btn-primary" ng-click="showCase.save_dealloc_qty(%s, %s)">Save</button>' % (str(count), str(order.id))),
+                                                ('id', count),
+                                                ('DT_RowClass', 'results'))))
+        count += 1
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+@fn_timer
+def insert_deallocation_data(request, user=''):
+    data_id = request.POST.get('data_id', '')
+    quantity = request.POST.get('dealloc_qty', '')
+    if not (data_id or quantity):
+        return HttpResponse("Required Fields Missing")
+    order = OrderDetail.objects.filter(id=data_id, user=user.id)
+    if not order.exists():
+        return HttpResponse("Invalid Order")
+    import pdb;pdb.set_trace()

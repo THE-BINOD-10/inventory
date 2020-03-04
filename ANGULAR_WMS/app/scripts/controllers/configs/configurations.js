@@ -750,7 +750,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       });
     } else {
       console.log(type)
-      vm.add_empty_index(data, 'delete')
+      var toBeDeleteData = vm.model_data['selected_pr_config_data'];
+      vm.service.apiCall("delete_pr_config/", "POST", {'data':JSON.stringify(toBeDeleteData)}).then(function(data){
+        if(data.message) {
+          msg = data.data;
+          $scope.showNoty();
+          Auth.status();
+          vm.baseFunction()
+          vm.pr_selected = "";
+        }
+      });
     }
   }
   vm.add_empty_index = function(data, operation) {

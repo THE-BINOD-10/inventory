@@ -1889,19 +1889,20 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 if user.username in MILKBASKET_USERS and not cell_data:
                     index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
             elif key == 'price':
-                if key >=0:
+                if cell_data >=0:
                     if user.userprofile.industry_type == 'FMCG':
                         data_dict['batch_detail__buy_price'] = cell_data
                         data_dict['price_type'] = "User Input Type"
                     data_dict['unit_price'] = cell_data
                     data_dict['price_type'] = "User Input Type"
                 else:
-                    custom_price = SKUMaster.objects.filter(user=user.id, wms_code=data_dict['wms_code']).values('cost_price')[0]['cost_price']
-                    if user.userprofile.industry_type == 'FMCG':
-                        data_dict['batch_detail__buy_price'] = custom_price
+                    if not index_status:
+                        custom_price = SKUMaster.objects.filter(user=user.id, wms_code=data_dict['wms_code']).values('cost_price')[0]['cost_price']
+                        if user.userprofile.industry_type == 'FMCG':
+                            data_dict['batch_detail__buy_price'] = custom_price
+                            data_dict['price_type'] = "Custom Input Type"
+                        data_dict['unit_price'] = custom_price
                         data_dict['price_type'] = "Custom Input Type"
-                    data_dict['unit_price'] = custom_price
-                    data_dict['price_type'] = "Custom Input Type"
             elif key in number_fields:
                 try:
                     if key == 'quantity':

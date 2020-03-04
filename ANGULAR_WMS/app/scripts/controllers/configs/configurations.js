@@ -790,15 +790,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         })
       })
     } else {
-      var empty_dict = {'name': '', 'min_Amt': '', 'max_Amt': '', 'mail_id': {'level0': ""}};
+      var empty_dict = {'name': '', 'min_Amt': 0, 'max_Amt': '', 'mail_id': {'level0': ""}};
       if (vm.model_data['selected_pr_config_data'].length != 0) {
         var check_last_record = vm.model_data['selected_pr_config_data'][vm.model_data['selected_pr_config_data'].length -1]
         if (check_last_record['name'] == '') {
           Service.showNoty('please Fill Available One');
         }
       } else {
-        vm.model_data['selected_pr_config_data'].push(empty_dict);
-        vm.pr_add_show = true;
+        if (vm.model_data['total_pr_config_ranges'][vm.model_data['total_pr_config_ranges'].length -1]) {
+          var min_amt = vm.model_data['total_pr_config_ranges'][vm.model_data['total_pr_config_ranges'].length -1]['max_Amt']+1;
+          empty_dict['min_Amt'] = min_amt;
+          vm.model_data['selected_pr_config_data'].push(empty_dict);
+          vm.pr_add_show = true;
+        } else {
+          vm.model_data['selected_pr_config_data'].push(empty_dict);
+          vm.pr_add_show = true;
+        }
       }
     }
   }

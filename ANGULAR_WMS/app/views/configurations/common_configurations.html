@@ -353,7 +353,7 @@
             <input type="text" class="form-control" ng-model="datum.name" placeholder="Config name">
           </div>
           <div class="col-md-1 col-sm-1 col-xs-2">
-            <input type="text" class="form-control" ng-model="datum.min_Amt" placeholder="MinAmt">
+            <input type="text" class="form-control" ng-model="datum.min_Amt" placeholder="MinAmt" readonly>
           </div>
           <div class="col-md-1 col-sm-1 col-xs-2">
             <input type="text" class="form-control" ng-model="datum.max_Amt" placeholder="MaxAmt">
@@ -364,8 +364,8 @@
             </div>
           </div>
           <div class="col-md-1 col-sm-1 col-xs-2 pull-right" align="right">
-            <button type="button" class="btn btn-success" ng-click="showCase.add_empty_index(datum, 'add_email')">+</button>
-            <button type="button" class="btn btn-danger" ng-click="showCase.add_empty_index(datum, 'remove_email')">-</button>
+            <button type="button" class="btn btn-success btn-sm" ng-click="showCase.add_empty_index(datum, 'add_email')">+</button>
+            <button type="button" class="btn btn-danger btn-sm" ng-click="showCase.add_empty_index(datum, 'remove_email')">-</button>
           </div>
           <div class="row col-md-12" style="padding: 3px" ng-if="showCase.pr_add_show" align="right">
             <button type="button" class="btn btn-danger" ng-click="showCase.pr_save(datum, 'pop')">Remove</button>

@@ -63,6 +63,9 @@ function CreateAllocations($scope, $filter, $http, $q, Session, colFilters, Serv
     if(!record.enable_serial) {
       record["quantity"] = 1;
     }
+    $timeout(function() {
+       vm.get_sku_additional_data(record, item, index);
+     }, 1000);
     vm.change_tax_type();
   }
   vm.order_extra_fields = []
@@ -93,6 +96,22 @@ function CreateAllocations($scope, $filter, $http, $q, Session, colFilters, Serv
         })
       }
       vm.get_extra_order_options();
+
+      vm.get_sku_additional_data  = function(record, item, index)
+      {
+        vm.service.apiCall("get_sku_attributes_data/?wms_code="+item.wms_code).then(function(data){
+          if(data.message) {
+           Object.assign(vm.model_data.data[index], data.data.attribute_dict)
+          }
+
+        })
+        vm.service.apiCall("get_previous_order_data/?wms_code="+item.wms_code).then(function(data){
+          if(data.message) {
+           vm.last_transaction_table = data.data.previous_order_data
+          }
+
+        })
+      }
   //Fill SKU Info Code Ends
 
   //Create Allocation Code Starts

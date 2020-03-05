@@ -15,6 +15,7 @@ from django.db.models.functions import Cast
 from django.core.files.storage import FileSystemStorage
 from mail_server import send_mail, send_mail_attachment
 from common import *
+from common_operations import *
 from miebach_utils import *
 from operator import itemgetter
 from django.db.models import Sum
@@ -16342,7 +16343,7 @@ def generate_dc(request , user = ''):
 @fn_timer
 def insert_allocation_data(request, user=''):
     myDict = dict(request.POST.iterlists())
-    single_key = ['customer_name', 'customer_id','customer_type']
+    single_key = ['customer_name', 'customer_id','customer_type','remarks']
     number_fields = ["quantity", "unit_price", "cgst_tax", "sgst_tax", "igst_tax"]
     error_dict = {'quantity': 'Quantity'}
     data_list = []
@@ -16396,12 +16397,13 @@ def insert_allocation_data(request, user=''):
                                            original_order_id=original_order_id, quantity=final_data['quantity'],
                                            shipment_date=shipment_date,
                                            unit_price=final_data['unit_price'], user=user.id,
-                                            invoice_amount=final_data['invoice_amount'],
+                                           invoice_amount=final_data['invoice_amount'],
                                            customer_id=customer_master.customer_id,
                                            customer_name=customer_master.name,
+                                           remarks = final_data.get('remarks',''),
                                            email_id=customer_master.email_id, telephone=customer_master.phone_number,
                                            address=customer_master.address, status=1,
-                                            marketplace='Offline')
+                                           marketplace='Offline')
 
                 order_field_list = list(filter(lambda x: 'order_field' in x, final_data.keys()))
                 for key in order_field_list:
@@ -16564,3 +16566,21 @@ def insert_deallocation_data(request, user=''):
             str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Failed")
     return HttpResponse("Success")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_sku_attributes_data(request, user=''):
+     sku_code = request.GET.get('wms_code','')
+     sku_attributes = get_sku_attributes(user,sku_code)
+     return HttpResponse(json.dumps({'attribute_dict': sku_attributes}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_previous_order_data(request, user=''):
+     sku_code = request.GET.get('wms_code','')
+     previous_order_data = get_previous_order(user,sku_code)
+     return HttpResponse(json.dumps({'previous_order_data': previous_order_data}))

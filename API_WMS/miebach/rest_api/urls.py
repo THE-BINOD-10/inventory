@@ -251,6 +251,7 @@ urlpatterns = [
 
 
 
+
     # Stock Locator
     url(r'^insert_move_inventory/$', insert_move_inventory),
     url(r'^confirm_cycle_count/$', confirm_cycle_count),
@@ -424,6 +425,8 @@ urlpatterns = [
     url(r'^dispatch_serial_numbers/$', dispatch_serial_numbers),
     url(r'^save_misc_value/$', save_misc_value),
     url(r'^get_value_for_misc_type/$', get_value_for_misc_type),
+    url(r'^get_previous_order_data/$', get_previous_order_data),
+
 
 
     # Uploaded POs [SWISS MILITARY]
@@ -613,6 +616,7 @@ urlpatterns += [
     url(r'^brand_level_pricing_form/$', brand_level_pricing_form),
     url(r'^brand_level_pricing_upload/$', brand_level_pricing_upload),
 
+
     # configurations
     url(r'^configurations/$', configurations),
     url(r'^switches/$', switches),
@@ -674,6 +678,8 @@ urlpatterns += [
     url(r'^get_decimal_data/$', get_decimal_data),
     url(r'^update_barcode_configuration/$', update_barcode_configuration),
     url(r'^get_barcode_configurations/$', get_barcode_configurations),
+    url(r'^get_sku_attributes_data/$', get_sku_attributes_data),
+
 
 
     # Retailone

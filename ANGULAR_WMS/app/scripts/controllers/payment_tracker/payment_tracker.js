@@ -47,26 +47,32 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
   
         if(data.message) {
           payment["data"] = data.data.data;
+          angular.forEach(payment["data"], function(datum, key){
+            datum['show'] = false;
+          })
         }
       })
     }
   }
-  vm.invoice_update = function(form){
+  vm.display_acord = function (record) {
+    if (record['show']) {
+      record['show'] = false;
+    } else {
+      record['show'] = true;
+    }
+  }
+  vm.invoice_update = function(form, data){
 
     var elem = angular.element($('form'));
     elem = elem[0];
     elem = $(elem).serializeArray();
-    elem.push({'name':'invoice_number', 'value':Data.invoice_data.invoice_number});
+    elem.push({'name':'invoice_number', 'value':data.invoice_number});
 
     vm.service.apiCall("update_payment_status/", "GET", elem).then(function(data){
       if(data.message) {
         console.log(data);
-        // vm.close();
-        // vm.reloadData();
         vm.get_payment_tracker_data();
-        // $state.go("app.PaymentTracker");
       }
-      // $state.go("app.PaymentTracker");
     })
   }
 
@@ -151,7 +157,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
                       'online': 'Online',
                       'cash': 'Cash'};
   vm.default_bank = vm.bank_names[0];
-  vm.default_mode = "cash";
+  vm.default_mode = "";
 
   vm.change_amount = function(data, flag='') {
 

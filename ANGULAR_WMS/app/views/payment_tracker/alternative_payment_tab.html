@@ -5,8 +5,8 @@
         <tab heading="Outbound">
           <div ng-include="'views/payment_tracker/payment_tracker.html'"></div>
         </tab>
-        <tab heading="Outbound Payment Report">
-          <div ng-include="'views/payment_tracker/outbound_payment_report.html'"></div>
+        <tab heading="Outbound Payment Report" ng-controller="OutboundPaymentReportCtrl as showCase" ng-click="showCase.loadjs()">
+          <div ng-if= "showCase.OutboundPaymentReportCtrl_enable" ng-include="'views/payment_tracker/outbound_payment_report.html'"></div>
         </tab>
         <!-- <tab heading="Bulk Payment Outbound">
           <div ng-include="'views/payment_tracker/outbound_payment.html'"></div>

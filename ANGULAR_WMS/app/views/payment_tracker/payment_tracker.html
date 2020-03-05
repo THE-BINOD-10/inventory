@@ -5,16 +5,6 @@
   <div class="layout-body">
     <div class="panel">
       <div class="panel-body mr10 ml10 tracking">
-        <div class="row">
-          <div class="col-md-3 col-sm-3 col-xs-3 pull-left hide">
-            <button type="button" class="btn btn-success" ng-click="showCase.open_order_update()">Update Order</button>
-          </div>
-          <!-- <div class="col-md-2 col-sm-3 col-xs-6 pull-right">
-            <select class="form-control" name="search" ng-model="showCase.model_data.search" ng-change="showCase.get_payment_tracker_data()">
-              <option ng-repeat="data in showCase.model_data.filters" value="{{data}}">{{data}}</option>
-            </select>
-          </div> -->
-        </div>
         <div class="row" style="margin: 10px 5px 0px;">
           <div class="col-md-1 col-sm-6 col-xs-6">
             <h5 style="margin-top:0px;">Channel</h5>
@@ -60,105 +50,81 @@
               </div>
               <!--I can have markup, too! <i class="pull-right fa" ng-class="{'fa-angle-down': status.open, 'fa-angle-right': !status.open}"></i>-->
             </accordion-heading>
-            <!--This is just some content to illustrate fancy headings.-->
-            <div class="row">
-              <div class="col-md-12 col-sm-12 col-xs-12">
-                <table class="table" style="margin-bottom: 0px;background: #f0f0f0">
-                  <thead>
-                    <tr>
-                      <th>Invoice Number</th>
-                      <th>Order ID</th>
-                      <th>Invoice Amount</th>
-                      <th>Received</th>
-                      <th>Receivable</th>
-                      <th>Expected Date</th>
-                      <th style="width: 200px;">Update Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr ng-repeat="data in payment.data">
-                      <td>{{data.invoice_number}}</td>
-                      <td>{{data.display_order}}</td>
-                      <td>{{data.inv_amount}}</td>
-                      <td>{{data.received}}</td>
-                      <td>{{data.receivable}}</td>
-                      <td>{{data.expected_date}}</td>
-                      <td>
-                        <!-- <div class="order_update_show"> -->
-                          <span style="color: #2ECC71;text-decoration: underline;cursor: pointer;" class="order_update_show" ng-click="showCase.addRowData($event, data);$event.stopPropagation()">Update</span>
-                        <!-- </div> -->
-                        <!-- <div style="width: 200px;" class="order-save hide">
-                          <input type="text" style="width: 100px !important;" class="form-control pull-left" placeholder="Amount" decimal-number ng-model="data.amount" ng-change="showCase.change_amount(data)">
-                          <button style="width: 60px;margin-left: 10px;" type="button" class="btn btn-success pull-left" ng-click="showCase.order_save($event, $index, $parent.$index, data, payment)">Save</button>
-                        </div> -->
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+            <div class="row" style="margin: 10px 5px 0px;" align="center">
+              <div class="col-md-1 col-sm-6 col-xs-6">
+                <h5><b>Invoice Number</b></h5>
               </div>
+              <div class="col-md-2 col-sm-6 col-xs-6">
+                <h5><b>Order ID</b></h5>
+              </div>
+              <div class="col-md-2 col-sm-6 col-xs-6">
+                <h5><b>Invoice Amount</b></h5>
+              </div>
+              <div class="col-md-2 col-sm-6 col-xs-6">
+                <h5><b>Received</b></h5>
+              </div>
+              <div class="col-md-2 col-sm-6 col-xs-6">
+                <h5><b>Receivable</b></h5>
+              </div>
+              <div class="col-md-2 col-sm-6 col-xs-6">
+                <h5><b>Expected Date</b></h5>
+              </div>
+              <div class="col-md-1 col-sm-6 col-xs-6">
+              </div>
+            </div>
+            <div class="row" ng-repeat="data in payment.data" style="margin: 10px 5px 0px;">
+              <div class="row" align="center">
+                <div class="col-md-1 col-sm-6 col-xs-6">{{data.invoice_number}}</div>
+                <div class="col-md-2 col-sm-5 col-xs-6">{{data.display_order}}</div>
+                <div class="col-md-2 col-sm-6 col-xs-6">{{data.inv_amount}}</div>
+                <div class="col-md-2 col-sm-6 col-xs-6">{{data.received}}</div>
+                <div class="col-md-2 col-sm-6 col-xs-6">{{data.receivable}}</div>
+                <div class="col-md-2 col-sm-6 col-xs-6">{{data.expected_date}}</div>
+                <div class="col-md-1 col-sm-6 col-xs-6">
+                  <span style='color: #2ECC71;text-decoration: underline;cursor: pointer;' ng-click='showCase.display_acord(data)'>Update</span>
+                </div>
+              </div>
+              <div class="row pt20" ng-show="data.show" align="center">
+                <form name="update_invoice" id="update_invoice">
+                  <div class="col-md-1 col-sm-1 col-xs-6"></div>
+                  <div class="col-md-2 col-sm-2 col-xs-6">
+                    <div class="form-group">
+                      <select class="form-control" name="bank" ng-options="key as bank for (key, bank) in showCase.bank_names" ng-model="showCase.default_bank" ng-selected="bank == showCase.default_bank">
+                        <option value="">Select Bank</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-2 col-sm-2 col-xs-6">
+                    <div class="form-group">
+                      <select class="form-control" name="mode_of_payment"
+                          ng-options="key as mode for (key, mode) in showCase.payment_modes" ng-model="showCase.default_mode"
+                          ng-selected="mode == showCase.default_mode">
+                            <option value="">Mode of Pay</option>
+                          </select>
+                    </div>
+                  </div>
+                  <div class="col-md-2 col-sm-2 col-xs-6">
+                    <div class="form-group">
+                      <textarea rows="1" class="form-control" cols="10" name="remarks" placeholder="Remarks" ng-model="showCase.remarks"></textarea>
+                    </div>
+                  </div>
+                  <div class="col-md-2 col-sm-2 col-xs-6">
+                    <div class="form-group">
+                      <input class="form-control" ng-model="showCase.amount" placeholder="Amount" ng-change="showCase.change_amount(showCase.amount, true)" ng-class="showCase.service.get_decimal_perm()" type="text" name="amount">
+                    </div>
+                  </div>
+                  <div class="col-md-1 col-sm-2 col-xs-6">
+                    <div class="form-group">
+                      <input type="button" name="save" class="pull-right btn btn-success" ng-click="showCase.invoice_update(update_invoice, data)" value="Save">
+                    </div>
+                  </div>
+                  <div class="col-md-1 col-sm-1 col-xs-6"></div>
+                </form>
+              </div>
+              <hr>
             </div>
           </accordion-group>
         </accordion>
-        <!--<accordion close-others="oneAtATime">
-          <accordion-group ng-repeat="payment in showCase.payment_data.payments" is-open="status.isFirstOpen">
-            <accordion-heading>
-              <div class="row" ng-click="showCase.get_customer_orders(payment)">
-                <div class="col-md-1 col-sm-6 col-xs-6">
-                  <b>{{payment.channel}}</b>
-                </div>
-                <div class="col-md-2 col-sm-5 col-xs-5">
-                  <b>{{payment.customer_name}}</b>
-                </div>
-                <div class="col-md-3 col-sm-6 col-xs-6">
-                  <b>{{payment.invoice_amount}}</b>
-                </div>
-                <div class="col-md-3 col-sm-6 col-xs-6">
-                  <b>{{payment.payment_received}}</b>
-                </div>
-                <div class="col-md-3 col-sm-6 col-xs-6">
-                  <b>{{payment.payment_receivable}}</b>
-                  <i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-down': status.open, 'glyphicon-chevron-right': !status.open}"></i>
-                </div>
-                <div class="col-md-1 col-sm-1 col-xs-1 hide">
-                </div>
-              </div>
-            </accordion-heading>
-            <div class="row">
-              <div class="col-md-12 col-sm-12 col-xs-12">
-                <table class="table table-stk" style="margin-bottom: 0px;">
-                  <thead>
-                    <tr>
-                      <th>Order ID</th>
-                      <th>Invoice Amount</th>
-                      <th>Received</th>
-                      <th>Receivable</th>
-                      <th>Order Status</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr ng-repeat="data in payment.data">
-                      <td>{{data.display_order}}</td>
-                      <td>{{data.inv_amount}}</td>
-                      <td>{{data.received}}</td>
-                      <td>{{data.receivable}}</td>
-                      <td>{{data.order_status}}</td>
-                      <td class="order-edit">
-                        <div class="order-update">
-                          <span style="color: #2ECC71;text-decoration: underline;cursor: pointer;" ng-click="showCase.order_update($event)">Update</span>
-                        </div>
-                        <div style="width: 200px;" class="order-save hide">
-                          <input type="text" style="width: 100px !important;" class="form-control pull-left" placeholder="Amount" decimal-number ng-model="data.amount" ng-change="showCase.change_amount(data)">
-                          <button style="width: 60px;margin-left: 10px;" type="button" class="btn btn-success pull-left" ng-click="showCase.order_save($event, $index, $parent.$index, data, payment)">Save</button>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </accordion-group>
-        </accordion>-->
         <div ui-view></div>
       </div>
     </div>

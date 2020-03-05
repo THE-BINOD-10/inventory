@@ -200,7 +200,10 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
             master_data = sku_master.order_by(order_data)
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
+    count = 0
     for data in master_data[start_index:stop_index]:
+        attributes = get_user_attributes(user, 'sku')
+        sku_attributes = dict(data.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
         status = 'Inactive'
         if data.status:
             status = 'Active'
@@ -234,6 +237,12 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
              ('HSN Code', data.hsn_code), ('Tax Type',data.product_type),
              ('Creation Date', creation_date),
              ('Updation Date', updation_date))))
+        for attribute in attributes:
+            if attribute['attribute_name'] in sku_attributes.keys():
+                temp_data['aaData'][count].update(OrderedDict(((str(attribute['attribute_name']), str(sku_attributes[attribute['attribute_name']])),)))
+            else:
+                temp_data['aaData'][count].update(OrderedDict(((str(attribute['attribute_name']),''),)))
+        count +=1
 
 
 @csrf_exempt

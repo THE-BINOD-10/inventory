@@ -104,7 +104,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
      });
     vm.dtColumns = [
-        DTColumnBuilder.newColumn('Order ID').withTitle('Order ID'),
         DTColumnBuilder.newColumn('Customer ID').withTitle('Customer ID'),
         DTColumnBuilder.newColumn('Customer Name').withTitle('Customer Name'),
         DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
@@ -188,7 +187,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         var row_data = vm.dtInstance.DataTable.context[0].aoData[id]._aData;
         var dealloc_dict = {};
 		if (vm['deallocation_qty_val_'+ data_id]) {
-		  dealloc_dict['data_id'] = data_id;
+		  debugger;
+		  dealloc_dict['allocation_ids'] = row_data['allocation_ids'];
 		  dealloc_dict['dealloc_qty'] = vm['deallocation_qty_val_'+ data_id]
           vm.service.apiCall('insert_deallocation_data/', 'POST', dealloc_dict).then(function(resp) {
             if (resp.data == 'Success') {

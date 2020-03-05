@@ -16455,7 +16455,7 @@ def get_order_allocation_data(start_index, stop_index, temp_data, search_term, o
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     search_params = {'order_code': 'AL', 'user': user.id}
     search_params['sku_id__in'] = sku_master_ids
-    lis = ['original_order_id', 'customer_id', 'customer_name', 'sku__sku_code', 'original_quantity',
+    lis = ['customer_id', 'customer_name', 'sku__sku_code', 'original_quantity',
            'original_quantity', 'original_quantity']
     headers1, filters, filter_params1 = get_search_params(request)
     if 'from_date' in filters:
@@ -16475,31 +16475,45 @@ def get_order_allocation_data(start_index, stop_index, temp_data, search_term, o
 
     orders = OrderDetail.objects.filter(**search_params).annotate(return_qty=Sum('orderreturns__quantity')).\
                                 exclude(return_qty__isnull=False, return_qty__gte=F('original_quantity'))
+    order_data_ids = orders.values_list('id', flat=True)
+    orders_data = OrderDetail.objects.filter(id__in=order_data_ids).values('customer_id', 'customer_name',
+                                                                           'sku__sku_code', 'sku__sku_desc').distinct().\
+                        annotate(orig_qty = Sum('original_quantity'))
     if order_term:
         orders = orders.order_by(order_data)
 
-    temp_data['recordsTotal'] = orders.count()
+    temp_data['recordsTotal'] = orders_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     count = 0
-    for order in orders[start_index: stop_index]:
-        quantity = order.original_quantity
-        if order.return_qty:
-            quantity -= order.return_qty
-        temp_data['aaData'].append(OrderedDict((('data_id', order.id),
-                                                ('Order ID', order.original_order_id),
-                                                ('Customer ID', order.customer_id),
-                                                ('Customer Name', order.customer_name),
-                                                ('SKU Code', order.sku.sku_code),
-                                                ('SKU Description', order.sku.sku_desc),
+    for order in orders_data[start_index: stop_index]:
+        quantity = order['orig_qty']
+        return_check_dict = {}
+        return_check_dict1 = copy.deepcopy(order)
+        del return_check_dict1['orig_qty']
+        allocation_ids = OrderDetail.objects.filter(id__in=order_data_ids, **return_check_dict1).\
+                                                values_list('id', flat=True)
+        for key, value in return_check_dict1.items():
+            return_check_dict['order__%s' % key] = value
+        order_returns = OrderReturns.objects.filter(id__in=order_data_ids, **return_check_dict).\
+                                                aggregate(Sum('quantity'))['quantity__sum']
+        if order_returns:
+            quantity -= order_returns
+        data_id = count
+        temp_data['aaData'].append(OrderedDict((('data_id', data_id),
+                                                ('Customer ID', order['customer_id']),
+                                                ('Customer Name', order['customer_name']),
+                                                ('SKU Code', order['sku__sku_code']),
+                                                ('SKU Description', order['sku__sku_desc']),
                                                 ('Allocated Quantity', quantity),
                                                 ('Deallocation Quantity',
-                                                 '<input type="number" class="form-control" name="deallocation_qty" min="0" ng-model="showCase.deallocation_qty_val_%s" ng-init="showCase.deallocation_qty_val_%s=0" ng-keyup="showCase.check_dealloc_qty(%s, %s)">' % (str(order.id), str(order.id), str(count), str(order.id))
+                                                 '<input type="number" class="form-control" name="deallocation_qty" min="0" ng-model="showCase.deallocation_qty_val_%s" ng-init="showCase.deallocation_qty_val_%s=0" ng-keyup="showCase.check_dealloc_qty(%s, %s)">' % (str(data_id), str(data_id), str(count), str(data_id))
 
                                                  ),
-                                                ('', '<button type="button" name="submit" value="Save" class="btn btn-primary" ng-click="showCase.save_dealloc_qty(%s, %s)">Save</button>' % (str(count), str(order.id))),
+                                                ('', '<button type="button" name="submit" value="Save" class="btn btn-primary" ng-click="showCase.save_dealloc_qty(%s, %s)">Save</button>' % (str(count), str(data_id))),
                                                 ('id', count),
-                                                ('DT_RowClass', 'results'))))
+                                                ('DT_RowClass', 'results'),
+                                                ('allocation_ids', json.dumps(list(allocation_ids))))))
         count += 1
 
 
@@ -16515,34 +16529,34 @@ def insert_deallocation_data(request, user=''):
     marketplace_data = []
     seller_receipt_mapping = {}
     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
-    data_id = request.POST.get('data_id', '')
-    quantity = request.POST.get('dealloc_qty', '')
-    if not (data_id or quantity):
+    allocation_ids = json.loads(request.POST.get('allocation_ids', ''))
+    confirm_qty = request.POST.get('dealloc_qty', '')
+    if not (allocation_ids or quantity):
         return HttpResponse("Required Fields Missing")
-    order = OrderDetail.objects.filter(id=data_id, user=user.id)
-    if not order.exists():
+    orders = OrderDetail.objects.filter(id__in=allocation_ids, user=user.id)
+    if not orders.exists():
         return HttpResponse("Invalid Order")
     try:
-        order = order[0]
-        credit_note_number = ''
-        data_dict = {'sku_code': order.sku.sku_code, 'return': quantity, 'damaged': 0, 'order_imei_id': '',
-                     'order_id': order.original_order_id, 'order_detail_id': order.id}
-        data_dict['id'], status, seller_order_ids, credit_note_number = create_return_order(data_dict, user.id,
-                                                                                              credit_note_number)
-        order_returns = OrderReturns.objects.filter(id=data_dict['id'])
-        if not order_returns:
-            return HttpResponse("Failed")
-        order_returns = order_returns[0]
-        save_return_locations([order_returns], [], 0, request, user)
-        returns_order_tracking(order_returns, user, quantity, 'returned', imei='', invoice_no='')
-        returns_location_data = ReturnsLocation.objects.filter(returns_id=order_returns.id, status=1)
-        for returns_data in returns_location_data:
-            location = returns_data.location.location
-            zone = returns_data.location.zone.zone
-            status, return_wms_codes, mod_locations, marketplace_data,\
-            seller_receipt_mapping = confirm_returns_putaway(user, returns_data, location, zone, returns_data.quantity,
-                                                             unique_mrp, receipt_number, return_wms_codes, mod_locations, marketplace_data,
-                                                             seller_receipt_mapping)
+        for order in orders:
+            credit_note_number = ''
+            data_dict = {'sku_code': order.sku.sku_code, 'return': quantity, 'damaged': 0, 'order_imei_id': '',
+                         'order_id': order.original_order_id, 'order_detail_id': order.id}
+            data_dict['id'], status, seller_order_ids, credit_note_number = create_return_order(data_dict, user.id,
+                                                                                                  credit_note_number)
+            order_returns = OrderReturns.objects.filter(id=data_dict['id'])
+            if not order_returns:
+                return HttpResponse("Failed")
+            order_returns = order_returns[0]
+            save_return_locations([order_returns], [], 0, request, user)
+            returns_order_tracking(order_returns, user, quantity, 'returned', imei='', invoice_no='')
+            returns_location_data = ReturnsLocation.objects.filter(returns_id=order_returns.id, status=1)
+            for returns_data in returns_location_data:
+                location = returns_data.location.location
+                zone = returns_data.location.zone.zone
+                status, return_wms_codes, mod_locations, marketplace_data,\
+                seller_receipt_mapping = confirm_returns_putaway(user, returns_data, location, zone, returns_data.quantity,
+                                                                 unique_mrp, receipt_number, return_wms_codes, mod_locations, marketplace_data,
+                                                                 seller_receipt_mapping)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

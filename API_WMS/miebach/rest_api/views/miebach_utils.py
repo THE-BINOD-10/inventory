@@ -670,7 +670,7 @@ PO_REPORT_DICT = {
         {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
         {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
     ],
-    'dt_headers': ['SKU Code','Sku Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Quantity','PO No','Location'],
+    'dt_headers': ['SKU Code','Sku Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Quantity','PO No','Location','PO Date'],
     'mk_dt_headers': ['SKU Code','Sku Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Manufacturer', 'Searchable', 'Bundle', 'Quantity','PO No','Location'],
     'dt_url': 'get_po_report', 'excel_name': 'get_po_report',
     'print_url': 'print_po_report',
@@ -7603,12 +7603,14 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
                         sr_number = courtesy_sr_number[0].value
         po_quantity = float(order.open_po.order_quantity) - float(order.received_quantity)
         warehouse_location = warehouse_users[order.open_po.sku.user]
+        po_date = get_local_date(user , order.creation_date)
         ord_dict = OrderedDict((('SKU Code',order.open_po.sku.wms_code),('PO No',po_reference_no),
                                                 ('SKU Category',order.open_po.sku.sku_category),('Sub Category',order.open_po.sku.sub_category),
                                                 ('SKU Brand',order.open_po.sku.sku_brand),
                                                 ('Quantity',po_quantity ), ('Sku Description', order.open_po.sku.sku_desc),
                                                 ('Location',warehouse_location), ('Customer Name', customer_name),
-                                ('SR Number', sr_number)))
+                                                ('PO Date':po_date),
+                                                ('SR Number', sr_number)))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             ord_dict['Manufacturer'] = manufacturer
             ord_dict['Searchable'] = searchable

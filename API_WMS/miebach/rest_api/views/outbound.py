@@ -16542,15 +16542,15 @@ def insert_deallocation_data(request, user=''):
         for order in orders:
             credit_note_number = ''
             returned_quantity,quantity = 0,0
-            or_obj= OrderReturns.objects.filter(order_id=order.id)
-            if or_obj.exists():
-                returned_quantity = or_obj[0].quantity
-            if order.original_quantity - returned_quantity >= confirm_qty :
+            or_obj= OrderReturns.objects.filter(order_id=order.id).aggregate(Sum('quantity'))['quantity__sum']
+            if or_obj:
+                returned_quantity = or_obj
+            if (order.original_quantity - returned_quantity) >= confirm_qty :
                 quantity = confirm_qty
                 confirm_qty = 0
             else:
-                quantity = order.original_quantity
-                confirm_quantity = confirm_qty - order.original_quantity
+                quantity = order.original_quantity - returned_quantity
+                confirm_quantity = confirm_qty - quantity
 
 
             data_dict = {'sku_code': order.sku.sku_code, 'return': quantity, 'damaged': 0, 'order_imei_id': '',

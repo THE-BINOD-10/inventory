@@ -1854,13 +1854,17 @@ var app = angular.module('urbanApp')
       // Track Orders
       .state('app.PaymentTracker', {
           url: '/PaymentTracker',
-          templateUrl: 'views/payment_tracker/payment_tracker.html',
+          templateUrl: 'views/payment_tracker/alternative_payment_tab.html',
           authRequired: true,
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
                   'scripts/controllers/payment_tracker/payment_tracker.js'
-                ]);
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/payment_tracker/outbound_payment_report.js'
+                  ])
+                });
               }]
           },
           data: {

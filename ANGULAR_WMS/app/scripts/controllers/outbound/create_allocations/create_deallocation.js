@@ -58,8 +58,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
         vm.date = datearray[0] + '/' + datearray[1] + '/' + datearray[2];
       } else {
-
-        vm.date = datearray[1] + '/' + datearray[0] + '/' + datearray[2];
+        vm.date = datearray[0] + '/' + datearray[1] + '/' + datearray[2];
       }
     }
 
@@ -187,7 +186,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         var row_data = vm.dtInstance.DataTable.context[0].aoData[id]._aData;
         var dealloc_dict = {};
 		if (vm['deallocation_qty_val_'+ data_id]) {
-		  debugger;
 		  dealloc_dict['allocation_ids'] = row_data['allocation_ids'];
 		  dealloc_dict['dealloc_qty'] = vm['deallocation_qty_val_'+ data_id]
           vm.service.apiCall('insert_deallocation_data/', 'POST', dealloc_dict).then(function(resp) {

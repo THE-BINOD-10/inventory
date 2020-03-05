@@ -16532,8 +16532,8 @@ def insert_deallocation_data(request, user=''):
     seller_receipt_mapping = {}
     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
     allocation_ids = json.loads(request.POST.get('allocation_ids', ''))
-    confirm_qty = request.POST.get('dealloc_qty', '')
-    if not (allocation_ids or quantity):
+    confirm_qty = int(request.POST.get('dealloc_qty', 0))
+    if not (allocation_ids or confirm_qty):
         return HttpResponse("Required Fields Missing")
     orders = OrderDetail.objects.filter(id__in=allocation_ids, user=user.id)
     if not orders.exists():
@@ -16541,6 +16541,18 @@ def insert_deallocation_data(request, user=''):
     try:
         for order in orders:
             credit_note_number = ''
+            returned_quantity,quantity = 0,0
+            or_obj= OrderReturns.objects.filter(order_id=order.id)
+            if or_obj.exists():
+                returned_quantity = or_obj[0].quantity
+            if order.original_quantity - returned_quantity >= confirm_qty :
+                quantity = confirm_qty
+                confirm_qty = 0
+            else:
+                quantity = order.original_quantity
+                confirm_quantity = confirm_qty - order.original_quantity
+
+
             data_dict = {'sku_code': order.sku.sku_code, 'return': quantity, 'damaged': 0, 'order_imei_id': '',
                          'order_id': order.original_order_id, 'order_detail_id': order.id}
             data_dict['id'], status, seller_order_ids, credit_note_number = create_return_order(data_dict, user.id,

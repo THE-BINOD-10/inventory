@@ -124,6 +124,8 @@ urlpatterns = [
     url(r'^add_sub_zone_mapping/$', add_sub_zone_mapping),
     url(r'^add_update_pr_config/$', add_update_pr_config),
     url(r'^delete_pr_config/$', delete_pr_config),
+    url(r'^pr_request/$', pr_request),
+    
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),

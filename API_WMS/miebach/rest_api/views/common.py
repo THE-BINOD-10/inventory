@@ -804,6 +804,37 @@ def add_extra_permissions(user):
             if key in add_permissions:
                 user.groups.add(group)
 
+def pr_request(request):
+    response_data = {'data': {}, 'message': 'Fail'}
+    hash_code = request.GET.get('hash_code', '')
+    storedData = PRApprovalMails.objects.filter(hash_code=hash_code)
+    # if storedData:
+    prApprId = storedData[0].pr_approval_id
+    email_id = storedData[0].email
+    prApprObj = PRApprovals.objects.filter(id=prApprId)
+    # if prApprObj:
+    parentUser = prApprObj[0].pr_user
+    sub_users = get_sub_users(parentUser)
+    reqSubUser = sub_users.get(email=email_id)
+    if reqSubUser and reqSubUser.is_active:
+        login(request, reqSubUser)
+        user_profile = UserProfile.objects.filter(user_id=reqSubUser.id)
+
+        if not user_profile:
+            prefix = re.sub('[^A-Za-z0-9]+', '', reqSubUser.username)[:3].upper()
+            up_obj = UserProfile(user=reqSubUser, phone_number='',
+                                       is_active=1, prefix=prefix, swx_id=0)
+            up_obj.save()
+            if reqSubUser.is_staff:
+                add_user_type_permissions(up_obj)
+            user_profile = UserProfile.objects.filter(user_id=reqSubUser.id)
+
+    else:
+        return HttpResponse(json.dumps(response_data), content_type='application/json')
+
+    response_data = add_user_permissions(request, response_data)
+
+    return HttpResponse(json.dumps(response_data), content_type='application/json')
 
 @csrf_exempt
 @login_required

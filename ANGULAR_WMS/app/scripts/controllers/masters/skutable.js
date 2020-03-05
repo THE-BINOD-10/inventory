@@ -11,6 +11,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.permissions = Session.roles.permissions;
     vm.user_profile = Session.user_profile;
 
+    vm.service.apiCall('get_user_attributes_list', 'GET').then(function(data){
+      vm.attributes = data.data.data;
+      angular.forEach(vm.attributes,function(attr_dat){
+      vm.dtColumns.push(DTColumnBuilder.newColumn(attr_dat.attribute_name).withTitle(attr_dat.attribute_name))
+    });
+    });
     vm.filters = {'datatable': 'SKUMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'', 'search6': '', 'search6': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -71,6 +77,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
            DTColumnBuilder.newColumn('Tax Type').withTitle('Tax Type')
             )
         }}
+    
     vm.dtColumns.push( DTColumnBuilder.newColumn('Status').withTitle('Status').renderWith(function(data, type, full, meta) {
                           return vm.service.status(data);
                         }).withOption('width', '80px'))

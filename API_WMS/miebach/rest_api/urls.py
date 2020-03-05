@@ -613,6 +613,7 @@ urlpatterns += [
     url(r'^brand_level_pricing_form/$', brand_level_pricing_form),
     url(r'^brand_level_pricing_upload/$', brand_level_pricing_upload),
 
+
     # configurations
     url(r'^configurations/$', configurations),
     url(r'^switches/$', switches),
@@ -674,6 +675,8 @@ urlpatterns += [
     url(r'^get_decimal_data/$', get_decimal_data),
     url(r'^update_barcode_configuration/$', update_barcode_configuration),
     url(r'^get_barcode_configurations/$', get_barcode_configurations),
+    url(r'^get_sku_attributes_data/$', get_sku_attributes_data),
+
 
 
     # Retailone

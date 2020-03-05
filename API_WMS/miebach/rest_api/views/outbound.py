@@ -16497,7 +16497,7 @@ def get_order_allocation_data(start_index, stop_index, temp_data, search_term, o
                                                 values_list('id', flat=True)
         for key, value in return_check_dict1.items():
             return_check_dict['order__%s' % key] = value
-        order_returns = OrderReturns.objects.filter(id__in=order_data_ids, **return_check_dict).\
+        order_returns = OrderReturns.objects.filter(order_id__in=order_data_ids, **return_check_dict).\
                                                 aggregate(Sum('quantity'))['quantity__sum']
         if order_returns:
             quantity -= order_returns
@@ -16540,6 +16540,8 @@ def insert_deallocation_data(request, user=''):
         return HttpResponse("Invalid Order")
     try:
         for order in orders:
+            if not confirm_qty:
+                break
             credit_note_number = ''
             returned_quantity,quantity = 0,0
             or_obj= OrderReturns.objects.filter(order_id=order.id).aggregate(Sum('quantity'))['quantity__sum']
@@ -16550,7 +16552,7 @@ def insert_deallocation_data(request, user=''):
                 confirm_qty = 0
             else:
                 quantity = order.original_quantity - returned_quantity
-                confirm_quantity = confirm_qty - quantity
+                confirm_qty = confirm_qty - quantity
 
 
             data_dict = {'sku_code': order.sku.sku_code, 'return': quantity, 'damaged': 0, 'order_imei_id': '',

@@ -251,6 +251,7 @@ urlpatterns = [
 
 
 
+
     # Stock Locator
     url(r'^insert_move_inventory/$', insert_move_inventory),
     url(r'^confirm_cycle_count/$', confirm_cycle_count),
@@ -424,6 +425,8 @@ urlpatterns = [
     url(r'^dispatch_serial_numbers/$', dispatch_serial_numbers),
     url(r'^save_misc_value/$', save_misc_value),
     url(r'^get_value_for_misc_type/$', get_value_for_misc_type),
+    url(r'^get_previous_order_data/$', get_previous_order_data),
+
 
 
     # Uploaded POs [SWISS MILITARY]

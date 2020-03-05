@@ -16561,3 +16561,12 @@ def get_sku_attributes_data(request, user=''):
      sku_code = request.GET.get('wms_code','')
      sku_attributes = get_sku_attributes(user,sku_code)
      return HttpResponse(json.dumps({'attribute_dict': sku_attributes}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_previous_order_data(request, user=''):
+     sku_code = request.GET.get('wms_code','')
+     previous_order_data = get_previous_order(user,sku_code)
+     return HttpResponse(json.dumps({'previous_order_data': previous_order_data}))

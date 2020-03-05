@@ -130,9 +130,9 @@
             </thead>
             <tbody ng-repeat="data in showCase.last_transaction_table">
                 <tr class="field">
-                  <td>{{data.order_date}}</td>
-                  <td>{{data.order_id}}</td>
-                  <td>{{data.quantity}}</td>
+                  <td>{{ data.order_date }}</td>
+                  <td>{{data.original_order_id}}</td>
+                  <td>{{data.original_quantity}}</td>
                   <td>{{data.unit_price}}</td>
                 </tr>
             </tbody>

@@ -671,7 +671,7 @@ PO_REPORT_DICT = {
         {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
     ],
     'dt_headers': ['SKU Code','Sku Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Quantity','PO No','Location','PO Date'],
-    'mk_dt_headers': ['SKU Code','Sku Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Manufacturer', 'Searchable', 'Bundle', 'Quantity','PO No','Location'],
+    'mk_dt_headers': ['SKU Code','Sku Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Manufacturer', 'Searchable', 'Bundle', 'Quantity','PO No','Location','PO Date'],
     'dt_url': 'get_po_report', 'excel_name': 'get_po_report',
     'print_url': 'print_po_report',
  }

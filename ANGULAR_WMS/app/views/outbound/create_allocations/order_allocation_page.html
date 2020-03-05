@@ -122,6 +122,7 @@
           <table class="table table-bordered">
             <thead>
               <tr>
+                <th>SKU Code</th>
                 <th>Order Date</th>
                 <th>Order ID</th>
                 <th>Quantity</th>
@@ -130,6 +131,7 @@
             </thead>
             <tbody ng-repeat="data in showCase.last_transaction_table">
                 <tr class="field">
+                  <td>{{ data.sku__wms_code }}</td>
                   <td>{{ data.order_date }}</td>
                   <td>{{data.original_order_id}}</td>
                   <td>{{data.original_quantity}}</td>

@@ -11,7 +11,7 @@ def get_sku_attributes(user, sku_code):
 
 def get_previous_order(user, sku_code):
     orders_dict = list(OrderDetail.objects.filter(user=user.id, sku__wms_code=sku_code).order_by('-creation_date')[:3].values(
-        'original_order_id', 'original_quantity', 'unit_price', 'creation_date'))
+        'original_order_id', 'original_quantity', 'unit_price', 'creation_date', 'sku__wms_code'))
     for order in orders_dict:
          order['order_date'] = get_local_date(user, order['creation_date'])
          del order['creation_date']

@@ -16455,17 +16455,16 @@ def insert_allocation_data(request, user=''):
 
 def get_order_allocation_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, col_filters={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    search_params = {'order_code': 'AL', 'user': user.id}
-    search_params['sku_id__in'] = sku_master_ids
+    search_params = {'order_code': 'AL', 'user': user.id, 'sku_id__in': sku_master_ids}
     lis = ['customer_id', 'customer_name', 'sku__sku_code', 'original_quantity',
            'original_quantity', 'original_quantity']
     headers1, filters, filter_params1 = get_search_params(request)
-    if 'from_date' in filters:
-        search_params['creation_date__gt'] = filters['from_date']
-    if 'to_date' in filters:
-        to_date = datetime.datetime.combine(filters['to_date'] + datetime.timedelta(1),
-                                                             datetime.time())
-        search_params['creation_date__lt'] = to_date
+    # if 'from_date' in filters:
+    #     search_params['creation_date__gt'] = filters['from_date']
+    # if 'to_date' in filters:
+    #     to_date = datetime.datetime.combine(filters['to_date'] + datetime.timedelta(1),
+    #                                                          datetime.time())
+    #     search_params['creation_date__lt'] = to_date
     if 'sku_code' in filters:
         search_params['sku__sku_code'] = filters['sku_code'].upper()
     if 'customer_id' in filters:

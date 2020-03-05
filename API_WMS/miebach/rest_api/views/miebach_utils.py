@@ -7609,7 +7609,7 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
                                                 ('SKU Brand',order.open_po.sku.sku_brand),
                                                 ('Quantity',po_quantity ), ('Sku Description', order.open_po.sku.sku_desc),
                                                 ('Location',warehouse_location), ('Customer Name', customer_name),
-                                                ('PO Date':po_date),
+                                                ('PO Date',po_date),
                                                 ('SR Number', sr_number)))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             ord_dict['Manufacturer'] = manufacturer

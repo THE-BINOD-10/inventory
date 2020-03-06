@@ -3676,10 +3676,8 @@ def common_calculations(arg_data):
     quantity = get_decimal_limit(user.id ,quantity)
     invoice_amount = get_decimal_limit(user.id ,invoice_amount ,'price')
     if sku_packs:
-        if sku_packs>0 and sku_packs !='':
-            sku_packs = total_quantity%sku_packs
-        else:
-            sku_packs=''
+        sku_packs = total_quantity//sku_packs
+    sku_packs=''
     data.append(
         {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
          'title': title, 'invoice_amount': str(invoice_amount),

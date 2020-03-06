@@ -149,6 +149,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.model_data.filters.to_date = '';
       }
     }
+    vm.loadjs = function () {
+      vm.InboundPaymentReportCtrl_enable = true;
+    }
 
     vm.model_data = {};
 

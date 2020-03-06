@@ -1,0 +1,125 @@
+<div class="page-layout" scrolly="scroll_bottom(e)" ng-controller="PaymentTrackerInbound as showCase">
+  <div class='layout-header'>
+    <div class="pull-left">
+      <offscreen class="visible-xs fa fa-bars pull-left" style="font-size: 22px;padding: 8px 12px 0px 5px;"></offscreen>
+<h4 class="pull-left">Pending Inbound Payments</h4>
+    </div>
+  </div>
+  <div class="layout-body">
+    <div class="panel">
+      <div class="panel-body mr10 ml10 tracking">
+        <div class="row" style="margin: 10px 5px 0px;">
+          <div class="col-md-2 col-sm-6 col-xs-6">
+            <h5 style="margin-top:0px;">Supplier Name</h5>
+          </div>
+          <div class="col-md-3 col-sm-6 col-xs-6">
+            <h5 style="margin-top:0px;">Invoice Amount</h5>
+            <p style="font-size: 14px;" class="label label-danger pull-left">Rs{{showCase.payment_data.total_invoice_amount}}</p>
+          </div>
+          <div class="col-md-3 col-sm-6 col-xs-6">
+            <h5 style="margin-top:0px;">Payment Received</h5>
+            <p style="font-size: 14px;" class="label label-success pull-left">Rs{{showCase.payment_data.total_payment_received}}</p>
+          </div>
+          <div class="col-md-3 col-sm-6 col-xs-6">
+            <h5 style="margin-top:0px;">Payment Receivable</h5>
+            <p style="font-size: 14px;" class="label label-warning pull-left">Rs{{showCase.payment_data.total_payment_receivable}}</p>
+          </div>
+        </div>
+        <accordion close-others="oneAtATime" class="accordion">
+          <accordion-group is-open="status.open" ng-repeat="payment in showCase.payment_data.payments">
+            <accordion-heading>
+              <div class="row" ng-click="showCase.get_customer_orders(payment)">
+                <div class="col-md-2 col-sm-5 col-xs-6">
+                 {{payment.supplier_name}}
+                </div>
+                <div class="col-md-3 col-sm-6 col-xs-6">
+                 {{payment.invoice_amount}}
+                </div>
+                <div class="col-md-3 col-sm-6 col-xs-6">
+                 {{payment.payment_received}}
+                </div>
+                <div class="col-md-3 col-sm-6 col-xs-6">
+                  {{payment.payment_receivable}}
+                  <i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-down': status.open, 'glyphicon-chevron-right': !status.open}"></i>
+                </div>
+                <div class="col-md-1 col-sm-1 col-xs-1 hide">
+                </div>
+              </div>
+              <!--I can have markup, too! <i class="pull-right fa" ng-class="{'fa-angle-down': status.open, 'fa-angle-right': !status.open}"></i>-->
+            </accordion-heading>
+            <div class="row" style="margin: 10px 5px 0px;" align="center">
+              <div class="col-md-2 col-sm-6 col-xs-6">
+                <h5><b>Invoice Number</b></h5>
+              </div>
+              <div class="col-md-2 col-sm-6 col-xs-6">
+                <h5><b>PO Number</b></h5>
+              </div>
+              <div class="col-md-2 col-sm-6 col-xs-6">
+                <h5><b>Invoice Amount</b></h5>
+              </div>
+              <div class="col-md-2 col-sm-6 col-xs-6">
+                <h5><b>Received</b></h5>
+              </div>
+              <div class="col-md-2 col-sm-6 col-xs-6">
+                <h5><b>Receivable</b></h5>
+              </div>
+              <div class="col-md-1 col-sm-6 col-xs-6">
+              </div>
+            </div>
+            <div class="row" ng-repeat="data in payment.data" style="margin: 10px 5px 0px;">
+              <div class="row" align="center">
+                <div class="col-md-2 col-sm-6 col-xs-6">{{data.invoice_number}}</div>
+                <div class="col-md-2 col-sm-6 col-xs-6">{{data.po_number}}</div>
+                <div class="col-md-2 col-sm-6 col-xs-6">{{data.invoice_amount}}</div>
+                <div class="col-md-2 col-sm-6 col-xs-6">{{data.payment_received}}</div>
+                <div class="col-md-2 col-sm-6 col-xs-6">{{data.payment_receivable}}</div>
+                <div class="col-md-1 col-sm-6 col-xs-6">
+                  <span style='color: #2ECC71;text-decoration: underline;cursor: pointer;' ng-click='showCase.display_acord(data)'>Update</span>
+                </div>
+              </div>
+              <div class="row pt20" ng-show="data.show" align="center">
+                <form name="update_invoice" id="update_invoice">
+                  <div class="col-md-1 col-sm-1 col-xs-6"></div>
+                  <div class="col-md-2 col-sm-2 col-xs-6">
+                    <div class="form-group">
+                      <select class="form-control" name="bank" ng-options="key as bank for (key, bank) in showCase.bank_names" ng-model="showCase.default_bank" ng-selected="bank == showCase.default_bank">
+                        <option value="">Select Bank</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-2 col-sm-2 col-xs-6">
+                    <div class="form-group">
+                      <select class="form-control" name="mode_of_payment"
+                          ng-options="key as mode for (key, mode) in showCase.payment_modes" ng-model="showCase.default_mode"
+                          ng-selected="mode == showCase.default_mode">
+                            <option value="">Mode of Pay</option>
+                          </select>
+                    </div>
+                  </div>
+                  <div class="col-md-2 col-sm-2 col-xs-6">
+                    <div class="form-group">
+                      <textarea rows="1" class="form-control" cols="10" name="remarks" placeholder="Remarks" ng-model="showCase.remarks"></textarea>
+                    </div>
+                  </div>
+                  <div class="col-md-2 col-sm-2 col-xs-6">
+                    <div class="form-group">
+                      <input class="form-control" ng-model="showCase.amount" placeholder="Amount" ng-change="showCase.change_amount(showCase.amount, true)" ng-class="showCase.service.get_decimal_perm()" type="text" name="amount">
+                    </div>
+                  </div>
+                  <div class="col-md-1 col-sm-2 col-xs-6">
+                    <div class="form-group">
+                      <input type="button" name="save" class="pull-right btn btn-success" ng-click="showCase.invoice_update(update_invoice, data)" value="Save">
+                    </div>
+                  </div>
+                  <div class="col-md-1 col-sm-1 col-xs-6"></div>
+                </form>
+              </div>
+              <hr>
+            </div>
+          </accordion-group>
+        </accordion>
+        <div ui-view></div>
+      </div>
+    </div>
+  </div>
+</div>

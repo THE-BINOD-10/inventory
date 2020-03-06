@@ -4,7 +4,7 @@ FUN = {};
 'use strict';
 
 var stockone = angular.module('urbanApp', ['datatables'])
-  stockone.controller('PaymentTracker',['$scope', '$http', '$state', 'Session', 'Service','$q', 'SweetAlert', 'focus', '$modal', '$compile', 'Data', ServerSideProcessingCtrl]);
+  stockone.controller('PaymentTrackerInbound',['$scope', '$http', '$state', 'Session', 'Service','$q', 'SweetAlert', 'focus', '$modal', '$compile', 'Data', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, SweetAlert, focus, $modal, $compile,Data) {
 
@@ -27,7 +27,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
 
   vm.get_payment_tracker_data = function() {
     angular.copy(empty_data, vm.payment_data);
-    vm.service.apiCall("payment_tracker/","GET", {filter: vm.model_data.search}).then(function(data){
+    vm.service.apiCall("invoice_payment_tracker/","GET", {filter: vm.model_data.search}).then(function(data){
 
       if(data.message) {
 
@@ -42,8 +42,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
 
    console.log(payment) ;
     if(!(payment["data"])) {
-      var send = {id:payment.customer_id, name:payment.customer_name, channel: payment.channel, filter: vm.model_data.search}
-      vm.service.apiCall("get_customer_payment_tracker/", "GET", send).then(function(data){
+      var send = {id:payment.supplier_id, name:payment.supplier_name}
+      vm.service.apiCall("supplier_invoice_data/", "GET", send).then(function(data){
   
         if(data.message) {
           payment["data"] = data.data.data;
@@ -68,7 +68,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
     elem = $(elem).serializeArray();
     elem.push({'name':'invoice_number', 'value':data.invoice_number});
 
-    vm.service.apiCall("update_payment_status/", "GET", elem).then(function(data){
+    vm.service.apiCall("po_update_payment_status/", "GET", elem).then(function(data){
       if(data.message) {
         console.log(data);
         Service.showNoty('Payment saved!');
@@ -76,20 +76,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
       }
     })
   }
-
-  //Upadate payment popup
-  vm.order_data = {}
-  vm.open_order_update = function() {
-
-    $state.go("app.PaymentTracker.UpdateOrder");
-  }
-
-  vm.close = function() {
-    $state.go("app.PaymentTracker");
-  }
-  vm.reloadData = function () {
-      $('.reload').DataTable().draw();
-    };
+  vm.loadjs = function () {
+      vm.PaymentTrackerInbound_enable = true;
+    }
 
   vm.order_update = function(event){
 
@@ -115,37 +104,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
         data_tr.next().remove();
       }
     }
-
-  vm.order_save = function(event, index1, index2, order, customer){
-
-    var temp = event.target;
-    var parent = angular.element(temp).parents(".order-edit");
-    var value = $(parent).find("input").val();
-    if(value) {
-      var data = {order_id: order.order_id, amount: value}
-      vm.service.apiCall("update_payment_status/", "GET", data).then(function(data){
-        if(data.message) {
-
-          $(parent).find("input").val("");
-          angular.element(parent).find(".order-update").removeClass("hide");
-          angular.element(parent).find(".order-save").addClass("hide");
-
-          order.receivable = Number(order.receivable) - Number(value);
-          order.received = Number(order.received) + Number(value);
-          customer.payment_receivable = Number(customer.payment_receivable) - Number(value);
-          customer.payment_received = Number(customer.payment_received) + Number(value);
-          vm.payment_data.total_payment_receivable = Number(vm.payment_data.total_payment_receivable) - Number(value);
-          vm.payment_data.total_payment_received = Number(vm.payment_data.total_payment_received) + Number(value);
-          if(order.inv_amount == order.received) {
-            customer.data.splice(index1, 1);
-          }
-          if (customer.payment_received == customer.invoice_amount) {
-            vm.payment_data.payments.splice(index2, 1);
-          }
-        }
-      })
-    }
-  }
   vm.bank_names = ''
   if (vm.permissions.bank_option_fields){
     vm.bank_names=vm.permissions.bank_option_fields.split(',');

@@ -3375,7 +3375,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             if dat.sku.sku_code:
                 sku_attr_obj = SKUAttributes.objects.filter(sku_id=dat.sku_id,
                                         attribute_name='MARGINAL GST').only('attribute_value')
-                pack_quantity = SKUPackMaster.objects.filter(sku__sku_code=dat.sku.sku_code.encode('utf-8')).values('pack_quantity')
+                pack_quantity = SKUPackMaster.objects.filter(sku__sku_code=str(dat.sku.sku_code)).values('pack_quantity')
                 if pack_quantity.exists():
                     pack_quantity = pack_quantity
                     total_quantity = pack_quantity
@@ -3680,7 +3680,8 @@ def common_calculations(arg_data):
     invoice_amount = get_decimal_limit(user.id ,invoice_amount ,'price')
     if sku_packs:
         sku_packs = total_quantity//sku_packs
-    sku_packs=''
+    else:
+        sku_packs=''
 
     data.append(
         {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,

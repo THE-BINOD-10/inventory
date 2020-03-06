@@ -3378,7 +3378,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 pack_quantity = SKUPackMaster.objects.filter(sku__sku_code=dat.sku.sku_code.encode('utf-8')).values('pack_quantity')
                 if pack_quantity.exists():
                     pack_quantity = pack_quantity
-                    total_quantity = int(pack_quantity)
+                    total_quantity = pack_quantity
                 pack_quantity = ""
                 total_quantity = 0
                 imei_data_sku_wise = []

@@ -62,6 +62,7 @@
                     <span><b>City :</b></span>{{ page.city }}<br>
                     <span><b>Pincode :</b></span>{{ page.pincode }}<br>
                     <span><b>PAN No :</b></span>{{ page.pan }}<br>
+                    <span><b>GSTIN :</b></span>{{ page.supplier_gstin }}<br>
                   </div>
                 </div>
               </div>
@@ -77,6 +78,7 @@
                     <span><b>City :</b></span>{{ page.city }}<br>
                     <span><b>Pincode :</b></span>{{ page.pincode }}<br>
                     <span><b>PAN No :</b></span>{{ page.pan }}<br>
+                    <span><b>GSTIN :</b></span>{{ page.supplier_gstin }}<br>
                   </div>
                 </div>
               </div>
@@ -92,6 +94,7 @@
       			<th style="padding:2.5px;" rowspan="2"><center>HSN Code</center></th>
       			<th style="padding:2.5px;" rowspan="2"><center>QTY</center></th>
       			<th style="padding:2.5px;" rowspan="2"><center>Unit</center></th>
+                <th style="padding:2.5px;" rowspan="2"><center>MRP</center></th>
       			<th style="padding:2.5px;" rowspan="2"><center>Rate Per Unit</center></th>
       			<th style="padding:2.5px;" rowspan="2"><center>Total</center></th>
       			<th style="padding:2.5px;" rowspan="2"><center>Discount</center></th>
@@ -123,6 +126,7 @@
             <td class="text-left" style="padding:2.5px;">{{ i.hsn_code }}</td>
             <td class="text-left" style="padding:2.5px;">{{ i.order_qty }}</td>
             <td class="text-right" style="padding:2.5px;">{{ i.measurement_unit }}</td>
+             <td class="text-right" style="padding:2.5px;">{{ i.mrp }}</td>
             <td class="text-right" style="padding:2.5px;">{{ i.price }}</td>
             <td class="text-right" style="padding:2.5px;">{{ i.total_amt }}</td>
 			      <td class="text-right" style="padding:2.5px;">{{ i.discount }}</td>
@@ -145,6 +149,7 @@
             <td class="text-left" style="padding:2.5px;"></td>
 			      <td class="text-left" style="padding:2.5px;">{{ page.total_qty }}</td>
 			      <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;">{{page.total_without_discount}}</td>
             <td class="text-right" style="padding:2.5px;">{{ page.total_only_discount }}</td>
@@ -176,7 +181,7 @@
             <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;"></td>
 <!--            <td class="text-right" style="padding:2.5px;"></td>-->
-            <td class="text-right" style="padding:2.5px;" colspan="3">Total Invoice Value</td>
+            <td class="text-right" style="padding:2.5px;" colspan="4">Total Invoice Value</td>
             <td class="text-right" style="padding:2.5px;">{{ page.total_invoice_value }}</td>
           </tr>
           {% if forloop.last %}
@@ -189,7 +194,7 @@
                 </div>
               </div>
             </td>
-            <td class="fs14 text-center" colspan="15">
+            <td class="fs14 text-center" colspan="16">
               <h5 class="m0">For {{ page.warehouse_details.company_name }}</h5><br><br>
               <h5 class="m0">Authorised Signatory</h5>
             </td>

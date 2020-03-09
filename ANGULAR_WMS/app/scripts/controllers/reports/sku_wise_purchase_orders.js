@@ -24,6 +24,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       angular.copy(vm.empty_data, vm.model_data);
       vm.dtOptions = data.dtOptions;
       vm.dtColumns = data.dtColumns;
+      if (vm.industry_type == "FMCG" && vm.user_type == "marketplace_user") {
+      vm.dtColumns.splice(8, 0, DTColumnBuilder.newColumn('Manufacturer').withTitle('Manufacturer'))
+      vm.dtColumns.splice(9, 0, DTColumnBuilder.newColumn('Searchable').withTitle('Searchable'))
+      vm.dtColumns.splice(10, 0, DTColumnBuilder.newColumn('Bundle').withTitle('Bundle'))
+
+    }
       vm.datatable = true;
       vm.dtInstance = {};
     })

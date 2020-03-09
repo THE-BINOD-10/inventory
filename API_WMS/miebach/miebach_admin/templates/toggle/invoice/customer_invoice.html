@@ -123,7 +123,10 @@
                   <tr class="fs14" style="border-top: 1px solid black" ng-if="perm_hsn_summary && $last">
                     <td></td>
                     <td></td>
-                    {% if show_mrp == 'true' or show_sno == 'true' or sku_packs_invoice %}
+                    {% if show_mrp == 'true' or show_sno == 'true' %}
+                      <td></td>
+                    {% endif %}
+                    {% if sku_packs_invoice %}
                       <td></td>
                     {% endif %}
                     <td colspan='{{html_data.hsn_summary_span}}'><b>Summary</b></td>
@@ -141,6 +144,9 @@
                     <td></td>
                     <td></td>
                     {% if show_mrp == 'true' or show_sno == 'true' %}
+                      <td></td>
+                    {% endif %}
+                    {% if sku_packs_invoice %}
                       <td></td>
                     {% endif %}
                     <td colspan='{{html_data.hsn_summary_span}}' class="text-left">{{hsn}}</td>
@@ -163,7 +169,6 @@
                     {% else %}
                       <td colspan="3" style="text-align:left"><b>Total: </b></td>
                     {% endif %}
-
                     <td></td>
                     <td>{{total_quantity}}</td>
                     {% if show_disc_invoice == 'true' %}
@@ -172,7 +177,6 @@
                     {% if sku_packs_invoice %}
                     <td class="text-right">{{total_sku_packs}}</td>
                     {% endif %}
-                    <!--<td></td>-->
                     <td>{{total_taxable_amt}}</td>
                     <td>{{total_taxes.cgst_amt}}</td>
                     <td>{{total_taxes.sgst_amt}}</td>
@@ -283,6 +287,7 @@
                       </br></br>
                       <p align="center" class="fs14 m0">Authorised Signatory</p>
                     </td>
+
                   </tr>
                   {% endif %}
                 </tbody>

@@ -1952,7 +1952,6 @@ def approve_pr(request, user=''):
         else:
             updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, validation_type, remarks)
             updateOrCreatePRApprovals(request, pr_number, user, nextLevel, currentUserEmailId, reqConfigName, validation_type, remarks, updateFlag=False)
-        
     status = 'Approved Successfully'
     return HttpResponse(status)
 
@@ -2048,7 +2047,6 @@ def add_pr(request, user=''):
                 Please click on the below link to validate.\
                 Link: http://72.stockone.in:9999/#/pr_request?hash_code=%s " % (request.user.username, hash_code)
             send_mail([eachMail], subject, body)
-
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

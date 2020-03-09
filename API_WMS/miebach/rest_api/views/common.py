@@ -923,9 +923,6 @@ def pr_request(request):
                                                 ('Remarks', last_updated_remarks),
                                                 ('DT_RowClass', 'results'))))
     response_data.update({'aaData': temp_data})
-
-
-
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
 @csrf_exempt

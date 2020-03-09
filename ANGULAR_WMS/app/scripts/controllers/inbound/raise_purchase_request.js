@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('RaisePurchaseRequestCtrl',['$scope', '$http', '$q', '$state', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
+  .controller('RaisePurchaseRequestCtrl',['$scope', '$http', '$q', '$state', '$rootScope', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service, Data) {
+function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service, Data) {
 
     var vm = this;
     vm.apply_filters = colFilters;
@@ -84,7 +84,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
           vm.extra_width = { 'width': '1250px' };
           vm.supplier_id = aData['Supplier ID'];
           var data = {requested_user: aData['Requested User'], pr_number:aData['PR Number']};
-          vm.service.apiCall('generated_pr_data/', 'POST', data).then(function(data){
+            vm.dynamic_route(aData);
+/*          vm.service.apiCall('generated_pr_data/', 'POST', data).then(function(data){
             if (data.message) {
               var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
               vm.update_part = false;
@@ -171,7 +172,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               }
               
             }
-          });
+          });*/
         });
       });
       return nRow;
@@ -226,7 +227,100 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     }
 
     vm.b_close = vm.close;
+    vm.dynamic_route = function(aData) {
+      var p_data = {requested_user: aData['Requested User'], pr_number:aData['PR Number']};
+      vm.service.apiCall('generated_pr_data/', 'POST', p_data).then(function(data){
+        if (data.message) {
+          var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
+          vm.update_part = false;
+          var empty_data = {"supplier_id":vm.supplier_id,
+                  "po_name": "",
+                  "ship_to": data.data.ship_to,
+                  "terms_condition": data.data.terms_condition,
+                  "receipt_type": data.data.receipt_type,
+                  "seller_types": [],
+                  "total_price": 0,
+                  "tax": "",
+                  "sub_total": "",
+                  "po_delivery_date": data.data.po_delivery_date,
+                  "supplier_name": data.data.supplier_name,
+                  "data": data.data.data,
+          };
+          vm.model_data = {};
+          angular.copy(empty_data, vm.model_data);
 
+          // vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
+
+          vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
+          vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
+
+          angular.forEach(vm.model_data.data, function(data){
+            if (!data.fields.cess_tax) {
+              data.fields.cess_tax = 0;
+            }
+            if (!data.fields.apmc_tax) {
+              data.fields.apmc_tax = 0;
+            }
+          });
+
+          vm.getTotals();
+          vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
+            if (data.message) {
+              var seller_data = data.data.sellers;
+              vm.model_data.tax = data.data.tax;
+              vm.model_data.seller_supplier_map = data.data.seller_supplier_map;
+              vm.model_data["receipt_types"] = data.data.receipt_types;
+              vm.model_data.seller_type = vm.dedicated_seller;
+              vm.model_data.warehouse_names = data.data.warehouse
+              angular.forEach(seller_data, function(seller_single){
+                vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
+              });
+
+              angular.forEach(vm.model_data.data, function(data){
+
+                data.fields.dedicated_seller = vm.dedicated_seller;
+              })
+
+              vm.default_status = (Session.user_profile.user_type == 'marketplace_user' && Session.user_profile.industry_type != 'FMCG')? true : false;
+              vm.getCompany();
+              vm.seller_change1 = function(type) {
+
+                if(vm.model_data.receipt_type == 'Hosted Warehouse') {
+
+                  angular.forEach(vm.model_data.data, function(data){
+
+                    data.fields.dedicated_seller = type;
+                  })
+                } else {
+                  vm.selected_seller = type;
+                  vm.default_status = false;
+                  vm.model_data.data[vm.model_data.data.length - 1].fields.dedicated_seller = vm.selected_seller;
+                }
+                vm.getCompany();
+              }
+            }
+          });
+
+          vm.model_data.suppliers = [vm.model_data.supplier_id];
+          vm.model_data.supplier_id = vm.model_data.suppliers[0];
+          // vm.model_data.seller_type = vm.model_data.dedicated_seller;
+          vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
+          vm.title = 'Update PR';
+          vm.pr_number = aData['PR Number']
+          vm.validated_by = aData['To Be Validated By']
+          // vm.update = true;
+          if (aData['Validation Status'] == 'pending'){
+            $state.go('app.inbound.RaisePr.ApprovePurchaseRequest');  
+          } else if (aData['Validation Status'] == 'approved'){
+            $state.go('app.inbound.RaisePr.PurchaseOrder');
+          }
+        }
+    });
+
+    }
+    if ($rootScope.$current_pr != '') {
+       vm.dynamic_route($rootScope.$current_pr);
+    }
     vm.base = function() {
       vm.title = "Raise PR";
       vm.vendor_produce = false;

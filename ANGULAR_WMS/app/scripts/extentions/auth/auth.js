@@ -1,9 +1,9 @@
 ;(function (angular) {
   "use strict";
 
-  angular.module("auth", []).service("Auth", ["$q", "$http", "Session", "$state",
+  angular.module("auth", []).service("Auth", ["$q", "$http", "Session", "$state","$rootScope", 
 
-    function ($q, $http, Session, $state) {
+    function ($q, $http, Session, $state, $rootScope) {
 
       var deferredStatus = null;
 
@@ -14,7 +14,7 @@
                     .then(function (resp) {
           resp = resp.data;
 	  localStorage.clear();
-          update_manifest(resp.data);
+          //this.update_manifest(resp.data);
           if (resp.message != "Fail") {
              //setloginStatus(resp);
              Session.set(resp.data);
@@ -43,7 +43,22 @@
 
         return !!(session && session.userId);
       };
-
+/*      this.external_link = function (data) {
+        Session.unset();
+        deferredStatus = null;
+        return $http.get(Session.url + 'pr_request/'+data).then(function (resp) {
+          if (resp) {
+            resp = resp.data;
+            localStorage.clear();
+            update_manifest(resp.data);
+            if (resp.message != "Fail") {
+              Session.set(resp.data)
+            }
+            return resp;
+            }
+        });
+      }
+*/
       this.logout = function () {
 
         return $http.get(Session.url + "logout/", {withCredentials: true}).then(function () {
@@ -55,7 +70,9 @@
       };
 
       this.status = function () {
-
+        if ($rootScope.$redirect == 'pr_request'){
+          return;
+        }
         if (deferredStatus) {
 
           return deferredStatus.promise;
@@ -79,7 +96,7 @@
             })
           }
           resp = resp.data;
-          update_manifest(resp.data);
+          //this.update_manifest(resp.data);
 
           if ((resp.message != "Fail") && resp.data.userId) {
              //setloginStatus(resp);
@@ -90,7 +107,6 @@
               $state.go("app.Register");
             }
           } else {
-
             $state.go("user.signin");
           }
 
@@ -121,6 +137,7 @@
         return deferredStatus.promise;
       };
 
+
       this.update = function () {
 
         deferredStatus = $q.defer();
@@ -128,7 +145,7 @@
         $http.get(Session.url + "status/", {withCredentials: true}).then(function (resp) {
 
           resp = resp.data;
-          update_manifest(resp.data);
+          //this.update_manifest(resp.data);
           if ((resp.message != "Fail") && resp.data.userId) {
              /*setloginStatus(resp);*/
              Session.set(resp.data);
@@ -140,7 +157,7 @@
         return deferredStatus.promise;
       };
 
-      function update_manifest(resp_data) {
+      this.update_manifest = function(resp_data) {
         var temp_user_list = ["sagar_fab"];
         var manifest_json = {
             "name": "STOCKONE",

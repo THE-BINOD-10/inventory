@@ -523,7 +523,7 @@ class PRApprovals(models.Model):
 
     class Meta:
         db_table = 'PR_APPROVALS'
-        unique_together = ('openpr_number', 'pr_user', 'level', 'validated_by')
+        #unique_together = ('openpr_number', 'pr_user', 'level', 'validated_by')
 
 
 class PRApprovalConfig(models.Model):

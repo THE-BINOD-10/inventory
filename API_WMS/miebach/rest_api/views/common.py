@@ -804,6 +804,129 @@ def add_extra_permissions(user):
             if key in add_permissions:
                 user.groups.add(group)
 
+def pr_request(request):
+    response_data = {'data': {}, 'message': 'Fail'}
+    hash_code = request.GET.get('hash_code', '')
+    storedData = PRApprovalMails.objects.filter(hash_code=hash_code)
+    # if storedData:
+    prApprId = storedData[0].pr_approval_id
+    email_id = storedData[0].email
+    prApprObj = PRApprovals.objects.filter(id=prApprId)
+    # if prApprObj:
+    parentUser = prApprObj[0].pr_user
+    sub_users = get_sub_users(parentUser)
+    reqSubUser = sub_users.get(email=email_id)
+    if reqSubUser and reqSubUser.is_active:
+        login(request, reqSubUser)
+        user_profile = UserProfile.objects.filter(user_id=reqSubUser.id)
+
+        if not user_profile:
+            prefix = re.sub('[^A-Za-z0-9]+', '', reqSubUser.username)[:3].upper()
+            up_obj = UserProfile(user=reqSubUser, phone_number='',
+                                       is_active=1, prefix=prefix, swx_id=0)
+            up_obj.save()
+            if reqSubUser.is_staff:
+                add_user_type_permissions(up_obj)
+            user_profile = UserProfile.objects.filter(user_id=reqSubUser.id)
+
+    else:
+        return HttpResponse(json.dumps(response_data), content_type='application/json')
+
+    response_data = add_user_permissions(request, response_data)
+
+    requested_user = parentUser
+    openpr_number = prApprObj[0].openpr_number
+    '''
+    record = OpenPR.objects.filter(requested_user__username=requested_user, pr_number=openpr_number)
+    ser_data = []
+    for rec in record:
+        ser_data.append({'fields': {'sku': {'wms_code': rec.sku.sku_code}, 'description': rec.sku.sku_desc,
+                                    'order_quantity': rec.quantity, 'price': rec.price, 
+                                    'remarks': rec.remarks, 
+                                    }, 'pk': rec.id})
+    '''
+    response_data.update({'pr_data': {'requested_user': parentUser.username, 'pr_number': openpr_number}})
+    #Data Table Data
+    temp_data = {'aaData':[]}
+    user = parentUser
+    filtersMap = {'sku__user':user.id, 'open_po_id': None, 'pr_number': openpr_number}
+    if request.user.id != user.id:
+        currentUserLevel = ''
+        currentUserEmailId = request.user.email
+        memQs = MasterEmailMapping.objects.filter(user=user, master_type='pr_approvals_conf_data', email_id=currentUserEmailId)
+        for memObj in memQs:
+            master_id = memObj.master_id
+            prApprObj = PRApprovalConfig.objects.filter(id=master_id)
+            if prApprObj.exists():
+                currentUserLevel = prApprObj[0].level
+                configName = prApprObj[0].name
+                pr_numbers = list(PRApprovals.objects.filter(pr_user=user,
+                                configName=configName,
+                                level=currentUserLevel).distinct().values_list('openpr_number', flat=True))
+            else:
+                pr_numbers = []
+            filtersMap.setdefault('pr_number__in', [])
+            filtersMap['pr_number__in'] = list(chain(filtersMap['pr_number__in'], pr_numbers))
+    # sku_master, sku_master_ids = get_sku_master(user, user)
+    # lis = ['pr_number', 'total_qty', 'total_amt']
+    # search_params = get_filtered_params(filters, lis)
+    # order_data = lis[col_num]
+    # if order_term == 'desc':
+    #     order_data = '-%s' % order_data
+    values_list = ['requested_user__username', 'pr_number', 'final_status', 'pending_level', 'remarks']
+
+    results = OpenPR.objects.filter(**filtersMap).values(*values_list).distinct().\
+                annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
+    # if search_term:
+    #     results = results.filter(Q(pr_number__icontains=search_term) | Q(requested_user__username__icontains=search_term) |
+    #                     Q(final_status__icontains=search_term) | Q(pending_level__icontains=search_term))
+    # elif order_term:
+    #     results = results.order_by(order_data)
+
+    temp_data['recordsTotal'] = results.count()
+    temp_data['recordsFiltered'] = results.count()
+
+    configMap = fetchConfigNameRangesMap(user)
+    reqConfigName = ''
+    for result in results:
+        mailsList = []
+        prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
+        if prApprQs.exists():
+            validated_by = prApprQs[0].validated_by
+        else:
+            validated_by = ''
+        if result['pending_level'] != 'level0' and result['final_status'] == 'pending':
+            prev_level = 'level' + str(int(result['pending_level'].replace('level', '')) - 1)
+            prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=prev_level)
+            last_updated_by = prApprQs[0].validated_by
+            last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+            last_updated_remarks = prApprQs[0].remarks
+        elif result['pending_level'] == 'level0' and result['final_status'] == 'approved':
+            prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
+            last_updated_by = prApprQs[0].validated_by
+            last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+            last_updated_remarks = prApprQs[0].remarks
+        else:
+            last_updated_by = ''
+            last_updated_time = ''
+            last_updated_remarks = ''
+        temp_data['aaData'].append(OrderedDict((
+                                                ('PR Number', result['pr_number']),
+                                                ('Total Quantity', result['total_qty']),
+                                                ('Total Amount', result['total_amt']),
+                                                ('Requested User', result['requested_user__username']),
+                                                ('Validation Status', result['final_status']),
+                                                ('Pending Level', result['pending_level']),
+                                                ('To Be Validated By', validated_by),
+                                                ('Last Updated By', last_updated_by),
+                                                ('Last Updated At', last_updated_time),
+                                                ('Remarks', last_updated_remarks),
+                                                ('DT_RowClass', 'results'))))
+    response_data.update({'aaData': temp_data})
+
+
+
+    return HttpResponse(json.dumps(response_data), content_type='application/json')
 
 @csrf_exempt
 @login_required

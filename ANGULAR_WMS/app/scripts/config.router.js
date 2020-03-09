@@ -7,8 +7,8 @@ var LOGIN_STATE = "user.signin",
     PERMISSION_DENIED = "app.denied";
 
 var app = angular.module('urbanApp')
-  app.run(['$rootScope', '$state', '$stateParams', 'Auth', 'AUTH_EVENTS', 'Session', '$timeout',
-        function ($rootScope, $state, $stateParams, Auth, AUTH_EVENTS, Session, $timeout) {
+  app.run(['$rootScope', '$state', '$stateParams', 'Auth', 'AUTH_EVENTS', 'Session', '$timeout', '$http',
+        function ($rootScope, $state, $stateParams, Auth, AUTH_EVENTS, Session, $timeout, $http) {
       if(Session.user_profile.request_user_type == "customer") {
         if (Session.roles.permissions.is_portal_lite) {
           LOGIN_REDIRECT_STATE = LOGIN_REDIRECT_STATE_ANT_CUSTOMER;
@@ -16,13 +16,34 @@ var app = angular.module('urbanApp')
           LOGIN_REDIRECT_STATE = LOGIN_REDIRECT_STATE_CUSTOMER;
         }
       }
-
+      $rootScope.$redirect = '';
+      $rootScope.$current_pr ='';
       $rootScope.$state = $state;
       $rootScope.$stateParams = $stateParams;
       $rootScope.$on('$stateChangeSuccess', function () {
         window.scrollTo(0, 0);
       });
       FastClick.attach(document.body);
+      if(window.location.href.includes('pr_request')){
+        if(window.location.href.split('pr_request')[1].includes('hash_code')) {
+          //Auth.external_link(window.location.href.split('pr_request')[1]);
+          Session.unset();
+          var data = window.location.href.split('pr_request')[1];
+          $http.get(Session.url + 'pr_request/'+data).then(function (resp) {
+           if (resp) {
+            resp = resp.data;
+            $rootScope.$current_pr = resp.aaData['aaData'][0]
+            localStorage.clear();
+            Auth.update_manifest(resp.data);
+            if (resp.message != "Fail") {
+              Session.set(resp.data)
+              $rootScope.$redirect = 'pr_request';
+              $state.go("app.inbound.RaisePr");
+              }
+            }
+        });
+        }
+      }  else {
 
       var skipAsync = false;
       var states = ['user.signin', 'user.signup', 'user.sagarfab', 'user.create', 'user.smlogin', 'user.marshlogin', 'user.Corp Attire']
@@ -34,13 +55,16 @@ var app = angular.module('urbanApp')
 
                 return;
               } else if ((states.indexOf(next.name) > -1) && Session.userName) {
-
-                if(confirm("Do you really want to logout from mieone?")) {
-                  Auth.logout();
+                if ($rootScope.$redirect) {
+                  $state.go("app.masters.SKUMaster");
                 } else {
-                  event.preventDefault();
-                  $timeout(function(){$(".preloader").removeClass("ng-show").addClass("ng-hide");}, 2000);
-                }
+                 if(confirm("Do you really want to logout from mieone?")) {
+                   Auth.logout();
+                 } else {
+                   event.preventDefault();
+                   $timeout(function(){$(".preloader").removeClass("ng-show").addClass("ng-hide");}, 2000);
+                 }
+               }
               }
 
               if (skipAsync) {
@@ -134,7 +158,7 @@ var app = angular.module('urbanApp')
 
             $rootScope.$on(AUTH_EVENTS.unAuthorized, goToLogin);
             $rootScope.$on(AUTH_EVENTS.logoutSuccess, goToLogin);
-
+          }
         },
     ])
   .config(['$stateProvider', '$urlRouterProvider',

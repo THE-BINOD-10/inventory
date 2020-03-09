@@ -6155,7 +6155,7 @@ def get_invoice_html_data(invoice_data):
         data['columns'] += 1
     if show_sno == 'true' :
         data['columns'] += 1
-    if sku_packs_invoice == 'true':
+    if sku_packs_invoice :
         data['columns'] +=1
     if invoice_data.get('is_cess_tax_flag', '') == 'false':
         data['columns'] -= 1

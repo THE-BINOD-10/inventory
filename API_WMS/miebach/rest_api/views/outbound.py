@@ -11192,6 +11192,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             picked_amount = 0
             tax_amount = 0
             invoice_date = ''
+            total_inv_dict = {}
             if is_marketplace:
                 summary = order_summaries.filter(invoice_number=data['invoice_number'],
                                                  seller_order__seller__name=data['seller_order__seller__name'])[0]

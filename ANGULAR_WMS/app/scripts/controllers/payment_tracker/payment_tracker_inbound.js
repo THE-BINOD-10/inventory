@@ -17,6 +17,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
                    }
 
   vm.payment_data = {};
+  vm.loader =true;
   angular.copy(empty_data, vm.payment_data);
 
   vm.model_data = {search:"All",filters: ["All", "Order Created", "Partially Invoiced", "Invoiced"]}
@@ -30,7 +31,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
     vm.service.apiCall("invoice_payment_tracker/","GET", {filter: vm.model_data.search}).then(function(data){
 
       if(data.message) {
-
+        vm.loader =false;
         angular.copy(data.data, vm.payment_data);
         vm.payment_data.payments = data.data.data;
       }

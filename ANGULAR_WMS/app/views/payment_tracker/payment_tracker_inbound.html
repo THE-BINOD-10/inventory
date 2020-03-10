@@ -25,6 +25,7 @@
             <p style="font-size: 14px;" class="label label-warning pull-left">Rs{{showCase.payment_data.total_payment_receivable}}</p>
           </div>
         </div>
+        <img ng-if="showCase.loader" ng-src="images/default_loader.gif" style="margin: auto;display: block;width: 120px;">
         <accordion close-others="oneAtATime" class="accordion">
           <accordion-group is-open="status.open" ng-repeat="payment in showCase.payment_data.payments">
             <accordion-heading>

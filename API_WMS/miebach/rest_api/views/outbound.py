@@ -11255,11 +11255,11 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             else:
                 data_dict = OrderedDict((("Invoice ID", data['full_invoice_number']), ('Order ID', order_id),
                                          ('id', str(data['invoice_number']) + ":" + str(data.get('pick_number', '')) + ':' + data['financial_year']),
-                                         ('check_field', 'Order ID'),('Invoice Amount(w/o tax)', "%.2f" %invoice_amount),('Tax Amount', "%.2f" %tax_amount)))
+                                         ('check_field', 'Order ID'),('Invoice Amount(w/o tax)', float(invoice_amount)),('Tax Amount', float(tax_amount))))
                 customer_name = data['order__customer_name']
             data_dict.update(OrderedDict((('Financial Year', data['financial_year']), ('Customer Name', customer_name),
                                           ('Order Quantity', data['ordered_quantity']), ('Picked Quantity', data['total_quantity']),
-                                          ('Total Amount', "%.2f" %picked_amount),
+                                          ('Total Amount', float(picked_amount)),
                                           ('Invoice Date&Time', invoice_date), ('Invoice Number', ''), ('Marketplace', order.marketplace)
                                           )))
             temp_data['aaData'].append(data_dict)

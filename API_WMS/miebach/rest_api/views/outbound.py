@@ -11117,6 +11117,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
     amount = 0
     discount = 0
     tax_percent = 0
+    picked_amount = 0
     if admin_user and user_profile.warehouse_type == 'DIST':
         temp_data = get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search_term)
     else:
@@ -11223,6 +11224,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                 invoice_date = seller_order_summaries[0].creation_date
                 data['ordered_quantity'] = OrderDetail.objects.filter(user=user.id, original_order_id=original_order_id).\
 						only('original_quantity').aggregate(Sum('original_quantity'))['original_quantity__sum']
+
                 if not data['ordered_quantity']:
                     data['ordered_quantity'] = 0
                 #order = orders.filter(original_order_id=data['order__original_order_id'])[0]
@@ -11239,29 +11241,31 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                 #                                .distinct().annotate(pic_qty=Sum('quantity'))\
                 #                                .annotate(cur_amt=(F('order__invoice_amount')/F('order__original_quantity'))* F('pic_qty'))\
                 #                                .aggregate(Sum('cur_amt'))['cur_amt__sum']
-            order_objs = OrderDetail.objects.filter(user=user.id, original_order_id = order.original_order_id)
-            for order_obj in order_objs:
-                unit_price = order_obj['unit_price']
-                order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=order_obj.id)
-                tax_amount = 0
-                if order_summary.exists():
-                    discount = order_summary[0].discount
-                    amt = unit_price * float(order_obj['original_quantity']) - discount
-                    tax_percent = order_summary[0].cgst_tax + order_summary[0].sgst_tax + order_summary[0].igst_tax + order_summary[0].utgst_tax
-                    cgst_amt = float(order_summary[0].cgst_tax) * (float(amt) / 100)
-                    sgst_amt = float(order_summary[0].sgst_tax) * (float(amt) / 100)
-                    igst_amt = float(order_summary[0].igst_tax) * (float(amt) / 100)
-                    utgst_amt = float(order_summary[0].utgst_tax) * (float(amt) / 100)
-                    tax = cgst_amt + sgst_amt + igst_amt + utgst_amt
-                else:
-                    tax = float(float(data['invoice_amount']) / 100) * vat
-                quantity = data['total_quantity']
-                if not quantity:
-                    quantity = 0
-                amount = (float(unit_price) * float(quantity)) - (unit_discount * float(quantity))
-                invoice_tax = "%.2f" % ((amount/100)*(tax_percent))
-
-                picked_amount = (amount + float(invoice_tax))
+                order_objs = OrderDetail.objects.filter(user=user.id, original_order_id = order.original_order_id)
+                order_id = order_objs[0].original_order_id
+                for order_obj in order_objs:
+                    unit_price = order_obj.unit_price
+                    order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=order_obj.id)
+                    tax_amount = 0
+                    if order_summary.exists():
+                        discount = order_summary[0].discount
+                        if order_obj.original_quantity:
+                            unit_discount = float(discount)/float(order_obj.original_quantity)
+                        amt = unit_price * float(order_obj.original_quantity) - discount
+                        tax_percent = order_summary[0].cgst_tax + order_summary[0].sgst_tax + order_summary[0].igst_tax + order_summary[0].utgst_tax
+                        cgst_amt = float(order_summary[0].cgst_tax) * (float(amt) / 100)
+                        sgst_amt = float(order_summary[0].sgst_tax) * (float(amt) / 100)
+                        igst_amt = float(order_summary[0].igst_tax) * (float(amt) / 100)
+                        utgst_amt = float(order_summary[0].utgst_tax) * (float(amt) / 100)
+                        tax = cgst_amt + sgst_amt + igst_amt + utgst_amt
+                    else:
+                        tax = float(float(order_obj.invoice_amount) / 100) * vat
+                    quantity = data['total_quantity']
+                    if not quantity:
+                        quantity = 0
+                    amount = (float(unit_price) * float(quantity)) - (unit_discount * float(quantity))
+                    invoice_tax = ((amount/100)*(tax_percent))
+                    picked_amount += (amount + float(invoice_tax))
 
             order_date = get_local_date(user, order.creation_date)
             invoice_date = invoice_date.strftime("%d %b %Y") if invoice_date else order.creation_date.strftime("%d %b %Y")

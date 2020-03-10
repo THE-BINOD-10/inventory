@@ -28,6 +28,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
 
   vm.get_payment_tracker_data = function() {
     angular.copy(empty_data, vm.payment_data);
+    vm.loader =true;
     vm.service.apiCall("invoice_payment_tracker/","GET", {filter: vm.model_data.search}).then(function(data){
 
       if(data.message) {
@@ -74,6 +75,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
         console.log(data);
         Service.showNoty('Payment saved!');
         vm.get_payment_tracker_data();
+        vm.amount = '';
+        vm.remarks = '';
+        vm.default_mode = '';
+        vm.default_bank = '';
       }
     })
   }

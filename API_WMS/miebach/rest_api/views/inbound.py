@@ -8908,7 +8908,7 @@ def get_inbound_payment_report(start_index, stop_index, temp_data, search_term, 
     lis = ['payment_id', 'creation_date', 'invoice_number', 'order__customer_name', 'order__invoice_amount', 'payment_received', 'mode_of_pay', 'remarks']#for filter purpose
     user_filter = {'order__open_po__sku__user': user.id}
     result_values = ['creation_date','payment_id','invoice_number',
-                     'mode_of_pay', 'remarks',
+                     'mode_of_pay', 'remarks','order__open_po__supplier__name',
                      'payment_received', 'order_id']#to make distinct grouping
     #filter
     if 'from_date' in search_params:
@@ -8917,8 +8917,8 @@ def get_inbound_payment_report(start_index, stop_index, temp_data, search_term, 
     if 'to_date' in search_params:
         to_date = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
         user_filter['creation_date__lt'] = to_date
-    if 'customer' in search_params:
-        user_filter['order__customer_name'] = search_params['customer']
+    if 'supplier_name' in search_params:
+        user_filter['order__open_po__supplier__name'] = search_params['supplier_name']
     if 'invoice_number' in search_params:
         user_filter['invoice_number'] = search_params['invoice_number']
 
@@ -8967,6 +8967,7 @@ def get_inbound_payment_report(start_index, stop_index, temp_data, search_term, 
         payment_date = data['creation_date'].strftime("%d %b %Y") if data['creation_date'] else ''
         data_dict = OrderedDict((('payment_id', data['payment_id']),
                                 ('invoicee_number', data['invoice_number']),
+                                ('supplier_name', data['order__open_po__supplier__name']),
                                 ('invoice_amount', tot_amt),
                                 ('payment_date', payment_date),
                                 ('due_date', payment_date),

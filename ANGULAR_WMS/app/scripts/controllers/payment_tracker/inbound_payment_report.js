@@ -159,7 +159,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     filters.from_date = '';
     filters.to_date = '';
-    filters.customer = '';
+    filters.supplier_name = '';
     filters.invoice_number = '';
   }
 

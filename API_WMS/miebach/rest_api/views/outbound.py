@@ -7987,21 +7987,6 @@ def payment_tracker(request, user=''):
     all_picklists = Picklist.objects.filter(order__user=user.id)
     invoiced = all_picklists.filter(order__user=user.id, status__in=['picked', 'batch_picked', 'dispatched']). \
         values_list('order__order_id', flat=True).distinct()
-    # partial_invoiced = all_picklists.filter(order__user=user.id, picked_quantity__gt=0,
-    #                                         status__icontains='open').values_list('order__order_id',
-    #                                                                               flat=True).distinct()
-    # total_data = OrderDetail.objects.filter(user=user.id, marketplace__iexact='offline').annotate(
-    #     total_invoice=Sum('invoice_amount'),
-    #     total_received=Sum('payment_received')).filter(total_received__lt=F('total_invoice'))
-    # if status_filter == 'Partially Invoiced':
-    #     total_data = total_data.filter(order_id__in=partial_invoiced)
-    # if status_filter == 'Invoiced':
-    #     total_data = total_data.filter(order_id__in=invoiced)
-    # if status_filter == 'Order Created':
-    #     total_data = total_data.exclude(order_id__in=list(chain(invoiced, partial_invoiced)))
-
-    # orders = total_data.values('order_id', 'order_code', 'original_order_id', 'payment_mode').distinct()
-    # total_customer_data = total_data.values('customer_id', 'customer_name', 'marketplace').distinct()
     master_data = SellerOrderSummary.objects.filter(**user_filter)\
                         .exclude(full_invoice_number='')\
                         .values(*result_values).distinct()\
@@ -8009,10 +7994,6 @@ def payment_tracker(request, user=''):
     customer_data = []
     master_data = master_data.exclude(invoice_amount=F('payment_received'))
     for data in master_data:
-        # import pdb;pdb.set_trace()
-        # sum_data = total_data.filter(customer_id=data['customer_id'], customer_name=data['customer_name']).aggregate(
-        #     Sum('payment_received'),
-        #     Sum('invoice_amount'))
         seller_ord_summary = SellerOrderSummary.objects.filter(**user_filter)\
                                       .filter(full_invoice_number=data['full_invoice_number'])
         picked_amount = seller_ord_summary.values('order__sku_id', 'order__invoice_amount', 'order__quantity')\
@@ -8040,11 +8021,6 @@ def payment_tracker(request, user=''):
             data_dict[grouping_key]['payment_received'] +=round(payment_received)
             data_dict[grouping_key]['payment_receivable'] +=round(receivable)
 
-            # customer_data.append({'channel': data['order__marketplace'], 'customer_id': data['order__customer_id'],
-            #                       'customer_name': data['order__customer_name'],
-            #                       'payment_received': "%.2f" % data['payment_received'],
-            #                       'payment_receivable': "%.2f" % receivable,
-            #                       'invoice_amount': "%.2f" % data['invoice_amount']})
     order_data_loop = data_dict.values()
     data_append = []
     for data1 in order_data_loop:
@@ -8273,24 +8249,6 @@ def get_customer_payment_tracker(request, user=''):
     user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices', 
                     'order__customer_name':customer_name, 'order__customer_id':customer_id}
     result_values = ['invoice_number', 'full_invoice_number','order__customer_name', 'order__customer_id', 'order__order_id', 'order__original_order_id', 'order__order_code']
-    # all_picklists = Picklist.objects.filter(order__user=user.id)
-    # invoiced = all_picklists.filter(order__user=user.id, status__in=['picked', 'batch_picked', 'dispatched']). \
-    #     values_list('order__order_id', flat=True).distinct()
-    # partial_invoiced = all_picklists.filter(order__user=user.id, picked_quantity__gt=0,
-                                            # status__icontains='open').values_list('order__order_id',
-                                                                                  # flat=True).distinct()
-    # total_data1 = OrderDetail.objects.filter(user=user.id, customer_id=customer_id, customer_name=customer_name,
-                                             # marketplace=channel).annotate(total_invoice=Sum('invoice_amount'),
-                                                                           # total_received=Sum('payment_received'))
-    # total_data = total_data1.filter(total_received__lt=F('total_invoice'))
-    # if status_filter == 'Partially Invoiced':
-    #     total_data = total_data.filter(order_id__in=partial_invoiced)
-    # if status_filter == 'Invoiced':
-    #     total_data = total_data.filter(order_id__in=invoiced)
-    # if status_filter == 'Order Created':
-    #     total_data = total_data.exclude(order_id__in=list(chain(invoiced, partial_invoiced)))
-    # orders = total_data.values('order_id', 'order_code', 'original_order_id', 'payment_mode', 'customer_id',
-                               # 'customer_name').distinct()
     master_data = SellerOrderSummary.objects.filter(**user_filter)\
                         .exclude(full_invoice_number='')\
                         .values(*result_values).distinct()\
@@ -8298,31 +8256,6 @@ def get_customer_payment_tracker(request, user=''):
     master_data = master_data.exclude(invoice_amount=F('payment_received'))
     order_data = []
     for data in master_data:
-        # order_status = 'Order Created'
-        # expected_date = ''
-        # if data['order_id'] in invoiced:
-        #     order_status = 'Invoiced'
-        # if data['order_id'] in partial_invoiced:
-        #     order_status = 'Partially Invoiced'
-        # order_id = str(data['order_code']) + str(data['order_id'])
-        # if data['original_order_id']:
-        #     order_id = data['original_order_id']
-
-        # if order_status == 'Invoiced':
-        #     picklist = all_picklists.filter(order__order_id=data['order_id'], order__order_code=data['order_code']). \
-        #         order_by('-updation_date')
-        #     picked_date = get_local_date(user, picklist[0].updation_date, send_date=True)
-        #     customer_master = CustomerMaster.objects.filter(customer_id=data['customer_id'], name=data['customer_name'],
-        #                                                     user=user.id)
-        #     if customer_master:
-        #         if customer_master[0].credit_period:
-        #             expected_date = picked_date + datetime.timedelta(days=customer_master[0].credit_period)
-        #             expected_date = expected_date.strftime("%d %b, %Y")
-        #     if not expected_date:
-        #         expected_date = picked_date.strftime("%d %b, %Y")
-
-        # sum_data = total_data1.filter(order_id=data['order_id']).aggregate(Sum('invoice_amount'),
-        #                                                                    Sum('payment_received'))
         credit_period, due_date, invoice_date = 0, '', ''
         seller_ord_summary = SellerOrderSummary.objects.filter(**user_filter)\
                                       .filter(full_invoice_number=data['full_invoice_number'])
@@ -8361,18 +8294,10 @@ def get_customer_payment_tracker(request, user=''):
                                             'received': round(payment_received),
                                             'receivable': payment_receivable
                                             })
-        # order_data.append(
-        #     {'order_id': str(data['order_id']), 'display_order': order_id, 'account': data['payment_mode'],
-        #      'inv_amount': "%.2f" % sum_data['invoice_amount__sum'],
-        #      'receivable': "%.2f" % (sum_data['invoice_amount__sum'] - sum_data['payment_received__sum']),
-        #      'received': '%.2f' % sum_data['payment_received__sum'], 'order_status': order_status,
-        #      'expected_date': expected_date})
     order_data_loop = data_dict.values()
     data_append = []
     for data1 in order_data_loop:
-        # data1['payment_status'] = 'Completed'
         if round(data1['inv_amount']) > round(float(data1['received'])):
-            # data1['payment_status'] = 'Pending'
             order_data.append(data1)
     response["data"] = order_data
     return HttpResponse(json.dumps(response))

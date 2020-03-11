@@ -41,7 +41,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
   vm.get_payment_tracker_data();
 
   vm.get_customer_orders = function(payment) {
-
+    Data.invoice_data = payment;
    console.log(payment) ;
     if(!(payment["data"])) {
       var send = {id:payment.supplier_id, name:payment.supplier_name}
@@ -64,7 +64,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
     }
   }
   vm.invoice_update = function(form, data){
-    Data.invoice_data = data;
     var elem = angular.element($('form'));
     elem = elem[0];
     elem = $(elem).serializeArray();
@@ -132,9 +131,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
         Service.showNoty('You can enter '+data.receivable+' amount only');
       }
     } else {
-      if (Number(data) > Number(Data.invoice_data.receivable)) {
+      if (Number(data) > Number(Data.invoice_data.payment_receivable)) {
         vm.amount = Data.invoice_data.receivable;
-        Service.showNoty('You can enter '+Data.invoice_data.receivable+' amount only');
+        Service.showNoty('You can enter '+Data.invoice_data.payment_receivable+' amount only');
       }
     }
   }

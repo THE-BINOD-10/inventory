@@ -8624,7 +8624,7 @@ def get_inv_based_po_payment_data(start_index, stop_index, temp_data, search_ter
                                             'supplier_name':data['purchase_order__open_po__supplier__name'],
                                             'invoice_amount': round(tot_amt),
                                             'payment_received': round(payment_received),
-                                            'payment_receivable': round(payment_receivable)
+                                            'payment_receivable': payment_receivable
                                             })
     order_data_loop = data_dict.values()
     data_append = []
@@ -8639,7 +8639,7 @@ def get_inv_based_po_payment_data(start_index, stop_index, temp_data, search_ter
 @login_required
 @csrf_exempt
 @get_admin_user
-def supplier_invoice_data(request, user=''):
+def payment_supplier_invoice_data(request, user=''):
     data_dict = OrderedDict()
     order_data = []
     response = {}
@@ -8697,7 +8697,7 @@ def supplier_invoice_data(request, user=''):
                                             'supplier_name':data['purchase_order__open_po__supplier__name'],
                                             'invoice_amount': round(tot_amt),
                                             'payment_received': round(payment_received),
-                                            'payment_receivable': payment_receivable
+                                            'payment_receivable': round(payment_receivable)
                                             })
     order_data_loop = data_dict.values()
     data_append = []

@@ -276,7 +276,7 @@ urlpatterns = [
     url(r'^ba_to_sa_calculate_now/$',ba_to_sa_calculate_now),
     url(r'^get_move_inventory_reasons/$',get_move_inventory_reasons),
     url(r'^invoice_payment_tracker/$', invoice_payment_tracker),
-    url(r'^supplier_invoice_data/$', supplier_invoice_data),
+    url(r'^inbound_supplier_invoice_data/$', inbound_supplier_invoice_data),
     url(r'^stock_detail_update/$',stock_detail_update),
 
     # OutBound

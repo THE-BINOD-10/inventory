@@ -11259,7 +11259,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                 customer_name = data['order__customer_name']
             data_dict.update(OrderedDict((('Financial Year', data['financial_year']), ('Customer Name', customer_name),
                                           ('Order Quantity', data['ordered_quantity']), ('Picked Quantity', data['total_quantity']),
-                                          ('Total Amount', picked_amount),
+                                          ('Total Amount', round(picked_amount,2)),
                                           ('Invoice Date&Time', invoice_date), ('Invoice Number', ''), ('Marketplace', order.marketplace)
                                           )))
             temp_data['aaData'].append(data_dict)

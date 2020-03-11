@@ -38,7 +38,7 @@ var app = angular.module('urbanApp')
             if (resp.message != "Fail") {
               Session.set(resp.data)
               $rootScope.$redirect = 'pr_request';
-              $state.go("app.inbound.RaisePr");
+              $state.go("app.inbound.RaisePo");
               }
             }
         });

@@ -477,7 +477,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.approve_pr = function(form, validation_type) {
       var elem = angular.element($('form'));
-      elem = elem[1];
+      elem = elem[0];
       elem = $(elem).serializeArray();
       if (vm.is_purchase_request){
         elem.push({name:'is_purchase_request', value:true})
@@ -904,7 +904,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.add_raise_pr = function(pr_form_data) {
       var elem = angular.element($('form'));
-      elem = elem[1];
+      elem = elem[0];
       elem = $(elem).serializeArray();
       if (vm.is_purchase_request){
         elem.push({name:'is_purchase_request', value:true})

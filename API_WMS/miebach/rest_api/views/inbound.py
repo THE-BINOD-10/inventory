@@ -2069,7 +2069,7 @@ def add_pr(request, user=''):
             body = "<p> Following user requested PR Approval for </p>  \
                 <p> NAME : %s </p> \
                 Please click on the below link to validate.\
-                Link: %s/#/pr_request?hash_code=%s " % (urlPath, request.user.username, hash_code)
+                Link: %s/#/pr_request?hash_code=%s " % (request.user.username, urlPath, hash_code)
             send_mail([eachMail], subject, body)
     except Exception as e:
         import traceback

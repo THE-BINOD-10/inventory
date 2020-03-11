@@ -740,6 +740,18 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       sku_data.tax = tax;
       return tax;
    }
+   vm.update_available_stock = function(sku_data) {
+      var send = {sku_code: sku_data.wms_code, location: ""}
+      vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
+        sku_data["capacity"] = 0
+        if(data.message) {
+          if(data.data.available_quantity) {
+            sku_data["capacity"] = data.data.available_quantity;
+          }
+        }
+      });
+    }
+
     vm.get_sku_details = function(product, item, index) {
       console.log(item);
       vm.clear_raise_po_data(product);
@@ -817,6 +829,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           }
         });
       }
+      vm.update_available_stock(product.fields.sku)
     }
     vm.update_wms_records = function(){
       var params_data = {}

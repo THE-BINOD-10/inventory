@@ -11214,8 +11214,8 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                 seller_order_summaries = order_summaries.filter(invoice_number=data['invoice_number'],
                                                                 financial_year=data['financial_year'], order__marketplace=data['order__marketplace'])
                 order_ids = seller_order_summaries.values_list('order__id', flat= True)
-                picked_dict = dict(seller_order_summaries.distinct().annotate(pic_qty=Sum('quantity'))
-                                .values_list('order__id','pic_qty'))
+                picked_dict = seller_order_summaries.distinct().annotate(pic_qty=Sum('quantity'))\
+                                .values_list('order__id','pic_qty')
                 invoice_dict = OrderDetail.objects.filter(id__in=picked_dict.keys())\
                                                   .annotate(cur_amt=((F('unit_price')* F('original_quantity'))-F('customerordersummary__discount')))\
                                                   .annotate(tax_amt=((F('cur_amt')*(F('customerordersummary__cgst_tax')+F('customerordersummary__sgst_tax')+F('customerordersummary__igst_tax'))*0.01)))\
@@ -11223,10 +11223,10 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                 for obj in invoice_dict:
                     order_id=obj.get('id')
                     total_inv_dict[order_id]=obj
-                for key,value in picked_dict.items():
+                for value in picked_dict:
                     if value:
-                        invoice_amount+=(total_inv_dict[key].get('cur_amt',0)*(value/total_inv_dict[key].get('original_quantity',1)))
-                        tax_amount +=(total_inv_dict[key].get('tax_amt',0)*(value/total_inv_dict[key].get('original_quantity',1)))
+                        invoice_amount+=(total_inv_dict[value[0]].get('cur_amt',0)*(value[1]/total_inv_dict[value[0]].get('original_quantity',1)))
+                        tax_amount +=(total_inv_dict[value[0]].get('tax_amt',0)*(value[1]/total_inv_dict[value[0]].get('original_quantity',1)))
                         picked_amount =invoice_amount+tax_amount
                 order = seller_order_summaries[0].order
                 original_order_id = order.original_order_id

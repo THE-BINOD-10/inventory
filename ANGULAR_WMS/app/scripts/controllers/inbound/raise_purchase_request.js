@@ -55,7 +55,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ["PR Number", "Total Quantity", "Total Amount", "Requested User", 
+    var columns = [ "Supplier ID", "PR Number", "Total Quantity", "Total Amount", "Requested User", 
                     "Validation Status", "Pending Level", "To Be Validated By",
                     "Last Updated By", "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
@@ -222,7 +222,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.close = function () {
       vm.base();
-      $state.go('app.inbound.RaisePr');
+      $state.go('app.inbound.RaisePo');
       vm.display_purchase_history_table = false;
     }
 
@@ -242,14 +242,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "total_price": 0,
                   "tax": "",
                   "sub_total": "",
-                  "po_delivery_date": data.data.po_delivery_date,
+                  "pr_delivery_date": data.data.pr_delivery_date,
                   "supplier_name": data.data.supplier_name,
                   "data": data.data.data,
           };
           vm.model_data = {};
           angular.copy(empty_data, vm.model_data);
 
-          // vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
+          vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
 
           vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
           vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
@@ -310,9 +310,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.validated_by = aData['To Be Validated By']
           // vm.update = true;
           if (aData['Validation Status'] == 'pending'){
-            $state.go('app.inbound.RaisePr.ApprovePurchaseRequest');  
+            $state.go('app.inbound.RaisePo.ApprovePurchaseRequest');  
           } else if (aData['Validation Status'] == 'approved'){
-            $state.go('app.inbound.RaisePr.PurchaseOrder');
+            $state.go('app.inbound.RaisePo.PurchaseOrder');
           }
         }
     });
@@ -367,7 +367,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           if (Session.user_profile.user_type == 'marketplace_user') {
             vm.model_data.receipt_type = 'Hosted Warehouse';
           }
-          $state.go('app.inbound.RaisePr.OpenPr');
+          $state.go('app.inbound.RaisePo.PurchaseRequest');
 
         }
       });
@@ -470,14 +470,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         if(vm.update) {
           vm.update_raise_pr();
         } else {
-          vm.add_raise_pr();
+          vm.add_raise_pr(data);
         }
       }
     }
 
     vm.approve_pr = function(form, validation_type) {
       var elem = angular.element($('form'));
-      elem = elem[0];
+      elem = elem[1];
       elem = $(elem).serializeArray();
       if (vm.is_purchase_request){
         elem.push({name:'is_purchase_request', value:true})
@@ -889,9 +889,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
 
-    vm.add_raise_pr = function() {
+    vm.add_raise_pr = function(pr_form_data) {
       var elem = angular.element($('form'));
-      elem = elem[0];
+      elem = elem[1];
       elem = $(elem).serializeArray();
       if (vm.is_purchase_request){
         elem.push({name:'is_purchase_request', value:true})

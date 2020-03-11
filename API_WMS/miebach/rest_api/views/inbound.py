@@ -67,29 +67,31 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    values_list = ['requested_user__username', 'pr_number', 'final_status', 'pending_level', 'remarks']
+    values_list = ['requested_user', 'requested_user__username', 'pr_number', 'final_status', 'pending_level', 'remarks', 'supplier_id']
 
     results = OpenPR.objects.filter(**filtersMap).values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
     if search_term:
         results = results.filter(Q(pr_number__icontains=search_term) | Q(requested_user__username__icontains=search_term) |
-                        Q(final_status__icontains=search_term) | Q(pending_level__icontains=search_term))
+                        Q(final_status__icontains=search_term) | Q(pending_level__icontains=search_term) |
+                        Q(supplier__id__icontains=search_term) | Q(supplier__name__icontains=search_term) |
+                        Q(sku__sku_code__icontains=search_term))
     elif order_term:
         results = results.order_by(order_data)
 
     temp_data['recordsTotal'] = results.count()
     temp_data['recordsFiltered'] = results.count()
 
-    configMap = fetchConfigNameRangesMap(user)
-    reqConfigName = ''
+    # configMap = fetchConfigNameRangesMap(user)
+    # reqConfigName = ''
     count = 0
     for result in results[start_index: stop_index]:
         mailsList = []
+        reqConfigName, lastLevel = findLastLevelToApprove(result['requested_user'], result['pr_number'], result['total_qty'])
         prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
-        if prApprQs.exists():
-            validated_by = prApprQs[0].validated_by
-        else:
-            validated_by = ''
+        if not prApprQs.exists():
+            continue
+        validated_by = prApprQs[0].validated_by
         if result['pending_level'] != 'level0' and result['final_status'] == 'pending':
             prev_level = 'level' + str(int(result['pending_level'].replace('level', '')) - 1)
             prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=prev_level)
@@ -107,11 +109,12 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
             last_updated_remarks = ''
         temp_data['aaData'].append(OrderedDict((
                                                 ('PR Number', result['pr_number']),
+                                                ('Supplier ID', result['supplier_id']),
                                                 ('Total Quantity', result['total_qty']),
                                                 ('Total Amount', result['total_amt']),
                                                 ('Requested User', result['requested_user__username']),
                                                 ('Validation Status', result['final_status']),
-                                                ('Pending Level', result['pending_level']),
+                                                ('Pending Level', '%s Of %s' %(result['pending_level'], lastLevel)),
                                                 ('To Be Validated By', validated_by),
                                                 ('Last Updated By', last_updated_by),
                                                 ('Last Updated At', last_updated_time),
@@ -886,12 +889,18 @@ def generated_pr_data(request, user=''):
     record = OpenPR.objects.filter(sku__user=user.id, requested_user__username=requested_user, pr_number=pr_number)
     total_data = []
     ser_data = []
+    pr_delivery_date = ''
+    if len(record):
+        if record[0].delivery_date:
+            pr_delivery_date = record[0].delivery_date.strftime('%m/%d/%Y')
     for rec in record:
         ser_data.append({'fields': {'sku': {'wms_code': rec.sku.sku_code}, 'description': rec.sku.sku_desc,
                                     'order_quantity': rec.quantity, 'price': rec.price, 
-                                    'remarks': rec.remarks, 
+                                    'remarks': rec.remarks, 'cgst_tax': rec.cgst_tax, 'sgst_tax': rec.sgst_tax,
+                                    'igst_tax': rec.igst_tax, 'utgst_tax': rec.utgst_tax,
                                     }, 'pk': rec.id})
-    return HttpResponse(json.dumps({#'supplier_id': record[0].supplier_id, 'supplier_name': record[0].supplier.name,
+    return HttpResponse(json.dumps({'supplier_id': record[0].supplier_id, 'supplier_name': record[0].supplier.name,
+                                    'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
                                     'data': ser_data}))
 
 
@@ -1854,7 +1863,7 @@ def findLastLevelToApprove(user, pr_number, totalAmt):
         finalLevel = configQs[0]
     return reqConfigName, finalLevel
 
-def updateOrCreatePRApprovals(request, pr_number, user, level, validated_by, reqConfigName, validation_type, remarks, updateFlag=True):
+def updateOrCreatePRApprovals(request, pr_number, user, level, validated_by, reqConfigName, validation_type, remarks, urlPath, updateFlag=True):
     if updateFlag:
         apprQs = PRApprovals.objects.filter(openpr_number=pr_number, 
                                                 pr_user=user, 
@@ -1900,7 +1909,7 @@ def updateOrCreatePRApprovals(request, pr_number, user, level, validated_by, req
             body = "<p> Following user requested PR Approval for </p>  \
                     <p> NAME : %s </p> \
                     Please click on the below link to validate.\
-                    Link: http://72.stockone.in:9999/#/pr_request?hash_code=%s " % (request.user.username, hash_code)
+                    Link: %s/#/pr_request?hash_code=%s " % (request.user.username, urlPath, hash_code)
             send_mail([eachMail], subject, body)
 
 
@@ -1908,6 +1917,7 @@ def updateOrCreatePRApprovals(request, pr_number, user, level, validated_by, req
 @login_required
 @get_admin_user
 def approve_pr(request, user=''):
+    urlPath = request.META.get('HTTP_ORIGIN')
     status = 'Approved Failed'
     pr_number = request.POST.get('pr_number', '')
     validation_type = request.POST.get('validation_type', '')
@@ -1938,7 +1948,7 @@ def approve_pr(request, user=''):
             return HttpResponse("This User Cant Approve this Request, Please Check")
     if pending_level == lastLevel:
         PRQs.update(final_status=validation_type)
-        updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, validation_type, remarks)
+        updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, validation_type, remarks, urlPath)
     else:
         #nextLevel = PRApprovalConfig.objects.filter(user=user, 
         #                name=reqConfigName).exclude(level=pending_level).values_list('level', flat=True).order_by('-id')
@@ -1948,10 +1958,10 @@ def approve_pr(request, user=''):
         PRQs.update(pending_level=nextLevel)
         if validation_type == 'rejected':
             PRQs.update(final_status=validation_type)
-            updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, validation_type, remarks)
+            updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, validation_type, remarks, urlPath)
         else:
-            updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, validation_type, remarks)
-            updateOrCreatePRApprovals(request, pr_number, user, nextLevel, currentUserEmailId, reqConfigName, validation_type, remarks, updateFlag=False)
+            updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, validation_type, remarks, urlPath)
+            updateOrCreatePRApprovals(request, pr_number, user, nextLevel, currentUserEmailId, reqConfigName, validation_type, remarks, urlPath, updateFlag=False)
     status = 'Approved Successfully'
     return HttpResponse(status)
 
@@ -1960,6 +1970,7 @@ def approve_pr(request, user=''):
 @login_required
 @get_admin_user
 def add_pr(request, user=''):
+    urlPath = request.META.get('HTTP_ORIGIN')
     from mail_server import send_mail
     try:
         log.info("Raise PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))
@@ -1984,6 +1995,7 @@ def add_pr(request, user=''):
                 return HttpResponse(status)
             pr_suggestions = {}
             pr_suggestions['sku_id'] = sku_id[0].id
+            pr_suggestions['supplier_id'] = value['supplier_id']
             try:
                 pr_suggestions['quantity'] = float(value['order_quantity'])
             except:
@@ -1998,6 +2010,18 @@ def add_pr(request, user=''):
             pr_suggestions['pr_number'] = pr_number
             pr_suggestions['pending_level'] = baseLevel
             pr_suggestions['final_status'] = 'pending'
+            pr_suggestions['sgst_tax'] = value['sgst_tax']
+            pr_suggestions['cgst_tax'] = value['cgst_tax']
+            pr_suggestions['igst_tax'] = value['igst_tax']
+            pr_suggestions['utgst_tax'] = value['utgst_tax']
+            pr_suggestions['ship_to'] = value['ship_to']
+            if value['po_delivery_date']:
+                pr_suggestions['delivery_date'] = value['po_delivery_date']
+            pr_suggestions['measurement_unit'] = "UNITS"
+            if value['measurement_unit']:
+                if value['measurement_unit'] != "":
+                    pr_suggestions['measurement_unit'] = value['measurement_unit']            
+
             openPRObj = OpenPR.objects.create(**pr_suggestions)
             totalAmt += (pr_suggestions['quantity'] * pr_suggestions['price'])
 
@@ -2045,7 +2069,7 @@ def add_pr(request, user=''):
             body = "<p> Following user requested PR Approval for </p>  \
                 <p> NAME : %s </p> \
                 Please click on the below link to validate.\
-                Link: http://72.stockone.in:9999/#/pr_request?hash_code=%s " % (request.user.username, hash_code)
+                Link: %s/#/pr_request?hash_code=%s " % (urlPath, request.user.username, hash_code)
             send_mail([eachMail], subject, body)
     except Exception as e:
         import traceback

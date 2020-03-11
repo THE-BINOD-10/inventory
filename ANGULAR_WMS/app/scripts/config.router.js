@@ -733,33 +733,33 @@ var app = angular.module('urbanApp')
           abstract: true,
           url: '/inbound',
         })
-        .state('app.inbound.RaisePr', {
-          url: '/RaisePR',
-          permission: 'add_openpr|change_openpr',
-          templateUrl: 'views/inbound/raise_purchase_request.html',
-          resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load([
-                  'scripts/controllers/inbound/raise_purchase_request.js'
-                ])
-              }]
-          },
-          data: {
-            title: 'Raise PR',
-          }
-        })
-        .state('app.inbound.RaisePr.OpenPr', {
-          url: '/PurchaseRequest',
-          templateUrl: 'views/inbound/toggle/raise_pr.html'
-          })
-        .state('app.inbound.RaisePr.PurchaseOrder', {
-          url: '/PurchaseOrder',
-          templateUrl: 'views/inbound/toggle/raise_purchase.html'
-          })
-        .state('app.inbound.RaisePr.ApprovePurchaseRequest', {
-          url: '/ApprovePR',
-          templateUrl: 'views/inbound/toggle/approve_pr.html'
-          })
+        // .state('app.inbound.RaisePr', {
+        //   url: '/RaisePR',
+        //   permission: 'add_openpr|change_openpr',
+        //   templateUrl: 'views/inbound/raise_purchase_request.html',
+        //   resolve: {
+        //       deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+        //         return $ocLazyLoad.load([
+        //           'scripts/controllers/inbound/raise_purchase_request.js'
+        //         ])
+        //       }]
+        //   },
+        //   data: {
+        //     title: 'Raise PR',
+        //   }
+        // })
+        // .state('app.inbound.RaisePr.OpenPr', {
+        //   url: '/PurchaseRequest',
+        //   templateUrl: 'views/inbound/toggle/raise_pr.html'
+        //   })
+        // .state('app.inbound.RaisePr.PurchaseOrder', {
+        //   url: '/PurchaseOrder',
+        //   templateUrl: 'views/inbound/toggle/raise_purchase.html'
+        //   })
+        // .state('app.inbound.RaisePr.ApprovePurchaseRequest', {
+        //   url: '/ApprovePR',
+        //   templateUrl: 'views/inbound/toggle/approve_pr.html'
+        //   })
 
         .state('app.inbound.RaisePo', {
           url: '/scripts/controllers/outbound/pop_js/custom_order_details.jsRaisePO',
@@ -780,6 +780,10 @@ var app = angular.module('urbanApp')
                 }).then( function() {
                     return $ocLazyLoad.load([
                       'scripts/controllers/inbound/raise_po/repeat_purchase_order.js'
+                  ])
+                }).then( function() {
+                    return $ocLazyLoad.load([
+                      'scripts/controllers/inbound/raise_purchase_request.js'
                   ])
                 });
               }]
@@ -803,6 +807,14 @@ var app = angular.module('urbanApp')
           .state('app.inbound.RaisePo.barcode', {
             url: '/Barcode',
             templateUrl: 'views/masters/toggles/barcode.html'
+          })
+          .state('app.inbound.RaisePo.PurchaseRequest', {
+          url: '/PendingForApprovalPurchaseOrder',
+          templateUrl: 'views/inbound/toggle/raise_pr.html'
+          })
+          .state('app.inbound.RaisePo.ApprovePurchaseRequest', {
+          url: '/ApprovePR',
+          templateUrl: 'views/inbound/toggle/approve_pr.html'
           })
 
 

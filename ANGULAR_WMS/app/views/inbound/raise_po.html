@@ -4,6 +4,9 @@
   </div>
   <div class="layout-body"> 
     <tabset class="box-tab">
+      <tab heading="Pending For Approval Purchase Orders">
+        <div ng-include="'views/inbound/raise_po/raise_purchase_request.html'"></div>
+      </tab>
       <tab heading="Raise Purchase Order">
         <div ng-include="'views/inbound/raise_po/raise_po.html'"></div>
       </tab>
@@ -15,9 +18,6 @@
       </tab>
       <tab heading="Past Purchase Order" ng-if = "show_tab('repeat_po')">
         <div ng-include="'views/inbound/raise_po/repeat_purchase_order.html'"></div>
-      </tab>
-      <tab heading="Pending For Approval Purchase Orders">
-        <div ng-include="'views/inbound/raise_po/raise_purchase_request.html'"></div>
       </tab>
     </tabset>
   </div>

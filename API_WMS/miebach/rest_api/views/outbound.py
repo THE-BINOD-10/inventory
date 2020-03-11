@@ -8292,7 +8292,7 @@ def get_customer_payment_tracker(request, user=''):
                                             'customer_id': data['order__customer_id'],
                                             'inv_amount': round(picked_amount),
                                             'received': round(payment_received),
-                                            'receivable': payment_receivable
+                                            'receivable': round(payment_receivable)
                                             })
     order_data_loop = data_dict.values()
     data_append = []

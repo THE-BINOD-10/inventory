@@ -8624,7 +8624,7 @@ def get_inv_based_po_payment_data(start_index, stop_index, temp_data, search_ter
                                             'supplier_name':data['purchase_order__open_po__supplier__name'],
                                             'invoice_amount': round(tot_amt),
                                             'payment_received': round(payment_received),
-                                            'payment_receivable': payment_receivable
+                                            'payment_receivable': round(payment_receivable)
                                             })
     order_data_loop = data_dict.values()
     data_append = []

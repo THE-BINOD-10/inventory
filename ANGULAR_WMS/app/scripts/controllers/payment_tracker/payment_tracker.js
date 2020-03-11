@@ -64,7 +64,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
     }
   }
   vm.invoice_update = function(form, data){
-
+    Data.invoice_data = data;
     var elem = angular.element($('form'));
     elem = elem[0];
     elem = $(elem).serializeArray();

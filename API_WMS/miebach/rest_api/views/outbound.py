@@ -7981,12 +7981,9 @@ def payment_tracker(request, user=''):
     total_payment_receivable = 0
     data_dict = OrderedDict()
     status_filter = request.GET.get('filter', '')
-    user_filter = {'order__user': user.id}
+    user_filter = {'order__user': user.id, 'order_status_flag'='customer_invoices'}
     result_values = ['invoice_number', 'order__customer_name', 'order__customer_id', 'order__marketplace',
                         'order__order_id', 'order__original_order_id', 'order__order_code', 'full_invoice_number']
-    all_picklists = Picklist.objects.filter(order__user=user.id)
-    invoiced = all_picklists.filter(order__user=user.id, status__in=['picked', 'batch_picked', 'dispatched']). \
-        values_list('order__order_id', flat=True).distinct()
     master_data = SellerOrderSummary.objects.filter(**user_filter)\
                         .exclude(full_invoice_number='')\
                         .values(*result_values).distinct()\

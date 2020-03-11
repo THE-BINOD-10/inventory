@@ -45,7 +45,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service, $q, S
    console.log(payment) ;
     if(!(payment["data"])) {
       var send = {id:payment.supplier_id, name:payment.supplier_name}
-      vm.service.apiCall("supplier_invoice_data/", "GET", send).then(function(data){
+      vm.service.apiCall("inbound_supplier_invoice_data/", "GET", send).then(function(data){
   
         if(data.message) {
           payment["data"] = data.data.data;

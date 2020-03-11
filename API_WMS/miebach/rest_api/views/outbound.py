@@ -7981,7 +7981,7 @@ def payment_tracker(request, user=''):
     total_payment_receivable = 0
     data_dict = OrderedDict()
     status_filter = request.GET.get('filter', '')
-    user_filter = {'order__user': user.id, 'order_status_flag'='customer_invoices'}
+    user_filter = {'order__user': user.id, 'order_status_flag':'customer_invoices'}
     result_values = ['invoice_number', 'order__customer_name', 'order__customer_id', 'order__marketplace',
                         'order__order_id', 'order__original_order_id', 'order__order_code', 'full_invoice_number']
     master_data = SellerOrderSummary.objects.filter(**user_filter)\

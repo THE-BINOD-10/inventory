@@ -6225,6 +6225,7 @@ def insert_st_shipment_info(request, user=''):
                 data_dict = copy.deepcopy(ORDER_PACKAGING_FIELDS)
                 shipment_data = copy.deepcopy(SHIPMENT_INFO_FIELDS)
                 order_detail = STOrder.objects.filter(stock_transfer__order_id=order_id, stock_transfer__sku__user=user.id)
+                picklist_ids = order_detail.values_list('picklist_id',flat=True)
                 if order_detail:
                     order_detail = order_detail[0]
                 for key, value in myDict.iteritems():
@@ -6247,8 +6248,7 @@ def insert_st_shipment_info(request, user=''):
                     data.save()
                 else:
                     data = order_pack_instance[0]
-                picked_orders = Picklist.objects.filter(order_id=order_id, status__icontains='picked',
-                                                        order__user=user.id)
+                picked_orders = Picklist.objects.filter(id__in=picklist_ids)
                 order_quantity = 0
                 stock_transfer_id = order_detail.stock_transfer_id
                 if stock_transfer_id:
@@ -6299,7 +6299,7 @@ def insert_st_shipment_info(request, user=''):
                 # Until Here
 
                 log.info('Shipemnt Info dict is ' + str(shipment_data))
-                ship_quantity = ShipmentInfo.objects.filter(order_id=order_id). \
+                ship_quantity = ShipmentInfo.objects.filter(order_id=order_id, order_shipment__user=user.id). \
                     aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
                 if ship_quantity >= int(order_quantity):
                     stock_transfer = StockTransfer.objects.filter(order_id=order_id, sku__user=user.id)

@@ -11216,7 +11216,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                 order_ids = seller_order_summaries.values_list('order__id', flat= True)
                 picked_dict = seller_order_summaries.distinct().annotate(pic_qty=Sum('quantity'))\
                                 .values_list('order__id','pic_qty')
-                invoice_dict = OrderDetail.objects.filter(id__in=picked_dict.keys())\
+                invoice_dict = OrderDetail.objects.filter(id__in=order_ids)\
                                                   .annotate(cur_amt=((F('unit_price')* F('original_quantity'))-F('customerordersummary__discount')))\
                                                   .annotate(tax_amt=((F('cur_amt')*(F('customerordersummary__cgst_tax')+F('customerordersummary__sgst_tax')+F('customerordersummary__igst_tax'))*0.01)))\
                                                   .values('tax_amt','cur_amt','id','original_quantity')

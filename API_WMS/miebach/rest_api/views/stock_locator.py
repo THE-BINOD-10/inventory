@@ -1232,6 +1232,7 @@ def insert_move_inventory(request, user=''):
     mrp = request.GET.get('mrp', '')
     reason = request.GET.get('reason', '')
     weight = request.GET.get('weight', '')
+    price = request.GET.get('price', '')
     if user.username in MILKBASKET_USERS:
         if not mrp or not weight:
             return HttpResponse("MRP and Weight are Mandatory")
@@ -1245,7 +1246,7 @@ def insert_move_inventory(request, user=''):
             receipt_number = get_stock_receipt_number(user)
             seller_receipt_dict[str(seller_id)] = receipt_number
     status = move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id,
-                                 batch_no=batch_no, mrp=mrp, weight=weight,
+                                 batch_no=batch_no, mrp=mrp, weight=weight, price=price,
                                  receipt_number=receipt_number, receipt_type='move-inventory', reason=reason)
     if 'success' in status.lower():
         update_filled_capacity([source_loc, dest_loc], user.id)

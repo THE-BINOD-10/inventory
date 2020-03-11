@@ -3500,7 +3500,7 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                 elif key == 'price':
                     if isinstance(cell_data, float):
                         cell_data = float(cell_data)
-                    data_dict['price'] = cell_data
+                    data_dict[key] = cell_data
                 elif key == 'reason':
                     move_inventory_reasons = get_misc_value('move_inventory_reasons', user.id)
                     if move_inventory_reasons != 'false':
@@ -3552,7 +3552,7 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                     stock_dict['sellerstock__quantity__gt'] = 0
                     reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
                     raw_reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
-                if data_dict.get('price', 0) :
+                if data_dict.get('price','') == 0 or data_dict.get('price', '') :
                     price = float(data_dict['price'])
                     if user.userprofile.industry_type == 'FMCG':
                         stock_dict['batch_detail__buy_price'] = price
@@ -3574,7 +3574,6 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                     reserved_dict["stock__unit_price"] = custom_price
                     raw_reserved_dict['stock__unit_price'] = custom_price
                     stock_dict['price_type'] = "Custom Input Type"
-                print(stock_dict)
                 stocks = StockDetail.objects.filter(**stock_dict)
                 if not stocks:
                     index_status.setdefault(row_idx, set()).add('No Stocks Found')
@@ -3672,7 +3671,6 @@ def move_inventory_upload(request, user=''):
             extra_dict['receipt_type'] = 'move-inventory'
             extra_dict['receipt_number'] = receipt_number
             extra_dict['reason'] = reason
-            print(extra_dict)
             response=move_stock_location(wms_code, source_loc, dest_loc, quantity, user, **extra_dict)
             if response == 'Added Successfully':
                 count+=1
@@ -3989,7 +3987,7 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
     inv_mapping = get_inventory_adjustment_excel_upload_headers(user)
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
-    excel_check_list = ['wms_code', 'location', 'quantity', 'reason']
+    excel_check_list = ['wms_code', 'location', 'quantity', 'reason', 'price']
     if user.userprofile.user_type == 'marketplace_user':
         excel_check_list.append('seller_id')
     if user.userprofile.industry_type == 'FMCG':
@@ -4001,7 +3999,6 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
         print row_idx
         data_dict = {}
         for key, value in excel_mapping.iteritems():
-            print(key,excel_mapping.items())
             cell_data = get_cell_data(row_idx, value, reader, file_type)
             if key == 'wms_code':
                 if isinstance(cell_data, (int, float)):
@@ -4115,7 +4112,6 @@ def inventory_adjust_upload(request, user=''):
     receipt_number = get_stock_receipt_number(user)
     seller_receipt_dict = {}
     stock_stats_objs = []
-    print(data_list)
     for final_dict in data_list:
         # location_data = ''
         wms_code = final_dict['sku_master'].wms_code
@@ -4123,7 +4119,7 @@ def inventory_adjust_upload(request, user=''):
         loc = final_dict['location_master'].location
         quantity = final_dict['quantity']
         reason = final_dict['reason']
-        seller_master_id, batch_no, mrp, weight, unit_price, buy_price, price_type = '', '', 0, '', '', '',''
+        seller_master_id, batch_no, mrp, weight, price, price_type = '', '', 0, '', '', ''
         if final_dict.get('seller_master', ''):
             seller_master_id = final_dict['seller_master'].id
         if final_dict.get('batch_no', ''):
@@ -4132,16 +4128,16 @@ def inventory_adjust_upload(request, user=''):
             mrp = final_dict['mrp']
         if final_dict.get('weight', ''):
             weight = final_dict['weight']
-        if final_dict.get('price', 0):
+        if final_dict.get('price', 0) or final_dict.get('price', ''):
             if user.userprofile.industry_type =='FMCG':
-                buy_price = final_dict['price']
-            unit_price = final_dict['price']
-            price_type = "UserInputtype"
+                price = final_dict['price']
+            price = final_dict['price']
+            price_type = "UserInput Type"
         else:
-            custom_price = float(SKUMaster.objects.filter(user=user.id,sku_code=wms_code).values('cost_price')[0]['custom_price'])
+            custom_price = float(SKUMaster.objects.filter(user=user.id,sku_code=wms_code).values('cost_price')[0]['cost_price'])
             if user.userprofile.industry_type =='FMCG':
-                buy_price = custom_price
-            unit_price = custom_price
+                price = custom_price
+            price = custom_price
             price_type = "Custom Input Type"
 
         if str(seller_master_id) in seller_receipt_dict.keys():
@@ -4151,8 +4147,7 @@ def inventory_adjust_upload(request, user=''):
             seller_receipt_dict[str(seller_master_id)] = receipt_number
         adj_status, stock_stats_objs = adjust_location_stock(cycle_id, wms_code, loc, quantity, reason, user, stock_stats_objs, batch_no=batch_no, mrp=mrp,
                               seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
-                               buy_price=buy_price, unit_price = unit_price, price_type = price_type,
-                              receipt_type='inventory-adjustment')
+                              price = price, receipt_type='inventory-adjustment')
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)
     check_and_update_stock(sku_codes, user)

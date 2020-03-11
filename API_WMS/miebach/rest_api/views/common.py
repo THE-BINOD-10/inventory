@@ -1751,6 +1751,9 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                            'updation_date': datetime.datetime.now(),
                            'location_id': dest[0].id, 'sku_id': sku_id,
                            'receipt_type': receipt_type}
+            if stocks:
+                dict_values['unit_price'] = stocks[0].unit_price
+
             if mrp_dict:
                 mrp_dict['creation_date'] = datetime.datetime.now()
                 new_batch = BatchDetail.objects.create(**mrp_dict)
@@ -1761,7 +1764,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                 dest_batch = batch_obj
             if batch_obj:
                 batch_stock_filter = {'sku_id': sku_id, 'location_id': dest[0].id, 'batch_detail_id': batch_obj.id,
-                                      'quantity__gt': 0}
+                                      'quantity__gt': 0, 'batch_detail_buy_price':batch_obj.buy_price}
                 if dest_seller_id:
                     batch_stock_filter['sellerstock__seller_id'] = dest_seller_id
                 dest_stock_objs = StockDetail.objects.filter(**batch_stock_filter)
@@ -1788,7 +1791,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
     return dest_batch
 
 def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp='',
-                        weight='', receipt_number='', receipt_type='',reason=''):
+                        weight='', receipt_number='', price='', receipt_type='',reason=''):
     # sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
     try:
         sku = check_and_return_mapping_id(wms_code, "", user, False)
@@ -1837,6 +1840,25 @@ def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_i
             stock_dict['sellerstock__seller_id'] = seller_id
             reserved_dict["stock__sellerstock__seller_id"] = seller_id
             raw_reserved_dict["stock__sellerstock__seller_id"] = seller_id
+        if price:
+            if user.userprofile.industry_type == 'FMCG':
+                stock_dict['batch_detail__buy_price'] = price
+                reserved_dict['stock__batch_detail__buy_price'] = price
+                raw_reserved_dict['stock__batch_detail__buy_price'] = price
+            stock_dict['unit_price'] = price
+            reserved_dict['stock__unit_price'] = price
+            raw_reserved_dict['stock__unit_price'] = price
+        else:
+            custom_price = SKUMaster.objects.filter(user=user.id,id=sku_id)
+            if custom_price.exists():
+                if user.userprofile.industry_type == 'FMCG':
+                    stock_dict['batch_detail__buy_price'] = custom_price[0].cost_price
+                    reserved_dict['stock__batch_detail__buy_price'] = custom_price[0].cost_price
+                    raw_reserved_dict['stock__batch_detail__buy_price'] = custom_price[0].cost_price
+                stock_dict['unit_price'] = custom_price[0].cost_price
+                reserved_dict['stock__unit_price'] = custom_price[0].cost_price
+                raw_reserved_dict['stock__unit_price'] = custom_price[0].cost_price
+
         stocks = StockDetail.objects.filter(**stock_dict).distinct()
         if not stocks:
             return 'No Stocks Found'
@@ -1920,7 +1942,7 @@ def create_invnetory_adjustment_record(user, dat, quantity, reason, location, no
 
 
 def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet='', batch_no='', mrp='',
-                          seller_master_id='', weight='', receipt_number=1, receipt_type='',buy_price= '', unit_price= '', price_type =''):
+                          seller_master_id='', weight='', receipt_number=1, receipt_type='', price =''):
     now_date = datetime.datetime.now()
     now = str(now_date)
     adjustment_objs = []
@@ -1958,13 +1980,18 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
         stock_dict["batch_detail__weight"] = weight
     if seller_master_id:
         stock_dict['sellerstock__seller_id'] = seller_master_id
-    if buy_price:
-        if user.userprofile.industry_type == 'FMCG' :
-            stock_dict['batch_detail__buy_price'] = float(buy_price)
-    if unit_price:
-        stock_dict['unit_price'] = float(unit_price)
-    if price_type:
-        stock_dict['price_type'] = price_type
+    if price or price == 0:
+        if user.userprofile.industry_type == 'FMCG':
+            stock_dict['batch_detail__buy_price'] = float(price)
+        stock_dict['unit_price'] = float(price)
+    else:
+        custom_price = SKUMaster.objects.filter(user=user.id, id=sku_id)
+        if custom_price.exists():
+            if user.userprofile.industry_type == 'FMCG':
+                stock_dict['batch_detail__buy_price'] = custom_price[0].cost_price
+            stock_dict['unit_price'] = custom_price[0].cost_price
+        else:
+            return "Invalid SKU"
     total_stock_quantity = 0
     dest_stocks = ''
 
@@ -1986,7 +2013,6 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
     else:
         dat = CycleCount(**data_dict)
         dat.save()
-
     if quantity:
         #quantity = float(quantity)
         stocks = StockDetail.objects.filter(**stock_dict).distinct().order_by('-id')
@@ -9102,7 +9128,7 @@ def update_stock_detail(stocks, quantity, user, rtv_id):
             break
 
 
-def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet='', batch_no='', mrp='',
+def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet='', batch_no='', mrp='',price ='',
                           seller_master_id='', weight=''):
     now_date = datetime.datetime.now()
     now = str(now_date)

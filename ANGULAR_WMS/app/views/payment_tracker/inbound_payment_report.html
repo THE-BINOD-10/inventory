@@ -1,4 +1,4 @@
-<div class="page-layout" ng-controller="OutboundPaymentReportCtrl as showCase">
+<div class="page-layout" ng-controller="InboundPaymentReportCtrl as showCase">
   <div class="layout-body">
     <div class="panel">
 
@@ -22,8 +22,8 @@
 		            </div>
 		            <div class="col-md-4 col-sm-4 col-xs-6">
 		              <div class="form-group">
-		                <label class="control-label">Customer Name</label>
-		                <input type="text" name="customer" class="form-control" ng-model="showCase.model_data.filters.customer">
+		                <label class="control-label">Supplier Name</label>
+		                <input type="text" name="supplier_name" class="form-control" ng-model="showCase.model_data.filters.customer">
 		              </div>
 		            </div>
 		            <div class="col-md-4 col-sm-4 col-xs-6">
@@ -32,7 +32,7 @@
 		                <input type="text" name="invoice_number" class="form-control" ng-model="showCase.model_data.filters.invoice_number" ng-class="service.get_decimal_perm()">
 
 		                <!-- Datatable name and search fields passing start -->
-		                <input name="datatable" class="form-control" ng-init="showCase.model_data.filters.datatable = 'OutboundPaymentReport'" type="hidden" ng-model="showCase.model_data.filters.datatable" value="OutboundPaymentReport">
+		                <input name="datatable" class="form-control" ng-init="showCase.model_data.filters.datatable = 'InboundPaymentReport'" type="hidden" ng-model="showCase.model_data.filters.datatable" value="InboundPaymentReport">
 		                <input type="hidden" name="search0" class="form-control" ng-init="showCase.model_data.filters.search0=''" ng-model="showCase.model_data.filters.search0">
 		                <input type="hidden" name="search1" class="form-control" ng-init="showCase.model_data.filters.search1=''" ng-model="showCase.model_data.filters.search1">
 		                <input type="hidden" name="search2" class="form-control" ng-init="showCase.model_data.filters.search2=''" ng-model="showCase.model_data.filters.search2">

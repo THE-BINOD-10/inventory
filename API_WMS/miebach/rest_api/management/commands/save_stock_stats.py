@@ -40,7 +40,7 @@ class Command(BaseCommand):
         today_start = datetime.datetime.combine(today, datetime.time())
         today_end = datetime.datetime.combine(tomorrow, datetime.time())
         print str(datetime.datetime.now())
-        users = User.objects.filter(is_staff=True)
+        users = User.objects.filter(is_staff=True).order_by('-last_login')
         for user in users:
             print user
             userprofile = UserProfile.objects.filter(user_id=user.id)
@@ -87,7 +87,7 @@ class Command(BaseCommand):
                     # stock_stat_objects = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id).order_by('-creation_date')
                     stock_stat_objects = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id)
                     if stock_stat_objects.exists():
-                        lat_rec = stock_stat_objects.latest('creation_date')
+                        lat_rec = stock_stat_objects.exclude(creation_date__startswith=today).latest('creation_date')
                         openinig_stock = lat_rec.closing_stock
                         opening_stock_value = lat_rec.closing_stock_value
                     else:
@@ -116,7 +116,7 @@ class Command(BaseCommand):
                         current_stock =StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku_id=sku.id).aggregate(Sum('quantity'), stock_value=Sum(F('quantity') * F('unit_price')))
                         stock_object = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id)
                         if stock_object.exists():
-                            lat_re = stock_object.latest('creation_date')
+                            lat_re = stock_object.exclude(creation_date__startswith=today).latest('creation_date')
                             data_dict = {'opening_stock': lat_re.closing_stock, 'closing_stock': lat_re.closing_stock, 'sku_id':sku.id,
                                         'opening_stock_value': lat_re.closing_stock_value, 'closing_stock_value': current_stock['stock_value'] or 0}
                             if stock_stat.exists():

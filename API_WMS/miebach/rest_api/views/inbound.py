@@ -108,7 +108,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
             last_updated_time = ''
             last_updated_remarks = ''
         temp_data['aaData'].append(OrderedDict((
-                                                ('PR Number', result['pr_number']),
+                                                ('PO Reference', result['pr_number']),
                                                 ('Supplier ID', result['supplier_id']),
                                                 ('Total Quantity', result['total_qty']),
                                                 ('Total Amount', result['total_amt']),

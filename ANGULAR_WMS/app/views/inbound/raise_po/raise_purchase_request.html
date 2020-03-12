@@ -1,6 +1,6 @@
 <div class="panel" ng-controller="RaisePurchaseRequestCtrl as showCase">
   <div class="panel-header">
-    <button type="button" class="btn btn-success pull-right ml10" ng-click="showCase.add()">New Purchase Request</button>
+    <button type="button" class="btn btn-success pull-right ml10" ng-click="showCase.add()">New Purchase Order</button>
     <div ng-include="'views/common/excel.html'"></div>
   </div>
   <div ng-include="'views/common/datatable.html'"></div>
@@ -8,6 +8,6 @@
     <!-- <button type="button" class="pull-right btn btn-success" style="margin-left:10px;" ng-click="showCase.confirm_po1()" ng-disabled="showCase.bt_disable || process" ng-show="showCase.permissions.change_openpo">
       Confirm PO
     </button> -->
-    <button type="button" class="pull-right btn btn-danger" ng-show="showCase.permissions.change_openpo">Delete PR</button>
+    <button type="button" class="pull-right btn btn-danger" ng-show="showCase.permissions.change_openpo">Delete PO</button>
   </div>
 </div>

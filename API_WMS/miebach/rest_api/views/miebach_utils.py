@@ -5078,9 +5078,9 @@ def get_margin_price_details(invoice_qty_filter, order_data, unit_price, inv_qua
                 total_procurement_price += (picklist['picklist__stock__unit_price'] * picklist['quantity'])
             else:
                 total_procurement_price += 0
-        if total_procurement_price > 0 and inv_quantity > 0:  
+        if total_procurement_price > 0 and inv_quantity > 0:
             procurement_price = total_procurement_price/inv_quantity
-            margin = (unit_price * inv_quantity) - total_procurement_price  
+            margin = (unit_price * inv_quantity) - total_procurement_price
     else:
         total_procurement_price, procurement_price, margin = 0, 0, 0
     return round(total_procurement_price, 2), round(procurement_price, 2), round(margin, 2)

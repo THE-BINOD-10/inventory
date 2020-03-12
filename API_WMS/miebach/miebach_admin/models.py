@@ -495,6 +495,8 @@ class OpenPR(models.Model):
     open_po = models.ForeignKey(OpenPO, blank=True, null=True)
     requested_user = models.ForeignKey(User)
     pr_number = models.PositiveIntegerField() #WH Specific Inc Number
+    po_number = models.PositiveIntegerField() # Similar to PurchaseOrder->order_id field
+    prefix = models.CharField(max_length=32, default='')
     sku = models.ForeignKey(SKUMaster, db_index=True)
     quantity = models.FloatField(default=0, db_index=True)
     price = models.FloatField(default=0)

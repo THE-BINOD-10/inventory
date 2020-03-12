@@ -83,7 +83,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         $scope.$apply(function() {
           vm.extra_width = { 'width': '1250px' };
           vm.supplier_id = aData['Supplier ID'];
-          var data = {requested_user: aData['Requested User'], pr_number:aData['PO Reference']};
+          var data = {requested_user: aData['Requested User'], pr_number:aData['PR Number']};
             vm.dynamic_route(aData);
 /*          vm.service.apiCall('generated_pr_data/', 'POST', data).then(function(data){
             if (data.message) {
@@ -228,7 +228,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.b_close = vm.close;
     vm.dynamic_route = function(aData) {
-      var p_data = {requested_user: aData['Requested User'], pr_number:aData['PO Reference']};
+      var p_data = {requested_user: aData['Requested User'], pr_number:aData['PR Number']};
       vm.service.apiCall('generated_pr_data/', 'POST', p_data).then(function(data){
         if (data.message) {
           var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
@@ -306,7 +306,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           // vm.model_data.seller_type = vm.model_data.dedicated_seller;
           vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
           vm.title = 'Update PO';
-          vm.pr_number = aData['PO Reference']
+          vm.pr_number = aData['PR Number']
           vm.validated_by = aData['To Be Validated By']
           // vm.update = true;
           if (aData['Validation Status'] == 'pending'){

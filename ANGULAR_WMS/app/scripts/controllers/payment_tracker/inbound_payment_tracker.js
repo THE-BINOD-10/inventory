@@ -214,7 +214,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.close = close;
     function close() {
       vm.model_data = {};
-      $state.go('app.PaymentTrackerInvBased');
+      $state.go('app.POPaymentTrackerInvBased');
       vm.reloadData();
     }
 

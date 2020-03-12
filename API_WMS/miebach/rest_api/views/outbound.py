@@ -8068,7 +8068,7 @@ def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, 
     admin_user = get_priceband_admin_user(user)
     lis = ['invoice_number', 'order__customer_name', 'invoice_number', 'invoice_number','invoice_number', 'invoice_number', 'creation_date', 'invoice_number']#for filter purpose
     user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
-    result_values = ['invoice_number', 'order__customer_name', 'order__customer_id']#to make distinct grouping
+    result_values = ['invoice_number', 'order__customer_name', 'order__customer_id', 'full_invoice_number']#to make distinct grouping
     cust_ids = request.POST.get("customer_ids", '')
     if cust_ids:
         cust_ids = cust_ids.split(',')
@@ -8108,17 +8108,14 @@ def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, 
     for data in master_data:
         credit_period, due_date, invoice_date = 0, '', ''
         seller_ord_summary = SellerOrderSummary.objects.filter(**user_filter)\
-                                      .filter(invoice_number=data['invoice_number'])
+                                      .filter(full_invoice_number=data['full_invoice_number'])
         order_ids = seller_ord_summary.values_list('order__id', flat= True)
         picked_amount = seller_ord_summary.values('order__sku_id', 'order__invoice_amount', 'order__quantity')\
                                         .distinct().annotate(pic_qty=Sum('quantity'))\
                                         .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
                                         .aggregate(Sum('cur_amt'))['cur_amt__sum']
         order_amt_cal = OrderDetail.objects.filter(id__in=order_ids).aggregate(invoice_amount = Sum('invoice_amount'), payment_received=Sum('payment_received'))
-        invoice_date = CustomerOrderSummary.objects.filter(order_id__in=order_ids)\
-                                           .order_by('-invoice_date').values_list('invoice_date', flat=True)[0]
-        if not invoice_date:
-            invoice_date = seller_ord_summary.order_by('-updation_date')[0].updation_date
+        invoice_date = seller_ord_summary[0].creation_date
         customer_order_sum = CustomerOrderSummary.objects.filter()
         customer_master_obj = CustomerMaster.objects.filter(customer_id = data['order__customer_id'])
         if customer_master_obj:
@@ -8127,7 +8124,7 @@ def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, 
             due_date = (invoice_date + datetime.timedelta(days=credit_period)).strftime("%d %b %Y")
             invoice_date = invoice_date.strftime("%d %b %Y")
         payment_received = 0
-        payment_obj = PaymentSummary.objects.filter(invoice_number=data['invoice_number'], order__user = user.id)
+        payment_obj = PaymentSummary.objects.filter(invoice_number=data['full_invoice_number'], order__user = user.id)
         if payment_obj:
             payment_received = payment_obj.aggregate(payment_received = Sum('payment_received'))['payment_received']
         payment_receivable = round(picked_amount) - round(payment_received)
@@ -8262,10 +8259,7 @@ def get_customer_payment_tracker(request, user=''):
                                         .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
                                         .aggregate(Sum('cur_amt'))['cur_amt__sum']
         order_amt_cal = OrderDetail.objects.filter(id__in=order_ids).aggregate(invoice_amount = Sum('invoice_amount'), payment_received=Sum('payment_received'))
-        invoice_date = CustomerOrderSummary.objects.filter(order_id__in=order_ids)\
-                                           .order_by('-invoice_date').values_list('invoice_date', flat=True)[0]
-        if not invoice_date:
-            invoice_date = seller_ord_summary.order_by('-updation_date')[0].updation_date
+        invoice_date = seller_ord_summary[0].creation_date
         customer_order_sum = CustomerOrderSummary.objects.filter()
         customer_master_obj = CustomerMaster.objects.filter(customer_id = data['order__customer_id'])
         if customer_master_obj:

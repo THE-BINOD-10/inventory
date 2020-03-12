@@ -1890,11 +1890,11 @@ var app = angular.module('urbanApp')
                   'scripts/controllers/payment_tracker/payment_tracker_inv_based.js'
                 ]).then( function() {
                   return $ocLazyLoad.load([
-                    'scripts/controllers/payment_tracker/inbound_payment_tracker.js'
+                    'scripts/controllers/payment_tracker/outbound_payment_report.js'
                   ])
                 }).then( function() {
                   return $ocLazyLoad.load([
-                    'scripts/controllers/payment_tracker/outbound_payment_report.js'
+                    'scripts/controllers/payment_tracker/inbound_payment_tracker.js'
                   ])
                 }).then( function() {
                   return $ocLazyLoad.load([

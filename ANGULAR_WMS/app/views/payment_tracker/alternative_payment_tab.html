@@ -1,0 +1,20 @@
+<div>
+  <div class="page-layout">
+    <div class="layout-body">
+      <tabset class="box-tab">
+        <tab heading="Outbound">
+          <div ng-include="'views/payment_tracker/payment_tracker.html'"></div>
+        </tab>
+        <tab heading="Outbound Payment Report" ng-controller="OutboundPaymentReportCtrl as showCase" ng-click="showCase.loadjs()">
+          <div ng-if= "showCase.OutboundPaymentReportCtrl_enable" ng-include="'views/payment_tracker/outbound_payment_report.html'"></div>
+        </tab>
+        <tab heading="Inbound" ng-controller="PaymentTrackerInbound as showCase" ng-click="showCase.loadjs()">
+          <div ng-if= "showCase.PaymentTrackerInbound_enable" ng-include="'views/payment_tracker/payment_tracker_inbound.html'"></div>
+        </tab>
+        <tab heading="Inbound Payment Report" ng-controller="InboundPaymentReportCtrl as showCase" ng-click="showCase.loadjs()">
+          <div ng-if= "showCase.InboundPaymentReportCtrl_enable" ng-include="'views/payment_tracker/inbound_payment_report.html'"></div>
+        </tab>
+      </tabset>
+    </div>
+  </div>
+</div>

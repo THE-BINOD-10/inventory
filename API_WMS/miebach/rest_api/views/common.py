@@ -552,6 +552,7 @@ data_datatable = {  # masters
     'ProcessedPOs': 'get_processed_po_data', 'POChallans': 'get_po_challans_data', \
     'SupplierInvoices': 'get_supplier_invoice_data', \
     'POPaymentTrackerInvBased': 'get_inv_based_po_payment_data', \
+    'InboundPaymentReport': 'get_inbound_payment_report',\
     'ReturnToVendor': 'get_po_putaway_data', \
     'CreatedRTV': 'get_saved_rtvs', \
     'PastPO':'get_past_po',\

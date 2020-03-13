@@ -411,13 +411,13 @@
     </li>
     <!-- /maps -->
 
-    <li ui-sref-active="active" ng-show="show_tab('PAYMENT_LABEL') && show_tab('invoice_based_payment_tracker')">
+    <li ui-sref-active="active" ng-show="show_tab('PAYMENT_LABEL') && !show_tab('invoice_based_payment_tracker')">
       <a ui-sref="app.PaymentTracker">
         <i class="fa fa-paypal"></i>
         <span>Payments</span>
       </a>
     </li>
-    <li ui-sref-active="active" ng-show="show_tab('PAYMENT_LABEL') && !show_tab('invoice_based_payment_tracker')">
+    <li ui-sref-active="active" ng-show="show_tab('PAYMENT_LABEL') && show_tab('invoice_based_payment_tracker')">
       <a ui-sref="app.PaymentTrackerInvBased">
         <i class="fa fa-paypal"></i>
         <span>Payments</span>

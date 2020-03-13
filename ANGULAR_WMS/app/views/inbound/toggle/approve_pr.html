@@ -28,6 +28,17 @@
         </div>
         <div class="modal-body raise_po" ng-class="(showCase.confirm_print)? 'hide': 'show'">
           <div class="row">
+            <div class="col-md-2 col-sm-2 col-xs-3">
+            <div class="form-group">
+              <label class="control-label"> PO Number </label>
+              <input type="text" ng-model="showCase.model_data.po_number" name="po_number" class="form-control" ng-readonly="true"> </div>
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-3">
+              <div class="form-group">
+                <label class="control-label">PO Delivery Date</label>
+                <input name="pr_delivery_date" ng-model="showCase.model_data.pr_delivery_date" class="form-control" type="text" id="pr_delivery_date" ng-readonly="true">
+              </div>
+            </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.model_data.receipt_type != 'Hosted Warehouse' && !showCase.wh_purchase_order">
               <div class="form-group">
                 <label class="control-label"> Supplier ID/Name * </label>
@@ -45,12 +56,6 @@
             <div class="form-group">
               <label class="control-label"> Ship To </label>
               <input type="text" ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control" ng-readonly="true"> </div>
-            </div>
-            <div class="col-md-4 col-sm-4 col-xs-6">
-              <div class="form-group">
-                <label class="control-label">PO Delivery Date</label>
-                <input name="pr_delivery_date" ng-model="showCase.model_data.pr_delivery_date" class="form-control stk-readonly" type="text" id="pr_delivery_date"ng-readonly="true">
-              </div>
             </div>
             <div class="col-md-12"><hr></div>
           </div>
@@ -202,8 +207,8 @@
       </div>
 		</div>
         <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin'">
-          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-click="showCase.approve_pr(form, 'approved')">Approve PR</button>
-          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-red pull-left" ng-click="showCase.approve_pr(form, 'rejected')">Reject PR</button>
+          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-click="showCase.approve_pr(form, 'approved')">Approve PO</button>
+          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-red pull-left" ng-click="showCase.approve_pr(form, 'rejected')">Reject PO</button>
         </div>
       </div>
     </div>

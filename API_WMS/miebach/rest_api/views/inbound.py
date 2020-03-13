@@ -67,25 +67,27 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    values_list = ['requested_user', 'requested_user__username', 'pr_number', 'final_status', 'pending_level', 'remarks', 'supplier_id']
+    values_list = ['requested_user', 'requested_user__username', 'pr_number', 'po_number', 'final_status', 
+                    'pending_level', 'remarks', 'supplier_id', 'prefix']
 
     results = OpenPR.objects.filter(**filtersMap).values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
     if search_term:
-        results = results.filter(Q(pr_number__icontains=search_term) | Q(requested_user__username__icontains=search_term) |
+        results = results.filter(Q(po_number__icontains=search_term) | Q(requested_user__username__icontains=search_term) |
                         Q(final_status__icontains=search_term) | Q(pending_level__icontains=search_term) |
                         Q(supplier__id__icontains=search_term) | Q(supplier__name__icontains=search_term) |
                         Q(sku__sku_code__icontains=search_term))
     elif order_term:
         results = results.order_by(order_data)
 
+    resultsWithDate = dict(results.values_list('pr_number', 'creation_date'))
     temp_data['recordsTotal'] = results.count()
     temp_data['recordsFiltered'] = results.count()
 
-    # configMap = fetchConfigNameRangesMap(user)
-    # reqConfigName = ''
     count = 0
     for result in results[start_index: stop_index]:
+        creation_date = str(resultsWithDate.get(result['pr_number'])).split(' ')[0].replace('-', '')
+        po_reference = '%s%s_%s' % (result['prefix'], creation_date, result['po_number'])
         mailsList = []
         reqConfigName, lastLevel = findLastLevelToApprove(result['requested_user'], result['pr_number'], result['total_amt'])
         prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
@@ -108,7 +110,8 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
             last_updated_time = ''
             last_updated_remarks = ''
         temp_data['aaData'].append(OrderedDict((
-                                                ('PO Reference', result['pr_number']),
+                                                ('PR Number', result['pr_number']),
+                                                ('PO Number', po_reference),
                                                 ('Supplier ID', result['supplier_id']),
                                                 ('Total Quantity', result['total_qty']),
                                                 ('Total Amount', result['total_amt']),
@@ -2000,7 +2003,7 @@ def approve_pr(request, user=''):
         PRQs.update(final_status=validation_type)
         updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, 
                                     validation_type, remarks, urlPath)
-        sendingApprovalMail(user, reqConfigName, pending_level, pr_number, urlPath, isFinal=True)
+        sendingApprovalMail(request, user, reqConfigName, pending_level, pr_number, urlPath, isFinal=True)
     else:
         nextLevel = 'level' + str(int(pending_level.replace('level', '')) + 1)
         if validation_type == 'rejected':
@@ -2035,6 +2038,7 @@ def add_pr(request, user=''):
         totalAmt = 0
         reqConfigName = ''
         mailsList = []
+        po_number = get_purchase_order_id(user)
         for key, value in all_data.iteritems():
             wms_code = key
             if not wms_code:
@@ -2058,16 +2062,20 @@ def add_pr(request, user=''):
                 pr_suggestions['price'] = float(value['price'])
             except:
                 pr_suggestions['price'] = 0
+            user_profile = UserProfile.objects.filter(user_id=user.id)
+            if user_profile:
+                pr_suggestions['prefix'] = user_profile[0].prefix
             pr_suggestions['remarks'] = value['remarks']
             pr_suggestions['requested_user'] = request.user
             pr_suggestions['pr_number'] = pr_number
+            pr_suggestions['po_number'] = po_number
             pr_suggestions['pending_level'] = baseLevel
             pr_suggestions['final_status'] = 'pending'
             pr_suggestions['sgst_tax'] = value['sgst_tax']
             pr_suggestions['cgst_tax'] = value['cgst_tax']
             pr_suggestions['igst_tax'] = value['igst_tax']
             pr_suggestions['utgst_tax'] = value['utgst_tax']
-            pr_suggestions['ship_to'] = value['ship_to']
+            pr_suggestions['ship_to'] = value['ship_to']            
             if value['po_delivery_date']:
                 pr_suggestions['delivery_date'] = value['po_delivery_date']
             pr_suggestions['measurement_unit'] = "UNITS"

@@ -1200,6 +1200,7 @@ def switches(request, user=''):
                        'display_dc_invoice': 'display_dc_invoice',
                        'display_order_reference': 'display_order_reference',
                        'mrp_discount':'mrp_discount',
+                       'enable_pending_approval_pos':'enable_pending_approval_pos',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

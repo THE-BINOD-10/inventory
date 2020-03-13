@@ -2009,7 +2009,7 @@ def approve_pr(request, user=''):
             PRQs.update(final_status=validation_type)
             updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, 
                                         validation_type, remarks, urlPath)
-            sendingApprovalMail(request, user, reqConfigName, pending_level, pr_number, isReject=True)
+            sendingApprovalMail(request, user, reqConfigName, pending_level, pr_number, urlPath, isReject=True)
         else:
             PRQs.update(pending_level=nextLevel)
             updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, 

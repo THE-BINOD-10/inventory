@@ -1785,7 +1785,7 @@ def get_inventory(request,user=''):
         sku_records = SKUMaster.objects.filter(user=user.id, sku_code__in=skus).values('sku_code', 'id')
         error_skus = set(skus) - set(sku_records.values_list('sku_code', flat=True))
         for error_sku in error_skus:
-            error_status.append({'sku': error_sku, 'message': 'SKU Not found', 'status': 5030})
+            error_status.append({'sku': error_sku, 'message': 'SKU not found', 'status': 5030})
         job_order = JobOrder.objects.filter(product_code__user=user.id, status__in=['grn-generated', 'pick_confirm'])
         job_ids = job_order.values_list('id', flat=True)
 
@@ -1843,12 +1843,10 @@ def get_inventory(request,user=''):
                 wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
                 total_stock_value = total_wms_qty_unit_price  # + total_wms_qty_sku_unit_price
             open_order_qty = sku_type_qty.get(data[0], 0)
-            data_lis.append(OrderedDict((('WMS Code', data[0]), ('Product Description', data[1]),
-                                                    ('SKU Category', data[2]), ('SKU Brand', data[3]),
-                                                    ('Available Quantity', quantity),
-                                                    ('Reserved Quantity', reserved), ('Total Quantity', total),
-                                                    ('Open Order Quantity', open_order_qty),
-                                                    ('Stock Value', '%.2f' % total_stock_value))))
+            data_lis.append(OrderedDict((('sku', data[0]),
+                                        ('available_quantity', quantity),
+                                        ('reserved_quantity', reserved), ('total_quantity', total),
+                                        ('open_order_quantity', open_order_qty))))
         page_info['data'] = data_lis
         response_data = {'page_info': page_info.get('page_info', {}), 'status': 200,
                          'messages':'Success',

@@ -68,7 +68,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
     if order_term == 'desc':
         order_data = '-%s' % order_data
     values_list = ['requested_user', 'requested_user__username', 'pr_number', 'po_number', 'final_status', 
-                    'pending_level', 'remarks', 'supplier_id', 'prefix', 'creation_date']
+                    'pending_level', 'remarks', 'supplier_id', 'prefix']
 
     results = OpenPR.objects.filter(**filtersMap).values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
@@ -80,14 +80,14 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
     elif order_term:
         results = results.order_by(order_data)
 
+    resultsWithDate = dict(results.values_list('pr_number', 'creation_date'))
     temp_data['recordsTotal'] = results.count()
     temp_data['recordsFiltered'] = results.count()
 
-    # configMap = fetchConfigNameRangesMap(user)
-    # reqConfigName = ''
     count = 0
     for result in results[start_index: stop_index]:
-        po_reference = '%s%s_%s' % (result['prefix'], str(result['creation_date']).split(' ')[0].replace('-', ''), result['po_number'])
+        creation_date = str(resultsWithDate.get(result['pr_number'])).split(' ')[0].replace('-', '')
+        po_reference = '%s%s_%s' % (result['prefix'], creation_date, result['po_number'])
         mailsList = []
         reqConfigName, lastLevel = findLastLevelToApprove(result['requested_user'], result['pr_number'], result['total_amt'])
         prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
@@ -111,7 +111,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
             last_updated_remarks = ''
         temp_data['aaData'].append(OrderedDict((
                                                 ('PR Number', result['pr_number']),
-                                                ('PO Reference', po_reference),
+                                                ('PO Number', po_reference),
                                                 ('Supplier ID', result['supplier_id']),
                                                 ('Total Quantity', result['total_qty']),
                                                 ('Total Amount', result['total_amt']),
@@ -2002,7 +2002,7 @@ def approve_pr(request, user=''):
         PRQs.update(final_status=validation_type)
         updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, 
                                     validation_type, remarks, urlPath)
-        sendingApprovalMail(user, reqConfigName, pending_level, pr_number, urlPath, isFinal=True)
+        sendingApprovalMail(request, user, reqConfigName, pending_level, pr_number, urlPath, isFinal=True)
     else:
         nextLevel = 'level' + str(int(pending_level.replace('level', '')) + 1)
         if validation_type == 'rejected':

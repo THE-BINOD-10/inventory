@@ -55,7 +55,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = [ "Supplier ID", "PO Reference", "Total Quantity", "Total Amount", "Requested User", 
+    var columns = [ "Supplier ID", "PO Number", "Total Quantity", "Total Amount", "Requested User", 
                     "Validation Status", "Pending Level", "To Be Validated By",
                     "Last Updated By", "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
@@ -303,6 +303,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
           vm.model_data.suppliers = [vm.model_data.supplier_id];
           vm.model_data.supplier_id = vm.model_data.suppliers[0];
+          vm.model_data['po_number'] = aData['PO Number'];
           // vm.model_data.seller_type = vm.model_data.dedicated_seller;
           vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
           vm.title = 'Update PO';

@@ -44,6 +44,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'display_dc_invoice':false,
                     'display_order_reference':false,
                     'move_inventory_reasons':'',
+                    'enable_pending_approval_pos':false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -77,6 +78,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      101: 'display_dc_invoice',
                      102: 'display_order_reference',
                      103: 'picklist_sort_by_sku_sequence',
+                     104: 'enable_pending_approval_pos',
                      }
 
   vm.check_box_data = [
@@ -595,6 +597,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    name: "Display Order Reference in Outbound",
    model_name: "display_order_reference",
    param_no: 102,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
+   name: "Enable Pending For Approval POs",
+   model_name: "enable_pending_approval_pos",
+   param_no: 104,
    class_name: "fa fa-server",
    display: true
   },

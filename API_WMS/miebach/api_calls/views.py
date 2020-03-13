@@ -1764,7 +1764,7 @@ def get_inventory(request,user=''):
     try:
         try:
             request_data = json.loads(request_data)
-            limit = request_data.get('limit', 100)
+            limit = request_data.get('limit', 10)
             skus = request_data.get('sku', [])
             skus = map(lambda sku: str(sku), skus)
             warehouse = request_data.get('warehouse', '')
@@ -1809,10 +1809,10 @@ def get_inventory(request,user=''):
         master_data = list(chain(master_data, master_data1))
         sku_type_qty = dict(OrderDetail.objects.filter(user=user.id, quantity__gt=0, status=1).values_list(
         'sku__sku_code').distinct().annotate(Sum('quantity')))
-        sku_pack_config = get_misc_value('sku_pack_config', user.id)
         page_info = scroll_data(request, master_data, limit=limit, request_type='body')
         data_lis = []
         sku_master = SKUMaster.objects.filter(user=user.id)
+        master_data = page_info['data']
         for ind, data in enumerate(master_data):
             total_stock_value = 0
             reserved = 0
@@ -1833,7 +1833,6 @@ def get_inventory(request,user=''):
                 quantity = 0
 
             total_stock_value = 0
-            sku_packs = 0
             if quantity:
                 wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code=data[0],
                                                                                     sku__user=user.id)
@@ -1843,26 +1842,21 @@ def get_inventory(request,user=''):
                         'stock_value', flat=True))
                 wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
                 total_stock_value = total_wms_qty_unit_price  # + total_wms_qty_sku_unit_price
-                if sku_pack_config == 'true':
-                    sku_pack_obj = sku.skupackmaster_set.filter().only('pack_quantity')
-                    if sku_pack_obj.exists() and sku_pack_obj[0].pack_quantity:
-                        sku_packs = int(quantity / sku_pack_obj[0].pack_quantity)
             open_order_qty = sku_type_qty.get(data[0], 0)
             data_lis.append(OrderedDict((('WMS Code', data[0]), ('Product Description', data[1]),
                                                     ('SKU Category', data[2]), ('SKU Brand', data[3]),
-                                                    ('sku_packs', sku_packs),
                                                     ('Available Quantity', quantity),
                                                     ('Reserved Quantity', reserved), ('Total Quantity', total),
                                                     ('Open Order Quantity', open_order_qty),
-                                                    ('Unit of Measurement', sku.measurement_type),
                                                     ('Stock Value', '%.2f' % total_stock_value))))
         page_info['data'] = data_lis
+        response_data = {'page_info': page_info.get('page_info', {}), 'status': 200,
+                         'messages':'Success',
+                         'data': page_info['data']}
         output_status = 200
         if error_status:
             output_status = 207
-        response_data = {'page_info': page_info.get('page_info', {}), 'status': 200,
-                         'messages': [{'errors': error_status}],
-                         'data': page_info['data']}
+            response_data['messages']= [{'errors': error_status}]
         return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder), status=output_status)
     except Exception as e:
         import traceback

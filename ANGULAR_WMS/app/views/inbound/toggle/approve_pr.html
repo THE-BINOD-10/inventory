@@ -196,10 +196,40 @@
 		  </div>
       <div class="col-md-12 col-sm-12 col-xs-12">
         <div class="col-md-3 col-sm-3 col-xs-3" style="margin-top: 5px;">
-          <strong>Remarks* :</strong>
+          <strong>Remarks :</strong>
         </div>
         <div class="col-md-9 col-sm-9 col-xs-9">
-          <textarea rows="5" class="form-control" cols="27" name="remarks" ng-model="showCase.model_data.remarks" placeholder="Enter Remarks" required></textarea>
+          <textarea rows="5" class="form-control" cols="27" name="remarks" ng-model="showCase.model_data.remarks" placeholder="Enter Remarks"></textarea>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-10">
+          <strong class="pull-left" style="margin-left: 10px;">
+          Remarks History:
+          </strong>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Level</th>
+                <th>Validated By</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="product in showCase.model_data.levelWiseRemarks" id="tab_count">
+                <td>
+                  <input ng-model="product.level" title="{{product.level}}" type="text" class="form-control detectTab" readonly ng-debounce  size="5">
+                </td>
+                <td>
+                  <input ng-model="product.validated_by" title="{{product.validated_by}}" type="text" class="form-control detectTab" readonly ng-debounce  size="10">
+                </td>
+                <td>
+                  <input ng-model="product.remarks" title="{{product.remarks}}" type="text" class="form-control detectTab" readonly ng-debounce size="50">
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 

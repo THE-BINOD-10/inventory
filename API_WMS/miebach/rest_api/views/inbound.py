@@ -892,19 +892,27 @@ def generated_pr_data(request, user=''):
     record = OpenPR.objects.filter(sku__user=user.id, requested_user__username=requested_user, pr_number=pr_number)
     total_data = []
     ser_data = []
+    levelWiseRemarks = []
     pr_delivery_date = ''
     if len(record):
         if record[0].delivery_date:
             pr_delivery_date = record[0].delivery_date.strftime('%m/%d/%Y')
+        if record[0].remarks:
+            levelWiseRemarks.append({"level": 'requester', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks})    
+    allRemarks = PRApprovals.objects.filter(pr_user=user.id, 
+                    openpr_number=pr_number).exclude(status='').values_list('level', 'validated_by', 'remarks')
+    for eachRemark in allRemarks:
+        level, validated_by, remarks = eachRemark
+        levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
     for rec in record:
         ser_data.append({'fields': {'sku': {'wms_code': rec.sku.sku_code}, 'description': rec.sku.sku_desc,
                                     'order_quantity': rec.quantity, 'price': rec.price, 
-                                    'remarks': rec.remarks, 'cgst_tax': rec.cgst_tax, 'sgst_tax': rec.sgst_tax,
+                                    'cgst_tax': rec.cgst_tax, 'sgst_tax': rec.sgst_tax,
                                     'igst_tax': rec.igst_tax, 'utgst_tax': rec.utgst_tax,
                                     }, 'pk': rec.id})
     return HttpResponse(json.dumps({'supplier_id': record[0].supplier_id, 'supplier_name': record[0].supplier.name,
                                     'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
-                                    'data': ser_data}))
+                                    'data': ser_data, 'levelWiseRemarks': levelWiseRemarks}))
 
 
 @login_required
@@ -1640,6 +1648,7 @@ def get_raisepo_group_data(user, myDict):
     show_apmc_tax = False
     for i in range(0, len(myDict['wms_code'])):
         remarks = ''
+        approval_remarks = ''
         supplier_code = ''
         po_name = ''
         ship_to = ''
@@ -1662,6 +1671,8 @@ def get_raisepo_group_data(user, myDict):
         apmc_tax = 0
         if 'remarks' in myDict.keys():
             remarks = myDict['remarks'][i]
+        if 'approval_remarks' in myDict.keys():
+            approval_remarks = myDict['approval_remarks'][0]
         if 'supplier_code' in myDict.keys():
             supplier_code = myDict.get('supplier_code', [])
             if supplier_code:
@@ -1733,7 +1744,8 @@ def get_raisepo_group_data(user, myDict):
                                    'vendor_id': vendor_id, 'ship_to': ship_to, 'sellers': {}, 'data_id': data_id,
                                    'order_type': order_type, 'mrp': mrp, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax,
                                    'igst_tax': igst_tax, 'cess_tax': cess_tax,
-                                   'utgst_tax': utgst_tax, 'apmc_tax': apmc_tax, 'po_delivery_date': po_delivery_date})
+                                   'utgst_tax': utgst_tax, 'apmc_tax': apmc_tax, 'po_delivery_date': po_delivery_date,
+                                   'approval_remarks': approval_remarks})
         order_qty = myDict['order_quantity'][i]
         if not order_qty:
             order_qty = 0
@@ -1945,25 +1957,10 @@ def updateOrCreatePRApprovals(request, pr_number, user, level, validated_by, req
                             'validated_by': validated_by,
                             'configName': reqConfigName,
                             'status': validation_type,
-                            'remarks': remarks,
+                            'remarks': '',
                         }
         prObj = PRApprovals(**prApprovalsMap)
         prObj.save()
-        # for eachMail in mailsList:
-        #     hash_code = hashlib.md5(b'%s:%s' % (prObj.id, eachMail)).hexdigest()
-        #     prApprovalMailsMap = {
-        #                     'pr_approval': prObj, 
-        #                     'email': eachMail, 
-        #                     'hash_code': hash_code,
-        #                 }
-        #     mailObj = PRApprovalMails(**prApprovalMailsMap)
-        #     mailObj.save()
-        #     subject = "Purchase Request Approval for PR Number : %s at Level:%s" %(pr_number,level)
-        #     body = "<p> Following user requested PR Approval for </p>  \
-        #             <p> NAME : %s </p> \
-        #             Please click on the below link to validate.\
-        #             Link: %s/#/pr_request?hash_code=%s " % (request.user.username, urlPath, hash_code)
-        #     send_mail([eachMail], subject, body)
 
 
 @csrf_exempt
@@ -2016,7 +2013,7 @@ def approve_pr(request, user=''):
             updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, 
                                         validation_type, remarks, urlPath)
             updateOrCreatePRApprovals(request, pr_number, user, nextLevel, currentUserEmailId, reqConfigName, 
-                                        validation_type, remarks, urlPath, updateFlag=False)
+                                        '', remarks, urlPath, updateFlag=False)
             sendingApprovalMail(request, user, reqConfigName, nextLevel, pr_number, urlPath)
     status = 'Approved Successfully'
     return HttpResponse(status)
@@ -2065,7 +2062,7 @@ def add_pr(request, user=''):
             user_profile = UserProfile.objects.filter(user_id=user.id)
             if user_profile:
                 pr_suggestions['prefix'] = user_profile[0].prefix
-            pr_suggestions['remarks'] = value['remarks']
+            pr_suggestions['remarks'] = value['approval_remarks']
             pr_suggestions['requested_user'] = request.user
             pr_suggestions['pr_number'] = pr_number
             pr_suggestions['po_number'] = po_number

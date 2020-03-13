@@ -55,7 +55,7 @@
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Ship To </label>
-                <input type="text" ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control"> </div>
+                <input type="text" ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control" ng-readonly="true"> </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
@@ -73,7 +73,7 @@
               <table class="table">
                 <thead>
                   <tr>
-                    <th>WMS Code*</th>
+                    <th>SKU Code*</th>
                     <th>Title</th>
                     <th>AvailableQty</th>
                     <th ng-if="showCase.show_ean_number">EAN Number</th>
@@ -81,7 +81,7 @@
 
                     <!--<th ng-if="user.user_profile.user_type == 'marketplace_user'">Description</th>-->
                     <th class="w10_">Quantity*</th>
-                    <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Measurement</th>
+                    <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">UOM</th>
                     <!-- <th ng-if="showCase.industry_type=='FMCG'">MRP</th> -->
                     <th>Unit Price</th>
                     <!-- <th ng-if="showCase.industry_type=='FMCG' && user.user_profile.user_type == 'marketplace_user'">Weight</th> -->
@@ -184,6 +184,14 @@
 		  </div>
 		  </div>
         <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
+      </div>
+      <div class="col-md-12 col-sm-12 col-xs-12">
+        <div class="col-md-3 col-sm-3 col-xs-3" style="margin-top: 5px;">
+          <strong>Remarks :</strong>
+        </div>
+        <div class="col-md-9 col-sm-9 col-xs-9">
+          <textarea rows="5" class="form-control" cols="27" name="approval_remarks" ng-model="showCase.model_data.approval_remarks" placeholder="Enter Remarks"></textarea>
+        </div>
       </div>
 		</div>
         <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin'">

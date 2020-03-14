@@ -2192,21 +2192,82 @@ def approve_pr(request, user=''):
     return HttpResponse(status)
 
 
+def findReqConfigName(user, totalAmt):
+    reqConfigName = ''
+    configNameRangesMap = fetchConfigNameRangesMap(user)
+    for confName, priceRanges in configNameRangesMap.items():  #Used For..else
+        min_Amt, max_Amt = priceRanges
+        if totalAmt <= min_Amt:
+            reqConfigName = confName
+            break
+        elif min_Amt <= totalAmt <= max_Amt:
+            reqConfigName = confName
+            break
+    else:
+        reqConfigName = confName
+    return reqConfigName
+
+
+def createPRApproval(user, reqConfigName, level, pr_number):
+    mailsList = []
+    apprConfObj = PRApprovalConfig.objects.filter(user=user, name=reqConfigName, level=level)
+    if apprConfObj:
+        apprConfObjId = apprConfObj[0].id
+        mailsList = MasterEmailMapping.objects.filter(user=user, 
+                                master_id=apprConfObjId, 
+                                master_type='pr_approvals_conf_data').values_list('email_id', flat=True)
+    if mailsList:
+        validated_by = ", ".join(mailsList)
+    else:
+        validated_by = ''
+    prApprovalsMap = {
+                        'openpr_number': pr_number, 
+                        'pr_user': user, 
+                        'level': level,
+                        'validated_by': validated_by,
+                        'configName': reqConfigName
+                    }
+    prObj = PRApprovals(**prApprovalsMap)
+    prObj.save()
+    return prObj, mailsList
+
+def generateHashCodeForMail(prObj, mailId):
+    hash_code = hashlib.md5(b'%s:%s' % (prObj.id, mailId)).hexdigest()
+    prApprovalMailsMap = {
+                    'pr_approval': prObj, 
+                    'email': mailId, 
+                    'hash_code': hash_code,
+                }
+    mailObj = PRApprovalMails(**prApprovalMailsMap)
+    mailObj.save()
+
+
+def sendMailforPendingPO(subjectType, username, urlPath, hash_code, level, po_number, mailId, totalAmt):
+    from mail_server import send_mail
+    validationLink = "%s/#/pr_request?hash_code=%s" %(urlPath, hash_code)
+    if subjectType == 'po_created':
+        subject = "Action Required: Pending PO %s for %s (%s INR)" %(po_number, username, totalAmt)
+        body = "<p> Pending PO Details </p>  \
+        <p> NAME : %s </p> \
+        <p>Line Items: %s</p> \
+        <p>PO Created Date: %s</p> \
+        Please click on the below link to validate.\
+        Link: %s" % (username, lineItemDetails, creationDate, validationLink)    
+    send_mail(mailId, subject, body)
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
 def add_pr(request, user=''):
     urlPath = request.META.get('HTTP_ORIGIN')
-    from mail_server import send_mail
     try:
         log.info("Raise PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))
         myDict = dict(request.POST.iterlists())
         pr_number = get_incremental(user, 'PurchaseRequest')
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         baseLevel = 'level0'
-        configNameRangesMap = fetchConfigNameRangesMap(user)
         totalAmt = 0
-        reqConfigName = ''
         mailsList = []
         po_number = get_purchase_order_id(user)
         for key, value in all_data.iteritems():
@@ -2256,52 +2317,12 @@ def add_pr(request, user=''):
             openPRObj = OpenPR.objects.create(**pr_suggestions)
             totalAmt += (pr_suggestions['quantity'] * pr_suggestions['price'])
 
-        for confName, priceRanges in configNameRangesMap.items():  #Used For..else
-            min_Amt, max_Amt = priceRanges
-            if totalAmt <= min_Amt:
-                reqConfigName = confName
-                break
-            elif min_Amt <= totalAmt <= max_Amt:
-                reqConfigName = confName
-                break
-        else:
-            reqConfigName = confName
-        apprConfObj = PRApprovalConfig.objects.filter(user=user, name=reqConfigName, level=baseLevel)
-        if apprConfObj:
-            apprConfObjId = apprConfObj[0].id
-            mailsList = MasterEmailMapping.objects.filter(user=user, 
-                                    master_id=apprConfObjId, 
-                                    master_type='pr_approvals_conf_data').values_list('email_id', flat=True)
+        reqConfigName = findReqConfigName(user, totalAmt)
+        prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number)
         if mailsList:
-            validated_by = ", ".join(mailsList)
-        else:
-            validated_by = ''
-        prApprovalsMap = {
-                            'openpr_number': pr_number, 
-                            'pr_user': user, 
-                            'level': baseLevel,
-                            'validated_by': validated_by,
-                            'configName': reqConfigName
-                        }
-        prObj = PRApprovals(**prApprovalsMap)
-        prObj.save()
-        for eachMail in mailsList:
-            hash_code = hashlib.md5(b'%s:%s' % (prObj.id, eachMail)).hexdigest()
-            prApprovalMailsMap = {
-                            'pr_approval': prObj, 
-                            'email': eachMail, 
-                            'hash_code': hash_code,
-                        }
-            mailObj = PRApprovalMails(**prApprovalMailsMap)
-            mailObj.save()
-
-            #receipents = list(mailsList)
-            subject = "Purchase Request Approval for PR Number: %s" %pr_number
-            body = "<p> Following user requested PR Approval for </p>  \
-                <p> NAME : %s </p> \
-                Please click on the below link to validate.\
-                Link: %s/#/pr_request?hash_code=%s " % (request.user.username, urlPath, hash_code)
-            send_mail([eachMail], subject, body)
+            for eachMail in mailsList:
+                generateHashCodeForMail(prObj, eachMail)
+                # sendMailforPendingPO('po_created', username, urlPath, hash_code, level, po_number, mailId)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

@@ -5566,9 +5566,10 @@ def folder_check(path):
 @get_admin_user
 def get_sku_stock_check(request, user=''):
     ''' Check and return sku level stock'''
+    sku_code = request.GET.get('sku_code')
     search_params = {'sku__user': user.id}
     if request.GET.get('sku_code', ''):
-        search_params['sku__sku_code'] = request.GET.get('sku_code')
+        search_params['sku__sku_code'] = sku_code
     if request.GET.get('location', ''):
         location_master = LocationMaster.objects.filter(zone__user=user.id, location=request.GET['location'])
         if not location_master:
@@ -5594,7 +5595,7 @@ def get_sku_stock_check(request, user=''):
     zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
     avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
     po_search_params = {'open_po__sku__user': user.id, 
-                        'open_po__sku__sku_code': request.GET.get('sku_code'),
+                        'open_po__sku__sku_code': sku_code,
                         }
     poQs = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).\
                 filter(**po_search_params).values('open_po__sku__sku_code').\
@@ -5604,8 +5605,15 @@ def get_sku_stock_check(request, user=''):
         poOrderedQty = poQs[0]['total_order']
         poReceivedQty = poQs[0]['total_received']
         intransitQty = poOrderedQty - poReceivedQty
+    skuPack_quantity = 0
+    sku_pack_config = get_misc_value('sku_pack_config', user.id)
+    if sku_pack_config == 'true':
+        skuPack_data = SKUPackMaster.objects.filter(sku__sku_code= sku_code, sku__user= user.id)
+        if skuPack_data:
+            skuPack_quantity = skuPack_data[0].pack_quantity
+
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty, 
-                                    'intransit_quantity': intransitQty}))
+                                    'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}))
 
 
 def get_sku_stock_summary(stock_data, load_unit_handle, user):

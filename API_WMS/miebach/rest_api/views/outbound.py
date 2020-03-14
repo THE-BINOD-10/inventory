@@ -4427,6 +4427,7 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
             order_summary_dict[key] = value
         elif key == 'tax_type':
             order_summary_dict['tax_type'] = inter_state_dict.get(value, 2)
+            order_summary_dict['inter_state'] = inter_state_dict.get(value, 2)
         elif key == 'order_taken_by':
             order_summary_dict['order_taken_by'] = value
         elif key == 'shipment_time_slot':

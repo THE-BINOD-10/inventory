@@ -942,7 +942,7 @@ def print_pending_po_form(request, user=''):
         # if user.username in MILKBASKET_USERS:
         #     table_headers.insert(4, 'Weight')
     else:
-        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price',
+        table_headers = ['SKU Code','SKU Desc','Supplier Code', 'Qty', 'UOM', 'Unit Price',
                          'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
     # if ean_flag:
     #     table_headers.insert(1, 'EAN')
@@ -973,7 +973,7 @@ def print_pending_po_form(request, user=''):
         #             weight = weight_obj[0].attribute_value
         #         po_temp_data.insert(4, weight)
         # else:
-        po_temp_data = [order.sku.sku_code, order.sku.sku_desc,
+        po_temp_data = [order.sku.sku_code, order.sku.sku_desc,'',
                         order.quantity, order.measurement_unit, order.price, amount,
                         order.sgst_tax, order.cgst_tax, order.igst_tax,
                         order.utgst_tax, total_sku_amt]

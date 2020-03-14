@@ -156,7 +156,7 @@
                 <label class="control-label" ng-if="showCase.wh_purchase_order">PO Delivery Date*</label>
                 <input name="po_delivery_date" ui-jq="datepicker"
                        ng-readonly="showCase.model_data.is_approval"
-                       ng-model="showCase.model_data.po_delivery_date" class="form-control stk-readonly" type="text" id="po_delivery_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
+                       ng-model="showCase.model_data.po_delivery_date" class="form-control" type="text" id="po_delivery_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.warehouse_type == 'admin'">
@@ -195,7 +195,7 @@
                     <th>WMS Code*</th>
                     <th>Title</th>
                     <th ng-if="showCase.show_ean_number">EAN Number</th>
-                    <th class="w10_" ng-if="!(user.user_profile.user_type == 'marketplace_user')">Supplier Code</th>
+                    <th class="w10_" ng-if="!(user.user_profile.user_type == 'marketplace_user') && !showCase.model_data.is_approval">Supplier Code</th>
 
                     <!--<th ng-if="user.user_profile.user_type == 'marketplace_user'">Description</th>-->
                     <th class="w10_">Quantity*</th>
@@ -238,7 +238,7 @@
                       <input  ng-model="product.fields.ean_number" name="ean_number" title="{{ product.fields.ean_number }}" type="text" class="form-control detectTab" readonly size="50">
                     </td>
 
-                    <td ng-if="!(user.user_profile.user_type == 'marketplace_user')" ng-readonly="showCase.default_status">
+                    <td ng-if="!(user.user_profile.user_type == 'marketplace_user') && !showCase.model_data.is_approval" ng-readonly="showCase.default_status">
                       <input id="wms1" ng-model="product.fields.supplier_code" type="text"
                              ng-readonly="showCase.model_data.is_approval"
                              name="supplier_code" class="form-control detectTab " value="">

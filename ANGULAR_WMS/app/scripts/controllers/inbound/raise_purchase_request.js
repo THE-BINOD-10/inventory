@@ -395,9 +395,18 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         });
       }
     }
-
+    vm.validate_error_check = function (elem){
+      angular.forEach(elem, function(datum){
+        if (datum['name'] == 'wms_code') {
+          if (datum['value'] == '') {
+            return false;
+          } else {
+            return true;
+          }
+        }
+      })
+    }
     vm.save_raise_pr = function(data) {
-
       if (data.$valid) {
         if(vm.update) {
           vm.update_raise_pr();
@@ -406,16 +415,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             var elem = angular.element($('form'));
             elem = elem[0];
             elem = $(elem).serializeArray();
-            angular.forEach(elem, function(datum){
-              if (datum['name'] == 'wms_code') {
-                if (datum['value'] == '') {
-                    vm.service.showNoty('Please Fill SKU Code *') 
-                } else {
-                  var falg = vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true;
-                  falg ? vm.add_raise_pr(elem) : '';
-                }
-              }
-            })
+            var flag = vm.validate_error_check(elem);
+            if (flag) {
+              var confirm_api = vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true;
+              confirm_api ? vm.add_raise_pr(elem) : '';
+            } else {
+              vm.service.showNoty('Please Fill SKU Code *')
+            }
           } else {
             data.supplier_id.$viewValue == '' ? vm.service.showNoty('Please Fill Supplier ID') : '';
             typeof(data.po_delivery_date.$viewValue) == "undefined" ? vm.service.showNoty('Please Fill PO Delivery Date') : '';

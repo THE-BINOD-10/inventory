@@ -156,6 +156,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "tax": "",
                   "sub_total": "",
                   "pr_delivery_date": data.data.pr_delivery_date,
+                  "po_delivery_date": data.data.pr_delivery_date,
                   "supplier_name": data.data.supplier_name,
                   "data": data.data.data,
           };

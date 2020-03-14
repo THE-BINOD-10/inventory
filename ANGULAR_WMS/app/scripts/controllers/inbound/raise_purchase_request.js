@@ -287,6 +287,16 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         }
       });
     }
+    vm.sku_pack_validation = function(data) {
+      angular.forEach(data, function(datum, index){
+        if(data[index]["fields"]['order_quantity'] == data[index]["fields"]['sku']['skuPack_quantity']){
+          return true;
+        } else {
+          vm.service.showNoty('Sku Pack Quantity MisMatch')
+          return false;
+        }
+      })
+    }
 
     vm.ship_addr_change = function(name) {
       vm.model_data.shipment_address_select = name
@@ -308,7 +318,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.update_data = function (index, flag=true, plus=false) {
       if (index == vm.model_data.data.length-1) {
-        if (vm.model_data.data[index]["fields"]["sku"] && (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"])) {
+        if (vm.model_data.data[index]["fields"]["sku"] && (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"]) && (vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true)) {
 
           if (plus) {
 
@@ -391,7 +401,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             elem = $(elem).serializeArray();
             angular.forEach(elem, function(datum){
               if (datum['name'] == 'wms_code') {
-                datum['value'] == '' ?  vm.service.showNoty('Please Fill SKU Code *') : vm.add_raise_pr(elem);
+                if (datum['value'] == '') {
+                    vm.service.showNoty('Please Fill SKU Code *') 
+                } else {
+                  var falg = vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true;
+                  falg ? vm.add_raise_pr(elem) : '';
+                }
               }
             })
           } else {
@@ -704,6 +719,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           if(data.data.available_quantity) {
             sku_data["capacity"] = data.data.available_quantity;
             sku_data["intransit_quantity"] = data.data.intransit_quantity;
+            if (vm.permissions.sku_pack_config) {
+              sku_data["skuPack_quantity"] = data.data.skuPack_quantity;
+            }
           }
         }
       });

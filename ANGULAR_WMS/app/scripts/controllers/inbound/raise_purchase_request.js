@@ -684,10 +684,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
    vm.update_available_stock = function(sku_data) {
       var send = {sku_code: sku_data.wms_code, location: ""}
       vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
-        sku_data["capacity"] = 0
+        sku_data["capacity"] = 0;
+        sku_data["intransit_quantity"] = 0;
         if(data.message) {
           if(data.data.available_quantity) {
             sku_data["capacity"] = data.data.available_quantity;
+            sku_data["intransit_quantity"] = data.data.intransit_quantity;
           }
         }
       });

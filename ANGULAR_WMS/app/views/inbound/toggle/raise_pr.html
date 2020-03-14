@@ -76,6 +76,7 @@
                     <th>SKU Code*</th>
                     <th>Title</th>
                     <th>AvailableQty</th>
+                    <th>IntransitQty</th>
                     <th ng-if="showCase.show_ean_number">EAN Number</th>
                     <!-- <th class="w10_" ng-if="!(user.user_profile.user_type == 'marketplace_user')">Supplier Code</th> -->
 
@@ -107,6 +108,7 @@
                       <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
                     </td>
                     <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.capacity}}</span> </td>
+                    <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.intransit_quantity}}</span> </td>
                     <td ng-if="showCase.show_ean_number">
                       <input  ng-model="product.fields.ean_number" name="ean_number" title="{{ product.fields.ean_number }}" type="text" class="form-control detectTab" readonly size="50">
                     </td>

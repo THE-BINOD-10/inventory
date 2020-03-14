@@ -43,7 +43,14 @@
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
-                <label class="control-label">Address</label><br>
+                <label class="control-label" ng-if="!showCase.wh_purchase_order">PO Delivery Date *</label>
+                <label class="control-label" ng-if="showCase.wh_purchase_order">PO Delivery Date *</label>
+                <input name="po_delivery_date" ui-jq="datepicker" ng-model="showCase.model_data.po_delivery_date" class="form-control stk-readonly" type="text" id="po_delivery_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Address *</label><br>
                 <div class="btn-group mr15" dropdown="">
                   <button type="button" ng-init = "showCase.model_data.shipment_address_select = 'Select Shipment Address'" ng-model="showCase.model_data.shipment_address_select" class="btn btn-default dropdown-toggle" dropdown-toggle="" aria-haspopup="true" aria-expanded="false" style="width: 300px;">{{showCase.model_data.shipment_address_select}} <span class="caret"></span> </button>
                   <ul class="dropdown-menu" role="menu">
@@ -54,15 +61,8 @@
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> Ship To </label>
+                <label class="control-label"> Ship To *</label>
                 <input type="text" ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control" ng-readonly="true"> </div>
-            </div>
-            <div class="col-md-4 col-sm-4 col-xs-6">
-              <div class="form-group">
-                <label class="control-label" ng-if="!showCase.wh_purchase_order">PO Delivery Date</label>
-                <label class="control-label" ng-if="showCase.wh_purchase_order">PO Delivery Date*</label>
-                <input name="po_delivery_date" ui-jq="datepicker" ng-model="showCase.model_data.po_delivery_date" class="form-control stk-readonly" type="text" id="po_delivery_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
-              </div>
             </div>
           </div>
           <div class="row">
@@ -76,6 +76,7 @@
                     <th>SKU Code*</th>
                     <th>Title</th>
                     <th>AvailableQty</th>
+                    <th>IntransitQty</th>
                     <th ng-if="showCase.show_ean_number">EAN Number</th>
                     <!-- <th class="w10_" ng-if="!(user.user_profile.user_type == 'marketplace_user')">Supplier Code</th> -->
 
@@ -107,6 +108,7 @@
                       <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
                     </td>
                     <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.capacity}}</span> </td>
+                    <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.intransit_quantity}}</span> </td>
                     <td ng-if="showCase.show_ean_number">
                       <input  ng-model="product.fields.ean_number" name="ean_number" title="{{ product.fields.ean_number }}" type="text" class="form-control detectTab" readonly size="50">
                     </td>

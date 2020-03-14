@@ -385,7 +385,20 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         if(vm.update) {
           vm.update_raise_pr();
         } else {
-          vm.add_raise_pr(data);
+          if (data.supplier_id.$viewValue && data.po_delivery_date.$viewValue && data.ship_to.$viewValue) {
+            var elem = angular.element($('form'));
+            elem = elem[0];
+            elem = $(elem).serializeArray();
+            angular.forEach(elem, function(datum){
+              if (datum['name'] == 'wms_code') {
+                datum['value'] == '' ?  vm.service.showNoty('Please Fill SKU Code *') : vm.add_raise_pr(elem);
+              }
+            })
+          } else {
+            data.supplier_id.$viewValue == '' ? vm.service.showNoty('Please Fill Supplier ID') : '';
+            typeof(data.po_delivery_date.$viewValue) == "undefined" ? vm.service.showNoty('Please Fill PO Delivery Date') : '';
+            vm.model_data.ship_addr_names.length == 0 ? vm.service.showNoty('Please create Shipment Address') : (data.ship_to.$viewValue == '' ? vm.service.showNoty('Please select Ship to Address') : '');
+          }
         }
       }
     }
@@ -685,10 +698,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
    vm.update_available_stock = function(sku_data) {
       var send = {sku_code: sku_data.wms_code, location: ""}
       vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
-        sku_data["capacity"] = 0
+        sku_data["capacity"] = 0;
+        sku_data["intransit_quantity"] = 0;
         if(data.message) {
           if(data.data.available_quantity) {
             sku_data["capacity"] = data.data.available_quantity;
+            sku_data["intransit_quantity"] = data.data.intransit_quantity;
           }
         }
       });
@@ -844,10 +859,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
 
-    vm.add_raise_pr = function(pr_form_data) {
-      var elem = angular.element($('form'));
-      elem = elem[0];
-      elem = $(elem).serializeArray();
+    vm.add_raise_pr = function(elem) {
       if (vm.is_purchase_request){
         elem.push({name:'is_purchase_request', value:true})
       }

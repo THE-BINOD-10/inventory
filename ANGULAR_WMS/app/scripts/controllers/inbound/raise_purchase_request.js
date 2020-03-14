@@ -287,15 +287,22 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         }
       });
     }
+    vm.isFloat = function(n) {
+    return n != "" && !isNaN(n) && Math.round(n) != n;
+  }
     vm.sku_pack_validation = function(data) {
-      angular.forEach(data, function(datum, index){
-        if(data[index]["fields"]['order_quantity'] == data[index]["fields"]['sku']['skuPack_quantity']){
-          return true;
-        } else {
-          vm.service.showNoty('Sku Pack Quantity MisMatch')
-          return false;
+      for (var j = 0; j < data.length; j++) {
+        if (data[j]["fields"]['sku']['skuPack_quantity']) {
+          var skuPackQty = data[j]["fields"]["sku"]["skuPack_quantity"];
+          var orderQty = data[j]["fields"]["order_quantity"];
+          var response = vm.isFloat(orderQty/skuPackQty);
+          if (response) {
+            colFilters.showNoty(data[j]["fields"]["sku"]["wms_code"] +' - Sku Pack Quantity Mismatch');
+            return false;
+          }
         }
-      })
+      }
+    return true;
     }
 
     vm.ship_addr_change = function(name) {

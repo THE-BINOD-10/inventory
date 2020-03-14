@@ -151,6 +151,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "terms_condition": data.data.terms_condition,
                   "receipt_type": data.data.receipt_type,
                   "seller_types": [],
+                  'is_approval':data.data.is_approval,
                   "total_price": 0,
                   "tax": "",
                   "sub_total": "",

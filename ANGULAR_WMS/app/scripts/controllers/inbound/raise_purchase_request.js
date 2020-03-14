@@ -395,17 +395,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         });
       }
     }
-//    vm.validate_error_check = function (elem){
-//      angular.forEach(elem, function(datum){
-//        if (datum['name'] == 'wms_code') {
-//          if (datum['value'] == '') {
-//            return false;
-//          } else {
-//            return true;
-//          }
-//        }
-//      })
-//    }
     vm.save_raise_pr = function(data) {
       if (data.$valid) {
         if(vm.update) {
@@ -468,9 +457,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       // }
       $http.get(Session.url+'print_pending_po_form/?po_id='+vm.model_data.po_number, {withCredential: true})
       .success(function(data, status, headers, config) {
-        $(".modal-body").html($(data).html());
-        vm.print_page = $($(data).html()).clone();
-        vm.print_enable = true;
+//        $(".modal-body").html($(data).html());
+          vm.service.print_data(data, vm.model_data.po_number);
+//        vm.print_page = $($(data).html()).clone();
+//        vm.print_enable = true;
       });      
 
       // vm.service.apiCall('print_pending_po_form/', 'POST', elem, true).then(function(data){

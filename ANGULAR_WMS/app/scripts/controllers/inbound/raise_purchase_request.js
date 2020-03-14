@@ -419,6 +419,34 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       })
     }
 
+    vm.print_pending_po = function(form, validation_type) {
+      // var elem = angular.element($('form'));
+      // elem = elem[0];
+      // elem = $(elem).serializeArray();
+      // // if (vm.is_purchase_request){
+      //   elem.push({name:'is_purchase_request', value:true})
+      // }
+      // if (vm.pr_number){
+      //   elem.push({name:'pr_number', value:vm.pr_number})
+      // }
+      $http.get(Session.url+'print_pending_po_form/?po_id='+vm.model_data.po_number, {withCredential: true})
+      .success(function(data, status, headers, config) {
+        $(".modal-body").html($(data).html());
+        vm.print_page = $($(data).html()).clone();
+        vm.print_enable = true;
+      });      
+
+      // vm.service.apiCall('print_pending_po_form/', 'POST', elem, true).then(function(data){
+      //   if(data.message){
+      //     if(data.data == 'Approved Successfully') {
+      //       vm.close();
+      //       vm.service.refresh(vm.dtInstance);
+      //     } else {
+      //       vm.service.pop_msg(data.data);
+      //     }
+      //   }
+      // })
+    }
 
     vm.barcode = function() {
 

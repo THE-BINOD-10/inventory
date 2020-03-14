@@ -897,8 +897,7 @@ def generated_pr_data(request, user=''):
     if len(record):
         if record[0].delivery_date:
             pr_delivery_date = record[0].delivery_date.strftime('%m/%d/%Y')
-        if record[0].remarks:
-            levelWiseRemarks.append({"level": 'requester', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks})    
+        levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks})    
     allRemarks = PRApprovals.objects.filter(pr_user=user.id, 
                     openpr_number=pr_number).exclude(status='').values_list('level', 'validated_by', 'remarks')
     for eachRemark in allRemarks:
@@ -909,10 +908,184 @@ def generated_pr_data(request, user=''):
                                     'order_quantity': rec.quantity, 'price': rec.price, 
                                     'cgst_tax': rec.cgst_tax, 'sgst_tax': rec.sgst_tax,
                                     'igst_tax': rec.igst_tax, 'utgst_tax': rec.utgst_tax,
+                                    'measurement_unit': rec.measurement_unit,
                                     }, 'pk': rec.id})
     return HttpResponse(json.dumps({'supplier_id': record[0].supplier_id, 'supplier_name': record[0].supplier.name,
                                     'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
-                                    'data': ser_data, 'levelWiseRemarks': levelWiseRemarks}))
+                                    'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_pending_po_form(request, user=''):
+    po_id = request.GET.get('po_id', '')
+    total_qty = 0
+    total = 0
+    if not po_id:
+        return HttpResponse("Purchase Order Id is missing")
+    po_number = int(po_id.split('_')[-1])
+    pendingPO = OpenPR.objects.filter(sku__user=user.id, po_number=po_number)
+    po_sku_ids = pendingPO.values_list('sku_id', flat=True)
+    # ean_flag = False
+    # ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
+    #                                     id__in=po_sku_ids, user=user.id)
+    # if ean_data:
+    #     ean_flag = True
+    # show_cess_tax = pendingPO.filter(open_po__cess_tax__gt=0).exists()
+    # show_apmc_tax = pendingPO.filter(open_po__apmc_tax__gt=0).exists()
+    display_remarks = get_misc_value('display_remarks_mail', user.id)
+    po_data = []
+    if user.userprofile.industry_type == 'FMCG':
+        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP',
+                         'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+        # if user.username in MILKBASKET_USERS:
+        #     table_headers.insert(4, 'Weight')
+    else:
+        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price',
+                         'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+    # if ean_flag:
+    #     table_headers.insert(1, 'EAN')
+    if display_remarks == 'true':
+        table_headers.append('Remarks')
+    # if show_cess_tax:
+    #     table_headers.insert(table_headers.index('Total'), 'CESS (%)')
+    # if show_apmc_tax:
+    #     table_headers.insert(table_headers.index('Total'), 'APMC (%)')
+    for order in pendingPO:
+        # open_po = order.open_po
+        total_qty += order.quantity
+        amount = order.quantity * order.price
+        tax = order.cgst_tax + order.sgst_tax + order.igst_tax + order.utgst_tax
+        total += amount + ((amount / 100) * float(tax))
+        total_tax_amt = (tax) * (amount / 100)
+        total_sku_amt = total_tax_amt + amount
+        # if user.userprofile.industry_type == 'FMCG':
+        #     po_temp_data = [order.sku.sku_code, order.supplier_code, order.sku.sku_desc,
+        #                     order.order_quantity, order.measurement_unit, order.price, order.mrp, amount,
+        #                     order.sgst_tax, order.cgst_tax, order.igst_tax,
+        #                     order.utgst_tax, total_sku_amt]
+        #     if user.username in MILKBASKET_USERS:
+        #         weight_obj = open_po.sku.skuattributes_set.filter(attribute_name='weight'). \
+        #             only('attribute_value')
+        #         weight = ''
+        #         if weight_obj.exists():
+        #             weight = weight_obj[0].attribute_value
+        #         po_temp_data.insert(4, weight)
+        # else:
+        po_temp_data = [order.sku.sku_code, order.sku.sku_desc,
+                        order.quantity, order.measurement_unit, order.price, amount,
+                        order.sgst_tax, order.cgst_tax, order.igst_tax,
+                        order.utgst_tax, total_sku_amt]
+
+        # if ean_flag:
+        #     ean_number = ''
+        #     eans = get_sku_ean_list(open_po.sku)
+        #     if eans:
+        #         ean_number = eans[0]
+        #     po_temp_data.insert(1, ean_number)
+        # if show_cess_tax:
+        #     po_temp_data.insert(table_headers.index('CESS (%)'), open_po.cess_tax)
+        # if show_apmc_tax:
+        #     po_temp_data.insert(table_headers.index('APMC (%)'), open_po.apmc_tax)
+        if display_remarks == 'true':
+            po_temp_data.append(open_po.remarks)
+        # if show_cess_tax:
+        #     po_temp_data.insert(table_headers.index('CESS (%)'), open_po.cess_tax)
+        po_data.append(po_temp_data)
+    order = pendingPO[0]
+    # open_po = order.open_po
+    address = order.supplier.address
+    address = '\n'.join(address.split(','))
+    # vendor_name = ''
+    # vendor_address = ''
+    # vendor_telephone = ''
+    # if open_po.order_type == 'VR':
+    #     vendor_address = open_po.vendor.address
+    #     vendor_address = '\n'.join(vendor_address.split(','))
+    #     vendor_name = open_po.vendor.name
+    #     vendor_telephone = open_po.vendor.phone_number
+    telephone = order.supplier.phone_number
+    name = order.supplier.name
+    order_id = order.po_number
+    gstin_no = order.supplier.tin_number
+    # if open_po:
+    address = order.supplier.address
+    address = '\n'.join(address.split(','))
+    if order.ship_to:
+        ship_to_address = order.ship_to
+        if user.userprofile.wh_address:
+            company_address = user.userprofile.wh_address
+        else:
+            company_address = user.userprofile.address
+    else:
+        ship_to_address, company_address = get_purchase_company_address(user.userprofile)
+    ship_to_address = '\n'.join(ship_to_address.split(','))
+    telephone = order.supplier.phone_number
+    name = order.supplier.name
+    supplier_email = order.supplier.email_id
+    gstin_no = order.supplier.tin_number
+    # if open_po.order_type == 'VR':
+    #     vendor_address = open_po.vendor.address
+    #     vendor_address = '\n'.join(vendor_address.split(','))
+    #     vendor_name = open_po.vendor.name
+    #     vendor_telephone = open_po.vendor.phone_number
+    terms_condition = ''
+    wh_telephone = user.userprofile.wh_phone_number
+    order_date = get_local_date(request.user, order.creation_date)
+    po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+    total_amt_in_words = number_in_words(round(total)) + ' ONLY'
+    round_value = float(round(total) - float(total))
+    profile = user.userprofile
+    company_name = profile.company_name
+    title = 'Purchase Order (DRAFT)'
+    receipt_type = request.GET.get('receipt_type', '')
+    left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO, request)
+    tc_master = UserTextFields.objects.filter(user=user.id, field_type='terms_conditions')
+    if tc_master.exists():
+        terms_condition = tc_master[0].text_field
+    if order.supplier.lead_time:
+        lead_time_days = order.supplier.lead_time
+        replace_date = get_local_date(request.user,
+                                      order.creation_date + datetime.timedelta(days=int(lead_time_days)),
+                                      send_date='true')
+        date_replace_terms = replace_date.strftime("%d-%m-%Y")
+        terms_condition = terms_condition.replace("%^PO_DATE^%", date_replace_terms)
+    else:
+        terms_condition = terms_condition.replace("%^PO_DATE^%", '')
+
+    data_dict = {
+        'table_headers': table_headers,
+        'data': po_data,
+        'address': address,
+        'order_id': order_id,
+        'telephone': str(telephone),
+        'name': name,
+        'order_date': order_date,
+        'total': round(total),
+        'total_qty': total_qty,
+        'vendor_name': 'vendor_name',
+        'vendor_address': 'vendor_address',
+        'vendor_telephone': 'vendor_telephone',
+        'gstin_no': gstin_no,
+        'w_address': ship_to_address,  # get_purchase_company_address(profile),
+        'ship_to_address': ship_to_address,
+        'wh_telephone': wh_telephone,
+        'wh_gstin': profile.gst_number,
+        'terms_condition': terms_condition,
+        'total_amt_in_words': total_amt_in_words,
+        'show_cess_tax': 'show_cess_tax',
+        'company_name': profile.company_name,
+        'location': profile.location,
+        'po_reference': po_reference,
+        'industry_type': profile.industry_type,
+        'left_side_logo': left_side_logo,
+        'company_address': company_address
+    }
+    if round_value:
+        data_dict['round_total'] = "%.2f" % round_value
+    return render(request, 'templates/toggle/po_template.html', data_dict)
+
 
 
 @login_required

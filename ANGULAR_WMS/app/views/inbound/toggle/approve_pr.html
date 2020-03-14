@@ -71,8 +71,8 @@
 
                     <!--<th ng-if="user.user_profile.user_type == 'marketplace_user'">Description</th>-->
                     <th class="w10_">Quantity*</th>
-                    <!-- <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Measurement</th>
-                    <th ng-if="showCase.industry_type=='FMCG'">MRP</th> -->
+                    <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">UOM</th>
+                    <!-- <th ng-if="showCase.industry_type=='FMCG'">MRP</th> -->
                     <th>Unit Price</th>
                     <!-- <th ng-if="showCase.industry_type=='FMCG' && user.user_profile.user_type == 'marketplace_user'">Weight</th> -->
                     <th class="w10_">SGST(%)</th>
@@ -107,9 +107,9 @@
                              ng-class="service.get_decimal_perm()" ng-readonly="true"
                              ng-keyup="showCase.getTotals()" size="12">
                     </td>
-                    <!-- <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
+                    <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
                       <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
-                    </td> -->
+                    </td>
                     <!-- <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="product.fields.mrp" size="22" title="{{ product.fields.mrp }}" name="mrp" class="form-control detectTab" ng-class="service.get_decimal_perm()" size="12"></td> -->
                     <td>
                       <input type="text"  ng-model="product.fields.price" name="price" class="form-control detectTab" decimal-number
@@ -238,6 +238,7 @@
 		</div>
         <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin'">
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-click="showCase.approve_pr(form, 'approved')">Approve PO</button>
+          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-yellow" ng-click="showCase.print_pending_po(form)">PRINT PO</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-red pull-left" ng-click="showCase.approve_pr(form, 'rejected')">Reject PO</button>
         </div>
       </div>

@@ -2035,18 +2035,7 @@ def add_po(request, user=''):
 
 def findLastLevelToApprove(user, pr_number, totalAmt):
     finalLevel = 'level0'
-    reqConfigName = ''
-    configNameRangesMap = fetchConfigNameRangesMap(user)
-    for confName, priceRanges in configNameRangesMap.items():  #Used For..else
-        min_Amt, max_Amt = priceRanges
-        if totalAmt <= min_Amt:
-            reqConfigName = confName
-            break
-        elif min_Amt <= totalAmt <= max_Amt:
-            reqConfigName = confName
-            break
-    else:
-        reqConfigName = confName
+    reqConfigName = findReqConfigName(user, totalAmt)
     configQs = list(PRApprovalConfig.objects.filter(user=user, name=reqConfigName).values_list('level', flat=True).order_by('-id'))
     if configQs:
         finalLevel = configQs[0]
@@ -2240,20 +2229,32 @@ def generateHashCodeForMail(prObj, mailId):
                 }
     mailObj = PRApprovalMails(**prApprovalMailsMap)
     mailObj.save()
+    return hash_code
 
-
-def sendMailforPendingPO(subjectType, username, urlPath, hash_code, level, po_number, mailId, totalAmt):
+def sendMailforPendingPO(pr_number, user, level, subjectType, mailId, urlPath=None, hash_code=None):
     from mail_server import send_mail
-    validationLink = "%s/#/pr_request?hash_code=%s" %(urlPath, hash_code)
-    if subjectType == 'po_created':
-        subject = "Action Required: Pending PO %s for %s (%s INR)" %(po_number, username, totalAmt)
-        body = "<p> Pending PO Details </p>  \
-        <p> NAME : %s </p> \
-        <p>Line Items: %s</p> \
-        <p>PO Created Date: %s</p> \
-        Please click on the below link to validate.\
-        Link: %s" % (username, lineItemDetails, creationDate, validationLink)    
-    send_mail(mailId, subject, body)
+    openPRQs = OpenPR.objects.filter(pr_number=pr_number, sku__user=user.id)
+    if openPRQs.exists():
+        result = openPRQs[0]
+        dateforPo = str(result.creation_date).split(' ')[0].replace('-', '')
+        po_reference = '%s%s_%s' % (result.prefix, dateforPo, result.po_number)
+        creation_date = result.creation_date.strftime('%d-%m-%Y %H:%M:%S')
+        validationLink = "%s/#/pr_request?hash_code=%s" %(urlPath, hash_code)
+        requestedBy = result.requested_user.first_name
+        totalAmt = openPRQs.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
+        skusWithQty = openPRQs.values_list('sku__sku_code', 'quantity')
+        lineItemDetails = ', '.join(['%s (%s)' %(skuCode, Qty) for skuCode,Qty in skusWithQty ])
+        reqUserMailID = result.requested_user.email
+        mailRecepients = [mailId, reqUserMailID]
+        if subjectType == 'po_created':
+            subject = "Action Required: Pending PO %s for %s (%s INR)" %(po_reference, requestedBy, totalAmt)
+            body = "<p> Pending PO Details </p>  \
+            <p>NAME : %s </p> \
+            <p>Line Items(Item with Qty): %s</p> \
+            <p>PO Created Date: %s</p> \
+            Please click on the below link to validate.\
+            Link: %s" % (requestedBy, lineItemDetails, creation_date, validationLink)    
+        send_mail(mailRecepients, subject, body)
 
 
 @csrf_exempt
@@ -2321,8 +2322,8 @@ def add_pr(request, user=''):
         prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number)
         if mailsList:
             for eachMail in mailsList:
-                generateHashCodeForMail(prObj, eachMail)
-                # sendMailforPendingPO('po_created', username, urlPath, hash_code, level, po_number, mailId)
+                hash_code = generateHashCodeForMail(prObj, eachMail)
+                sendMailforPendingPO(pr_number, user, baseLevel, 'po_created', eachMail, urlPath, hash_code)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -5885,6 +5886,16 @@ def confirm_add_po(request, sales_data='', user=''):
             po_id = int(sales_data['po_order_id'])
             po_order_id = int(sales_data['po_order_id'])
 
+    po_creation_date = ''
+    is_purchase_request = request.POST.get('is_purchase_request', '')
+    if is_purchase_request == 'true':
+        pr_number = int(request.POST.get('pr_number'))
+        prQs = OpenPR.objects.filter(sku__user=user.id, pr_number=pr_number)
+        if prQs.exists():
+            prObj = prQs[0]
+            po_creation_date = prObj.creation_date
+            po_id = prObj.po_number
+            po_order_id = prObj.po_number
     ids_dict = {}
     po_data = []
     total = 0
@@ -6017,8 +6028,15 @@ def confirm_add_po(request, sales_data='', user=''):
             #data['ship_to'] = value['ship_to']
             if user_profile:
                 data['prefix'] = user_profile[0].prefix
+            # if po_creation_date:  #Update is not happening when auto_add_now is enabled.
+            #     data['creation_date'] = po_creation_date
+            #     data['updation_date'] = po_creation_date
+
             order = PurchaseOrder(**data)
             order.save()
+            if po_creation_date:
+                PurchaseOrder.objects.filter(id=order.id).update(creation_date=po_creation_date, updation_date=po_creation_date)
+                order = PurchaseOrder.objects.get(id=order.id)
             if value['sellers']:
                 for seller, seller_quan in value['sellers'].iteritems():
                     SellerPO.objects.create(seller_id=seller, open_po_id=data1.id, seller_quantity=seller_quan[0],

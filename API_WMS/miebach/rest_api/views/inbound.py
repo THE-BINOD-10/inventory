@@ -67,8 +67,9 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    values_list = ['requested_user', 'requested_user__username', 'pr_number', 'po_number', 'final_status', 
-                    'pending_level', 'remarks', 'supplier_id', 'prefix']
+    values_list = ['requested_user', 'requested_user__first_name','requested_user__username', 'pr_number', 
+                    'po_number', 'final_status', 'pending_level', 'remarks', 'supplier_id', 'supplier__name', 
+                    'prefix', 'delivery_date']
 
     results = OpenPR.objects.filter(**filtersMap).values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
@@ -86,35 +87,48 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
 
     count = 0
     for result in results[start_index: stop_index]:
-        creation_date = str(resultsWithDate.get(result['pr_number'])).split(' ')[0].replace('-', '')
-        po_reference = '%s%s_%s' % (result['prefix'], creation_date, result['po_number'])
+        warehouse = user.first_name
+        po_created_date = resultsWithDate.get(result['pr_number'])
+        po_date = po_created_date.strftime('%d-%m-%Y')
+        po_delivery_date = result['delivery_date'].strftime('%d-%m-%Y')
+        dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
+        po_reference = '%s%s_%s' % (result['prefix'], dateInPO, result['po_number'])
         mailsList = []
         reqConfigName, lastLevel = findLastLevelToApprove(result['requested_user'], result['pr_number'], result['total_amt'])
         prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
         if not prApprQs.exists():
             continue
+
+        last_updated_by = ''
+        last_updated_time = ''
+        last_updated_remarks = ''
         validated_by = prApprQs[0].validated_by
-        if result['pending_level'] != 'level0' and result['final_status'] == 'pending':
+        if result['pending_level'] != 'level0':
             prev_level = 'level' + str(int(result['pending_level'].replace('level', '')) - 1)
             prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=prev_level)
             last_updated_by = prApprQs[0].validated_by
             last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
             last_updated_remarks = prApprQs[0].remarks
-        elif result['pending_level'] == 'level0' and result['final_status'] == 'approved':
-            prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
-            last_updated_by = prApprQs[0].validated_by
-            last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
-            last_updated_remarks = prApprQs[0].remarks
-        else:
-            last_updated_by = ''
-            last_updated_time = ''
-            last_updated_remarks = ''
+        elif result['pending_level'] == 'level0':
+            if result['final_status'] == 'pending':
+                prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
+                last_updated_remarks = result['remarks']
+            else:
+                prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
+                last_updated_by = prApprQs[0].validated_by
+                last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+                last_updated_remarks = prApprQs[0].remarks
         temp_data['aaData'].append(OrderedDict((
                                                 ('PR Number', result['pr_number']),
                                                 ('PO Number', po_reference),
                                                 ('Supplier ID', result['supplier_id']),
+                                                ('Supplier Name', result['supplier__name']),
                                                 ('Total Quantity', result['total_qty']),
                                                 ('Total Amount', result['total_amt']),
+                                                ('PO Created Date', po_date),
+                                                ('PO Delivery Date', po_delivery_date),
+                                                ('Warehouse', warehouse),
+                                                ('PO Raise By', result['requested_user__first_name']),
                                                 ('Requested User', result['requested_user__username']),
                                                 ('Validation Status', result['final_status']),
                                                 ('Pending Level', '%s Of %s' %(result['pending_level'], lastLevel)),
@@ -894,12 +908,19 @@ def generated_pr_data(request, user=''):
     ser_data = []
     levelWiseRemarks = []
     pr_delivery_date = ''
+    pr_created_date = ''
+    validateFlag = 0
     if len(record):
         if record[0].delivery_date:
-            pr_delivery_date = record[0].delivery_date.strftime('%m/%d/%Y')
+            pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
+        pr_created_date = record[0].creation_date.strftime('%d-%m-%Y')
         levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks})    
-    allRemarks = PRApprovals.objects.filter(pr_user=user.id, 
-                    openpr_number=pr_number).exclude(status='').values_list('level', 'validated_by', 'remarks')
+    prApprQs = PRApprovals.objects.filter(pr_user=user.id, openpr_number=pr_number)
+    allRemarks = prApprQs.exclude(status='').values_list('level', 'validated_by', 'remarks')
+    pendingLevelApprovers = list(prApprQs.filter(status__in=['pending', '']).values_list('validated_by', flat=True))
+    if pendingLevelApprovers:
+        if request.user.email in pendingLevelApprovers[0]:
+            validateFlag = 1
     for eachRemark in allRemarks:
         level, validated_by, remarks = eachRemark
         levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
@@ -911,8 +932,10 @@ def generated_pr_data(request, user=''):
                                     'measurement_unit': rec.measurement_unit,
                                     }, 'pk': rec.id})
     return HttpResponse(json.dumps({'supplier_id': record[0].supplier_id, 'supplier_name': record[0].supplier.name,
-                                    'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
-                                    'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1}))
+                                    'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date, 
+                                    'pr_created_date': pr_created_date, 'warehouse': user.first_name,
+                                    'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1, 
+                                    'validateFlag': validateFlag}))
 
 
 @csrf_exempt
@@ -1033,6 +1056,7 @@ def print_pending_po_form(request, user=''):
     terms_condition = ''
     wh_telephone = user.userprofile.wh_phone_number
     order_date = get_local_date(request.user, order.creation_date)
+    delivery_date = order.delivery_date.strftime('%d-%m-%Y')
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
@@ -1062,6 +1086,7 @@ def print_pending_po_form(request, user=''):
         'telephone': str(telephone),
         'name': name,
         'order_date': order_date,
+        'delivery_date': delivery_date,
         'total': round(total),
         'total_qty': total_qty,
         'vendor_name': 'vendor_name',
@@ -1080,7 +1105,8 @@ def print_pending_po_form(request, user=''):
         'po_reference': po_reference,
         'industry_type': profile.industry_type,
         'left_side_logo': left_side_logo,
-        'company_address': company_address
+        'company_address': company_address,
+        'is_draft': 1
     }
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value

@@ -55,8 +55,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = [ "Supplier ID", "PO Number", "Total Quantity", "Total Amount", "Requested User", 
-                    "Validation Status", "Pending Level", "To Be Validated By",
+    var columns = [ "Supplier ID", "Supplier Name", "PO Number", "Total Quantity", "Total Amount", 
+                    "PO Created Date", "PO Delivery Date", "Warehouse",
+                     "PO Raise By",  "Validation Status", "Pending Level", "To Be Validated By",
                     "Last Updated By", "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
@@ -152,12 +153,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "receipt_type": data.data.receipt_type,
                   "seller_types": [],
                   'is_approval':data.data.is_approval,
+                  "validateFlag": data.data.validateFlag,
                   "total_price": 0,
                   "tax": "",
                   "sub_total": "",
                   "pr_delivery_date": data.data.pr_delivery_date,
-                  "po_delivery_date": data.data.pr_delivery_date,
+                  "pr_created_date": data.data.pr_created_date,
                   "supplier_name": data.data.supplier_name,
+                  "warehouse": data.data.warehouse,
                   "data": data.data.data,
           };
           vm.model_data = {};
@@ -221,14 +224,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.model_data['po_number'] = aData['PO Number'];
           // vm.model_data.seller_type = vm.model_data.dedicated_seller;
           vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
-          vm.title = 'Update PO';
+          vm.title = 'Validate PO';
           vm.pr_number = aData['PR Number']
           vm.validated_by = aData['To Be Validated By']
           // vm.update = true;
-          if (aData['Validation Status'] == 'pending'){
-            $state.go('app.inbound.RaisePo.ApprovePurchaseRequest');  
-          } else if (aData['Validation Status'] == 'approved'){
+          if (aData['Validation Status'] == 'approved'){
             $state.go('app.inbound.RaisePo.PurchaseOrder');
+          } else{
+            $state.go('app.inbound.RaisePo.ApprovePurchaseRequest');
           }
         }
     });

@@ -97,7 +97,7 @@ class Command(BaseCommand):
                 prices, taxes = get_extra_data_info(sku_detail.stock_detail.batch_detail, sku_detail.sku, sku_detail.quantity,
                                     tax_type_dict)
                 extra_data_key = (field_type, sku_detail.stock_detail.batch_detail.tax_percent)
-            elif not use_cost_price:
+            elif sku_detail.stock_detail and sku_detail.stock_detail.batch_detail and not use_cost_price:
                 prices, taxes = get_extra_data_info(sku_detail.stock_detail.batch_detail, sku_detail.sku, sku_detail.quantity,
                                     tax_type_dict, unit_price=unit_price, tax_percent=tax,
                                     use_cost_price=use_cost_price, tax_type=tax_type, cess_tax=cess_tax)

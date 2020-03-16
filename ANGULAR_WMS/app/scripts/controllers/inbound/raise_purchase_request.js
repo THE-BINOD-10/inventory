@@ -239,7 +239,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     }
     if ($rootScope.$current_pr != '') {
-       vm.dynamic_route($rootScope.$current_pr);
+      vm.supplier_id = $rootScope.$current_pr['Supplier ID'];
+      vm.dynamic_route($rootScope.$current_pr);
     }
     vm.base = function() {
       vm.title = "Raise PO";
@@ -718,6 +719,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
         sku_data["capacity"] = 0;
         sku_data["intransit_quantity"] = 0;
+        sku_data["skuPack_quantity"] = 0;
         if(data.message) {
           if(data.data.available_quantity) {
             sku_data["capacity"] = data.data.available_quantity;
